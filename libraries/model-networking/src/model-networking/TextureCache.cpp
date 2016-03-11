@@ -146,7 +146,7 @@ public:
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, const QByteArray& content) {
     TextureExtra extra = { type, content };
-    return ResourceCache::getResource(url, QUrl(), false, &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(url, QUrl(), content.isEmpty(), &extra).staticCast<NetworkTexture>();
 }
 
 /// Returns a texture version of an image file
@@ -344,9 +344,7 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, int origin
         _width = _height = 0;
     }
     
-    _isCacheable = true;
     finishedLoading(true);
 
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
 }
-

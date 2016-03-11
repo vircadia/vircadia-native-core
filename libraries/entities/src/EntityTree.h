@@ -114,8 +114,8 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
-    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)

@@ -20,7 +20,6 @@ class Menu : public ui::Menu {
     Q_OBJECT
 
 public:
-    static void setInstance();
     static Menu* getInstance();
     Menu();
     Q_INVOKABLE void addMenuItem(const MenuItemProperties& properties);
@@ -145,6 +144,7 @@ namespace MenuOption {
     const QString RenderResolutionHalf = "1/2";
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
+    const QString RenderSensorToWorldMatrix = "Show SensorToWorld Matrix";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";

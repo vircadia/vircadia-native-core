@@ -116,6 +116,9 @@ public:
 signals:
     void allowMouseCaptureChanged();
 
+protected slots:
+    void sendFakeMouseEvent();
+
 private:
     glm::mat4 getUiTransform() const;
     void updateTooltips();
@@ -141,6 +144,11 @@ private:
     float _prevAlpha { 1.0f };
     float _fadeInAlpha { true };
     float _oculusUIRadius { 1.0f };
+
+    quint64 _fadeStarted { 0 };
+    float _fadeFailsafeEndValue { 1.0f };
+    void checkFadeFailsafe();
+    void startFadeFailsafe(float endValue);
 
     int _reticleQuad;
 

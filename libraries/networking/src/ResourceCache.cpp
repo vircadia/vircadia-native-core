@@ -371,7 +371,6 @@ void Resource::handleReplyFinished() {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
-        finishedLoading(true);
         emit loaded(_data);
         downloadFinished(_data);
     } else {
@@ -407,10 +406,6 @@ void Resource::handleReplyFinished() {
     _request->disconnect(this);
     _request->deleteLater();
     _request = nullptr;
-}
-
-
-void Resource::downloadFinished(const QByteArray& data) {
 }
 
 uint qHash(const QPointer<QObject>& value, uint seed) {

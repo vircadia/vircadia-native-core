@@ -46,15 +46,8 @@
 
 #include "Menu.h"
 
-// Fixme make static member of Menu
-static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
-
-void Menu::setInstance() {
-    globalInstance<Menu>(MENU_PROPERTY_NAME);
-}
-
 Menu* Menu::getInstance() {
-    return static_cast<Menu*>(ui::Menu::getInstance());
+    return static_cast<Menu*>(qApp->getWindow()->menuBar());
 }
 
 Menu::Menu() {
@@ -471,6 +464,8 @@ Menu::Menu() {
         avatar, SLOT(setUseAnimPreAndPostRotations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
         avatar, SLOT(setEnableInverseKinematics(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSensorToWorldMatrix, 0, false,
+        avatar, SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::KeyboardMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()),

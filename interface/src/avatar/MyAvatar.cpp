@@ -416,8 +416,9 @@ void MyAvatar::simulate(float deltaTime) {
     }
 }
 
+// thread-safe
 glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
-    return _sensorToWorldMatrix;
+    return _sensorToWorldMatrixCache.get();
 }
 
 // Pass a recent sample of the HMD to the avatar.
@@ -442,6 +443,12 @@ void MyAvatar::updateSensorToWorldMatrix() {
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
 
     lateUpdatePalms();
+
+    if (_enableDebugDrawSensorToWorldMatrix) {
+        DebugDraw::getInstance().addMarker("sensorToWorldMatrix", glmExtractRotation(_sensorToWorldMatrix), extractTranslation(_sensorToWorldMatrix), glm::vec4(1));
+    }
+
+    _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
 }
 
 //  Update avatar head rotation with sensor data
@@ -692,6 +699,14 @@ void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
         DebugDraw::getInstance().addMyAvatarMarker("avatarPosition", glm::quat(), glm::vec3(), red);
     } else {
         DebugDraw::getInstance().removeMyAvatarMarker("avatarPosition");
+    }
+}
+
+void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
+    _enableDebugDrawSensorToWorldMatrix = isEnabled;
+
+    if (!isEnabled) {
+        DebugDraw::getInstance().removeMarker("sensorToWorldMatrix");
     }
 }
 

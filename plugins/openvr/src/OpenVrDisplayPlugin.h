@@ -33,9 +33,11 @@ public:
 
 protected:
     void hmdPresent() override;
+    bool isHmdMounted() const override;
 
 private:
     vr::IVRSystem* _system { nullptr };
+    std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
     static const QString NAME;
     mutable Mutex _poseMutex;
 };

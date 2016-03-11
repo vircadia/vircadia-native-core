@@ -68,6 +68,8 @@ public:
         bool isLeftEnabled;
         bool isRightEnabled;
         float bodyCapsuleRadius;
+        float bodyCapsuleHalfHeight;
+        glm::vec3 bodyCapsuleLocalOffset;
         glm::vec3 leftPosition = glm::vec3();     // rig space
         glm::quat leftOrientation = glm::quat();  // rig space (z forward)
         glm::vec3 rightPosition = glm::vec3();    // rig space

@@ -17,6 +17,7 @@
 #include <QWriteLocker>
 #include <QReadLocker>
 
+#include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
 
@@ -1073,32 +1074,27 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
 
         const float HAND_RADIUS = 0.05f;
-        const float BODY_RADIUS = params.bodyCapsuleRadius;
-        const float MIN_LENGTH = 1.0e-4f;
-
-        // project the hips onto the xz plane.
         int hipsIndex = indexOfJoint("Hips");
         glm::vec3 hipsTrans;
         if (hipsIndex >= 0) {
             hipsTrans = _internalPoseSet._absolutePoses[hipsIndex].trans;
         }
-        const glm::vec2 bodyCircleCenter(hipsTrans.x, hipsTrans.z);
+
+        // Use this capsule to represent the avatar body.
+        const float bodyCapsuleRadius = params.bodyCapsuleRadius;
+        const glm::vec3 bodyCapsuleCenter = hipsTrans - params.bodyCapsuleLocalOffset;
+        const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
+        const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
 
         if (params.isLeftEnabled) {
 
-            // project the hand position onto the xz plane.
-            glm::vec2 handCircleCenter(params.leftPosition.x, params.leftPosition.z);
-
-            // check for 2d overlap of the hand and body circles.
-            auto circleToCircle = handCircleCenter - bodyCircleCenter;
-            const float circleToCircleLength = glm::length(circleToCircle);
-            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
-            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
-                // push the hands out of the body
-                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
+            // prevent the hand IK targets from intersecting the body capsule
+            glm::vec3 handPosition = params.leftPosition;
+            glm::vec3 displacement(glm::vec3::_null);
+            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                handPosition -= displacement;
             }
 
-            glm::vec3 handPosition(handCircleCenter.x, params.leftPosition.y, handCircleCenter.y);
             _animVars.set("leftHandPosition", handPosition);
             _animVars.set("leftHandRotation", params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
@@ -1110,19 +1106,13 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         if (params.isRightEnabled) {
 
-            // project the hand position onto the xz plane.
-            glm::vec2 handCircleCenter(params.rightPosition.x, params.rightPosition.z);
-
-            // check for 2d overlap of the hand and body circles.
-            auto circleToCircle = handCircleCenter - bodyCircleCenter;
-            const float circleToCircleLength = glm::length(circleToCircle);
-            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
-            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
-                // push the hands out of the body
-                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
+            // prevent the hand IK targets from intersecting the body capsule
+            glm::vec3 handPosition = params.rightPosition;
+            glm::vec3 displacement(glm::vec3::_null);
+            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                handPosition -= displacement;
             }
 
-            glm::vec3 handPosition(handCircleCenter.x, params.rightPosition.y, handCircleCenter.y);
             _animVars.set("rightHandPosition", handPosition);
             _animVars.set("rightHandRotation", params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);

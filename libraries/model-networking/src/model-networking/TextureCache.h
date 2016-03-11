@@ -101,8 +101,6 @@ private:
 /// A simple object wrapper for an OpenGL texture.
 class Texture {
 public:
-    friend class TextureCache;
-
     gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
     gpu::TextureSourcePointer _textureSource;
 };
@@ -132,7 +130,7 @@ signals:
 
 protected:
 
-    virtual bool isCacheable() const override { return _isCacheable; }
+    virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
           
@@ -148,7 +146,6 @@ private:
     int _originalHeight { 0 };
     int _width { 0 };
     int _height { 0 };
-    bool _isCacheable { false };
 };
 
 #endif // hifi_TextureCache_h
