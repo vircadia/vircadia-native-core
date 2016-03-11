@@ -11,7 +11,6 @@
 
 #include "Base3DOverlay.h"
 
-#include "Application.h"
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
 #include "Application.h"
