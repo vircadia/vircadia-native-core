@@ -222,8 +222,11 @@ void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
         return;
     }
     QAction* menu = _actionHash.value(menuOption);
-    if (menu) {
-        menu->setChecked(isChecked);
+    if (menu && menu->isCheckable()) {
+        auto wasChecked = menu->isChecked();
+        if (wasChecked != isChecked) {
+            menu->trigger();
+        }
     }
 }
 
