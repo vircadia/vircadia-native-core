@@ -3179,7 +3179,6 @@ void Application::update(float deltaTime) {
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->update(deltaTime);
 
     controller::InputCalibrationData calibrationData = {
         myAvatar->getSensorToWorldMatrix(),
@@ -3196,6 +3195,8 @@ void Application::update(float deltaTime) {
             }
         }
     }
+
+    userInputMapper->update(deltaTime);
 
     _controllerScriptingInterface->updateInputControllers();
 

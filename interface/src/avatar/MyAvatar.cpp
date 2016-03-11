@@ -1383,9 +1383,6 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
         } else {
             DebugDraw::getInstance().removeMarker("rightHandController");
         }
-
-        // AJT: REMOVE
-        DebugDraw::getInstance().addMyAvatarMarker("REFERENCE", glm::quat(), glm::vec3(0.0f, 0.7f, -0.5f), glm::vec4(1));
     }
 
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
