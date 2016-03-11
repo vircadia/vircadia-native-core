@@ -14,6 +14,7 @@
 #include "Application.h"
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
+#include "Application.h"
 
 
 const float DEFAULT_LINE_WIDTH = 1.0f;
@@ -39,7 +40,6 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _drawInFront(base3DOverlay->_drawInFront)
 {
 }
-
 void Base3DOverlay::setProperties(const QVariantMap& properties) {
     Overlay::setProperties(properties);
 
@@ -108,8 +108,7 @@ void Base3DOverlay::setProperties(const QVariantMap& properties) {
         setIgnoreRayIntersection(properties["ignoreRayIntersection"].toBool());
     }
 
-
-
+    // Communicate changes to the renderItem if needed
     if (needRenderItemUpdate) {
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {

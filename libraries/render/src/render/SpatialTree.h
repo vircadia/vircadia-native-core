@@ -367,7 +367,7 @@ namespace render {
     // An octree of Items organizing them efficiently for culling
     // The octree only cares about the bound & the key of an item to store it a the right cell location
     class ItemSpatialTree : public Octree {
-        float _size { 32768.0f };
+        float _size{ 32768.0f };
         float _invSize { 1.0f / _size };
         glm::vec3 _origin { -16384.0f };
 
@@ -399,24 +399,27 @@ namespace render {
         }
 
 
-        // Clamp a position expressed in a depth space to make sure it is in the valid space for that Depth
+        // Clamp a 3D relative position to make sure it is in the valid range space of the octree
         glm::vec3 clampRelPosToTreeRange(const glm::vec3& pos) const {
+            const float EPSILON = 0.0001f;
             return glm::vec3(
-                std::min(std::max(pos.x, 1.0f), _size - 1.0f),
-                std::min(std::max(pos.y, 1.0f), _size - 1.0f),
-                std::min(std::max(pos.z, 1.0f), _size - 1.0f));
+                std::min(std::max(pos.x, 0.0f), _size - EPSILON),
+                std::min(std::max(pos.y, 0.0f), _size - EPSILON),
+                std::min(std::max(pos.z, 0.0f), _size - EPSILON));
         }
+
+        // Eval an integer cell coordinate (at the specified deepth) from a given 3d position
+        // If the 3D position is out of the octree volume, then the position is clamped
+        // so the integer coordinate is meaningfull
         Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
             auto npos = clampRelPosToTreeRange((pos - getOrigin()));
-            
             return Coord3(npos * getInvCellWidth(depth)); // Truncate fractional part
         }
+
+        // Eval a real cell coordinate (at the specified deepth) from a given 3d position
+        // Position is NOT clamped to the boundaries of the octree so beware of conversion to a Coord3!
         Coord3f evalCoordf(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
-            auto npos = clampRelPosToTreeRange((pos - getOrigin()));
-            return Coord3f(npos * getInvCellWidth(depth));
-        }
-        Coord3f evalCoordNoClampf(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
-            auto npos = ((pos - getOrigin()));
+            auto npos = (pos - getOrigin());
             return Coord3f(npos * getInvCellWidth(depth));
         }
 
@@ -426,10 +429,9 @@ namespace render {
             return AABox(evalPos(loc.pos, cellWidth), cellWidth);
         }
 
-
-        Location evalLocation(const AABox& bound) const {
-            return Location::evalFromRange(evalCoord(bound.getMinimumPoint()), evalCoord(bound.getMaximumPoint()));
-        }
+        // Eval the cell location for a given arbitrary Bound,
+        // if the Bound crosses any of the Octree planes then the root cell is returned
+        Location evalLocation(const AABox& bound, Coord3f& minCoordf, Coord3f& maxCoordf) const;
         Locations evalLocations(const ItemBounds& bounds) const;
 
         // Managing itemsInserting items in cells

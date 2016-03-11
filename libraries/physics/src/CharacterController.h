@@ -79,6 +79,8 @@ public:
     glm::vec3 getLinearVelocity() const;
 
     float getCapsuleRadius() const { return _radius; }
+    float getCapsuleHalfHeight() const { return _halfHeight; }
+    glm::vec3 getCapsuleLocalOffset() const { return _shapeLocalOffset; }
 
     enum class State {
         Ground = 0,

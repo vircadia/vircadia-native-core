@@ -83,8 +83,17 @@ void Scene::processPendingChangesQueue() {
         }
         // Now we know for sure that we have enough items in the array to
         // capture anything coming from the pendingChanges
+
+        // resets and potential NEW items
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
+
+        // Update the numItemsAtomic counter AFTER the reset changes went through
+        _numAllocatedItems.exchange(maxID);
+
+        // updates
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
+
+        // removes
         removeItems(consolidatedPendingChanges._removedItems);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
