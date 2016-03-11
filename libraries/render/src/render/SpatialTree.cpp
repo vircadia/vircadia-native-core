@@ -422,7 +422,6 @@ int Octree::select(CellSelection& selection, const FrustumSelector& selector) co
 
     Index cellID = ROOT_CELL;
     auto cell = getConcreteCell(cellID);
-    auto cellLocation = cell.getlocation();
     int numSelectedsIn = (int)selection.size();
 
     // Always include the root cell partially containing potentially outer objects
