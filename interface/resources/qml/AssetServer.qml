@@ -127,6 +127,7 @@ Window {
 
     function reload() {
         Assets.mappingModel.refresh();
+        treeView.selection.clear();
     }
 
     function handleGetMappingsError(errorCode) {
@@ -138,7 +139,7 @@ Window {
 
     function addToWorld(url) {
         if (!url) {
-            url = assetProxyModel.data(treeView.currentIndex, 0x103);
+            url = assetProxyModel.data(treeView.selection.currentIndex, 0x103);
         }
 
         if (!url || !canAddToWorld(url)) {
@@ -153,10 +154,10 @@ Window {
 
     function copyURLToClipboard(index) {
         if (!index) {
-            index = treeView.currentIndex;
+            index = treeView.selection.currentIndex;
         }
 
-        var url = assetProxyModel.data(treeView.currentIndex, 0x103);
+        var url = assetProxyModel.data(treeView.selection.currentIndex, 0x103);
         if (!url) {
             return;
         }
@@ -165,8 +166,9 @@ Window {
 
     function renameFile(index) {
         if (!index) {
-            index = treeView.currentIndex;
+            index = treeView.selection.currentIndex;
         }
+        
         var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
@@ -194,14 +196,14 @@ Window {
     }
     function deleteFile(index) {
         if (!index) {
-            index = treeView.currentIndex;
+            index = treeView.selection.currentIndex;
         }
         var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
         }
 
-        var isFolder = assetProxyModel.data(treeView.currentIndex, 0x101);
+        var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
 
         var object = desktop.messageBox({
@@ -239,7 +241,7 @@ Window {
         var fileUrl = fileUrlTextField.text
         var shouldAddToWorld = addToWorldCheckBox.checked
 
-        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.selection.currentIndex, 0x100);
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "/";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
@@ -302,7 +304,7 @@ Window {
                     height: 26
                     width: 120
 
-                    enabled: canAddToWorld(assetProxyModel.data(treeView.currentIndex, 0x100))
+                    enabled: canAddToWorld(assetProxyModel.data(treeView.selection.currentIndex, 0x100))
 
                     onClicked: root.addToWorld()
                 }
