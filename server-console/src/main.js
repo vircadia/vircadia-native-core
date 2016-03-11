@@ -532,10 +532,13 @@ function buildMenuArray(serverState) {
             {
                 type: 'separator'
             },
-            {
+                        {
                 label: 'Quit',
                 accelerator: 'Command+Q',
                 click: function() { shutdown(); }
+            },
+            {
+                label: 'Current Version: '+buildInfo.buildIdentifier
             }
         ];
 
@@ -775,6 +778,7 @@ app.on('ready', function() {
                 currentVersion = parseInt(buildInfo.buildIdentifier);
             } catch (e) {
             }
+
 
             if (currentVersion !== null) {
                 const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
