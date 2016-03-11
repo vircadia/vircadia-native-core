@@ -19,8 +19,8 @@
 #include <ObjectMotionState.h>
 #include <PerfStat.h>
 
-#include "../render-utils/simple_vert.h"
-#include "../render-utils/simple_frag.h"
+#include <render-utils/simple_vert.h>
+#include <render-utils/simple_frag.h>
 
 EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableBoxEntityItem(entityID) };

@@ -46,6 +46,9 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
         set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
     endif()
 
+    # Put shaders in an isolated place
+    set(SHADER_TARGET "shaders/${TARGET_NAME}/${SHADER_TARGET}")
+
     # Target dependant Custom rule on the SHADER_FILE
     if (APPLE)
         set(GLPROFILE MAC_GL)
@@ -104,5 +107,8 @@ macro(AUTOSCRIBE_SHADER_LIB)
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_INCLUDE_FILES})
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_SOURCE_FILES})
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_SRC})
+
+  # Link library shaders, if they exist
+  include_directories("${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
 
 endmacro()
