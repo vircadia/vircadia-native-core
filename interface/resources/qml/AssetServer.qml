@@ -127,6 +127,7 @@ Window {
 
     function reload() {
         Assets.mappingModel.refresh();
+        treeView.selection.clear();
     }
 
     function handleGetMappingsError(errorCode) {
