@@ -74,14 +74,16 @@ void RenderableModelEntityItem::loader() {
 
 void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
     _dimensionsInitialized = true;
-    ModelEntityItem::setDimensions(value);
 
     bool success;
+    AACube queryAACube = getQueryAACube(success);
+
+    ModelEntityItem::setDimensions(value);
+
     AACube maxAACube = getMaximumAACube(success);
     if (!success) {
         return;
     }
-    AACube queryAACube = getQueryAACube(success);
 
     if (!success || !queryAACube.contains(maxAACube)) {
         EntityItemProperties properties;

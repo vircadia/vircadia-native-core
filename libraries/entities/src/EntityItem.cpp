@@ -1202,11 +1202,35 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
     return result;
 }
 
+void EntityItem::checkAndAdjustQueryAACube() {
+    bool maxAACubeSuccess;
+    AACube maxAACube = getMaximumAACube(maxAACubeSuccess);
+    if (maxAACubeSuccess) {
+        if (!_queryAACubeSet || !_queryAACube.contains(maxAACube)) {
+            // allow server to patch up broken queryAACubes
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                qDebug() << "EntityItem::checkAndAdjustQueryAACube" << getName();
+                EntityItemProperties properties;
+                properties.setQueryAACube(maxAACube);
+                tree->updateEntity(getID(), properties);
+            }
+        }
+    }
+}
+
+void EntityItem::setParentID(const QUuid& parentID) {
+    SpatiallyNestable::setParentID(parentID);
+    checkAndAdjustQueryAACube();
+}
+
+
 void EntityItem::setDimensions(const glm::vec3& value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
     setScale(value);
+    checkAndAdjustQueryAACube();
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1298,26 +1322,6 @@ AABox EntityItem::getAABox(bool& success) const {
     }
     return _cachedAABox;
 }
-
-AACube EntityItem::getQueryAACube(bool& success) const {
-    AACube queryAACube = SpatiallyNestable::getQueryAACube(success);
-    bool maxAACubeSuccess;
-    AACube maxAACube = getMaximumAACube(maxAACubeSuccess);
-    if (success) {
-        // allow server to patch up broken queryAACubes
-        if (maxAACubeSuccess && !queryAACube.contains(maxAACube)) {
-            getThisPointer()->setQueryAACube(maxAACube);
-        }
-        return _queryAACube;
-    }
-    // this is for when we've loaded an older json file that didn't have queryAACube properties.
-    success = maxAACubeSuccess;
-    if (maxAACubeSuccess) {
-        getThisPointer()->setQueryAACube(maxAACube);
-    }
-    return _queryAACube;
-}
-
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension
