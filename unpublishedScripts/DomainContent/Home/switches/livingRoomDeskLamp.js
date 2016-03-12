@@ -1,6 +1,6 @@
 (function() {
-    var SEARCH_RADIUS = 100;
-    
+    var SEARCH_RADIUS = 10;
+
     var EMISSIVE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelitysign_white_emissive.png";
 
     var DIFFUSE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelity_diffusebaked.png";
