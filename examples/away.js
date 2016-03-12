@@ -181,7 +181,6 @@ function goAway() {
 
     // remember the View > Overlays state...
     wasOverlaysVisible = Menu.isOptionChecked("Overlays");
-    print("wasOverlaysVisible:" + wasOverlaysVisible);
 
     // show overlays so that people can see the "Away" message
     Menu.setIsOptionChecked("Overlays", true);
