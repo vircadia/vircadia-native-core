@@ -243,18 +243,26 @@
 
         }
 
-        function createUserDataChanger(groupName, keyName, propertyElement, userData) {
-            return function() {
-                var properties = {};
-                // // this.checked
-                // properties['userData'] = ... JSON.stringify (...)
-                // EventBridge.emitWebEvent(
-                //     JSON.stringify({
-                //         type: "update",
-                //         properties: properties,
-                //     })
-                // );
+        function userDataChanger(groupName, keyName, checkBoxElement, userDataElement) {
+            var properties = {};
+            var parsedData = {};
+            try {
+                parsedData = JSON.parse(userDataElement.value);
+            } catch(e) {}
+
+            if (!(groupName in parsedData)) {
+                parsedData[groupName] = {}
             }
+            parsedData[groupName][keyName] = checkBoxElement.checked;
+            properties['userData'] = JSON.stringify(parsedData);
+            userDataElement.value = properties['userData'];
+
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    type: "update",
+                    properties: properties,
+                })
+            );
         };
 
 
@@ -321,9 +329,9 @@
                 var elCollideOtherAvatar = document.getElementById("property-collide-otherAvatar");
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
 
-                var elGrabbable = document.getElementById("property-grabbable" );
-                var elWantsTrigger = document.getElementById("property-wants-trigger" );
-                var elIgnoreIK = document.getElementById("property-ignore-ik" );
+                var elGrabbable = document.getElementById("property-grabbable");
+                var elWantsTrigger = document.getElementById("property-wants-trigger");
+                var elIgnoreIK = document.getElementById("property-ignore-ik");
 
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
@@ -544,9 +552,25 @@
                                 elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
                                 elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
-                                elGrabbable.checked = properties.collidesWith.indexOf("grabbable") > -1;
-                                elWantsTrigger.checked = properties.collidesWith.indexOf("wantsTrigger") > -1;
-                                elIgnoreIK.checked = properties.collidesWith.indexOf("ignoreIK") > -1;
+                                elGrabbable.checked = false;
+                                elWantsTrigger.checked = false;
+                                elIgnoreIK.checked = false;
+                                var parsedUserData = {}
+                                try {
+                                    debugPrint("OKOKOK:" + properties.userData);
+                                    parsedUserData = JSON.parse(properties.userData);
+                                } catch(e) {}
+                                if ("grabbableKey" in parsedUserData) {
+                                    if (parsedUserData["grabbableKey"].grabbable) {
+                                        elGrabbable.checked = true;
+                                    }
+                                    if (parsedUserData["grabbableKey"].wantsTrigger) {
+                                        elWantsTrigger.checked = true;
+                                    }
+                                    if (parsedUserData["grabbableKey"].ignoreIK) {
+                                        elIgnoreIK.checked = true;
+                                    }
+                                }
 
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
@@ -777,12 +801,15 @@
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
                 });
 
-                elGrabbable.addEventListener('change', createUserDataChanger("grabbableKey", "grabbable",
-                                                                             elGrabbable, properties.userData));
-                elWantsTrigger.addEventListener('change', createUserDataChanger("grabbableKey", "wantsTrigger",
-                                                                                elWantsTrigger, properties.userData));
-                elIgnoreIK.addEventListener('change', createUserDataChanger("grabbableKey", "ignoreIK",
-                                                                            elIgnoreIK, properties.userData));
+                elGrabbable.addEventListener('change', function() {
+                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData);
+                });
+                elWantsTrigger.addEventListener('change', function() {
+                    userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData);
+                });
+                elIgnoreIK.addEventListener('change', function() {
+                    userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData);
+                });
 
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
