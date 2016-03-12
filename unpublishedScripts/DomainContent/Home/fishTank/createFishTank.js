@@ -34,7 +34,15 @@ var DEBUG_COLOR = {
     blue: 255
 }
 
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 1 * TANK_WIDTH));
+
+var centerVertical = {
+    x: 0,
+    y: 1,
+    z: 0
+}
+
+var upCenter = Vec3.sum(centerVertical, MyAvatar.position);
+var center = Vec3.sum(upCenter, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2));
 
 var TANK_POSITION = center;
 
@@ -52,7 +60,7 @@ var TANK_BASE_DIMENSIONS = {
     z: 2.1936
 };
 
-var BASE_VERTICAL_OFFSET = 0.42;
+var BASE_VERTICAL_OFFSET = 0.47;
 
 var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
@@ -73,8 +81,8 @@ var URCHIN_LATERAL_OFFSET = -0.05;
 var URCHIN_VERTICAL_OFFSET = -0.12;
 
 
-var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
-
+var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/anemone.fbx';
+var URCHIN_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/anemone.fbx';
 var URCHIN_DIMENSIONS = {
     x: 0.4,
     y: 0.4,
@@ -308,10 +316,21 @@ function createUrchin() {
     var properties = {
         name: 'hifi-home-fishtank-urchin',
         type: 'Model',
+        animationURL: URCHIN_ANIMATION_URL,
+        animationIsPlaying: true,
+         animationFPS:15,
+        animationSettings: JSON.stringify({
+
+            hold: false,
+            loop: true,
+            running: true,
+            startAutomatically: true
+        }),
         parentID: fishTank,
         modelURL: URCHIN_MODEL_URL,
         position: finalPosition,
         shapeType: 'Sphere',
+        rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
         dimensions: URCHIN_DIMENSIONS
     }
 
