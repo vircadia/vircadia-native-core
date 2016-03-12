@@ -318,9 +318,8 @@ function createUrchin() {
         type: 'Model',
         animationURL: URCHIN_ANIMATION_URL,
         animationIsPlaying: true,
-         animationFPS:15,
+        animationFPS: 15,
         animationSettings: JSON.stringify({
-
             hold: false,
             loop: true,
             running: true,
