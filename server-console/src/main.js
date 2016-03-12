@@ -477,14 +477,14 @@ function performContentMigration() {
 
 var logWindow = null;
 
-
 var labels = {
     serverState: {
         label: 'Server - Stopped',
         enabled: false
     },
     version: {
-         label: 'Version - ' + buildInfo.buildIdentifier,
+        label: 'Version - ' + buildInfo.buildIdentifier,
+        enabled: false
     },
     restart: {
         label: 'Start Server',
@@ -499,7 +499,6 @@ var labels = {
             homeServer.stop();
         }
     },
-
     goHome: {
         label: 'Go Home',
         click: goHomeClicked,
@@ -512,7 +511,6 @@ var labels = {
             shutdown();
         }
     },
-
     settings: {
         label: 'Settings',
         click: function() {
@@ -524,6 +522,12 @@ var labels = {
         label: 'View Logs',
         click: function() {
             logWindow.open();
+        }
+    },
+    share: {
+        label: 'Share',
+        click: function() {
+            shell.openExternal('http://localhost:40100/settings/?action=share')
         }
     },
     migrateContent: {
@@ -552,15 +556,15 @@ function buildMenuArray(serverState) {
     if (isShuttingDown) {
         menuArray.push(labels.shuttingDown);
     } else {
-        menuArray.push(labels.stopped);
-        // menuArray.push(version);
+        menuArray.push(labels.serverState);
+        menuArray.push(labels.version);
         menuArray.push(separator);
         menuArray.push(labels.goHome);
         menuArray.push(separator);
-        menuArray.push(labels.startServer);
+        menuArray.push(labels.restart);
         menuArray.push(labels.stopServer);
         menuArray.push(labels.settings);
-        menuArray.push(labels.logs);
+        menuArray.push(labels.viewLogs);
         menuArray.push(separator);
         menuArray.push(labels.share);
         menuArray.push(separator);
@@ -573,6 +577,7 @@ function buildMenuArray(serverState) {
         }
 
     }
+
 
     return menuArray;
 
