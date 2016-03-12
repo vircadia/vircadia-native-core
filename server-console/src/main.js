@@ -479,14 +479,14 @@ var logWindow = null;
 
 
 var labels = {
-    serverRunningState: {
+    serverState: {
         label: 'Server - Stopped',
         enabled: false
     },
     version: {
          label: 'Version - ' + buildInfo.buildIdentifier,
     },
-    startServer: {
+    restart: {
         label: 'Start Server',
         click: function() {
             homeServer.restart();
@@ -584,7 +584,7 @@ function updateLabels(serverState) {
     var running = serverState == ProcessGroupStates.STARTED;
 
     labels.goHome.enabled = running;
-    labels.stop.visible = running;
+    labels.stopServer.visible = running;
     labels.settings.enabled = running;
     if (serverState == ProcessGroupStates.STARTED) {
         labels.serverState.label = "Server - Started";
