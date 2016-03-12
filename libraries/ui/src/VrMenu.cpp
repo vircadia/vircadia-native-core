@@ -104,6 +104,7 @@ void updateQmlItemFromAction(QObject* target, QAction* source) {
     target->setProperty("checkable", source->isCheckable());
     target->setProperty("enabled", source->isEnabled());
     target->setProperty("text", source->text());
+    target->setProperty("shortcut", source->shortcut().toString());
     target->setProperty("checked", source->isChecked());
     target->setProperty("visible", source->isVisible());
 }
@@ -188,6 +189,20 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(result);
     // Bind the QML and Widget together
     bindActionToQmlAction(result, action);
+}
+
+void VrMenu::addSeparator(QMenu* menu) {
+    Q_ASSERT(MenuUserData::forObject(menu));
+    MenuUserData* userData = MenuUserData::forObject(menu);
+    if (!userData) {
+        return;
+    }
+    QObject* menuQml = findMenuObject(userData->uuid.toString());
+    Q_ASSERT(menuQml);
+
+    bool invokeResult = QMetaObject::invokeMethod(menuQml, "addSeparator", Qt::DirectConnection);
+    Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
 }
 
 void VrMenu::insertAction(QAction* before, QAction* action) {
