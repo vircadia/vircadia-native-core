@@ -24,9 +24,9 @@
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <ResourceManager.h>
+#include <MappingRequest.h>
 
 #include "OffscreenUi.h"
-#include "../ui/AssetUploadDialogFactory.h"
 
 Q_DECLARE_LOGGING_CATEGORY(asset_migrator);
 Q_LOGGING_CATEGORY(asset_migrator, "hf.asset_migrator");
@@ -41,15 +41,14 @@ static const QString MODEL_URL_KEY = "modelURL";
 static const QString MESSAGE_BOX_TITLE = "ATP Asset Migration";
 
 void ATPAssetMigrator::loadEntityServerFile() {
-    auto filename = QFileDialog::getOpenFileName(_dialogParent, "Select an entity-server content file to migrate",
-                                                 QString(), QString("Entity-Server Content (*.gz)"));
+    auto filename = OffscreenUi::getOpenFileName(_dialogParent, tr("Select an entity-server content file to migrate"), QString(), tr("Entity-Server Content (*.gz)"));
     
     if (!filename.isEmpty()) {
         qCDebug(asset_migrator) << "Selected filename for ATP asset migration: " << filename;
         
         static const QString MIGRATION_CONFIRMATION_TEXT {
-            "The ATP Asset Migration process will scan the selected entity-server file, upload discovered resources to the"\
-            " current asset-server and then save a new entity-server file with the ATP URLs.\n\nAre you ready to"\
+            "The ATP Asset Migration process will scan the selected entity-server file,\nupload discovered resources to the"\
+            " current asset-server\nand then save a new entity-server file with the ATP URLs.\n\nAre you ready to"\
             " continue?\n\nMake sure you are connected to the right domain."
         };
         
@@ -108,16 +107,17 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                     if (request->getResult() == ResourceRequest::Success) {
                                         migrateResource(request);
                                     } else {
-                                        OffscreenUi::warning(_dialogParent, "Error",
-                                                             QString("Could not retrieve asset at %1").arg(modelURL.toString()));
+                                        ++_errorCount;
+                                        _pendingReplacements.remove(modelURL);
+                                        qWarning() << "Could not retrieve asset at" << modelURL.toString();
                                     }
                                     request->deleteLater();
                                 });
                                 
                                 request->send();
                             } else {
-                                OffscreenUi::warning(_dialogParent, "Error",
-                                                     QString("Could not create request for asset at %1").arg(modelURL.toString()));
+                                ++_errorCount;
+                                qWarning() << "Count not create request for asset at" << modelURL.toString();
                             }
                             
                         } else {
@@ -140,8 +140,6 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
     // use an asset client to upload the asset
     auto assetClient = DependencyManager::get<AssetClient>();
     
-    QFileInfo assetInfo { request->getUrl().fileName() };
-    
     auto upload = assetClient->createUpload(request->getData());
 
     // add this URL to our hash of AssetUpload to original URL
@@ -157,41 +155,78 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
 }
 
 void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& hash) {
+    // remove this modelURL from the key for the AssetUpload pointer
+    auto modelURL = _originalURLs.take(upload);
+
     if (upload->getError() == AssetUpload::NoError) {
 
-        const auto& modelURL = _originalURLs[upload];
-        
+        // use the path of the modelURL to add a mapping in the Asset Server
+        auto assetClient = DependencyManager::get<AssetClient>();
+        auto setMappingRequest = assetClient->createSetMappingRequest(modelURL.path(), hash);
+
+        connect(setMappingRequest, &SetMappingRequest::finished, this, &ATPAssetMigrator::setMappingFinished);
+
+        // add this modelURL with the key for the SetMappingRequest pointer
+        _originalURLs[setMappingRequest] = modelURL;
+
+        setMappingRequest->start();
+    } else {
+        // this is a fail for this modelURL, remove it from pending replacements
+        _pendingReplacements.remove(modelURL);
+
+        ++_errorCount;
+        qWarning() << "Failed to upload" << modelURL << "- error was" << upload->getErrorString();
+    }
+
+    checkIfFinished();
+    
+    upload->deleteLater();
+}
+
+void ATPAssetMigrator::setMappingFinished(SetMappingRequest* request) {
+    // take the modelURL for this SetMappingRequest
+    auto modelURL = _originalURLs.take(request);
+
+    if (request->getError() == MappingRequest::NoError) {
+
         // successfully uploaded asset - make any required replacements found in the pending replacements
         auto values = _pendingReplacements.values(modelURL);
-        
-        
-        QString atpURL = getATPUrl(hash).toString();
-        
+
+        QString atpURL = QString("atp:%1").arg(request->getPath());
+
         for (auto value : values) {
             // replace the modelURL in this QJsonValueRef with the hash
             QJsonObject valueObject = value.toObject();
             valueObject[MODEL_URL_KEY] = atpURL;
             value = valueObject;
         }
-        
+
         // add this URL to our list of uploaded assets
         _uploadedAssets.insert(modelURL, atpURL);
-        
+
         // pull the replaced models from _pendingReplacements
         _pendingReplacements.remove(modelURL);
-        
-        // are we out of pending replacements? if so it is time to save the entity-server file
-        if (_doneReading && _pendingReplacements.empty()) {
-            saveEntityServerFile();
-            
-            // reset after the attempted save, success or fail
-            reset();
-        }
     } else {
-        AssetUploadDialogFactory::showErrorDialog(upload, _dialogParent);
+        // this is a fail for this modelURL, remove it from pending replacements
+        _pendingReplacements.remove(modelURL);
+
+        ++_errorCount;
+        qWarning() << "Error setting mapping for" << modelURL << "- error was " << request->getErrorString();
     }
-    
-    upload->deleteLater();
+
+    checkIfFinished();
+
+    request->deleteLater();
+}
+
+void ATPAssetMigrator::checkIfFinished() {
+    // are we out of pending replacements? if so it is time to save the entity-server file
+    if (_doneReading && _pendingReplacements.empty()) {
+        saveEntityServerFile();
+
+        // reset after the attempted save, success or fail
+        reset();
+    }
 }
 
 bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
@@ -200,8 +235,8 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
     
     if (!hasAskedForCompleteMigration) {
         // this is the first resource migration - ask the user if they just want to migrate everything
-        static const QString COMPLETE_MIGRATION_TEXT { "Do you want to migrate all assets found in this entity-server file?\n\n"\
-            "Select \"Yes\" to upload all discovered assets to the current asset-server immediately.\n\n"\
+        static const QString COMPLETE_MIGRATION_TEXT { "Do you want to migrate all assets found in this entity-server file?\n"\
+            "Select \"Yes\" to upload all discovered assets to the current asset-server immediately.\n"\
             "Select \"No\" to be prompted for each discovered asset."
         };
         
@@ -228,7 +263,7 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
 
 void ATPAssetMigrator::saveEntityServerFile() {
     // show a dialog to ask the user where they want to save the file
-    QString saveName = QFileDialog::getSaveFileName(_dialogParent, "Save Migrated Entities File");
+    QString saveName = OffscreenUi::getSaveFileName(_dialogParent, "Save Migrated Entities File");
     
     QFile saveFile { saveName };
     
@@ -243,9 +278,16 @@ void ATPAssetMigrator::saveEntityServerFile() {
             
             saveFile.write(jsonDataForFile);
             saveFile.close();
-            
-            QMessageBox::information(_dialogParent, "Success",
-                                     QString("Your new entities file has been saved at %1").arg(saveName));
+
+            QString infoMessage = QString("Your new entities file has been saved at\n%1.").arg(saveName);
+
+            if (_errorCount > 0) {
+                infoMessage += QString("\nThere were %1 models that could not be migrated.\n").arg(_errorCount);
+                infoMessage += "Check the warnings in your log for details.\n";
+                infoMessage += "You can re-attempt migration on those models\nby restarting this process with the newly saved file.";
+            }
+
+            OffscreenUi::information(_dialogParent, "Success", infoMessage);
         } else {
             OffscreenUi::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
         }
@@ -263,4 +305,5 @@ void ATPAssetMigrator::reset() {
     _uploadedAssets.clear();
     _originalURLs.clear();
     _ignoredUrls.clear();
+    _errorCount = 0;
 }
