@@ -1202,27 +1202,6 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
     return result;
 }
 
-// void EntityItem::checkAndAdjustQueryAACube() {
-//     bool maxAACubeSuccess;
-//     AACube maxAACube = getMaximumAACube(maxAACubeSuccess);
-//     if (maxAACubeSuccess) {
-//         if (!_queryAACubeSet || !_queryAACube.contains(maxAACube)) {
-//             // allow server to patch up broken queryAACubes
-//             EntityTreePointer tree = getTree();
-//             if (tree) {
-//                 EntityItemProperties properties;
-//                 properties.setQueryAACube(maxAACube);
-//                 tree->updateEntity(getID(), properties);
-//             }
-//         }
-//     }
-// }
-
-void EntityItem::setParentID(const QUuid& parentID) {
-    SpatiallyNestable::setParentID(parentID);
-}
-
-
 void EntityItem::setDimensions(const glm::vec3& value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
@@ -1333,6 +1312,7 @@ AACube EntityItem::getQueryAACube(bool& success) const {
     }
     return result;
 }
+
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension

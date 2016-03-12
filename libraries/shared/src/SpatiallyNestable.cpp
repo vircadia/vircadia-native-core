@@ -55,6 +55,7 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
             _parentKnowsMe = false;
         }
     });
+    checkAndAdjustQueryAACube();
 }
 
 Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const {
@@ -139,6 +140,7 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
+    checkAndAdjustQueryAACube();
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,
@@ -776,7 +778,7 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
         return;
     }
     _queryAACube = queryAACube;
-    if (_queryAACube.getScale() > 0.0f) {
+    if (queryAACube.getScale() > 0.0f) {
         _queryAACubeSet = true;
     }
 }

@@ -74,26 +74,7 @@ void RenderableModelEntityItem::loader() {
 
 void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
     _dimensionsInitialized = true;
-
-    bool success;
-    AACube queryAACube = getQueryAACube(success);
-
     ModelEntityItem::setDimensions(value);
-
-    AACube maxAACube = getMaximumAACube(success);
-    if (!success) {
-        return;
-    }
-
-    if (!success || !queryAACube.contains(maxAACube)) {
-        EntityItemProperties properties;
-        properties.setQueryAACube(maxAACube);
-        qCDebug(entitiesrenderer) << "Auto-setting queryAACube:" << (!getName().isEmpty() ? getName() : getModelURL());
-        QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(QUuid, getEntityItemID()),
-                                  Q_ARG(EntityItemProperties, properties));
-    }
 }
 
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties) {
