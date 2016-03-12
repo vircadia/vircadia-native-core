@@ -243,6 +243,21 @@
 
         }
 
+        function createUserDataChanger(groupName, keyName, propertyElement, userData) {
+            return function() {
+                var properties = {};
+                // // this.checked
+                // properties['userData'] = ... JSON.stringify (...)
+                // EventBridge.emitWebEvent(
+                //     JSON.stringify({
+                //         type: "update",
+                //         properties: properties,
+                //     })
+                // );
+            }
+        };
+
+
         function loaded() { 
             openEventBridge(function() {
                 var allSections = [];
@@ -305,6 +320,11 @@
                 var elCollideMyAvatar = document.getElementById("property-collide-myAvatar");
                 var elCollideOtherAvatar = document.getElementById("property-collide-otherAvatar");
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
+
+                var elGrabbable = document.getElementById("property-grabbable" );
+                var elWantsTrigger = document.getElementById("property-wants-trigger" );
+                var elIgnoreIK = document.getElementById("property-ignore-ik" );
+
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
                 var elScriptTimestamp = document.getElementById("property-script-timestamp");
@@ -408,7 +428,7 @@
                 var elXTextureURL = document.getElementById("property-x-texture-url");
                 var elYTextureURL = document.getElementById("property-y-texture-url");
                 var elZTextureURL = document.getElementById("property-z-texture-url");
-    
+
                 var elPreviewCameraButton = document.getElementById("preview-camera-button");
     
                 if (window.EventBridge !== undefined) {
@@ -518,13 +538,15 @@
                                 elCollisionless.checked = properties.collisionless;
                                 elDynamic.checked = properties.dynamic;
 
-
                                 elCollideStatic.checked = properties.collidesWith.indexOf("static") > -1;
                                 elCollideKinematic.checked = properties.collidesWith.indexOf("kinematic") > -1;
                                 elCollideDynamic.checked = properties.collidesWith.indexOf("dynamic") > -1;
                                 elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
                                 elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
+                                elGrabbable.checked = properties.collidesWith.indexOf("grabbable") > -1;
+                                elWantsTrigger.checked = properties.collidesWith.indexOf("wantsTrigger") > -1;
+                                elIgnoreIK.checked = properties.collidesWith.indexOf("ignoreIK") > -1;
 
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
@@ -737,9 +759,6 @@
                 elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
 
-
-
-
                 elCollideDynamic.addEventListener('change', function() {
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
                 });
@@ -758,6 +777,12 @@
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
                 });
 
+                elGrabbable.addEventListener('change', createUserDataChanger("grabbableKey", "grabbable",
+                                                                             elGrabbable, properties.userData));
+                elWantsTrigger.addEventListener('change', createUserDataChanger("grabbableKey", "wantsTrigger",
+                                                                                elWantsTrigger, properties.userData));
+                elIgnoreIK.addEventListener('change', createUserDataChanger("grabbableKey", "ignoreIK",
+                                                                            elIgnoreIK, properties.userData));
 
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
@@ -954,7 +979,7 @@
                         action: "previewCamera"
                     }));
                 });
-    
+
                 window.onblur = function() {
                     // Fake a change event
                     var ev = document.createEvent("HTMLEvents");
@@ -1476,6 +1501,29 @@
                 </div>
             </div>
 
+            <div class = "sub-section-header"> Grabbable: </div>
+            <div class = "sub-props-checkbox-group">
+              <div class="property">
+                <span class="label">grabbable</span>
+                <span class="value">
+                  <input type='checkbox' id="property-grabbable">
+                </span>
+              </div>
+
+              <div class="property">
+                <span class="label">triggerable</span>
+                <span class="value">
+                  <input type='checkbox' id="property-wants-trigger">
+                </span>
+              </div>
+
+              <div class="property">
+                <span class="label">ignore inverse-kinematics</span>
+                <span class="value">
+                  <input type='checkbox' id="property-ignore-ik">
+                </span>
+              </div>
+            </div>
 
         </div>
 
