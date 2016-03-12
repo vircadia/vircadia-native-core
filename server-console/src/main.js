@@ -587,8 +587,6 @@ function updateLabels(serverState) {
 
     // update the tray menu state
     var running = serverState == ProcessGroupStates.STARTED;
-    console.log('RUNNING??? ' + running)
-    console.log('SERVERSTATE?'  + serverState)
     labels.goHome.enabled = running;
     labels.stopServer.visible = running;
     labels.settings.enabled = running;
