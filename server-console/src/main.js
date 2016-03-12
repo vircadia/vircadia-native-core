@@ -1,7 +1,7 @@
 'use strict';
 
 const electron = require('electron');
-const app = electron.app;  // Module to control application life.
+const app = electron.app; // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;
 const nativeImage = electron.nativeImage;
 
@@ -57,7 +57,10 @@ function getBuildInfo() {
         }
     }
 
-    const DEFAULT_BUILD_INFO = { releaseType: "", buildIdentifier: "dev" };
+    const DEFAULT_BUILD_INFO = {
+        releaseType: "",
+        buildIdentifier: "dev"
+    };
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
@@ -104,6 +107,7 @@ const ipcMain = electron.ipcMain;
 
 
 var isShuttingDown = false;
+
 function shutdown() {
     if (!isShuttingDown) {
         // if the home server is running, show a prompt before quit to ask if the user is sure
@@ -283,8 +287,7 @@ function openFileBrowser(path) {
 // NOTE: this looks like it does nothing, but it's very important.
 // Without it the default behaviour is to quit the app once all windows closed
 // which is absolutely not what we want for a taskbar application.
-app.on('window-all-closed', function() {
-});
+app.on('window-all-closed', function() {});
 
 function startInterface(url) {
     var argArray = [];
@@ -320,7 +323,11 @@ LogWindow.prototype = {
             return;
         }
         // Create the browser window.
-        this.window = new BrowserWindow({ width: 700, height: 500, icon: appIcon });
+        this.window = new BrowserWindow({
+            width: 700,
+            height: 500,
+            icon: appIcon
+        });
         this.window.loadURL('file://' + __dirname + '/log.html');
 
         if (!debug) {
@@ -367,7 +374,7 @@ function isStackManagerContentPresent() {
 
         if (stats.isFile()) {
             console.log("Stack Manager entities file discovered at " + modelsPath)
-            // we found a content file
+                // we found a content file
             return true;
         }
     } catch (e) {
@@ -481,74 +488,72 @@ function buildMenuArray(serverState) {
     var menuArray = null;
 
     if (isShuttingDown) {
-        menuArray = [
-            {
-                label: "Shutting down...",
-                enabled: false
-            }
-        ];
+        menuArray = [{
+            label: "Shutting down...",
+            enabled: false
+        }];
     } else {
-        menuArray = [
-            {
-                label: 'Server - Stopped',
-                enabled: false
+        menuArray = [{
+            label: 'Server - Stopped',
+            enabled: false
+        }, {
+            label: 'Version - ' + buildInfo.buildIdentifier,
+            enabled: false
+        }, {
+            type: 'separator'
+        }, {
+            label: 'Go Home',
+            click: goHomeClicked,
+            enabled: false
+        }, {
+            type: 'separator'
+        }, {
+            label: 'Start Server',
+            click: function() {
+                homeServer.restart();
+            }
+        }, {
+            label: 'Stop Server',
+            visible: false,
+            click: function() {
+                homeServer.stop();
+            }
+        }, {
+            label: 'Settings',
+            click: function() {
+                shell.openExternal('http://localhost:40100/settings');
             },
-            {
-                label: 'Version - '+buildInfo.buildIdentifier,
-                enabled: false
-            },
-            {
-                type: 'separator'
-            },
-            {
-                label: 'Go Home',
-                click: goHomeClicked,
-                enabled: false
-            },
-            {
-                type: 'separator'
-            },
-            {
-                label: 'Start Server',
-                click: function() { homeServer.restart(); }
-            },
-            {
-                label: 'Stop Server',
-                visible: false,
-                click: function() { homeServer.stop(); }
-            },
-            {
-                label: 'Settings',
-                click: function() { shell.openExternal('http://localhost:40100/settings'); },
-                enabled: false
-            },
-            {
-                label: 'View Logs',
-                click: function() { logWindow.open(); }
-            },
-            {
-                type: 'separator'
-            },
-            {
-                label: 'Share',
-                click: function() { shell.openExternal('http://localhost:40100/settings/?action=share') }
-            },
-            {
-                type: 'separator'
-            },
-                        {
-                label: 'Quit',
-                accelerator: 'Command+Q',
-                click: function() { shutdown(); }
-            } 
-        ];
+            enabled: false
+        }, {
+            label: 'View Logs',
+            click: function() {
+                logWindow.open();
+            }
+        }, {
+            type: 'separator'
+        }, {
+            label: 'Share',
+            click: function() {
+                shell.openExternal('http://localhost:40100/settings/?action=share')
+            }
+        }, {
+            type: 'separator'
+        }, {
+            label: 'Quit',
+            accelerator: 'Command+Q',
+            click: function() {
+                shutdown();
+            }
+        }];
 
         var foundStackManagerContent = isStackManagerContentPresent();
         if (foundStackManagerContent) {
             // add a separator and the stack manager content migration option
             menuArray.splice(menuArray.length - 1, 0, {
                 label: 'Migrate Stack Manager Content',
-                click: function() { promptToMigrateContent(); }
+                click: function() {
+                    promptToMigrateContent();
+                }
             }, {
                 type: 'separator'
             });
@@ -647,9 +652,13 @@ function maybeInstallDefaultContentSet(onComplete) {
 
     electron.ipcMain.on('ready', function() {
         console.log("got ready");
+
         function sendStateUpdate(state, args) {
             // console.log(state, window, args);
-            window.webContents.send('update', { state: state, args: args });
+            window.webContents.send('update', {
+                state: state,
+                args: args
+            });
         }
 
         var aborted = false;
@@ -673,7 +682,9 @@ function maybeInstallDefaultContentSet(onComplete) {
             } else {
                 sendStateUpdate('installing');
             }
-        }), { throttle: 250 }).on('progress', function(state) {
+        }), {
+            throttle: 250
+        }).on('progress', function(state) {
             if (!aborted) {
                 // Update progress popup
                 sendStateUpdate('downloading', state);
@@ -687,7 +698,7 @@ function maybeInstallDefaultContentSet(onComplete) {
             console.log("Done", arguments);
             sendStateUpdate('complete');
         });
-        unzipper.on('error', function (err) {
+        unzipper.on('error', function(err) {
             console.log("aborting");
             aborted = true;
             req.abort();
@@ -777,10 +788,7 @@ app.on('ready', function() {
             var currentVersion = null;
             try {
                 currentVersion = parseInt(buildInfo.buildIdentifier);
-                console.log('CURRENT VERSION:: ',currentVersion)
-            } catch (e) {
-            }
-
+            } catch (e) {}
 
             if (currentVersion !== null) {
                 const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
@@ -810,8 +818,9 @@ app.on('ready', function() {
         if (dsPath && acPath) {
             domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
             acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
-                                                                    '--log-directory', logPath,
-                                                                    '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+                '--log-directory', logPath,
+                '--http-status-port', httpStatusPort
+            ], httpStatusPort, logPath);
             homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
             logWindow = new LogWindow(acMonitor, domainServer);
 
@@ -820,7 +829,9 @@ app.on('ready', function() {
             };
 
             // handle process updates
-            homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
+            homeServer.on('state-update', function(processGroup) {
+                updateTrayMenu(processGroup.state);
+            });
 
             // start the home server
             homeServer.start();
