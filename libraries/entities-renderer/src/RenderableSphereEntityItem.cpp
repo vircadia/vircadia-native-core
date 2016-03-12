@@ -19,8 +19,8 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-#include "../render-utils/simple_vert.h"
-#include "../render-utils/simple_frag.h"
+#include <render-utils/simple_vert.h>
+#include <render-utils/simple_frag.h>
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1 
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
@@ -36,7 +36,9 @@ EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entity
 void RenderableSphereEntityItem::setUserData(const QString& value) {
     if (value != getUserData()) {
         SphereEntityItem::setUserData(value);
-        _procedural.reset();
+        if (_procedural) {
+            _procedural->parse(value);
+        }
     }
 }
 
