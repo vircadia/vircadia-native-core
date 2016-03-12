@@ -3186,9 +3186,12 @@ void Application::update(float deltaTime) {
         myAvatar->getHMDSensorMatrix()
     };
 
+    InputPluginPointer keyboardMousePlugin;
     bool jointsCaptured = false;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (inputPlugin->isActive()) {
+        if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
+            keyboardMousePlugin = inputPlugin;
+        } else if (inputPlugin->isActive()) {
             inputPlugin->pluginUpdate(deltaTime, calibrationData, jointsCaptured);
             if (inputPlugin->isJointController()) {
                 jointsCaptured = true;
@@ -3197,6 +3200,10 @@ void Application::update(float deltaTime) {
     }
 
     userInputMapper->update(deltaTime);
+
+    if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
+        keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData, jointsCaptured);
+    }
 
     _controllerScriptingInterface->updateInputControllers();
 
