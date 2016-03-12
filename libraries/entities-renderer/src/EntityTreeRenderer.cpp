@@ -157,6 +157,65 @@ void EntityTreeRenderer::update() {
     deleteReleasedModels();
 }
 
+bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
+    bool didUpdate = false;
+    float radius = 1.0f; // for now, assume 1 meter radius
+    QVector<EntityItemPointer> foundEntities;
+
+    // find the entities near us
+    // don't let someone else change our tree while we search
+    _tree->withReadLock([&] {
+        std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+
+        // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+        auto oldBestZone = _bestZone;
+        _bestZone = nullptr; // NOTE: Is this what we want?
+        _bestZoneVolume = std::numeric_limits<float>::max();
+
+        // create a list of entities that actually contain the avatar's position
+        foreach(EntityItemPointer entity, foundEntities) {
+            if (entity->contains(avatarPosition)) {
+                if (entitiesContainingAvatar) {
+                    *entitiesContainingAvatar << entity->getEntityItemID();
+                }
+
+                // if this entity is a zone, use this time to determine the bestZone
+                if (entity->getType() == EntityTypes::Zone) {
+                    if (!entity->getVisible()) {
+                        qCDebug(entitiesrenderer) << "not visible";
+                    }
+                    else {
+                        float entityVolumeEstimate = entity->getVolumeEstimate();
+                        if (entityVolumeEstimate < _bestZoneVolume) {
+                            _bestZoneVolume = entityVolumeEstimate;
+                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                        }
+                        else if (entityVolumeEstimate == _bestZoneVolume) {
+                            if (!_bestZone) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            }
+                            else {
+                                // in the case of the volume being equal, we will use the
+                                // EntityItemID to deterministically pick one entity over the other
+                                if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                    _bestZoneVolume = entityVolumeEstimate;
+                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (_bestZone != oldBestZone) {
+            applyZonePropertiesToScene(_bestZone);
+            didUpdate = true;
+        }
+    });
+    return didUpdate;
+}
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
     bool didUpdate = false;
 
@@ -164,54 +223,8 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
         if (avatarPosition != _lastAvatarPosition) {
-            float radius = 1.0f; // for now, assume 1 meter radius
-            QVector<EntityItemPointer> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
-            
-            // find the entities near us
-            // don't let someone else change our tree while we search
-            _tree->withReadLock([&] {
-                std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
-
-                // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-                auto oldBestZone = _bestZone;
-                _bestZone = nullptr; // NOTE: Is this what we want?
-                _bestZoneVolume = std::numeric_limits<float>::max();
-
-                // create a list of entities that actually contain the avatar's position
-                foreach(EntityItemPointer entity, foundEntities) {
-                    if (entity->contains(avatarPosition)) {
-                        entitiesContainingAvatar << entity->getEntityItemID();
-
-                        // if this entity is a zone, use this time to determine the bestZone
-                        if (entity->getType() == EntityTypes::Zone) {
-                            float entityVolumeEstimate = entity->getVolumeEstimate();
-                            if (entityVolumeEstimate < _bestZoneVolume) {
-                                _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                            } else if (entityVolumeEstimate == _bestZoneVolume) {
-                                if (!_bestZone) {
-                                    _bestZoneVolume = entityVolumeEstimate;
-                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                } else {
-                                    // in the case of the volume being equal, we will use the
-                                    // EntityItemID to deterministically pick one entity over the other
-                                    if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
-                                        _bestZoneVolume = entityVolumeEstimate;
-                                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                }
-
-                if (_bestZone != oldBestZone) {
-                    applyZonePropertiesToScene(_bestZone);
-                    didUpdate = true;
-                }
-            });
+            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, &entitiesContainingAvatar);
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The callEntityScriptMethod() method is robust against attempting to call scripts
@@ -234,6 +247,8 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
+        } else {
+            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, nullptr);
         }
     }
     return didUpdate;
@@ -375,9 +390,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                     qCDebug(entitiesrenderer) << "Failed to load skybox:" << zone->getSkyboxProperties().getURL();
                 }
             }
-            // Visibility does not effect other side effects such as ambient light or the selection of "best" zone.
-            // The skyStage backgroundMode is the hammer used (e.g., in Application.cpp) to control the visiblity of the sky box.
-            skyStage->setBackgroundMode(zone->getVisible() ? model::SunSkyStage::SKY_BOX : model::SunSkyStage::SKY_DOME);
+            skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             break;
         }
 
@@ -873,7 +886,9 @@ void EntityTreeRenderer::updateZone(const EntityItemID& id) {
             _currentEntitiesInside << id;
             emit enterEntity(id);
             _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
-            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+            if (zone->getVisible()) {
+                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+            }
         }
     }
     if (_bestZone && _bestZone->getID() == id) {
