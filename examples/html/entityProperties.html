@@ -243,7 +243,13 @@
 
         }
 
-        function userDataChanger(groupName, keyName, checkBoxElement, userDataElement) {
+        function isGrabbableByDefault(properties) {
+            return properties.type == "Box" ||
+                properties.type == "Sphere" ||
+                properties.dynamic
+        }
+
+        function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
             var properties = {};
             var parsedData = {};
             try {
@@ -253,8 +259,20 @@
             if (!(groupName in parsedData)) {
                 parsedData[groupName] = {}
             }
-            parsedData[groupName][keyName] = checkBoxElement.checked;
-            properties['userData'] = JSON.stringify(parsedData);
+            delete parsedData[groupName][keyName];
+            if (checkBoxElement.checked !== defaultValue) {
+                parsedData[groupName][keyName] = checkBoxElement.checked;
+            }
+
+            if (Object.keys(parsedData[groupName]).length == 0) {
+                delete parsedData[groupName];
+            }
+            if (Object.keys(parsedData).length > 0) {
+                properties['userData'] = JSON.stringify(parsedData);
+            } else {
+                properties['userData'] = '';
+            }
+
             userDataElement.value = properties['userData'];
 
             EventBridge.emitWebEvent(
@@ -552,23 +570,23 @@
                                 elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
                                 elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
-                                elGrabbable.checked = false;
+                                // boxes and sphere are grabbable by default
+                                elGrabbable.checked = isGrabbableByDefault(properties);
                                 elWantsTrigger.checked = false;
                                 elIgnoreIK.checked = false;
                                 var parsedUserData = {}
                                 try {
-                                    debugPrint("OKOKOK:" + properties.userData);
                                     parsedUserData = JSON.parse(properties.userData);
                                 } catch(e) {}
                                 if ("grabbableKey" in parsedUserData) {
-                                    if (parsedUserData["grabbableKey"].grabbable) {
-                                        elGrabbable.checked = true;
+                                    if ("grabbable" in parsedUserData["grabbableKey"]) {
+                                        elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
                                     }
-                                    if (parsedUserData["grabbableKey"].wantsTrigger) {
-                                        elWantsTrigger.checked = true;
+                                    if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
+                                        elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
                                     }
-                                    if (parsedUserData["grabbableKey"].ignoreIK) {
-                                        elIgnoreIK.checked = true;
+                                    if ("ignoreIK" in parsedUserData["grabbableKey"]) {
+                                        elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
                                     }
                                 }
 
@@ -802,13 +820,13 @@
                 });
 
                 elGrabbable.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData);
+                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, isGrabbableByDefault(properties));
                 });
                 elWantsTrigger.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData);
+                    userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
                 });
                 elIgnoreIK.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData);
+                    userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, false);
                 });
 
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
