@@ -74,9 +74,11 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
-const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived() const {
+const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
     _projectionInverse = glm::inverse(_projection);
-    _viewInverse = glm::inverse(_view);
+   // _viewInverse = glm::inverse(_view);
+    xformView.getMatrix(_viewInverse);
+    _view = glm::inverse(_viewInverse);
 
     Mat4 viewUntranslated = _view;
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -84,16 +86,18 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived() con
     return *this;
 }
 
-Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo) const {
+Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, const Transform& xformView) const {
     TransformCamera result = *this;
+    Transform offsetTransform = xformView;
     if (!_stereo._skybox) {
         result._view = _stereo._eyeViews[eye] * result._view;
+        offsetTransform.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
     } else {
-        glm::mat4 skyboxView = _stereo._eyeViews[eye];
-        skyboxView[3] = vec4(0, 0, 0, 1);
-        result._view = skyboxView * result._view;
+      //  glm::mat4 skyboxView = _stereo._eyeViews[eye];
+       // skyboxView[3] = vec4(0, 0, 0, 1);
+      //  result._view = skyboxView * result._view;
     }
     result._projection = _stereo._eyeProjections[eye];
-    result.recomputeDerived();
+    result.recomputeDerived(xformView);
     return result;
 }
