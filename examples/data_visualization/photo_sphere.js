@@ -1,6 +1,6 @@
 //  photo_sphere.js
 //
-//  Created by James B. Pollack on  3/11/2015
+//  Created by James B. Pollack @imgntn on 3/11/2015
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  This script creates a photo sphere around you.
@@ -18,7 +18,7 @@ var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/projection_objects/p
 function createPhotoSphere() {
 
     var textureString = 'photo:"' + url + '"'
-    print('ADDING TEXTURE:: ' + textureString);
+
     var properties = {
         type: 'Model',
         modelURL: MODEL_URL,
