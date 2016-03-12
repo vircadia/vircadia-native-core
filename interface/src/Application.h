@@ -299,7 +299,7 @@ private slots:
 
     void loadSettings();
     void saveSettings();
-    
+
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
@@ -326,8 +326,6 @@ private:
     void cleanupBeforeQuit();
 
     void update(float deltaTime);
-
-    void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
 
     // Various helper functions called during update()
     void updateLOD();

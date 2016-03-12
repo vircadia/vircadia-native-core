@@ -35,7 +35,6 @@
 #include "Avatar.h"
 #include "AvatarManager.h"
 #include "AvatarMotionState.h"
-#include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Physics.h"
@@ -101,7 +100,6 @@ Avatar::Avatar(RigPointer rig) :
 
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = static_cast<HeadData*>(new Head(this));
-    _handData = static_cast<HandData*>(new Hand(this));
 }
 
 Avatar::~Avatar() {
@@ -189,11 +187,6 @@ void Avatar::simulate(float deltaTime) {
     // simple frustum check
     float boundingRadius = getBoundingRadius();
     bool inView = qApp->getViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
-
-    {
-        PerformanceTimer perfTimer("hand");
-        getHand()->simulate(deltaTime, false);
-    }
 
     if (_shouldAnimate && !_shouldSkipRender && inView) {
         {
@@ -577,11 +570,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
     {
         if (_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable()) {
             getHead()->render(renderArgs, 1.0f, renderFrustum);
-        }
-
-        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
-                Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
-            getHand()->renderHandTargets(renderArgs, false);
         }
     }
     getHead()->renderLookAts(renderArgs);

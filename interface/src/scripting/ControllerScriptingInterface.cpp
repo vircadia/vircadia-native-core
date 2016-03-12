@@ -13,7 +13,6 @@
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <HandData.h>
 #include <HFBackEvent.h>
 #include <plugins/PluginManager.h>
 
