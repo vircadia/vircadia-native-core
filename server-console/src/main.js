@@ -587,7 +587,8 @@ function updateLabels(serverState) {
 
     // update the tray menu state
     var running = serverState == ProcessGroupStates.STARTED;
-
+    console.log('RUNNING??? ' + running)
+    console.log('SERVERSTATE?'  + serverState)
     labels.goHome.enabled = running;
     labels.stopServer.visible = running;
     labels.settings.enabled = running;
@@ -597,6 +598,7 @@ function updateLabels(serverState) {
     } else if (serverState == ProcessGroupStates.STOPPED) {
         labels.serverState.label = "Server - Stopped";
         labels.restart.label = "Start Server";
+        labels.restart.enabled = true;
     } else if (serverState == ProcessGroupStates.STOPPING) {
         labels.serverState.label = "Server - Stopping";
         labels.restart.label = "Restart Server";
