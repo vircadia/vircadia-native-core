@@ -494,6 +494,10 @@ function buildMenuArray(serverState) {
                 enabled: false
             },
             {
+                label: 'Version - '+buildInfo.buildIdentifier,
+                enabled: false
+            },
+            {
                 type: 'separator'
             },
             {
@@ -536,14 +540,7 @@ function buildMenuArray(serverState) {
                 label: 'Quit',
                 accelerator: 'Command+Q',
                 click: function() { shutdown(); }
-            },
-            {
-                type: 'separator'
-            },
-            {
-                label: 'Current Version: '+buildInfo.buildIdentifier,
-                enabled: false
-            }
+            } 
         ];
 
         var foundStackManagerContent = isStackManagerContentPresent();
