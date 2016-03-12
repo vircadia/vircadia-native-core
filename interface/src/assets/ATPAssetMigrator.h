@@ -48,8 +48,10 @@ private:
     QJsonArray _entitiesArray;
     
     bool _doneReading { false };
-    
-    QMultiHash<QUrl, QJsonValueRef> _pendingReplacements;
+
+    using JSONTypePair = std::pair<QJsonValueRef, quint8>;
+
+    QMultiHash<QUrl, std::pair<QJsonValueRef, quint8>> _pendingReplacements;
     QHash<QUrl, QUrl> _uploadedAssets;
     QHash<QObject*, QUrl> _originalURLs;
     QSet<QUrl> _ignoredUrls;

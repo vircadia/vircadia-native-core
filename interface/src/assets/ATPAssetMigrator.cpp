@@ -38,6 +38,7 @@ ATPAssetMigrator& ATPAssetMigrator::getInstance() {
 
 static const QString ENTITIES_OBJECT_KEY = "Entities";
 static const QString MODEL_URL_KEY = "modelURL";
+static const QString COMPOUND_SHAPE_URL_KEY = "compoundShapeURL";
 static const QString MESSAGE_BOX_TITLE = "ATP Asset Migration";
 
 void ATPAssetMigrator::loadEntityServerFile() {
@@ -76,58 +77,75 @@ void ATPAssetMigrator::loadEntityServerFile() {
             for (auto jsonValue : _entitiesArray) {
                 QJsonObject entityObject = jsonValue.toObject();
                 QString modelURLString = entityObject.value(MODEL_URL_KEY).toString();
-                
-                if (!modelURLString.isEmpty()) {
-                    QUrl modelURL = QUrl(modelURLString);
-                    
-                    if (!_ignoredUrls.contains(modelURL)
-                        && (modelURL.scheme() == URL_SCHEME_HTTP || modelURL.scheme() == URL_SCHEME_HTTPS
-                            || modelURL.scheme() == URL_SCHEME_FILE || modelURL.scheme() == URL_SCHEME_FTP)) {
-                        
-                        if (_pendingReplacements.contains(modelURL)) {
-                            // we already have a request out for this asset, just store the QJsonValueRef
-                            // so we can do the hash replacement when the request comes back
-                            _pendingReplacements.insert(modelURL, jsonValue);
-                        } else if (_uploadedAssets.contains(modelURL)) {
-                            // we already have a hash for this asset
-                            // so just do the replacement immediately
-                            entityObject[MODEL_URL_KEY] = _uploadedAssets.value(modelURL).toString();
-                            jsonValue = entityObject;
-                        } else if (wantsToMigrateResource(modelURL)) {
-                            auto request = ResourceManager::createResourceRequest(this, modelURL);
-                            
-                            if (request) {
-                                qCDebug(asset_migrator) << "Requesting" << modelURL << "for ATP asset migration";
-                                
-                                // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
-                                // to an ATP one once ready
-                                _pendingReplacements.insert(modelURL, jsonValue);
-                                
-                                connect(request, &ResourceRequest::finished, this, [=]() {
-                                    if (request->getResult() == ResourceRequest::Success) {
-                                        migrateResource(request);
+                QString compoundURLString = entityObject.value(COMPOUND_SHAPE_URL_KEY).toString();
+
+                for (int i = 0; i < 2; ++i) {
+                    bool isModelURL = (i == 0);
+                    quint8 replacementType = i;
+                    auto migrationURLString = (isModelURL) ? modelURLString : compoundURLString;
+
+                    if (!migrationURLString.isEmpty()) {
+                        QUrl migrationURL = QUrl(migrationURLString);
+
+                        if (!_ignoredUrls.contains(migrationURL)
+                            && (migrationURL.scheme() == URL_SCHEME_HTTP || migrationURL.scheme() == URL_SCHEME_HTTPS
+                                || migrationURL.scheme() == URL_SCHEME_FILE || migrationURL.scheme() == URL_SCHEME_FTP)) {
+
+                                if (_pendingReplacements.contains(migrationURL)) {
+                                    // we already have a request out for this asset, just store the QJsonValueRef
+                                    // so we can do the hash replacement when the request comes back
+                                    _pendingReplacements.insert(migrationURL, { jsonValue, replacementType });
+                                } else if (_uploadedAssets.contains(migrationURL)) {
+                                    // we already have a hash for this asset
+                                    // so just do the replacement immediately
+                                    if (isModelURL) {
+                                        entityObject[MODEL_URL_KEY] = _uploadedAssets.value(migrationURL).toString();
+                                    } else {
+                                        entityObject[COMPOUND_SHAPE_URL_KEY] = _uploadedAssets.value(migrationURL).toString();
+                                    }
+
+                                    jsonValue = entityObject;
+                                } else if (wantsToMigrateResource(migrationURL)) {
+                                    auto request = ResourceManager::createResourceRequest(this, migrationURL);
+
+                                    if (request) {
+                                        qCDebug(asset_migrator) << "Requesting" << migrationURL << "for ATP asset migration";
+
+                                        // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
+                                        // to an ATP one once ready
+                                        _pendingReplacements.insert(migrationURL, { jsonValue, (isModelURL ? 0 : 1)});
+
+                                        connect(request, &ResourceRequest::finished, this, [=]() {
+                                            if (request->getResult() == ResourceRequest::Success) {
+                                                migrateResource(request);
+                                            } else {
+                                                ++_errorCount;
+                                                _pendingReplacements.remove(migrationURL);
+                                                qWarning() << "Could not retrieve asset at" << migrationURL.toString();
+
+                                                checkIfFinished();
+                                            }
+                                            request->deleteLater();
+                                        });
+
+                                        request->send();
                                     } else {
                                         ++_errorCount;
-                                        _pendingReplacements.remove(modelURL);
-                                        qWarning() << "Could not retrieve asset at" << modelURL.toString();
+                                        qWarning() << "Count not create request for asset at" << migrationURL.toString();
                                     }
-                                    request->deleteLater();
-                                });
-                                
-                                request->send();
-                            } else {
-                                ++_errorCount;
-                                qWarning() << "Count not create request for asset at" << modelURL.toString();
+                                    
+                                } else {
+                                    _ignoredUrls.insert(migrationURL);
+                                }
                             }
-                            
-                        } else {
-                            _ignoredUrls.insert(modelURL);
-                        }
                     }
                 }
+
             }
             
             _doneReading = true;
+
+            checkIfFinished();
             
         } else {
             OffscreenUi::warning(_dialogParent, "Error",
@@ -155,27 +173,27 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
 }
 
 void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& hash) {
-    // remove this modelURL from the key for the AssetUpload pointer
-    auto modelURL = _originalURLs.take(upload);
+    // remove this migrationURL from the key for the AssetUpload pointer
+    auto migrationURL = _originalURLs.take(upload);
 
     if (upload->getError() == AssetUpload::NoError) {
 
-        // use the path of the modelURL to add a mapping in the Asset Server
+        // use the path of the migrationURL to add a mapping in the Asset Server
         auto assetClient = DependencyManager::get<AssetClient>();
-        auto setMappingRequest = assetClient->createSetMappingRequest(modelURL.path(), hash);
+        auto setMappingRequest = assetClient->createSetMappingRequest(migrationURL.path(), hash);
 
         connect(setMappingRequest, &SetMappingRequest::finished, this, &ATPAssetMigrator::setMappingFinished);
 
-        // add this modelURL with the key for the SetMappingRequest pointer
-        _originalURLs[setMappingRequest] = modelURL;
+        // add this migrationURL with the key for the SetMappingRequest pointer
+        _originalURLs[setMappingRequest] = migrationURL;
 
         setMappingRequest->start();
     } else {
         // this is a fail for this modelURL, remove it from pending replacements
-        _pendingReplacements.remove(modelURL);
+        _pendingReplacements.remove(migrationURL);
 
         ++_errorCount;
-        qWarning() << "Failed to upload" << modelURL << "- error was" << upload->getErrorString();
+        qWarning() << "Failed to upload" << migrationURL << "- error was" << upload->getErrorString();
     }
 
     checkIfFinished();
@@ -184,34 +202,40 @@ void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& h
 }
 
 void ATPAssetMigrator::setMappingFinished(SetMappingRequest* request) {
-    // take the modelURL for this SetMappingRequest
-    auto modelURL = _originalURLs.take(request);
+    // take the migrationURL for this SetMappingRequest
+    auto migrationURL = _originalURLs.take(request);
 
     if (request->getError() == MappingRequest::NoError) {
 
         // successfully uploaded asset - make any required replacements found in the pending replacements
-        auto values = _pendingReplacements.values(modelURL);
+        auto values = _pendingReplacements.values(migrationURL);
 
         QString atpURL = QString("atp:%1").arg(request->getPath());
 
         for (auto value : values) {
             // replace the modelURL in this QJsonValueRef with the hash
-            QJsonObject valueObject = value.toObject();
-            valueObject[MODEL_URL_KEY] = atpURL;
-            value = valueObject;
+            QJsonObject valueObject = value.first.toObject();
+
+            if (value.second == 0) {
+                valueObject[MODEL_URL_KEY] = atpURL;
+            } else {
+                valueObject[COMPOUND_SHAPE_URL_KEY] = atpURL;
+            }
+
+            value.first = valueObject;
         }
 
         // add this URL to our list of uploaded assets
-        _uploadedAssets.insert(modelURL, atpURL);
+        _uploadedAssets.insert(migrationURL, atpURL);
 
-        // pull the replaced models from _pendingReplacements
-        _pendingReplacements.remove(modelURL);
+        // pull the replaced urls from _pendingReplacements
+        _pendingReplacements.remove(migrationURL);
     } else {
-        // this is a fail for this modelURL, remove it from pending replacements
-        _pendingReplacements.remove(modelURL);
+        // this is a fail for this migrationURL, remove it from pending replacements
+        _pendingReplacements.remove(migrationURL);
 
         ++_errorCount;
-        qWarning() << "Error setting mapping for" << modelURL << "- error was " << request->getErrorString();
+        qWarning() << "Error setting mapping for" << migrationURL << "- error was " << request->getErrorString();
     }
 
     checkIfFinished();
