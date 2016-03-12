@@ -272,6 +272,10 @@ Window {
         });
     }
 
+    function itemSelected() {
+        return treeView.selection.hasSelection()
+    }
+
     Column {
         width: pane.contentWidth
 
@@ -317,6 +321,7 @@ Window {
                     width: 80
 
                     onClicked: root.renameFile()
+                    enabled: treeView.selection.hasSelection
                 }
 
                 HifiControls.Button {
@@ -329,6 +334,7 @@ Window {
                     width: 80
 
                     onClicked: root.deleteFile()
+                    enabled: treeView.selection.hasSelection
                 }
             }
 
@@ -373,6 +379,9 @@ Window {
                     acceptedButtons: Qt.RightButton
                     onClicked: {
                         var index = treeView.indexAt(mouse.x, mouse.y);
+
+                        treeView.selection.setCurrentIndex(index, 0x0002);
+
                         contextMenu.currentIndex = index;
                         contextMenu.popup();
                     }
@@ -447,7 +456,22 @@ Window {
                     width: 155
 
                     enabled: fileUrlTextField.text != ""
-                    onClicked: root.uploadClicked()
+                    onClicked: uploadClickedTimer.running = true
+
+                    // For some reason trigginer an API that enters
+                    // an internal event loop directly from the button clicked
+                    // trigger below causes the appliction to behave oddly.
+                    // Most likely because the button onClicked handling is never
+                    // completed until the function returns.
+                    // FIXME find a better way of handling the input dialogs that
+                    // doesn't trigger this.
+                    Timer {
+                        id: uploadClickedTimer
+                        interval: 5
+                        repeat: false
+                        running: false
+                        onTriggered: uploadClicked();
+                    }
                 }
             }
 
