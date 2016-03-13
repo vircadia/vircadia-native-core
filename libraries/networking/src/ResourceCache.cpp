@@ -57,12 +57,12 @@ void ResourceCache::refresh(const QUrl& url) {
 }
 
 void ResourceCache::setRequestLimit(int limit) {
-	_requestLimit = limit;
+    _requestLimit = limit;
 
-	// Now go fill any new request spots
-	while (attemptHighestPriorityRequest()) {
-		// just keep looping until we reach the new limit or no more pending requests
-	}
+    // Now go fill any new request spots
+    while (attemptHighestPriorityRequest()) {
+        // just keep looping until we reach the new limit or no more pending requests
+    }
 }
 
 void ResourceCache::getResourceAsynchronously(const QUrl& url) {
@@ -175,21 +175,21 @@ bool ResourceCache::attemptRequest(Resource* resource) {
 
     sharedItems->_loadingRequests.append(resource);
     resource->makeRequest();
-	return true;
+    return true;
 }
 
 void ResourceCache::requestCompleted(Resource* resource) {
-	auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-	sharedItems->_loadingRequests.removeOne(resource);
-	if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-		--_requestsActive;
-	}
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    sharedItems->_loadingRequests.removeOne(resource);
+    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
+        --_requestsActive;
+    }
 
-	attemptHighestPriorityRequest();
+    attemptHighestPriorityRequest();
 }
 
 bool ResourceCache::attemptHighestPriorityRequest() {
-	auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
