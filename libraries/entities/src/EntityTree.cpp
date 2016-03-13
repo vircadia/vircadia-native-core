@@ -457,7 +457,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
 
-        qDebug() << "processRemovedEntities on " << theEntity->getID() << theEntity->getName();
         if (getIsServer()) {
             QSet<EntityItemID> childrenIDs;
             theEntity->forEachChild([&](SpatiallyNestablePointer child) {
