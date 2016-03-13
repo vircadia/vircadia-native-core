@@ -22,7 +22,6 @@
 
 #include <render/Scene.h>
 
-#include "Hand.h"
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "world.h"
@@ -91,7 +90,7 @@ public:
     float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
-    Hand* getHand() { return static_cast<Hand*>(_handData); }
+
     glm::quat getWorldAlignedOrientation() const;
 
     AABox getBounds() const;

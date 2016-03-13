@@ -1,44 +1,59 @@
-import QtQuick 2.4
-import QtQuick.Controls 1.3
-import QtQuick.Controls.Styles 1.3
+//
+//  VrMenuView.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
-import "../styles"
+import QtQuick 2.5
+import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 
+import "../styles-uit"
 
 FocusScope {
     id: root
-    implicitHeight: border.height
-    implicitWidth: border.width
+    implicitHeight: background.height
+    implicitWidth: background.width
 
     property alias currentItem: listView.currentItem
     property alias model: listView.model
+    property bool isSubMenu: false
     signal selected(var item)
 
+    HifiConstants { id: hifi }
 
-    Border {
-        id: border
+    Rectangle {
+        id: background
         anchors.fill: listView
-        anchors.margins: -8
-        border.color: hifi.colors.hifiBlue
-        color: hifi.colors.window
-        // color: "#7f7f7f7f"
+        radius: hifi.dimensions.borderRadius
+        border.width: hifi.dimensions.borderWidth
+        border.color: hifi.colors.lightGrayText80
+        color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
 
     ListView {
         id: listView
         x: 8; y: 8
-        HifiConstants { id: hifi }
         width: 128
         height: count * 32
+        topMargin: hifi.dimensions.menuPadding.y
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
         focus: true
 
         highlight: Rectangle {
-            width: listView.currentItem ? listView.currentItem.width : 0
-            height: listView.currentItem ? listView.currentItem.height : 0
-            color: "lightsteelblue"; radius: 3
+            anchors {
+                left: parent ? parent.left : undefined
+                right: parent ? parent.right : undefined
+                leftMargin: hifi.dimensions.borderWidth
+                rightMargin: hifi.dimensions.borderWidth
+            }
+            color: hifi.colors.white
         }
 
         delegate: VrMenuItem {
@@ -75,6 +90,7 @@ FocusScope {
                     newHeight += currentItem.implicitHeight
                 }
             }
+            newHeight += 2 * hifi.dimensions.menuPadding.y;  // White space at top and bottom.
             if (maxWidth > width) {
                 width = maxWidth;
             }
