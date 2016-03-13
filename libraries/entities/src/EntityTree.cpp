@@ -448,6 +448,18 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
+
+        qDebug() << "processRemovedEntities on " << theEntity->getID() << theEntity->getName();
+        if (getIsServer()) {
+            QSet<EntityItemID> childrenIDs;
+            theEntity->forEachChild([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Entity) {
+                    childrenIDs += child->getID();
+                }
+            });
+            deleteEntities(childrenIDs, true, true);
+        }
+
         theEntity->die();
 
         if (getIsServer()) {
@@ -1000,6 +1012,10 @@ void EntityTree::fixupMissingParents() {
                 moveOperator.addEntityToMoveList(entity, newCube);
                 iter.remove();
                 entity->markAncestorMissing(false);
+            } else if (_avatarIDs.contains(entity->getParentID())) {
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+                iter.remove();
+                entity->markAncestorMissing(false);
             }
         } else {
             // entity was deleted before we found its parent.
@@ -1012,6 +1028,13 @@ void EntityTree::fixupMissingParents() {
         recurseTreeWithOperator(&moveOperator);
     }
 
+}
+
+void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
+    if (_childrenOfAvatars.contains(avatarID)) {
+        deleteEntities(_childrenOfAvatars[avatarID]);
+        _childrenOfAvatars.remove(avatarID);
+    }
 }
 
 void EntityTree::update() {
