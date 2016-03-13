@@ -23,8 +23,8 @@ public:
     using Pointer = std::shared_ptr<AnimSkeleton>;
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
-    AnimSkeleton(const FBXGeometry& fbxGeometry);
-    AnimSkeleton(const std::vector<FBXJoint>& joints);
+    explicit AnimSkeleton(const FBXGeometry& fbxGeometry);
+    explicit AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
