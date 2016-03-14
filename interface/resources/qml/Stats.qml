@@ -167,7 +167,7 @@ Item {
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
                         text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
-                              ", Q: " + root.downloadsPending;
+                              ", Pending: " + root.downloadsPending;
                     }
                 }
             }
