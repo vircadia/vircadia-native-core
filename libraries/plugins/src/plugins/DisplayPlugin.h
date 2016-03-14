@@ -65,6 +65,12 @@ public:
     virtual bool isThrottled() const { return false; }
     virtual float getTargetFrameRate() { return 0.0f; }
 
+    /// Returns a boolean value indicating whether the display is currently visible 
+    /// to the user.  For monitor displays, false might indicate that a screensaver,
+    /// or power-save mode is active.  For HMDs it may reflect a sensor indicating
+    /// whether the HMD is being worn
+    virtual bool isDisplayVisible() const { return false; }
+
     // Rendering support
 
     // Stop requesting renders, but don't do full deactivation

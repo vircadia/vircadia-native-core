@@ -140,8 +140,8 @@ void EntityTreeRenderer::update() {
         // If we haven't already updated and previously attempted to load a texture,
         // check if the texture loaded and apply it
         if (!updated && (
-            (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
-            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded()))) {
+            (_pendingSkyboxTexture && (!_skyboxTexture || _skyboxTexture->isLoaded())) ||
+            (_pendingAmbientTexture && (!_ambientTexture || _ambientTexture->isLoaded())))) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -158,6 +158,8 @@ void EntityTreeRenderer::update() {
 }
 
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
+    bool didUpdate = false;
+
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
@@ -172,6 +174,7 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
                 std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
                 // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+                auto oldBestZone = _bestZone;
                 _bestZone = nullptr; // NOTE: Is this what we want?
                 _bestZoneVolume = std::numeric_limits<float>::max();
 
@@ -204,7 +207,10 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
                     }
                 }
 
-                applyZonePropertiesToScene(_bestZone);
+                if (_bestZone != oldBestZone) {
+                    applyZonePropertiesToScene(_bestZone);
+                    didUpdate = true;
+                }
             });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
@@ -228,11 +234,9 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
-
-            return true;
         }
     }
-    return false;
+    return didUpdate;
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
@@ -322,15 +326,19 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _ambientTexture.clear();
     } else {
         _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
-        if (_ambientTexture && _ambientTexture->isLoaded() && _ambientTexture->getGPUTexture()) {
+        _pendingAmbientTexture = true;
+
+        if (_ambientTexture && _ambientTexture->isLoaded()) {
             _pendingAmbientTexture = false;
-            if (_ambientTexture->getGPUTexture()->getIrradiance()) {
-                sceneKeyLight->setAmbientSphere(_ambientTexture->getGPUTexture()->getIrradiance());
-                sceneKeyLight->setAmbientMap(_ambientTexture->getGPUTexture());
+
+            auto texture = _ambientTexture->getGPUTexture();
+            if (texture) {
+                sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                sceneKeyLight->setAmbientMap(texture);
                 isAmbientTextureSet = true;
+            } else {
+                qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << zone->getKeyLightProperties().getAmbientURL();
             }
-        } else {
-            _pendingAmbientTexture = true;
         }
     }
 
@@ -344,24 +352,27 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 skybox->parse(userData);
             }
             if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                skybox->setCubemap(gpu::TexturePointer());
+                skybox->setCubemap(nullptr);
                 _pendingSkyboxTexture = false;
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
                 _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                _pendingSkyboxTexture = true;
 
-                if (_skyboxTexture && _skyboxTexture->isLoaded() && _skyboxTexture->getGPUTexture()) {
+                if (_skyboxTexture && _skyboxTexture->isLoaded()) {
+                    _pendingSkyboxTexture = false;
+
                     auto texture = _skyboxTexture->getGPUTexture();
                     skybox->setCubemap(texture);
-                    _pendingSkyboxTexture = false;
-                    if (!isAmbientTextureSet && texture->getIrradiance()) {
+                    if (!isAmbientTextureSet) {
                         sceneKeyLight->setAmbientSphere(texture->getIrradiance());
                         sceneKeyLight->setAmbientMap(texture);
                         isAmbientTextureSet = true;
                     }
                 } else {
-                    _pendingSkyboxTexture = true;
+                    skybox->setCubemap(nullptr);
+                    qCDebug(entitiesrenderer) << "Failed to load skybox:" << zone->getSkyboxProperties().getURL();
                 }
             }
 

@@ -21,7 +21,7 @@ var MINIMUM_DEPTH_ADJUST = 0.01;
 var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.01;
 
-var lastMouseMove = Date.now();
+var lastMouseMoveOrClick = Date.now();
 var lastMouseX = Reticle.position.x;
 var lastMouseY = Reticle.position.y;
 var HIDE_STATIC_MOUSE_AFTER = 3000; // 3 seconds
@@ -31,6 +31,14 @@ var averageMouseVelocity = 0;
 var WEIGHTING = 1/20; // simple moving average over last 20 samples
 var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
 var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 50;
+
+function showReticleOnMouseClick() {
+    Reticle.visible = true;
+    lastMouseMoveOrClick = Date.now(); // move or click
+}
+
+Controller.mousePressEvent.connect(showReticleOnMouseClick);
+Controller.mouseDoublePressEvent.connect(showReticleOnMouseClick);
 
 Controller.mouseMoveEvent.connect(function(mouseEvent) {
     var now = Date.now();
@@ -47,7 +55,7 @@ Controller.mouseMoveEvent.connect(function(mouseEvent) {
         if (HMD.active && !shouldSeekToLookAt && Reticle.allowMouseCapture) {
             var dx = Reticle.position.x - lastMouseX;
             var dy = Reticle.position.y - lastMouseY;
-            var dt = Math.max(1, (now - lastMouseMove)); // mSecs since last mouse move
+            var dt = Math.max(1, (now - lastMouseMoveOrClick)); // mSecs since last mouse move
             var mouseMoveDistance = Math.sqrt((dx*dx) + (dy*dy));
             var mouseVelocity = mouseMoveDistance / dt;
             averageMouseVelocity = (ONE_MINUS_WEIGHTING * averageMouseVelocity) + (WEIGHTING * mouseVelocity);
@@ -56,7 +64,7 @@ Controller.mouseMoveEvent.connect(function(mouseEvent) {
             }
         }
     }
-    lastMouseMove = now;
+    lastMouseMoveOrClick = now;
     lastMouseX = mouseEvent.x;
     lastMouseY = mouseEvent.y;
 });
@@ -94,7 +102,7 @@ function autoHideReticle() {
     // system overlay (like a window), then hide the reticle
     if (Reticle.visible && !Reticle.pointingAtSystemOverlay) {
         var now = Date.now();
-        var timeSinceLastMouseMove = now - lastMouseMove;
+        var timeSinceLastMouseMove = now - lastMouseMoveOrClick;
         if (timeSinceLastMouseMove > HIDE_STATIC_MOUSE_AFTER) {
             Reticle.visible = false;
         }

@@ -6,7 +6,9 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-if (NOT WIN32)
+#  Windows doesn't need this, and building it currently make Linux unstable.
+#  if (NOT WIN32)
+if (APPLE)
 
     set(TARGET_NAME oculusLegacy)
     setup_hifi_plugin()

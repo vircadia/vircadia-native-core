@@ -101,6 +101,7 @@ bool Procedural::parseUrl(const QUrl& shaderUrl) {
     }
 
     _shaderUrl = shaderUrl;
+    _shaderDirty = true;
 
     if (_shaderUrl.isLocalFile()) {
         _shaderPath = _shaderUrl.toLocalFile();
@@ -230,7 +231,10 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         if (replaceIndex != std::string::npos) {
             fragmentShaderSource.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
         }
-        //qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
+
+        // Leave this here for debugging
+        // qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
+
         _fragmentShader = gpu::Shader::createPixel(fragmentShaderSource);
         _shader = gpu::Shader::createProgram(_vertexShader, _fragmentShader);
 
@@ -370,7 +374,8 @@ void Procedural::setupUniforms() {
             v.y = date.month() - 1;
             // But not the day... go figure
             v.z = date.day();
-            v.w = (time.hour() * 3600) + (time.minute() * 60) + time.second();
+            float fractSeconds = (time.msec() / 1000.0f);
+            v.w = (time.hour() * 3600) + (time.minute() * 60) + time.second() + fractSeconds;
             batch._glUniform(_standardUniformSlots[DATE], v);
         });
     }

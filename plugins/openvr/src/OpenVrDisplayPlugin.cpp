@@ -86,13 +86,16 @@ void OpenVrDisplayPlugin::activate() {
 }
 
 void OpenVrDisplayPlugin::deactivate() {
+    // Base class deactivate must come before our local deactivate
+    // because the OpenGL base class handles the wait for the present 
+    // thread before continuing
+    HmdDisplayPlugin::deactivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         releaseOpenVrSystem();
         _system = nullptr;
     }
     _compositor = nullptr;
-    HmdDisplayPlugin::deactivate();
 }
 
 void OpenVrDisplayPlugin::customizeContext() {
@@ -154,4 +157,10 @@ void OpenVrDisplayPlugin::hmdPresent() {
 
     vr::TrackedDevicePose_t currentTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
     _compositor->WaitGetPoses(currentTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
 }
+
+bool OpenVrDisplayPlugin::isHmdMounted() const {
+    return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+}
+

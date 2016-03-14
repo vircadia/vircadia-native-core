@@ -96,6 +96,9 @@ void Scene::processPendingChangesQueue() {
         // removes
         removeItems(consolidatedPendingChanges._removedItems);
 
+        // Update the numItemsAtomic counter AFTER the pending changes went through
+        _numAllocatedItems.exchange(maxID);
+
      // ready to go back to rendering activities
     _itemsMutex.unlock();
 }

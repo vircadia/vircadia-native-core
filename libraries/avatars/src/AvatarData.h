@@ -52,9 +52,9 @@ typedef unsigned long long quint64;
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
 #include <SpatiallyNestable.h>
+#include <NumericalConstants.h>
 
 #include "AABox.h"
-#include "HandData.h"
 #include "HeadData.h"
 #include "PathUtils.h"
 
@@ -290,7 +290,6 @@ public:
     KeyState keyState() const { return _keyState; }
 
     const HeadData* getHeadData() const { return _headData; }
-    const HandData* getHandData() const { return _handData; }
 
     bool hasIdentityChangedAfterParsing(const QByteArray& data);
     QByteArray identityByteArray();
@@ -383,7 +382,6 @@ protected:
     bool _hasNewJointTranslations; // set in AvatarData, cleared in Avatar
 
     HeadData* _headData;
-    HandData* _handData;
 
     QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
