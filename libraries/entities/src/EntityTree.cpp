@@ -86,6 +86,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     if (_simulation) {
         _simulation->addEntity(entity);
     }
+
+    if (!entity->isParentIDValid()) {
+        _missingParent.append(entity);
+    }
+
     _isDirty = true;
     maybeNotifyNewCollisionSoundURL("", entity->getCollisionSoundURL());
     emit addingEntity(entity->getEntityItemID());
@@ -251,6 +256,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!success) {
                 _missingParent.append(childEntity);
                 continue;
+            }
+            if (!childEntity->isParentIDValid()) {
+                _missingParent.append(childEntity);
             }
 
             UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
@@ -448,6 +456,17 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
+
+        if (getIsServer()) {
+            QSet<EntityItemID> childrenIDs;
+            theEntity->forEachChild([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Entity) {
+                    childrenIDs += child->getID();
+                }
+            });
+            deleteEntities(childrenIDs, true, true);
+        }
+
         theEntity->die();
 
         if (getIsServer()) {
@@ -992,12 +1011,21 @@ void EntityTree::fixupMissingParents() {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
         if (entity) {
-            bool success;
-            AACube newCube = entity->getQueryAACube(success);
-            if (success) {
-                // this entity's parent (or ancestry) was previously not fully known, and now is.  Update its
-                // location in the EntityTree.
+            if (entity->isParentIDValid()) {
+                // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
+                bool success;
+                AACube newCube = entity->getQueryAACube(success);
+                if (!success) {
+                    continue;
+                }
                 moveOperator.addEntityToMoveList(entity, newCube);
+                iter.remove();
+                entity->markAncestorMissing(false);
+            } else if (_avatarIDs.contains(entity->getParentID())) {
+                if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+                }
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
                 iter.remove();
                 entity->markAncestorMissing(false);
             }
@@ -1012,6 +1040,13 @@ void EntityTree::fixupMissingParents() {
         recurseTreeWithOperator(&moveOperator);
     }
 
+}
+
+void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
+    if (_childrenOfAvatars.contains(avatarID)) {
+        deleteEntities(_childrenOfAvatars[avatarID]);
+        _childrenOfAvatars.remove(avatarID);
+    }
 }
 
 void EntityTree::update() {
