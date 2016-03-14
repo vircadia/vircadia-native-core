@@ -15,7 +15,8 @@
     Script.include('../../../../libraries/utils.js');
 
     var _this;
-    GrowingPlant = function() {
+
+    function GrowingPlant() {
         _this = this;
         _this.flowers = [];
         // _this.STARTING_FLOWER_DIMENSIONS = {x: 0.1, y: 0.001, z: 0.1}
@@ -49,8 +50,6 @@
     };
 
     GrowingPlant.prototype = {
-
-
         continueWatering: function(entityID, data) {
             // we're being watered- every now and then spawn a new flower to add to our growing list
             // If we don't have any flowers yet, immediately grow one
@@ -78,8 +77,12 @@
                 return;
             }
             var xzGrowthRate = randFloat(0.00006, 0.00016);
-            var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.003), z: xzGrowthRate};
-    
+            var growthRate = {
+                x: xzGrowthRate,
+                y: randFloat(0.001, 0.003),
+                z: xzGrowthRate
+            };
+
             var flower = {
                 dimensions: {
                     x: _this.STARTING_FLOWER_DIMENSIONS.x,
@@ -99,7 +102,7 @@
                 //     saturation: 0.92,
                 //     light: 0.41
                 // },
-                hslColor: Math.random() < 0.5 ? _this.flowerHSLColors[0] : _this.flowerHSLColors[1], 
+                hslColor: Math.random() < 0.5 ? _this.flowerHSLColors[0] : _this.flowerHSLColors[1],
                 growthRate: growthRate
             };
             flower.userData = {

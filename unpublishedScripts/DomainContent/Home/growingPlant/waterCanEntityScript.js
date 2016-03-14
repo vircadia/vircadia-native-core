@@ -15,7 +15,7 @@
     Script.include('../../../../libraries/utils.js');
 
     var _this;
-    WaterSpout = function() {
+    function WaterSpout() {
         _this = this;
         _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
         _this.POUR_ANGLE_THRESHOLD = 0;
