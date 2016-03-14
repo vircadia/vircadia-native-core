@@ -80,11 +80,16 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
     request->start();
 }
 
-void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue callback) {
+void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback) {
+    static const QString helpText =
+        "Upload your asset to a specific folder by enter the full path. Specifying "
+        "a new folder name will automatically create that folder for you.";
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto result = offscreenUi->inputDialog(OffscreenUi::ICON_NONE, "Enter asset path:", "", mapping);
+    auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path", helpText, mapping);
 
     if (!result.isValid()) {
+        completedCallback.call({ -1 });
         return;
     }
     mapping = result.toString();
@@ -100,19 +105,22 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         auto button = offscreenUi->messageBox(OffscreenUi::ICON_QUESTION, "Overwrite File", message,
                                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (button == QMessageBox::No) {
+            completedCallback.call({ -1 });
             return;
         }
     }
 
+    startedCallback.call();
+
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
-            if (callback.isCallable()) {
+            if (completedCallback.isCallable()) {
                 QJSValueList args { uint8_t(upload->getError()) };
-                callback.call(args);
+                completedCallback.call(args);
             }
         } else {
-            setMapping(mapping, hash, callback);
+            setMapping(mapping, hash, completedCallback);
         }
 
         upload->deleteLater();
@@ -197,6 +205,7 @@ AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath,
 {
 
 }
+
 
 static int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
