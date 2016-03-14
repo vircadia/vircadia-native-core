@@ -398,15 +398,9 @@ Window {
                 anchors.fill: parent
                 acceptedButtons: Qt.RightButton
                 onClicked: {
-                    print("onClicked");
                     var index = treeView.indexAt(mouse.x, mouse.y);
-                    print("onClicked", assetProxyModel.data(index, 0x0100));
-                    treeView.selection.select(index, 0x0001 |  0x0002 | 0x0010 | 0x0020);
-                    print("done");
-                    //contextMenu.currentIndex = index;
-                    //treeView.selection.clearSelection()
-                    //treeView.selection.clear();
-                    //contextMenu.popup();
+                    contextMenu.currentIndex = index;
+                    contextMenu.popup();
                 }
             }
         }
