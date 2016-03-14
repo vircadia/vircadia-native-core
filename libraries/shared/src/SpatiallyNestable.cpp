@@ -781,6 +781,7 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     if (queryAACube.getScale() > 0.0f) {
         _queryAACubeSet = true;
     }
+    checkAndAdjustQueryAACube();
 }
 
 bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
