@@ -243,12 +243,6 @@
 
         }
 
-        function isGrabbableByDefault(properties) {
-            return properties.type == "Box" ||
-                properties.type == "Sphere" ||
-                properties.dynamic
-        }
-
         function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
             var properties = {};
             var parsedData = {};
@@ -571,7 +565,7 @@
                                 elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
                                 // boxes and sphere are grabbable by default
-                                elGrabbable.checked = isGrabbableByDefault(properties);
+                                elGrabbable.checked = properties.dynamic;
                                 elWantsTrigger.checked = false;
                                 elIgnoreIK.checked = false;
                                 var parsedUserData = {}
@@ -820,7 +814,7 @@
                 });
 
                 elGrabbable.addEventListener('change', function() {
-                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, isGrabbableByDefault(properties));
+                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
                 });
                 elWantsTrigger.addEventListener('change', function() {
                     userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
