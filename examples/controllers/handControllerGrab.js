@@ -20,7 +20,7 @@ Script.include("../libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = false;
+var WANT_DEBUG_STATE = true;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 //
@@ -33,6 +33,8 @@ var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
+
+var THUMB_ON_VALUE = 0.5;
 
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
@@ -161,11 +163,11 @@ var STATE_CONTINUE_NEAR_TRIGGER = 7;
 var STATE_FAR_TRIGGER = 8;
 var STATE_CONTINUE_FAR_TRIGGER = 9;
 var STATE_RELEASE = 10;
-var STATE_EQUIP_SEARCHING = 11;
+// var STATE_EQUIP_SEARCHING = 11;
 var STATE_EQUIP = 12
-var STATE_CONTINUE_EQUIP_BD = 13; // equip while bumper is still held down
+// var STATE_CONTINUE_EQUIP_BD = 13; // equip while bumper is still held down
 var STATE_CONTINUE_EQUIP = 14;
-var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
+var STATE_WAITING_FOR_THUMB_RELEASE = 15;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -199,16 +201,16 @@ function stateToName(state) {
             return "continue_far_trigger";
         case STATE_RELEASE:
             return "release";
-        case STATE_EQUIP_SEARCHING:
-            return "equip_searching";
+        // case STATE_EQUIP_SEARCHING:
+        //     return "equip_searching";
         case STATE_EQUIP:
             return "equip";
-        case STATE_CONTINUE_EQUIP_BD:
-            return "continue_equip_bd";
+        // case STATE_CONTINUE_EQUIP_BD:
+        //     return "continue_equip_bd";
         case STATE_CONTINUE_EQUIP:
             return "continue_equip";
-        case STATE_WAITING_FOR_BUMPER_RELEASE:
-            return "waiting_for_bumper_release";
+        case STATE_WAITING_FOR_THUMB_RELEASE:
+            return "waiting_for_thumb_release";
     }
 
     return "unknown";
@@ -262,6 +264,7 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
+    this.rawThumbValue = 0;
     //for visualizations
     this.overlayLine = null;
     this.particleBeamObject = null;
@@ -297,9 +300,9 @@ function MyController(hand) {
             case STATE_SEARCHING:
                 this.search();
                 break;
-            case STATE_EQUIP_SEARCHING:
-                this.search();
-                break;
+            // case STATE_EQUIP_SEARCHING:
+            //     this.search();
+            //     break;
             case STATE_DISTANCE_HOLDING:
                 this.distanceHolding();
                 break;
@@ -310,11 +313,11 @@ function MyController(hand) {
             case STATE_EQUIP:
                 this.nearGrabbing();
                 break;
-            case STATE_WAITING_FOR_BUMPER_RELEASE:
-                this.waitingForBumperRelease();
+            case STATE_WAITING_FOR_THUMB_RELEASE:
+                this.waitingForThumbRelease();
                 break;
             case STATE_CONTINUE_NEAR_GRABBING:
-            case STATE_CONTINUE_EQUIP_BD:
+            // case STATE_CONTINUE_EQUIP_BD:
             case STATE_CONTINUE_EQUIP:
                 this.continueNearGrabbing();
                 break;
@@ -784,16 +787,36 @@ function MyController(hand) {
         return _this.rawBumperValue < BUMPER_ON_VALUE;
     };
 
+    // this.triggerOrBumperSqueezed = function() {
+    //     return triggerSmoothedSqueezed() || bumperSqueezed();
+    // }
+
+    // this.triggerAndBumperReleased = function() {
+    //     return triggerSmoothedReleased() && bumperReleased();
+    // }
+
+    this.thumbPress = function(value) {
+        _this.rawThumbValue = value;
+    }
+
+    this.thumbPressed = function() {
+        return _this.rawThumbValue > THUMB_ON_VALUE;
+    };
+
+    this.thumbReleased = function() {
+        return _this.rawThumbValue < THUMB_ON_VALUE;
+    };
+
     this.off = function() {
         if (this.triggerSmoothedSqueezed() || this.bumperSqueezed()) {
             this.lastPickTime = 0;
             var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
             this.startingHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
-            if (this.triggerSmoothedSqueezed()) {
+            if (this.triggerSmoothedSqueezed() || this.bumperSqueezed()) {
                 this.setState(STATE_SEARCHING);
-            } else {
-                this.setState(STATE_EQUIP_SEARCHING);
-            }
+            } // else {
+            //     this.setState(STATE_EQUIP_SEARCHING);
+            // }
         }
     };
 
@@ -804,7 +827,7 @@ function MyController(hand) {
 
         this.checkForStrayChildren();
 
-        if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
+        if (this.state == STATE_SEARCHING && this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
         }
@@ -936,13 +959,13 @@ function MyController(hand) {
                 }
                 continue;
             }
-            if (propsForCandidate.parentID != NULL_UUID && this.state == STATE_EQUIP_SEARCHING) {
-                // don't allow a double-equip
-                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
-                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': it's a child");
-                }
-                continue;
-            }
+            // if (propsForCandidate.parentID != NULL_UUID && this.state == STATE_EQUIP_SEARCHING) {
+            //     // don't allow a double-equip
+            //     if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+            //         print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': it's a child");
+            //     }
+            //     continue;
+            // }
 
             if (this.state == STATE_SEARCHING &&
                 !isPhysical && distance > NEAR_PICK_MAX_DISTANCE && !near && !grabbableDataForCandidate.wantsTrigger) {
@@ -978,7 +1001,8 @@ function MyController(hand) {
                 return;
             }
             // far grab or equip with action
-            if ((isPhysical || this.state == STATE_EQUIP_SEARCHING) && !near) {
+            // if ((isPhysical || this.state == STATE_EQUIP_SEARCHING) && !near) {
+            if (isPhysical && !near) {
                 if (entityIsGrabbedByOther(this.grabbedEntity)) {
                     // don't distance grab something that is already grabbed.
                     if (WANT_DEBUG_SEARCH_NAME && props.name == WANT_DEBUG_SEARCH_NAME) {
@@ -999,7 +1023,8 @@ function MyController(hand) {
                         intersectionPointToCenterDistance *
                         FAR_TO_NEAR_GRAB_PADDING_FACTOR);
                 }
-                this.setState(this.state == STATE_SEARCHING ? STATE_DISTANCE_HOLDING : STATE_EQUIP);
+                // this.setState(this.state == STATE_SEARCHING ? STATE_DISTANCE_HOLDING : STATE_EQUIP);
+                this.setState(STATE_DISTANCE_HOLDING);
                 this.searchSphereOff();
                 return;
             }
@@ -1104,7 +1129,7 @@ function MyController(hand) {
     };
 
     this.continueDistanceHolding = function() {
-        if (this.triggerSmoothedReleased()) {
+        if (this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
@@ -1121,14 +1146,15 @@ function MyController(hand) {
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
 
-        if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
-            this.hasPresetOffsets()) {
-            var saveGrabbedID = this.grabbedEntity;
-            this.release();
-            this.setState(STATE_EQUIP);
-            this.grabbedEntity = saveGrabbedID;
-            return;
-        }
+        // // switch from far grab to near equip
+        // if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
+        //     this.hasPresetOffsets()) {
+        //     var saveGrabbedID = this.grabbedEntity;
+        //     this.release();
+        //     this.setState(STATE_EQUIP);
+        //     this.grabbedEntity = saveGrabbedID;
+        //     return;
+        // }
 
         var now = Date.now();
         this.currentObjectTime = now;
@@ -1307,7 +1333,7 @@ function MyController(hand) {
     this.nearGrabbing = function() {
         var now = Date.now();
 
-        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
+        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
@@ -1329,7 +1355,7 @@ function MyController(hand) {
         var handPosition = this.getHandPosition();
 
         var hasPresetPosition = false;
-        if (this.state != STATE_NEAR_GRABBING && this.hasPresetOffsets()) {
+        if (this.state == STATE_EQUIP && this.hasPresetOffsets()) {
             var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
@@ -1351,7 +1377,7 @@ function MyController(hand) {
             }
         }
 
-        var isPhysical = this.propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
+        var isPhysical = this.propsArePhysical(grabbedProperties); // || entityHasActions(this.grabbedEntity);
         if (isPhysical && this.state == STATE_NEAR_GRABBING) {
             // grab entity via action
             if (!this.setupHoldAction()) {
@@ -1359,6 +1385,11 @@ function MyController(hand) {
             }
         } else {
             // grab entity via parenting
+            if (this.actionID) {
+                var saveGrabbedID = this.grabbedEntity;
+                this.release();
+                this.grabbedEntity = saveGrabbedID;
+            }
             this.actionID = null;
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             reparentProps = {
@@ -1378,13 +1409,15 @@ function MyController(hand) {
 
         this.callEntityMethodOnGrabbed(this.state == STATE_NEAR_GRABBING ? "startNearGrab" : "startEquip");
 
-        if (this.state == STATE_NEAR_GRABBING) {
-            // near grabbing
-            this.setState(STATE_CONTINUE_NEAR_GRABBING);
-        } else {
-            // equipping
-            this.setState(STATE_CONTINUE_EQUIP_BD);
-        }
+        // if (this.state == STATE_NEAR_GRABBING) {
+        //     // near grabbing
+        //     this.setState(STATE_CONTINUE_NEAR_GRABBING);
+        // } else {
+        //     // equipping
+        //     this.setState(STATE_CONTINUE_EQUIP_BD);
+        // }
+
+        this.setState(this.state == STATE_NEAR_GRABBING ? STATE_CONTINUE_NEAR_GRABBING : STATE_CONTINUE_EQUIP);
 
         this.currentHandControllerTipPosition =
             (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
@@ -1392,22 +1425,23 @@ function MyController(hand) {
     };
 
     this.continueNearGrabbing = function() {
-        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
+        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
-        if (this.state == STATE_CONTINUE_EQUIP_BD && this.bumperReleased()) {
-            this.setState(STATE_CONTINUE_EQUIP);
-            return;
-        }
-        if (this.state == STATE_CONTINUE_EQUIP && this.bumperSqueezed()) {
-            this.setState(STATE_WAITING_FOR_BUMPER_RELEASE);
+        // if (this.state == STATE_CONTINUE_EQUIP_BD && this.thumbReleased()) {
+        //     this.setState(STATE_EQUIP);
+        //     return;
+        // }
+        if (this.state == STATE_CONTINUE_EQUIP && this.thumbPressed()) {
+            // this.setState(STATE_WAITING_FOR_THUMB_RELEASE);
+            this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseEquip");
             return;
         }
-        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.bumperSqueezed()) {
-            this.setState(STATE_CONTINUE_EQUIP_BD);
+        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.thumbPressed()) {
+            this.setState(STATE_WAITING_FOR_THUMB_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.callEntityMethodOnGrabbed("startEquip");
             return;
@@ -1479,14 +1513,14 @@ function MyController(hand) {
         }
     };
 
-    this.waitingForBumperRelease = function() {
-        if (this.bumperReleased()) {
-            this.setState(STATE_RELEASE);
+    this.waitingForThumbRelease = function() {
+        if (this.thumbReleased() && this.triggerSmoothedReleased()) {
+            this.setState(STATE_EQUIP);
         }
     };
 
     this.nearTrigger = function() {
-        if (this.triggerSmoothedReleased()) {
+        if (this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
@@ -1496,7 +1530,7 @@ function MyController(hand) {
     };
 
     this.farTrigger = function() {
-        if (this.triggerSmoothedReleased()) {
+        if (this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             return;
@@ -1506,7 +1540,7 @@ function MyController(hand) {
     };
 
     this.continueNearTrigger = function() {
-        if (this.triggerSmoothedReleased()) {
+        if (this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
@@ -1515,7 +1549,7 @@ function MyController(hand) {
     };
 
     this.continueFarTrigger = function() {
-        if (this.triggerSmoothedReleased()) {
+        if (this.triggerSmoothedReleased() && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             return;
@@ -1794,8 +1828,9 @@ function MyController(hand) {
 
     this.checkNewlyLoaded = function(loadedEntityID) {
         if (this.state == STATE_OFF ||
-            this.state == STATE_SEARCHING ||
-            this.state == STATE_EQUIP_SEARCHING) {
+            this.state == STATE_SEARCHING // ||
+            // this.state == STATE_EQUIP_SEARCHING
+           ) {
             var loadedProps = Entities.getEntityProperties(loadedEntityID);
             if (loadedProps.parentID != MyAvatar.sessionUUID) {
                 return;
@@ -1826,6 +1861,9 @@ mapping.from([Controller.Standard.LT]).peek().to(leftController.triggerPress);
 
 mapping.from([Controller.Standard.RB]).peek().to(rightController.bumperPress);
 mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
+
+mapping.from([Controller.Standard.LeftPrimaryThumb]).peek().to(leftController.thumbPress);
+mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.thumbPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
