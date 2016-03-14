@@ -1025,7 +1025,6 @@ void EntityTree::fixupMissingParents() {
             bool doMove = false;
             if (entity->isParentIDValid()) {
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
-                iter.remove();
                 doMove = true;
             } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
                 // this is a child of an avatar, which the entity server will never have
