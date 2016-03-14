@@ -178,9 +178,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     return id;
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& modelUrl, const glm::vec3& position) {
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
+    properties.setName(name);
     properties.setModelURL(modelUrl);
     properties.setPosition(position);
     return addEntity(properties);

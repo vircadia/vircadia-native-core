@@ -137,19 +137,19 @@ Window {
         );
     }
 
-    function addToWorld(url) {
-        if (!url) {
-            url = assetProxyModel.data(treeView.selection.currentIndex, 0x103);
-        }
+    function addToWorld() {
+        var url = assetProxyModel.data(treeView.selection.currentIndex, 0x103);
 
         if (!url || !canAddToWorld(url)) {
             return;
         }
 
-        console.log("Asset browser - adding asset " + url + " to world.");
+        var name = assetProxyModel.data(treeView.selection.currentIndex);
+
+        console.log("Asset browser - adding asset " + url + " (" + name + ") to world.");
 
         var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
-        Entities.addModelEntity(url, addPosition);
+        Entities.addModelEntity(name, url, addPosition);
     }
 
     function copyURLToClipboard(index) {
