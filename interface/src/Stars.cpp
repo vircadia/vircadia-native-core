@@ -22,11 +22,11 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 
-#include <stars_vert.h>
-#include <stars_frag.h>
+#include <render-utils/stars_vert.h>
+#include <render-utils/stars_frag.h>
 
-#include <standardTransformPNTC_vert.h>
-#include <starsGrid_frag.h>
+#include <render-utils/standardTransformPNTC_vert.h>
+#include <render-utils/starsGrid_frag.h>
 
 //static const float TILT = 0.23f;
 static const float TILT = 0.0f;

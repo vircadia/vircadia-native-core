@@ -72,7 +72,7 @@ ModalWindow {
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = mainTextContainer.width
+                var targetWidth = mainTextContainer.contentWidth
                 var targetHeight = mainTextContainer.height + 3 * hifi.dimensions.contentSpacing.y
                         + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + 3 * hifi.dimensions.contentSpacing.y : 0)
                         + buttons.height

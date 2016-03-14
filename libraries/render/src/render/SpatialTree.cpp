@@ -264,12 +264,33 @@ Octree::Index Octree::accessCellBrick(Index cellID, const CellBrickAccessor& acc
     return brickID;
 }
 
+Octree::Location ItemSpatialTree::evalLocation(const AABox& bound, Coord3f& minCoordf, Coord3f& maxCoordf) const {
+    minCoordf = evalCoordf(bound.getMinimumPoint());
+    maxCoordf = evalCoordf(bound.getMaximumPoint());
+
+    // If the bound crosses any of the octree volume limit, then return root cell
+    if (   (minCoordf.x < 0.0f)
+        || (minCoordf.y < 0.0f)
+        || (minCoordf.z < 0.0f)
+        || (maxCoordf.x >= _size)
+        || (maxCoordf.y >= _size)
+        || (maxCoordf.z >= _size)) {
+        return Location();
+    }
+
+    Coord3 minCoord(minCoordf);
+    Coord3 maxCoord(maxCoordf);
+    return Location::evalFromRange(minCoord, maxCoord);
+}
+
 Octree::Locations ItemSpatialTree::evalLocations(const ItemBounds& bounds) const {
     Locations locations;
+    Coord3f minCoordf, maxCoordf;
+
     locations.reserve(bounds.size());
     for (auto& bound : bounds) {
         if (!bound.bound.isNull()) {
-            locations.emplace_back(evalLocation(bound.bound));
+            locations.emplace_back(evalLocation(bound.bound, minCoordf, maxCoordf));
         } else {
             locations.emplace_back(Location());
         }
@@ -344,11 +365,8 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID
 ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey) {
     auto newCell = INVALID_CELL;
     if (!newKey.isViewSpace()) {
-        auto minCoordf = evalCoordf(bound.getMinimumPoint());
-        auto maxCoordf = evalCoordf(bound.getMaximumPoint());
-        Coord3 minCoord(minCoordf);
-        Coord3 maxCoord(maxCoordf);
-        auto location = Location::evalFromRange(minCoord, maxCoord);
+        Coord3f minCoordf, maxCoordf;
+        auto location = evalLocation(bound, minCoordf, maxCoordf);
 
         // Compare range size vs cell location size and tag itemKey accordingly
         // If Item bound fits in sub cell then tag as small
@@ -403,7 +421,21 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
 int Octree::select(CellSelection& selection, const FrustumSelector& selector) const {
 
     Index cellID = ROOT_CELL;
-    return selectTraverse(cellID, selection, selector);
+    auto cell = getConcreteCell(cellID);
+    int numSelectedsIn = (int)selection.size();
+
+    // Always include the root cell partially containing potentially outer objects
+    selectCellBrick(cellID, selection, false);
+
+    // then traverse deeper
+    for (int i = 0; i < NUM_OCTANTS; i++) {
+        Index subCellID = cell.child((Link)i);
+        if (subCellID != INVALID_CELL) {
+            selectTraverse(subCellID, selection, selector);
+        }
+    }
+
+    return (int)selection.size() - numSelectedsIn;
 }
 
 

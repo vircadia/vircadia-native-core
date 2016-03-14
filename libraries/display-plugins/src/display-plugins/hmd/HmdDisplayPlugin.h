@@ -22,12 +22,16 @@ public:
     glm::uvec2 getRecommendedUiSize() const override final;
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
     void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
+    bool isDisplayVisible() const override { return isHmdMounted(); }
+
 
     void activate() override;
     void deactivate() override;
 
 protected:
     virtual void hmdPresent() = 0;
+    virtual bool isHmdMounted() const = 0;
+
     void compositeOverlay() override;
     void compositePointer() override;
     void internalPresent() override;

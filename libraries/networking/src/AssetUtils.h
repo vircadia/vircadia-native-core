@@ -40,7 +40,8 @@ enum AssetServerError : uint8_t {
     InvalidByteRange,
     AssetTooLarge,
     PermissionDenied,
-    MappingOperationFailed
+    MappingOperationFailed,
+    FileOperationFailed
 };
 
 enum AssetMappingOperationType : uint8_t {

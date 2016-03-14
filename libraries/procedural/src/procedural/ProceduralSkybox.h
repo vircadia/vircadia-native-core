@@ -17,22 +17,18 @@
 
 #include "Procedural.h"
 
-typedef std::shared_ptr<Procedural> ProceduralPointer;
-
 class ProceduralSkybox: public model::Skybox {
 public:
     ProceduralSkybox();
-    ProceduralSkybox(const ProceduralSkybox& skybox); 
-    ProceduralSkybox& operator= (const ProceduralSkybox& skybox);
     virtual ~ProceduralSkybox() {};
 
-    void setProcedural(const ProceduralPointer& procedural);
+    void parse(const QString& userData) { _procedural.parse(userData); }
 
     virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);
 
 protected:
-    ProceduralPointer _procedural;
+    mutable Procedural _procedural;
 };
 typedef std::shared_ptr< ProceduralSkybox > ProceduralSkyboxPointer;
 

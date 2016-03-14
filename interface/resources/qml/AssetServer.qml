@@ -56,7 +56,7 @@ Window {
             if (err) {
                 console.log("Asset browser - error deleting path: ", path, err);
 
-                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + Assets.getErrorString(err));
+                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + err);
                 box.selected.connect(reload);
             } else {
                 console.log("Asset browser - finished deleting path: ", path);
@@ -87,7 +87,7 @@ Window {
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
                 console.log("Asset browser - error renaming: ", oldPath, "=>", newPath, " - error ", err);
-                box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + Assets.getErrorString(err));
+                box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + err);
                 box.selected.connect(reload);
             } else {
                 console.log("Asset browser - finished rename: ", oldPath, "=>", newPath);
@@ -129,10 +129,10 @@ Window {
         treeView.selection.clear();
     }
 
-    function handleGetMappingsError(errorCode) {
+    function handleGetMappingsError(errorString) {
         errorMessageBox(
             "There was a problem retreiving the list of assets from your Asset Server.\n"
-            + Assets.getErrorString(errorCode)
+            + errorString
         );
     }
 
@@ -167,7 +167,7 @@ Window {
         if (!index) {
             index = treeView.selection.currentIndex;
         }
-        
+
         var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
@@ -243,8 +243,6 @@ Window {
             var fileUrl = fileDialogHelper.urlToPath(url);
             currentDirectory = browser.dir;
 
-            //var fileUrl = fileUrlTextField.text
-
             var path = assetProxyModel.data(treeView.selection.currentIndex, 0x100);
             var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "/";
             var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
@@ -273,7 +271,7 @@ Window {
                     } else {
                         if (err > 0) {
                             console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
-                            var box = errorMessage("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
+                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
                             box.selected.connect(reload);
                         }
                         uploadSpinner.visible = false;
@@ -291,6 +289,10 @@ Window {
             title: "Error",
             text: message
         });
+    }
+
+    function itemSelected() {
+        return treeView.selection.hasSelection()
     }
 
     Item {
@@ -339,6 +341,7 @@ Window {
                     width: 80
 
                     onClicked: root.renameFile()
+                    enabled: treeView.selection.hasSelection
                 }
 
                 HifiControls.Button {
@@ -351,6 +354,7 @@ Window {
                     width: 80
 
                     onClicked: root.deleteFile()
+                    enabled: treeView.selection.hasSelection
                 }
             }
 
@@ -399,6 +403,9 @@ Window {
                 acceptedButtons: Qt.RightButton
                 onClicked: {
                     var index = treeView.indexAt(mouse.x, mouse.y);
+
+                    treeView.selection.setCurrentIndex(index, 0x0002);
+
                     contextMenu.currentIndex = index;
                     contextMenu.popup();
                 }
@@ -424,7 +431,23 @@ Window {
                     height: 30
                     width: 155
 
-                    onClicked: root.uploadClicked()
+                    enabled: fileUrlTextField.text != ""
+                    onClicked: uploadClickedTimer.running = true
+
+                    // For some reason trigginer an API that enters
+                    // an internal event loop directly from the button clicked
+                    // trigger below causes the appliction to behave oddly.
+                    // Most likely because the button onClicked handling is never
+                    // completed until the function returns.
+                    // FIXME find a better way of handling the input dialogs that
+                    // doesn't trigger this.
+                    Timer {
+                        id: uploadClickedTimer
+                        interval: 5
+                        repeat: false
+                        running: false
+                        onTriggered: uploadClicked();
+                    }
                 }
 
                 Item {

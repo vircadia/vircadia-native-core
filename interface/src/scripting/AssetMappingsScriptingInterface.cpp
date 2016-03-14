@@ -27,34 +27,13 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.sort(0);
 }
 
-QString AssetMappingsScriptingInterface::getErrorString(int errorCode) const {
-    switch (errorCode) {
-        case MappingRequest::NoError:
-            return "No error";
-        case MappingRequest::NotFound:
-            return "Asset not found";
-        case MappingRequest::NetworkError:
-            return "Unable to communicate with Asset Server";
-        case MappingRequest::PermissionDenied:
-            return "Permission denied";
-        case MappingRequest::InvalidPath:
-            return "Path is invalid";
-        case MappingRequest::InvalidHash:
-            return "Hash is invalid";
-        case MappingRequest::UnknownError:
-            return "Asset Server internal error";
-        default:
-            return QString();
-    }
-}
-
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
 
     connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()), request->getPath() };
+            QJSValueList args { request->getErrorString(), request->getPath() };
             callback.call(args);
         }
 
@@ -70,7 +49,7 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 
     connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()) };
+            QJSValueList args { request->getErrorString() };
             callback.call(args);
         }
 
@@ -116,7 +95,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
             if (completedCallback.isCallable()) {
-                QJSValueList args { uint8_t(upload->getError()) };
+                QJSValueList args { upload->getErrorString() };
                 completedCallback.call(args);
             }
         } else {
@@ -135,7 +114,7 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
 
     connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()) };
+            QJSValueList args { request->getErrorString() };
             callback.call(args);
         }
 
@@ -158,7 +137,7 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
         }
 
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()), map };
+            QJSValueList args { request->getErrorString(), map };
             callback.call(args);
         }
 
@@ -174,7 +153,7 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
 
     connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()) };
+            QJSValueList args { request->getErrorString() };
             callback.call(args);
         }
 
@@ -302,7 +281,7 @@ void AssetMappingModel::refresh() {
                 }
             }
         } else {
-            emit errorGettingMappings(static_cast<int>(request->getError()));
+            emit errorGettingMappings(request->getErrorString());
         }
     });
 
