@@ -169,14 +169,6 @@ bool AssetMappingModel::isKnownFolder(QString path) const {
     return false;
 }
 
-AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder) :
-    name(name),
-    fullPath(fullPath),
-    isFolder(isFolder)
-{
-
-}
-
 static int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
 void AssetMappingModel::refresh() {
