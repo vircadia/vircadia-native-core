@@ -148,7 +148,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             if (entity) {
                 if (propertiesWithSimID.parentRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-                    propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
+                    bool success;
+                    AACube queryAACube = entity->getQueryAACube(success);
+                    if (success) {
+                        propertiesWithSimID.setQueryAACube(queryAACube);
+                    }
                 }
 
                 if (_bidOnSimulationOwnership) {
