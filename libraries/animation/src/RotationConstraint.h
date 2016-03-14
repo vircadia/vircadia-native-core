@@ -31,6 +31,10 @@ public:
     /// \return true if this constraint is part of lower spine
     virtual bool isLowerSpine() const { return false; }
 
+    /// \param rotation rotation to allow
+    /// \brief clear previous adjustment and adjust constraint limits to allow rotation
+    virtual void dynamicallyAdjustLimits(const glm::quat& rotation) {}
+
 protected:
     glm::quat _referenceRotation = glm::quat();
 };
