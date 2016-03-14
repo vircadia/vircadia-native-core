@@ -63,9 +63,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
     Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
     Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
-    Q_PROPERTY(AudioListenerMode FROM_HEAD READ getAudioListenerModeHead)
-    Q_PROPERTY(AudioListenerMode FROM_CAMERA READ getAudioListenerModeCamera)
-    Q_PROPERTY(AudioListenerMode CUSTOM READ getAudioListenerModeCustom)
+    Q_PROPERTY(AudioListenerMode audioListenerModeHead READ getAudioListenerModeHead)
+    Q_PROPERTY(AudioListenerMode audioListenerModeCamera READ getAudioListenerModeCamera)
+    Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 
@@ -84,7 +84,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
 public:
-    MyAvatar(RigPointer rig);
+    explicit MyAvatar(RigPointer rig);
     ~MyAvatar();
 
     virtual void simulateAttachments(float deltaTime) override;

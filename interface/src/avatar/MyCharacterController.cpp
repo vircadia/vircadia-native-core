@@ -46,14 +46,15 @@ void MyCharacterController::updateShapeIfNecessary() {
         // NOTE: _shapeLocalOffset is already computed
 
         if (_radius > 0.0f) {
-            // HACK: use some simple mass property defaults for now
-            float mass = 100.0f;
-            btVector3 inertia(30.0f, 8.0f, 30.0f);
-
             // create RigidBody if it doesn't exist
             if (!_rigidBody) {
+
+                // HACK: use some simple mass property defaults for now
+                const float DEFAULT_AVATAR_MASS = 100.0f;
+                const btVector3 DEFAULT_AVATAR_INERTIA_TENSOR(30.0f, 8.0f, 30.0f);
+
                 btCollisionShape* shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
-                _rigidBody = new btRigidBody(mass, nullptr, shape, inertia);
+                _rigidBody = new btRigidBody(DEFAULT_AVATAR_MASS, nullptr, shape, DEFAULT_AVATAR_INERTIA_TENSOR);
             } else {
                 btCollisionShape* shape = _rigidBody->getCollisionShape();
                 if (shape) {
