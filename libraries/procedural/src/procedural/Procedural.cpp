@@ -62,13 +62,13 @@ QJsonValue Procedural::getProceduralData(const QString& proceduralJson) {
     return doc.object()[PROCEDURAL_USER_DATA_KEY];
 }
 
-Procedural::Procedural() {
-    _state = std::make_shared<gpu::State>();
+Procedural::Procedural() : _state { std::make_shared<gpu::State>() } {
+    _proceduralDataDirty = false;
 }
 
-Procedural::Procedural(const QString& userDataJson) {
+Procedural::Procedural(const QString& userDataJson) : Procedural() {
     parse(userDataJson);
-    _state = std::make_shared<gpu::State>();
+    _proceduralDataDirty = true;
 }
 
 void Procedural::parse(const QString& userDataJson) {
