@@ -125,7 +125,8 @@ void main(void) {
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
 
     vec4 anchorPoint;
-    <$transformModelToEyePos(cam, obj, inPosition, anchorPoint)$>
+    vec4 _inPosition = vec4(inPosition, 1.0);
+    <$transformModelToEyePos(cam, obj, _inPosition, anchorPoint)$>
 
     vec4 eyePos = anchorPoint + quadPos;
     <$transformEyeToClipPos(cam, eyePos, gl_Position)$>

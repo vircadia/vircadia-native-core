@@ -79,7 +79,7 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
 
     // Get the viewEyeToWorld matrix form the transformView as passed to the gpu::Batch
     // this is the "_viewInverse" fed to the shader
-    // Genetrate the "_view" matrix as wekll forom the xform
+    // Genetrate the "_view" matrix as well from the xform
     xformView.getMatrix(_viewInverse);
     _view = glm::inverse(_viewInverse);
 
@@ -98,6 +98,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
        // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
-    result.recomputeDerived(xformView);
+    result.recomputeDerived(offsetTransform);
+ 
     return result;
 }
