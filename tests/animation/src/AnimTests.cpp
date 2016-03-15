@@ -38,8 +38,9 @@ void AnimTests::testClipInternalState() {
     float endFrame = 20.0f;
     float timeScale = 1.1f;
     bool loopFlag = true;
+    bool mirrorFlag = false;
 
-    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     QVERIFY(clip.getID() == id);
     QVERIFY(clip.getType() == AnimNode::Type::Clip);
@@ -49,6 +50,7 @@ void AnimTests::testClipInternalState() {
     QVERIFY(clip._endFrame == endFrame);
     QVERIFY(clip._timeScale == timeScale);
     QVERIFY(clip._loopFlag == loopFlag);
+    QVERIFY(clip._mirrorFlag == mirrorFlag);
 }
 
 static float framesToSec(float secs) {
@@ -62,12 +64,13 @@ void AnimTests::testClipEvaulate() {
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
-    float loopFlag = true;
+    bool loopFlag = true;
+    bool mirrorFlag = false;
 
     auto vars = AnimVariantMap();
     vars.set("FalseVar", false);
 
-    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     AnimNode::Triggers triggers;
     clip.evaluate(vars, framesToSec(10.0f), triggers);
@@ -97,7 +100,8 @@ void AnimTests::testClipEvaulateWithVars() {
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
-    float loopFlag = true;
+    bool loopFlag = true;
+    bool mirrorFlag = false;
 
     float startFrame2 = 22.0f;
     float endFrame2 = 100.0f;
@@ -110,7 +114,7 @@ void AnimTests::testClipEvaulateWithVars() {
     vars.set("timeScale2", timeScale2);
     vars.set("loopFlag2", loopFlag2);
 
-    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
     clip.setStartFrameVar("startFrame2");
     clip.setEndFrameVar("endFrame2");
     clip.setTimeScaleVar("timeScale2");
@@ -583,23 +587,23 @@ void AnimTests::testExpressionEvaluator() {
     TEST_BOOL_EXPR(false && false);
     TEST_BOOL_EXPR(false && true);
 
-    TEST_BOOL_EXPR(true || false && true);
-    TEST_BOOL_EXPR(true || false && false);
-    TEST_BOOL_EXPR(true || true && true);
-    TEST_BOOL_EXPR(true || true && false);
-    TEST_BOOL_EXPR(false || false && true);
-    TEST_BOOL_EXPR(false || false && false);
-    TEST_BOOL_EXPR(false || true && true);
-    TEST_BOOL_EXPR(false || true && false);
+    TEST_BOOL_EXPR(true || (false && true));
+    TEST_BOOL_EXPR(true || (false && false));
+    TEST_BOOL_EXPR(true || (true && true));
+    TEST_BOOL_EXPR(true || (true && false));
+    TEST_BOOL_EXPR(false || (false && true));
+    TEST_BOOL_EXPR(false || (false && false));
+    TEST_BOOL_EXPR(false || (true && true));
+    TEST_BOOL_EXPR(false || (true && false));
 
-    TEST_BOOL_EXPR(true && false || true);
-    TEST_BOOL_EXPR(true && false || false);
-    TEST_BOOL_EXPR(true && true || true);
-    TEST_BOOL_EXPR(true && true || false);
-    TEST_BOOL_EXPR(false && false || true);
-    TEST_BOOL_EXPR(false && false || false);
-    TEST_BOOL_EXPR(false && true || true);
-    TEST_BOOL_EXPR(false && true || false);
+    TEST_BOOL_EXPR((true && false) || true);
+    TEST_BOOL_EXPR((true && false) || false);
+    TEST_BOOL_EXPR((true && true) || true);
+    TEST_BOOL_EXPR((true && true) || false);
+    TEST_BOOL_EXPR((false && false) || true);
+    TEST_BOOL_EXPR((false && false) || false);
+    TEST_BOOL_EXPR((false && true) || true);
+    TEST_BOOL_EXPR((false && true) || false);
 
     TEST_BOOL_EXPR(t || false);
     TEST_BOOL_EXPR(t || true);
@@ -610,14 +614,14 @@ void AnimTests::testExpressionEvaluator() {
     TEST_BOOL_EXPR(!false);
     TEST_BOOL_EXPR(!true || true);
 
-    TEST_BOOL_EXPR(!true && !false || !true);
-    TEST_BOOL_EXPR(!true && !false || true);
-    TEST_BOOL_EXPR(!true && false || !true);
-    TEST_BOOL_EXPR(!true && false || true);
-    TEST_BOOL_EXPR(true && !false || !true);
-    TEST_BOOL_EXPR(true && !false || true);
-    TEST_BOOL_EXPR(true && false || !true);
-    TEST_BOOL_EXPR(true && false || true);
+    TEST_BOOL_EXPR((!true && !false) || !true);
+    TEST_BOOL_EXPR((!true && !false) || true);
+    TEST_BOOL_EXPR((!true && false) || !true);
+    TEST_BOOL_EXPR((!true && false) || true);
+    TEST_BOOL_EXPR((true && !false) || !true);
+    TEST_BOOL_EXPR((true && !false) || true);
+    TEST_BOOL_EXPR((true && false) || !true);
+    TEST_BOOL_EXPR((true && false) || true);
 
     TEST_BOOL_EXPR(!(true && f) || !t);
     TEST_BOOL_EXPR(!!!(t) && (!!f || true));

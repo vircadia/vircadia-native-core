@@ -36,11 +36,11 @@ var AUDIO_LISTENER_MODE_CUSTOM = "Audio from custom position";
 
 // be sure that the audio listener options are in the right order (same as the enumerator)
 var AUDIO_LISTENER_OPTIONS = [
-    // MyAvatar.FROM_HEAD (0)
+    // MyAvatar.audioListenerModeHead (0)
     AUDIO_LISTENER_MODE_FROM_HEAD,
-    // MyAvatar.FROM_CAMERA (1)
+    // MyAvatar.audioListenerModeCamera (1)
     AUDIO_LISTENER_MODE_FROM_CAMERA,
-    // MyAvatar.CUSTOM (2)
+    // MyAvatar.audioListenerCustom (2)
     AUDIO_LISTENER_MODE_CUSTOM
 ];
 var AUDIO_STEREO_INPUT = "Stereo Input";

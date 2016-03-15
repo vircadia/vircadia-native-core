@@ -58,6 +58,8 @@ public:
     virtual void trackViewerGone(const QUuid& sessionID) override;
 
 public slots:
+    virtual void nodeAdded(SharedNodePointer node);
+    virtual void nodeKilled(SharedNodePointer node);
     void pruneDeletedEntities();
 
 protected:

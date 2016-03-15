@@ -67,9 +67,13 @@ Item {
         readonly property color darkGray30: "#4d121212"
         readonly property color darkGray0: "#00121212"
         readonly property color baseGrayShadow60: "#99252525"
+        readonly property color baseGrayShadow50: "#80252525"
+        readonly property color baseGrayShadow25: "#40252525"
         readonly property color baseGrayHighlight40: "#66575757"
         readonly property color baseGrayHighlight15: "#26575757"
+        readonly property color lightGray50: "#806a6a6a"
         readonly property color lightGrayText80: "#ccafafaf"
+        readonly property color faintGray80: "#cce3e3e3"
         readonly property color faintGray50: "#80e3e3e3"
 
         // Other colors
@@ -135,6 +139,7 @@ Item {
         readonly property real modalDialogTitleHeight: 40
         readonly property real controlLineHeight: 29  // Height of spinbox control on 1920 x 1080 monitor
         readonly property real controlInterlineHeight: 22  // 75% of controlLineHeight
+        readonly property vector2d menuPadding: Qt.vector2d(14, 12)
     }
 
     Item {
@@ -152,6 +157,7 @@ Item {
         readonly property real logs: dimensions.largeScreen ? 16 : 12
         readonly property real code: dimensions.largeScreen ? 16 : 12
         readonly property real rootMenu: dimensions.largeScreen ? 15 : 11
+        readonly property real rootMenuDisclosure: dimensions.largeScreen ? 20 : 16
         readonly property real menuItem: dimensions.largeScreen ? 15 : 11
         readonly property real shortcutText: dimensions.largeScreen ? 13 : 9
         readonly property real carat: dimensions.largeScreen ? 38 : 30

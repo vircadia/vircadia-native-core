@@ -75,7 +75,9 @@ public:
     EntityItem(const EntityItemID& entityItemID);
     virtual ~EntityItem();
 
-    inline EntityItemPointer getThisPointer() { return std::static_pointer_cast<EntityItem>(shared_from_this()); }
+    inline EntityItemPointer getThisPointer() const {
+        return std::static_pointer_cast<EntityItem>(std::const_pointer_cast<SpatiallyNestable>(shared_from_this()));
+    }
 
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 

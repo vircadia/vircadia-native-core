@@ -25,6 +25,7 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_OBJECT
     Q_PROPERTY(glm::vec3 position READ getPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation)
+    Q_PROPERTY(bool mounted READ isMounted)
 
 public:
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
@@ -39,6 +40,7 @@ public:
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
+    bool isMounted() const;
 
 private:
     // Get the position of the HMD

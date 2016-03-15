@@ -140,8 +140,8 @@ void EntityTreeRenderer::update() {
         // If we haven't already updated and previously attempted to load a texture,
         // check if the texture loaded and apply it
         if (!updated && (
-            (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
-            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded()))) {
+            (_pendingSkyboxTexture && (!_skyboxTexture || _skyboxTexture->isLoaded())) ||
+            (_pendingAmbientTexture && (!_ambientTexture || _ambientTexture->isLoaded())))) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -157,55 +157,74 @@ void EntityTreeRenderer::update() {
     deleteReleasedModels();
 }
 
+bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
+    bool didUpdate = false;
+    float radius = 1.0f; // for now, assume 1 meter radius
+    QVector<EntityItemPointer> foundEntities;
+
+    // find the entities near us
+    // don't let someone else change our tree while we search
+    _tree->withReadLock([&] {
+        std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+
+        // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+        auto oldBestZone = _bestZone;
+        _bestZone = nullptr; // NOTE: Is this what we want?
+        _bestZoneVolume = std::numeric_limits<float>::max();
+
+        // create a list of entities that actually contain the avatar's position
+        foreach(EntityItemPointer entity, foundEntities) {
+            if (entity->contains(avatarPosition)) {
+                if (entitiesContainingAvatar) {
+                    *entitiesContainingAvatar << entity->getEntityItemID();
+                }
+
+                // if this entity is a zone, use this time to determine the bestZone
+                if (entity->getType() == EntityTypes::Zone) {
+                    if (!entity->getVisible()) {
+                        qCDebug(entitiesrenderer) << "not visible";
+                    }
+                    else {
+                        float entityVolumeEstimate = entity->getVolumeEstimate();
+                        if (entityVolumeEstimate < _bestZoneVolume) {
+                            _bestZoneVolume = entityVolumeEstimate;
+                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                        }
+                        else if (entityVolumeEstimate == _bestZoneVolume) {
+                            if (!_bestZone) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            }
+                            else {
+                                // in the case of the volume being equal, we will use the
+                                // EntityItemID to deterministically pick one entity over the other
+                                if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                    _bestZoneVolume = entityVolumeEstimate;
+                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (_bestZone != oldBestZone) {
+            applyZonePropertiesToScene(_bestZone);
+            didUpdate = true;
+        }
+    });
+    return didUpdate;
+}
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
+    bool didUpdate = false;
+
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
         if (avatarPosition != _lastAvatarPosition) {
-            float radius = 1.0f; // for now, assume 1 meter radius
-            QVector<EntityItemPointer> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
-            
-            // find the entities near us
-            // don't let someone else change our tree while we search
-            _tree->withReadLock([&] {
-                std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
-
-                // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-                _bestZone = nullptr; // NOTE: Is this what we want?
-                _bestZoneVolume = std::numeric_limits<float>::max();
-
-                // create a list of entities that actually contain the avatar's position
-                foreach(EntityItemPointer entity, foundEntities) {
-                    if (entity->contains(avatarPosition)) {
-                        entitiesContainingAvatar << entity->getEntityItemID();
-
-                        // if this entity is a zone, use this time to determine the bestZone
-                        if (entity->getType() == EntityTypes::Zone) {
-                            float entityVolumeEstimate = entity->getVolumeEstimate();
-                            if (entityVolumeEstimate < _bestZoneVolume) {
-                                _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                            } else if (entityVolumeEstimate == _bestZoneVolume) {
-                                if (!_bestZone) {
-                                    _bestZoneVolume = entityVolumeEstimate;
-                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                } else {
-                                    // in the case of the volume being equal, we will use the
-                                    // EntityItemID to deterministically pick one entity over the other
-                                    if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
-                                        _bestZoneVolume = entityVolumeEstimate;
-                                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                }
-
-                applyZonePropertiesToScene(_bestZone);
-            });
+            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, &entitiesContainingAvatar);
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The callEntityScriptMethod() method is robust against attempting to call scripts
@@ -228,11 +247,11 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
-
-            return true;
+        } else {
+            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, nullptr);
         }
     }
-    return false;
+    return didUpdate;
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
@@ -322,15 +341,19 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _ambientTexture.clear();
     } else {
         _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
-        if (_ambientTexture && _ambientTexture->isLoaded() && _ambientTexture->getGPUTexture()) {
+        _pendingAmbientTexture = true;
+
+        if (_ambientTexture && _ambientTexture->isLoaded()) {
             _pendingAmbientTexture = false;
-            if (_ambientTexture->getGPUTexture()->getIrradiance()) {
-                sceneKeyLight->setAmbientSphere(_ambientTexture->getGPUTexture()->getIrradiance());
-                sceneKeyLight->setAmbientMap(_ambientTexture->getGPUTexture());
+
+            auto texture = _ambientTexture->getGPUTexture();
+            if (texture) {
+                sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                sceneKeyLight->setAmbientMap(texture);
                 isAmbientTextureSet = true;
+            } else {
+                qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << zone->getKeyLightProperties().getAmbientURL();
             }
-        } else {
-            _pendingAmbientTexture = true;
         }
     }
 
@@ -341,35 +364,32 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             static QString userData;
             if (userData != zone->getUserData()) {
                 userData = zone->getUserData();
-                auto procedural = std::make_shared<Procedural>(userData);
-                if (procedural->_enabled) {
-                    skybox->setProcedural(procedural);
-                } else {
-                    skybox->setProcedural(ProceduralPointer());
-                }
+                skybox->parse(userData);
             }
             if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                skybox->setCubemap(gpu::TexturePointer());
+                skybox->setCubemap(nullptr);
                 _pendingSkyboxTexture = false;
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
                 _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                _pendingSkyboxTexture = true;
 
-                if (_skyboxTexture && _skyboxTexture->isLoaded() && _skyboxTexture->getGPUTexture()) {
+                if (_skyboxTexture && _skyboxTexture->isLoaded()) {
+                    _pendingSkyboxTexture = false;
+
                     auto texture = _skyboxTexture->getGPUTexture();
                     skybox->setCubemap(texture);
-                    _pendingSkyboxTexture = false;
-                    if (!isAmbientTextureSet && texture->getIrradiance()) {
+                    if (!isAmbientTextureSet) {
                         sceneKeyLight->setAmbientSphere(texture->getIrradiance());
                         sceneKeyLight->setAmbientMap(texture);
                         isAmbientTextureSet = true;
                     }
                 } else {
-                    _pendingSkyboxTexture = true;
+                    skybox->setCubemap(nullptr);
+                    qCDebug(entitiesrenderer) << "Failed to load skybox:" << zone->getSkyboxProperties().getURL();
                 }
             }
-
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             break;
         }
@@ -866,7 +886,9 @@ void EntityTreeRenderer::updateZone(const EntityItemID& id) {
             _currentEntitiesInside << id;
             emit enterEntity(id);
             _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
-            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+            if (zone->getVisible()) {
+                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+            }
         }
     }
     if (_bestZone && _bestZone->getID() == id) {

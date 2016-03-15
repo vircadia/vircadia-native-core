@@ -2058,18 +2058,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
                 } else {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
-                    if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+                    bool isMirrorChecked = Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !isMirrorChecked);
+                    if (isMirrorChecked) {
                         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
                     }
                     cameraMenuChanged();
                 }
                 break;
-            case Qt::Key_P:
-                 Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson));
-                 Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson));
-                 cameraMenuChanged();
-                 break;
+            case Qt::Key_P: {
+                bool isFirstPersonChecked = Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson);
+                Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !isFirstPersonChecked);
+                Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, isFirstPersonChecked);
+                cameraMenuChanged();
+                break;
+            }
 
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -3179,7 +3182,6 @@ void Application::update(float deltaTime) {
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->update(deltaTime);
 
     controller::InputCalibrationData calibrationData = {
         myAvatar->getSensorToWorldMatrix(),
@@ -3187,14 +3189,23 @@ void Application::update(float deltaTime) {
         myAvatar->getHMDSensorMatrix()
     };
 
+    InputPluginPointer keyboardMousePlugin;
     bool jointsCaptured = false;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (inputPlugin->isActive()) {
+        if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
+            keyboardMousePlugin = inputPlugin;
+        } else if (inputPlugin->isActive()) {
             inputPlugin->pluginUpdate(deltaTime, calibrationData, jointsCaptured);
             if (inputPlugin->isJointController()) {
                 jointsCaptured = true;
             }
         }
+    }
+
+    userInputMapper->update(deltaTime);
+
+    if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
+        keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData, jointsCaptured);
     }
 
     _controllerScriptingInterface->updateInputControllers();
@@ -3216,15 +3227,13 @@ void Application::update(float deltaTime) {
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
-    controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
-    controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-    Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, deltaTime, HandData::LeftHand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK));
-    setPalmData(hand, rightHand, deltaTime, HandData::RightHand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK));
+    controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
+    controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
+    auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+    myAvatar->setHandControllerPosesInWorldFrame(leftHandPose.transform(myAvatarMatrix), rightHandPose.transform(myAvatarMatrix));
+
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
-
-    _avatarUpdate->synchronousProcess();
 
     if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
@@ -3296,6 +3305,8 @@ void Application::update(float deltaTime) {
             }
         }
     }
+
+    _avatarUpdate->synchronousProcess();
 
     {
         PerformanceTimer perfTimer("overlays");
@@ -3757,19 +3768,19 @@ namespace render {
         switch (backgroundMode) {
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
+                if (skybox) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, *(args->_viewFrustum));
                     break;
                 }
-                // If no skybox texture is available, render the SKY_DOME while it loads
             }
-                // fall through to next case
+
+            // Fall through: if no skybox is available, render the SKY_DOME
             case model::SunSkyStage::SKY_DOME:  {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                     PerformanceTimer perfTimer("stars");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
                     // should be the first rendering pass - w/o depth buffer / lighting
 
                     static const float alpha = 1.0f;
@@ -3777,6 +3788,7 @@ namespace render {
                 }
             }
                 break;
+
             case model::SunSkyStage::NO_BACKGROUND:
             default:
                 // this line intentionally left blank
@@ -4880,7 +4892,10 @@ void Application::updateDisplayMode() {
         }
     }
     emit activeDisplayPluginChanged();
-    resetSensors();
+
+    // reset the avatar, to set head and hand palms back to a resonable default pose.
+    getMyAvatar()->reset(false);
+
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
@@ -4977,49 +4992,6 @@ mat4 Application::getHMDSensorPose() const {
         return getActiveDisplayPlugin()->getHeadPose(_frameCount);
     }
     return mat4();
-}
-
-void Application::setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue) {
-
-    // NOTE: the Hand::modifyPalm() will allow the lambda to modify the palm data while ensuring some other user isn't
-    // reading or writing to the Palms. This is definitely not the best way of handling this, and I'd like to see more
-    // of this palm manipulation in the Hand class itself. But unfortunately the Hand and Palm don't knbow about
-    // controller::Pose. More work is needed to clean this up.
-    hand->modifyPalm(whichHand, [&](PalmData& palm) {
-        palm.setActive(pose.isValid());
-
-        // controller pose is in Avatar frame.
-        glm::vec3 position = pose.getTranslation();
-        glm::quat rotation = pose.getRotation();
-        glm::vec3 rawVelocity = pose.getVelocity();
-        glm::vec3 angularVelocity = pose.getAngularVelocity();
-
-        palm.setRawVelocity(rawVelocity);
-        palm.setRawAngularVelocity(angularVelocity);
-
-        if (controller::InputDevice::getLowVelocityFilter()) {
-            //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-            //  no latency.
-            float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-            position = palm.getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-            rotation = safeMix(palm.getRawRotation(), rotation, 1.0f - velocityFilter);
-        }
-        palm.setRawPosition(position);
-        palm.setRawRotation(rotation);
-
-        // Store the one fingertip in the palm structure so we can track velocity
-        const float FINGER_LENGTH = 0.3f;   //  meters
-        const glm::vec3 FINGER_VECTOR(0.0f, FINGER_LENGTH, 0.0f);
-        const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-        glm::vec3 oldTipPosition = palm.getTipRawPosition();
-        if (deltaTime > 0.0f) {
-            palm.setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-        } else {
-            palm.setTipVelocity(glm::vec3(0.0f));
-        }
-        palm.setTipPosition(newTipPosition);
-        palm.setTrigger(triggerValue); // FIXME - we want to get rid of this idea of PalmData having a trigger
-    });
 }
 
 void Application::crashApplication() {
