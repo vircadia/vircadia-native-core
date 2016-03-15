@@ -345,7 +345,7 @@ function MyController(hand) {
                 this.continueFarTrigger();
                 break;
             case STATE_RELEASE:
-                this.release();
+                this.release(false);
                 break;
         }
     };
@@ -1382,7 +1382,7 @@ function MyController(hand) {
 
         if (this.entityActivated) {
             var saveGrabbedID = this.grabbedEntity;
-            this.release();
+            this.release(true);
             this.grabbedEntity = saveGrabbedID;
         }
 
@@ -1429,11 +1429,6 @@ function MyController(hand) {
             }
         } else {
             // grab entity via parenting
-            // if (this.actionID) {
-            //     var saveGrabbedID = this.grabbedEntity;
-            //     this.release();
-            //     this.grabbedEntity = saveGrabbedID;
-            // }
             this.actionID = null;
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             reparentProps = {
@@ -1708,12 +1703,10 @@ function MyController(hand) {
         Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
-    this.release = function() {
-
+    this.release = function(noVelocity) {
         this.turnLightsOff();
         this.turnOffVisualizations();
 
-        var noVelocity = false;
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1744,7 +1737,7 @@ function MyController(hand) {
     };
 
     this.cleanup = function() {
-        this.release();
+        this.release(false);
         Entities.deleteEntity(this.particleBeamObject);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
