@@ -4455,11 +4455,18 @@ void Application::toggleRunningScriptsWidget() {
 }
 
 void Application::toggleAssetServerWidget(QString filePath) {
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
+        return;
+    }
+
     static const QUrl url("AssetServer.qml");
-    auto urlSetter = [=](QQmlContext* context, QObject* newObject){
-        newObject->setProperty("currentFileUrl", filePath);
+    auto startUpload = [=](QQmlContext* context, QObject* newObject){
+        if (!filePath.isEmpty()) {
+            emit uploadRequest(filePath);
+        }
     };
-    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", urlSetter);
+    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
+    startUpload(nullptr, nullptr);
 }
 
 void Application::packageModel() {

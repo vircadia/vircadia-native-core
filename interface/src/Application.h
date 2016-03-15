@@ -231,6 +231,8 @@ signals:
     void beforeAboutToQuit();
     void activeDisplayPluginChanged();
 
+    void uploadRequest(QString path);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);

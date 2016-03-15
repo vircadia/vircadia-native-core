@@ -59,13 +59,18 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
     request->start();
 }
 
-void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback) {
+void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback, bool dropEvent) {
     static const QString helpText =
-        "Upload your asset to a specific folder by entering the full path. Specifying "
+        "Upload your asset to a specific folder by entering the full path. Specifying\n"
         "a new folder name will automatically create that folder for you.";
+    static const QString dropHelpText =
+        "This file will be added to your Asset Server.\n"
+        "Use the field below to place your file in a specific folder or to rename it.\n"
+        "Specifying a new folder name will automatically create that folder for you.";
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path", helpText, mapping);
+    auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
+                                           dropEvent ? dropHelpText : helpText, mapping);
 
     if (!result.isValid()) {
         completedCallback.call({ -1 });
