@@ -431,6 +431,6 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         }
     }
 }
-ToolBar.SPACING = 4;
+ToolBar.SPACING = 6;
 ToolBar.VERTICAL = 0;
 ToolBar.HORIZONTAL = 1;
