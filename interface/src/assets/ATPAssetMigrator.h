@@ -51,7 +51,7 @@ private:
 
     using JSONTypePair = std::pair<QJsonValueRef, quint8>;
 
-    QMultiHash<QUrl, std::pair<QJsonValueRef, quint8>> _pendingReplacements;
+    QMultiHash<QUrl, JSONTypePair> _pendingReplacements;
     QHash<QUrl, QUrl> _uploadedAssets;
     QHash<QObject*, QUrl> _originalURLs;
     QSet<QUrl> _ignoredUrls;
