@@ -61,7 +61,13 @@ var toolBar = (function() {
             };
         });
         browseDirectoryButton = toolBar.addTool({
-            imageURL: toolIconUrl + "directory.svg",
+            imageURL: toolIconUrl + "directory-01.svg",
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,

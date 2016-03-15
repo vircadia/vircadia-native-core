@@ -66,7 +66,13 @@ var toolBar = (function() {
             };
         });
         browseMarketplaceButton = toolBar.addTool({
-            imageURL: toolIconUrl + "marketplace.svg",
+            imageURL: toolIconUrl + "market-01.svg",
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,

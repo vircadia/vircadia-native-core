@@ -193,7 +193,7 @@ var toolBar = (function() {
 
 
         activeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "edit-status.svg",
+            imageURL: toolIconUrl + "edit-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -207,7 +207,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload.svg",
+            imageURL: toolIconUrl + "upload-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -221,7 +221,7 @@ var toolBar = (function() {
         });
 
         newCubeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-cube.svg",
+            imageURL: toolIconUrl + "cube-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -235,7 +235,7 @@ var toolBar = (function() {
         });
 
         newSphereButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-sphere.svg",
+            imageURL: toolIconUrl + "sphere-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -249,7 +249,7 @@ var toolBar = (function() {
         });
 
         newLightButton = toolBar.addTool({
-            imageURL: toolIconUrl + "light.svg",
+            imageURL: toolIconUrl + "light-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -263,7 +263,7 @@ var toolBar = (function() {
         });
 
         newTextButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-text.svg",
+            imageURL: toolIconUrl + "text-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -277,12 +277,12 @@ var toolBar = (function() {
         });
 
         newWebButton = toolBar.addTool({
-            imageURL: "https://hifi-public.s3.amazonaws.com/images/www.svg",
+            imageURL: toolIconUrl + "web-01.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 128,
-                height: 128
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
@@ -291,12 +291,12 @@ var toolBar = (function() {
         });
 
         newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zonecube_text.svg",
+            imageURL: toolIconUrl + "zone-01.svg",
             subImage: {
                 x: 0,
-                y: 128,
-                width: 128,
-                height: 128
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
@@ -305,12 +305,12 @@ var toolBar = (function() {
         });
 
         newParticleButton = toolBar.addTool({
-            imageURL: toolIconUrl + "particle.svg",
+            imageURL: toolIconUrl + "particle-01.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 256,
-                height: 256
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
