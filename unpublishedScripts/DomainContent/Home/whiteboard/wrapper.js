@@ -10,6 +10,9 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js?" + Math.random());
+
+var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?" + Math.random());
 
 Whiteboard = function(spawnPosition, spawnRotation) {
 
@@ -88,7 +91,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     var WHITEBOARD_RACK_DEPTH = 1.9;
 
     var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser-2.fbx";
-    var ERASER_SCRIPT_URL = Script.resolvePath("whiteboard/eraserEntityScript.js?" + Math.random());
+
     var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(whiteboardRotation)));
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
     var eraserRotation = markerRotation;
@@ -180,7 +183,6 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
 
     function createMarker(modelURL, markerPosition, markerColor) {
-        var MARKER_SCRIPT_URL = Script.resolvePath("whiteboard/markerEntityScript.js?" + Math.random());
         var marker = Entities.addEntity({
             type: "Model",
             modelURL: modelURL,

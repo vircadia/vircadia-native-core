@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var MAZE_SCRIPT = Script.resolvePath('tiltMaze/maze.js?' + Math.random());
+var MAZE_SCRIPT = Script.resolvePath('maze.js?' + Math.random());
 
 TiltMaze = function(spawnPosition, spawnRotation) {
 
