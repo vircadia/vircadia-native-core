@@ -164,6 +164,28 @@ Window {
         Window.copyToClipboard(url);
     }
 
+    function renameEl(index, data) {
+        if (!index) {
+            return false;
+        }
+
+        var path = assetProxyModel.data(index, 0x100);
+        if (!path) {
+            return false;
+        }
+
+        var destinationPath = path.split('/');
+        destinationPath[destinationPath.length - (path[path.length - 1] === '/' ? 2 : 1)] = data;
+        destinationPath = destinationPath.join('/').trim();
+
+        console.log("Renaming " + path + " to " + destinationPath);
+        if (path === destinationPath) {
+            return;
+        }
+        if (!fileExists(destinationPath)) {
+            doRenameFile(path, destinationPath);
+        }
+    }
     function renameFile(index) {
         if (!index) {
             index = treeView.selection.currentIndex;
@@ -371,8 +393,13 @@ Window {
                 height: 400
                 treeModel: assetProxyModel
                 colorScheme: root.colorScheme
+                canEdit: true
+
                 anchors.left: parent.left
                 anchors.right: parent.right
+
+                modifyEl: renameEl
+
                 MouseArea {
                     propagateComposedEvents: true
                     anchors.fill: parent
