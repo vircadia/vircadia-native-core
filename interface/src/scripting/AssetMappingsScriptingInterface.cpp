@@ -225,8 +225,7 @@ void AssetMappingModel::refresh() {
 
                         lastItem = item;
                         _pathToItemMap[fullPath] = lastItem;
-                    }
-                    else {
+                    } else {
                         lastItem = it.value();
                     }
                 }

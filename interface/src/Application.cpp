@@ -4459,7 +4459,8 @@ void Application::toggleAssetServerWidget(QString filePath) {
         return;
     }
 
-    static const QUrl url("AssetServer.qml");
+    static const QUrl url { "AssetServer.qml" };
+
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
         if (!filePath.isEmpty()) {
             emit uploadRequest(filePath);
