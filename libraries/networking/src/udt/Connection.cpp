@@ -104,6 +104,9 @@ SendQueue& Connection::getSendQueue() {
         _sendQueue->setSyncInterval(_synInterval);
         _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+
+        // give the randomized sequence number to the congestion control object
+        _congestionControl->setInitialSendSequenceNumber(_sendQueue->getCurrentSequenceNumber());
     }
     
     return *_sendQueue;
@@ -282,7 +285,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         // grab the up to date packet receive speed and estimated bandwidth
         int32_t packetReceiveSpeed = _receiveWindow.getPacketReceiveSpeed();
         int32_t estimatedBandwidth = _receiveWindow.getEstimatedBandwidth();
-        
+
         // update those values in our connection stats
         _stats.recordReceiveRate(packetReceiveSpeed);
         _stats.recordEstimatedBandwidth(estimatedBandwidth);
@@ -541,7 +544,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the ACK sub-sequence number
     SequenceNumber currentACKSubSequenceNumber;
     controlPacket->readPrimitive(&currentACKSubSequenceNumber);
-    
+
     // Check if we need send an ACK2 for this ACK
     // This will be the case if it has been longer than the sync interval OR
     // it looks like they haven't received our ACK2 for this ACK

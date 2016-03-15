@@ -972,7 +972,6 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
         glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
         perpSin = glm::cross(perpCos, axis);
 
-        float anglea = 0.0f;
         float angleb = 0.0f;
         QVector<glm::vec3> points;
 
@@ -980,7 +979,7 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
 
             // the rectangles that comprise the sides of the cone section are
             // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
-            anglea = angleb;
+            int anglea = angleb;
             angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * TWO_PI;
 
             float sa = sinf(anglea);

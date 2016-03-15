@@ -1522,9 +1522,9 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     // (1) braking --> short timescale (aggressive motor assertion)
     // (2) pushing --> medium timescale (mild motor assertion)
     // (3) inactive --> long timescale (gentle friction for low speeds)
-    float MIN_KEYBOARD_MOTOR_TIMESCALE = 0.125f;
-    float MAX_KEYBOARD_MOTOR_TIMESCALE = 0.4f;
-    float MIN_KEYBOARD_BRAKE_SPEED = 0.3f;
+    const float MIN_KEYBOARD_MOTOR_TIMESCALE = 0.125f;
+    const float MAX_KEYBOARD_MOTOR_TIMESCALE = 0.4f;
+    const float MIN_KEYBOARD_BRAKE_SPEED = 0.3f;
     float timescale = MAX_KEYBOARD_MOTOR_TIMESCALE;
     bool isThrust = (glm::length2(_thrust) > EPSILON);
     if (_isPushing || isThrust ||
@@ -1787,7 +1787,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
                                         << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
 
         // orient the user to face the target
-        glm::quat quatOrientation = newOrientation;
+        glm::quat quatOrientation = cancelOutRollAndPitch(newOrientation);
 
         if (shouldFaceLocation) {
             quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
