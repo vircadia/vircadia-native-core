@@ -20,21 +20,23 @@
 #include <AssetClient.h>
 #include <QSortFilterProxyModel>
 
- class AssetMappingModel : public QStandardItemModel {
-     Q_OBJECT
- public:
-     Q_INVOKABLE void refresh();
 
-     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
-     bool isKnownFolder(QString path) const;
 
- signals:
-     void errorGettingMappings(QString errorString);
+class AssetMappingModel : public QStandardItemModel {
+    Q_OBJECT
+public:
+    Q_INVOKABLE void refresh();
 
- private:
-     QHash<QString, QStandardItem*> _pathToItemMap;
- };
+    bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
+    bool isKnownFolder(QString path) const;
 
+    void errorGettingMappings(QString errorString);
+
+private:
+    QHash<QString, QStandardItem*> _pathToItemMap;
+};
+
+Q_DECLARE_METATYPE(AssetMappingModel*);
 
 class AssetMappingsScriptingInterface : public QObject {
     Q_OBJECT
@@ -51,7 +53,7 @@ public:
 
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback = QJSValue());
     Q_INVOKABLE void getMapping(QString path, QJSValue callback = QJSValue());
-    Q_INVOKABLE void uploadFile(QString path, QString mapping, QJSValue callback = QJSValue());
+    Q_INVOKABLE void uploadFile(QString path, QString mapping, QJSValue startedCallback = QJSValue(), QJSValue completedCallback = QJSValue());
     Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback);
     Q_INVOKABLE void deleteMapping(QString path, QJSValue callback) { deleteMappings(QStringList(path), callback = QJSValue()); }
     Q_INVOKABLE void getAllMappings(QJSValue callback = QJSValue());
