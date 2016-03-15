@@ -50,6 +50,7 @@ protected:
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
     void setMaxBandwidth(int maxBandwidth) { _maxBandwidth = maxBandwidth; }
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) = 0;
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
     void setReceiveRate(int rate) { _receiveRate = rate; }
     void setRTT(int rtt) { _rtt = rtt; }
@@ -104,14 +105,17 @@ public:
     virtual void onACK(SequenceNumber ackNum);
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd);
     virtual void onTimeout();
-    
+
+protected:
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) { _slowStartLastACK = seqNum; }
+
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout
     
     p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::now(); // last rate increase time
     
     bool _slowStart { true };	// if in slow start phase
-    SequenceNumber _slowStartLastAck; // last ACKed seq num
+    SequenceNumber _slowStartLastACK; // last ACKed seq num from previous slow start check
     bool _loss { false };	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecreasePeriod { 1 }; // value of _packetSendPeriod when last decrease happened
