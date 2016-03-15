@@ -104,48 +104,57 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::qu
 
     withReadLock([&]{
         bool isRightHand = (_hand == "right");
+
         glm::vec3 palmPosition;
         glm::quat palmRotation;
 
-        PalmData palmData = holdingAvatar->getHand()->getCopyOfPalmData(isRightHand ? HandData::RightHand : HandData::LeftHand);
+        if (holdingAvatar->isMyAvatar()) {
 
-        if (palmData.isValid()) {
-            // TODO: adjust according to _relativePosition and _relativeRotation?
-            linearVelocity = palmData.getVelocity();
-            angularVelocity = palmData.getAngularVelocity();
-        }
-
-        if (_ignoreIK && holdingAvatar->isMyAvatar() && palmData.isValid()) {
-            // We cannot ignore other avatars IK and this is not the point of this option
-            // This is meant to make the grabbing behavior more reactive.
-            palmPosition = palmData.getPosition();
-            palmRotation = palmData.getRotation();
-        } else if (holdingAvatar->isMyAvatar()) {
-            glm::vec3 avatarRigidBodyPosition;
-            glm::quat avatarRigidBodyRotation;
-            getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
-
-            // the offset and rotation between the avatar's rigid body and the palm were determined earlier
-            // in prepareForPhysicsSimulation.  At this point, the avatar's rigid body has been moved by bullet
-            // and the data in the Avatar class is stale.  This means that the result of get*PalmPosition will
-            // be stale.  Instead, determine the current palm position with the current avatar's rigid body
-            // location and the saved offsets.
-
-            // this line is more correct but breaks for the current way avatar data is updated.
-            // palmPosition = avatarRigidBodyPosition + avatarRigidBodyRotation * _palmOffsetFromRigidBody;
-            // instead, use this for now:
-            palmPosition = avatarRigidBodyPosition + _palmOffsetFromRigidBody;
-
-            // the item jitters the least by getting the rotation based on the opinion of Avatar.h rather
-            // than that of the rigid body.  leaving this next line here for future reference:
-            // palmRotation = avatarRigidBodyRotation * _palmRotationFromRigidBody;
-
+            // fetch the hand controller pose
+            controller::Pose pose;
             if (isRightHand) {
-                palmRotation = holdingAvatar->getRightPalmRotation();
+                pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInWorldFrame();
             } else {
-                palmRotation = holdingAvatar->getLeftPalmRotation();
+                pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInWorldFrame();
             }
-        } else {
+
+            if (pose.isValid()) {
+                linearVelocity = pose.getVelocity();
+                angularVelocity = pose.getAngularVelocity();
+            }
+
+            if (_ignoreIK && pose.isValid()) {
+                // We cannot ignore other avatars IK and this is not the point of this option
+                // This is meant to make the grabbing behavior more reactive.
+                palmPosition = pose.getTranslation();
+                palmRotation = pose.getRotation();
+            } else {
+                glm::vec3 avatarRigidBodyPosition;
+                glm::quat avatarRigidBodyRotation;
+                getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
+                // the offset and rotation between the avatar's rigid body and the palm were determined earlier
+                // in prepareForPhysicsSimulation.  At this point, the avatar's rigid body has been moved by bullet
+                // and the data in the Avatar class is stale.  This means that the result of get*PalmPosition will
+                // be stale.  Instead, determine the current palm position with the current avatar's rigid body
+                // location and the saved offsets.
+
+                // this line is more correct but breaks for the current way avatar data is updated.
+                // palmPosition = avatarRigidBodyPosition + avatarRigidBodyRotation * _palmOffsetFromRigidBody;
+                // instead, use this for now:
+                palmPosition = avatarRigidBodyPosition + _palmOffsetFromRigidBody;
+
+                // the item jitters the least by getting the rotation based on the opinion of Avatar.h rather
+                // than that of the rigid body.  leaving this next line here for future reference:
+                // palmRotation = avatarRigidBodyRotation * _palmRotationFromRigidBody;
+
+                if (isRightHand) {
+                    palmRotation = holdingAvatar->getRightPalmRotation();
+                } else {
+                    palmRotation = holdingAvatar->getLeftPalmRotation();
+                }
+            }
+        } else { // regular avatar
             if (isRightHand) {
                 palmPosition = holdingAvatar->getRightPalmPosition();
                 palmRotation = holdingAvatar->getRightPalmRotation();
@@ -299,7 +308,6 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand = _hand;
         }
 
-        ok = true;
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         holderID = myAvatar->getSessionUUID();
 

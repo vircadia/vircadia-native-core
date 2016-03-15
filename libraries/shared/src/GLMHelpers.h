@@ -232,4 +232,6 @@ glm::vec2 getFacingDir2D(const glm::mat4& m);
 bool isNaN(glm::vec3 value);
 bool isNaN(glm::quat value);
 
+glm::mat4 orthoInverse(const glm::mat4& m);
+
 #endif // hifi_GLMHelpers_h

@@ -1,3 +1,13 @@
+//
+//  MessageDialog.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
@@ -94,8 +104,8 @@ Item {
 
         function buildMenu(items, targetPosition) {
             var model = toModel(items);
-            // Menu's must be childed to desktop for Z-ordering
-            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : desktop.zLevels.menu });
+            // Menus must be childed to desktop for Z-ordering
+            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : desktop.zLevels.menu, isSubMenu: topMenu !== null });
             if (targetPosition) {
                 newMenu.x = targetPosition.x
                 newMenu.y = targetPosition.y - newMenu.height / 3 * 1

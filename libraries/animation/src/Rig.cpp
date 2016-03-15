@@ -37,17 +37,7 @@ static bool isEqual(const glm::quat& p, const glm::quat& q) {
     return 1.0f - fabsf(glm::dot(p, q)) <= EPSILON;
 }
 
-#ifdef NDEBUG
-#define ASSERT(cond)
-#else
-#define ASSERT(cond)                            \
-    do {                                        \
-        if (!(cond)) {                          \
-            int* ptr = nullptr;                 \
-            *ptr = 10;                          \
-        }                                       \
-    } while (0)
-#endif
+#define ASSERT(cond) assert(cond)
 
 // 2 meter tall dude
 const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 0.9f, 0.0f);

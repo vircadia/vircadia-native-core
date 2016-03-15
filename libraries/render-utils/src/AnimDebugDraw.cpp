@@ -392,13 +392,20 @@ void AnimDebugDraw::update() {
 
         assert(numVerts == (v - verts));
 
+        // The RenderItem culling is not working correctly
+        // Workaround this issue by using the default constructed
+        // item._bound which is a 16 km cube.
+        /*
         render::Item::Bound theBound;
         for (int i = 0; i < numVerts; i++) {
             theBound += verts[i].pos;
         }
+        data._bound = theBound;
+        */
 
         data._isVisible = (numVerts > 0);
-        data._bound = theBound;
+
+
         data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
         uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
         for (int i = 0; i < numVerts; i++) {

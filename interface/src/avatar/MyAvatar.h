@@ -63,9 +63,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
     Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
     Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
-    Q_PROPERTY(AudioListenerMode FROM_HEAD READ getAudioListenerModeHead)
-    Q_PROPERTY(AudioListenerMode FROM_CAMERA READ getAudioListenerModeCamera)
-    Q_PROPERTY(AudioListenerMode CUSTOM READ getAudioListenerModeCustom)
+    Q_PROPERTY(AudioListenerMode audioListenerModeHead READ getAudioListenerModeHead)
+    Q_PROPERTY(AudioListenerMode audioListenerModeCamera READ getAudioListenerModeCamera)
+    Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 
@@ -84,7 +84,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
 public:
-    MyAvatar(RigPointer rig);
+    explicit MyAvatar(RigPointer rig);
     ~MyAvatar();
 
     virtual void simulateAttachments(float deltaTime) override;
@@ -249,6 +249,12 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
+    void setHandControllerPosesInWorldFrame(const controller::Pose& left, const controller::Pose& right);
+    controller::Pose getLeftHandControllerPoseInWorldFrame() const;
+    controller::Pose getRightHandControllerPoseInWorldFrame() const;
+    controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
+    controller::Pose getRightHandControllerPoseInAvatarFrame() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -271,6 +277,7 @@ public slots:
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
+    void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
     bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
@@ -435,6 +442,7 @@ private:
 
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
+    bool _enableDebugDrawHandControllers { false };
     bool _enableDebugDrawSensorToWorldMatrix { false };
 
     AudioListenerMode _audioListenerMode;
@@ -445,6 +453,10 @@ private:
     bool _lastIsMoving { false };
     bool _hoverReferenceCameraFacingIsCaptured { false };
     glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
+
+    // These are stored in WORLD frame
+    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInWorldFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInWorldFrameCache { controller::Pose() };
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

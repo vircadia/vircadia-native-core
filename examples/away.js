@@ -152,8 +152,18 @@ function maybeMoveOverlay() {
 
 // MAIN CONTROL
 var wasMuted, isAway;
+var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
 var eventMapping = Controller.newMapping(eventMappingName);
+
+// backward compatible version of getting HMD.mounted, so it works in old clients
+function safeGetHMDMounted() {
+    if (HMD.mounted === undefined) {
+        return true;
+    }
+    return HMD.mounted;
+}
+var wasHmdMounted = safeGetHMDMounted();
 
 function goAway() {
     if (isAway) {
@@ -169,12 +179,20 @@ function goAway() {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 
+    // remember the View > Overlays state...
+    wasOverlaysVisible = Menu.isOptionChecked("Overlays");
+
+    // show overlays so that people can see the "Away" message
+    Menu.setIsOptionChecked("Overlays", true);
+
     // tell the Reticle, we want to stop capturing the mouse until we come back
     Reticle.allowMouseCapture = false;
     if (HMD.active) {
         Reticle.visible = false;
     }
+    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
 }
+
 function goActive() {
     if (!isAway) {
         return;
@@ -188,12 +206,16 @@ function goActive() {
     stopAwayAnimation();
     hideOverlay();
 
+    // restore overlays state to what it was when we went "away"
+    Menu.setIsOptionChecked("Overlays", wasOverlaysVisible);
+
     // tell the Reticle, we are ready to capture the mouse again and it should be visible
     Reticle.allowMouseCapture = true;
     Reticle.visible = true;
     if (HMD.active) {
         Reticle.position = HMD.getHUDLookAtPosition2D();
     }
+    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
 }
 
 function maybeGoActive(event) {
@@ -206,6 +228,7 @@ function maybeGoActive(event) {
         goActive();
     }
 }
+
 var wasHmdActive = HMD.active;
 var wasMouseCaptured = Reticle.mouseCaptured;
 
@@ -224,6 +247,13 @@ function maybeGoAway() {
         if (!wasMouseCaptured) {
             goAway();
         }
+    }
+
+    // If you've removed your HMD from your head, and we can detect it, we will also go away...
+    var hmdMounted = safeGetHMDMounted();
+    if (HMD.active && !hmdMounted && wasHmdMounted) {
+        wasHmdMounted = hmdMounted;
+        goAway();
     }
 }
 
