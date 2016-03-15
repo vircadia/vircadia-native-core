@@ -31,38 +31,60 @@
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
 
     Reset.prototype = {
-        preload: function() {
-
+        preload: function(entityID) {
+            _this.entityID = entityID;
         },
         unload: function() {
-
+            this.cleanupDynamicEntities();
         },
         tidying: false,
         showTidyingButton: function() {
+            var textureString =
+                'Texture.001:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",\ntex.face.screen.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png",\ntex.face.sceen:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",\ntex.button.blanks:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",\ntex.button.blanks.normal:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",\nbutton.tidy.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidy-Up-Button-Orange-Emit.png",\nbutton.tidy:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidy-Up-Button-Orange.png"'
 
+            Entities.editEntity(_this.entityID, {
+                textures: textureString
+            });
         },
         showTidyButton: function() {
+            var textureString =
+                'Texture.001:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",\ntex.face.screen.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png",\ntex.face.sceen:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",\ntex.button.blanks:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",\ntex.button.blanks.normal:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",\nbutton.tidy.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",\nbutton.tidy:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png"'
+
+            Entities.editEntity(_this.entityID, {
+                textures: textureString
+            });
+        },
+        playTidyingSound: function() {
 
         },
         toggleButton: function() {
-
+            if (_this.tidying === true) {
+                return;
+            } else {
+                _this.tidying = true;
+                _this.showTidyingButton();
+                _this.playTidyingSound();
+                Script.setTimeout(function() {
+                    _this.showTidyButton();
+                    _this.tidying = false;
+                }, 2500);
+                _this.cleanupDynamicEntities();
+                _this.createDynamicEntities();
+            }
         },
 
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
             }
-            _this.prepareScene();
-            print('CLICK ON TIDY GUY!!!')
+            _this.toggleButton();
 
         },
-        prepareScene: function() {
-            _this.cleanupDynamicEntities();
-            _this.createDynamicEntities();
-        },
+
         startNearTrigger: function() {
-            _this.prepareScene();
+            _this.toggleButton();
         },
+
         createDynamicEntities: function() {
             var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
                 x: 0,
@@ -92,11 +114,11 @@
             // var cuckooClock = new CuckooClock();
             // var doppelganger = new Doppelganger();
         },
+
         cleanupDynamicEntities: function() {
             if (dynamicEntities.length === 0) {
                 return;
             }
-            print('DYNAMIC ENTITIES:: ' + JSON.stringify(dynamicEntities))
             dynamicEntities.forEach(function(dynamicEntity) {
                 dynamicEntity.cleanup();
             })

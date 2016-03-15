@@ -10,19 +10,20 @@ var SCRIPT_URL = Script.resolvePath('reset.js?' + Math.random());
 function createTidyGuy() {
     var properties = {
         type: 'Model',
-        modelURL: 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-4.fbx',
+        modelURL: 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx',
         dimensions: {
             x: 0.32,
             y: 0.96,
             z: 0.6844
         },
         position: center,
-        // color:{
-        //     red:0,
-        //     green:255,
-        //     blue:0
-        // },
-        script: SCRIPT_URL
+        script: SCRIPT_URL,
+        dynamic:false,
+        userData:JSON.stringify({
+            grabbableKey:{
+                wantsTrigger:true
+            }
+        })
     }
 
     return Entities.addEntity(properties);
