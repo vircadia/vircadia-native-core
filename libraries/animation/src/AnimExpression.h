@@ -21,7 +21,7 @@
 class AnimExpression {
 public:
     friend class AnimTests;
-    AnimExpression(const QString& str);
+    explicit AnimExpression(const QString& str);
 protected:
     struct Token {
         enum Type {
@@ -49,8 +49,8 @@ protected:
             Comma,
             Error
         };
-        Token(Type type) : type {type} {}
-        Token(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
+        explicit Token(Type type) : type {type} {}
+        explicit Token(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
         explicit Token(int val) : type {Type::Int}, intVal {val} {}
         explicit Token(bool val) : type {Type::Bool}, intVal {val} {}
         explicit Token(float val) : type {Type::Float}, floatVal {val} {}
@@ -82,7 +82,7 @@ protected:
             Modulus,
             UnaryMinus
         };
-        OpCode(Type type) : type {type} {}
+        explicit OpCode(Type type) : type {type} {}
         explicit OpCode(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
         explicit OpCode(const QString& str) : type {Type::Identifier}, strVal {str} {}
         explicit OpCode(int val) : type {Type::Int}, intVal {val} {}

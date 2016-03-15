@@ -71,8 +71,8 @@ public slots:
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
-    AvatarManager(QObject* parent = 0);
-    AvatarManager(const AvatarManager& other);
+    explicit AvatarManager(QObject* parent = 0);
+    explicit AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
 

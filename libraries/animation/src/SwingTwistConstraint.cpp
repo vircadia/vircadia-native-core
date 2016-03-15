@@ -249,7 +249,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
         int rightIndex = 0;
         for (int i = 0; i < numLimits; ++i) {
             float theta = (float)i * deltaTheta;
-            int leftIndex = (rightIndex - 1) % numLimits;
+            int leftIndex = (rightIndex - 1 + numLimits) % numLimits;
             while (rightIndex < numLimits && theta > limits[rightIndex]._theta) {
                 leftIndex = rightIndex++;
             }

@@ -25,7 +25,7 @@ class AnimNodeLoader : public QObject {
     Q_OBJECT
 
 public:
-    AnimNodeLoader(const QUrl& url);
+    explicit AnimNodeLoader(const QUrl& url);
 
 signals:
     void success(AnimNode::Pointer node);

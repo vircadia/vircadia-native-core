@@ -308,7 +308,6 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand = _hand;
         }
 
-        ok = true;
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         holderID = myAvatar->getSessionUUID();
 

@@ -38,7 +38,7 @@ protected:
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
                 const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
 private:
-    AnimationCache(QObject* parent = NULL);
+    explicit AnimationCache(QObject* parent = NULL);
     virtual ~AnimationCache() { }
 
 };
@@ -51,7 +51,7 @@ class Animation : public Resource {
 
 public:
 
-    Animation(const QUrl& url);
+    explicit Animation(const QUrl& url);
 
     const FBXGeometry& getGeometry() const { return *_geometry; }
 
