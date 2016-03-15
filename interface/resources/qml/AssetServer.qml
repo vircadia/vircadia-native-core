@@ -252,7 +252,7 @@ Window {
         }
         uploadOpen = true;
 
-        function doUpload(url) {
+        function doUpload(url, dropping) {
             var fileUrl = fileDialogHelper.urlToPath(url);
 
             var path = assetProxyModel.data(treeView.selection.currentIndex, 0x100);
@@ -290,11 +290,11 @@ Window {
                         uploadButton.enabled = true;
                         uploadOpen = false;
                     }
-            });
+            }, dropping);
         }
 
         if (fileUrl) {
-            doUpload(fileUrl);
+            doUpload(fileUrl, true);
         } else {
             var browser = desktop.fileDialog({
                 selectDirectory: false,
@@ -305,7 +305,7 @@ Window {
             });
             browser.selectedFile.connect(function(url) {
                 currentDirectory = browser.dir;
-                doUpload(url);
+                doUpload(url, false);
             });
         }
     }

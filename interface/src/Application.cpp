@@ -4460,11 +4460,13 @@ void Application::toggleAssetServerWidget(QString filePath) {
     }
 
     static const QUrl url("AssetServer.qml");
-    auto urlSetter = [=](QQmlContext* context, QObject* newObject){
-        emit uploadRequest(filePath);
+    auto startUpload = [=](QQmlContext* context, QObject* newObject){
+        if (!filePath.isEmpty()) {
+            emit uploadRequest(filePath);
+        }
     };
-    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", urlSetter);
-    emit uploadRequest(filePath);
+    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
+    startUpload(nullptr, nullptr);
 }
 
 void Application::packageModel() {
