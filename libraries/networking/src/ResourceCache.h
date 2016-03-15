@@ -67,8 +67,10 @@ class ResourceCache : public QObject {
     Q_OBJECT
     
 public:
-    static void setRequestLimit(int limit) { _requestLimit = limit; }
+    static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
+
+    static int getRequestsActive() { return _requestsActive; }
     
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
@@ -105,8 +107,11 @@ protected:
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
     
-    Q_INVOKABLE static void attemptRequest(Resource* resource);
+    /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
+    /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
+    Q_INVOKABLE static bool attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
+    static bool attemptHighestPriorityRequest();
 
 private:
     friend class Resource;
@@ -115,6 +120,7 @@ private:
     int _lastLRUKey = 0;
     
     static int _requestLimit;
+    static int _requestsActive;
 
     void getResourceAsynchronously(const QUrl& url);
     QReadWriteLock _resourcesToBeGottenLock;
