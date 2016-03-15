@@ -4457,9 +4457,10 @@ void Application::toggleRunningScriptsWidget() {
 void Application::toggleAssetServerWidget(QString filePath) {
     static const QUrl url("AssetServer.qml");
     auto urlSetter = [=](QQmlContext* context, QObject* newObject){
-        newObject->setProperty("currentFileUrl", filePath);
+        emit uploadRequest(filePath);
     };
     DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", urlSetter);
+    emit uploadRequest(filePath);
 }
 
 void Application::packageModel() {

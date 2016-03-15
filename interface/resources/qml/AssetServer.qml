@@ -45,6 +45,7 @@ Window {
     }
 
     Component.onCompleted: {
+        ApplicationInterface.uploadRequest.connect(uploadClicked);
         assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError);
         reload();
     }
@@ -245,24 +246,14 @@ Window {
     Timer {
         id: timer
     }
-    function uploadClicked() {
+    function uploadClicked(fileUrl) {
         if (uploadOpen) {
             return;
         }
         uploadOpen = true;
 
-        var fileUrl = "";
-
-        var browser = desktop.fileDialog({
-            selectDirectory: false,
-            dir: currentDirectory
-        });
-        browser.canceled.connect(function() {
-            uploadOpen = false;
-        });
-        browser.selectedFile.connect(function(url){
+        function doUpload(url) {
             var fileUrl = fileDialogHelper.urlToPath(url);
-            currentDirectory = browser.dir;
 
             var path = assetProxyModel.data(treeView.selection.currentIndex, 0x100);
             var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "/";
@@ -299,8 +290,24 @@ Window {
                         uploadButton.enabled = true;
                         uploadOpen = false;
                     }
-            })
-        });
+            });
+        }
+
+        if (fileUrl) {
+            doUpload(fileUrl);
+        } else {
+            var browser = desktop.fileDialog({
+                selectDirectory: false,
+                dir: currentDirectory
+            });
+            browser.canceled.connect(function() {
+                uploadOpen = false;
+            });
+            browser.selectedFile.connect(function(url) {
+                currentDirectory = browser.dir;
+                doUpload(url);
+            });
+        }
     }
 
     function errorMessageBox(message) {
@@ -310,10 +317,6 @@ Window {
             title: "Error",
             text: message
         });
-    }
-
-    function itemSelected() {
-        return treeView.selection.hasSelection()
     }
 
     Item {
@@ -457,7 +460,6 @@ Window {
                     height: 30
                     width: 155
 
-                    enabled: fileUrlTextField.text != ""
                     onClicked: uploadClickedTimer.running = true
 
                     // For some reason trigginer an API that enters

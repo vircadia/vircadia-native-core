@@ -30,6 +30,7 @@ public:
     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
     bool isKnownFolder(QString path) const;
 
+signals:
     void errorGettingMappings(QString errorString);
 
 private:
