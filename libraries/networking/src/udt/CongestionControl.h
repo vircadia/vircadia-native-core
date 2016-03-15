@@ -115,7 +115,6 @@ private:
     p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::now(); // last rate increase time
     
     bool _slowStart { true };	// if in slow start phase
-    bool _hasSetSlowStartACK { false }; // flag to signal if slow start ACK has been set with handshake sequence number
     SequenceNumber _slowStartLastACK; // last ACKed seq num from previous slow start check
     bool _loss { false };	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
