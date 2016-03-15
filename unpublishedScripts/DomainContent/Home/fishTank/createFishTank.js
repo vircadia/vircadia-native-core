@@ -12,7 +12,7 @@
 //
 
 
-var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, treasure, rocks;
+var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, anemone, treasure, rocks;
 var CLEANUP = true;
 
 var TANK_DIMENSIONS = {
@@ -314,7 +314,7 @@ function createUrchin() {
     var finalPosition = getOffsetFromTankCenter(ANEMONE_VERTICAL_OFFSET, ANEMONE_FORWARD_OFFSET, ANEMONE_LATERAL_OFFSET);
 
     var properties = {
-        name: 'hifi-home-fishtank-urchin',
+        name: 'hifi-home-fishtank-anemone',
         type: 'Model',
         animationURL: ANEMONE_ANIMATION_URL,
         animationIsPlaying: true,
@@ -333,7 +333,7 @@ function createUrchin() {
         dimensions: ANEMONE_DIMENSIONS
     }
 
-    urchin = Entities.addEntity(properties);
+    anemone = Entities.addEntity(properties);
 
 }
 
@@ -416,7 +416,7 @@ function cleanup() {
     Entities.deleteEntity(innerContainer);
     Entities.deleteEntity(lowerCorner);
     Entities.deleteEntity(upperCorner);
-    Entities.deleteEntity(urchin);
+    Entities.deleteEntity(anemone);
     Entities.deleteEntity(rocks);
     bubbleInjector.stop();
     bubbleInjector = null;
