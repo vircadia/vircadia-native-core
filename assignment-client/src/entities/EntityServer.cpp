@@ -272,6 +272,18 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 }
 
+void EntityServer::nodeAdded(SharedNodePointer node) {
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    tree->knowAvatarID(node->getUUID());
+    OctreeServer::nodeAdded(node);
+}
+
+void EntityServer::nodeKilled(SharedNodePointer node) {
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    tree->deleteDescendantsOfAvatar(node->getUUID());
+    tree->forgetAvatarID(node->getUUID());
+    OctreeServer::nodeKilled(node);
+}
 
 // FIXME - this stats tracking is somewhat temporary to debug the Whiteboard issues. It's not a bad
 // set of stats to have, but we'd probably want a different data structure if we keep it very long.

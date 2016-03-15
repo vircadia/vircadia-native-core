@@ -28,6 +28,7 @@ public:
     VrMenu(QObject* parent = nullptr);
     void addMenu(QMenu* menu);
     void addAction(QMenu* parent, QAction* action);
+    void addSeparator(QMenu* parent);
     void insertAction(QAction* before, QAction* action);
     void removeAction(QAction* action);
 

@@ -111,7 +111,6 @@ protected:
 
     void computeBoundingShape();
 
-    void applyPalmData(int jointIndex, const PalmData& palm);
 private:
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;

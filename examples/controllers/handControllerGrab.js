@@ -1006,7 +1006,7 @@ function MyController(hand) {
 
             // else this thing isn't physical.  grab it by reparenting it (but not if we've already
             // grabbed it).
-            if (grabbableData.refCount < 1) {
+            if (refCount < 1) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             } else {
@@ -1120,7 +1120,6 @@ function MyController(hand) {
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
             this.hasPresetOffsets()) {
@@ -1307,7 +1306,6 @@ function MyController(hand) {
 
     this.nearGrabbing = function() {
         var now = Date.now();
-        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -1330,10 +1328,9 @@ function MyController(hand) {
         var handRotation = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
         var handPosition = this.getHandPosition();
 
-        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
         var hasPresetPosition = false;
         if (this.state != STATE_NEAR_GRABBING && this.hasPresetOffsets()) {
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
             this.offsetPosition = this.getPresetPosition();
@@ -1676,7 +1673,6 @@ function MyController(hand) {
     };
 
     this.activateEntity = function(entityID, grabbedProperties, wasLoaded) {
-        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         var now = Date.now();
 

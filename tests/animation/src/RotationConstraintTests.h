@@ -15,10 +15,13 @@
 
 class RotationConstraintTests : public QObject {
     Q_OBJECT
-    
+
 private slots:
     void testElbowConstraint();
     void testSwingTwistConstraint();
+    void testDynamicSwingLimitFunction();
+    void testDynamicSwing();
+    void testDynamicTwist();
 };
 
 #endif // hifi_RotationConstraintTests_h

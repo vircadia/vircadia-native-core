@@ -86,13 +86,16 @@ void OpenVrDisplayPlugin::activate() {
 }
 
 void OpenVrDisplayPlugin::deactivate() {
+    // Base class deactivate must come before our local deactivate
+    // because the OpenGL base class handles the wait for the present 
+    // thread before continuing
+    HmdDisplayPlugin::deactivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         releaseOpenVrSystem();
         _system = nullptr;
     }
     _compositor = nullptr;
-    HmdDisplayPlugin::deactivate();
 }
 
 void OpenVrDisplayPlugin::customizeContext() {

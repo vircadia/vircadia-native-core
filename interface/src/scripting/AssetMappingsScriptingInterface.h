@@ -20,14 +20,6 @@
 #include <AssetClient.h>
 #include <QSortFilterProxyModel>
 
-class AssetMappingItem : public QStandardItem {
-public:
-    AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder);
-
-    QString name;
-    QString fullPath;
-    bool isFolder;
-};
 
 
 class AssetMappingModel : public QStandardItemModel {

@@ -35,7 +35,6 @@
 #include "Avatar.h"
 #include "AvatarManager.h"
 #include "AvatarMotionState.h"
-#include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Physics.h"
@@ -101,7 +100,6 @@ Avatar::Avatar(RigPointer rig) :
 
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = static_cast<HeadData*>(new Head(this));
-    _handData = static_cast<HandData*>(new Hand(this));
 }
 
 Avatar::~Avatar() {
@@ -189,11 +187,6 @@ void Avatar::simulate(float deltaTime) {
     // simple frustum check
     float boundingRadius = getBoundingRadius();
     bool inView = qApp->getViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
-
-    {
-        PerformanceTimer perfTimer("hand");
-        getHand()->simulate(deltaTime, false);
-    }
 
     if (_shouldAnimate && !_shouldSkipRender && inView) {
         {
@@ -577,11 +570,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
     {
         if (_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable()) {
             getHead()->render(renderArgs, 1.0f, renderFrustum);
-        }
-
-        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
-                Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
-            getHand()->renderHandTargets(renderArgs, false);
         }
     }
     getHead()->renderLookAts(renderArgs);
@@ -984,7 +972,6 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
         glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
         perpSin = glm::cross(perpCos, axis);
 
-        float anglea = 0.0f;
         float angleb = 0.0f;
         QVector<glm::vec3> points;
 
@@ -992,7 +979,7 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
 
             // the rectangles that comprise the sides of the cone section are
             // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
-            anglea = angleb;
+            int anglea = angleb;
             angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * TWO_PI;
 
             float sa = sinf(anglea);

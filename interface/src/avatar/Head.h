@@ -28,7 +28,7 @@ class Avatar;
 
 class Head : public HeadData {
 public:
-    Head(Avatar* owningAvatar);
+    explicit Head(Avatar* owningAvatar);
     
     void init();
     void reset();
