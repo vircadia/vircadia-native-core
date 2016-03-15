@@ -111,7 +111,7 @@ void AssetServer::completeSetup() {
 
     // load whatever mappings we currently have from the local file
     loadMappingsFromFile();
-    
+
     qInfo() << "Serving files from: " << _filesDirectory.path();
 
     // Check the asset directory to output some information about what we have
@@ -154,7 +154,7 @@ void AssetServer::performMappingMigration() {
                 qDebug() << "\tRenamed pre-mapping file" << fileInfo.fileName();
 
                 // add a new mapping with the old extension and a truncated version of the hash
-                static const int TRUNCATED_HASH_NUM_CHAR = 16;
+                const int TRUNCATED_HASH_NUM_CHAR = 16;
                 auto fakeFileName = "/" + hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
 
                 qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
@@ -330,7 +330,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
 void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
     auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(DataOffset) + sizeof(DataOffset));
-    
+
     if (message->getSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
@@ -342,26 +342,26 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 }
 
 void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    
+
     if (senderNode->getCanRez()) {
         qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
-        
+
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
         _taskPool.start(task);
     } else {
         // this is a node the domain told us is not allowed to rez entities
         // for now this also means it isn't allowed to add assets
         // so return a packet with error that indicates that
-        
+
         auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
-        
+
         MessageID messageID;
         message->readPrimitive(&messageID);
-        
+
         // write the message ID and a permission denied error
         permissionErrorPacket->writePrimitive(messageID);
         permissionErrorPacket->writePrimitive(AssetServerError::PermissionDenied);
-        
+
         // send off the packet
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
@@ -370,19 +370,19 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
 
 void AssetServer::sendStatsPacket() {
     QJsonObject serverStats;
-    
+
     auto stats = DependencyManager::get<NodeList>()->sampleStatsForAllConnections();
-    
+
     for (const auto& stat : stats) {
         QJsonObject nodeStats;
         auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stat.second.endTime);
         QDateTime date = QDateTime::fromMSecsSinceEpoch(endTimeMs.count());
-        
+
         static const float USEC_PER_SEC = 1000000.0f;
         static const float MEGABITS_PER_BYTE = 8.0f / 1000000.0f; // Bytes => Mbits
         float elapsed = (float)(stat.second.endTime - stat.second.startTime).count() / USEC_PER_SEC; // sec
         float megabitsPerSecPerByte = MEGABITS_PER_BYTE / elapsed; // Bytes => Mb/s
-        
+
         QJsonObject connectionStats;
         connectionStats["1. Last Heard"] = date.toString();
         connectionStats["2. Est. Max (P/s)"] = stat.second.estimatedBandwith;
@@ -392,10 +392,10 @@ void AssetServer::sendStatsPacket() {
         connectionStats["6. Up (Mb/s)"] = stat.second.sentBytes * megabitsPerSecPerByte;
         connectionStats["7. Down (Mb/s)"] = stat.second.receivedBytes * megabitsPerSecPerByte;
         nodeStats["Connection Stats"] = connectionStats;
-        
+
         using Events = udt::ConnectionStats::Stats::Event;
         const auto& events = stat.second.events;
-        
+
         QJsonObject upstreamStats;
         upstreamStats["1. Sent (P/s)"] = stat.second.sendRate;
         upstreamStats["2. Sent Packets"] = stat.second.sentPackets;
@@ -407,7 +407,7 @@ void AssetServer::sendStatsPacket() {
         upstreamStats["8. Sent ACK2"] = events[Events::SentACK2];
         upstreamStats["9. Retransmitted"] = events[Events::Retransmission];
         nodeStats["Upstream Stats"] = upstreamStats;
-        
+
         QJsonObject downstreamStats;
         downstreamStats["1. Recvd (P/s)"] = stat.second.receiveRate;
         downstreamStats["2. Recvd Packets"] = stat.second.receivedPackets;
@@ -418,7 +418,7 @@ void AssetServer::sendStatsPacket() {
         downstreamStats["7. Recvd ACK2"] = events[Events::ReceivedACK2];
         downstreamStats["8. Duplicates"] = events[Events::Duplicate];
         nodeStats["Downstream Stats"] = downstreamStats;
-        
+
         QString uuid;
         auto nodelist = DependencyManager::get<NodeList>();
         if (stat.first == nodelist->getDomainHandler().getSockAddr()) {
@@ -429,10 +429,10 @@ void AssetServer::sendStatsPacket() {
             uuid = uuidStringWithoutCurlyBraces(node ? node->getUUID() : QUuid());
             nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuid;
         }
-        
+
         serverStats[uuid] = nodeStats;
     }
-    
+
     // send off the stats packets
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
 }
@@ -607,7 +607,7 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
 bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
     oldPath = oldPath.trimmed();
     newPath = newPath.trimmed();
-    
+
     if (!isValidPath(oldPath) || !isValidPath(newPath)) {
         qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
             << oldPath << "=>" << newPath;
@@ -646,7 +646,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
         if (writeMappingsToFile()) {
             // persisted the changed mappings, return success
             qDebug() << "Renamed folder mapping:" << oldPath << "=>" << newPath;
-            
+
             return true;
         } else {
             // couldn't persist the renamed paths, rollback and return failure
