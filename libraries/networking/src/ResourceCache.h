@@ -224,9 +224,6 @@ protected:
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
 
-    /// Reinserts this resource into the cache.
-    virtual void reinsert();
-
     QUrl _url;
     QUrl _activeUrl;
     bool _startedLoading = false;
@@ -246,6 +243,7 @@ private:
     
     void makeRequest();
     void retry();
+    void reinsert();
     
     friend class ResourceCache;
     
