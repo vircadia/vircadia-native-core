@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random());
+
 FishTank = function(spawnPosition, spawnRotation) {
     var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, treasure, rocks;
     var CLEANUP = true;
@@ -36,7 +38,7 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     var TANK_POSITION = spawnPosition;
 
-    var TANK_SCRIPT = Script.resolvePath('fishTank/tank.js?' + Math.random())
+
 
     var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumTank.fbx";
 

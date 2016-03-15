@@ -8,8 +8,8 @@
 //  This entity script handles the logic for growing a plant when it has water poured on it
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-var PLANT_SCRIPT_URL = Script.resolvePath("growingPlant/growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("growingPlant/waterCanEntityScript.js?v2" + Math.random().toFixed());
+var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
 Plant = function(spawnPosition, spawnRotation) {
   var orientation = Camera.getOrientation();
   orientation = Quat.safeEulerAngles(orientation);

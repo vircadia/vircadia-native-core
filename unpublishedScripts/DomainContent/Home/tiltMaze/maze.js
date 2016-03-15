@@ -13,7 +13,7 @@
 
 (function() {
 
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var SCALE = 0.5;
     var VICTORY_SOUND;

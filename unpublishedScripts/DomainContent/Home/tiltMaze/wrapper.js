@@ -9,13 +9,16 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+var MAZE_SCRIPT = Script.resolvePath('tiltMaze/maze.js?' + Math.random());
+
 TiltMaze = function(spawnPosition, spawnRotation) {
 
     var ball, ballSpawningAnchor, ballDetector, tiltMaze, lightAtTheEnd;
 
     var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_tex-4.fbx";
     var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_tex-3.obj";
-    var MAZE_SCRIPT = Script.resolvePath('tiltMaze/maze.js?' + Math.random());
+
 
     var SCALE = 0.5;
 
