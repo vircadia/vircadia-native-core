@@ -345,7 +345,7 @@ function MyController(hand) {
                 this.continueFarTrigger();
                 break;
             case STATE_RELEASE:
-                this.release(false);
+                this.release();
                 break;
         }
     };
@@ -1013,6 +1013,7 @@ function MyController(hand) {
             var refCount = ("refCount" in grabData) ? grabData.refCount : 0;
             if (near && (refCount < 1 || entityHasActions(this.grabbedEntity))) {
                 if (this.state == STATE_SEARCHING) {
+                    print("HERE: " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
                     this.setState(STATE_NEAR_GRABBING);
                 } else { // (this.state == STATE_HOLD_SEARCHING)
                     this.setState(STATE_HOLD);
@@ -1381,18 +1382,20 @@ function MyController(hand) {
         this.overlayLineOff();
 
         if (this.entityActivated) {
+            print("HERE: release before grab " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
             var saveGrabbedID = this.grabbedEntity;
-            this.release(true);
+            this.release();
             this.grabbedEntity = saveGrabbedID;
         }
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties, false);
-        if (grabbedProperties.dynamic && NEAR_GRABBING_KINEMATIC) {
-            Entities.editEntity(this.grabbedEntity, {
-                dynamic: false
-            });
-        }
+        // if (grabbedProperties.dynamic && NEAR_GRABBING_KINEMATIC) {
+        //    Entities.editEntity(this.grabbedEntity, {
+        //        velocity: {x: 0, y: 0, z: 0},
+        //        dynamic: false
+        //    });
+        // }
 
         // var handRotation = this.getHandRotation();
         var handRotation = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
@@ -1421,13 +1424,15 @@ function MyController(hand) {
             }
         }
 
-        var isPhysical = this.propsArePhysical(grabbedProperties); // || entityHasActions(this.grabbedEntity);
+        var isPhysical = this.propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
         if (isPhysical && this.state == STATE_NEAR_GRABBING) {
+            print("HERE: setting up hold action " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
             // grab entity via action
             if (!this.setupHoldAction()) {
                 return;
             }
         } else {
+            print("HERE: parenting " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
             // grab entity via parenting
             this.actionID = null;
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
@@ -1445,6 +1450,12 @@ function MyController(hand) {
                 grabbedEntity: this.grabbedEntity
             }));
         }
+
+        Entities.editEntity(this.grabbedEntity, {
+            velocity: {x: 0, y: 0, z: 0},
+            angularVelocity: {x: 0, y: 0, z: 0},
+            dynamic: false
+        });
 
         if (this.state == STATE_NEAR_GRABBING) {
             this.callEntityMethodOnGrabbed("startNearGrab");
@@ -1703,10 +1714,11 @@ function MyController(hand) {
         Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
-    this.release = function(noVelocity) {
+    this.release = function() {
         this.turnLightsOff();
         this.turnOffVisualizations();
 
+        var noVelocity = false;
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1737,7 +1749,7 @@ function MyController(hand) {
     };
 
     this.cleanup = function() {
-        this.release(false);
+        this.release();
         Entities.deleteEntity(this.particleBeamObject);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
