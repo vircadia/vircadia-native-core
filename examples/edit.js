@@ -190,8 +190,6 @@ var toolBar = (function() {
             };
         });
 
-
-
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-01.svg",
             subImage: {

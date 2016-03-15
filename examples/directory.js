@@ -53,7 +53,6 @@ var toolBar = (function() {
         browseDirectoryButton;
 
     function initialize() {
-        ToolBar.SPACING = 16;
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.directory.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,

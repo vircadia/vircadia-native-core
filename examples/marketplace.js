@@ -58,7 +58,6 @@ var toolBar = (function() {
         browseMarketplaceButton;
 
     function initialize() {
-        ToolBar.SPACING = 16;
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.marketplace.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,

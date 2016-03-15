@@ -131,7 +131,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     this.x = x;
     this.y = y;
     this.width = 0;
-    this.height = ToolBar.TITLE_BAR_HEIGHT;
+    this.height = 0
     this.backAlpha = 1.0;
     this.back = Overlays.addOverlay("rectangle", {
                     color: { red: 255, green: 255, blue: 255 },
@@ -327,13 +327,13 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     }
 
     var that = this;
-    this.contains = function (xOrPoint, optionalY) {
+    this.contains = function (xOrPoint, optionalY) {  // All four margins are draggable.
         var x = (optionalY === undefined) ? xOrPoint.x : xOrPoint,
             y = (optionalY === undefined) ? xOrPoint.y : optionalY;
-        return (that.x <= x) && (x <= (that.x + that.width)) &&
-            (that.y <= y) && (y <= (that.y + that.height));
+        return ((that.x - ToolBar.SPACING) <= x) && (x <= (that.x + that.width + ToolBar.SPACING)) &&
+            ((that.y - ToolBar.SPACING) <= y) && (y <= (that.y + that.height));
     }
-    that.hover = function (enable) { // Can be overriden or extended by clients.
+    that.hover = function (enable) {  // Can be overridden or extended by clients.
         that.isHovering = enable;
         if (that.back) {
             Overlays.editOverlay(this.back, {
@@ -434,4 +434,3 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
 ToolBar.SPACING = 4;
 ToolBar.VERTICAL = 0;
 ToolBar.HORIZONTAL = 1;
-ToolBar.TITLE_BAR_HEIGHT = 10;
