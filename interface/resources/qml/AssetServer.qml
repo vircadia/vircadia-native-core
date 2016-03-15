@@ -178,7 +178,6 @@ Window {
         destinationPath[destinationPath.length - (path[path.length - 1] === '/' ? 2 : 1)] = data;
         destinationPath = destinationPath.join('/').trim();
 
-        console.log("Renaming " + path + " to " + destinationPath);
         if (path === destinationPath) {
             return;
         }

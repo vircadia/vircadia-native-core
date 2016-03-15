@@ -201,10 +201,7 @@ TreeView {
                     }
                 }
                 onAccepted:  {
-                    console.log("Data " + acceptableInput + " " + styleData.selected);
-                    console.log("Index " + selection.currentIndex + " " + styleData.index);
                     if (acceptableInput && styleData.selected) {
-                        console.log("Accepted " + styleData.index + " " + text);
                         if (!modifyEl(selection.currentIndex, text)) {
                             text = styleData.value;
                         }
