@@ -141,7 +141,7 @@ void EntityTreeRenderer::update() {
         // check if the texture loaded and apply it
         if (!updated && (
             (_pendingSkyboxTexture && (!_skyboxTexture || _skyboxTexture->isLoaded())) ||
-            (_pendingAmbientTexture && (!_ambientTexture && _ambientTexture->isLoaded())))) {
+            (_pendingAmbientTexture && (!_ambientTexture || _ambientTexture->isLoaded())))) {
             applyZonePropertiesToScene(_bestZone);
         }
 

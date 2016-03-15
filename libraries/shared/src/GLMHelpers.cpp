@@ -471,3 +471,11 @@ bool isNaN(glm::quat value) {
     return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
 }
 
+glm::mat4 orthoInverse(const glm::mat4& m) {
+    glm::mat4 r = m;
+    r[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    r = glm::transpose(r);
+    r[3] = -(r * m[3]);
+    r[3][3] = 1.0f;
+    return r;
+}

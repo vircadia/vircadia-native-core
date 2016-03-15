@@ -222,8 +222,11 @@ void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
         return;
     }
     QAction* menu = _actionHash.value(menuOption);
-    if (menu) {
-        menu->setChecked(isChecked);
+    if (menu && menu->isCheckable()) {
+        auto wasChecked = menu->isChecked();
+        if (wasChecked != isChecked) {
+            menu->trigger();
+        }
     }
 }
 
@@ -511,7 +514,11 @@ void MenuWrapper::setEnabled(bool enabled) {
 }
 
 QAction* MenuWrapper::addSeparator() {
-    return _realMenu->addSeparator();
+    QAction* action = _realMenu->addSeparator();
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addSeparator(_realMenu);
+    });
+    return action;
 }
 
 void MenuWrapper::addAction(QAction* action) {

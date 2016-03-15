@@ -515,7 +515,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // we can confidently ignore this packet
     EntityTreePointer tree = getTree();
     if (tree && tree->isDeletedEntity(_id)) {
-        qDebug() << "Recieved packet for previously deleted entity [" << _id << "] ignoring. (inside " << __FUNCTION__ << ")";
+        #ifdef WANT_DEBUG
+            qDebug() << "Recieved packet for previously deleted entity [" << _id << "] ignoring. "
+                        "(inside " << __FUNCTION__ << ")";
+        #endif
         ignoreServerPacket = true;
     }
 

@@ -23,6 +23,8 @@ AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimN
 
 AnimInverseKinematics::~AnimInverseKinematics() {
     clearConstraints();
+    _accumulators.clear();
+    _targetVarVec.clear();
 }
 
 void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
@@ -393,6 +395,17 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 _relativePoses[i].rot = underPoses[i].rot;
             }
             _relativePoses[i].trans = underPoses[i].trans;
+        }
+
+        if (!_relativePoses.empty()) {
+            // Sometimes the underpose itself can violate the constraints.  Rather than
+            // clamp the animation we dynamically expand each constraint to accomodate it.
+            std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
+            while (constraintItr != _constraints.end()) {
+                int index = constraintItr->first;
+                constraintItr->second->dynamicallyAdjustLimits(_relativePoses[index].rot);
+                ++constraintItr;
+            }
         }
     }
 

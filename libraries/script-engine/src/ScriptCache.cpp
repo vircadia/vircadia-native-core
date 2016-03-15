@@ -115,9 +115,6 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
         auto scriptContent = _scriptCache[url];
         lock.unlock();
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
-        #if 1 // def THREAD_DEBUGGING
-        qCDebug(scriptengine) << "ScriptCache::getScriptContents() about to call contentAvailable() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
-        #endif
         contentAvailable(url.toString(), scriptContent, true, true);
     } else {
         bool alreadyWaiting = _contentCallbacks.contains(url);

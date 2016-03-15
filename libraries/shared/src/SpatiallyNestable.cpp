@@ -55,6 +55,7 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
             _parentKnowsMe = false;
         }
     });
+    checkAndAdjustQueryAACube();
 }
 
 Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const {
@@ -139,6 +140,7 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
+    checkAndAdjustQueryAACube();
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,
@@ -752,6 +754,7 @@ void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePo
 }
 
 void SpatiallyNestable::locationChanged() {
+    checkAndAdjustQueryAACube();
     forEachChild([&](SpatiallyNestablePointer object) {
         object->locationChanged();
     });
@@ -759,6 +762,14 @@ void SpatiallyNestable::locationChanged() {
 
 AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
     return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
+}
+
+void SpatiallyNestable::checkAndAdjustQueryAACube() {
+    bool success;
+    AACube maxAACube = getMaximumAACube(success);
+    if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
+        setQueryAACube(maxAACube);
+    }
 }
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
@@ -770,6 +781,7 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     if (queryAACube.getScale() > 0.0f) {
         _queryAACubeSet = true;
     }
+    checkAndAdjustQueryAACube();
 }
 
 bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
