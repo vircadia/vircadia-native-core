@@ -437,7 +437,7 @@ void AssetServer::sendStatsPacket() {
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
 }
 
-const QString MAP_FILE_NAME = "map.json";
+static const QString MAP_FILE_NAME = "map.json";
 
 void AssetServer::loadMappingsFromFile() {
 
