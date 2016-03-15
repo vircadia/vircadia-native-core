@@ -4455,6 +4455,10 @@ void Application::toggleRunningScriptsWidget() {
 }
 
 void Application::toggleAssetServerWidget(QString filePath) {
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
+        return;
+    }
+
     static const QUrl url("AssetServer.qml");
     auto urlSetter = [=](QQmlContext* context, QObject* newObject){
         emit uploadRequest(filePath);
