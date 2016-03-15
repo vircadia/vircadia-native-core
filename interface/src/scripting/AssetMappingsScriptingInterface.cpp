@@ -61,7 +61,7 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 
 void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback) {
     static const QString helpText =
-        "Upload your asset to a specific folder by enter the full path. Specifying "
+        "Upload your asset to a specific folder by entering the full path. Specifying "
         "a new folder name will automatically create that folder for you.";
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
