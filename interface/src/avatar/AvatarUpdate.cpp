@@ -16,7 +16,7 @@
 #include <display-plugins/DisplayPlugin.h>
 #include "InterfaceLogging.h"
 
-AvatarUpdate::AvatarUpdate() : GenericThread(),  _lastAvatarUpdate(0) {
+AvatarUpdate::AvatarUpdate() : GenericThread(),  _lastAvatarUpdate(0), _isHMDMode(false) {
     setObjectName("Avatar Update"); // GenericThread::initialize uses this to set the thread name.
     Settings settings;
     const int DEFAULT_TARGET_AVATAR_SIMRATE = 60;

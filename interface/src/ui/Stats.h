@@ -56,6 +56,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
     STATS_PROPERTY(int, downloads, 0)
+    STATS_PROPERTY(int, downloadLimit, 0)
     STATS_PROPERTY(int, downloadsPending, 0)
     STATS_PROPERTY(int, triangles, 0)
     STATS_PROPERTY(int, quads, 0)
@@ -135,6 +136,7 @@ signals:
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
     void downloadsChanged();
+    void downloadLimitChanged();
     void downloadsPendingChanged();
     void trianglesChanged();
     void quadsChanged();

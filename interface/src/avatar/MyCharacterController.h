@@ -21,7 +21,7 @@ class MyAvatar;
 
 class MyCharacterController : public CharacterController {
 public:
-    MyCharacterController(MyAvatar* avatar);
+    explicit MyCharacterController(MyAvatar* avatar);
     ~MyCharacterController ();
 
     virtual void updateShapeIfNecessary() override;

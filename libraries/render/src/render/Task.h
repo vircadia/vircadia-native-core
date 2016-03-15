@@ -240,7 +240,9 @@ public:
         const Varying getInput() const { return _input; }
         const Varying getOutput() const { return _output; }
 
-        Model(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input), _output(Output()) {
+        template <class... A>
+        Model(const Varying& input, A&&... args) :
+            Concept(std::make_shared<C>()), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
             applyConfiguration();
         }
 
@@ -308,7 +310,10 @@ public:
         const Varying getInput() const { return _input; }
         const Varying getOutput() const { return _output; }
 
-        Model(const Varying& input, Data data = Data()) : Concept(data._config), _data(data), _input(input), _output(Output()) {
+        template <class... A>
+        Model(const Varying& input, A&&... args) :
+            Concept(nullptr), _data(Data(std::forward<A>(args)...)), _input(input), _output(Output()) {
+            _config = _data._config;
             std::static_pointer_cast<Config>(_config)->init(&_data);
             applyConfiguration();
         }
@@ -337,9 +342,7 @@ public:
 
     // Create a new job in the container's queue; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
-        _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(
-            input,
-            typename T::JobModel::Data(std::forward<A>(args)...)));
+        _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(input, std::forward<A>(args)...));
         QConfigPointer config = _jobs.back().getConfiguration();
         config->setParent(_config.get());
         config->setObjectName(name.c_str());

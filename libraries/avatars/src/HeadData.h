@@ -32,7 +32,7 @@ class QJsonObject;
 
 class HeadData {
 public:
-    HeadData(AvatarData* owningAvatar);
+    explicit HeadData(AvatarData* owningAvatar);
     virtual ~HeadData() { };
     
     // degrees

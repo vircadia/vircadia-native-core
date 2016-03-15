@@ -83,6 +83,7 @@ public:
         Hover
     };
 
+    Rig() {}
     virtual ~Rig() {}
 
     void destroyAnimGraph();

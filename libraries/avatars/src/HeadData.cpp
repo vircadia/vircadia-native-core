@@ -42,6 +42,8 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _rightEyeBlink(0.0f),
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
+    _audioAverageLoudness(0.0f),
+    _pupilDilation(0.0f),
     _owningAvatar(owningAvatar)
 {
     
