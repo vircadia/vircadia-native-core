@@ -222,8 +222,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         auto assetHash = it->toString();
         replyPacket.writePrimitive(AssetServerError::NoError);
         replyPacket.write(QByteArray::fromHex(assetHash.toUtf8()));
-    }
-    else {
+    } else {
         replyPacket.writePrimitive(AssetServerError::AssetNotFound);
     }
 }
@@ -578,7 +577,7 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
             if (sizeBefore != sizeNow) {
                 qDebug() << "Deleted" << sizeBefore - sizeNow << "mappings in folder: " << path;
             } else {
-                qDebug() << "Did not find any mappings in folder:" << path;
+                qDebug() << "Did not find any mappings to delete in folder:" << path;
             }
 
         } else {

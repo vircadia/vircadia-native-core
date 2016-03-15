@@ -50,10 +50,6 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
     auto parts = path.split(".", QString::SkipEmptyParts);
     auto hash = parts.length() > 0 ? parts[0] : "";
 
-    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        return;
-    }
-
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = assetClient->createRequest(hash);
 
