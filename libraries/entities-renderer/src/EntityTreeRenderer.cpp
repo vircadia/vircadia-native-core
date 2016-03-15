@@ -157,7 +157,7 @@ void EntityTreeRenderer::update() {
     deleteReleasedModels();
 }
 
-bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
+bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
     bool didUpdate = false;
     float radius = 1.0f; // for now, assume 1 meter radius
     QVector<EntityItemPointer> foundEntities;
