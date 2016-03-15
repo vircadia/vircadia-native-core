@@ -37,12 +37,12 @@ public:
     static const AnimVariant False;
 
     AnimVariant() : _type(Type::Bool) { memset(&_val, 0, sizeof(_val)); }
-    AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
-    AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
-    AnimVariant(float value) : _type(Type::Float) { _val.floats[0] = value; }
-    AnimVariant(const glm::vec3& value) : _type(Type::Vec3) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
-    AnimVariant(const glm::quat& value) : _type(Type::Quat) { *reinterpret_cast<glm::quat*>(&_val) = value; }
-    AnimVariant(const QString& value) : _type(Type::String) { _stringVal = value; }
+    explicit AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
+    explicit AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
+    explicit AnimVariant(float value) : _type(Type::Float) { _val.floats[0] = value; }
+    explicit AnimVariant(const glm::vec3& value) : _type(Type::Vec3) { *reinterpret_cast<glm::vec3*>(&_val) = value; }
+    explicit AnimVariant(const glm::quat& value) : _type(Type::Quat) { *reinterpret_cast<glm::quat*>(&_val) = value; }
+    explicit AnimVariant(const QString& value) : _type(Type::String) { _stringVal = value; }
 
     bool isBool() const { return _type == Type::Bool; }
     bool isInt() const { return _type == Type::Int; }
@@ -250,7 +250,7 @@ public:
                 qCDebug(animation) << "    " << pair.first << "=" << pair.second.getString();
                 break;
             default:
-                assert("AnimVariant::Type" == "valid");
+                assert(("invalid AnimVariant::Type", false));
             }
         }
     }
