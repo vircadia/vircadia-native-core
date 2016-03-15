@@ -213,7 +213,6 @@ function AttachedEntitiesManager() {
         var props = Entities.getEntityProperties(entityID);
         if (props.parentID == MyAvatar.sessionUUID) {
             grabData = getEntityCustomData('grabKey', entityID, {});
-            grabbableData = getEntityCustomData('grabbableKey', entityID, {});
             var wearableData = getEntityCustomData('wearable', entityID, DEFAULT_WEARABLE_DATA);
             var currentJointName = MyAvatar.getJointNames()[props.parentJointIndex];
             wearableData.joints[currentJointName] = [props.localPosition, props.localRotation];

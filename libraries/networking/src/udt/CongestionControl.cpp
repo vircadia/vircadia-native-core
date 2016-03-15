@@ -34,7 +34,6 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
 }
 
 DefaultCC::DefaultCC() :
-    _slowStartLastAck(_sendCurrSeqNum),
     _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
 {
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
@@ -63,11 +62,11 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
 
     if (_slowStart) {
         // we are in slow start phase - increase the congestion window size by the number of packets just ACKed
-        _congestionWindowSize += seqlen(_slowStartLastAck, ackNum);
+        _congestionWindowSize += seqlen(_slowStartLastACK, ackNum);
         
         // update the last ACK
-        _slowStartLastAck = ackNum;
-        
+        _slowStartLastACK = ackNum;
+
         // check if we can get out of slow start (is our new congestion window size bigger than the max)
         if (_congestionWindowSize > _maxCongestionWindowSize) {
             _slowStart = false;

@@ -25,7 +25,7 @@ class RotationConstraint;
 class AnimInverseKinematics : public AnimNode {
 public:
 
-    AnimInverseKinematics(const QString& id);
+    explicit AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
 
     void loadDefaultPoses(const AnimPoseVec& poses);
