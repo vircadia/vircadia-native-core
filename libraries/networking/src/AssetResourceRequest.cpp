@@ -26,7 +26,7 @@ AssetResourceRequest::~AssetResourceRequest() {
 }
 
 bool AssetResourceRequest::urlIsAssetHash() const {
-    static const QString ATP_HASH_REGEX_STRING = "^atp:([A-Fa-f0-9]{64})(\\.[\\w]+)?$";
+    static const QString ATP_HASH_REGEX_STRING { "^atp:([A-Fa-f0-9]{64})(\\.[\\w]+)?$" };
 
     QRegExp hashRegex { ATP_HASH_REGEX_STRING };
     return hashRegex.exactMatch(_url.toString());
