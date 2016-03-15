@@ -187,7 +187,7 @@ Item {
                             font.pixelSize: root.fontSize
                             visible: root.expanded;
                             text: modelData.length > 30
-                                ?  "..." + modelData.substring(modelData.length - 27)
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
                                 : modelData
                         }
                     }
