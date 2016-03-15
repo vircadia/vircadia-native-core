@@ -75,6 +75,10 @@ public:
     // true when the requested geometry and its textures are loaded.
     bool isLoadedWithTextures() const;
 
+    // true if the albedo texture has a non-masking alpha channel.
+    // This can only be known after isLoadedWithTextures().
+    bool hasTransparentTextures() const { return _hasTransparentTextures; }
+
     // WARNING: only valid when isLoaded returns true.
     const FBXGeometry& getFBXGeometry() const { return *_geometry; }
     const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
@@ -151,6 +155,7 @@ protected:
 
     // cache for isLoadedWithTextures()
     mutable bool _isLoadedWithTextures = false;
+    mutable bool _hasTransparentTextures = false;
 };
 
 /// Reads geometry in a worker thread.

@@ -32,6 +32,7 @@ public:
         METALLIC_VAL_BIT,
         GLOSSY_VAL_BIT,
         TRANSPARENT_VAL_BIT,
+        TRANSPARENT_TEX_VAL_BIT,
 
         EMISSIVE_MAP_BIT,
         ALBEDO_MAP_BIT,
@@ -101,6 +102,9 @@ public:
     void setAlbedo(bool value) { _flags.set(ALBEDO_VAL_BIT, value); }
     bool isAlbedo() const { return _flags[ALBEDO_VAL_BIT]; }
 
+    void setTransparentTexture(bool value) { _flags.set(TRANSPARENT_TEX_VAL_BIT, value); }
+    bool isTransparentTexture() const { return _flags[TRANSPARENT_TEX_VAL_BIT]; }
+
     void setAlbedoMap(bool value) { _flags.set(ALBEDO_MAP_BIT, value); }
     bool isAlbedoMap() const { return _flags[ALBEDO_MAP_BIT]; }
 
@@ -163,6 +167,9 @@ public:
 
         Builder& withoutAlbedo()       { _value.reset(MaterialKey::ALBEDO_VAL_BIT); _mask.set(MaterialKey::ALBEDO_VAL_BIT); return (*this); }
         Builder& withAlbedo()        { _value.set(MaterialKey::ALBEDO_VAL_BIT);  _mask.set(MaterialKey::ALBEDO_VAL_BIT); return (*this); }
+
+        Builder& withoutTransparentTexture()       { _value.reset(MaterialKey::TRANSPARENT_TEX_VAL_BIT); _mask.set(MaterialKey::TRANSPARENT_TEX_VAL_BIT); return (*this); }
+        Builder& withTransparentTexture()        { _value.set(MaterialKey::TRANSPARENT_TEX_VAL_BIT);  _mask.set(MaterialKey::TRANSPARENT_TEX_VAL_BIT); return (*this); }
 
         Builder& withoutAlbedoMap()       { _value.reset(MaterialKey::ALBEDO_MAP_BIT); _mask.set(MaterialKey::ALBEDO_MAP_BIT); return (*this); }
         Builder& withAlbedoMap()        { _value.set(MaterialKey::ALBEDO_MAP_BIT);  _mask.set(MaterialKey::ALBEDO_MAP_BIT); return (*this); }
@@ -248,6 +255,8 @@ public:
     void setRoughness(float roughness);
     float getRoughness() const { return _schemaBuffer.get<Schema>()._roughness; }
 
+    void setTransparentTexture(bool isTransparent);
+
     // Schema to access the attribute values of the material
     class Schema {
     public:
@@ -260,8 +269,7 @@ public:
         glm::vec3 _fresnel{ 0.03f }; // Fresnel value for a default non metallic
         float _metallic{ 0.0f }; // Not Metallic
 
-
-        glm::vec3 _spare0{ 0.0f };
+        glm::vec3 _spare{ 0.0f };
 
         uint32_t _key{ 0 }; // a copy of the materialKey
 
