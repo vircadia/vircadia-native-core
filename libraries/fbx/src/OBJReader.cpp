@@ -179,10 +179,10 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
 }
 
 static bool replyOK(QNetworkReply* netReply, QUrl url) { // This will be reworked when we make things asynchronous
-    return netReply->isFinished() &&
-     (url.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
-      netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
-      (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200));
+    return (netReply->isFinished() &&
+            (url.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
+             netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
+             (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)));
 }
 
 bool OBJReader::isValidTexture(const QByteArray &filename) {
