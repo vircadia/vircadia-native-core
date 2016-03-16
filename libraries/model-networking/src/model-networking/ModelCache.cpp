@@ -147,7 +147,7 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 (material->lightmapTexture && !material->lightmapTexture->isLoaded())) {
                 return false;
             }
-            if (material->albedoTexture) {
+            if (material->albedoTexture && material->albedoTexture->getGPUTexture()) {
                 // Reset the materialKey transparentTexture key only, as it is albedoTexture-dependent
                 const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
                 bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
