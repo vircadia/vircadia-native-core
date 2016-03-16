@@ -698,6 +698,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     ResourceCache::setRequestLimit(3);
 
     _glWidget = new GLCanvas();
+    getApplicationCompositor().setRenderingWidget(_glWidget);
     _window->setCentralWidget(_glWidget);
 
     _window->restoreGeometry();
@@ -4684,10 +4685,12 @@ qreal Application::getDevicePixelRatio() {
 }
 
 DisplayPlugin* Application::getActiveDisplayPlugin() {
-    if (nullptr == _displayPlugin) {
+    std::unique_lock<std::recursive_mutex> lock(_displayPluginLock);
+    if (nullptr == _displayPlugin && QThread::currentThread() == thread()) {
         updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
+    
     return _displayPlugin.get();
 }
 
@@ -4733,6 +4736,19 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 }
 
 void Application::updateDisplayMode() {
+    // Unsafe to call this method from anything but the main thread
+    if (QThread::currentThread() != thread()) {
+        qFatal("Attempted to switch display plugins from a non-main thread");
+    }
+
+    // Some plugins *cough* Oculus *cough* process message events from inside their
+    // display function, and we don't want to change the display plugin underneath
+    // the paintGL call, so we need to guard against that
+    // The current oculus runtime doesn't do this anymore
+    if (_inPaint) {
+        qFatal("Attempted to switch display plugins while in painting");
+    }
+
     auto menu = Menu::getInstance();
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
 
@@ -4789,70 +4805,25 @@ void Application::updateDisplayMode() {
         }
     }
 
+    if (newDisplayPlugin == _displayPlugin) {
+        return;
+    }
+
+    if (_displayPlugin) {
+        _displayPlugin->deactivate();
+    }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    DisplayPluginPointer oldDisplayPlugin = _displayPlugin;
-    if (newDisplayPlugin == oldDisplayPlugin) {
-        return;
-    }
 
-    // Some plugins *cough* Oculus *cough* process message events from inside their
-    // display function, and we don't want to change the display plugin underneath
-    // the paintGL call, so we need to guard against that
-    if (_inPaint) {
-        qDebug() << "Deferring plugin switch until out of painting";
-        // Have the old plugin stop requesting renders
-        oldDisplayPlugin->stop();
-        QTimer* timer = new QTimer();
-        timer->singleShot(500, [this, timer] {
-            timer->deleteLater();
-            updateDisplayMode();
-        });
-        return;
-    }
-
-
-    if (!_pluginContainer->currentDisplayActions().isEmpty()) {
-        auto menu = Menu::getInstance();
-        foreach(auto itemInfo, _pluginContainer->currentDisplayActions()) {
-            menu->removeMenuItem(itemInfo.first, itemInfo.second);
-        }
-        _pluginContainer->currentDisplayActions().clear();
-    }
-
-    if (newDisplayPlugin) {
-        _offscreenContext->makeCurrent();
-        newDisplayPlugin->activate();
-        _offscreenContext->makeCurrent();
-        offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
-        _offscreenContext->makeCurrent();
-    }
-
-    oldDisplayPlugin = _displayPlugin;
+    // FIXME probably excessive and useless context switching
+    _offscreenContext->makeCurrent();
+    newDisplayPlugin->activate();
+    _offscreenContext->makeCurrent();
+    offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
+    _offscreenContext->makeCurrent();
+    getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
     _displayPlugin = newDisplayPlugin;
-    getApplicationCompositor().setDisplayPlugin(_displayPlugin);
 
-    // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
-    // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
-    bool newPluginWantsHMDTools = newDisplayPlugin ?
-                                    (newDisplayPlugin->isHmd() && (newDisplayPlugin->getHmdScreen() >= 0)) : false;
-    bool oldPluginWantedHMDTools = oldDisplayPlugin ?
-                                    (oldDisplayPlugin->isHmd() && (oldDisplayPlugin->getHmdScreen() >= 0)) : false;
-
-    // Only show the hmd tools after the correct plugin has
-    // been activated so that it's UI is setup correctly
-    if (newPluginWantsHMDTools) {
-        _pluginContainer->showDisplayPluginsTools();
-    }
-
-    if (oldDisplayPlugin) {
-        oldDisplayPlugin->deactivate();
-        _offscreenContext->makeCurrent();
-
-        // if the old plugin was HMD and the new plugin is not HMD, then hide our hmdtools
-        if (oldPluginWantedHMDTools && !newPluginWantsHMDTools) {
-            DependencyManager::get<DialogsManager>()->hmdTools(false);
-        }
-    }
     emit activeDisplayPluginChanged();
 
     // reset the avatar, to set head and hand palms back to a resonable default pose.

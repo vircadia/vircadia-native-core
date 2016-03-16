@@ -41,7 +41,8 @@ bool OpenVrDisplayPlugin::isSupported() const {
     return vr::VR_IsHmdPresent();
 }
 
-void OpenVrDisplayPlugin::activate() {
+void OpenVrDisplayPlugin::internalActivate() {
+    Parent::internalActivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     if (!_system) {
@@ -67,7 +68,6 @@ void OpenVrDisplayPlugin::activate() {
 
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
-    HmdDisplayPlugin::activate();
 
     // set up default sensor space such that the UI overlay will align with the front of the room.
     auto chaperone = vr::VRChaperone();
@@ -85,11 +85,8 @@ void OpenVrDisplayPlugin::activate() {
     }
 }
 
-void OpenVrDisplayPlugin::deactivate() {
-    // Base class deactivate must come before our local deactivate
-    // because the OpenGL base class handles the wait for the present 
-    // thread before continuing
-    HmdDisplayPlugin::deactivate();
+void OpenVrDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         releaseOpenVrSystem();
@@ -106,7 +103,7 @@ void OpenVrDisplayPlugin::customizeContext() {
         GLenum err = glewInit();
         glGetError();
     });
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 }
 
 void OpenVrDisplayPlugin::resetSensors() {

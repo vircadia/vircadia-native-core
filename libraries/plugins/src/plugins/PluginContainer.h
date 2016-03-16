@@ -55,7 +55,7 @@ public:
     void unsetFullscreen(const QScreen* avoidScreen = nullptr);
 
     virtual ui::Menu* getPrimaryMenu() = 0;
-    virtual void showDisplayPluginsTools() = 0;
+    virtual void showDisplayPluginsTools(bool show = true) = 0;
     virtual void requestReset() = 0;
     virtual bool makeRenderingContextCurrent() = 0;
     virtual void releaseSceneTexture(const gpu::TexturePointer& texture) = 0;

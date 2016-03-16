@@ -34,16 +34,10 @@ void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
     GLenum err = glewInit();
     glGetError();
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 }
 
-void OculusBaseDisplayPlugin::init() {
-}
-
-void OculusBaseDisplayPlugin::deinit() {
-}
-
-void OculusBaseDisplayPlugin::activate() {
+void OculusBaseDisplayPlugin::internalActivate() {
     _session = acquireOculusSession();
 
     _hmdDesc = ovr_GetHmdDesc(_session);
@@ -90,11 +84,11 @@ void OculusBaseDisplayPlugin::activate() {
     // This must come after the initialization, so that the values calculated 
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
-    HmdDisplayPlugin::activate();
+    Parent::internalActivate();
 }
 
-void OculusBaseDisplayPlugin::deactivate() {
-    HmdDisplayPlugin::deactivate();
+void OculusBaseDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
     releaseOculusSession();
     _session = nullptr;
 }

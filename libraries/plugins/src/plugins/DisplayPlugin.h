@@ -57,7 +57,10 @@ namespace gpu {
 
 class DisplayPlugin : public Plugin {
     Q_OBJECT
+    using Parent = Plugin;
 public:
+    void activate() override;
+    void deactivate() override;
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
     /// By default, all HMDs are stereo
@@ -72,11 +75,6 @@ public:
     virtual bool isDisplayVisible() const { return false; }
 
     // Rendering support
-
-    // Stop requesting renders, but don't do full deactivation
-    // needed to work around the issues caused by Oculus 
-    // processing messages in the middle of submitFrame
-    virtual void stop() = 0;
 
     /**
      *  Sends the scene texture to the display plugin.
