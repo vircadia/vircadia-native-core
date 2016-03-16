@@ -82,6 +82,11 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     var MAZE_RESTITUTION = 0.1;
     var MAZE_DAMPING = 0.6;
     var MAZE_ANGULAR_DAMPING = 0.6;
+    var MAZE_GRAVITY = {
+        x:0,
+        y:-3,
+        z:0
+    };
 
     var DETECTOR_VERTICAL_OFFSET = 0.0 * SCALE;
     var DETECTOR_FORWARD_OFFSET = 0.35 * SCALE;
@@ -200,6 +205,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             name: 'Hifi Tilt Maze',
             type: 'Model',
             modelURL: MAZE_MODEL_URL,
+            gravity:MAZE_GRAVITY,
             compoundShapeURL: MAZE_COLLISION_HULL,
             dimensions: MAZE_DIMENSIONS,
             position: position,

@@ -68,7 +68,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "light-glow") {
+                if (properties.name === _this.prefix + "glow") {
                     found.push(result);
                 }
             });
@@ -80,7 +80,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "light-master") {
+                if (properties.name === _this.prefix + "master") {
                     found.push(result);
                 }
             });
@@ -92,7 +92,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "light-model") {
+                if (properties.name === _this.prefix + "model") {
                     found.push(result);
                 }
             });

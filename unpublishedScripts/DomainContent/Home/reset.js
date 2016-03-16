@@ -15,6 +15,7 @@
     var _this;
 
     var dynamicEntities = [];
+    var kineticEntities = [];
 
     function Reset() {
         _this = this;
@@ -29,6 +30,8 @@
     var whiteboardPath = Script.resolvePath("whiteboard/wrapper.js?" + Math.random());
 
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
+
+    var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
 
     Reset.prototype = {
         preload: function(entityID) {
@@ -98,21 +101,38 @@
             Script.include(whiteboardPath);
             Script.include(plantPath);
 
-            // var fishTank = new FishTank(center);
-            // var tiltMaze = new TiltMaze(center);
-            // var whiteboard = new Whiteboard(center);
-            var myPlant = new Plant(center);
+            // var fishTank = new FishTank({
+            //     x: 1098.9254,
+            //     y: 460.5814,
+            //     z: -79.1103
+            // });
+            // var tiltMaze = new TiltMaze({
+            //     x: 1105.5768,
+            //     y: 460.3298,
+            //     z: -80.4891
+            // });
+            // var whiteboard = new Whiteboard({
+            //     x: 1104,
+            //     y: 450,
+            //     z: -77
+            // });
+            // var myPlant = new Plant(center);
 
 
             // dynamicEntities.push(fishTank);
             // dynamicEntities.push(tiltMaze);
             // dynamicEntities.push(whiteboard);
-            dynamicEntities.push(myPlant);
+            //dynamicEntities.push(myPlant);
 
             //v2.0
             // var musicBox = new MusicBox();
             // var cuckooClock = new CuckooClock();
             // var doppelganger = new Doppelganger();
+
+            //var pingPongGun = new PingPongGun({
+            //       x:1101.2123, y:460.2328, z:-65.8513
+            //    });
+            //dynamicEntities.push(pingPongGun);
         },
 
         cleanupDynamicEntities: function() {
@@ -123,6 +143,55 @@
                 dynamicEntity.cleanup();
             })
         },
+
+        createKineticEntities: function() {
+            var fruitBowl = new FruitBowl({
+                x: 1105.3185,
+                y: 460.3221,
+                z: 81.1803
+            });
+            //var labLamp = new LabLamp();
+            var livingRoomLamp = new LivingRoomLamp({
+                x: 1104.6732,
+                y: 460.3326,
+                z: 81.9710
+            });
+            var upperBookShelf = new UpperBookshelf({
+                x: 1106.2649,
+                y: 461.5352,
+                z: -80.3018
+            });
+            var lowerBookShelf = new LowerBookShelf({
+                x: 1106.2725,
+                y: 460.9600,
+                z: 80.2837
+            });
+            var chair = new Chair({
+                x: 1105.2716,
+                y: 459.7251,
+                z: 79.8097
+            });
+            var trashcan = new Trashcan({
+                x: 1104.0031,
+                y: 459.4355,
+                z: -82.7294
+            });
+            var books = new Books({
+                x: 1101.2123,
+                y: 460.2328,
+                z: -65.8513
+            });
+
+            kineticEntities.push(fruitBowl);
+            kineticEntities.push(livingRoomLamp);
+            kineticEntities.push(upperBookShelf);
+            kineticEntities.push(chair);
+            kineticEntities.push(trashcan);
+            kineticEntities.push(books);
+        },
+        cleanupKineticEntities: function() {
+
+        }
 
     }
     return new Reset();

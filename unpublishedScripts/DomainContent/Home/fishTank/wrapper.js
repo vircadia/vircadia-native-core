@@ -189,7 +189,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         bubbleProperties.position.x += -0.076;
         thirdBubbleSystem = Entities.addEntity(bubbleProperties)
 
-        createBubbleSound(finalOffset);
+        // createBubbleSound(finalOffset);
     }
 
     function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
