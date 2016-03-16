@@ -28,6 +28,8 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         url: CLOCK_BODY_URL,
         running: false,
         currentFrame: 0,
+        firstFrame: 0,
+        lastFrame: 100,
         loop: false
       },
       position: spawnPosition,

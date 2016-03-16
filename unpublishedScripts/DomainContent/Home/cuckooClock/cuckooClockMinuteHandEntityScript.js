@@ -38,7 +38,7 @@
                 print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
                 return;
             }
-            print("current Frame " + _this.clockBodyAnimationProps.currentFrame);
+            // print("current Frame " + _this.clockBodyAnimationProps.currentFrame);
         }
 
 
