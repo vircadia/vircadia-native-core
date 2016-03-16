@@ -340,25 +340,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break;
             }
             QByteArray libraryName = tokenizer.getDatum();
-            if (librariesSeen.contains(libraryName)) {
-                break; // Some files use mtllib over and over again for the same libraryName
-            }
             librariesSeen[libraryName] = true;
-            // Throw away any path part of libraryName, and merge against original url.
-            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
-            #endif
-            QNetworkReply* netReply = request(libraryUrl, false);
-            if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
-                parseMaterialLibrary(netReply);
-            } else {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got "
-                                     << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
-                #endif
-            }
-            netReply->deleteLater();
+            // We'll read it later only if we actually need it.
         } else if (token == "usemtl") {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
@@ -519,8 +502,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 }
                 if (specifiesUV || (0 != groupMaterialName.compare("none", Qt::CaseInsensitive))) {
                     // Blender has a convention that a material named "None" isn't really used (or defined).
-                    needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
                     material.used = true;
+                    needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
                 }
                 materials[groupMaterialName] = material;
                 meshPart.materialID = groupMaterialName;
@@ -548,9 +531,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
     }
 
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
+    // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
+    // a texture with the same basename as the .obj file.
     if (preDefinedMaterial.userSpecifiesUV && !url.isEmpty()) {
-        // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
-        // a texture with the same basename as the .obj file.
         QString filename = url.fileName();
         int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
         QString basename = filename.remove(extIndex + 1, sizeof("obj"));
@@ -573,6 +556,28 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             preDefinedMaterial.diffuseTextureFilename = textName;
         }
         materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
+    }
+    if (needsMaterialLibrary) {
+        foreach (QString libraryName, librariesSeen.keys()) {
+            // Throw away any path part of libraryName, and merge against original url.
+            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader material library" << libraryName << "used in" << _url;
+            #endif
+            QNetworkReply* netReply = request(libraryUrl, false);
+            if (netReply->isFinished() &&
+                (libraryUrl.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
+                 netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
+                 (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200))) {
+                    parseMaterialLibrary(netReply);
+                } else {
+                    #ifdef WANT_DEBUG
+                    qCDebug(modelformat) << "OBJ Reader" << libraryName << "did not answer. Got"
+                    << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+                    #endif
+                }
+            netReply->deleteLater();
+        }
     }
 
     foreach (QString materialID, materials.keys()) {
