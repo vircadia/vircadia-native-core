@@ -9,7 +9,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var SCRIPT_URL = Script.resolvePath("cuckooClockEntityScript.js?v1" + Math.random())
+var MINUTE_HAND_CLOCK_SCRIPT_URL = Script.resolvePath("cuckooClockMinuteHandEntityScript.js?v1" + Math.random())
 var CLOCK_BODY_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/cuckooClock/cuckoo2_BODY.fbx";
 var CLOCK_FACE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cuckooClock2_FACE.fbx";
 var CLOCK_HOUR_HAND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cuckooClock2_HOUR_HAND.fbx";
@@ -36,7 +36,6 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 1.3662,
         z: 0.8181
       },
-      script: SCRIPT_URL
     })
 
     var clockFaceOffset = {
@@ -49,20 +48,13 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       type: "Model",
       name: "home_model_clockface",
       modelURL: CLOCK_FACE_URL,
-      animation: {
-        url: CLOCK_FACE_URL,
-        running: true,
-        currentFrame: 0,
-        loop: true
-      },
       position: clockFacePosition,
       dimensions: {
         x: 0.2397,
         y: 0.2402,
         z: 0.0212
-      },
-      // script: SCRIPT_URL
-    })
+      }    
+    });
 
     // CLOCK HANDS
     // __________
@@ -135,7 +127,8 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.1179,
         z: 0.0032
       },
-      // script: SCRIPT_URL
+      script: MINUTE_HAND_CLOCK_SCRIPT_URL,
+      userData: JSON.stringify({clockBody: clockBody})
     });
     // *******************************************
 
