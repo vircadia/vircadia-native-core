@@ -178,6 +178,13 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
+static bool replyOK(QNetworkReply* netReply, QUrl url) { // This will be reworked when we make things asynchronous
+    return netReply->isFinished() &&
+     (url.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
+      netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
+      (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200));
+}
+
 bool OBJReader::isValidTexture(const QByteArray &filename) {
     if (_url.isEmpty()) {
         return false;
@@ -187,13 +194,10 @@ bool OBJReader::isValidTexture(const QByteArray &filename) {
     if (!netReply) {
         return false;
     }
-    bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
+    bool isValid = replyOK(netReply, candidateUrl);
     netReply->deleteLater();
     return isValid;
 }
-
-//FIXME
-#define WANT_DEBUG 1
 
 void OBJReader::parseMaterialLibrary(QIODevice* device) {
     OBJTokenizer tokenizer(device);
@@ -347,12 +351,12 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break;
             }
             QString nextName = tokenizer.getDatum();
-            #ifdef WANT_DEBUG
             if (nextName != currentMaterialName) {
                 currentMaterialName = nextName;
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
+                #endif
             }
-            #endif
         } else if (token == "v") {
             vertices.append(tokenizer.getVec3());
         } else if (token == "vn") {
@@ -561,21 +565,14 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         foreach (QString libraryName, librariesSeen.keys()) {
             // Throw away any path part of libraryName, and merge against original url.
             QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader material library" << libraryName << "used in" << _url;
-            #endif
             QNetworkReply* netReply = request(libraryUrl, false);
-            if (netReply->isFinished() &&
-                (libraryUrl.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
-                 netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
-                 (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200))) {
-                    parseMaterialLibrary(netReply);
-                } else {
-                    #ifdef WANT_DEBUG
-                    qCDebug(modelformat) << "OBJ Reader" << libraryName << "did not answer. Got"
+            if (replyOK(netReply, libraryUrl)) {
+                parseMaterialLibrary(netReply);
+            } else {
+                qCDebug(modelformat) << "OBJ Reader WARNING:" << libraryName << "did not answer. Got"
                     << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
-                    #endif
-                }
+            }
             netReply->deleteLater();
         }
     }
@@ -583,9 +580,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
     foreach (QString materialID, materials.keys()) {
        OBJMaterial& objMaterial = materials[materialID];
        if (!objMaterial.used) {
-            qCDebug(modelformat) << "fixme skipping" << materialID;
             continue;
-            assert(false);
         }
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
