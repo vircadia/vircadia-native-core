@@ -88,7 +88,7 @@ ModalWindow {
         RalewaySemiBold {
             id: mainTextContainer
             onTextChanged: d.resize();
-            wrapMode: Text.contains("\n") ? Text.NoWrap : Text.WordWrap
+            wrapMode: Text.WordWrap
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
             anchors {
