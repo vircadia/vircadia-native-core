@@ -23,11 +23,12 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockBody = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_BODY_URL,
+      name: "home_model_clockbody",
       animation: {
         url: CLOCK_BODY_URL,
-        running: true,
-        currentFrame: 100,
-        loop: true
+        running: false,
+        currentFrame: 0,
+        loop: false
       },
       position: spawnPosition,
       dimensions: {
@@ -46,6 +47,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var clockFacePosition = Vec3.sum(spawnPosition, clockFaceOffset);
     clockFace = Entities.addEntity({
       type: "Model",
+      name: "home_model_clockface",
       modelURL: CLOCK_FACE_URL,
       animation: {
         url: CLOCK_FACE_URL,
@@ -82,6 +84,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var ANGULAR_ROLL_SPEED_HOUR_RADIANS = 0.000029098833;
     clockHourHand = Entities.addEntity({
       type: "Model",
+      name: "home_model_clockHourHand",
       modelURL: CLOCK_HOUR_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {
@@ -113,6 +116,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockMinuteHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_MINUTE_HAND_URL,
+      name: "home_model_clockMinuteHand",
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {
         x: 0.5,
@@ -141,7 +145,8 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
     clockSecondHand = Entities.addEntity({
       type: "Box",
-      // modelURL: CLOCK_MINUTE_HAND_URL,
+      // modelURL: CLOCK_SECOND_HAND_URL,
+      name: "home_model_clockSecondHand",
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       dimensions: {
         x: 0.00263,
@@ -168,8 +173,6 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     });
 
   }
-
-  print("EBL IM A CUCKOO CLOCK");
 
   createClock();
 

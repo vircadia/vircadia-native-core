@@ -16,7 +16,9 @@
 
         preload: function(entityID) {
             _this.entityID = entityID; // this.animation.isRunning = true;
-            print("PRELOAD ENTITY SCRIPT!!!")
+            // print("ANIMATION!!! " + JSON.stringify(_this.animationURL));
+            Entities.editEntity(_this.entityID, {animation: {running: true}})
+
         },
 
 
