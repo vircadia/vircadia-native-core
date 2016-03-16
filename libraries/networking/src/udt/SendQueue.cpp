@@ -29,6 +29,7 @@
 #include "Socket.h"
 
 using namespace udt;
+using namespace std::chrono;
 
 template <typename Mutex1, typename Mutex2>
 class DoubleLock {
@@ -303,15 +304,12 @@ void SendQueue::run() {
         if (_state != State::Running || isInactive(sentAPacket)) {
             return;
         }
-        
-        // grab the current HRC timestamp
-        const auto now = p_high_resolution_clock::now();
 
         // push the next packet timestamp forwards by the current packet send period
         nextPacketTimestamp += std::chrono::microseconds(_packetSendPeriod);
 
         // sleep as long as we need until next packet send, if we can
-        const auto timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextPacketTimestamp - now);
+        const auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - p_high_resolution_clock::now());
 
         std::this_thread::sleep_for(timeToSleep);
     }
