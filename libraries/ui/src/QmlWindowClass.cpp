@@ -114,7 +114,6 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         }
     } else {
         auto argumentObject = context->argument(0);
-        qDebug() << argumentObject.toString();
         if (!argumentObject.property(TITLE_PROPERTY).isUndefined()) {
             title = argumentObject.property(TITLE_PROPERTY).toString();
         }
