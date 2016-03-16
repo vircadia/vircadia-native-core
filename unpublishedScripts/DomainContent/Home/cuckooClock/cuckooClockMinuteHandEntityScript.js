@@ -16,12 +16,30 @@
 
         preload: function(entityID) {
             _this.entityID = entityID; // this.animation.isRunning = true;
-            var userData = getEntityUserData(entityID);
-            var clockBody = userData.clockBody;
+            _this.userData = getEntityUserData(entityID);
             // print("ANIMATION!!! " + JSON.stringify(_this.animationURL));
-            Entities.editEntity(_this.entityID, {animation: {running: true}})
-
+            if (!_this.userData || !_this.userData.clockBody) {
+                print("THIS CLOCK HAND IS NOT ATTACHED TO A CLOCK BODY!");
+                return;
+            }
+            _this.clockBody = _this.userData.clockBody;
+            Entities.editEntity(_this.clockBody, {animation: {running: true}});
+            Script.update.connect(_this.update);
         },
+
+        unload: function() {
+            Script.update.disconnect(_this.update);
+        },
+        
+
+        update: function() {
+            _this.clockBodyAnimationProps = Entities.getEntityProperties(_this.clockBody, "animation").animation;
+            if (!_this.clockBodyAnimationProps) {
+                print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
+                return;
+            }
+            print("current Frame " + _this.clockBodyAnimationProps.currentFrame);
+        }
 
 
     };
