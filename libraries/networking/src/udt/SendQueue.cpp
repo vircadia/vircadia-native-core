@@ -29,6 +29,7 @@
 #include "Socket.h"
 
 using namespace udt;
+using namespace std::chrono;
 
 template <typename Mutex1, typename Mutex2>
 class DoubleLock {
@@ -280,11 +281,11 @@ void SendQueue::run() {
         // Once we're here we've either received the handshake ACK or it's going to be time to re-send a handshake.
         // Either way let's continue processing - no packets will be sent if no handshake ACK has been received.
     }
-        
+
+    // Keep an HRC to know when the next packet should have been
+    auto nextPacketTimestamp = p_high_resolution_clock::now();
+
     while (_state == State::Running) {
-        // Record how long the loop takes to execute
-        const auto loopStartTimestamp = p_high_resolution_clock::now();
-        
         bool sentAPacket = maybeResendPacket();
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
@@ -303,10 +304,13 @@ void SendQueue::run() {
         if (_state != State::Running || isInactive(sentAPacket)) {
             return;
         }
-        
+
+        // push the next packet timestamp forwards by the current packet send period
+        nextPacketTimestamp += std::chrono::microseconds(_packetSendPeriod);
+
         // sleep as long as we need until next packet send, if we can
-        const auto loopEndTimestamp = p_high_resolution_clock::now();
-        const auto timeToSleep = (loopStartTimestamp + std::chrono::microseconds(_packetSendPeriod)) - loopEndTimestamp;
+        const auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - p_high_resolution_clock::now());
+
         std::this_thread::sleep_for(timeToSleep);
     }
 }
