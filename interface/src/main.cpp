@@ -39,7 +39,7 @@ int main(int argc, const char* argv[]) {
     static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
     static const char* BUG_SPLAT_DATABASE = "interface_alpha";
     static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
-    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION.toLatin1().constData(),
+    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, qPrintable(BuildInfo::VERSION),
                              nullptr, BUG_SPLAT_FLAGS };
 #endif
     
@@ -142,6 +142,14 @@ int main(int argc, const char* argv[]) {
         server.listen(applicationName);
 
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
+
+#ifdef HAS_BUGSPLAT
+        AccountManager& accountManager = AccountManager::getInstance();
+        mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
+        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
+            mpSender.setDefaultUserName(qPrintable(newUsername));
+        });
+#endif
 
         QTranslator translator;
         translator.load("i18n/interface_en");
