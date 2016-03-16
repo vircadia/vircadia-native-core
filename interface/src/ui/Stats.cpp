@@ -198,17 +198,17 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
 
         // See if the active download urls have changed
-        bool updateUrls = _downloads != _downloadUrls.size();
-        if (!updateUrls) {
-            for (int ii = 0; ii < _downloads; ii++) {
-                if (loadingRequests[ii]->getURL().toString() != _downloadUrls[ii]) {
-                    updateUrls = true;
+        bool shouldUpdateUrls = _downloads != _downloadUrls.size();
+        if (!shouldUpdateUrls) {
+            for (int i = 0; i < _downloads; i++) {
+                if (loadingRequests[i]->getURL().toString() != _downloadUrls[i]) {
+                    shouldUpdateUrls = true;
                     break;
                 }
             }
         }
         // If the urls have changed, update the list
-        if (updateUrls) {
+        if (shouldUpdateUrls) {
             _downloadUrls.clear();
             foreach (Resource* resource, loadingRequests) {
                 _downloadUrls << resource->getURL().toString();
