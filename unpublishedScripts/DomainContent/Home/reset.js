@@ -30,6 +30,15 @@
 
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
 
+    var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
+
+    Script.include(utilsPath);
+    Script.include(fishTankPath);
+    Script.include(tiltMazePath);
+    Script.include(whiteboardPath);
+    Script.include(plantPath);
+    Script.include(cuckooClockPath);
+    
     Reset.prototype = {
         preload: function(entityID) {
             _this.entityID = entityID;
@@ -92,27 +101,24 @@
                 z: 0
             }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
-            Script.include(utilsPath);
-            Script.include(fishTankPath);
-            Script.include(tiltMazePath);
-            Script.include(whiteboardPath);
-            Script.include(plantPath);
+
 
             // var fishTank = new FishTank(center);
             // var tiltMaze = new TiltMaze(center);
             // var whiteboard = new Whiteboard(center);
-            var myPlant = new Plant(center);
-
+            // var myPlant = new Plant(center);
 
             // dynamicEntities.push(fishTank);
             // dynamicEntities.push(tiltMaze);
             // dynamicEntities.push(whiteboard);
-            dynamicEntities.push(myPlant);
+            // dynamicEntities.push(myPlant);
 
             //v2.0
             // var musicBox = new MusicBox();
-            // var cuckooClock = new CuckooClock();
+            var cuckooClock = new MyCuckooClock(center);
             // var doppelganger = new Doppelganger();
+            
+            dynamicEntities.push(cuckooClock);
         },
 
         cleanupDynamicEntities: function() {
@@ -120,6 +126,7 @@
                 return;
             }
             dynamicEntities.forEach(function(dynamicEntity) {
+                print('dynamicEntity is:: '+JSON.stringify(dynamicEntity))
                 dynamicEntity.cleanup();
             })
         },
