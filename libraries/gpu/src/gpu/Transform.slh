@@ -76,24 +76,39 @@ TransformObject getTransformObject() {
      <$viewport$> = <$cameraTransform$>._viewport;
 <@endfunc@>
 
-<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-      //return camera._projection * camera._view * object._model * pos; !>
-    { // transformModelToClipPos
-        vec4 _eyepos = (<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
-        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
+<@func transformModelToEyeWorldAlignedPos(cameraTransform, objectTransform, modelPos, eyeWorldAlignedPos)@>
+    <!// Bring the model pos in the world aligned space centered on the eye axis !>
+    { // _transformModelToEyeWorldAlignedPos
+        highp mat4 _mv = <$objectTransform$>._model;
+        _mv[3].xyz -= <$cameraTransform$>._viewInverse[3].xyz;
+        highp vec4 _eyeWApos = (_mv * <$modelPos$>);
+        <$eyeWorldAlignedPos$> = _eyeWApos;
     }
 <@endfunc@>
 
-<@func $transformModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-      //return camera._projection * camera._view * object._model * pos; !>
+<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
     { // transformModelToClipPos
-        vec4 _worldpos = (<$objectTransform$>._model * <$modelPos$>);
-        <$eyePos$> = (<$cameraTransform$>._view * _worldpos);
-        vec4 _eyepos =(<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
-        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
-      //  <$eyePos$> = (<$cameraTransform$>._projectionInverse * <$clipPos$>);
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+    }
+<@endfunc@>
+
+<@func transformModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
+    { // transformModelToEyeAndClipPos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+    }
+<@endfunc@>
+
+<@func transformModelToEyePos(cameraTransform, objectTransform, modelPos, eyePos)@>
+    { // transformModelToEyePos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
     }
 <@endfunc@>
 
@@ -102,6 +117,7 @@ TransformObject getTransformObject() {
         <$worldPos$> = (<$objectTransform$>._model * <$modelPos$>);
     }
 <@endfunc@>
+
 
 <@func transformModelToEyeDir(cameraTransform, objectTransform, modelDir, eyeDir)@>
     { // transformModelToEyeDir
@@ -126,15 +142,6 @@ TransformObject getTransformObject() {
 <@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
     { // transformClipToEyeDir
         <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0)); // Must be 1.0 here
-    }
-<@endfunc@>
-
-<@func $transformModelToEyePos(cameraTransform, objectTransform, modelPos, eyePos)@>
-    <!// Equivalent to the following but hoppefully a tad more accurate
-    //return camera._view * object._model * pos; !>
-    { // transformModelToEyePos
-        vec4 _worldpos = (<$objectTransform$>._model * vec4(<$modelPos$>.xyz, 1.0));
-        <$eyePos$> = (<$cameraTransform$>._view * _worldpos);
     }
 <@endfunc@>
 

@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+import QtQml.Models 2.2
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
@@ -18,10 +19,16 @@ TreeView {
     id: treeView
 
     property var treeModel: ListModel { }
+    property var canEdit: false
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
 
+    property var modifyEl: function(index, data) { return false; }
+
     model: treeModel
+    selection: ItemSelectionModel {
+        model: treeModel
+    }
 
     TableViewColumn {
         role: "display";
@@ -120,7 +127,9 @@ TreeView {
                    : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 
-    itemDelegate: FiraSansSemiBold {
+    itemDelegate: Loader {
+        id: itemDelegateLoader
+
         anchors {
             left: parent ? parent.left : undefined
             leftMargin: (2 + styleData.depth) * hifi.dimensions.tablePadding
@@ -129,11 +138,83 @@ TreeView {
             verticalCenter: parent ? parent.verticalCenter : undefined
         }
 
-        text: styleData.value
-        size: hifi.fontSizes.tableText
-        color: colorScheme == hifi.colorSchemes.light
-                   ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+        function getComponent() {
+            if (treeView.canEdit && styleData.selected) {
+                return textFieldComponent;
+            } else {
+                return labelComponent;
+            }
+
+        }
+        sourceComponent: getComponent()
+
+        Component {
+            id: labelComponent
+            FiraSansSemiBold {
+
+                text: styleData.value
+                size: hifi.fontSizes.tableText
+                color: colorScheme == hifi.colorSchemes.light
+                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+            }
+        }
+        Component {
+            id: textFieldComponent
+
+            TextField {
+                id: textField
+                readOnly: !activeFocus
+
+                text: styleData.value
+
+                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                font.family: firaSansSemiBold.name
+                font.pixelSize: hifi.fontSizes.textFieldInput
+                height: hifi.dimensions.tableRowHeight
+
+                style: TextFieldStyle {
+                    textColor: readOnly
+                               ? hifi.colors.black
+                               : (treeView.isLightColorScheme ?  hifi.colors.black :  hifi.colors.white)
+                    background: Rectangle {
+                        visible: !readOnly
+                        color: treeView.isLightColorScheme ? hifi.colors.white : hifi.colors.black
+                        border.color: hifi.colors.primaryHighlight
+                        border.width: 1
+                    }
+                    selectedTextColor: hifi.colors.black
+                    selectionColor: hifi.colors.primaryHighlight
+                    padding.left: readOnly ? 0 : hifi.dimensions.textPadding
+                    padding.right: readOnly ? 0 : hifi.dimensions.textPadding
+                }
+
+                validator: RegExpValidator {
+                    regExp: /[^/]+/
+                }
+
+                Keys.onPressed: {
+                    if (event.key == Qt.Key_Escape) {
+                        text = styleData.value;
+                        unfocusHelper.forceActiveFocus();
+                        event.accepted = true;
+                    }
+                }
+                onAccepted:  {
+                    if (acceptableInput && styleData.selected) {
+                        if (!modifyEl(selection.currentIndex, text)) {
+                            text = styleData.value;
+                        }
+                        unfocusHelper.forceActiveFocus();
+                    }
+                }
+            }
+        }
+    }
+
+    Item {
+        id: unfocusHelper
+        visible: false
     }
 
     onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)

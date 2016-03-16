@@ -34,8 +34,7 @@ ModalWindow {
     property var items;
     property string label
     property var result;
-    // FIXME not current honored
-    property var current;
+    property alias current: textResult.text
 
     // For text boxes
     property alias placeholderText: textResult.placeholderText

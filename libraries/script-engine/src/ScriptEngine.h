@@ -23,7 +23,6 @@
 
 #include <AnimationCache.h>
 #include <AnimVariant.h>
-#include <AssetClient.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
@@ -32,6 +31,7 @@
 
 #include "MouseEvent.h"
 #include "ArrayBufferClass.h"
+#include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
 #include "Quat.h"
 #include "Mat4.h"

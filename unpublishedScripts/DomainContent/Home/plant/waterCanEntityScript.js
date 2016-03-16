@@ -156,6 +156,7 @@
                 },
                 maxParticles: 20000,
                 lifespan: 2,
+                lifetime: 10000,
                 emitRate: 2000,
                 emitSpeed: .3,
                 speedSpread: 0.1,

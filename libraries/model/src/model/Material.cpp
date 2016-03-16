@@ -80,6 +80,10 @@ void Material::setMetallic(float metallic) {
     _schemaBuffer.edit<Schema>()._metallic = metallic;
 }
 
+void Material::setTransparentTexture(bool isTransparent) {
+    _key.setTransparentTexture(isTransparent);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+}
 
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
@@ -92,6 +96,3 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _textureMaps.erase(channel);
     }
 }
-
-
-
