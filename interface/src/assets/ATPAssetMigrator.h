@@ -21,6 +21,7 @@
 
 class AssetUpload;
 class ResourceRequest;
+class SetMappingRequest;
 
 class ATPAssetMigrator : public QObject {
     Q_OBJECT
@@ -32,8 +33,11 @@ public slots:
     void loadEntityServerFile();
 private slots:
     void assetUploadFinished(AssetUpload* upload, const QString& hash);
+    void setMappingFinished(SetMappingRequest* request);
 private:
     void migrateResource(ResourceRequest* request);
+
+    void checkIfFinished();
     void saveEntityServerFile();
     
     void reset();
@@ -44,11 +48,14 @@ private:
     QJsonArray _entitiesArray;
     
     bool _doneReading { false };
-    
-    QMultiHash<QUrl, QJsonValueRef> _pendingReplacements;
+
+    using JSONTypePair = std::pair<QJsonValueRef, quint8>;
+
+    QMultiHash<QUrl, JSONTypePair> _pendingReplacements;
     QHash<QUrl, QUrl> _uploadedAssets;
-    QHash<AssetUpload*, QUrl> _originalURLs;
+    QHash<QObject*, QUrl> _originalURLs;
     QSet<QUrl> _ignoredUrls;
+    int _errorCount { 0 };
 };
 
 

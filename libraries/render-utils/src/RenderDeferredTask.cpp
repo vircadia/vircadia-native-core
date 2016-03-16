@@ -291,6 +291,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+        _gpuTimer.begin(batch);
 
         auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
 
@@ -310,8 +311,11 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setViewTransform(viewMat);
 
         renderItems(sceneContext, renderContext, inItems);
+        _gpuTimer.end(batch);
     });
     args->_batch = nullptr;
+
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }
 
 void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {

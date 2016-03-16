@@ -135,6 +135,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     }
 
     if (!_isLoadedWithTextures) {
+        _hasTransparentTextures = true;
+
         for (auto&& material : _materials) {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
                 (material->normalTexture && !material->normalTexture->isLoaded()) ||
@@ -145,7 +147,16 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 (material->lightmapTexture && !material->lightmapTexture->isLoaded())) {
                 return false;
             }
+            if (material->albedoTexture && material->albedoTexture->getGPUTexture()) {
+                // Reset the materialKey transparentTexture key only, as it is albedoTexture-dependent
+                const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
+                bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
+                material->_material->setTransparentTexture(isTransparentTexture);
+                // FIXME: Materials with *some* transparent textures seem to give all *other* textures alphas of 0.
+                _hasTransparentTextures = isTransparentTexture && _hasTransparentTextures;
+            }
         }
+
         _isLoadedWithTextures = true;
     }
     return true;

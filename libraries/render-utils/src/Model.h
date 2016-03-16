@@ -70,7 +70,7 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
-    bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
+    bool needsFixupInScene();
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) {
         return !_needsReload && isRenderable() && isActive() && isLoaded();
     }
@@ -365,10 +365,12 @@ protected:
 
     QSet<std::shared_ptr<MeshPartPayload>> _renderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
-    bool _readyWhenAdded = false;
-    bool _needsReload = true;
-    bool _needsUpdateClusterMatrices = true;
-    bool _showCollisionHull = false;
+    bool _readyWhenAdded { false };
+    bool _needsReload { true };
+    bool _needsUpdateClusterMatrices { true };
+    bool _needsUpdateTransparentTextures { true };
+    bool _hasTransparentTextures { false };
+    bool _showCollisionHull { false };
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
