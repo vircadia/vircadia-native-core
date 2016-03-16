@@ -251,16 +251,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 #endif
                 break;
             }
-            if (isValidTexture(filename)) {
-                if (token == "map_Kd") {
-                    currentMaterial.diffuseTextureFilename = filename;
-                } else {
-                    currentMaterial.specularTextureFilename = filename;
-                }
+            if (token == "map_Kd") {
+                currentMaterial.diffuseTextureFilename = filename;
             } else {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << _url << " ignoring missing texture " << filename;
-                #endif
+                currentMaterial.specularTextureFilename = filename;
             }
         }
     }
@@ -534,7 +528,12 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
+    QString queryPart = _url.query();
+    bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
     OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
+    if (suppressMaterialsHack) {
+        needsMaterialLibrary = preDefinedMaterial.userSpecifiesUV = false; // I said it was a hack...
+    }
     // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
     // a texture with the same basename as the .obj file.
     if (preDefinedMaterial.userSpecifiesUV && !url.isEmpty()) {
