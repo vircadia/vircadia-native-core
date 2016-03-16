@@ -39,6 +39,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     })
 
     var clockFaceOffset = {x: -0.0345, y: 0.2587, z: 0.1255};
+    var clockFacePosition = Vec3.sum(spawnPosition, clockFaceOffset);
     clockFace = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_FACE_URL,
@@ -48,7 +49,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         currentFrame: 0,
         loop: true
       },
-      position: Vec3.sum(spawnPosition, clockFaceOffset),
+      position: clockFacePosition,
       dimensions: {
         x: 0.2397,
         y: 0.2402,
@@ -57,12 +58,13 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       // script: SCRIPT_URL
     })
 
-    var clockHourHandOffset = {x: -0.0199, y: 0.3004, z: 0.147};
+    var clockHandOffset = {x: -0.0007, y: -0.0015, z: 0.0121};
 
     clockHourHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_HOUR_HAND_URL,
-      position: Vec3.sum(spawnPosition, clockHourHandOffset),
+      position: Vec3.sum(clockFacePosition, clockHandOffset),
+      registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
       dimensions: {
         x: 0.0263,
         y: 0.0982,
@@ -80,12 +82,13 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockMinuteHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_MINUTE_HAND_URL,
-      position: Vec3.sum(spawnPosition, clockHourHandOffset),
+      position: Vec3.sum(clockFacePosition, clockHandOffset),
       dimensions: {
         x: 0.0263,
         y: 0.0982,
         z: 0.0024
       },
+      registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
       rotation: Quat.fromPitchYawRollDegrees(0, 0, rollDegrees),
       angularDamping: 0,
       angularVelocity: {x: 0, y: 0, z: -0.10472}
