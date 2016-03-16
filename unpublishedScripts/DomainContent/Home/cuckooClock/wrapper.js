@@ -38,7 +38,11 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       script: SCRIPT_URL
     })
 
-    var clockFaceOffset = {x: -0.0345, y: 0.2587, z: 0.1255};
+    var clockFaceOffset = {
+      x: -0.0345,
+      y: 0.2587,
+      z: 0.1255
+    };
     var clockFacePosition = Vec3.sum(spawnPosition, clockFaceOffset);
     clockFace = Entities.addEntity({
       type: "Model",
@@ -58,24 +62,40 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       // script: SCRIPT_URL
     })
 
-    var clockHandOffset = {x: -0.0007, y: -0.0015, z: 0.0121};
+    // CLOCK HANDS
+    // __________
+    // _\|/_
+    //  /|\
+    // ___________
 
+    var clockHandOffset = {
+      x: -0.0007,
+      y: -0.0015,
+      z: 0.0121
+    };
     var myDate = new Date()
 
-
-    // MINUTE HAND ************************
-    var minutes = myDate.getMinutes();
-    var minuteRollDegrees = -minutes * DEGREES_FOR_MINUTE; 
-    var ANGULAR_ROLL_SPEED_MINUTE_RADIANS = 0.00174533;
-    var DEGREES_FOR_MINUTE = 6;
-    clockMinuteHand = Entities.addEntity({
+    // HOUR HAND *************************
+    var DEGREES_FOR_HOUR = 30
+    var hours = myDate.getHours();
+    var hourRollDegrees = -hours * DEGREES_FOR_HOUR;
+    var ANGULAR_ROLL_SPEED_HOUR_RADIANS = 0.000029098833;
+    clockHourHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_HOUR_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
-      registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, minuteRollDegrees),
+      registrationPoint: {
+        x: 0.5,
+        y: 0.05,
+        z: 0.5
+      },
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, hourRollDegrees),
       angularDamping: 0,
-      angularVelocity: {x: 0, y: 0, z: -ANGULAR_ROLL_SPEED_MINUTE_RADIANS},
+      angularVelocity: {
+        x: 0,
+        y: 0,
+        z: -ANGULAR_ROLL_SPEED_HOUR_RADIANS
+      },
       dimensions: {
         x: 0.0263,
         y: 0.0982,
@@ -83,8 +103,38 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       },
       // script: SCRIPT_URL
     });
+
+
+    // MINUTE HAND ************************
+    var DEGREES_FOR_MINUTE = 6;
+    var minutes = myDate.getMinutes();
+    var minuteRollDegrees = -minutes * DEGREES_FOR_MINUTE;
+    var ANGULAR_ROLL_SPEED_MINUTE_RADIANS = 0.00174533;
+    clockMinuteHand = Entities.addEntity({
+      type: "Model",
+      modelURL: CLOCK_MINUTE_HAND_URL,
+      position: Vec3.sum(clockFacePosition, clockHandOffset),
+      registrationPoint: {
+        x: 0.5,
+        y: 0.05,
+        z: 0.5
+      },
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, minuteRollDegrees),
+      angularDamping: 0,
+      angularVelocity: {
+        x: 0,
+        y: 0,
+        z: -ANGULAR_ROLL_SPEED_MINUTE_RADIANS
+      },
+      dimensions: {
+        x: 0.0251,
+        y: 0.1179,
+        z: 0.0032
+      },
+      // script: SCRIPT_URL
+    });
     // *******************************************
-    
+
     var DEGREES_FOR_SECOND = 6;
     var seconds = myDate.getSeconds();
     secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
@@ -98,11 +148,23 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.0982,
         z: 0.0024
       },
-      color: {red: 200, green: 10, blue: 200},
-      registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
+      color: {
+        red: 200,
+        green: 10,
+        blue: 200
+      },
+      registrationPoint: {
+        x: 0.5,
+        y: 0.05,
+        z: 0.5
+      },
       rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
       angularDamping: 0,
-      angularVelocity: {x: 0, y: 0, z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS}
+      angularVelocity: {
+        x: 0,
+        y: 0,
+        z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
+      }
     });
 
   }
