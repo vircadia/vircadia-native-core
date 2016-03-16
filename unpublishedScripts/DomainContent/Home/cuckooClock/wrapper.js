@@ -16,9 +16,9 @@ var CLOCK_HOUR_HAND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/
 var CLOCK_MINUTE_HAND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cuckooClock2_MINUTE_HAND.fbx";
 
 MyCuckooClock = function(spawnPosition, spawnRotation) {
-  var clockBody, clockFace, clockHourHand;
+  var clockBody, clockFace, clockMinuteHand, clockHourHand, clockSecondHand;
 
-  function createClockBody() {
+  function createClock() {
 
     clockBody = Entities.addEntity({
       type: "Model",
@@ -61,17 +61,19 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var clockHandOffset = {x: -0.0007, y: -0.0015, z: 0.0121};
 
     var myDate = new Date()
-    var DEGREES_PER_SECOND = 6;
-    var DEGREES_PER_MINUTE = 6;
-    var ANGULAR_ROLL_SPEED_MINUTE_RADIANS = 0.00174533;
+
+
+    // MINUTE HAND ************************
     var minutes = myDate.getMinutes();
-    var rollDegrees = -minutes * DEGREES_PER_MINUTE; 
-    clockHourHand = Entities.addEntity({
+    var minuteRollDegrees = -minutes * DEGREES_FOR_MINUTE; 
+    var ANGULAR_ROLL_SPEED_MINUTE_RADIANS = 0.00174533;
+    var DEGREES_FOR_MINUTE = 6;
+    clockMinuteHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_HOUR_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, rollDegrees),
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, minuteRollDegrees),
       angularDamping: 0,
       angularVelocity: {x: 0, y: 0, z: -ANGULAR_ROLL_SPEED_MINUTE_RADIANS},
       dimensions: {
@@ -81,41 +83,41 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       },
       // script: SCRIPT_URL
     });
-
-
+    // *******************************************
+    
+    var DEGREES_FOR_SECOND = 6;
     var seconds = myDate.getSeconds();
-
-    print("EBL SECONDS " + seconds)
-    rollDegrees = -seconds * DEGREES_PER_SECOND;
-      var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
-    clockMinuteHand = Entities.addEntity({
-      type: "Model",
-      modelURL: CLOCK_MINUTE_HAND_URL,
+    secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
+    var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
+    clockSecondHand = Entities.addEntity({
+      type: "Box",
+      // modelURL: CLOCK_MINUTE_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       dimensions: {
-        x: 0.0263,
+        x: 0.00263,
         y: 0.0982,
         z: 0.0024
       },
+      color: {red: 200, green: 10, blue: 200},
       registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, rollDegrees),
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
       angularDamping: 0,
       angularVelocity: {x: 0, y: 0, z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS}
-      // script: SCRIPT_URL
     });
 
   }
 
   print("EBL IM A CUCKOO CLOCK");
 
-  createClockBody();
+  createClock();
 
   function cleanup() {
     print('cuckoo cleanup')
-    // Entities.deleteEntity(clockBody);
-    // Entities.deleteEntity(clockFace);
-    // Entities.deleteEntity(clockHourHand);
-    // Entities.deleteEntity(clockMinuteHand);
+    Entities.deleteEntity(clockBody);
+    Entities.deleteEntity(clockFace);
+    Entities.deleteEntity(clockHourHand);
+    Entities.deleteEntity(clockMinuteHand);
+    Entities.deleteEntity(clockSecondHand);
 
   }
 
