@@ -110,12 +110,25 @@ Tool = function(properties, selectable, selected) { // selectable and selected a
     }
     
     this.select(selected);
-    
+
+    this.isButtonDown = false;
+    this.buttonDown = function (down) {
+        if (down !== this.isButtonDown) {
+            properties.subImage.y = (down ? 0 : 1) * properties.subImage.height;
+            Overlays.editOverlay(this.overlay(), { subImage: properties.subImage });
+            this.isButtonDown = down;
+        }
+    }
+
     this.baseClicked = this.clicked;
     this.clicked = function(clickedOverlay, update) {
         if (this.baseClicked(clickedOverlay)) {
-            if (selectable && update) {
-                this.toggle();
+            if (update) {
+                if (selectable) {
+                    this.toggle();
+                } else {
+                    this.buttonDown(true);
+                }
             }
             return true;
         }
@@ -376,6 +389,11 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
             that.mightBeDragging = false;
         }
     };
+    this.mouseReleaseEvent = function (event) {
+        for (var tool in that.tools) {
+            that.tools[tool].buttonDown(false);
+        }
+    }
     this.mouseMove  = function (event) {
         if (!that.mightBeDragging || !event.isLeftButton) {
             that.mightBeDragging = false;
@@ -399,6 +417,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         }
     };
     Controller.mousePressEvent.connect(this.mousePressEvent);
+    Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
     Controller.mouseMoveEvent.connect(this.mouseMove);
     Script.update.connect(that.checkResize);
     // This compatability hack breaks the model, but makes converting existing scripts easier:
