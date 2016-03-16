@@ -60,11 +60,20 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
 
     var clockHandOffset = {x: -0.0007, y: -0.0015, z: 0.0121};
 
+    var myDate = new Date()
+    var DEGREES_PER_SECOND = 6;
+    var DEGREES_PER_MINUTE = 6;
+    var ANGULAR_ROLL_SPEED_MINUTE_RADIANS = 0.00174533;
+    var minutes = myDate.getMinutes();
+    var rollDegrees = -minutes * DEGREES_PER_MINUTE; 
     clockHourHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_HOUR_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, rollDegrees),
+      angularDamping: 0,
+      angularVelocity: {x: 0, y: 0, z: -ANGULAR_ROLL_SPEED_MINUTE_RADIANS},
       dimensions: {
         x: 0.0263,
         y: 0.0982,
@@ -74,11 +83,11 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     });
 
 
-    var myDate = new Date()
     var seconds = myDate.getSeconds();
 
     print("EBL SECONDS " + seconds)
-    var rollDegrees = -seconds * 6;
+    rollDegrees = -seconds * DEGREES_PER_SECOND;
+      var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
     clockMinuteHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_MINUTE_HAND_URL,
@@ -91,7 +100,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       registrationPoint: {x: 0.5, y: 0.05, z: 0.5},
       rotation: Quat.fromPitchYawRollDegrees(0, 0, rollDegrees),
       angularDamping: 0,
-      angularVelocity: {x: 0, y: 0, z: -0.10472}
+      angularVelocity: {x: 0, y: 0, z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS}
       // script: SCRIPT_URL
     });
 
