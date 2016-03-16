@@ -14,7 +14,7 @@ import QtGraphicalEffects 1.0
 import "../styles-uit"
 
 Column {
-    property string name: "Static Section"
+    property string name: "Content Section"
     property bool isFirst: false
     property bool isCollapsible: false  // Set at creation.
     property bool isCollapsed: false

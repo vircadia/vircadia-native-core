@@ -1,18 +1,18 @@
 //
 //  createTank.js
-//  
+//
 //
 //  created by James b. Pollack @imgntn on 3/9/2016
-//  Copyright 2016 High Fidelity, Inc.   
-//  
-//  Adds a fish tank and base, decorations, particle bubble systems, and a bubble sound.  Attaches a script that does fish swimming.  
-// 
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Adds a fish tank and base, decorations, particle bubble systems, and a bubble sound.  Attaches a script that does fish swimming.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 
-var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, treasure, rocks;
+var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, anemone, treasure, rocks;
 var CLEANUP = true;
 
 var TANK_DIMENSIONS = {
@@ -34,7 +34,15 @@ var DEBUG_COLOR = {
     blue: 255
 }
 
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 1 * TANK_WIDTH));
+
+var centerVertical = {
+    x: 0,
+    y: 1,
+    z: 0
+}
+
+var upCenter = Vec3.sum(centerVertical, MyAvatar.position);
+var center = Vec3.sum(upCenter, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2));
 
 var TANK_POSITION = center;
 
@@ -52,7 +60,7 @@ var TANK_BASE_DIMENSIONS = {
     z: 2.1936
 };
 
-var BASE_VERTICAL_OFFSET = 0.42;
+var BASE_VERTICAL_OFFSET = 0.47;
 
 var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
@@ -68,14 +76,14 @@ var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
 
-var URCHIN_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.35;
-var URCHIN_LATERAL_OFFSET = -0.05;
-var URCHIN_VERTICAL_OFFSET = -0.12;
+var ANEMONE_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.35;
+var ANEMONE_LATERAL_OFFSET = -0.05;
+var ANEMONE_VERTICAL_OFFSET = -0.12;
 
 
-var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
-
-var URCHIN_DIMENSIONS = {
+var ANEMONE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/anemone.fbx';
+var ANEMONE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/anemone.fbx';
+var ANEMONE_DIMENSIONS = {
     x: 0.4,
     y: 0.4,
     z: 0.4
@@ -303,19 +311,29 @@ function createRocks() {
 }
 
 function createUrchin() {
-    var finalPosition = getOffsetFromTankCenter(URCHIN_VERTICAL_OFFSET, URCHIN_FORWARD_OFFSET, URCHIN_LATERAL_OFFSET);
+    var finalPosition = getOffsetFromTankCenter(ANEMONE_VERTICAL_OFFSET, ANEMONE_FORWARD_OFFSET, ANEMONE_LATERAL_OFFSET);
 
     var properties = {
-        name: 'hifi-home-fishtank-urchin',
+        name: 'hifi-home-fishtank-anemone',
         type: 'Model',
+        animationURL: ANEMONE_ANIMATION_URL,
+        animationIsPlaying: true,
+        animationFPS: 15,
+        animationSettings: JSON.stringify({
+            hold: false,
+            loop: true,
+            running: true,
+            startAutomatically: true
+        }),
         parentID: fishTank,
-        modelURL: URCHIN_MODEL_URL,
+        modelURL: ANEMONE_MODEL_URL,
         position: finalPosition,
         shapeType: 'Sphere',
-        dimensions: URCHIN_DIMENSIONS
+        rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
+        dimensions: ANEMONE_DIMENSIONS
     }
 
-    urchin = Entities.addEntity(properties);
+    anemone = Entities.addEntity(properties);
 
 }
 
@@ -398,7 +416,7 @@ function cleanup() {
     Entities.deleteEntity(innerContainer);
     Entities.deleteEntity(lowerCorner);
     Entities.deleteEntity(upperCorner);
-    Entities.deleteEntity(urchin);
+    Entities.deleteEntity(anemone);
     Entities.deleteEntity(rocks);
     bubbleInjector.stop();
     bubbleInjector = null;

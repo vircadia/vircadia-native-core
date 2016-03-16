@@ -243,6 +243,41 @@
 
         }
 
+        function userDataChanger(groupName, keyName, checkBoxElement, userDataElement, defaultValue) {
+            var properties = {};
+            var parsedData = {};
+            try {
+                parsedData = JSON.parse(userDataElement.value);
+            } catch(e) {}
+
+            if (!(groupName in parsedData)) {
+                parsedData[groupName] = {}
+            }
+            delete parsedData[groupName][keyName];
+            if (checkBoxElement.checked !== defaultValue) {
+                parsedData[groupName][keyName] = checkBoxElement.checked;
+            }
+
+            if (Object.keys(parsedData[groupName]).length == 0) {
+                delete parsedData[groupName];
+            }
+            if (Object.keys(parsedData).length > 0) {
+                properties['userData'] = JSON.stringify(parsedData);
+            } else {
+                properties['userData'] = '';
+            }
+
+            userDataElement.value = properties['userData'];
+
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    type: "update",
+                    properties: properties,
+                })
+            );
+        };
+
+
         function loaded() { 
             openEventBridge(function() {
                 var allSections = [];
@@ -305,6 +340,11 @@
                 var elCollideMyAvatar = document.getElementById("property-collide-myAvatar");
                 var elCollideOtherAvatar = document.getElementById("property-collide-otherAvatar");
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
+
+                var elGrabbable = document.getElementById("property-grabbable");
+                var elWantsTrigger = document.getElementById("property-wants-trigger");
+                var elIgnoreIK = document.getElementById("property-ignore-ik");
+
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
                 var elScriptTimestamp = document.getElementById("property-script-timestamp");
@@ -408,7 +448,7 @@
                 var elXTextureURL = document.getElementById("property-x-texture-url");
                 var elYTextureURL = document.getElementById("property-y-texture-url");
                 var elZTextureURL = document.getElementById("property-z-texture-url");
-    
+
                 var elPreviewCameraButton = document.getElementById("preview-camera-button");
     
                 if (window.EventBridge !== undefined) {
@@ -518,13 +558,30 @@
                                 elCollisionless.checked = properties.collisionless;
                                 elDynamic.checked = properties.dynamic;
 
-
                                 elCollideStatic.checked = properties.collidesWith.indexOf("static") > -1;
                                 elCollideKinematic.checked = properties.collidesWith.indexOf("kinematic") > -1;
                                 elCollideDynamic.checked = properties.collidesWith.indexOf("dynamic") > -1;
                                 elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
                                 elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
 
+                                elGrabbable.checked = properties.dynamic;
+                                elWantsTrigger.checked = false;
+                                elIgnoreIK.checked = false;
+                                var parsedUserData = {}
+                                try {
+                                    parsedUserData = JSON.parse(properties.userData);
+                                } catch(e) {}
+                                if ("grabbableKey" in parsedUserData) {
+                                    if ("grabbable" in parsedUserData["grabbableKey"]) {
+                                        elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
+                                    }
+                                    if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
+                                        elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
+                                    }
+                                    if ("ignoreIK" in parsedUserData["grabbableKey"]) {
+                                        elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
+                                    }
+                                }
 
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
@@ -737,9 +794,6 @@
                 elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
 
-
-
-
                 elCollideDynamic.addEventListener('change', function() {
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
                 });
@@ -758,6 +812,15 @@
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
                 });
 
+                elGrabbable.addEventListener('change', function() {
+                    userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
+                });
+                elWantsTrigger.addEventListener('change', function() {
+                    userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
+                });
+                elIgnoreIK.addEventListener('change', function() {
+                    userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, false);
+                });
 
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
@@ -954,7 +1017,7 @@
                         action: "previewCamera"
                     }));
                 });
-    
+
                 window.onblur = function() {
                     // Fake a change event
                     var ev = document.createEvent("HTMLEvents");
@@ -1476,6 +1539,29 @@
                 </div>
             </div>
 
+            <div class = "sub-section-header"> Grabbable: </div>
+            <div class = "sub-props-checkbox-group">
+              <div class="property">
+                <span class="label">grabbable</span>
+                <span class="value">
+                  <input type='checkbox' id="property-grabbable">
+                </span>
+              </div>
+
+              <div class="property">
+                <span class="label">triggerable</span>
+                <span class="value">
+                  <input type='checkbox' id="property-wants-trigger">
+                </span>
+              </div>
+
+              <div class="property">
+                <span class="label">ignore inverse-kinematics</span>
+                <span class="value">
+                  <input type='checkbox' id="property-ignore-ik">
+                </span>
+              </div>
+            </div>
 
         </div>
 

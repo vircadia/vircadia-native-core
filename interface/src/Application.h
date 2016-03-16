@@ -231,6 +231,8 @@ signals:
     void beforeAboutToQuit();
     void activeDisplayPluginChanged();
 
+    void uploadRequest(QString path);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
@@ -242,6 +244,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
+    void toggleAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
@@ -303,8 +306,6 @@ private slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
-    bool askToUploadAsset(const QString& asset);
-    void modelUploadFinished(AssetUpload* upload, const QString& hash);
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;

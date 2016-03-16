@@ -193,6 +193,7 @@ void Stats::updateStats(bool force) {
         }
 
         STAT_UPDATE(downloads, ResourceCache::getLoadingRequests().size());
+        STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
         // TODO fix to match original behavior
         //stringstream downloads;

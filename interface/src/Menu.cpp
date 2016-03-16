@@ -35,7 +35,6 @@
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
-#include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
@@ -92,7 +91,7 @@ Menu::Menu() {
     redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
-    // Edit > Running Sccripts
+    // Edit > Running Scripts
     addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
         qApp, SLOT(toggleRunningScriptsWidget()));
 
@@ -128,10 +127,20 @@ Menu::Menu() {
         SLOT(toggleConsole()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
+    editMenu->addSeparator();
+
+    // Edit > My Asset Server
+    auto assetServerAction = addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer,
+                                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                                           qApp, SLOT(toggleAssetServerWidget()));
+    auto nodeList = DependencyManager::get<NodeList>();
+    QObject::connect(nodeList.data(), &NodeList::canRezChanged, assetServerAction, &QAction::setEnabled);
+    assetServerAction->setEnabled(nodeList->getThisNodeCanRez());
+
     // Edit > Reload All Content [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
+    
 
     // Edit > Package Model... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
@@ -354,17 +363,6 @@ Menu::Menu() {
 
     // Developer > Assets >>>
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
-    auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
-    assetDialogFactory.setDialogParent(this);
-    QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
-        MenuOption::UploadAsset,
-        0,
-        &assetDialogFactory,
-        SLOT(showDialog()));
-
-    // disable the asset upload action by default - it gets enabled only if asset server becomes present
-    assetUpload->setEnabled(false);
-
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
 

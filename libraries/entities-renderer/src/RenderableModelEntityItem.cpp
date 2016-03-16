@@ -48,6 +48,13 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
 
 void RenderableModelEntityItem::setModelURL(const QString& url) {
     auto& currentURL = getParsedModelURL();
+    if (_model && (currentURL != url)) {
+        // The machinery for updateModelBounds will give existing models the opportunity to fix their translation/rotation/scale/registration.
+        // The first two are straightforward, but the latter two have guards to make sure they don't happen after they've already been set.
+        // Here we reset those guards. This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
+        _model->setScaleToFit(false, getDimensions());
+        _model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+    }
     ModelEntityItem::setModelURL(url);
 
     if (currentURL != getParsedModelURL() || !_model) {
@@ -512,15 +519,17 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 
 void RenderableModelEntityItem::update(const quint64& now) {
     if (!_dimensionsInitialized && _model && _model->isActive()) {
-        EntityItemProperties properties;
-        auto extents = _model->getMeshExtents();
-        properties.setDimensions(extents.maximum - extents.minimum);
-
-        qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
-        QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(QUuid, getEntityItemID()),
-                                  Q_ARG(EntityItemProperties, properties));
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+        if (renderNetworkGeometry && renderNetworkGeometry->isLoaded()) {
+            EntityItemProperties properties;
+            auto extents = _model->getMeshExtents();
+            properties.setDimensions(extents.maximum - extents.minimum);
+            qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+            QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(QUuid, getEntityItemID()),
+                                      Q_ARG(EntityItemProperties, properties));
+        }
     }
 
     ModelEntityItem::update(now);

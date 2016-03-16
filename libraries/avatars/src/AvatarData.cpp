@@ -1115,7 +1115,7 @@ void AvatarData::detachOne(const QString& modelURL, const QString& jointName) {
         return;
     }
     QVector<AttachmentData> attachmentData = getAttachmentData();
-    for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); it++) {
+    for (QVector<AttachmentData>::iterator it = attachmentData.begin(); it != attachmentData.end(); ++it) {
         if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
             attachmentData.erase(it);
             setAttachmentData(attachmentData);
@@ -1134,7 +1134,7 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
         if (it->modelURL == modelURL && (jointName.isEmpty() || it->jointName == jointName)) {
             it = attachmentData.erase(it);
         } else {
-            it++;
+            ++it;
         }
     }
     setAttachmentData(attachmentData);

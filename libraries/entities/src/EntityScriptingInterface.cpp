@@ -148,7 +148,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             if (entity) {
                 if (propertiesWithSimID.parentRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-                    propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
+                    bool success;
+                    AACube queryAACube = entity->getQueryAACube(success);
+                    if (success) {
+                        propertiesWithSimID.setQueryAACube(queryAACube);
+                    }
                 }
 
                 if (_bidOnSimulationOwnership) {
@@ -176,6 +180,15 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 
     return id;
+}
+
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Model);
+    properties.setName(name);
+    properties.setModelURL(modelUrl);
+    properties.setPosition(position);
+    return addEntity(properties);
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {

@@ -264,7 +264,9 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                 deferredTransforms[i].projection = projMats[i];
 
                 auto sideViewMat = monoViewMat * glm::inverse(eyeViews[i]);
-                viewTransforms[i].evalFromRawMatrix(sideViewMat);
+              //  viewTransforms[i].evalFromRawMatrix(sideViewMat);
+                viewTransforms[i] = monoViewTransform;
+                viewTransforms[i].postTranslate(-glm::vec3((eyeViews[i][3])));// evalFromRawMatrix(sideViewMat);
                 deferredTransforms[i].viewInverse = sideViewMat;
 
                 deferredTransforms[i].stereoSide = (i == 0 ? -1.0f : 1.0f);
