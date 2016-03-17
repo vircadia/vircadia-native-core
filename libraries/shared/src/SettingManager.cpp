@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QThread>
 #include <QDebug>
 
 #include "SettingInterface.h"
@@ -25,23 +26,27 @@ namespace Setting {
 
         // sync will be called in the QSettings destructor
     }
-    
+
     void Manager::registerHandle(Setting::Interface* handle) {
         QString key = handle->getKey();
-        if (_handles.contains(key)) {
-            qWarning() << "Setting::Manager::registerHandle(): Key registered more than once, overriding: " << key;
-        }
-        _handles.insert(key, handle);
+        withWriteLock([&] {
+            if (_handles.contains(key)) {
+                qWarning() << "Setting::Manager::registerHandle(): Key registered more than once, overriding: " << key;
+            }
+            _handles.insert(key, handle);
+        });
     }
-    
+
     void Manager::removeHandle(const QString& key) {
-        _handles.remove(key);
+        withWriteLock([&] {
+            _handles.remove(key);
+        });
     }
-    
+
     void Manager::loadSetting(Interface* handle) {
         handle->setVariant(value(handle->getKey()));
     }
-    
+
     void Manager::saveSetting(Interface* handle) {
         if (handle->isSet()) {
             setValue(handle->getKey(), handle->getVariant());
@@ -49,7 +54,7 @@ namespace Setting {
             remove(handle->getKey());
         }
     }
-    
+
     static const int SAVE_INTERVAL_MSEC = 5 * 1000; // 5 sec
     void Manager::startTimer() {
         if (!_saveTimer) {
@@ -61,18 +66,20 @@ namespace Setting {
         }
         _saveTimer->start();
     }
-    
+
     void Manager::stopTimer() {
         if (_saveTimer) {
             _saveTimer->stop();
         }
     }
-    
+
     void Manager::saveAll() {
-        for (auto handle : _handles) {
-            saveSetting(handle);
-        }
-        
+        withReadLock([&] {
+            for (auto handle : _handles) {
+                saveSetting(handle);
+            }
+        });
+
         // Restart timer
         if (_saveTimer) {
             _saveTimer->start();
