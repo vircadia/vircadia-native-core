@@ -50,6 +50,8 @@ Frame {
                 width: title.width + (icon.text !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
                 x: (parent.width - width) / 2
 
+                onWidthChanged: window.titleWidth = width
+
                 HiFiGlyphs {
                     id: icon
                     text: window.iconText ? window.iconText : ""
