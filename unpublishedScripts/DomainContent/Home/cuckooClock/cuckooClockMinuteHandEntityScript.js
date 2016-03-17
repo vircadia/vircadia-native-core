@@ -1,17 +1,45 @@
 (function() {
     Script.include('../utils.js');
+    Script.include('../../../../examples/libraries/virtualBaton.js');
     var _this;
 
     var d = new Date();
     var h = d.getHours();
     h = h % 12;
 
+    // Only one person should similate the clock at a time- so we pass a virtual baton
+    var baton;
+    var iOwn = false;
+    var connected = false;
+
     CuckooClockMinuteHand = function() {
         _this = this;
-        _this.TIME_CHECK_REFRACTORY_PERIOD = 1000;
+        _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;
         _this.checkTime = true;
 
     };
+
+
+    function startUpdate() {
+        //when the baton is claimed;
+        //   print('trying to claim the object' + _entityID)
+        iOwn = true;
+        connected = true;
+        Script.update.connect(_this.update);
+    }
+
+    function stopUpdateAndReclaim() {
+        //when the baton is released;
+        // print('i released the object ' + _entityID)
+        iOwn = false;
+        if (connected === true) {
+            connected = false;
+            Script.update.disconnect(_this.update);
+        }
+        //hook up callbacks to the baton
+        baton.claim(startUpdate, stopUpdateAndReclaim);
+        stopUpdateAndReclaim();
+    }
 
     CuckooClockMinuteHand.prototype = {
 
@@ -25,6 +53,10 @@
                 return;
             }
             _this.clockBody = _this.userData.clockBody;
+            // One winner for each entity
+            baton = virtualBaton({
+                batonName: "io.highfidelity.cuckooClock:" + _this.entityID
+            })
 
             Script.update.connect(_this.update);
         },
