@@ -62,13 +62,13 @@ QJsonValue Procedural::getProceduralData(const QString& proceduralJson) {
     return doc.object()[PROCEDURAL_USER_DATA_KEY];
 }
 
-Procedural::Procedural() {
-    _state = std::make_shared<gpu::State>();
+Procedural::Procedural() : _state { std::make_shared<gpu::State>() } {
+    _proceduralDataDirty = false;
 }
 
-Procedural::Procedural(const QString& userDataJson) {
+Procedural::Procedural(const QString& userDataJson) : Procedural() {
     parse(userDataJson);
-    _state = std::make_shared<gpu::State>();
+    _proceduralDataDirty = true;
 }
 
 void Procedural::parse(const QString& userDataJson) {
@@ -77,6 +77,9 @@ void Procedural::parse(const QString& userDataJson) {
     // This will be called by Procedural::ready
     std::lock_guard<std::mutex> lock(_proceduralDataMutex);
     _proceduralData = proceduralData.toObject();
+
+    // Mark as dirty after modifying _proceduralData, but before releasing lock
+    // to avoid setting it after parsing has begun
     _proceduralDataDirty = true;
 }
 
@@ -166,9 +169,13 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 
 bool Procedural::ready() {
     // Load any changes to the procedural
+    // Check for changes atomically, in case they are currently being made
     if (_proceduralDataDirty) {
         std::lock_guard<std::mutex> lock(_proceduralDataMutex);
         parse(_proceduralData);
+
+        // Reset dirty flag after reading _proceduralData, but before releasing lock
+        // to avoid resetting it after more data is set
         _proceduralDataDirty = false;
     }
 
