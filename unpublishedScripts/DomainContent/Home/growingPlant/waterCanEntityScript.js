@@ -12,7 +12,7 @@
 
 (function() {
 
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var _this;
     function WaterSpout() {

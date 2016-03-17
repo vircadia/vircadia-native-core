@@ -12,8 +12,8 @@
 
 
 (function() {
-    
-Script.include('utils.js');
+    Script.include('../utils.js');
+
     var _this;
 
     function GrowingPlant() {

@@ -12,7 +12,7 @@
 //
 
 (function() {
-
+    Script.include('../utils.js');
     Script.include('../../../../examples/libraries/virtualBaton.js');
 
     //only one person should simulate the tank at a time -- we pass around a virtual baton
@@ -306,16 +306,16 @@
 
     };
 
-//
-//  flockOfFish.js
-//  examples
-//
-//  Philip Rosedale
-//  Copyright 2016 High Fidelity, Inc.   
-//  Fish smimming around in a space in front of you 
-//   
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+    //
+    //  flockOfFish.js
+    //  examples
+    //
+    //  Philip Rosedale
+    //  Copyright 2016 High Fidelity, Inc.   
+    //  Fish smimming around in a space in front of you 
+    //   
+    //  Distributed under the Apache License, Version 2.0.
+    //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
     var FISHTANK_USERDATA_KEY = 'hifi-home-fishtank'
 
@@ -453,8 +453,7 @@
         if (bounds !== null) {
             lowerCorner = bounds.brn;
             upperCorner = bounds.tfl;
-        }
-        else{
+        } else {
             print('NO BOUNDS FOR TANK, returning!!')
             return;
         }
