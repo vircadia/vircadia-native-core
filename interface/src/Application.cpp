@@ -452,8 +452,8 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
-    _dependencyManagerIsSetup(setupEssentials(argc, argv)),
     _window(new MainWindow(desktop())),
+    _dependencyManagerIsSetup(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
     _frameCount(0),
     _fps(60.0f),
@@ -1744,6 +1744,11 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
+
+    if (!Menu::getInstance()) {
+        return false;
+    }
+
     if ((int)event->type() == (int)Lambda) {
         ((LambdaEvent*)event)->call();
         return true;
