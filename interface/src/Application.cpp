@@ -1060,6 +1060,14 @@ void Application::showCursor(const QCursor& cursor) {
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
 
+    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+        QString name = inputPlugin->getName();
+        QAction* action = Menu::getInstance()->getActionForOption(name);
+        if (action->isChecked()) {
+            inputPlugin->deactivate();
+        }
+    }
+
     getActiveDisplayPlugin()->deactivate();
 
     _aboutToQuit = true;
@@ -1148,14 +1156,6 @@ Application::~Application() {
     _physicsEngine->setCharacterController(NULL);
 
     ModelEntityItem::cleanupLoadedAnimations();
-
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-        QString name = inputPlugin->getName();
-        QAction* action = Menu::getInstance()->getActionForOption(name);
-        if (action->isChecked()) {
-            inputPlugin->deactivate();
-        }
-    }
 
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
