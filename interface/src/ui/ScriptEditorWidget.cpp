@@ -226,8 +226,8 @@ void ScriptEditorWidget::onWindowActivated() {
         
         if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
             if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts()
-                || OffscreenUi::warning(this, _currentScript,
-                    tr("This file has been modified outside of the Interface editor.") + "\n\n"
+                || OffscreenUi::question(this, tr("Reload Script"),
+                    tr("The following file has been modified outside of the Interface editor:") + "\n" + _currentScript + "\n"
                         + (isModified()
                         ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
                         : tr("Do you want to reload it?")),
