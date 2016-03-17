@@ -38,7 +38,7 @@ static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return vr::VR_IsHmdPresent();
+    return !isOculusPresent() && vr::VR_IsHmdPresent();
 }
 
 void OpenVrDisplayPlugin::internalActivate() {
