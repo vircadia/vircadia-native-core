@@ -411,7 +411,6 @@ var toolBar = (function() {
         return entityID;
     }
 
-    var newModelButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
@@ -432,13 +431,13 @@ var toolBar = (function() {
             return true;
         }
 
-        // Handle these two buttons in the mouseRelease event handler so that we don't suppress a mouseRelease event from
-        // occurring when showing a modal dialog.
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            newModelButtonDown = true;
+            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+            if (url !== null && url !== "") {
+                addModel(url);
+            }
             return true;
         }
-
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
@@ -560,26 +559,8 @@ var toolBar = (function() {
         return false;
     };
 
-    that.mouseReleaseEvent = function(event) {
-        var handled = false;
-        if (newModelButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-            if (newModelButton === toolBar.clicked(clickedOverlay)) {
-                url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-                if (url !== null && url !== "") {
-                    addModel(url);
-                }
-                handled = true;
-            }
-        }
-
-        newModelButtonDown = false;
-
-
-        return handled;
+    that.mouseReleaseEvent = function (event) {
+        return false;
     }
 
     Window.domainChanged.connect(function() {
