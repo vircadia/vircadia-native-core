@@ -143,7 +143,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
     clockSecondHand = Entities.addEntity({
       type: "Box",
-      parentID: clockFace,
+      parentID: clockBody,
       // modelURL: CLOCK_SECOND_HAND_URL,
       name: "home_model_clockSecondHand",
       position: Vec3.sum(clockFacePosition, clockHandOffset),
