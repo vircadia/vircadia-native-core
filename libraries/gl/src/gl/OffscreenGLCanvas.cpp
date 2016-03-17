@@ -32,17 +32,27 @@ OffscreenGLCanvas::~OffscreenGLCanvas() {
     _context->doneCurrent();
 }
 
-void OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
+bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     if (nullptr != sharedContext) {
         sharedContext->doneCurrent();
         _context->setShareContext(sharedContext);
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
-    _context->create();
+    if (_context->create()) {
+        _offscreenSurface->setFormat(_context->format());
+        _offscreenSurface->create();
+        return true;
+    }
 
-    _offscreenSurface->setFormat(_context->format());
-    _offscreenSurface->create();
+    std::call_once(_reportOnce, []{
+        qWarning() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qWarning() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qWarning() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qWarning() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+        qWarning() << "Failed to create OffscreenGLCanvas";
+    });
 
+    return false;
 }
 
 bool OffscreenGLCanvas::makeCurrent() {
