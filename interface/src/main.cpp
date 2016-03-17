@@ -149,6 +149,10 @@ int main(int argc, const char* argv[]) {
         QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
             mpSender.setDefaultUserName(qPrintable(newUsername));
         });
+
+        // BugSplat WILL NOT work with file paths that do not use OS native separators.
+        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        mpSender.sendAdditionalFile(qPrintable(logPath));
 #endif
 
         QTranslator translator;
