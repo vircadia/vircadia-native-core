@@ -25,14 +25,14 @@
                 return;
             }
             _this.clockBody = _this.userData.clockBody;
-            Entities.editEntity(_this.clockBody, {animation: {running: true}});
+
             Script.update.connect(_this.update);
         },
 
         unload: function() {
             Script.update.disconnect(_this.update);
-        },  
-        
+        },
+
 
         update: function() {
             _this.clockBodyAnimationProps = Entities.getEntityProperties(_this.clockBody, "animation").animation;
@@ -42,7 +42,7 @@
             }
 
             if (_this.checkTime === false) {
-                print ("We are in our refractory period. Please wait.");
+                print("We are in our refractory period. Please wait.");
                 return;
             }
             var date = new Date();
@@ -50,16 +50,23 @@
             var seconds = date.getSeconds();
             var minutes = date.getMinutes();
 
-            if(seconds === 0 && (minutes === 23|| minutes === 24)) {
-                // We are at the top of the hour!
-                print("TOP OF THE HOUR!");
-                _this.checkTime = false;
-                Script.setTimeout(function() {
-                    _this.checkTime = true;
-                    _this.print("NOW WE CAN CHECK TIME AGAIN");
-                }, _this.TIME_CHECK_REFRACTORY_PERIOD);
+            if (seconds === 0 && minutes === 0) {
+                _this.popCuckooOut();
             }
 
+        },
+
+        popCuckooOut: function() {
+            // We are at the top of the hour!
+            Entities.editEntity(_this.clockBody, {
+                animation: {
+                    running: true
+                }
+            });
+            _this.checkTime = false;
+            Script.setTimeout(function() {
+                _this.checkTime = true;
+            }, _this.TIME_CHECK_REFRACTORY_PERIOD);
         }
 
 
