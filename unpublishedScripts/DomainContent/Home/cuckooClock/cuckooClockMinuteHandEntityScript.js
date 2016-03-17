@@ -11,11 +11,12 @@
     var baton;
     var iOwn = false;
     var connected = false;
-
+    var CUCKOO_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/cuckoo_clock/cuckoo%20mix.wav";
     CuckooClockMinuteHand = function() {
         _this = this;
         _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;
         _this.checkTime = true;
+        _this.cuckooSound = SoundCache.getSound(CUCKOO_SOUND_URL);
 
     };
 
@@ -82,7 +83,10 @@
             var seconds = date.getSeconds();
             var minutes = date.getMinutes();
 
-            if (seconds === 0 && minutes === 0) {
+            // if (seconds === 0 && minutes === 0) {
+            //     _this.popCuckooOut();
+            // }
+            if (seconds % 45  === 0) {
                 _this.popCuckooOut();
             }
 
@@ -90,9 +94,19 @@
 
         popCuckooOut: function() {
             // We are at the top of the hour!
+            _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
+
+            if(!_this.cuckooSoundInjector) {
+               _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {position: _this.position});
+            } else {
+                _this.cuckooSoundInjector.stop();
+                _this.cuckooSoundInjector.restart();
+            }
+
             Entities.editEntity(_this.clockBody, {
                 animation: {
-                    running: true
+                    running: true,
+                    currentFrame: 0
                 }
             });
             _this.checkTime = false;
