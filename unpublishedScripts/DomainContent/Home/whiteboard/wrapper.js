@@ -16,20 +16,7 @@ var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?" + Math.rando
 
 Whiteboard = function(spawnPosition, spawnRotation) {
 
-    var orientation = MyAvatar.orientation;
-    orientation = Quat.safeEulerAngles(orientation);
-    var markerRotation = Quat.fromVec3Degrees({
-        x: orientation.x + 10,
-        y: orientation.y - 90,
-        z: orientation.z
-    })
-    orientation.x = 0;
-    var whiteboardRotation = Quat.fromVec3Degrees({
-        x: 0,
-        y: orientation.y,
-        z: 0
-    });
-    orientation = Quat.fromVec3Degrees(orientation);
+   var  orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z);
     var markers = [];
 
 
