@@ -8,6 +8,8 @@
 
     CuckooClockMinuteHand = function() {
         _this = this;
+        _this.TIME_CHECK_REFRACTORY_PERIOD = 1000;
+        _this.checkTime = true;
 
     };
 
@@ -29,7 +31,7 @@
 
         unload: function() {
             Script.update.disconnect(_this.update);
-        },
+        },  
         
 
         update: function() {
@@ -38,7 +40,26 @@
                 print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
                 return;
             }
-            // print("current Frame " + _this.clockBodyAnimationProps.currentFrame);
+
+            if (_this.checkTime === false) {
+                print ("We are in our refractory period. Please wait.");
+                return;
+            }
+            var date = new Date();
+            // Check to see if we are at the top of the hour
+            var seconds = date.getSeconds();
+            var minutes = date.getMinutes();
+
+            if(seconds === 0 && (minutes === 23|| minutes === 24)) {
+                // We are at the top of the hour!
+                print("TOP OF THE HOUR!");
+                _this.checkTime = false;
+                Script.setTimeout(function() {
+                    _this.checkTime = true;
+                    _this.print("NOW WE CAN CHECK TIME AGAIN");
+                }, _this.TIME_CHECK_REFRACTORY_PERIOD);
+            }
+
         }
 
 
