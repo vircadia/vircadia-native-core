@@ -1899,6 +1899,28 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
+            case Qt::Key_1:
+            case Qt::Key_2:
+            case Qt::Key_3:
+            case Qt::Key_4:
+            case Qt::Key_5:
+            case Qt::Key_6:
+            case Qt::Key_7:
+                if (isMeta || isOption) {
+                    unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
+                    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+                    if (index <= displayPlugins.size()) {
+                        auto targetPlugin = displayPlugins.at(index);
+                        QString targetName = targetPlugin->getName();
+                        auto menu = Menu::getInstance();
+                        QAction* action = menu->getActionForOption(targetName);
+                        if (action && !action->isChecked()) {
+                            action->trigger();
+                        }
+                    }
+                }
+                break;
+
             case Qt::Key_X:
                 if (isShifted && isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
