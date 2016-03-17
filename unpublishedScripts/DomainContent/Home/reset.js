@@ -31,18 +31,19 @@
 
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
 
+    var pingPingGunPath = Script.resolvePath("pingPingGun/wrapper.js?" + Math.random());
+
     var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+
     Script.include(kineticPath);
 
-
     Reset.prototype = {
+        tidying: false,
+
         preload: function(entityID) {
             _this.entityID = entityID;
         },
-        unload: function() {
-            this.cleanupDynamicEntities();
-        },
-        tidying: false,
+
         showTidyingButton: function() {
             var textureString =
                 'Texture.001:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",\ntex.face.screen.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png",\ntex.face.sceen:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",\ntex.button.blanks:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",\ntex.button.blanks.normal:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",\nbutton.tidy.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidy-Up-Button-Orange-Emit.png",\nbutton.tidy:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidy-Up-Button-Orange.png"'
@@ -51,6 +52,7 @@
                 textures: textureString
             });
         },
+
         showTidyButton: function() {
             var textureString =
                 'Texture.001:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",\ntex.face.screen.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png",\ntex.face.sceen:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",\ntex.button.blanks:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",\ntex.button.blanks.normal:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",\nbutton.tidy.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",\nbutton.tidy:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png"'
@@ -59,9 +61,11 @@
                 textures: textureString
             });
         },
+
         playTidyingSound: function() {
 
         },
+
         toggleButton: function() {
             if (_this.tidying === true) {
                 return;
@@ -106,39 +110,46 @@
             Script.include(whiteboardPath);
             Script.include(plantPath);
 
-            // var fishTank = new FishTank({
-            //     x: 1098.9254,
-            //     y: 460.5814,
-            //     z: -79.1103
-            // });
-            // var tiltMaze = new TiltMaze({
-            //     x: 1105.5768,
-            //     y: 460.3298,
-            //     z: -80.4891
-            // });
-            // var whiteboard = new Whiteboard({
-            //     x: 1104,
-            //     y: 450,
-            //     z: -77
-            // });
+            var fishTank = new FishTank({
+                x: 1098.9254,
+                y: 460.5814,
+                z: -79.1103
+            });
 
-            // var myPlant = new Plant(center);
+            var tiltMaze = new TiltMaze({
+                x: 1105.5768,
+                y: 460.3298,
+                z: -80.4891
+            });
 
+            var whiteboard = new Whiteboard({
+                x: 1104,
+                y: 450,
+                z: -77
+            });
 
-            // dynamicEntities.push(fishTank);
-            // dynamicEntities.push(tiltMaze);
-            // dynamicEntities.push(whiteboard);
-            //dynamicEntities.push(myPlant);
+            //var myPlant = new Plant(center);
+
+            var pingPongGun = new PingPongGun({
+                x: 1101.2123,
+                y: 460.2328,
+                z: -65.8513
+            });
+            dynamicEntities.push(pingPongGun);
+
+            dynamicEntities.push(fishTank);
+            dynamicEntities.push(tiltMaze);
+            dynamicEntities.push(whiteboard);
+            // dynamicEntities.push(myPlant);
 
             //v2.0
             // var musicBox = new MusicBox();
             // var cuckooClock = new CuckooClock();
+
+
             // var doppelganger = new Doppelganger();
 
-            //var pingPongGun = new PingPongGun({
-            //       x:1101.2123, y:460.2328, z:-65.8513
-            //    });
-            //dynamicEntities.push(pingPongGun);
+
         },
 
         cleanupDynamicEntities: function() {
@@ -183,8 +194,8 @@
                 z: -80.2837
             });
 
-            var rightDeskDrawer= new RightDeskDrawer({
-                x:1105.1735,
+            var rightDeskDrawer = new RightDeskDrawer({
+                x: 1105.1735,
                 y: 460.0446,
                 z: -81.3612
             });
@@ -195,21 +206,21 @@
                 z: -82.1095
             });
 
-            // var chair = new Chair({
-            //     x: 1105.2716,
-            //     y: 459.7251,
-            //     z: 79.8097
-            // });
-            // var trashcan = new Trashcan({
-            //     x: 1104.0031,
-            //     y: 459.4355,
-            //     z: -82.7294
-            // });
-            // var books = new Books({
-            //     x: 1101.2123,
-            //     y: 460.2328,
-            //     z: -65.8513
-            // });
+            var chair = new Chair({
+                x: 1105.2716,
+                y: 459.7251,
+                z: -79.8097
+            });
+            var trashcan = new Trashcan({
+                x: 1104.0031,
+                y: 459.4355,
+                z: -82.7294
+            });
+            var books = new Books({
+                x: 1101.2123,
+                y: 460.2328,
+                z: -65.8513
+            });
 
             kineticEntities.push(fruitBowl);
             kineticEntities.push(livingRoomLamp);
@@ -217,10 +228,11 @@
             kineticEntities.push(lowerBookShelf);
             kineticEntities.push(rightDeskDrawer);
             kineticEntities.push(leftDeskDrawer);
-            // kineticEntities.push(chair);
-            // kineticEntities.push(trashcan);
-            // kineticEntities.push(books);
+            kineticEntities.push(chair);
+            kineticEntities.push(trashcan);
+            kineticEntities.push(books);
         },
+
         cleanupKineticEntities: function() {
             if (kineticEntities.length === 0) {
                 return;
