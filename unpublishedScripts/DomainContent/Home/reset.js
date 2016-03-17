@@ -104,7 +104,7 @@
         },
 
         createDynamicEntities: function() {
- 
+
             Script.include(utilsPath);
             Script.include(fishTankPath);
             Script.include(tiltMazePath);
@@ -116,10 +116,10 @@
                 x: 1098.9254,
                 y: 460.5814,
                 z: -79.1103
-            },{
-                x:0,
-                y:152,
-                z:0
+            }, {
+                x: 0,
+                y: 152,
+                z: 0
             });
 
             var tiltMaze = new TiltMaze({
@@ -132,10 +132,10 @@
                 x: 1104,
                 y: 460.5,
                 z: -77
-            },{
-                x:0,
-                y:-133,
-                z:0
+            }, {
+                x: 0,
+                y: -133,
+                z: 0
             });
 
             var myPlant = new Plant({
@@ -148,13 +148,11 @@
                 x: 1101.2123,
                 y: 460.2328,
                 z: -65.8513
-            }, 
-            {
+            }, {
                 x: 97.3683,
                 y: 179.0293,
                 z: 89.9698
-            }
-            );
+            });
 
 
 
@@ -163,9 +161,9 @@
             dynamicEntities.push(whiteboard);
             dynamicEntities.push(myPlant);
             dynamicEntities.push(pingPongGun);
-            
+
             //v2.0
-        
+
             // var musicBox = new MusicBox();
             // var cuckooClock = new CuckooClock();
 
@@ -180,6 +178,7 @@
                 return;
             }
             dynamicEntities.forEach(function(dynamicEntity) {
+                print('CLEANING UP A DYNAMIC')
                 dynamicEntity.cleanup();
             })
         },
@@ -258,6 +257,7 @@
                 return;
             }
             kineticEntities.forEach(function(kineticEntity) {
+                print('CLEANING UP A KINETIC')
                 kineticEntity.cleanup();
             })
         },

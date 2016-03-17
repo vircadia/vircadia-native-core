@@ -231,6 +231,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     }
 
     function cleanup() {
+        print('WHITEBOARD CLEANUP')
         Entities.deleteEntity(whiteboard);
         Entities.deleteEntity(whiteboardFrontDrawingSurface);
         Entities.deleteEntity(whiteboardBackDrawingSurface);

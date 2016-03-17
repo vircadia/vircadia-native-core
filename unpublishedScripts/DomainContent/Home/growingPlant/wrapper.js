@@ -8,6 +8,7 @@
 //  This entity script handles the logic for growing a plant when it has water poured on it
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
 Plant = function(spawnPosition, spawnRotation) {
@@ -56,6 +57,8 @@ Plant = function(spawnPosition, spawnRotation) {
     script: PLANT_SCRIPT_URL,
     parentID: bowl
   });
+
+  print('CREATED PLANT:: '+ plant)
 
   var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx?v1" + Math.random();
 
@@ -132,6 +135,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
   function cleanup() {
+    print('PLANT CLEANUP!')
     Entities.deleteEntity(plant);
     Entities.deleteEntity(bowl);
     Entities.deleteEntity(waterCan);

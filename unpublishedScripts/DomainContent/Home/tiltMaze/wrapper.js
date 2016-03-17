@@ -273,6 +273,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     createAll();
 
     function cleanup() {
+        print('MAZE CLEANUP')
         Entities.deleteEntity(tiltMaze);
         Entities.deleteEntity(ball);
         Entities.deleteEntity(ballSpawningAnchor);

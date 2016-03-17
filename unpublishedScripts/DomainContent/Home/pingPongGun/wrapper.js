@@ -63,6 +63,7 @@ _PingPongGun = function(spawnPosition, spawnRotation) {
   });
 
   function cleanup() {
+    print('PING PONG CLEANUP!')
     Entities.deleteEntity(pingPongGun);
   }
 

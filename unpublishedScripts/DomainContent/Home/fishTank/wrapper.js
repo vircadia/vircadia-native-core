@@ -395,6 +395,7 @@ FishTank = function(spawnPosition, spawnRotation) {
 
 
     function cleanup() {
+        print('TANK CLEANUP!')
         Entities.deleteEntity(fishTank);
         Entities.deleteEntity(tankBase);
         Entities.deleteEntity(bubbleSystem);
