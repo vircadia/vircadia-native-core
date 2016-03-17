@@ -212,7 +212,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setAccelerationChanged(false);
 
                 if (wantTerseEditLogging()) {
-                    qCDebug(entities) << senderNode->getUUID() << "physical edits suppressed";
+                    qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";
                 }
             }
         }
