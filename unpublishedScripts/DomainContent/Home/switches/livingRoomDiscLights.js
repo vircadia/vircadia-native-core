@@ -7,7 +7,7 @@
     var DIFFUSE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelity_diffusebaked.png";
 
     var _this;
-    var utilitiesScript = Script.resolvePath('../../../../libraries/utils.js');
+    var utilitiesScript = Script.resolvePath('../utils.js');
     Script.include(utilitiesScript);
     Switch = function() {
         _this = this;
@@ -15,7 +15,7 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-disc-light',
+        prefix: 'hifi-home-living-room-disc-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -27,13 +27,13 @@
             this.toggleLights();
         },
 
-        modelEmitOn: function(discModel) {
+        modelEmitOn: function(glowDisc) {
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            })
+                textures: 'emissive:' + EMISSIVE_TEXTURE_URL + ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+            });
         },
 
-        modelEmitOff: function(discModel) {
+        modelEmitOff: function(glowDisc) {
             Entities.editEntity(glowDisc, {
                 textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
             })
@@ -45,7 +45,7 @@
             });
         },
 
-        masterLightOff: function() {
+        masterLightOff: function(masterLight) {
             Entities.editEntity(masterLight, {
                 visible: false
             });
@@ -68,7 +68,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "glow") {
+                if (properties.name === _this.prefix + "light-glow") {
                     found.push(result);
                 }
             });
@@ -80,7 +80,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "master") {
+                if (properties.name === _this.prefix + "light-master") {
                     found.push(result);
                 }
             });
@@ -92,7 +92,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "model") {
+                if (properties.name === _this.prefix + "light-model") {
                     found.push(result);
                 }
             });
@@ -101,15 +101,13 @@
 
         toggleLights: function() {
 
-            this.switch = getEntityCustomData('home-switch', this.entityID, {
-                state: 'off'
-            });
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {state: 'off'});
 
             var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();
             var emitModels = this.findEmitModels();
 
-            if (this.switch.state === 'off') {
+            if (this._switch.state === 'off') {
                 glowLights.forEach(function(glowLight) {
                     _this.glowLightOn(glowLight);
                 });
@@ -119,7 +117,7 @@
                 emitModels.forEach(function(emitModel) {
                     _this.modelEmitOn(emitModel);
                 });
-                setEntityCustomData('home-switch', this.entityID, {
+                setEntityCustomData('home-switch', _this.entityID, {
                     state: 'on'
                 });
 
