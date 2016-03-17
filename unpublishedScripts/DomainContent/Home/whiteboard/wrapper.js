@@ -16,11 +16,11 @@ var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?" + Math.rando
 
 Whiteboard = function(spawnPosition, spawnRotation) {
 
-   var  orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z);
+    var orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
     var markers = [];
 
-
     var whiteboardPosition = spawnPosition;
+    var whiteboardRotation = orientation;
     var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-4.fbx";
     var WHITEBOARD_COLLISION_HULL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/whiteboardCollisionHull.obj";
     var whiteboard = Entities.addEntity({
