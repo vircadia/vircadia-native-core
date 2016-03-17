@@ -9,7 +9,7 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-fan',
+        prefix: 'hifi-home-living-room-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -22,19 +22,21 @@
         },
 
         fanRotationOn: function() {
-            Entities.editEntity(this.fan, {
-                damping: 0,
+            print("EBL TURN FAN ON" + JSON.stringify(_this.fan));
+          var success=  Entities.editEntity(_this.fan, {
+                angularDamping: 0,
                 angularVelocity: {
                     x: 0,
-                    y: 0.25,
+                    y: 4,
                     z: 0
-                }
-            })
+                },
+            });
         },
 
         fanRotationOff: function() {
-            Entities.editEntity(this.fan, {
-                damping: 1.0,
+            print("EBL TURN FAN OFF")
+            Entities.editEntity(_this.fan, {
+                angularDamping: 0.5,
                 // angularVelocity:{
                 //     x:0,
                 //     y:0,
@@ -64,20 +66,23 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix) {
+                if (properties.name === _this.prefix + "ceiling-fan") {
+                    print("EBL FOUND FAN");
                     found.push(result);
                 }
             });
-            return found;
+            return found[0];
         },
 
         toggle: function() {
             this.fan = this.findFan();
-            this.switch = getEntityCustomData('home-switch', this.entityID, {
+            this._switch = getEntityCustomData('home-switch', this.entityID, {
                 state: 'off'
             });
 
-            if (this.switch.state === 'off') {
+            print("SWITCH STATE " + JSON.stringify(_this._switch));
+
+            if (this._switch.state === 'off') {
                 this.fanRotationOn();
                 this.fanSoundOn();
                 this.ventSoundOn();
