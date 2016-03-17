@@ -121,7 +121,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         }
 
         if (spawnRotation !== undefined) {
-            tankProperties.rotation = spawnRotation
+            tankProperties.rotation = Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z)
         }
 
         fishTank = Entities.addEntity(tankProperties);

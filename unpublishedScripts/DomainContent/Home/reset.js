@@ -189,7 +189,7 @@
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
                 y: 460.3221,
-                z: -81.0752
+                z: -81.2452
             });
 
             var livingRoomLamp = new LivingRoomLamp({
@@ -236,7 +236,7 @@
 
             var books = new Books({
                 x: 1106.1553,
-                y: 461.0325,
+                y: 461.0825,
                 z: -80.4890
             });
 
