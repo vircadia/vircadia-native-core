@@ -1910,7 +1910,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
                     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-                    if (index <= displayPlugins.size()) {
+                    if (index < displayPlugins.size()) {
                         auto targetPlugin = displayPlugins.at(index);
                         QString targetName = targetPlugin->getName();
                         auto menu = Menu::getInstance();
