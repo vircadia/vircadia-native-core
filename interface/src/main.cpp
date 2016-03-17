@@ -163,5 +163,9 @@ int main(int argc, const char* argv[]) {
     Application::shutdownPlugins();
 
     qCDebug(interfaceapp, "Normal exit.");
+#ifndef DEBUG
+    // HACK: exit immediately (don't handle shutdown callbacks) for Release build
+    _exit(exitCode);
+#endif
     return exitCode;
 }
