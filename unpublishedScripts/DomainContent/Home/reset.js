@@ -104,12 +104,7 @@
         },
 
         createDynamicEntities: function() {
-            var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-                x: 0,
-                y: 0.5,
-                z: 0
-            }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
-
+ 
             Script.include(utilsPath);
             Script.include(fishTankPath);
             Script.include(tiltMazePath);
@@ -161,9 +156,10 @@
             dynamicEntities.push(tiltMaze);
             dynamicEntities.push(whiteboard);
             dynamicEntities.push(myPlant);
-
-            //v2.0
             dynamicEntities.push(pingPongGun);
+            
+            //v2.0
+        
             // var musicBox = new MusicBox();
             // var cuckooClock = new CuckooClock();
 
