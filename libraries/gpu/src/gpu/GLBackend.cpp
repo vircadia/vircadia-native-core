@@ -248,7 +248,10 @@ void GLBackend::render(Batch& batch) {
     if (!batch.isStereoEnabled()) {
         _stereo._enable = false;
     }
+    _stereo._enable =batch.isStereoEnabled();
 
+    glEnable(GL_CLIP_DISTANCE0);
+    
     {
         PROFILE_RANGE("Transfer");
         renderPassTransfer(batch);
@@ -259,13 +262,15 @@ void GLBackend::render(Batch& batch) {
         renderPassDraw(batch);
     }
 
-    if (_stereo._enable) {
+  /*  if (_stereo._enable) {
         PROFILE_RANGE("RightRender");
         _stereo._pass = 1;
         renderPassDraw(batch);
         _stereo._pass = 0;
-    }
+    }*/
 
+    glDisable(GL_CLIP_DISTANCE0);
+    
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 }
@@ -326,7 +331,12 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
-    glDrawArrays(mode, startVertex, numVertices);
+    if (isStereo()) {
+        glDrawArraysInstanced(mode, startVertex, numVertices, 2);
+    } else {
+        glDrawArrays(mode, startVertex, numVertices);
+    }
+        
     (void) CHECK_GL_ERROR();
 }
 
@@ -341,7 +351,11 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
-    glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
+    if (isStereo()) {
+        glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, 2);
+    } else {
+        glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
+    }
     (void) CHECK_GL_ERROR();
 }
 
@@ -352,7 +366,7 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     uint32 numVertices = batch._params[paramOffset + 2]._uint;
     uint32 startVertex = batch._params[paramOffset + 1]._uint;
 
-    glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+    glDrawArraysInstancedARB(mode, startVertex, numVertices, (isStereo() ? 2 * numInstances : numInstances));
     (void) CHECK_GL_ERROR();
 }
 
@@ -370,9 +384,9 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
     
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
+    glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, (isStereo() ? 2 * numInstances : numInstances), 0, startInstance);
 #else
-    glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, numInstances);
+    glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, (isStereo() ? 2 * numInstances : numInstances));
     Q_UNUSED(startInstance); 
 #endif
     (void)CHECK_GL_ERROR();

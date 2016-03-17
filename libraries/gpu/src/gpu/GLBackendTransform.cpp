@@ -32,6 +32,7 @@ void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
     ivec4& vp = _transform._viewport;
+    glViewport(vp.x, vp.y, vp.z, vp.w);
 
     // Where we assign the GL viewport
     if (_stereo._enable) {
@@ -41,7 +42,7 @@ void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
         }
     } 
 
-    glViewport(vp.x, vp.y, vp.z, vp.w);
+//    glViewport(vp.x, vp.y, vp.z, vp.w);
 
     // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and will need update on next drawcall
     _transform._invalidViewport = true;
@@ -213,7 +214,7 @@ void GLBackend::updateTransform(const Batch& batch) {
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
                                _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2: 1));
     }
     
     (void)CHECK_GL_ERROR();
