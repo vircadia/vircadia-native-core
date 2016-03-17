@@ -1,16 +1,16 @@
 print('KINETIC INCLUDING WRAPPER')
 
-var BOOKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/books.json'
-var UPPER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/upperBookShelf.json';
-var LOWER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/lowerBookShelf.json';
-var RIGHT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/rightDeskDrawer.json';
-var LEFT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/leftDeskDrawer.json';
-var CHAIR_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/chair.json'
-var DESK_DRAWERS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskDrawers.json'
-var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/fruit.json'
-var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/labLamp.json'
-var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/livingRoomLamp.json'
-var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json'
+var BOOKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/books.json'+ "?"+Math.random();
+var UPPER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/upperBookShelf.json'+ "?"+Math.random();
+var LOWER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/lowerBookShelf.json'+ "?"+Math.random();
+var RIGHT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/rightDeskDrawer.json'+ "?"+Math.random();
+var LEFT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/leftDeskDrawer.json'+ "?"+Math.random();
+var CHAIR_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/chair.json'+ "?"+Math.random();
+var DESK_DRAWERS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskDrawers.json'+ "?"+Math.random();
+var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/fruit.json'+ "?"+Math.random()
+var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/labLamp.json'+ "?"+Math.random();
+var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/livingRoomLamp.json'+ "?"+Math.random();
+var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json'+ "?"+Math.random();
 
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
@@ -26,6 +26,7 @@ FruitBowl = function(spawnLocation, spawnRotation) {
     };
 
     function cleanup() {
+        print('CLEANUP FRUIT')
         created.forEach(function(obj) {
             Entities.deleteEntity(obj);
         })
@@ -66,7 +67,6 @@ LivingRoomLamp = function(spawnLocation, spawnRotation) {
     function create() {
         var success = Clipboard.importEntities(FRUIT_BOWL_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -84,13 +84,12 @@ LivingRoomLamp = function(spawnLocation, spawnRotation) {
 }
 
 UpperBookShelf = function(spawnLocation, spawnRotation) {
-    print('CREATE Bookshelves')
+    print('CREATE UPPER SHELF')
     var created = [];
 
     function create() {
         var success = Clipboard.importEntities(UPPER_BOOKSHELF_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -109,13 +108,12 @@ UpperBookShelf = function(spawnLocation, spawnRotation) {
 
 
 LowerBookShelf = function(spawnLocation, spawnRotation) {
-    print('CREATE Bookshelves')
+    print('CREATE LOWER SHELF')
     var created = [];
 
     function create() {
         var success = Clipboard.importEntities(LOWER_BOOKSHELF_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -133,12 +131,13 @@ LowerBookShelf = function(spawnLocation, spawnRotation) {
 }
 
 RightDeskDrawer = function(spawnLocation, spawnRotation) {
+    print('CREATE RIGHT DRAWER')
+
     var created = [];
 
     function create() {
         var success = Clipboard.importEntities(RIGHT_DESK_DRAWER_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -156,13 +155,12 @@ RightDeskDrawer = function(spawnLocation, spawnRotation) {
 }
 
 LeftDeskDrawer = function(spawnLocation, spawnRotation) {
-    print('CREATE Bookshelves')
+    print('CREATE LEFT DRAWER')
     var created = [];
 
     function create() {
         var success = Clipboard.importEntities(LEFT_DESK_DRAWER_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -185,7 +183,6 @@ Chair = function(spawnLocation, spawnRotation) {
     function create() {
         var success = Clipboard.importEntities(CHAIR_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -208,7 +205,6 @@ Trashcan = function(spawnLocation, spawnRotation) {
     function create() {
         var success = Clipboard.importEntities(TRASHCAN_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -232,7 +228,6 @@ Books = function(spawnLocation, spawnRotation) {
     function create() {
         var success = Clipboard.importEntities(BOOKS_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }

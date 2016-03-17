@@ -121,6 +121,7 @@
             //     y: 450,
             //     z: -77
             // });
+
             // var myPlant = new Plant(center);
 
 
@@ -158,19 +159,19 @@
             }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
             // var fruitBowl = new FruitBowl();
-            // var fruitBowl = new FruitBowl({
-            //     x: 1105.3185,
-            //     y: 460.3221,
-            //     z: 81.1803
-            // });
+            var fruitBowl = new FruitBowl({
+                x: 1105.3185,
+                y: 460.3221,
+                z: -381.1803
+            });
 
             var livingRoomLamp = new LivingRoomLamp({
                 x: 1104.6732,
                 y: 460.3326,
-                z: 81.9710
+                z: -81.9710
             });
 
-            var upperBookShelf = new UpperBookshelf({
+            var upperBookShelf = new UpperBookShelf({
                 x: 1106.2649,
                 y: 461.5352,
                 z: -80.3018
@@ -210,8 +211,8 @@
             //     z: -65.8513
             // });
 
-            // kineticEntities.push(fruitBowl);
-            // kineticEntities.push(livingRoomLamp);
+            kineticEntities.push(fruitBowl);
+            kineticEntities.push(livingRoomLamp);
             kineticEntities.push(upperBookShelf);
             kineticEntities.push(lowerBookShelf);
             kineticEntities.push(rightDeskDrawer);
