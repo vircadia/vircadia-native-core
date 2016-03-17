@@ -448,13 +448,15 @@
         var props = Entities.getEntityProperties(innerContainer, "boundingBox");
         var bounds = null;
         if (props.hasOwnProperty('boundingBox') === true) {
-            var bounds = props.boundingBox;
+             bounds = props.boundingBox;
         }
         if (bounds !== null) {
             lowerCorner = bounds.brn;
             upperCorner = bounds.tfl;
         } else {
             print('NO BOUNDS FOR TANK, returning!!')
+            print('INNER CONTAINER?' + innerContainer)
+            print('INNER PROPS :: ' + JSON.stringify(props));
             return;
         }
         // First pre-load an array with properties  on all the other fish so our per-fish loop
