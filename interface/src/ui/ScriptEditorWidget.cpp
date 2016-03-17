@@ -222,22 +222,32 @@ bool ScriptEditorWidget::questionSave() {
 
 void ScriptEditorWidget::onWindowActivated() {
     if (!_isReloading) {
+        auto window = static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent());
         _isReloading = true;
-        
-        if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
-            if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts()
-                || OffscreenUi::warning(this, _currentScript,
-                    tr("This file has been modified outside of the Interface editor.") + "\n\n"
-                        + (isModified()
-                        ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
-                        : tr("Do you want to reload it?")),
-                    QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+
+        QDateTime fileStamp = QFileInfo(_currentScript).lastModified();
+        if (fileStamp > _currentScriptModified) {
+            bool doReload = false;
+            window->inModalDialog = true;
+            if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts() ||
+                OffscreenUi::warning(this, _currentScript,
+                                     tr("This file has been modified outside of the Interface editor.") + "\n\n" +
+                                     (isModified() ?
+                                      tr("Do you want to reload it and lose the changes you've made in the Interface editor?") :
+                                      tr("Do you want to reload it?")),
+                                     QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+                doReload = true;
+            }
+            window->inModalDialog = false;
+            if (doReload) {
                 loadFile(_currentScript);
                 if (_scriptEditorWidgetUI->onTheFlyCheckBox->isChecked() && isRunning()) {
                     _isRestarting = true;
                     setRunning(false);
                     // Script is restarted once current script instance finishes.
                 }
+            } else {
+                _currentScriptModified = fileStamp;
             }
         }
         _isReloading = false;
