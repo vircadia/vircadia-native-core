@@ -180,11 +180,10 @@
                 z: 0
             }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
-            // var fruitBowl = new FruitBowl();
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
                 y: 460.3221,
-                z: -381.1803
+                z: -81.0752
             });
 
             var livingRoomLamp = new LivingRoomLamp({
@@ -224,15 +223,15 @@
             });
 
             var trashcan = new Trashcan({
-                x: 1104.0031,
+                x: 1106.2725,
                 y: 459.4355,
                 z: -82.7294
             });
 
             var books = new Books({
-                x: 1101.2123,
-                y: 460.2328,
-                z: -65.8513
+                x: 1106.1553,
+                y: 461.0325,
+                z: -80.4890
             });
 
             kineticEntities.push(fruitBowl);
