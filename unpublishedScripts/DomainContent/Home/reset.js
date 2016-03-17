@@ -31,7 +31,7 @@
 
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
 
-    var pingPingGunPath = Script.resolvePath("pingPingGun/wrapper.js?" + Math.random());
+    var pingPongGunPath = Script.resolvePath("pingPongGun/wrapper.js?" + Math.random());
 
     var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
 
@@ -109,6 +109,7 @@
             Script.include(tiltMazePath);
             Script.include(whiteboardPath);
             Script.include(plantPath);
+            Script.include(pingPongGunPath);
 
             var fishTank = new FishTank({
                 x: 1098.9254,
@@ -128,21 +129,31 @@
                 z: -77
             });
 
-            //var myPlant = new Plant(center);
+            var myPlant = new Plant({
+                x: 1099.8785,
+                y: 460.3115,
+                z: -84.7736
+            });
 
-            var pingPongGun = new PingPongGun({
+            var pingPongGun = new _PingPongGun({
                 x: 1101.2123,
                 y: 460.2328,
                 z: -65.8513
+            }, {
+                x: 97.3683,
+                y: 179.0293,
+                z: 89.9698
             });
-            dynamicEntities.push(pingPongGun);
+
+
 
             dynamicEntities.push(fishTank);
             dynamicEntities.push(tiltMaze);
             dynamicEntities.push(whiteboard);
-            // dynamicEntities.push(myPlant);
+            dynamicEntities.push(myPlant);
 
             //v2.0
+            dynamicEntities.push(pingPongGun);
             // var musicBox = new MusicBox();
             // var cuckooClock = new CuckooClock();
 
@@ -211,11 +222,13 @@
                 y: 459.7251,
                 z: -79.8097
             });
+
             var trashcan = new Trashcan({
                 x: 1104.0031,
                 y: 459.4355,
                 z: -82.7294
             });
+
             var books = new Books({
                 x: 1101.2123,
                 y: 460.2328,

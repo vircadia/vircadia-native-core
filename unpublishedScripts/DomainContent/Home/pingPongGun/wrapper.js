@@ -15,7 +15,7 @@ var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.
 var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.obj';
 var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
 
-PingPingGun = function(spawnPosition, spawnRotation) {
+_PingPongGun = function(spawnPosition, spawnRotation) {
   var pingPongGun = Entities.addEntity({
     type: "Model",
     modelURL: MODEL_URL,
@@ -28,6 +28,7 @@ PingPingGun = function(spawnPosition, spawnRotation) {
       y: 0.3875,
       z: 0.9931
     },
+    rotation:Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z),
     dynamic: true,
     collisionSoundURL: COLLISION_SOUND_URL,
     userData: JSON.stringify({
@@ -61,7 +62,9 @@ PingPingGun = function(spawnPosition, spawnRotation) {
     })
   });
 
-  function cleanUp() {
+  function cleanup() {
     Entities.deleteEntity(pingPongGun);
   }
+
+  this.cleanup = cleanup;
 }

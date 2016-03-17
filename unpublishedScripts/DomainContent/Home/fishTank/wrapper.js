@@ -404,8 +404,8 @@ FishTank = function(spawnPosition, spawnRotation) {
         Entities.deleteEntity(upperCorner);
         Entities.deleteEntity(urchin);
         Entities.deleteEntity(rocks);
-        bubbleInjector.stop();
-        bubbleInjector = null;
+        // bubbleInjector.stop();
+        // bubbleInjector = null;
     }
 
 
@@ -453,5 +453,5 @@ FishTank = function(spawnPosition, spawnRotation) {
     }
 
     this.cleanup = cleanup;
-    return this;
+
 }

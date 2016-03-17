@@ -33,7 +33,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     var markers = [];
 
 
-    var whiteboardPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
+    var whiteboardPosition = spawnPosition;
     var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-4.fbx";
     var WHITEBOARD_COLLISION_HULL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/whiteboardCollisionHull.obj";
     var whiteboard = Entities.addEntity({
@@ -92,7 +92,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser-2.fbx";
 
-    var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(whiteboardRotation)));
+    var eraserPosition = Vec3.sum(spawnPosition, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(whiteboardRotation)));
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
     var eraserRotation = markerRotation;
 
@@ -158,7 +158,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-black.fbx",
         ];
 
-        var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
+        var markerPosition = Vec3.sum(spawnPosition, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
 
         createMarker(modelURLS[0], markerPosition, {
             red: 10,

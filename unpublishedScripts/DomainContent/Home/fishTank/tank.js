@@ -445,10 +445,19 @@
 
         var userData = JSON.parse(_this.currentProperties.userData);
         var innerContainer = userData['hifi-home-fishtank']['innerContainer'];
-        var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
-        lowerCorner = bounds.brn;
-        upperCorner = bounds.tfl;
-
+        var props = Entities.getEntityProperties(innerContainer, "boundingBox");
+        var bounds = null;
+        if (props.hasOwnProperty('boundingBox') === true) {
+            var bounds = props.boundingBox;
+        }
+        if (bounds !== null) {
+            lowerCorner = bounds.brn;
+            upperCorner = bounds.tfl;
+        }
+        else{
+            print('NO BOUNDS FOR TANK, returning!!')
+            return;
+        }
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 
         var flockProperties = [];
