@@ -17,6 +17,7 @@
         _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;
         _this.checkTime = true;
         _this.cuckooSound = SoundCache.getSound(CUCKOO_SOUND_URL);
+        _this.CUCKOO_SOUND_VOLUME = 0.7;
 
     };
 
@@ -70,12 +71,11 @@
         update: function() {
             _this.clockBodyAnimationProps = Entities.getEntityProperties(_this.clockBody, "animation").animation;
             if (!_this.clockBodyAnimationProps) {
-                print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
+                // print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
                 return;
             }
 
             if (_this.checkTime === false) {
-                print("We are in our refractory period. Please wait.");
                 return;
             }
             var date = new Date();
@@ -97,7 +97,7 @@
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
 
             if(!_this.cuckooSoundInjector) {
-               _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {position: _this.position});
+               _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {position: _this.position, volume: _this.CUCKOO_SOUND_VOLUME});
             } else {
                 _this.cuckooSoundInjector.stop();
                 _this.cuckooSoundInjector.restart();
