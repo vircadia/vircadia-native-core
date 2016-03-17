@@ -68,4 +68,7 @@ _PingPongGun = function(spawnPosition, spawnRotation) {
   }
 
   this.cleanup = cleanup;
+
+      print('CREATED PING PONG GUN')
+
 }

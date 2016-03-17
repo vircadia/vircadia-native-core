@@ -281,5 +281,6 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     }
 
     this.cleanup = cleanup;
+    print('CREATED TILTMAZE')
 
 }

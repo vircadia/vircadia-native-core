@@ -58,7 +58,6 @@ Plant = function(spawnPosition, spawnRotation) {
     parentID: bowl
   });
 
-  print('CREATED PLANT:: '+ plant)
 
   var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx?v1" + Math.random();
 
@@ -143,5 +142,8 @@ Plant = function(spawnPosition, spawnRotation) {
   }
 
   this.cleanup = cleanup;
+
+    print('CREATED PLANT:: '+ plant)
+
 
 }

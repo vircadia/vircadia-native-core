@@ -455,5 +455,5 @@ FishTank = function(spawnPosition, spawnRotation) {
     }
 
     this.cleanup = cleanup;
-
+    print('CREATED FISH!');
 }

@@ -38,7 +38,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
         },
     });
 
-    print('whiteboard:' + whiteboard)
+
 
     var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
         x: 0.0,
@@ -242,4 +242,6 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     }
 
     this.cleanup = cleanup;
+
+    print('CREATED WHITEBOARD')
 }

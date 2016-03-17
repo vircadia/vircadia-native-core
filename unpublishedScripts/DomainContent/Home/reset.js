@@ -159,9 +159,9 @@
             dynamicEntities.push(fishTank);
             dynamicEntities.push(tiltMaze);
             dynamicEntities.push(whiteboard);
-            dynamicEntities.push(myPlant);
-            dynamicEntities.push(pingPongGun);
 
+            dynamicEntities.push(pingPongGun);
+            dynamicEntities.push(myPlant);
             //v2.0
 
             // var musicBox = new MusicBox();
