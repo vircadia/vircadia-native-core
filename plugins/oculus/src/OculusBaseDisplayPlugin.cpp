@@ -74,7 +74,7 @@ void OculusBaseDisplayPlugin::activate() {
 
     if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
+        qWarning() << "Could not attach to sensor device";
     }
 
     // Parent class relies on our _session intialization, so it must come after that.
@@ -86,11 +86,6 @@ void OculusBaseDisplayPlugin::activate() {
         ovrSizei & size = _sceneLayer.Viewport[eye].Size = ovr_GetFovTextureSize(_session, eye, fov, 1.0f);
         _sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
-
-    if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
-    }
 
     // This must come after the initialization, so that the values calculated 
     // above are available during the customizeContext call (when not running

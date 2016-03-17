@@ -106,11 +106,19 @@ public:
                 if (_newPlugin != nullptr) {
                     // Deactivate the old plugin
                     if (currentPlugin != nullptr) {
-                        currentPlugin->uncustomizeContext();
+                        try {
+                            currentPlugin->uncustomizeContext();
+                        } catch (const oglplus::Error& error) {
+                            qWarning() << "OpenGL error in uncustomizeContext: " << error.what();
+                        }
                         currentPlugin->enableDeactivate();
                     }
 
-                    _newPlugin->customizeContext();
+                    try {
+                        _newPlugin->customizeContext();
+                    } catch (const oglplus::Error& error) {
+                        qWarning() << "OpenGL error in customizeContext: " << error.what();
+                    }
                     currentPlugin = _newPlugin;
                     _newPlugin = nullptr;
                 }
@@ -127,7 +135,11 @@ public:
             // take the latest texture and present it
             _context->makeCurrent();
             if (isCurrentContext(_context->contextHandle())) {
-                currentPlugin->present();
+                try {
+                    currentPlugin->present();
+                } catch (const oglplus::Error& error) {
+                    qWarning() << "OpenGL error in presentation: " << error.what();
+                }
                 _context->doneCurrent();
             } else {
                 qWarning() << "Makecurrent failed";
