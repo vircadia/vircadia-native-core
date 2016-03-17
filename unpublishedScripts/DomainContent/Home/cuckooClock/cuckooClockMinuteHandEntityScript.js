@@ -40,7 +40,6 @@
         }
         //hook up callbacks to the baton
         baton.claim(startUpdate, stopUpdateAndReclaim);
-        stopUpdateAndReclaim();
     }
 
     CuckooClockMinuteHand.prototype = {
@@ -56,11 +55,14 @@
             }
             _this.clockBody = _this.userData.clockBody;
             // One winner for each entity
-            baton = virtualBaton({
-                batonName: "io.highfidelity.cuckooClock:" + _this.entityID
-            })
 
-            Script.update.connect(_this.update);
+            if(Entities.canRez() && Entities.canAdjustLocks){
+                baton = virtualBaton({
+                    batonName: "io.highfidelity.cuckooClock:" + _this.entityID
+                });
+                stopUpdateAndReclaim();
+            }
+        
         },
 
         unload: function() {
