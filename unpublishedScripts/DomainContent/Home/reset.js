@@ -37,6 +37,12 @@
 
     Script.include(kineticPath);
 
+    var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+        x: 0,
+        y: 0.5,
+        z: 0
+    }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+
     Reset.prototype = {
         tidying: false,
 
@@ -174,11 +180,7 @@
 
         createKineticEntities: function() {
 
-            var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-                x: 0,
-                y: 0.5,
-                z: 0
-            }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+
 
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
@@ -252,6 +254,10 @@
             kineticEntities.forEach(function(kineticEntity) {
                 kineticEntity.cleanup();
             })
+        },
+        unload: function() {
+            this.cleanupDynamicEntities();
+            this.cleanupKineticEntities();
         }
 
     }
