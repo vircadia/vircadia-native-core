@@ -48,6 +48,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var clockFacePosition = Vec3.sum(spawnPosition, clockFaceOffset);
     clockFace = Entities.addEntity({
       type: "Model",
+      parentID: clockBody,
       name: "home_model_clockface",
       modelURL: CLOCK_FACE_URL,
       position: clockFacePosition,
@@ -79,6 +80,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockHourHand = Entities.addEntity({
       type: "Model",
       name: "home_model_clockHourHand",
+      parentID: clockFace,
       modelURL: CLOCK_HOUR_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {
@@ -111,6 +113,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       type: "Model",
       modelURL: CLOCK_MINUTE_HAND_URL,
       name: "home_model_clockMinuteHand",
+      parentID: clockFace,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {
         x: 0.5,
@@ -140,6 +143,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
     clockSecondHand = Entities.addEntity({
       type: "Box",
+      parentID: clockFace,
       // modelURL: CLOCK_SECOND_HAND_URL,
       name: "home_model_clockSecondHand",
       position: Vec3.sum(clockFacePosition, clockHandOffset),
