@@ -10,12 +10,8 @@
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
 
-void OculusDisplayPlugin::activate() {
-    OculusBaseDisplayPlugin::activate();
-}
-
 void OculusDisplayPlugin::customizeContext() {
-    OculusBaseDisplayPlugin::customizeContext();
+    Parent::customizeContext();
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_session));
     _sceneFbo->Init(getRecommendedRenderSize());
 
@@ -34,7 +30,7 @@ void OculusDisplayPlugin::uncustomizeContext() {
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo.reset();
 #endif
-    OculusBaseDisplayPlugin::uncustomizeContext();
+    Parent::uncustomizeContext();
 }
 
 

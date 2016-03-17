@@ -498,12 +498,7 @@ void OffscreenQmlSurface::updateQuick() {
         _render = false;
     }
 
-    GLuint newTexture = _renderer->_escrow.fetch();
-    if (newTexture) {
-        if (_currentTexture) {
-            _renderer->_escrow.release(_currentTexture);
-        }
-        _currentTexture = newTexture;
+    if (_renderer->_escrow.fetchSignaledAndRelease(_currentTexture)) {
         emit textureUpdated(_currentTexture);
     }
 }

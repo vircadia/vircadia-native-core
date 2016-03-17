@@ -50,7 +50,7 @@ static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 const QString ViveControllerManager::NAME = "OpenVR";
 
 bool ViveControllerManager::isSupported() const {
-    return vr::VR_IsHmdPresent();
+    return !isOculusPresent() && vr::VR_IsHmdPresent();
 }
 
 void ViveControllerManager::activate() {

@@ -9,10 +9,10 @@
 
 #include <QtGlobal>
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include "../OpenGLDisplayPlugin.h"
 
-class HmdDisplayPlugin : public WindowOpenGLDisplayPlugin {
-    using Parent = WindowOpenGLDisplayPlugin;
+class HmdDisplayPlugin : public OpenGLDisplayPlugin {
+    using Parent = OpenGLDisplayPlugin;
 public:
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
@@ -25,13 +25,12 @@ public:
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
 
-    void activate() override;
-    void deactivate() override;
 
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
 
+    void internalActivate() override;
     void compositeOverlay() override;
     void compositePointer() override;
     void internalPresent() override;
