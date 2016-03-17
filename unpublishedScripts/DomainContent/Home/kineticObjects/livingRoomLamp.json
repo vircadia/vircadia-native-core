@@ -1,0 +1,36 @@
+{
+    "Entities": [
+        {
+            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Little-Lamp.obj",
+            "created": "2016-03-16T01:04:38Z",
+            "dimensions": {
+                "x": 0.63867169618606567,
+                "y": 0.75600343942642212,
+                "z": 0.22696791589260101
+            },
+            "id": "{ee167d6d-3901-469a-86df-baf787691997}",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Little-Lamp-White-4.fbx",
+            "position": {
+                "x": 1104.701171875,
+                "y": 460.98452758789062,
+                "z": 0
+            },
+            "queryAACube": {
+                "scale": 1.0153605937957764,
+                "x": 1104.1934814453125,
+                "y": 460.47683715820312,
+                "z": -0.50768029689788818
+            },
+            "rotation": {
+                "w": 0.69259178638458252,
+                "x": -0.0070344209671020508,
+                "y": -0.72118711471557617,
+                "z": 0.013168573379516602
+            },
+            "shapeType": "compound",
+            "type": "Model",
+            "userData": "{\"grabbableKey\":{\"grabbable\":true,\"wantsTrigger\":true}}"
+        }
+    ],
+    "Version": 57
+}

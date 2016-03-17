@@ -19,7 +19,7 @@
 
     function Reset() {
         _this = this;
-    };
+    }
 
     var utilsPath = Script.resolvePath('utils.js');
 
@@ -32,6 +32,8 @@
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
 
     var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+    Script.include(kineticPath);
+
 
     Reset.prototype = {
         preload: function(entityID) {
@@ -72,7 +74,10 @@
                     _this.tidying = false;
                 }, 2500);
                 _this.cleanupDynamicEntities();
+                _this.cleanupKineticEntities();
+                _this.createKineticEntities();
                 _this.createDynamicEntities();
+
             }
         },
 
@@ -145,52 +150,83 @@
         },
 
         createKineticEntities: function() {
-            var fruitBowl = new FruitBowl({
-                x: 1105.3185,
-                y: 460.3221,
-                z: 81.1803
-            });
-            //var labLamp = new LabLamp();
+
+            var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+                x: 0,
+                y: 0.5,
+                z: 0
+            }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+
+            // var fruitBowl = new FruitBowl();
+            // var fruitBowl = new FruitBowl({
+            //     x: 1105.3185,
+            //     y: 460.3221,
+            //     z: 81.1803
+            // });
+
             var livingRoomLamp = new LivingRoomLamp({
                 x: 1104.6732,
                 y: 460.3326,
                 z: 81.9710
             });
+
             var upperBookShelf = new UpperBookshelf({
                 x: 1106.2649,
                 y: 461.5352,
                 z: -80.3018
             });
+
             var lowerBookShelf = new LowerBookShelf({
                 x: 1106.2725,
                 y: 460.9600,
-                z: 80.2837
-            });
-            var chair = new Chair({
-                x: 1105.2716,
-                y: 459.7251,
-                z: 79.8097
-            });
-            var trashcan = new Trashcan({
-                x: 1104.0031,
-                y: 459.4355,
-                z: -82.7294
-            });
-            var books = new Books({
-                x: 1101.2123,
-                y: 460.2328,
-                z: -65.8513
+                z: -80.2837
             });
 
-            kineticEntities.push(fruitBowl);
-            kineticEntities.push(livingRoomLamp);
+            var rightDeskDrawer= new RightDeskDrawer({
+                x:1105.1735,
+                y: 460.0446,
+                z: -81.3612
+            });
+
+            var leftDeskDrawer = new LeftDeskDrawer({
+                x: 1104.6478,
+                y: 460.0463,
+                z: -82.1095
+            });
+
+            // var chair = new Chair({
+            //     x: 1105.2716,
+            //     y: 459.7251,
+            //     z: 79.8097
+            // });
+            // var trashcan = new Trashcan({
+            //     x: 1104.0031,
+            //     y: 459.4355,
+            //     z: -82.7294
+            // });
+            // var books = new Books({
+            //     x: 1101.2123,
+            //     y: 460.2328,
+            //     z: -65.8513
+            // });
+
+            // kineticEntities.push(fruitBowl);
+            // kineticEntities.push(livingRoomLamp);
             kineticEntities.push(upperBookShelf);
-            kineticEntities.push(chair);
-            kineticEntities.push(trashcan);
-            kineticEntities.push(books);
+            kineticEntities.push(lowerBookShelf);
+            kineticEntities.push(rightDeskDrawer);
+            kineticEntities.push(leftDeskDrawer);
+            // kineticEntities.push(chair);
+            // kineticEntities.push(trashcan);
+            // kineticEntities.push(books);
         },
         cleanupKineticEntities: function() {
-
+            if (kineticEntities.length === 0) {
+                return;
+            }
+            kineticEntities.forEach(function(kineticEntity) {
+                kineticEntity.cleanup();
+            })
         }
 
     }
