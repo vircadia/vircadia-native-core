@@ -55,6 +55,7 @@ void releaseOpenVrSystem() {
         if (0 == refCount) {
             qCDebug(displayplugins) << "openvr: zero refcount, deallocate VR system";
             vr::VR_Shutdown();
+            activeHmd = nullptr;
         }
     }
 }
