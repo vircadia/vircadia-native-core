@@ -20,13 +20,19 @@ using namespace std::chrono;
 
 static const double USECS_PER_SECOND = 1000000.0;
 
+void CongestionControl::setMaxBandwidth(int maxBandwidth) {
+    _maxBandwidth = maxBandwidth;
+    setPacketSendPeriod(_packetSendPeriod);
+}
+
 void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
     Q_ASSERT_X(newSendPeriod >= 0, "CongestionControl::setPacketPeriod", "Can not set a negative packet send period");
-    
-    if (_maxBandwidth > 0) {
+
+    auto maxBandwidth = _maxBandwidth.load();
+    if (maxBandwidth > 0) {
         // anytime the packet send period is about to be increased, make sure it stays below the minimum period,
         // calculated based on the maximum desired bandwidth
-        double minPacketSendPeriod = USECS_PER_SECOND / (((double) _maxBandwidth) / _mss);
+        double minPacketSendPeriod = USECS_PER_SECOND / (((double) maxBandwidth) / _mss);
         _packetSendPeriod = std::max(newSendPeriod, minPacketSendPeriod);
     } else {
         _packetSendPeriod = newSendPeriod;

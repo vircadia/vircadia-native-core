@@ -12,6 +12,7 @@
 #ifndef hifi_CongestionControl_h
 #define hifi_CongestionControl_h
 
+#include <atomic>
 #include <memory>
 #include <vector>
 #include <memory>
@@ -37,6 +38,7 @@ public:
     virtual ~CongestionControl() {}
     
     int synInterval() const { return _synInterval; }
+    void setMaxBandwidth(int maxBandwidth);
 
     virtual void init() {}
     virtual void onACK(SequenceNumber ackNum) {}
@@ -49,7 +51,6 @@ protected:
     void setMSS(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
-    void setMaxBandwidth(int maxBandwidth) { _maxBandwidth = maxBandwidth; }
     virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) = 0;
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
     void setReceiveRate(int rate) { _receiveRate = rate; }
@@ -60,7 +61,7 @@ protected:
     double _congestionWindowSize { 16.0 }; // Congestion window size, in packets
     
     int _bandwidth { 0 }; // estimated bandwidth, packets per second
-    int _maxBandwidth { -1 }; // Maximum desired bandwidth, packets per second
+    std::atomic<int> _maxBandwidth { -1 }; // Maximum desired bandwidth, bytes per second
     double _maxCongestionWindowSize { 0.0 }; // maximum cwnd size, in packets
     
     int _mss { 0 }; // Maximum Packet Size, including all packet headers

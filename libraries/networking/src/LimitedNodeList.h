@@ -219,6 +219,8 @@ public:
 
     udt::Socket::StatsVector sampleStatsForAllConnections() { return _nodeSocket.sampleStatsForAllConnections(); }
 
+    void setConnectionMaxBandwidth(int maxBandwidth) { _nodeSocket.setConnectionMaxBandwidth(maxBandwidth); }
+
 public slots:
     void reset();
     void eraseAllNodes();
