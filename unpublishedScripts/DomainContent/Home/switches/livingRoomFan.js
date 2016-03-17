@@ -22,7 +22,6 @@
         },
 
         fanRotationOn: function() {
-            print("EBL TURN FAN ON" + JSON.stringify(_this.fan));
           var success=  Entities.editEntity(_this.fan, {
                 angularDamping: 0,
                 angularVelocity: {
@@ -34,14 +33,8 @@
         },
 
         fanRotationOff: function() {
-            print("EBL TURN FAN OFF")
             Entities.editEntity(_this.fan, {
                 angularDamping: 0.5,
-                // angularVelocity:{
-                //     x:0,
-                //     y:0,
-                //     z:0
-                // }
             })
         },
 
