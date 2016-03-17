@@ -113,6 +113,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TANK_MODEL_URL,
             dimensions: TANK_DIMENSIONS,
             position: TANK_POSITION,
+            rotation:spawnRotation,
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,

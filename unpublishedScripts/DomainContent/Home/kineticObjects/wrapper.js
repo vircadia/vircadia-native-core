@@ -42,7 +42,7 @@ LabLamp = function(spawnLocation, spawnRotation) {
     var created = [];
 
     function create() {
-        var success = Clipboard.importEntities(FRUIT_BOWL_URL);
+        var success = Clipboard.importEntities(LAB_LAMP_URL);
         if (success === true) {
             hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
@@ -65,7 +65,7 @@ LivingRoomLamp = function(spawnLocation, spawnRotation) {
     var created = [];
 
     function create() {
-        var success = Clipboard.importEntities(FRUIT_BOWL_URL);
+        var success = Clipboard.importEntities(LIVING_ROOM_LAMP_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
