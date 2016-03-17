@@ -174,7 +174,9 @@
         },
 
         cleanupDynamicEntities: function() {
+            print('SHOULD CLEANUP DYNAMIC')
             if (dynamicEntities.length === 0) {
+                print('NO DYNAMIC ENTITIES')
                 return;
             }
             dynamicEntities.forEach(function(dynamicEntity) {
