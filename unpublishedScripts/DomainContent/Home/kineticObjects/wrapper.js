@@ -1,16 +1,16 @@
 print('KINETIC INCLUDING WRAPPER')
 
-var BOOKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/books.json'+ "?"+Math.random();
-var UPPER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/upperBookShelf.json'+ "?"+Math.random();
-var LOWER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/lowerBookShelf.json'+ "?"+Math.random();
-var RIGHT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/rightDeskDrawer.json'+ "?"+Math.random();
-var LEFT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/leftDeskDrawer.json'+ "?"+Math.random();
-var CHAIR_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/chair.json'+ "?"+Math.random();
-var DESK_DRAWERS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskDrawers.json'+ "?"+Math.random();
-var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/fruit.json'+ "?"+Math.random()
-var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/labLamp.json'+ "?"+Math.random();
-var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/livingRoomLamp.json'+ "?"+Math.random();
-var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json'+ "?"+Math.random();
+var BOOKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/books.json' + "?" + Math.random();
+var UPPER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/upperBookShelf.json' + "?" + Math.random();
+var LOWER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/lowerBookShelf.json' + "?" + Math.random();
+var RIGHT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/rightDeskDrawer.json' + "?" + Math.random();
+var LEFT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/leftDeskDrawer.json' + "?" + Math.random();
+var CHAIR_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/chair.json' + "?" + Math.random();
+var DESK_DRAWERS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskDrawers.json' + "?" + Math.random();
+var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/fruit.json' + "?" + Math.random()
+var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/labLamp.json' + "?" + Math.random();
+var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/livingRoomLamp.json' + "?" + Math.random();
+var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json' + "?" + Math.random();
 
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
@@ -26,7 +26,6 @@ FruitBowl = function(spawnLocation, spawnRotation) {
     };
 
     function cleanup() {
-        print('CLEANUP FRUIT')
         created.forEach(function(obj) {
             Entities.deleteEntity(obj);
         })
@@ -39,6 +38,10 @@ FruitBowl = function(spawnLocation, spawnRotation) {
 }
 
 LabLamp = function(spawnLocation, spawnRotation) {
+
+    print('CREATE LAB  LAMP')
+
+
     var created = [];
 
     function create() {
@@ -62,6 +65,7 @@ LabLamp = function(spawnLocation, spawnRotation) {
 }
 
 LivingRoomLamp = function(spawnLocation, spawnRotation) {
+    print('CREATE LIVING ROOM LAMP')
     var created = [];
 
     function create() {
@@ -178,6 +182,7 @@ LeftDeskDrawer = function(spawnLocation, spawnRotation) {
 }
 
 Chair = function(spawnLocation, spawnRotation) {
+    print('CREATE CHAIR')
     var created = [];
 
     function create() {
@@ -200,6 +205,7 @@ Chair = function(spawnLocation, spawnRotation) {
 }
 
 Trashcan = function(spawnLocation, spawnRotation) {
+    print('CREATE TRASHCAN')
     var created = [];
 
     function create() {
@@ -223,6 +229,7 @@ Trashcan = function(spawnLocation, spawnRotation) {
 }
 
 Books = function(spawnLocation, spawnRotation) {
+    print('CREATE BOOKS')
     var created = [];
 
     function create() {

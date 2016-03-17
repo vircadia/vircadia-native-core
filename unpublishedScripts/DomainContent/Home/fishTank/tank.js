@@ -454,8 +454,8 @@
             lowerCorner = bounds.brn;
             upperCorner = bounds.tfl;
         } else {
-            print('NO BOUNDS FOR TANK, returning!!')
-            print('INNER CONTAINER?' + innerContainer)
+            print('NO BOUNDS FOR TANK, returning!!');
+            print('INNER CONTAINER?' + innerContainer);
             print('INNER PROPS :: ' + JSON.stringify(props));
             return;
         }

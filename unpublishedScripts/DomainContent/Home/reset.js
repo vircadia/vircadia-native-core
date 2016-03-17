@@ -85,8 +85,11 @@
                 }, 2500);
                 _this.cleanupDynamicEntities();
                 _this.cleanupKineticEntities();
-                _this.createKineticEntities();
-                _this.createDynamicEntities();
+                Script.setTimeout(function() {
+                    _this.createKineticEntities();
+                    _this.createDynamicEntities();
+                }, 500)
+
 
             }
         },
@@ -163,7 +166,7 @@
             dynamicEntities.push(pingPongGun);
             dynamicEntities.push(myPlant);
             //v2.0
-
+            print('DYNAMIC ENTITIES AFTER CREATE:::' + dynamicEntities.length)
             // var musicBox = new MusicBox();
             // var cuckooClock = new CuckooClock();
 
