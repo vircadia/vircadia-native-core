@@ -48,9 +48,11 @@ QStringList FBXGeometry::getJointNames() const {
 }
 
 bool FBXGeometry::hasBlendedMeshes() const {
-    foreach (const FBXMesh& mesh, meshes) {
-        if (!mesh.blendshapes.isEmpty()) {
-            return true;
+    if (!meshes.isEmpty()) {
+        foreach (const FBXMesh& mesh, meshes) {
+            if (!mesh.blendshapes.isEmpty()) {
+                return true;
+            }
         }
     }
     return false;

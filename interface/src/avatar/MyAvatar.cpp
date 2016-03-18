@@ -167,11 +167,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
         }
 
         auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
-        if (recordingInterface->getPlayerUseHeadModel() && dummyAvatar.getFaceModelURL().isValid() &&
-            (dummyAvatar.getFaceModelURL() != getFaceModelURL())) {
-            // FIXME
-            //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
-        }
 
         if (recordingInterface->getPlayerUseSkeletonModel() && dummyAvatar.getSkeletonModelURL().isValid() &&
             (dummyAvatar.getSkeletonModelURL() != getSkeletonModelURL())) {
@@ -1009,13 +1004,6 @@ void MyAvatar::clearJointsData() {
     _rig->clearJointStates();
 }
 
-void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
-
-    Avatar::setFaceModelURL(faceModelURL);
-    render::ScenePointer scene = qApp->getMain3DScene();
-    getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
-}
-
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     Avatar::setSkeletonModelURL(skeletonModelURL);
@@ -1049,10 +1037,6 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         } else {
             _fullAvatarModelName = modelName;
         }
-    }
-
-    if (!getFaceModelURLString().isEmpty()) {
-        setFaceModelURL(QString());
     }
 
     const QString& urlString = fullAvatarURL.toString();

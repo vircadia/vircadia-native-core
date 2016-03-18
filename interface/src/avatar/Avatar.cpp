@@ -296,7 +296,6 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     _renderItemID = scene->allocateID();
     pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel.addToScene(scene, pendingChanges);
-    getHead()->getFaceModel().addToScene(scene, pendingChanges);
 
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, pendingChanges);
@@ -309,7 +308,6 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     pendingChanges.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
     _skeletonModel.removeFromScene(scene, pendingChanges);
-    getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, pendingChanges);
     }
@@ -426,7 +424,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             const float LIGHT_EXPONENT = 1.0f;
             const float LIGHT_CUTOFF = glm::radians(80.0f);
             float distance = BASE_LIGHT_DISTANCE * getUniformScale();
-            glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
+            glm::vec3 position = _skeletonModel.getTranslation();
             glm::quat orientation = getOrientation();
             foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
@@ -543,11 +541,6 @@ void Avatar::fixupModelsInScene() {
         _skeletonModel.removeFromScene(scene, pendingChanges);
         _skeletonModel.addToScene(scene, pendingChanges);
     }
-    Model& faceModel = getHead()->getFaceModel();
-    if (faceModel.isRenderable() && faceModel.needsFixupInScene()) {
-        faceModel.removeFromScene(scene, pendingChanges);
-        faceModel.addToScene(scene, pendingChanges);
-    }
     for (auto& attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
@@ -564,14 +557,7 @@ void Avatar::fixupModelsInScene() {
 }
 
 void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
-
     fixupModelsInScene();
-
-    {
-        if (_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable()) {
-            getHead()->render(renderArgs, 1.0f, renderFrustum);
-        }
-    }
     getHead()->renderLookAts(renderArgs);
 }
 
@@ -872,11 +858,6 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
     positionToScale = getPosition() + getUniformScale() * (positionToScale - getPosition());
 }
 
-void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
-    AvatarData::setFaceModelURL(faceModelURL);
-    getHead()->getFaceModel().setURL(_faceModelURL);
-}
-
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel.setURL(_skeletonModelURL);
@@ -1009,17 +990,7 @@ float Avatar::getSkeletonHeight() const {
 }
 
 float Avatar::getHeadHeight() const {
-    Extents extents = getHead()->getFaceModel().getMeshExtents();
-    if (!extents.isEmpty() && extents.isValid()) {
-
-        // HACK: We have a really odd case when fading out for some models where this value explodes
-        float result = extents.maximum.y - extents.minimum.y;
-        if (result >= 0.0f && result < 100.0f * getUniformScale() ) {
-            return result;
-        }
-    }
-
-    extents = _skeletonModel.getMeshExtents();
+    Extents extents = _skeletonModel.getMeshExtents();
     glm::vec3 neckPosition;
     if (!extents.isEmpty() && extents.isValid() && _skeletonModel.getNeckPosition(neckPosition)) {
         return extents.maximum.y / 2.0f - neckPosition.y + getPosition().y;
