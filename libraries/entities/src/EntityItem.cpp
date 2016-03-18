@@ -1157,6 +1157,12 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
+    AACube saveQueryAACube = _queryAACube;
+    checkAndAdjustQueryAACube();
+    if (saveQueryAACube != _queryAACube) {
+        somethingChanged = true;
+    }
+
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
         #ifdef WANT_DEBUG
