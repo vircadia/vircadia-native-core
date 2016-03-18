@@ -107,7 +107,7 @@ public:
     virtual void onTimeout();
 
 protected:
-    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) { _slowStartLastACK = seqNum; }
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum);
 
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout

@@ -148,6 +148,7 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         // check if we should skip handling of this loss event
         // we do this if this congestion event represents only a single packet loss
         if (rangeStart == rangeEnd) {
+            qDebug() << "Skipping a first loss event";
             return;
         }
 
@@ -212,4 +213,9 @@ void DefaultCC::stopSlowStart() {
         // using the method below.
         _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
     }
+}
+
+void DefaultCC::setInitialSendSequenceNumber(udt::SequenceNumber seqNum) {
+    _slowStartLastACK = seqNum;
+    _lastDecreaseMaxSeq = seqNum - 1;
 }
