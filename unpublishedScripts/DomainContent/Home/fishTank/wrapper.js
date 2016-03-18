@@ -105,6 +105,13 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: 0.1020
     }
 
+    var LOWER_CORNER_VERTICAL_OFFSET = -TANK_DIMENSIONS.y / 2;
+    var LOWER_CORNER_FORWARD_OFFSET = TANK_DIMENSIONS.x;
+    var LOWER_CORNER_LATERAL_OFFSET = -TANK_DIMENSIONS.z/8;
+
+    var UPPER_CORNER_VERTICAL_OFFSET = TANK_DIMENSIONS.y / 2;;
+    var UPPER_CORNER_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
+    var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z/8;
 
     function createFishTank() {
         var tankProperties = {
@@ -113,7 +120,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TANK_MODEL_URL,
             dimensions: TANK_DIMENSIONS,
             position: TANK_POSITION,
-            rotation:spawnRotation,
+            rotation: spawnRotation,
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
@@ -121,7 +128,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         }
 
         if (spawnRotation !== undefined) {
-            tankProperties.rotation = Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z)
+            tankProperties.rotation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z)
         }
 
         fishTank = Entities.addEntity(tankProperties);
@@ -247,7 +254,6 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     function createEntitiesAtCorners() {
 
-        var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
 
         var lowerProps = {
             name: 'hifi-home-fishtank-lower-corner',
@@ -264,8 +270,8 @@ FishTank = function(spawnPosition, spawnRotation) {
                 blue: 0
             },
             collisionless: true,
-            position: bounds.brn,
-            visible: false
+            position: getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET),
+            visible: true
         }
 
         var upperProps = {
@@ -283,8 +289,8 @@ FishTank = function(spawnPosition, spawnRotation) {
                 blue: 0
             },
             collisionless: true,
-            position: bounds.tfl,
-            visible: false
+            position: getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET),
+            visible: true
         }
 
         lowerCorner = Entities.addEntity(lowerProps);
@@ -380,13 +386,8 @@ FishTank = function(spawnPosition, spawnRotation) {
     var data = {
         fishLoaded: false,
         bubbleSystem: bubbleSystem,
-        bubbleSound: bubbleSound,
-        corners: {
-            brn: lowerCorner,
-            tfl: upperCorner
-        },
+        // bubbleSound: bubbleSound,
         innerContainer: innerContainer,
-
     }
 
     Script.setTimeout(function() {

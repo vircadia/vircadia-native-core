@@ -79,16 +79,17 @@
                 _this.tidying = true;
                 _this.showTidyingButton();
                 _this.playTidyingSound();
+                _this.cleanupDynamicEntities();
+                _this.cleanupKineticEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
                     _this.tidying = false;
                 }, 2500);
-                _this.cleanupDynamicEntities();
-                _this.cleanupKineticEntities();
+
                 Script.setTimeout(function() {
                     _this.createKineticEntities();
                     _this.createDynamicEntities();
-                }, 500)
+                }, 750)
 
 
             }
@@ -189,8 +190,6 @@
         },
 
         createKineticEntities: function() {
-
-
 
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
