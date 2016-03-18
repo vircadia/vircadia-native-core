@@ -38,7 +38,7 @@ void AvatarUpdate::synchronousProcess() {
 
     // transform the head pose from the displayPlugin into avatar coordinates.
     glm::mat4 invAvatarMat = glm::inverse(createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()));
-    _headPose = invAvatarMat * (myAvatar->getSensorToWorldMatrix() * qApp->getActiveDisplayPlugin()->getHeadPose(frameCount));
+    _headPose = invAvatarMat * (myAvatar->getSensorToWorldMatrix() * qApp->getActiveDisplayPlugin()->getHeadPose());
 
     if (!isThreaded()) {
         process();

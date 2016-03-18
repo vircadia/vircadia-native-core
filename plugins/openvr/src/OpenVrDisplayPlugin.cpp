@@ -38,7 +38,7 @@ static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return !isOculusPresent() && vr::VR_IsHmdPresent();
+    return /*!isOculusPresent() &&*/ vr::VR_IsHmdPresent();
 }
 
 void OpenVrDisplayPlugin::internalActivate() {
@@ -112,7 +112,7 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
+glm::mat4 OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
 
     float displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     float frameDuration = 1.f / displayFrequency;
@@ -139,14 +139,21 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
         _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
         _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
+
+    _headPoseCache.set(_trackedDevicePoseMat4[0]);
+
     return _trackedDevicePoseMat4[0];
+}
+
+glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
+    return _headPoseCache.get();
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-    
+
     vr::Texture_t texture { (void*)oglplus::GetName(_compositeFramebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
 
     _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
