@@ -54,7 +54,7 @@ private:
     //ovrTexture _eyeTextures[2]; // FIXME - not currently in use
     mutable int _hmdScreen { -1 };
     bool _hswDismissed { false };
-    ThreadSafeValueCache _headPoseCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _headPoseCache { glm::mat4() };
 };
 
 
