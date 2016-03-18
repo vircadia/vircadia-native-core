@@ -122,9 +122,7 @@ public:
     }
 
     // will query the underlying hmd api to compute the most recent head pose
-    virtual glm::mat4 updateHeadPose(uint32_t frameIndex) {
-        return glm::mat4();
-    }
+    virtual void updateHeadPose(uint32_t frameIndex) {}
 
     // returns a copy of the most recent head pose, computed via updateHeadPose
     virtual glm::mat4 getHeadPose() const {

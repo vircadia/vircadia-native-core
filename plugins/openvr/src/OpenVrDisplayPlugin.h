@@ -28,7 +28,7 @@ public:
 
     // Stereo specific methods
     virtual void resetSensors() override;
-    virtual glm::mat4 updateHeadPose(uint32_t frameIndex) override;
+    virtual void updateHeadPose(uint32_t frameIndex) override;
     virtual glm::mat4 getHeadPose() const override;
 
 protected:

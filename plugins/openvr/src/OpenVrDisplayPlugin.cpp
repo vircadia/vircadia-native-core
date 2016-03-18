@@ -112,7 +112,7 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-glm::mat4 OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
+void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
 
     float displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     float frameDuration = 1.f / displayFrequency;
@@ -141,8 +141,6 @@ glm::mat4 OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     }
 
     _headPoseCache.set(_trackedDevicePoseMat4[0]);
-
-    return _trackedDevicePoseMat4[0];
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {

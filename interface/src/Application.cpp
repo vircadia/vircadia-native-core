@@ -1418,6 +1418,12 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
+    // Tell the plugin what pose we're using to render.  In this case we're just using the
+    // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
+    // for rotational timewarp.  If we move to support positonal timewarp, we need to
+    // ensure this contains the full pose composed with the eye offsets.
+    displayPlugin->updateHeadPose(_frameCount);
+
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
 
@@ -1598,12 +1604,7 @@ void Application::paintGL() {
             auto baseProjection = renderArgs._viewFrustum->getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
-
-            // Tell the plugin what pose we're using to render.  In this case we're just using the
-            // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-            // for rotational timewarp.  If we move to support positonal timewarp, we need to
-            // ensure this contains the full pose composed with the eye offsets.
-            mat4 headPose = displayPlugin->updateHeadPose(_frameCount);
+            mat4 headPose = displayPlugin->getHeadPose();
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user

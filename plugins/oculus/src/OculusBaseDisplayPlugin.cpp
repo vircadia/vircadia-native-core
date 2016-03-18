@@ -15,16 +15,11 @@ void OculusBaseDisplayPlugin::resetSensors() {
     ovr_RecenterPose(_session);
 }
 
-glm::mat4 OculusBaseDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
-    static uint32_t lastFrameSeen = 0;
+void OculusBaseDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     auto displayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, displayTime, frameIndex > lastFrameSeen);
-    if (frameIndex > lastFrameSeen) {
-        lastFrameSeen = frameIndex;
-    }
+    auto trackingState = ovr_GetTrackingState(_session, displayTime, true);
     mat4 headPose = toGlm(trackingState.HeadPose.ThePose);
     _headPoseCache.set(headPose);
-    return headPose;
 }
 
 glm::mat4 OculusBaseDisplayPlugin::getHeadPose() const {
