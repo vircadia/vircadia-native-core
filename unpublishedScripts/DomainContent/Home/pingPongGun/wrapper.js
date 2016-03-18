@@ -28,12 +28,15 @@ _PingPongGun = function(spawnPosition, spawnRotation) {
       y: 0.3875,
       z: 0.9931
     },
-    rotation:Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z),
+    rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
     dynamic: true,
     collisionSoundURL: COLLISION_SOUND_URL,
     userData: JSON.stringify({
       grabbableKey: {
         invertSolidWhileHeld: true
+      },
+      'hifiHomeKey': {
+        'reset': true
       },
       wearable: {
         joints: {
@@ -69,6 +72,6 @@ _PingPongGun = function(spawnPosition, spawnRotation) {
 
   this.cleanup = cleanup;
 
-      print('CREATED PING PONG GUN')
+  print('CREATED PING PONG GUN')
 
 }

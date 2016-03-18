@@ -79,8 +79,10 @@
                 _this.tidying = true;
                 _this.showTidyingButton();
                 _this.playTidyingSound();
-                _this.cleanupDynamicEntities();
-                _this.cleanupKineticEntities();
+
+                _this.findAndDeleteHomeEntities();
+                // _this.cleanupDynamicEntities();
+                // _this.cleanupKineticEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
                     _this.tidying = false;
@@ -158,21 +160,18 @@
                 z: 89.9698
             });
 
-
-
-            dynamicEntities.push(fishTank);
-            dynamicEntities.push(tiltMaze);
-            dynamicEntities.push(whiteboard);
-
-            dynamicEntities.push(pingPongGun);
-            dynamicEntities.push(myPlant);
             //v2.0
-            print('DYNAMIC ENTITIES AFTER CREATE:::' + dynamicEntities.length)
-                // var musicBox = new MusicBox();
-                // var cuckooClock = new CuckooClock();
-
-
+            // var musicBox = new MusicBox();
+            // var cuckooClock = new CuckooClock();
             // var doppelganger = new Doppelganger();
+
+            // dynamicEntities.push(fishTank);
+            // dynamicEntities.push(tiltMaze);
+            // dynamicEntities.push(whiteboard);
+            // dynamicEntities.push(pingPongGun);
+            // dynamicEntities.push(myPlant);
+            // print('DYNAMIC ENTITIES AFTER CREATE:::' + dynamicEntities.length)
+
 
 
         },
@@ -245,15 +244,15 @@
                 z: -80.4890
             });
 
-            kineticEntities.push(fruitBowl);
-            kineticEntities.push(livingRoomLamp);
-            kineticEntities.push(upperBookShelf);
-            kineticEntities.push(lowerBookShelf);
-            kineticEntities.push(rightDeskDrawer);
-            kineticEntities.push(leftDeskDrawer);
-            kineticEntities.push(chair);
-            kineticEntities.push(trashcan);
-            kineticEntities.push(books);
+            // kineticEntities.push(fruitBowl);
+            // kineticEntities.push(livingRoomLamp);
+            // kineticEntities.push(upperBookShelf);
+            // kineticEntities.push(lowerBookShelf);
+            // kineticEntities.push(rightDeskDrawer);
+            // kineticEntities.push(leftDeskDrawer);
+            // kineticEntities.push(chair);
+            // kineticEntities.push(trashcan);
+            // kineticEntities.push(books);
         },
 
         cleanupKineticEntities: function() {
@@ -265,9 +264,29 @@
                 kineticEntity.cleanup();
             })
         },
+        findAndDeleteHomeEntities: function() {
+            var results = Entities.findEntities(_this.position, 1000);
+            var found = [];
+            results.forEach(function(result) {
+                var properties = Entities.getEntityProperties(result);
+                var userData = null;
+                try {
+                    userData = JSON.parse(properties.userData);
+                } catch (err) {
+                    // print('error parsing json');
+                    // print('properties are:' + properties.userData);
+                    return;
+                }
+                if (userData.hifiHomeKey.reset === true) {
+                    Entities.deleteEntity(result);
+                }
+
+            })
+        },
         unload: function() {
-            this.cleanupDynamicEntities();
-            this.cleanupKineticEntities();
+            this.findAndDeleteHomeEntities();
+            // this.cleanupDynamicEntities();
+            // this.cleanupKineticEntities();
         }
 
     }

@@ -36,6 +36,11 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             y: 2.7,
             z: 0.4636
         },
+        userData: JSON.stringify({
+            'hifiHomeKey': {
+                'reset': true
+            }
+        }),
     });
 
 
@@ -64,7 +69,12 @@ Whiteboard = function(spawnPosition, spawnRotation) {
         position: whiteboardFrontSurfacePosition,
         rotation: whiteboardRotation,
         visible: false,
-        parentID: whiteboard
+        parentID: whiteboard,
+        userData: JSON.stringify({
+            'hifiHomeKey': {
+                'reset': true
+            }
+        }),
     }
     var whiteboardFrontDrawingSurface = Entities.addEntity(whiteboardSurfaceSettings);
 
@@ -107,6 +117,9 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             z: 0
         },
         userData: JSON.stringify({
+            'hifiHomeKey': {
+                'reset': true
+            },
             originalPosition: eraserPosition,
             originalRotation: eraserRotation,
             wearable: {
@@ -196,6 +209,9 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             name: "marker",
             script: MARKER_SCRIPT_URL,
             userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                },
                 originalPosition: markerPosition,
                 originalRotation: markerRotation,
                 markerColor: markerColor,

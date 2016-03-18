@@ -83,9 +83,9 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     var MAZE_DAMPING = 0.6;
     var MAZE_ANGULAR_DAMPING = 0.6;
     var MAZE_GRAVITY = {
-        x:0,
-        y:-3,
-        z:0
+        x: 0,
+        y: -3,
+        z: 0
     };
 
     var DETECTOR_VERTICAL_OFFSET = 0.0 * SCALE;
@@ -154,6 +154,9 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             color: BALL_COLOR,
             dimensions: BALL_DIMENSIONS,
             userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                },
                 grabbableKey: {
                     grabbable: false
                 }
@@ -175,6 +178,11 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             position: getBallStartLocation(),
             collisionless: true,
             visible: false,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         };
 
         ballSpawningAnchor = Entities.addEntity(properties);
@@ -194,6 +202,12 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             collisionless: true,
             dynamic: false,
             visible: false,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
+
         };
 
         ballDetector = Entities.addEntity(properties);
@@ -205,7 +219,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             name: 'Hifi Tilt Maze',
             type: 'Model',
             modelURL: MAZE_MODEL_URL,
-            gravity:MAZE_GRAVITY,
+            gravity: MAZE_GRAVITY,
             compoundShapeURL: MAZE_COLLISION_HULL,
             dimensions: MAZE_DIMENSIONS,
             position: position,
@@ -214,7 +228,12 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             angularDamping: MAZE_ANGULAR_DAMPING,
             dynamic: true,
             density: MAZE_DENSITY,
-            script: MAZE_SCRIPT
+            script: MAZE_SCRIPT,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         if (spawnRotation !== undefined) {
@@ -246,7 +265,12 @@ TiltMaze = function(spawnPosition, spawnRotation) {
             cutoff: END_LIGHT_CUTOFF,
             lifetime: -1,
             position: position,
-            rotation: emitOrientation
+            rotation: emitOrientation,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         };
 
         lightAtTheEnd = Entities.addEntity(lightProperties);
@@ -260,6 +284,9 @@ TiltMaze = function(spawnPosition, spawnRotation) {
         createLightAtTheEnd();
         Entities.editEntity(tiltMaze, {
             userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                },
                 tiltMaze: {
                     firstBall: ball,
                     ballSpawner: ballSpawningAnchor,

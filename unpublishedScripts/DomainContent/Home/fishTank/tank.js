@@ -188,7 +188,12 @@
                 },
                 color: INTERSECT_COLOR,
                 position: position,
-                collisionless: true
+                collisionless: true,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             }
             _this.debugSphere = Entities.addEntity(sphereProperties);
         },
@@ -640,7 +645,12 @@
                         red: 0,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    userData: JSON.stringify({
+                        'hifiHomeKey': {
+                            'reset': true
+                        }
+                    }),
                 })
             );
 

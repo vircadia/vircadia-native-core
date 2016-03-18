@@ -32,7 +32,12 @@ Plant = function(spawnPosition, spawnRotation) {
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
     name: "plant bowl",
-    position: bowlPosition
+    position: bowlPosition,
+    userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      }
+    }),
   });
 
 
@@ -55,7 +60,12 @@ Plant = function(spawnPosition, spawnRotation) {
     dimensions: plantDimensions,
     position: plantPosition,
     script: PLANT_SCRIPT_URL,
-    parentID: bowl
+    parentID: bowl,
+    userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      }
+    }),
   });
 
 
@@ -84,6 +94,9 @@ Plant = function(spawnPosition, spawnRotation) {
     },
     rotation: waterCanRotation,
     userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      },
       wearable: {
         joints: {
           RightHand: [{
@@ -130,7 +143,12 @@ Plant = function(spawnPosition, spawnRotation) {
     position: waterSpoutPosition,
     rotation: waterSpoutRotation,
     parentID: waterCan,
-    visible: false
+    visible: false,
+    userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      }
+    }),
   });
 
   function cleanup() {
@@ -143,7 +161,7 @@ Plant = function(spawnPosition, spawnRotation) {
 
   this.cleanup = cleanup;
 
-    print('CREATED PLANT:: '+ plant)
+  print('CREATED PLANT:: ' + plant)
 
 
 }

@@ -1,5 +1,6 @@
 {
     "Entities": [{
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/simple-chair2.obj",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
@@ -28,8 +29,7 @@
             "z": 0.0002593994140625
         },
         "shapeType": "compound",
-        "type": "Model",
-        "userData": "{}"
+        "type": "Model"
     }],
     "Version": 57
 }

@@ -109,7 +109,12 @@
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
                 velocity: forwardVec,
-                lifetime: 10
+                lifetime: 10,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             };
 
             Entities.addEntity(properties);
@@ -125,7 +130,7 @@
 
             Audio.playSound(this.SHOOTING_SOUND, audioProperties);
         },
-        
+
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
             var frontVector = Quat.getFront(properties.rotation);

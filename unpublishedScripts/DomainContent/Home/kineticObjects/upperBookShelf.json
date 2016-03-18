@@ -26,7 +26,7 @@
             "z": -0.88293278217315674
         },
         "type": "Box",
-        "userData": "{}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }],
     "Version": 57
 }

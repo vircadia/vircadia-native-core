@@ -29,7 +29,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"grabbableKey\":{\"grabbable\":true,\"wantsTrigger\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }],
     "Version": 57
 }
