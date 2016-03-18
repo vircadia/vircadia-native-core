@@ -90,7 +90,7 @@
                 }, 2500);
 
                 Script.setTimeout(function() {
-                    _this.createKineticEntities();
+                    // _this.createKineticEntities();
                     _this.createDynamicEntities();
                 }, 750)
 
@@ -123,11 +123,11 @@
             //     z: 0
             // });
 
-            var tiltMaze = new TiltMaze({
-                x: 1105.5768,
-                y: 460.3298,
-                z: -80.4891
-            });
+            // var tiltMaze = new TiltMaze({
+            //     x: 1105.5768,
+            //     y: 460.3298,
+            //     z: -80.4891
+            // });
 
             var whiteboard = new Whiteboard({
                 x: 1104,
@@ -139,21 +139,21 @@
                 z: 0
             });
 
-            var myPlant = new Plant({
-                x: 1099.8785,
-                y: 460.3115,
-                z: -84.7736
-            });
+            // var myPlant = new Plant({
+            //     x: 1099.8785,
+            //     y: 460.3115,
+            //     z: -84.7736
+            // });
 
-            var pingPongGun = new _PingPongGun({
-                x: 1101.2123,
-                y: 460.2328,
-                z: -65.8513
-            }, {
-                x: 97.3683,
-                y: 179.0293,
-                z: 89.9698
-            });
+            // var pingPongGun = new _PingPongGun({
+            //     x: 1101.2123,
+            //     y: 460.2328,
+            //     z: -65.8513
+            // }, {
+            //     x: 97.3683,
+            //     y: 179.0293,
+            //     z: 89.9698
+            // });
 
             //v2.0
             // var musicBox = new MusicBox();
