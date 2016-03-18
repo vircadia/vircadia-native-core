@@ -33,7 +33,7 @@
 
     function stopUpdateAndReclaim() {
         //when the baton is released;
-        print('EBL I released the object ' + _entityID)
+        print('EBL I released the object ' + _this.entityID)
         iOwn = false;
         if (connected === true) {
             connected = false;
@@ -90,7 +90,7 @@
             // if (seconds === 0 && minutes === 0) {
             //     _this.popCuckooOut();
             // }
-            if (seconds % 30  === 0) {
+            if (seconds % 15  === 0) {
                 _this.popCuckooOut();
             }
 
@@ -99,7 +99,7 @@
         popCuckooOut: function() {
             // We are at the top of the hour!
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-
+            print("EBL POP CUCKOO CLOCK!!!!!!!!!!!");
             if(!_this.cuckooSoundInjector) {
                _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {position: _this.position, volume: _this.CUCKOO_SOUND_VOLUME});
             } else {
