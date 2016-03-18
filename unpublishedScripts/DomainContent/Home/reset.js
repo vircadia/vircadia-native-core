@@ -34,7 +34,7 @@
 
     Script.include(kineticPath);
     Script.include(utilsPath);
-    // Script.include(fishTankPath);
+    Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
     Script.include(plantPath);
@@ -113,15 +113,15 @@
         createDynamicEntities: function() {
 
 
-            // var fishTank = new FishTank({
-            //     x: 1098.9254,
-            //     y: 460.5814,
-            //     z: -79.1103
-            // }, {
-            //     x: 0,
-            //     y: 152,
-            //     z: 0
-            // });
+            var fishTank = new FishTank({
+                x: 1098.9254,
+                y: 460.5814,
+                z: -79.1103
+            }, {
+                x: 0,
+                y: 152,
+                z: 0
+            });
 
             var tiltMaze = new TiltMaze({
                 x: 1105.5768,

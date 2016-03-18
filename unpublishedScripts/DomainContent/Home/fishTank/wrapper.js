@@ -124,12 +124,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
-            visible: true,
-            userData: JSON.stringify({
-                'hifiHomeKey': {
-                    'reset': true
-                }
-            }),
+            visible: true
         }
 
         if (spawnRotation !== undefined) {
@@ -427,18 +422,24 @@ FishTank = function(spawnPosition, spawnRotation) {
     createTankBase();
 
     createTreasureChest();
-    var customKey = 'hifi-home-fishtank';
 
+    var customKey = 'hifi-home-fishtank';
 
     var data = {
         fishLoaded: false,
         bubbleSystem: bubbleSystem,
-        // bubbleSound: bubbleSound,
         innerContainer: innerContainer,
     }
+    var resetKey = 'hifiHomeKey';
+    var resetData = {
+        'reset': true
+    };
+
+
 
     Script.setTimeout(function() {
         setEntityCustomData(customKey, fishTank, data);
+        setEntityCustomData(resetKey, fishTank, resetData);
     }, 2000)
 
 
