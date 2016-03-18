@@ -277,7 +277,7 @@ public slots:
     void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
-    bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
+    bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);

@@ -84,8 +84,8 @@ public:
     bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
-    SkeletonModel& getSkeletonModel() { return _skeletonModel; }
-    const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
+    SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
+    const SkeletonModelPointer getSkeletonModel() const { return _skeletonModel; }
     glm::vec3 getChestPosition() const;
     float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
@@ -143,7 +143,7 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
-    virtual void updateAttitude() override { _skeletonModel.updateAttitude(); }
+    virtual void updateAttitude() override { _skeletonModel->updateAttitude(); }
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity
@@ -187,7 +187,7 @@ protected:
 
     void setMotionState(AvatarMotionState* motionState);
 
-    SkeletonModel _skeletonModel;
+    SkeletonModelPointer _skeletonModel;
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
