@@ -1190,7 +1190,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         _created = timestamp;
     }
 
-
     return somethingChanged;
 }
 
