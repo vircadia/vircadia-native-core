@@ -1,5 +1,6 @@
 {
     "Entities": [{
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Bowl.obj",
         "created": "2016-03-15T23:11:03Z",
@@ -34,9 +35,9 @@
             "z": -0.0001068115234375
         },
         "shapeType": "compound",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "type": "Model"
     }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
@@ -72,9 +73,9 @@
             "z": -0.37801176309585571
         },
         "shapeType": "sphere",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
-    } {
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
@@ -110,9 +111,9 @@
             "z": 0.5374685525894165
         },
         "shapeType": "sphere",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"grabbable\":true}}"
+        "type": "Model"
     }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -148,9 +149,9 @@
             "z": 0.44527351856231689
         },
         "shapeType": "sphere",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "type": "Model"
     }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -186,10 +187,9 @@
             "z": -0.13344013690948486
         },
         "shapeType": "sphere",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"grabbable\":true}}"
-
+        "type": "Model"
     }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -225,9 +225,9 @@
             "z": -0.21126115322113037
         },
         "shapeType": "sphere",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"grabbable\":true}}"
+        "type": "Model"
     }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -263,8 +263,7 @@
             "z": -0.56835281848907471
         },
         "shapeType": "sphere",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"grabbable\":true}}"
+        "type": "Model"
     }],
     "Version": 57
 }

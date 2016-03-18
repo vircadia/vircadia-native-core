@@ -34,6 +34,7 @@
             "y": 0.94818031787872314,
             "z": -1.52587890625e-05
         },
+        "shapeType": "box",
         "type": "Model"
     }, {
         "gravity": {
@@ -252,8 +253,14 @@
             "y": 0.96115052700042725,
             "z": -1.52587890625e-05
         },
+        "shapeType": "box",
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
@@ -282,6 +289,7 @@
             "y": 0.9509575366973877,
             "z": -1.52587890625e-05
         },
+        "shapeType": "box",
         "type": "Model"
     }],
     "Version": 57
