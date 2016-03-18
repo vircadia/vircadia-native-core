@@ -33,6 +33,12 @@
     var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
 
     Script.include(kineticPath);
+    Script.include(utilsPath);
+    // Script.include(fishTankPath);
+    Script.include(tiltMazePath);
+    Script.include(whiteboardPath);
+    Script.include(plantPath);
+    Script.include(pingPongGunPath);
 
     var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
         x: 0,
@@ -106,12 +112,6 @@
 
         createDynamicEntities: function() {
 
-            Script.include(utilsPath);
-            // Script.include(fishTankPath);
-            Script.include(tiltMazePath);
-            Script.include(whiteboardPath);
-            Script.include(plantPath);
-            Script.include(pingPongGunPath);
 
             // var fishTank = new FishTank({
             //     x: 1098.9254,
@@ -236,16 +236,13 @@
                     return;
                 }
                 if (userData.hasOwnProperty('hifiHomeKey')) {
-                    print('JBP found a home key for an entity')
                     if (userData.hifiHomeKey.reset === true) {
-                        print('JBP deleting a home entity')
                         Entities.deleteEntity(result);
                     }
                 }
 
 
             })
-
             print('JBP after deleting home entities')
         },
         unload: function() {

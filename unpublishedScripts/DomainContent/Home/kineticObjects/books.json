@@ -1,5 +1,10 @@
 {
     "Entities": [{
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-15T21:26:11Z",
@@ -31,6 +36,11 @@
         },
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
@@ -63,6 +73,11 @@
         "shapeType": "box",
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
@@ -94,6 +109,11 @@
         "shapeType": "box",
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
@@ -126,6 +146,11 @@
         "shapeType": "box",
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
@@ -157,6 +182,11 @@
         "shapeType": "box",
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
@@ -189,6 +219,11 @@
         "shapeType": "box",
         "type": "Model"
     }, {
+        "gravity": {
+            "x": 0,
+            "y": -7,
+            "z": 0
+        },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
         "created": "2016-03-15T21:26:11Z",

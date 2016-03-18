@@ -39,7 +39,7 @@ FruitBowl = function(spawnLocation, spawnRotation) {
 
 LabLamp = function(spawnLocation, spawnRotation) {
 
-    print('CREATE LAB  LAMP')
+    print('CREATE LAB LAMP')
 
 
     var created = [];
