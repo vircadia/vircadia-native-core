@@ -453,6 +453,8 @@
         if (bounds !== null) {
             lowerCorner = bounds.brn;
             upperCorner = bounds.tfl;
+
+            print('LOWER CORNER BOUND:: '+ JSON.stringify(lowerCorner))
         } else {
             print('NO BOUNDS FOR TANK, returning!!');
             print('INNER CONTAINER?' + innerContainer);

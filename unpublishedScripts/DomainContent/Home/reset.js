@@ -167,8 +167,8 @@
             dynamicEntities.push(myPlant);
             //v2.0
             print('DYNAMIC ENTITIES AFTER CREATE:::' + dynamicEntities.length)
-            // var musicBox = new MusicBox();
-            // var cuckooClock = new CuckooClock();
+                // var musicBox = new MusicBox();
+                // var cuckooClock = new CuckooClock();
 
 
             // var doppelganger = new Doppelganger();
@@ -235,14 +235,14 @@
             });
 
             var trashcan = new Trashcan({
-                x: 1106.2725,
+                x: 1103.9034,
                 y: 459.4355,
-                z: -82.7294
+                z: -82.3619
             });
 
             var books = new Books({
                 x: 1106.1553,
-                y: 461.0825,
+                y: 461.1,
                 z: -80.4890
             });
 
