@@ -23,6 +23,7 @@
 
 
     function startUpdate() {
+        print("EBL Start CLOCK Update")
         //when the baton is claimed;
         //   print('trying to claim the object' + _entityID)
         iOwn = true;
@@ -32,7 +33,7 @@
 
     function stopUpdateAndReclaim() {
         //when the baton is released;
-        // print('i released the object ' + _entityID)
+        print('EBL I released the object ' + _entityID)
         iOwn = false;
         if (connected === true) {
             connected = false;
@@ -57,6 +58,7 @@
             // One winner for each entity
 
             if(Entities.canRez() && Entities.canAdjustLocks){
+                print("EBL I HAVE EDIT RIGHTS, SO SET UP BATON!");
                 baton = virtualBaton({
                     batonName: "io.highfidelity.cuckooClock:" + _this.entityID
                 });
