@@ -28,17 +28,15 @@
         },
 
         modelEmitOn: function(glowDisc) {
-            print("EBL TURN ON EMIT TEXTURE");
-            Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL + ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+              Entities.editEntity(glowDisc, {
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"http://hifi-content.s3.amazonaws.com/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
             });
         },
 
         modelEmitOff: function(glowDisc) {
-            print("EBL TURN OFF EMIT TEXTURE");
-            Entities.editEntity(glowDisc, {
-                textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            })
+          Entities.editEntity(glowDisc, {
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
+            });
         },
 
         masterLightOn: function(masterLight) {
