@@ -22,6 +22,7 @@ public:
     FileLogger(QObject* parent = NULL);
     virtual ~FileLogger();
 
+    QString getFilename() { return _fileName; }
     virtual void addMessage(const QString&) override;
     virtual QString getLogData() override;
     virtual void locateLog() override;

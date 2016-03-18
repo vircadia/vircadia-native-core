@@ -222,20 +222,19 @@ bool ScriptEditorWidget::questionSave() {
 
 void ScriptEditorWidget::onWindowActivated() {
     if (!_isReloading) {
-        auto window = static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent());
         _isReloading = true;
 
-        QDateTime fileStamp = QFileInfo(_currentScript).lastModified();
-        if (fileStamp > _currentScriptModified) {
+        if (QFileInfo(_currentScript).lastModified() > _currentScriptModified) {
             bool doReload = false;
+            auto window = static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent());
             window->inModalDialog = true;
-            if (static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->autoReloadScripts() ||
-                OffscreenUi::warning(this, _currentScript,
-                                     tr("This file has been modified outside of the Interface editor.") + "\n\n" +
-                                     (isModified() ?
-                                      tr("Do you want to reload it and lose the changes you've made in the Interface editor?") :
-                                      tr("Do you want to reload it?")),
-                                     QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+            if (window->autoReloadScripts()
+                || OffscreenUi::question(this, tr("Reload Script"),
+                tr("The following file has been modified outside of the Interface editor:") + "\n" + _currentScript + "\n"
+                + (isModified()
+                ? tr("Do you want to reload it and lose the changes you've made in the Interface editor?")
+                : tr("Do you want to reload it?")),
+                QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
                 doReload = true;
             }
             window->inModalDialog = false;
@@ -246,8 +245,6 @@ void ScriptEditorWidget::onWindowActivated() {
                     setRunning(false);
                     // Script is restarted once current script instance finishes.
                 }
-            } else {
-                _currentScriptModified = fileStamp;
             }
         }
         _isReloading = false;

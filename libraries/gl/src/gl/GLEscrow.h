@@ -138,34 +138,100 @@ public:
     // Returns the next available resource provided by the submitter,
     // or if none is available (which could mean either the submission
     // list is empty or that the first item on the list isn't yet signaled
-    T fetch() {
-        T result = invalid();
+    // Deprecated... will inject an unecessary GPU bubble
+    bool fetchSignaled(T& t) {
+        bool result = false;
         // On the one hand using try_lock() reduces the chance of blocking the consumer thread,
         // but if the produce thread is going fast enough, it could effectively
         // starve the consumer out of ever actually getting resources.
-        tryLock([&]{
+        tryLock([&] {
             // May be called on any thread, but must be inside a locked section
             if (signaled(_submits, 0)) {
-                result = _submits.at(0)._value;
+                result = true;
+                t = _submits.at(0)._value;
                 _submits.pop_front();
             }
         });
         return result;
     }
 
+    // Populates t with the next available resource provided by the submitter
+    // and sync with a fence that will be signaled when all write commands for the 
+    // item have completed.  Returns false if no resources are available
+    bool fetchWithFence(T& t, GLsync& sync) {
+        bool result = false;
+        // On the one hand using try_lock() reduces the chance of blocking the consumer thread,
+        // but if the produce thread is going fast enough, it could effectively
+        // starve the consumer out of ever actually getting resources.
+        tryLock([&] {
+            if (!_submits.empty()) {
+                result = true;
+                // When fetching with sync, we only want the latest item
+                auto item = _submits.back();
+                _submits.pop_back();
+
+                // Throw everything else in the trash
+                for (const auto& oldItem : _submits) {
+                    _trash.push_front(oldItem);
+                }
+                _submits.clear();
+
+                t = item._value;
+                sync = item._sync;
+            }
+        });
+        return result;
+    }
+
+    bool fetchWithGpuWait(T& t) {
+        GLsync sync { 0 };
+        if (fetchWithFence(t, sync)) {
+            // Texture was updated, inject a wait into the GL command stream to ensure 
+            // commands on this context until the commands to generate t are finished.
+            if (sync != 0) {
+                glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+                glDeleteSync(sync);
+            }
+            return true;
+        }
+        return false;
+    }
+
     // Returns the next available resource provided by the submitter,
     // or if none is available (which could mean either the submission
     // list is empty or that the first item on the list isn't yet signaled
     // Also releases any previous texture held by the caller
-    T fetchAndRelease(const T& oldValue) {
-        T result = fetch();
-        if (!result) {
-            return oldValue;
+    bool fetchSignaledAndRelease(T& value) {
+        T originalValue = value;
+        if (fetchSignaled(value)) {
+            if (originalValue != invalid()) {
+                release(originalValue);
+            }
+            return true;
         }
-        if (oldValue) {
-            release(oldValue);
+        return false;
+    }
+
+    bool fetchAndReleaseWithFence(T& value, GLsync& sync) {
+        T originalValue = value;
+        if (fetchWithFence(value, sync)) {
+            if (originalValue != invalid()) {
+                release(originalValue);
+            }
+            return true;
         }
-        return result;
+        return false;
+    }
+
+    bool fetchAndReleaseWithGpuWait(T& value) {
+        T originalValue = value;
+        if (fetchWithGpuWait(value)) {
+            if (originalValue != invalid()) {
+                release(originalValue);
+            }
+            return true;
+        }
+        return false;
     }
 
     // If fetch returns a non-zero value, it's the responsibility of the
