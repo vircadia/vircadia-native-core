@@ -1020,7 +1020,7 @@ QByteArray AvatarData::identityByteArray() {
     QUrl emptyURL("");
     const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? emptyURL : _skeletonModelURL;
 
-    QUrl unusedModelURL("http://invalid.com"); // legacy faceModel support
+    QUrl unusedModelURL; // legacy faceModel support
 
     identityStream << QUuid() << unusedModelURL << urlToSend << _attachmentData << _displayName;
 
