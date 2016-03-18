@@ -61,7 +61,6 @@
     function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
 
         var tankProperties = Entities.getEntityProperties(_this.entityID);
-        print('GOT PROPERTIES FOR TANK!')
 
         var upVector = Quat.getUp(tankProperties.rotation);
         var frontVector = Quat.getFront(tankProperties.rotation);

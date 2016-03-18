@@ -109,7 +109,7 @@
             flower.userData = {
                 'hifiHomeKey': {
                     'reset': true
-                }
+                },
                 ProceduralEntity: {
                     shaderUrl: _this.SHADER_URL,
                     uniforms: {
