@@ -81,7 +81,7 @@ ItemKey MeshPartPayload::getKey() const {
 
     if (_drawMaterial) {
         auto matKey = _drawMaterial->getKey();
-        if (matKey.isTransparent() || matKey.isTransparentTexture() || matKey.isTransparentMap()) {
+        if (matKey.isTransparentFactor() || matKey.isTransparentMap()) {
             builder.withTransparent();
         }
     }
@@ -100,7 +100,7 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentTexture() || drawMaterialKey.isTransparentMap()) {
+    if (drawMaterialKey.isTransparentFactor() || drawMaterialKey.isTransparentMap()) {
         builder.withTranslucent();
     }
     if (drawMaterialKey.isNormalMap()) {
@@ -365,7 +365,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
 
     if (_drawMaterial) {
         auto matKey = _drawMaterial->getKey();
-        if (matKey.isTransparent() || matKey.isTransparentTexture() || matKey.isTransparentMap()) {
+        if (matKey.isTransparentFactor() || matKey.isTransparentMap()) {
             builder.withTransparent();
         }
     }
@@ -413,7 +413,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     bool isTranslucent =
-        drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentTexture() || drawMaterialKey.isTransparentMap();
+        drawMaterialKey.isTransparentFactor() || drawMaterialKey.isTransparentMap();
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
