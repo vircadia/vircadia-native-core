@@ -14,9 +14,6 @@
 (function() {
     var _this;
 
-    var dynamicEntities = [];
-    var kineticEntities = [];
-
     function Reset() {
         _this = this;
     }
@@ -81,8 +78,6 @@
                 _this.playTidyingSound();
 
                 _this.findAndDeleteHomeEntities();
-                // _this.cleanupDynamicEntities();
-                // _this.cleanupKineticEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
                     _this.tidying = false;
@@ -112,21 +107,21 @@
         createDynamicEntities: function() {
 
             Script.include(utilsPath);
-            Script.include(fishTankPath);
+            // Script.include(fishTankPath);
             Script.include(tiltMazePath);
             Script.include(whiteboardPath);
             Script.include(plantPath);
             Script.include(pingPongGunPath);
 
-            var fishTank = new FishTank({
-                x: 1098.9254,
-                y: 460.5814,
-                z: -79.1103
-            }, {
-                x: 0,
-                y: 152,
-                z: 0
-            });
+            // var fishTank = new FishTank({
+            //     x: 1098.9254,
+            //     y: 460.5814,
+            //     z: -79.1103
+            // }, {
+            //     x: 0,
+            //     y: 152,
+            //     z: 0
+            // });
 
             var tiltMaze = new TiltMaze({
                 x: 1105.5768,
@@ -165,27 +160,6 @@
             // var cuckooClock = new CuckooClock();
             // var doppelganger = new Doppelganger();
 
-            // dynamicEntities.push(fishTank);
-            // dynamicEntities.push(tiltMaze);
-            // dynamicEntities.push(whiteboard);
-            // dynamicEntities.push(pingPongGun);
-            // dynamicEntities.push(myPlant);
-            // print('DYNAMIC ENTITIES AFTER CREATE:::' + dynamicEntities.length)
-
-
-
-        },
-
-        cleanupDynamicEntities: function() {
-            print('SHOULD CLEANUP DYNAMIC')
-            if (dynamicEntities.length === 0) {
-                print('NO DYNAMIC ENTITIES')
-                return;
-            }
-            dynamicEntities.forEach(function(dynamicEntity) {
-                print('CLEANING UP A DYNAMIC')
-                dynamicEntity.cleanup();
-            })
         },
 
         createKineticEntities: function() {
@@ -244,28 +218,12 @@
                 z: -80.4890
             });
 
-            // kineticEntities.push(fruitBowl);
-            // kineticEntities.push(livingRoomLamp);
-            // kineticEntities.push(upperBookShelf);
-            // kineticEntities.push(lowerBookShelf);
-            // kineticEntities.push(rightDeskDrawer);
-            // kineticEntities.push(leftDeskDrawer);
-            // kineticEntities.push(chair);
-            // kineticEntities.push(trashcan);
-            // kineticEntities.push(books);
         },
 
-        cleanupKineticEntities: function() {
-            if (kineticEntities.length === 0) {
-                return;
-            }
-            kineticEntities.forEach(function(kineticEntity) {
-                print('CLEANING UP A KINETIC')
-                kineticEntity.cleanup();
-            })
-        },
         findAndDeleteHomeEntities: function() {
-            var results = Entities.findEntities(_this.position, 1000);
+            print('JBP trying to find home entities to delete')
+            var resetProperties = Entities.getEntityProperties(_this.entityID);
+            var results = Entities.findEntities(resetProperties.position, 1000);
             var found = [];
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
@@ -277,16 +235,21 @@
                     // print('properties are:' + properties.userData);
                     return;
                 }
-                if (userData.hifiHomeKey.reset === true) {
-                    Entities.deleteEntity(result);
+                if (userData.hasOwnProperty('hifiHomeKey')) {
+                    print('JBP found a home key for an entity')
+                    if (userData.hifiHomeKey.reset === true) {
+                        print('JBP deleting a home entity')
+                        Entities.deleteEntity(result);
+                    }
                 }
 
+
             })
+
+            print('JBP after deleting home entities')
         },
         unload: function() {
             this.findAndDeleteHomeEntities();
-            // this.cleanupDynamicEntities();
-            // this.cleanupKineticEntities();
         }
 
     }
