@@ -35,17 +35,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         blue: 255
     }
 
-
-    var centerVertical = {
-        x: 0,
-        y: 1,
-        z: 0
-    }
-
-    var upCenter = Vec3.sum(centerVertical, MyAvatar.position);
-    var center = Vec3.sum(upCenter, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2));
-
-    var TANK_POSITION = center;
+    var TANK_POSITION = spawnPosition;
 
     var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumTank.fbx";
 
@@ -127,6 +117,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TANK_MODEL_URL,
             dimensions: TANK_DIMENSIONS,
             position: TANK_POSITION,
+            rotation: spawnRotation,
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
@@ -316,7 +307,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         rocks = Entities.addEntity(properties);
     }
 
-    function createUrchin() {
+    function createAnenome() {
         var finalPosition = getOffsetFromTankCenter(ANEMONE_VERTICAL_OFFSET, ANEMONE_FORWARD_OFFSET, ANEMONE_LATERAL_OFFSET);
 
         var properties = {
@@ -386,7 +377,7 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     createEntitiesAtCorners();
 
-    createUrchin();
+    createAnenome();
 
     createRocks();
 
