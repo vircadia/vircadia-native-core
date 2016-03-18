@@ -28,14 +28,16 @@
         },
 
         modelEmitOn: function(glowDisc) {
+            print("EBL TURN ON EMIT TEXTURE");
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL + ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            });
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight.Emit:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"'
+            })
         },
 
         modelEmitOff: function(glowDisc) {
+            print("EBL TURN OFF EMIT TEXTURE");
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight.Emit:"",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"'
             })
         },
 
@@ -101,7 +103,9 @@
 
         toggleLights: function() {
 
-            _this._switch = getEntityCustomData('home-switch', _this.entityID, {state: 'off'});
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {
+                state: 'off'
+            });
 
             var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();
