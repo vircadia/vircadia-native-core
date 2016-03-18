@@ -55,6 +55,7 @@ bool AvatarUpdate::process() {
         deltaMicroseconds = 10000; // 10 ms
     }
     float deltaSeconds = (float) deltaMicroseconds / (float) USECS_PER_SECOND;
+    assert(deltaSeconds > 0.0f);
     _lastAvatarUpdate = start;
     qApp->setAvatarSimrateSample(1.0f / deltaSeconds);
 
