@@ -525,4 +525,4 @@ void SendQueue::deactivate() {
     emit queueInactive();
     
     _state = State::Stopped;
-}
+} 
