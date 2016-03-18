@@ -13,10 +13,10 @@ import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import Qt.labs.settings 1.0
 
-import "windows" as Windows
-import "controls" as Controls
+import "windows-uit"
+import "controls-uit"
 
-Windows.Window {
+Window {
     id: toolWindow
     resizable: true
     objectName: "ToolWindow"
@@ -42,7 +42,7 @@ Windows.Window {
     }
 
     property var webTabCreator: Component {
-        Controls.WebView {
+        WebView {
             id: webView
             property string originalUrl;
 
@@ -56,8 +56,9 @@ Windows.Window {
     }
 
     TabView {
-        anchors.fill: parent
         id: tabView;
+        width: pane.contentWidth
+        height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
         onCountChanged: {
             if (0 == count) {
                 toolWindow.visible = false
