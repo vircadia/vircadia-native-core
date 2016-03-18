@@ -395,7 +395,7 @@ class ModelBlender : public QObject, public Dependency {
 public:
 
     /// Adds the specified model to the list requiring vertex blends.
-    void noteRequiresBlend(Model* model);
+    void noteRequiresBlend(ModelPointer model);
 
 public slots:
     void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
@@ -405,7 +405,7 @@ private:
     ModelBlender();
     virtual ~ModelBlender();
 
-    QList<QPointer<Model> > _modelsRequiringBlends;
+    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
     int _pendingBlenders;
 };
 
