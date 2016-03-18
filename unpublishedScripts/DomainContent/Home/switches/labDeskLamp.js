@@ -77,14 +77,14 @@
 
         toggleLights: function() {
 
-            this.switch = getEntityCustomData('home-switch', this.entityID, {
+            this._switch = getEntityCustomData('home-switch', this.entityID, {
                 state: 'off'
             });
 
             var masterLights = this.findMasterLights();
             var emitModels = this.findEmitModels();
 
-            if (this.switch.state === 'off') {
+            if (this._switch.state === 'off') {
 
                 masterLights.forEach(function(masterLight) {
                     _this.masterLightOn(masterLight);

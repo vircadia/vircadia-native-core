@@ -1,10 +1,5 @@
 (function() {
-    var SEARCH_RADIUS = 10;
-
-    var EMISSIVE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelitysign_white_emissive.png";
-
-    var DIFFUSE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelity_diffusebaked.png";
-
+    var SEARCH_RADIUS = 100;
     var _this;
     var utilitiesScript = Script.resolvePath('../../../../libraries/utils.js');
     Script.include(utilitiesScript);
@@ -14,96 +9,85 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-desk-lamp',
+        prefix: 'hifi-home-living-room-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
             }
-            this.toggleLights();
+            this.toggle();
         },
 
         startNearTrigger: function() {
-            this.toggleLights();
+            this.toggle();
         },
 
-        modelEmitOn: function(discModel) {
-            Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            })
-        },
-
-        modelEmitOff: function(discModel) {
-            Entities.editEntity(glowDisc, {
-                textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            })
-        },
-
-        masterLightOn: function(masterLight) {
-            Entities.editEntity(masterLight, {
-                visible: true
+        fanRotationOn: function() {
+          var success=  Entities.editEntity(_this.fan, {
+                angularDamping: 0,
+                angularVelocity: {
+                    x: 0,
+                    y: 4,
+                    z: 0
+                },
             });
         },
 
-        masterLightOff: function() {
-            Entities.editEntity(masterLight, {
-                visible: false
-            });
+        fanRotationOff: function() {
+            Entities.editEntity(_this.fan, {
+                angularDamping: 0.5,
+            })
         },
 
+        fanSoundOn: function() {
 
-        findMasterLights: function() {
+        },
+
+        fanSoundOff: function() {
+
+        },
+
+        ventSoundOn: function() {
+
+        },
+
+        ventSoundOff: function() {
+
+        },
+
+        findFan: function() {
             var found = [];
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "spotlight") {
+                if (properties.name === _this.prefix + "ceiling-fan") {
+                    print("EBL FOUND FAN");
                     found.push(result);
                 }
             });
-            return found;
+            return found[0];
         },
 
-        findEmitModels: function() {
-            var found = [];
-            var results = Entities.findEntities(this.position, SEARCH_RADIUS);
-            results.forEach(function(result) {
-                var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "model") {
-                    found.push(result);
-                }
-            });
-            return found;
-        },
-
-        toggleLights: function() {
-
+        toggle: function() {
+            this.fan = this.findFan();
             this._switch = getEntityCustomData('home-switch', this.entityID, {
                 state: 'off'
             });
 
-            var masterLights = this.findMasterLights();
-            var emitModels = this.findEmitModels();
+            print("SWITCH STATE " + JSON.stringify(_this._switch));
 
             if (this._switch.state === 'off') {
-
-                masterLights.forEach(function(masterLight) {
-                    _this.masterLightOn(masterLight);
-                });
-                emitModels.forEach(function(emitModel) {
-                    _this.modelEmitOn(emitModel);
-                });
+                this.fanRotationOn();
+                this.fanSoundOn();
+                this.ventSoundOn();
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'on'
                 });
 
             } else {
+                this.fanRotationOff();
+                this.fanSoundOff();
+                this.ventSoundOff();
 
-                masterLights.forEach(function(masterLight) {
-                    _this.masterLightOff(masterLight);
-                });
-                emitModels.forEach(function(emitModel) {
-                    _this.modelEmitOff(emitModel);
-                });
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'off'
                 });
@@ -139,7 +123,6 @@
             });
 
             var properties = Entities.getEntityProperties(this.entityID);
-
 
             //The light switch is static, so just cache its position once
             this.position = Entities.getEntityProperties(this.entityID, "position").position;

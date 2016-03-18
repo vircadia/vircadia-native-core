@@ -1,12 +1,13 @@
 (function() {
-    var SEARCH_RADIUS = 10;
+
+    var SEARCH_RADIUS = 100;
 
     var EMISSIVE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelitysign_white_emissive.png";
 
     var DIFFUSE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelity_diffusebaked.png";
 
     var _this;
-    var utilitiesScript = Script.resolvePath('../../../../libraries/utils.js');
+    var utilitiesScript = Script.resolvePath('../utils.js');
     Script.include(utilitiesScript);
     Switch = function() {
         _this = this;
@@ -14,7 +15,7 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-desk-lamp',
+        prefix: 'hifi-home-living-room-disc-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -26,15 +27,15 @@
             this.toggleLights();
         },
 
-        modelEmitOn: function(discModel) {
+        modelEmitOn: function(glowDisc) {
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight.Emit:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"'
             })
         },
 
-        modelEmitOff: function(discModel) {
+        modelEmitOff: function(glowDisc) {
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight.Emit:"",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"'
             })
         },
 
@@ -44,19 +45,42 @@
             });
         },
 
-        masterLightOff: function() {
+        masterLightOff: function(masterLight) {
             Entities.editEntity(masterLight, {
                 visible: false
             });
         },
 
+        glowLightOn: function(glowLight) {
+            Entities.editEntity(glowLight, {
+                visible: true
+            });
+        },
+
+        glowLightOff: function(glowLight) {
+            Entities.editEntity(glowLight, {
+                visible: false
+            });
+        },
+
+        findGlowLights: function() {
+            var found = [];
+            var results = Entities.findEntities(this.position, SEARCH_RADIUS);
+            results.forEach(function(result) {
+                var properties = Entities.getEntityProperties(result);
+                if (properties.name === _this.prefix + "light-glow") {
+                    found.push(result);
+                }
+            });
+            return found;
+        },
 
         findMasterLights: function() {
             var found = [];
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "spotlight") {
+                if (properties.name === _this.prefix + "light-master") {
                     found.push(result);
                 }
             });
@@ -68,7 +92,7 @@
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "model") {
+                if (properties.name === _this.prefix + "light-model") {
                     found.push(result);
                 }
             });
@@ -77,27 +101,32 @@
 
         toggleLights: function() {
 
-            this._switch = getEntityCustomData('home-switch', this.entityID, {
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {
                 state: 'off'
             });
 
+            var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();
             var emitModels = this.findEmitModels();
 
             if (this._switch.state === 'off') {
-
+                glowLights.forEach(function(glowLight) {
+                    _this.glowLightOn(glowLight);
+                });
                 masterLights.forEach(function(masterLight) {
                     _this.masterLightOn(masterLight);
                 });
                 emitModels.forEach(function(emitModel) {
                     _this.modelEmitOn(emitModel);
                 });
-                setEntityCustomData('home-switch', this.entityID, {
+                setEntityCustomData('home-switch', _this.entityID, {
                     state: 'on'
                 });
 
             } else {
-
+                glowLights.forEach(function(glowLight) {
+                    _this.glowLightOff(glowLight);
+                });
                 masterLights.forEach(function(masterLight) {
                     _this.masterLightOff(masterLight);
                 });

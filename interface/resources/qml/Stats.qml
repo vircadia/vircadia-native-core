@@ -166,7 +166,8 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Downloads: ";
+                        text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
+                              ", Pending: " + root.downloadsPending;
                     }
                 }
             }

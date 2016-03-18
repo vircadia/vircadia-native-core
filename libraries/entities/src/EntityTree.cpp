@@ -1011,21 +1011,33 @@ void EntityTree::fixupMissingParents() {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
         if (entity) {
+            bool queryAACubeSuccess;
+            AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
+            if (queryAACubeSuccess) {
+                // make sure queryAACube encompasses maxAACube
+                bool maxAACubeSuccess;
+                AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
+                if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
+                    newCube = maxAACube;
+                }
+            }
+
+            bool doMove = false;
             if (entity->isParentIDValid()) {
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
-                bool success;
-                AACube newCube = entity->getQueryAACube(success);
-                if (!success) {
-                    continue;
-                }
-                moveOperator.addEntityToMoveList(entity, newCube);
-                iter.remove();
-                entity->markAncestorMissing(false);
-            } else if (_avatarIDs.contains(entity->getParentID())) {
+                doMove = true;
+            } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
+                // this is a child of an avatar, which the entity server will never have
+                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
                 if (!_childrenOfAvatars.contains(entity->getParentID())) {
                     _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
                 }
                 _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+                doMove = true;
+            }
+
+            if (queryAACubeSuccess && doMove) {
+                moveOperator.addEntityToMoveList(entity, newCube);
                 iter.remove();
                 entity->markAncestorMissing(false);
             }
@@ -1039,7 +1051,6 @@ void EntityTree::fixupMissingParents() {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
     }
-
 }
 
 void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
