@@ -12,7 +12,7 @@
 //
 
 (function() {
-
+    Script.include('../utils.js');
     Script.include('../../../../examples/libraries/virtualBaton.js');
 
     //only one person should simulate the tank at a time -- we pass around a virtual baton
@@ -31,6 +31,22 @@
         green: 0,
         blue: 255
     }
+
+    var TANK_DIMENSIONS = {
+        x: 0.8212,
+        y: 0.8116,
+        z: 2.1404
+    };
+
+    var LOWER_CORNER_VERTICAL_OFFSET = -TANK_DIMENSIONS.y / 2;
+    var LOWER_CORNER_FORWARD_OFFSET = TANK_DIMENSIONS.x;
+    var LOWER_CORNER_LATERAL_OFFSET = -TANK_DIMENSIONS.z / 8;
+
+    var UPPER_CORNER_VERTICAL_OFFSET = TANK_DIMENSIONS.y / 2;;
+    var UPPER_CORNER_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
+    var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
+
+
 
     function FishTank() {
         _this = this;
@@ -172,7 +188,12 @@
                 },
                 color: INTERSECT_COLOR,
                 position: position,
-                collisionless: true
+                collisionless: true,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             }
             _this.debugSphere = Entities.addEntity(sphereProperties);
         },
@@ -238,11 +259,10 @@
                 _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(front, _this.overlayLineDistance)), INTERSECT_COLOR);
             };
 
-            var brn = _this.userData['hifi-home-fishtank']['corners'].brn;
-            var tfl = _this.userData['hifi-home-fishtank']['corners'].tfl;
+
             var innerContainer = _this.userData['hifi-home-fishtank'].innerContainer;
 
-            var intersection = Entities.findRayIntersection(pickRay, true, [innerContainer], [_this.entityID, brn, tfl]);
+            var intersection = Entities.findRayIntersection(pickRay, true, [innerContainer], [_this.entityID]);
 
             if (intersection.intersects && intersection.entityID === innerContainer) {
                 //print('intersecting a tank')
@@ -306,16 +326,16 @@
 
     };
 
-//
-//  flockOfFish.js
-//  examples
-//
-//  Philip Rosedale
-//  Copyright 2016 High Fidelity, Inc.   
-//  Fish smimming around in a space in front of you 
-//   
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+    //
+    //  flockOfFish.js
+    //  examples
+    //
+    //  Philip Rosedale
+    //  Copyright 2016 High Fidelity, Inc.   
+    //  Fish smimming around in a space in front of you 
+    //   
+    //  Distributed under the Apache License, Version 2.0.
+    //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
     var FISHTANK_USERDATA_KEY = 'hifi-home-fishtank'
 
@@ -359,6 +379,8 @@
     var FISH_MODEL_TWO_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/goodfish5.fbx";
     var fishLoaded = false;
 
+    var lowerCorner, upperCorner;
+
     function randomVector(scale) {
         return {
             x: Math.random() * scale - scale / 2.0,
@@ -377,7 +399,6 @@
             return;
         }
 
-
         if (THROTTLE === true) {
             sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
             if (sinceLastUpdate > THROTTLE_RATE) {
@@ -388,7 +409,6 @@
         }
 
 
-        //  print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
 
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
@@ -399,10 +419,6 @@
                 fishLoaded: true,
                 bubbleSystem: _this.userData['hifi-home-fishtank'].bubbleSystem,
                 bubbleSound: _this.userData['hifi-home-fishtank'].bubbleSound,
-                corners: {
-                    brn: _this.userData['hifi-home-fishtank'].lowerCorner,
-                    tfl: _this.userData['hifi-home-fishtank'].upperCorner
-                },
                 innerContainer: _this.userData['hifi-home-fishtank'].innerContainer,
 
             }
@@ -420,7 +436,6 @@
             }
 
         }
-
 
         var fish = _this.fish;
         //   print('how many fish do i find?' + fish.length)
@@ -441,13 +456,6 @@
             y: 0,
             z: 0
         };
-
-
-        var userData = JSON.parse(_this.currentProperties.userData);
-        var innerContainer = userData['hifi-home-fishtank']['innerContainer'];
-        var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
-        lowerCorner = bounds.brn;
-        upperCorner = bounds.tfl;
 
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 
@@ -518,8 +526,6 @@
 
                     //attractors
                     //[position, radius, force]
-
-
 
                 }
 
@@ -594,20 +600,12 @@
     var STARTING_FRACTION = 0.25;
 
     function loadFish(howMany) {
-        // print('LOADING FISH: ' + howMany)
+        print('LOADING FISH: ' + howMany)
 
         var center = _this.currentProperties.position;
 
-        lowerCorner = {
-            x: center.x - (_this.currentProperties.dimensions.z / 2),
-            y: center.y,
-            z: center.z - (_this.currentProperties.dimensions.z / 2)
-        };
-        upperCorner = {
-            x: center.x + (_this.currentProperties.dimensions.z / 2),
-            y: center.y + _this.currentProperties.dimensions.y,
-            z: center.z + (_this.currentProperties.dimensions.z / 2)
-        };
+        upperCorner = getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET);
+        lowerCorner = getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET);
 
         var fish = [];
 
@@ -647,7 +645,12 @@
                         red: 0,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    userData: JSON.stringify({
+                        'hifiHomeKey': {
+                            'reset': true
+                        }
+                    }),
                 })
             );
 
@@ -661,6 +664,24 @@
         Script.update.disconnect(_this.update);
     })
 
+
+    function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
+
+        var tankProperties = Entities.getEntityProperties(_this.entityID);
+
+        var upVector = Quat.getUp(tankProperties.rotation);
+        var frontVector = Quat.getFront(tankProperties.rotation);
+        var rightVector = Quat.getRight(tankProperties.rotation);
+
+        var upOffset = Vec3.multiply(upVector, VERTICAL_OFFSET);
+        var frontOffset = Vec3.multiply(frontVector, FORWARD_OFFSET);
+        var rightOffset = Vec3.multiply(rightVector, LATERAL_OFFSET);
+
+        var finalOffset = Vec3.sum(tankProperties.position, upOffset);
+        finalOffset = Vec3.sum(finalOffset, frontOffset);
+        finalOffset = Vec3.sum(finalOffset, rightOffset);
+        return finalOffset
+    }
 
     function setEntityUserData(id, data) {
         var json = JSON.stringify(data)

@@ -1,36 +1,35 @@
 {
-    "Entities": [
-        {
-            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Little-Lamp.obj",
-            "created": "2016-03-16T01:00:16Z",
-            "dimensions": {
-                "x": 0.63867169618606567,
-                "y": 0.75600343942642212,
-                "z": 0.22696791589260101
-            },
-            "id": "{533c2da8-ea8c-4ae8-9c1c-3a18c7d91f46}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Little-Lamp-White-4.fbx",
-            "position": {
-                "x": 1103.28564453125,
-                "y": 460.89242553710938,
-                "z": 0
-            },
-            "queryAACube": {
-                "scale": 1.0153605937957764,
-                "x": 1102.7779541015625,
-                "y": 460.38473510742188,
-                "z": -0.50768029689788818
-            },
-            "rotation": {
-                "w": -0.36089110374450684,
-                "x": -0.014938592910766602,
-                "y": -0.93249410390853882,
-                "z": -0.0007476806640625
-            },
-            "shapeType": "compound",
-            "type": "Model",
-            "userData": "{\"grabbableKey\":{\"grabbable\":true,\"wantsTrigger\":true}}"
-        }
-    ],
+    "Entities": [{
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Little-Lamp.obj",
+        "created": "2016-03-16T01:00:16Z",
+        "dimensions": {
+            "x": 0.63867169618606567,
+            "y": 0.75600343942642212,
+            "z": 0.22696791589260101
+        },
+        "id": "{533c2da8-ea8c-4ae8-9c1c-3a18c7d91f46}",
+        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Little-Lamp-White-4.fbx",
+        "position": {
+            "x": 1103.28564453125,
+            "y": 460.89242553710938,
+            "z": 0
+        },
+        "dynamic": 1,
+        "queryAACube": {
+            "scale": 1.0153605937957764,
+            "x": 1102.7779541015625,
+            "y": 460.38473510742188,
+            "z": -0.50768029689788818
+        },
+        "rotation": {
+            "w": -0.36089110374450684,
+            "x": -0.014938592910766602,
+            "y": -0.93249410390853882,
+            "z": -0.0007476806640625
+        },
+        "shapeType": "compound",
+        "type": "Model",
+    }],
     "Version": 57
 }

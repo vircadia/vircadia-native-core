@@ -12,9 +12,10 @@
 
 (function() {
 
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var _this;
+
     function WaterSpout() {
         _this = this;
         _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
@@ -58,7 +59,7 @@
             _this.waterPouring = false;
             //water no longer pouring...
             if (_this.waterInjector) {
-              _this.waterInjector.stop();  
+                _this.waterInjector.stop();
             }
             Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
         },
@@ -187,6 +188,11 @@
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
                 textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             });
 
         },

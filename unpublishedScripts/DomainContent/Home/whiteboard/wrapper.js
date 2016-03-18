@@ -16,24 +16,11 @@ var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?" + Math.rando
 
 Whiteboard = function(spawnPosition, spawnRotation) {
 
-    var orientation = MyAvatar.orientation;
-    orientation = Quat.safeEulerAngles(orientation);
-    var markerRotation = Quat.fromVec3Degrees({
-        x: orientation.x + 10,
-        y: orientation.y - 90,
-        z: orientation.z
-    })
-    orientation.x = 0;
-    var whiteboardRotation = Quat.fromVec3Degrees({
-        x: 0,
-        y: orientation.y,
-        z: 0
-    });
-    orientation = Quat.fromVec3Degrees(orientation);
+    var orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
     var markers = [];
-
-
-    var whiteboardPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
+    var markerRotation = orientation;
+    var whiteboardPosition = spawnPosition;
+    var whiteboardRotation = orientation;
     var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-4.fbx";
     var WHITEBOARD_COLLISION_HULL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/whiteboardCollisionHull.obj";
     var whiteboard = Entities.addEntity({
@@ -49,9 +36,14 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             y: 2.7,
             z: 0.4636
         },
+        userData: JSON.stringify({
+            'hifiHomeKey': {
+                'reset': true
+            }
+        }),
     });
 
-    print('whiteboard:' + whiteboard)
+
 
     var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
         x: 0.0,
@@ -77,7 +69,12 @@ Whiteboard = function(spawnPosition, spawnRotation) {
         position: whiteboardFrontSurfacePosition,
         rotation: whiteboardRotation,
         visible: false,
-        parentID: whiteboard
+        parentID: whiteboard,
+        userData: JSON.stringify({
+            'hifiHomeKey': {
+                'reset': true
+            }
+        }),
     }
     var whiteboardFrontDrawingSurface = Entities.addEntity(whiteboardSurfaceSettings);
 
@@ -92,7 +89,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser-2.fbx";
 
-    var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(whiteboardRotation)));
+    var eraserPosition = Vec3.sum(spawnPosition, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(whiteboardRotation)));
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
     var eraserRotation = markerRotation;
 
@@ -120,6 +117,9 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             z: 0
         },
         userData: JSON.stringify({
+            'hifiHomeKey': {
+                'reset': true
+            },
             originalPosition: eraserPosition,
             originalRotation: eraserRotation,
             wearable: {
@@ -158,7 +158,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-black.fbx",
         ];
 
-        var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
+        var markerPosition = Vec3.sum(spawnPosition, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
 
         createMarker(modelURLS[0], markerPosition, {
             red: 10,
@@ -209,6 +209,9 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             name: "marker",
             script: MARKER_SCRIPT_URL,
             userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                },
                 originalPosition: markerPosition,
                 originalRotation: markerRotation,
                 markerColor: markerColor,
@@ -244,6 +247,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     }
 
     function cleanup() {
+        print('WHITEBOARD CLEANUP')
         Entities.deleteEntity(whiteboard);
         Entities.deleteEntity(whiteboardFrontDrawingSurface);
         Entities.deleteEntity(whiteboardBackDrawingSurface);
@@ -254,4 +258,6 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     }
 
     this.cleanup = cleanup;
+
+    print('CREATED WHITEBOARD')
 }

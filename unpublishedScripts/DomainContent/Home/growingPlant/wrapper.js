@@ -8,6 +8,7 @@
 //  This entity script handles the logic for growing a plant when it has water poured on it
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
 Plant = function(spawnPosition, spawnRotation) {
@@ -31,7 +32,12 @@ Plant = function(spawnPosition, spawnRotation) {
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
     name: "plant bowl",
-    position: bowlPosition
+    position: bowlPosition,
+    userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      }
+    }),
   });
 
 
@@ -54,8 +60,14 @@ Plant = function(spawnPosition, spawnRotation) {
     dimensions: plantDimensions,
     position: plantPosition,
     script: PLANT_SCRIPT_URL,
-    parentID: bowl
+    parentID: bowl,
+    userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      }
+    }),
   });
+
 
   var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx?v1" + Math.random();
 
@@ -82,6 +94,9 @@ Plant = function(spawnPosition, spawnRotation) {
     },
     rotation: waterCanRotation,
     userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      },
       wearable: {
         joints: {
           RightHand: [{
@@ -128,10 +143,16 @@ Plant = function(spawnPosition, spawnRotation) {
     position: waterSpoutPosition,
     rotation: waterSpoutRotation,
     parentID: waterCan,
-    visible: false
+    visible: false,
+    userData: JSON.stringify({
+      'hifiHomeKey': {
+        'reset': true
+      }
+    }),
   });
 
   function cleanup() {
+    print('PLANT CLEANUP!')
     Entities.deleteEntity(plant);
     Entities.deleteEntity(bowl);
     Entities.deleteEntity(waterCan);
@@ -139,5 +160,8 @@ Plant = function(spawnPosition, spawnRotation) {
   }
 
   this.cleanup = cleanup;
+
+  print('CREATED PLANT:: ' + plant)
+
 
 }

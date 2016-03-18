@@ -142,6 +142,11 @@
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
                 lifetime: 5000,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             });
 
             _this.linePoints = [];
