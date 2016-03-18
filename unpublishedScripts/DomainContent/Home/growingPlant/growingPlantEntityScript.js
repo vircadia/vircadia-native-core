@@ -12,7 +12,7 @@
 
 
 (function() {
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var _this;
 
@@ -105,7 +105,11 @@
                 hslColor: Math.random() < 0.5 ? _this.flowerHSLColors[0] : _this.flowerHSLColors[1],
                 growthRate: growthRate
             };
+
             flower.userData = {
+                'hifiHomeKey': {
+                    'reset': true
+                }
                 ProceduralEntity: {
                     shaderUrl: _this.SHADER_URL,
                     uniforms: {

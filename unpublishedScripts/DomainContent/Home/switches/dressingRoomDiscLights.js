@@ -7,7 +7,7 @@
     var DIFFUSE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelity_diffusebaked.png";
 
     var _this;
-    var utilitiesScript = Script.resolvePath('../../../../libraries/utils.js');
+    var utilitiesScript = Script.resolvePath('../utils.js');
     Script.include(utilitiesScript);
     Switch = function() {
         _this = this;
@@ -15,7 +15,7 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-dressing-room-disc-light',
+        prefix: 'hifi-home-dressing-room-disc-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -27,16 +27,16 @@
             this.toggleLights();
         },
 
-        modelEmitOn: function(discModel) {
-            Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            })
+        modelEmitOn: function(glowDisc) {
+              Entities.editEntity(glowDisc, {
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"http://hifi-content.s3.amazonaws.com/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
+            });
         },
 
-        modelEmitOff: function(discModel) {
-            Entities.editEntity(glowDisc, {
-                textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
-            })
+        modelEmitOff: function(glowDisc) {
+          Entities.editEntity(glowDisc, {
+                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
+            });
         },
 
         masterLightOn: function(masterLight) {
@@ -45,7 +45,7 @@
             });
         },
 
-        masterLightOff: function() {
+        masterLightOff: function(masterLight) {
             Entities.editEntity(masterLight, {
                 visible: false
             });
@@ -96,20 +96,19 @@
                     found.push(result);
                 }
             });
+            // Only one light for now
             return found;
         },
 
         toggleLights: function() {
 
-            this.switch = getEntityCustomData('home-switch', this.entityID, {
-                state: 'off'
-            });
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {state: 'off'});
 
             var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();
             var emitModels = this.findEmitModels();
 
-            if (this.switch.state === 'off') {
+            if (this._switch.state === 'off') {
                 glowLights.forEach(function(glowLight) {
                     _this.glowLightOn(glowLight);
                 });
@@ -119,7 +118,7 @@
                 emitModels.forEach(function(emitModel) {
                     _this.modelEmitOn(emitModel);
                 });
-                setEntityCustomData('home-switch', this.entityID, {
+                setEntityCustomData('home-switch', _this.entityID, {
                     state: 'on'
                 });
 

@@ -13,7 +13,7 @@
 
 (function() {
 
-    Script.include('../utils.js');
+    // Script.include('../utils.js');
 
     var SCALE = 0.5;
     var VICTORY_SOUND;
@@ -96,7 +96,7 @@
             if (this.ballLocked === true) {
                 return;
             }
-            if(this.ball!==null){
+            if (this.ball !== null) {
                 Entities.deleteEntity(this.ball);
             }
 
@@ -113,7 +113,12 @@
                 gravity: BALL_GRAVITY,
                 density: BALL_DENSITY,
                 color: BALL_COLOR,
-                dimensions: BALL_DIMENSIONS
+                dimensions: BALL_DIMENSIONS,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             };
 
             this.ball = Entities.addEntity(properties);
@@ -197,7 +202,7 @@
                     _this.ballLocked = false;
                     _this.createBall();
                 }, 1500)
-            } 
+            }
         },
         playVictorySound: function() {
             var position = Entities.getEntityProperties(this.entityID, "position").position;
