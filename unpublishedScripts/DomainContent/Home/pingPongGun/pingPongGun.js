@@ -33,6 +33,12 @@
         z: 0
     };
 
+    var PING_PONG_GUN_GRAVITY = {
+        x: 0,
+        y: -5,
+        z: 0
+    };
+
     var BALL_DIMENSIONS = {
         x: 0.04,
         y: 0.04,
@@ -108,6 +114,7 @@
                 dynamic: true,
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
+                gravity:PING_PONG_GUN_GRAVITY,
                 velocity: forwardVec,
                 lifetime: 10,
                 userData: JSON.stringify({

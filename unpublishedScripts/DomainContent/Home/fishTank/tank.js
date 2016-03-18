@@ -46,13 +46,16 @@
     var UPPER_CORNER_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
     var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
 
-
+    var upperCorner, lowerCorner;
 
     function FishTank() {
         _this = this;
     }
 
     function startUpdate() {
+        upperCorner = getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET);
+        lowerCorner = getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET);
+
         //when the baton is claimed;
         //   print('trying to claim the object' + _entityID)
         iOwn = true;
@@ -137,6 +140,7 @@
 
         preload: function(entityID) {
             // print("preload");
+
             this.entityID = entityID;
             _entityID = entityID;
             this.initialize(entityID);
@@ -409,7 +413,6 @@
         }
 
 
-
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
             _this.tankLocked = true;
@@ -418,9 +421,7 @@
             var data = {
                 fishLoaded: true,
                 bubbleSystem: _this.userData['hifi-home-fishtank'].bubbleSystem,
-                bubbleSound: _this.userData['hifi-home-fishtank'].bubbleSound,
                 innerContainer: _this.userData['hifi-home-fishtank'].innerContainer,
-
             }
             setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, data);
             _this.userData['hifi-home-fishtank'].fishLoaded = true;
@@ -496,6 +497,7 @@
                     y: 0,
                     z: 0
                 };
+
 
                 var othersCounted = 0;
                 for (var j = 0; j < fish.length; j++) {
@@ -604,8 +606,17 @@
 
         var center = _this.currentProperties.position;
 
-        upperCorner = getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET);
-        lowerCorner = getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET);
+       var lowerCorner = {
+            x: center.x - (_this.currentProperties.dimensions.z / 2),
+            y: center.y,
+            z: center.z - (_this.currentProperties.dimensions.z / 2)
+        };
+       var upperCorner = {
+            x: center.x + (_this.currentProperties.dimensions.z / 2),
+            y: center.y + _this.currentProperties.dimensions.y,
+            z: center.z + (_this.currentProperties.dimensions.z / 2)
+        };
+
 
         var fish = [];
 
