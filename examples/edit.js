@@ -180,7 +180,6 @@ var toolBar = (function() {
         newTextButton,
         newWebButton,
         newZoneButton,
-        newPolyVoxButton,
         newParticleButton
 
     function initialize() {
@@ -191,10 +190,8 @@ var toolBar = (function() {
             };
         });
 
-
-
         activeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "edit-status.svg",
+            imageURL: toolIconUrl + "edit-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -208,7 +205,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload.svg",
+            imageURL: toolIconUrl + "upload-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -218,11 +215,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newCubeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-cube.svg",
+            imageURL: toolIconUrl + "cube-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -232,11 +230,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newSphereButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-sphere.svg",
+            imageURL: toolIconUrl + "sphere-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -246,11 +245,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newLightButton = toolBar.addTool({
-            imageURL: toolIconUrl + "light.svg",
+            imageURL: toolIconUrl + "light-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -260,11 +260,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newTextButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-text.svg",
+            imageURL: toolIconUrl + "text-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -274,62 +275,52 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newWebButton = toolBar.addTool({
-            imageURL: "https://hifi-public.s3.amazonaws.com/images/www.svg",
+            imageURL: toolIconUrl + "web-01.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 128,
-                height: 128
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zonecube_text.svg",
+            imageURL: toolIconUrl + "zone-01.svg",
             subImage: {
                 x: 0,
-                y: 128,
-                width: 128,
-                height: 128
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: false
-        });
-
-        newPolyVoxButton = toolBar.addTool({
-            imageURL: toolIconUrl + "polyvox.svg",
-            subImage: {
-                x: 0,
-                y: 0,
-                width: 256,
-                height: 256
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newParticleButton = toolBar.addTool({
-            imageURL: toolIconUrl + "particle.svg",
+            imageURL: toolIconUrl + "particle-01.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 256,
-                height: 256
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
@@ -379,7 +370,6 @@ var toolBar = (function() {
         toolBar.showTool(newTextButton, doShow);
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
-        toolBar.showTool(newPolyVoxButton, doShow);
         toolBar.showTool(newParticleButton, doShow);
     };
 
@@ -421,7 +411,6 @@ var toolBar = (function() {
         return entityID;
     }
 
-    var newModelButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
@@ -442,13 +431,13 @@ var toolBar = (function() {
             return true;
         }
 
-        // Handle these two buttons in the mouseRelease event handler so that we don't suppress a mouseRelease event from
-        // occurring when showing a modal dialog.
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            newModelButtonDown = true;
+            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+            if (url !== null && url !== "") {
+                addModel(url);
+            }
             return true;
         }
-
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
@@ -551,92 +540,6 @@ var toolBar = (function() {
             return true;
         }
 
-        if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
-            var polyVoxId = createNewEntity({
-                type: "PolyVox",
-                dimensions: {
-                    x: 10,
-                    y: 10,
-                    z: 10
-                },
-                voxelVolumeSize: {
-                    x: 16,
-                    y: 16,
-                    z: 16
-                },
-                voxelSurfaceStyle: 2
-            });
-            for (var x = 1; x <= 14; x++) {
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 1,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 14,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 1,
-                    z: 14
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 14,
-                    z: 14
-                }, 255);
-            }
-            for (var y = 2; y <= 13; y++) {
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: y,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: y,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: y,
-                    z: 14
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: y,
-                    z: 14
-                }, 255);
-            }
-            for (var z = 2; z <= 13; z++) {
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: 1,
-                    z: z
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: 1,
-                    z: z
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: 14,
-                    z: z
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: 14,
-                    z: z
-                }, 255);
-            }
-
-
-            return true;
-        }
-
         if (newParticleButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "ParticleEffect",
@@ -656,26 +559,8 @@ var toolBar = (function() {
         return false;
     };
 
-    that.mouseReleaseEvent = function(event) {
-        var handled = false;
-        if (newModelButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-            if (newModelButton === toolBar.clicked(clickedOverlay)) {
-                url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-                if (url !== null && url !== "") {
-                    addModel(url);
-                }
-                handled = true;
-            }
-        }
-
-        newModelButtonDown = false;
-
-
-        return handled;
+    that.mouseReleaseEvent = function (event) {
+        return false;
     }
 
     Window.domainChanged.connect(function() {

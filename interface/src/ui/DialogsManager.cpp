@@ -143,7 +143,9 @@ void DialogsManager::hmdTools(bool showTools) {
 }
 
 void DialogsManager::hmdToolsClosed() {
-    _hmdToolsDialog->hide();
+    if (_hmdToolsDialog) {
+        _hmdToolsDialog->hide();
+    }
 }
 
 void DialogsManager::showScriptEditor() {

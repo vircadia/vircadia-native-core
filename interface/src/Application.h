@@ -381,16 +381,17 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event);
 
+    MainWindow* _window;
+
     bool _dependencyManagerIsSetup;
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
+    std::recursive_mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
     QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
-
-    MainWindow* _window;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;

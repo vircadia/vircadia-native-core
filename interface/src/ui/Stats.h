@@ -19,7 +19,7 @@
 public: \
     type name() { return _##name; }; \
 private: \
-    type _##name{ initialValue }; 
+    type _##name{ initialValue };
 
 
 class Stats : public QQuickItem {
@@ -58,6 +58,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, downloads, 0)
     STATS_PROPERTY(int, downloadLimit, 0)
     STATS_PROPERTY(int, downloadsPending, 0)
+    Q_PROPERTY(QStringList downloadUrls READ downloadUrls NOTIFY downloadUrlsChanged)
     STATS_PROPERTY(int, triangles, 0)
     STATS_PROPERTY(int, quads, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
@@ -105,6 +106,8 @@ public:
         }
     }
 
+    QStringList downloadUrls () { return _downloadUrls; }
+
 public slots:
     void forceUpdateStats() { updateStats(true); }
 
@@ -138,6 +141,7 @@ signals:
     void downloadsChanged();
     void downloadLimitChanged();
     void downloadsPendingChanged();
+    void downloadUrlsChanged();
     void trianglesChanged();
     void quadsChanged();
     void materialSwitchesChanged();
@@ -167,6 +171,7 @@ private:
     bool _timingExpanded{ false };
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
+    QStringList _downloadUrls = QStringList();
 };
 
 #endif // hifi_Stats_h

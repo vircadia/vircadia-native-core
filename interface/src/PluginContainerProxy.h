@@ -14,7 +14,7 @@ class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
     PluginContainerProxy();
     virtual ~PluginContainerProxy();
-    virtual void showDisplayPluginsTools() override;
+    virtual void showDisplayPluginsTools(bool show = true) override;
     virtual void requestReset() override;
     virtual bool makeRenderingContextCurrent() override;
     virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
