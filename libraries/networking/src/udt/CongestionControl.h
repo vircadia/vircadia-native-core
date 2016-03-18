@@ -118,6 +118,7 @@ private:
     SequenceNumber _slowStartLastACK; // last ACKed seq num from previous slow start check
     bool _loss { false };	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
+    SequenceNumber _firstLossFromEvent;  // sequence number of first packet ignored for last congestion event
     double _lastDecreasePeriod { 1 }; // value of _packetSendPeriod when last decrease happened
     int _nakCount { 0 }; // number of NAKs in congestion epoch
     int _randomDecreaseThreshold { 1 }; // random threshold on decrease by number of loss events

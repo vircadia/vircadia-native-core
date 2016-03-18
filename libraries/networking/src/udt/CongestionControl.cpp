@@ -138,18 +138,23 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         }
     }
     
-    _loss = true;
-    
     static const double INTER_PACKET_ARRIVAL_INCREASE = 1.125;
     static const int MAX_DECREASES_PER_CONGESTION_EPOCH = 5;
-    
+
     // check if this NAK starts a new congestion period - this will be the case if the
     // NAK received occured for a packet sent after the last decrease
     if (rangeStart > _lastDecreaseMaxSeq) {
+
+        // check if we should skip handling of this loss event
+        // we do this if this congestion event represents only a single packet loss
+        if (rangeStart == rangeEnd) {
+            return;
+        }
+
         _lastDecreasePeriod = _packetSendPeriod;
-        
+
         _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
-        
+
         // use EWMA to update the average number of NAKs per congestion
         static const double NAK_EWMA_ALPHA = 0.125;
         _avgNAKNum = (int)ceil(_avgNAKNum * (1 - NAK_EWMA_ALPHA) + _nakCount * NAK_EWMA_ALPHA);
@@ -159,7 +164,7 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         _decreaseCount = 1;
         
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
-        
+
         if (_avgNAKNum < 1) {
             _randomDecreaseThreshold = 1;
         } else {
@@ -177,6 +182,8 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
     }
+
+    _loss = true;
 }
 
 // Note: This isn't currently being called by anything since we, unlike UDT, don't have TTL on our packets
