@@ -112,7 +112,7 @@
             // if (seconds === 0 && minutes === 0) {
             //     _this.popCuckooOut();
             // }
-            if (seconds % 15 === 0) {
+            if (seconds % 30 === 0) {
                 _this.popCuckooOut();
             }
 
