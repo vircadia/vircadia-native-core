@@ -107,7 +107,7 @@ Menu::Menu() {
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     // Edit > Stop All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0, 
+    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0,
         scriptEngines.data(), SLOT(stopAllScripts()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
@@ -140,7 +140,7 @@ Menu::Menu() {
     // Edit > Reload All Content [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-    
+
 
     // Edit > Package Model... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
@@ -153,7 +153,7 @@ Menu::Menu() {
     auto audioIO = DependencyManager::get<AudioClient>();
 
     // Audio > Mute
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false, 
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false,
         audioIO.data(), SLOT(toggleMute()));
 
     // Audio > Show Level Meter
@@ -458,7 +458,7 @@ Menu::Menu() {
         avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::UseAnimPreAndPostRotations, 0, false,
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::UseAnimPreAndPostRotations, 0, true,
         avatar, SLOT(setUseAnimPreAndPostRotations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
         avatar, SLOT(setEnableInverseKinematics(bool)));
@@ -534,7 +534,7 @@ Menu::Menu() {
 
     // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true, 
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true,
         audioIO.data(), SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
         audioIO.data(), SLOT(toggleServerEcho()));
@@ -617,7 +617,7 @@ Menu::Menu() {
                                   QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
 
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true,
                 NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
 #endif
 }
@@ -651,7 +651,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         } else if (properties.isCheckable) {
             menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName,
                                                                     properties.shortcutKeySequence, properties.isChecked,
-                                                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), 
+                                                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
                                                                     requestedPosition, properties.grouping);
         } else {
             menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
