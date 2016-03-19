@@ -81,7 +81,7 @@ Window {
             frameOverlap: 0
 
             tab: Rectangle {
-                implicitWidth: control.count > 1 ? styleData.availableWidth / control.count : text.contentWidth + 4 * hifi.dimensions.contentMargin.x
+                implicitWidth: text.width
                 implicitHeight: 3 * text.height
                 color: styleData.selected ? hifi.colors.black : hifi.colors.tabBackgroundDark
 
@@ -90,7 +90,7 @@ Window {
                     text: styleData.title
                     font.capitalization: Font.AllUppercase
                     size: hifi.fontSizes.tabName
-                    width: control.count > 1 ? parent.width - 2 * hifi.dimensions.contentSpacing.x : implicitWidth
+                    width: control.count > 1 ? styleData.availableWidth / control.count : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
                     elide: Text.ElideRight
                     color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
                     horizontalAlignment: Text.AlignHCenter
