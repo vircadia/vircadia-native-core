@@ -15,8 +15,9 @@
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
 #include <QtQuick/QQuickRenderControl>
-#include <QtCore/QWaitCondition>
+#include <QtCore/QThread>
 #include <QtCore/QMutex>
+#include <QtCore/QWaitCondition>
 
 #include <shared/NsightHelpers.h>
 #include <PerfStat.h>
@@ -62,6 +63,7 @@ static const QEvent::Type STOP = QEvent::Type(QEvent::User + 4);
 class OffscreenQmlRenderThread : public QThread {
 public:
     OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext);
+    virtual ~OffscreenQmlRenderThread() = default;
 
     virtual void run() override;
     virtual bool event(QEvent *e) override;
