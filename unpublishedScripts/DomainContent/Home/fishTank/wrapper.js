@@ -117,7 +117,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TANK_MODEL_URL,
             dimensions: TANK_DIMENSIONS,
             position: TANK_POSITION,
-            rotation: spawnRotation,
+            rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z),
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
