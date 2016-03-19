@@ -10,11 +10,13 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtWebEngine 1.1
 import Qt.labs.settings 1.0
 
 import "windows-uit"
 import "controls-uit"
+import "styles-uit"
 
 Window {
     id: toolWindow
@@ -28,6 +30,9 @@ Window {
     title: "Tools"
     property string newTabSource
     property alias tabView: tabView
+
+    HifiConstants { id: hifi }
+
     onParentChanged: {
         if (parent) {
             x = 120;
@@ -59,10 +64,66 @@ Window {
         id: tabView;
         width: pane.contentWidth
         height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
+
         onCountChanged: {
             if (0 == count) {
                 toolWindow.visible = false
             }
+        }
+
+        style: TabViewStyle {
+
+            frame: Rectangle {  // Background shown before content loads.
+                anchors.fill: parent
+                color: hifi.colors.baseGray
+            }
+
+            frameOverlap: 0
+
+            tab: Rectangle {
+                implicitWidth: control.count > 1 ? styleData.availableWidth / control.count : text.contentWidth + 4 * hifi.dimensions.contentMargin.x
+                implicitHeight: 3 * text.height
+                color: styleData.selected ? hifi.colors.black : hifi.colors.tabBackgroundDark
+
+                RalewayRegular {
+                    id: text
+                    text: styleData.title
+                    font.capitalization: Font.AllUppercase
+                    size: hifi.fontSizes.tabName
+                    width: control.count > 1 ? parent.width - 2 * hifi.dimensions.contentSpacing.x : implicitWidth
+                    elide: Text.ElideRight
+                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.centerIn: parent
+                }
+
+                Rectangle {  // Separator.
+                    width: 1
+                    height: parent.height
+                    color: hifi.colors.black
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    visible: styleData.index > 0
+
+                    Rectangle {
+                        width: 1
+                        height: 1
+                        color: hifi.colors.baseGray
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                    }
+                }
+
+                Rectangle {  // Active underline.
+                    width: parent.width - (styleData.index > 0 ? 1 : 0)
+                    height: 1
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.baseGray
+                }
+            }
+
+            tabOverlap: 0
         }
     }
 

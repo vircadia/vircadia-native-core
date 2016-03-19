@@ -114,6 +114,8 @@ Item {
         readonly property color dropDownDarkStart: "#7d7d7d"
         readonly property color dropDownDarkFinish: "#6b6a6b"
         readonly property color textFieldLightBackground: "#d4d4d4"
+        readonly property color tabBackgroundDark: "#252525"
+        readonly property color tabBackgroundLight: "#d4d4d4"
     }
 
     Item {
