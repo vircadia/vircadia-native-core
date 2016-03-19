@@ -5,7 +5,7 @@ EntityListTool = function(opts) {
 
     var url = ENTITY_LIST_HTML_URL;
     var webView = new OverlayWebWindow({
-        title: 'Entities',  source: url,  toolWindow: true   
+        title: 'Entity List',  source: url,  toolWindow: true   
     });
 
 
