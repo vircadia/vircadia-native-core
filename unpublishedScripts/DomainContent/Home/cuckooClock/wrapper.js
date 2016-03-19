@@ -38,6 +38,11 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 1.3662,
         z: 0.8181
       },
+      userData: JSON.stringify({
+        hifiHomeKey: {
+          reset: true
+        }
+      })
     })
 
     var clockFaceOffset = {
@@ -56,7 +61,13 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         x: 0.2397,
         y: 0.2402,
         z: 0.0212
-      }    
+      },
+      userData: JSON.stringify({
+        hifiHomeKey: {
+          reset: true
+        }
+      })
+
     });
 
     // CLOCK HANDS
@@ -100,7 +111,52 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.0982,
         z: 0.0024
       },
-      // script: SCRIPT_URL
+      userData: JSON.stringify({
+        hifiHomeKey: {
+          reset: true
+        }
+      })
+    });
+
+
+    // **************** SECOND HAND *********************
+    var DEGREES_FOR_SECOND = 6;
+    var seconds = myDate.getSeconds();
+    secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
+    var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
+    clockSecondHand = Entities.addEntity({
+      type: "Box",
+      parentID: clockBody,
+      // modelURL: CLOCK_SECOND_HAND_URL,
+      name: "home_model_clockSecondHand",
+      position: Vec3.sum(clockFacePosition, clockHandOffset),
+      dimensions: {
+        x: 0.00263,
+        y: 0.0982,
+        z: 0.0024
+      },
+      color: {
+        red: 200,
+        green: 10,
+        blue: 200
+      },
+      registrationPoint: {
+        x: 0.5,
+        y: 0.05,
+        z: 0.5
+      },
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
+      angularDamping: 0,
+      angularVelocity: {
+        x: 0,
+        y: 0,
+        z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
+      },
+      userData: JSON.stringify({
+        hifiHomeKey: {
+          reset: true
+        }
+      })
     });
 
 
@@ -133,44 +189,14 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         z: 0.0032
       },
       script: MINUTE_HAND_CLOCK_SCRIPT_URL,
-      userData: JSON.stringify({clockBody: clockBody})
+      userData: JSON.stringify({
+        clockBody: clockBody,
+        secondHand: clockSecondHand,
+        hifiHomeKey: {
+          reset: true
+        }
+      })
     });
-    // *******************************************
-
-    var DEGREES_FOR_SECOND = 6;
-    var seconds = myDate.getSeconds();
-    secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
-    var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
-    clockSecondHand = Entities.addEntity({
-      type: "Box",
-      parentID: clockBody,
-      // modelURL: CLOCK_SECOND_HAND_URL,
-      name: "home_model_clockSecondHand",
-      position: Vec3.sum(clockFacePosition, clockHandOffset),
-      dimensions: {
-        x: 0.00263,
-        y: 0.0982,
-        z: 0.0024
-      },
-      color: {
-        red: 200,
-        green: 10,
-        blue: 200
-      },
-      registrationPoint: {
-        x: 0.5,
-        y: 0.05,
-        z: 0.5
-      },
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
-      angularDamping: 0,
-      angularVelocity: {
-        x: 0,
-        y: 0,
-        z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
-      }
-    });
-
   }
 
   createClock();

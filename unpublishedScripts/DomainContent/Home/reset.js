@@ -96,7 +96,7 @@
                 }, 2500);
 
                 Script.setTimeout(function() {
-                    _this.createKineticEntities();
+                    // _this.createKineticEntities();
                     _this.createDynamicEntities();
                 }, 750)
 
@@ -169,26 +169,9 @@
             var cuckooClock = new MyCuckooClock(center);
             // var doppelganger = new Doppelganger();
             
-            dynamicEntities.push(cuckooClock);
-
-            // dynamicEntities.push(fishTank);
-            // dynamicEntities.push(tiltMaze);
-            // dynamicEntities.push(whiteboard);
-            // dynamicEntities.push(myPlant);
-
         },
 
-        cleanupDynamicEntities: function() {
-            if (dynamicEntities.length === 0) {
-                return;
-            }
-            dynamicEntities.forEach(function(dynamicEntity) {
-                print('dynamicEntity is:: '+JSON.stringify(dynamicEntity))
-                dynamicEntity.cleanup();
-            });
-
-        },
-
+ 
         createKineticEntities: function() {
 
             var fruitBowl = new FruitBowl({

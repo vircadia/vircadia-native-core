@@ -24,12 +24,18 @@
 
     function startUpdate() {
         print("EBL Start CLOCK Update")
-        //when the baton is claimed;
-        //   print('trying to claim the object' + _entityID)
+            //when the baton is claimed;
+            //   print('trying to claim the object' + _entityID)
         iOwn = true;
         connected = true;
+
+
+        _this.updateSecondHandForOwnersLocalTime();
+
         Script.update.connect(_this.update);
     }
+
+
 
     function stopUpdateAndReclaim() {
         //when the baton is released;
@@ -55,16 +61,32 @@
                 return;
             }
             _this.clockBody = _this.userData.clockBody;
+            _this.secondHand = _this.userData.secondHand;
             // One winner for each entity
 
-            if(Entities.canRez() && Entities.canAdjustLocks){
+            if (Entities.canRez() && Entities.canAdjustLocks) {
                 print("EBL I HAVE EDIT RIGHTS, SO SET UP BATON!");
                 baton = virtualBaton({
                     batonName: "io.highfidelity.cuckooClock:" + _this.entityID
                 });
                 stopUpdateAndReclaim();
             }
-        
+
+        },
+
+        updateSecondHandForOwnersLocalTime: function() {
+            // We are taking over so make sure to update our second hand to reflect local time
+            if (!_this.secondHand) {
+                print("WE DONT HAVE A SECOND HAND! RETURNING");
+                return;
+            }
+
+            var DEGREES_FOR_SECOND = 6;
+            var myDate = new Date();
+            var seconds = myDate.getSeconds();
+            secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
+            Entities.editEntity(_this.secondHand, {rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees)});
+
         },
 
         unload: function() {
@@ -90,7 +112,7 @@
             // if (seconds === 0 && minutes === 0) {
             //     _this.popCuckooOut();
             // }
-            if (seconds % 15  === 0) {
+            if (seconds % 15 === 0) {
                 _this.popCuckooOut();
             }
 
@@ -100,8 +122,11 @@
             // We are at the top of the hour!
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
             print("EBL POP CUCKOO CLOCK!!!!!!!!!!!");
-            if(!_this.cuckooSoundInjector) {
-               _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {position: _this.position, volume: _this.CUCKOO_SOUND_VOLUME});
+            if (!_this.cuckooSoundInjector) {
+                _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {
+                    position: _this.position,
+                    volume: _this.CUCKOO_SOUND_VOLUME
+                });
             } else {
                 _this.cuckooSoundInjector.stop();
                 _this.cuckooSoundInjector.restart();
