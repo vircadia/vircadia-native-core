@@ -6,6 +6,8 @@
     Switch = function() {
         _this = this;
         this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
+        _this.FAN_VOLUME = 0.1;
+        _this.FAN_SOUND_ENTITY_NAME = "home_sfx _ceiling_fan";
     };
 
     Switch.prototype = {
@@ -22,7 +24,7 @@
         },
 
         fanRotationOn: function() {
-          var success=  Entities.editEntity(_this.fan, {
+            var success = Entities.editEntity(_this.fan, {
                 angularDamping: 0,
                 angularVelocity: {
                     x: 0,
@@ -39,11 +41,32 @@
         },
 
         fanSoundOn: function() {
+            if (!_this.fanSoundEntity) {
+                return;
+            }
+            var soundUserData = getEntityCustomData("soundKey", _this.fanSoundEntity);
+            if (!soundUserData) {
+                print("NO SOUND USER DATA! RETURNING.");
+                return;
+            }
+            soundUserData.volume = _this.FAN_VOLUME;
+            setEntityCustomData("soundKey", _this.fanSoundEntity, soundUserData);
+
+
 
         },
 
         fanSoundOff: function() {
-
+            if (!_this.fanSoundEntity) {
+                return;
+            }
+            var soundUserData = getEntityCustomData("soundKey", _this.fanSoundEntity);
+            if (!soundUserData) {
+                print("NO SOUND USER DATA! RETURNING.");
+                return;
+            }
+            soundUserData.volume = 0.0;
+            setEntityCustomData("soundKey", _this.fanSoundEntity, soundUserData);
         },
 
         ventSoundOn: function() {
@@ -60,20 +83,31 @@
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
                 if (properties.name === _this.prefix + "ceiling-fan") {
-                    print("EBL FOUND FAN");
                     found.push(result);
                 }
             });
             return found[0];
         },
 
+        findFanSoundEntity: function() {
+            var entities = Entities.findEntities(_this.position, SEARCH_RADIUS);
+            for (var i = 0; i < entities.length; i++) {
+                var name = Entities.getEntityProperties(entities[i], "name").name;
+                if (name === _this.FAN_SOUND_ENTITY_NAME) {
+                    return entities[i];
+                }
+            }
+
+            return null;
+        },
+
         toggle: function() {
             this.fan = this.findFan();
+            _this.fanSoundEntity = _this.findFanSoundEntity();
             this._switch = getEntityCustomData('home-switch', this.entityID, {
                 state: 'off'
             });
 
-            print("SWITCH STATE " + JSON.stringify(_this._switch));
 
             if (this._switch.state === 'off') {
                 this.fanRotationOn();
