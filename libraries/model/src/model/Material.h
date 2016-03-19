@@ -36,7 +36,7 @@ public:
         EMISSIVE_MAP_BIT,
         ALBEDO_MAP_BIT,
         OPACITY_MASK_MAP_BIT,           // OPacity Map and Opacity MASK map are mutually exclusive
-        OPACITY_TRANSPARENT_MAP_BIT,
+        OPACITY_TRANSLUCENT_MAP_BIT,
         METALLIC_MAP_BIT,
         ROUGHNESS_MAP_BIT,
         NORMAL_MAP_BIT,
@@ -83,7 +83,7 @@ public:
         Builder& withMetallicMap() { _flags.set(METALLIC_MAP_BIT); return (*this); }
         Builder& withRoughnessMap() { _flags.set(ROUGHNESS_MAP_BIT); return (*this); }
 
-        Builder& withTransparentMap() { _flags.set(OPACITY_TRANSPARENT_MAP_BIT); return (*this); }
+        Builder& withTransparentMap() { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
         Builder& withMaskMap() { _flags.set(OPACITY_MASK_MAP_BIT); return (*this); }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
@@ -119,12 +119,11 @@ public:
     void setRoughnessMap(bool value) { _flags.set(ROUGHNESS_MAP_BIT, value); }
     bool isRoughnessMap() const { return _flags[ROUGHNESS_MAP_BIT]; }
 
-    void setTransparentFactor(bool value) { _flags.set(OPACITY_VAL_BIT, value); }
-    bool isTransparentFactor() const { return _flags[OPACITY_VAL_BIT]; }
-    bool isOpaqueFactor() const { return !_flags[OPACITY_VAL_BIT]; }
+    void setTranslucentFactor(bool value) { _flags.set(OPACITY_VAL_BIT, value); }
+    bool isTranslucentFactor() const { return _flags[OPACITY_VAL_BIT]; }
 
-    void setTransparentMap(bool value) { _flags.set(OPACITY_TRANSPARENT_MAP_BIT, value); }
-    bool isTransparentMap() const { return _flags[OPACITY_TRANSPARENT_MAP_BIT]; }
+    void setTransparentMap(bool value) { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT, value); }
+    bool isOpacityMap() const { return _flags[OPACITY_TRANSLUCENT_MAP_BIT]; }
 
     void setOpacityMaskMap(bool value) { _flags.set(OPACITY_MASK_MAP_BIT, value); }
     bool isOpacityMaskMap() const { return _flags[OPACITY_MASK_MAP_BIT]; }
@@ -188,8 +187,8 @@ public:
         Builder& withTransparentFactor()        { _value.set(MaterialKey::OPACITY_VAL_BIT);  _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
         Builder& withOpaqueFactor()        { return withoutTransparentFactor(); }
 
-        Builder& withoutTransparentMap()       { _value.reset(MaterialKey::OPACITY_TRANSPARENT_MAP_BIT); _mask.set(MaterialKey::OPACITY_TRANSPARENT_MAP_BIT); return (*this); }
-        Builder& withTransparentMap()        { _value.set(MaterialKey::OPACITY_TRANSPARENT_MAP_BIT);  _mask.set(MaterialKey::OPACITY_TRANSPARENT_MAP_BIT); return (*this); }
+        Builder& withoutTransparentMap()       { _value.reset(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
+        Builder& withTransparentMap()        { _value.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT);  _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
 
         Builder& withoutMaskMap()       { _value.reset(MaterialKey::OPACITY_MASK_MAP_BIT); _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
         Builder& withMaskMap()        { _value.set(MaterialKey::OPACITY_MASK_MAP_BIT);  _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
