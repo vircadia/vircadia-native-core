@@ -143,10 +143,6 @@ void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     _headPoseCache.set(_trackedDevicePoseMat4[0]);
 }
 
-glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
-    return _headPoseCache.get();
-}
-
 void OpenVrDisplayPlugin::hmdPresent() {
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };

@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#include <ThreadSafeValueCache.h>
+
 #include <QtGlobal>
 
 #include "../OpenGLDisplayPlugin.h"
@@ -24,7 +26,7 @@ public:
     void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
-
+    virtual glm::mat4 getHeadPose() const override;
 
 protected:
     virtual void hmdPresent() = 0;
@@ -46,6 +48,7 @@ protected:
     using EyePoses = std::array<glm::mat4, 2>;
     QMap<uint32_t, EyePoses> _renderEyePoses;
     EyePoses _currentRenderEyePoses;
+    ThreadSafeValueCache<glm::mat4> _headPoseCache { glm::mat4() };
 
 private:
     bool _enablePreview { false };

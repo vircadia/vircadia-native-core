@@ -8,7 +8,6 @@
 #pragma once
 
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
-#include <ThreadSafeValueCache.h>
 
 #include <QTimer>
 
@@ -28,7 +27,6 @@ public:
     // Stereo specific methods
     virtual void resetSensors() override;
     virtual void updateHeadPose(uint32_t frameIndex) override;
-    virtual glm::mat4 getHeadPose() const override;
 
     virtual float getTargetFrameRate() override;
 
@@ -54,7 +52,6 @@ private:
     //ovrTexture _eyeTextures[2]; // FIXME - not currently in use
     mutable int _hmdScreen { -1 };
     bool _hswDismissed { false };
-    ThreadSafeValueCache<glm::mat4> _headPoseCache { glm::mat4() };
 };
 
 

@@ -1418,10 +1418,6 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
-    // Tell the plugin what pose we're using to render.  In this case we're just using the
-    // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-    // for rotational timewarp.  If we move to support positonal timewarp, we need to
-    // ensure this contains the full pose composed with the eye offsets.
     displayPlugin->updateHeadPose(_frameCount);
 
     // update the avatar with a fresh HMD pose
@@ -1621,6 +1617,10 @@ void Application::paintGL() {
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
 
+                // Tell the plugin what pose we're using to render.  In this case we're just using the
+                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
+                // for rotational timewarp.  If we move to support positonal timewarp, we need to
+                // ensure this contains the full pose composed with the eye offsets.
                 displayPlugin->setEyeRenderPose(_frameCount, eye, headPose * glm::inverse(eyeOffsetTransform));
 
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);

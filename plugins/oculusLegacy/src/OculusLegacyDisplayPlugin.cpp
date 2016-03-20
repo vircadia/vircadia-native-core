@@ -41,10 +41,6 @@ void OculusLegacyDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     _headPoseCache.set(toGlm(_trackingState.HeadPose.ThePose));
 }
 
-glm::mat4 OculusLegacyDisplayPlugin::getHeadPose() const {
-    return _headPoseCache.get();
-}
-
 bool OculusLegacyDisplayPlugin::isSupported() const {
     if (!ovr_Initialize(nullptr)) {
         return false;

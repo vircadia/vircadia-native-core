@@ -22,10 +22,6 @@ void OculusBaseDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     _headPoseCache.set(headPose);
 }
 
-glm::mat4 OculusBaseDisplayPlugin::getHeadPose() const {
-    return _headPoseCache.get();
-}
-
 bool OculusBaseDisplayPlugin::isSupported() const {
     return oculusAvailable();
 }

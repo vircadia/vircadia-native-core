@@ -12,7 +12,6 @@
 #include <openvr.h>
 
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
-#include <ThreadSafeValueCache.h>
 
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
@@ -29,7 +28,6 @@ public:
     // Stereo specific methods
     virtual void resetSensors() override;
     virtual void updateHeadPose(uint32_t frameIndex) override;
-    virtual glm::mat4 getHeadPose() const override;
 
 protected:
     void internalActivate() override;
@@ -43,5 +41,4 @@ private:
     std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
     static const QString NAME;
     mutable Mutex _poseMutex;
-    ThreadSafeValueCache<glm::mat4> _headPoseCache { glm::mat4() };
 };
