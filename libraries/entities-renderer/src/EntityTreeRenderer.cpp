@@ -182,7 +182,9 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3&
                 // if this entity is a zone, use this time to determine the bestZone
                 if (entity->getType() == EntityTypes::Zone) {
                     if (!entity->getVisible()) {
+                        #ifdef WANT_DEBUG
                         qCDebug(entitiesrenderer) << "not visible";
+                        #endif
                     }
                     else {
                         float entityVolumeEstimate = entity->getVolumeEstimate();
