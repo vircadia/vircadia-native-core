@@ -149,6 +149,10 @@ int main(int argc, const char* argv[]) {
         QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
             mpSender.setDefaultUserName(qPrintable(newUsername));
         });
+
+        // BugSplat WILL NOT work with file paths that do not use OS native separators.
+        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        mpSender.sendAdditionalFile(qPrintable(logPath));
 #endif
 
         QTranslator translator;
@@ -163,5 +167,9 @@ int main(int argc, const char* argv[]) {
     Application::shutdownPlugins();
 
     qCDebug(interfaceapp, "Normal exit.");
+#ifndef DEBUG
+    // HACK: exit immediately (don't handle shutdown callbacks) for Release build
+    _exit(exitCode);
+#endif
     return exitCode;
 }

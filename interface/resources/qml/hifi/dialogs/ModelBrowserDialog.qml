@@ -7,36 +7,45 @@ import "../../windows"
 import "../../js/Utils.js" as Utils
 import "../models"
 
-ModalWindow {
+import "../../styles-uit"
+import "../../controls-uit" as HifiControls
+import "../../windows-uit"
+
+Window {
     id: root
     resizable: true
-    width: 640
+    width: 600
     height: 480
+    closable: false
 
     property var result;
 
     signal selected(var modelUrl);
     signal canceled();
 
-    Rectangle {
-        anchors.fill: parent
-        color: "white"
+    HifiConstants {id: hifi}
 
-        Item {
-            anchors { fill: parent; margins: 8 }
+    Column {
+        width: pane.contentWidth
 
-            TextField {
+        Rectangle {
+            width: parent.width
+            height: root.height
+            radius: 4
+            color: hifi.colors.baseGray
+
+            HifiControls.TextField {
                 id: filterEdit
-                style:  TextFieldStyle { renderType: Text.QtRendering }
-                anchors { left: parent.left; right: parent.right; top: parent.top }
+                anchors { left: parent.left; right: parent.right; top: parent.top ; margins: 8}
                 placeholderText: "filter"
                 onTextChanged: tableView.model.filter = text
+                colorScheme: hifi.colorSchemes.dark
             }
 
-            TableView {
+            HifiControls.AttachmentsTable {
                 id: tableView
-                anchors { left: parent.left; right: parent.right; top: filterEdit.bottom; topMargin: 8; bottom: buttonRow.top; bottomMargin: 8 }
-                model: S3Model{}
+                anchors { left: parent.left; right: parent.right; top: filterEdit.bottom; bottom: buttonRow.top; margins: 8; }
+                colorScheme: hifi.colorSchemes.dark
                 onCurrentRowChanged: {
                     if (currentRow == -1) {
                         root.result = null;
@@ -44,60 +53,14 @@ ModalWindow {
                     }
                     result = model.baseUrl + "/" + model.get(tableView.currentRow).key;
                 }
-                itemDelegate: Component {
-                    Item {
-                        clip: true
-                        Text {
-                            x: 3
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: tableView.activeFocus && styleData.row === tableView.currentRow ? "yellow" : styleData.textColor
-                            elide: styleData.elideMode
-                            text: getText()
-
-                            function getText() {
-                                switch(styleData.column) {
-                                    case 1:
-                                        return Utils.formatSize(styleData.value)
-                                    default:
-                                        return styleData.value;
-                                }
-                            }
-
-                        }
-                    }
-                }
-                TableViewColumn {
-                    role: "name"
-                    title: "Name"
-                    width: 200
-                }
-                TableViewColumn {
-                    role: "size"
-                    title: "Size"
-                    width: 100
-                }
-                TableViewColumn {
-                    role: "modified"
-                    title: "Last Modified"
-                    width: 200
-                }
-                Rectangle {
-                    anchors.fill: parent
-                    visible: tableView.model.status !== XmlListModel.Ready
-                    color: "#7fffffff"
-                    BusyIndicator {
-                        anchors.centerIn: parent
-                        width: 48; height: 48
-                        running: true
-                    }
-                }
             }
 
             Row {
                 id: buttonRow
-                anchors { right: parent.right; bottom: parent.bottom }
-                Button { action: acceptAction }
-                Button { action: cancelAction }
+                spacing: 8
+                anchors { right: parent.right; rightMargin: 8; bottom: parent.bottom; bottomMargin: 8; }
+                HifiControls.Button { action: acceptAction ;  color: hifi.buttons.black; colorScheme: hifi.colorSchemes.dark }
+                HifiControls.Button { action: cancelAction ;  color: hifi.buttons.black; colorScheme: hifi.colorSchemes.dark }
             }
 
             Action {
@@ -121,7 +84,6 @@ ModalWindow {
                 }
             }
         }
-
     }
 }
 

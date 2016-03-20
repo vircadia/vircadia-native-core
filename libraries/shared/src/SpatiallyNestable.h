@@ -157,7 +157,7 @@ protected:
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
     virtual void locationChanged(); // called when a this object's location has changed
-    virtual void dimensionsChanged() { checkAndAdjustQueryAACube(); } // called when a this object's dimensions have changed
+    virtual void dimensionsChanged() { } // called when a this object's dimensions have changed
 
     // _queryAACube is used to decide where something lives in the octree
     mutable AACube _queryAACube;

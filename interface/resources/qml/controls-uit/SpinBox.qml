@@ -21,6 +21,8 @@ SpinBox {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
+    property string labelInside: ""
+    property color colorLabelInside: hifi.colors.white
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
@@ -31,12 +33,14 @@ SpinBox {
     y: spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0
 
     style: SpinBoxStyle {
+        id: spinStyle
         background: Rectangle {
+            id: backgrondRec
             color: isLightColorScheme
                    ? (spinBox.focus ? hifi.colors.white : hifi.colors.lightGray)
                    : (spinBox.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
-            border.color: hifi.colors.primaryHighlight
-            border.width: spinBox.focus ? 1 : 0
+            border.color: spinBoxLabelInside.visible ? spinBoxLabelInside.color : hifi.colors.primaryHighlight
+            border.width: spinBox.focus ? spinBoxLabelInside.visible ? 2 : 1 : 0
         }
 
         textColor: isLightColorScheme
@@ -46,7 +50,7 @@ SpinBox {
         selectionColor: hifi.colors.primaryHighlight
 
         horizontalAlignment: Qt.AlignLeft
-        padding.left: hifi.dimensions.textPadding
+        padding.left: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
         padding.right: hifi.dimensions.spinnerSize
 
         incrementControl: HiFiGlyphs {
@@ -75,5 +79,16 @@ SpinBox {
         anchors.bottom: parent.top
         anchors.bottomMargin: 4
         visible: label != ""
+    }
+
+    HifiControls.Label {
+        id: spinBoxLabelInside
+        text: spinBox.labelInside
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        font.bold: true
+        anchors.verticalCenter: parent.verticalCenter
+        color: spinBox.colorLabelInside
+        visible: spinBox.labelInside != ""
     }
 }

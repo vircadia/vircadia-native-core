@@ -58,7 +58,7 @@ void InterleavedStereoDisplayPlugin::uncustomizeContext() {
 }
 
 glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
-    uvec2 result = WindowOpenGLDisplayPlugin::getRecommendedRenderSize();
+    uvec2 result = Parent::getRecommendedRenderSize();
     result.x *= 2;
     result.y /= 2;
     return result;

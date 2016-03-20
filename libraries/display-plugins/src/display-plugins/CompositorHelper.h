@@ -48,6 +48,7 @@ public:
     static const vec2 MOUSE_EXTENTS_PIXELS;
 
     CompositorHelper();
+    void setRenderingWidget(QWidget* widget) { _renderingWidget = widget; }
 
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
 
@@ -126,6 +127,7 @@ private:
     DisplayPluginPointer _currentDisplayPlugin;
     glm::mat4 _currentCamera;
     uint32_t _currentFrame { 0 };
+    QWidget* _renderingWidget{ nullptr };
 
     //// Support for hovering and tooltips
     //static EntityItemID _noItemId;

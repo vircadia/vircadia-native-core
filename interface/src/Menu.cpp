@@ -46,7 +46,7 @@
 #include "Menu.h"
 
 Menu* Menu::getInstance() {
-    return static_cast<Menu*>(qApp->getWindow()->menuBar());
+    return dynamic_cast<Menu*>(qApp->getWindow()->menuBar());
 }
 
 Menu::Menu() {

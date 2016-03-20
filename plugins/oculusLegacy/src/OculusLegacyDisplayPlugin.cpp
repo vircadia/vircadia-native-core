@@ -72,8 +72,8 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
     return result;
 }
 
-void OculusLegacyDisplayPlugin::activate() {
-    HmdDisplayPlugin::activate();
+void OculusLegacyDisplayPlugin::internalActivate() {
+    Parent::internalActivate();
     
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
@@ -113,8 +113,8 @@ void OculusLegacyDisplayPlugin::activate() {
     }
 }
 
-void OculusLegacyDisplayPlugin::deactivate() {
-    HmdDisplayPlugin::deactivate();
+void OculusLegacyDisplayPlugin::internalDeactivate() {
+	Parent::internalDeactivate();
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
@@ -128,7 +128,7 @@ void OculusLegacyDisplayPlugin::customizeContext() {
         glewInit();
         glGetError();
     });
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 #if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;

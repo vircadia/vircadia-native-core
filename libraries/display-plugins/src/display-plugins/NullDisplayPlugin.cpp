@@ -30,8 +30,6 @@ void NullDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overlayT
     _container->releaseOverlayTexture(overlayTexture);
 }
 
-void NullDisplayPlugin::stop() {}
-
 QImage NullDisplayPlugin::getScreenshot() const {
     return QImage();
 }
