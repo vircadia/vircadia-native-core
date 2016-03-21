@@ -85,18 +85,23 @@
             var myDate = new Date();
             var seconds = myDate.getSeconds();
             secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
-            Entities.editEntity(_this.secondHand, {rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees)});
+            Entities.editEntity(_this.secondHand, {
+                rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees)
+            });
 
         },
 
         unload: function() {
-            Script.update.disconnect(_this.update);
+            if (connected === true) {
+                connected = false;
+                Script.update.disconnect(_this.update);
+            }
         },
 
 
         update: function() {
 
-            if(iOwn === false) {
+            if (iOwn === false) {
                 return;
             }
 
