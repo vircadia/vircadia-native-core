@@ -39,7 +39,7 @@ DefaultCC::DefaultCC() :
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
     
     _congestionWindowSize = 16.0;
-    _packetSendPeriod = 1.0;
+    setPacketSendPeriod(1.0);
 }
 
 void DefaultCC::onACK(SequenceNumber ackNum) {
@@ -73,10 +73,10 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
             
             if (_receiveRate > 0) {
                 // if we have a valid receive rate we set the send period to whatever the receive rate dictates
-                _packetSendPeriod = USECS_PER_SECOND / _receiveRate;
+                setPacketSendPeriod(USECS_PER_SECOND / _receiveRate);
             } else {
                 // no valid receive rate, packet send period is dictated by estimated RTT and current congestion window size
-                _packetSendPeriod = (_rtt + synInterval()) / _congestionWindowSize;
+                setPacketSendPeriod((_rtt + synInterval()) / _congestionWindowSize);
             }
         }
     } else {
@@ -148,8 +148,8 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
     if (rangeStart > _lastDecreaseMaxSeq) {
 
         _lastDecreasePeriod = _packetSendPeriod;
-
-        _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
+        
+        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
 
         // use EWMA to update the average number of NAKs per congestion
         static const double NAK_EWMA_ALPHA = 0.125;
@@ -175,7 +175,7 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
         // decided we would decrease the packet send period
         
-        _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
+        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
     }
 }
@@ -198,12 +198,12 @@ void DefaultCC::stopSlowStart() {
     
     if (_receiveRate > 0) {
         // Set the sending rate to the receiving rate.
-        _packetSendPeriod = USECS_PER_SECOND / _receiveRate;
+        setPacketSendPeriod(USECS_PER_SECOND / _receiveRate);
     } else {
         // If no receiving rate is observed, we have to compute the sending
         // rate according to the current window size, and decrease it
         // using the method below.
-        _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
+        setPacketSendPeriod(_congestionWindowSize / (_rtt + synInterval()));
     }
 }
 
