@@ -1294,10 +1294,10 @@ void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNum
     }
     _pendingBlenders--;
     while (!_modelsRequiringBlends.empty()) {
-        auto fistItem = _modelsRequiringBlends.begin();
-        if (fistItem != _modelsRequiringBlends.end()) {
-            _modelsRequiringBlends.erase(fistItem);
-            ModelPointer nextModel = fistItem->lock();
+        auto firstItem = _modelsRequiringBlends.begin();
+        if (firstItem != _modelsRequiringBlends.end()) {
+            _modelsRequiringBlends.erase(firstItem);
+            ModelPointer nextModel = firstItem->lock();
             if (nextModel && nextModel->maybeStartBlender()) {
                 _pendingBlenders++;
                 return;
