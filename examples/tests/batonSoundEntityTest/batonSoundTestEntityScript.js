@@ -10,10 +10,19 @@
     BatonSoundEntity = function() {
         _this = this;
         _this.drumSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Drums/deepdrum1.wav");
-        _this.injectorOptions = {position: MyAvatar.position, loop: false, volume: 0.7};
+        _this.injectorOptions = {position: MyAvatar.position, loop: false, volume: 1};
+        
     };
 
     function startUpdate() {
+        // We are claiming the baton! So start our clip
+        if (!_this.soundInjector) {
+            // This client hasn't created their injector yet so create one
+           _this.soundInjector = Audio.playSound(_this.drumSound, _this.injectorOptions);
+        } else {
+            // We already have our injector so just restart it
+            _this.soundInjector.restart();
+        }
         iOwn = true;
         updateLoopConnected = true;
         print("START UPDATE");
@@ -41,7 +50,6 @@
                 return;
             }
 
-            print("EBL I AM UPDATING");
         },
 
         preload: function(entityID) {
@@ -51,7 +59,6 @@
                 // One winner for each entity
                 batonName: "io.highfidelity.soundEntityBatonTest:" + _this.entityID
             });
-            Audio.playSound(_this.drumSound, _this.injectorOptions);
             stopUpdateAndReclaim();
         },
 
