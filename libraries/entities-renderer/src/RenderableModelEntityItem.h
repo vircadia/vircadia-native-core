@@ -57,7 +57,7 @@ public:
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
 
-    ModelPointer getModel(EntityTreeRenderer* renderer);
+    Model* getModel(EntityTreeRenderer* renderer);
 
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
@@ -87,7 +87,7 @@ private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
-    ModelPointer _model = nullptr;
+    Model* _model = nullptr;
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
     EntityTreeRenderer* _myRenderer = nullptr;

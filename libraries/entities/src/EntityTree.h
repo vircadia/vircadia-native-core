@@ -25,9 +25,6 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 #include "DeleteEntityOperator.h"
 
 class Model;
-using ModelPointer = std::shared_ptr<Model>;
-using ModelWeakPointer = std::weak_ptr<Model>;
-
 class EntitySimulation;
 
 class NewlyCreatedEntityHook {
@@ -38,7 +35,7 @@ public:
 class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
-    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) = 0;
+    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem) = 0;
     virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) = 0;
 };
 
@@ -174,7 +171,7 @@ public:
     const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
     }
-    ModelPointer getModelForEntityItem(EntityItemPointer entityItem) {
+    const Model* getModelForEntityItem(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
     }
 
