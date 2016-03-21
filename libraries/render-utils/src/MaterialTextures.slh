@@ -114,9 +114,9 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
 {
-    const float OPACITY_MASK_THRESHOLD = 0.95;
+    const float OPACITY_MASK_THRESHOLD = 0.5;
     <$opacity$> = (((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0) ?
-                     (((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0) ? step(<$fetchedOpacity$>, OPACITY_MASK_THRESHOLD) : <$fetchedOpacity$>) :
+                     (((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0) ? step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>) : <$fetchedOpacity$>) :
                      1.0) * <$materialOpacity$>;
 }
 <@endfunc@>
