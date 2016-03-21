@@ -30,7 +30,7 @@
             // We already have our injector so just restart it
             _this.soundInjector.restart();
         }
-        print("EBL ")
+        print("EBL START UPDATE")
         Entities.editEntity(_this.batonDebugModel, {visible: true});
         _this.playSoundInterval = Script.setInterval(function() {
              // print("EBL PLAY THE SOUND");
@@ -75,6 +75,7 @@
         },
 
         unload: function() {
+            print("EBL UNLOAD");
             Entities.deleteEntity(_this.batonDebugModel);
             if (_this.soundIntervalConnected === true) {
                 Script.clearInterval(_this.playSoundInterval);
