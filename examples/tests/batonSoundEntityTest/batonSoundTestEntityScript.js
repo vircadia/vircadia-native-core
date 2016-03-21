@@ -68,7 +68,8 @@
             print("EBL PRELOAD ENTITY SCRIPT!!!");
             baton = virtualBaton({
                 // One winner for each entity
-                batonName: "io.highfidelity.soundEntityBatonTest:" + _this.entityID
+                batonName: "io.highfidelity.soundEntityBatonTest:" + _this.entityID,
+                debugFlow: true
             });
             stopUpdateAndReclaim();
         },
