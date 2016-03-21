@@ -680,7 +680,12 @@
                         red: 0,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    userData: JSON.stringify({
+                        'hifiHomeKey': {
+                            'reset': true
+                        }
+                    }),
                 })
             );
 
@@ -746,7 +751,7 @@
 
         var inverseQ = Quat.inverse(Q);
         var finalPosition = Vec3.multiplyQbyV(inverseQ, tPosition);
-        var finalVelocity = Vec3.multiplyQbyV(inverseQ,tVelocity);
+        var finalVelocity = Vec3.multiplyQbyV(inverseQ, tVelocity);
 
         return {
             position: finalPosition,
