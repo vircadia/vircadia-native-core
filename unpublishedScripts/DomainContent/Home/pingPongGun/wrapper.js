@@ -28,6 +28,11 @@ _PingPongGun = function(spawnPosition, spawnRotation) {
       y: 0.3875,
       z: 0.9931
     },
+    gravity:{
+      x:0,
+      y:-3,
+      z:0
+    },
     rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
     dynamic: true,
     collisionSoundURL: COLLISION_SOUND_URL,

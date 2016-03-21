@@ -372,13 +372,13 @@
     var sinceLastUpdate = 0;
 
 
-var LOWER_CORNER_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.3;
-var LOWER_CORNER_FORWARD_OFFSET = TANK_DIMENSIONS.x;
-var LOWER_CORNER_LATERAL_OFFSET = -TANK_DIMENSIONS.z / 8;
+    var LOWER_CORNER_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.3;
+    var LOWER_CORNER_FORWARD_OFFSET = TANK_DIMENSIONS.x;
+    var LOWER_CORNER_LATERAL_OFFSET = -TANK_DIMENSIONS.z / 8;
 
-var UPPER_CORNER_VERTICAL_OFFSET = (TANK_DIMENSIONS.y / 2)-0.3;
-var UPPER_CORNER_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
-var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
+    var UPPER_CORNER_VERTICAL_OFFSET = (TANK_DIMENSIONS.y / 2) - 0.3;
+    var UPPER_CORNER_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
+    var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
 
 
     // var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-1.fbx";
@@ -478,7 +478,8 @@ var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
 
         lowerCorner = getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET);
         upperCorner = getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET);
-
+        // print('LOADFISH LOWER' + JSON.stringify(lowerCorner));
+        // print('LOADFISH UPPER' + JSON.stringify(upperCorner));
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 
         var flockProperties = [];
@@ -625,7 +626,7 @@ var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
 
     function loadFish(howMany) {
         // print('LOADING FISH: ' + howMany)
-
+        _this.currentProperties = Entities.getEntityProperties(_this.entityID);
         var center = _this.currentProperties.position;
 
         lowerCorner = {
@@ -639,6 +640,8 @@ var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
             z: center.z + (_this.currentProperties.dimensions.z / 2)
         };
 
+        print('LOADFISH LOWER' + JSON.stringify(lowerCorner));
+        print('LOADFISH UPPER' + JSON.stringify(upperCorner));
         var fish = [];
 
         for (var i = 0; i < howMany; i++) {
@@ -733,6 +736,22 @@ var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
         } else {
             return defaultValue;
         }
+    }
+
+    function transformFishFromTankToWorldSpace(position, velocity) {
+
+        var Q = Entities.getEntityProperties(_this.entityID).rotation;
+        var tPosition = Vec3.multiplyQbyV(Q, position);
+        var tVelocity = Vec3.multiplyQbyV(Q, velocity);
+
+        var inverseQ = Quat.inverse(Q);
+        var finalPosition = Vec3.multiplyQbyV(inverseQ, tPosition);
+        var finalVelocity = Vec3.multiplyQbyV(inverseQ,tVelocity);
+
+        return {
+            position: finalPosition,
+            velocity: finalVelocity
+        };
     }
 
     return new FishTank();
