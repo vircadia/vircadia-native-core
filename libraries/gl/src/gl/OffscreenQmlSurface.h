@@ -26,7 +26,7 @@ class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
 
-class OffscreenQmlRenderer;
+class OffscreenQmlRenderThread;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
