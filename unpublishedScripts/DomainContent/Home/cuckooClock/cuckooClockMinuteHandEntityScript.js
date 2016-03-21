@@ -17,7 +17,7 @@
         _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;
         _this.checkTime = true;
         _this.cuckooSound = SoundCache.getSound(CUCKOO_SOUND_URL);
-        _this.CUCKOO_SOUND_VOLUME = 0.7;
+        _this.CUCKOO_SOUND_VOLUME = 0.0;
 
     };
 

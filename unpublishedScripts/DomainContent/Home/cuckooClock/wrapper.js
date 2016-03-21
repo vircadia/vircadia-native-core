@@ -19,7 +19,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
   var clockBody, clockFace, clockMinuteHand, clockHourHand, clockSecondHand;
 
   function createClock() {
-
+    var clockRotation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
     clockBody = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_BODY_URL,
@@ -33,6 +33,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         loop: false
       },
       position: spawnPosition,
+      rotation: clockRotation,
       dimensions: {
         x: 0.8181,
         y: 1.3662,

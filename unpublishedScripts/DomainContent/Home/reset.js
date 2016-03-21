@@ -43,7 +43,7 @@
     Script.include(whiteboardPath);
     Script.include(plantPath);
     Script.include(cuckooClockPath);
-    
+
     Script.include(pingPongGunPath);
 
     var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
@@ -119,59 +119,64 @@
         createDynamicEntities: function() {
 
 
-            // var fishTank = new FishTank({
-            //     x: 1098.9254,
-            //     y: 460.5814,
-            //     z: -79.1103
-            // }, {
-            //     x: 0,
-            //     y: 152,
-            //     z: 0
-            // });
+            var fishTank = new FishTank({
+                x: 1098.9254,
+                y: 460.5814,
+                z: -79.1103
+            }, {
+                x: 0,
+                y: 152,
+                z: 0
+            });
 
+            var tiltMaze = new TiltMaze({
+                x: 1105.5768,
+                y: 460.3298,
+                z: -80.4891
+            });
 
+            var whiteboard = new Whiteboard({
+                x: 1104,
+                y: 460.5,
+                z: -77
+            }, {
+                x: 0,
+                y: -133,
+                z: 0
+            });
 
+            var myPlant = new Plant({
+                x: 1099.8785,
+                y: 460.3115,
+                z: -84.7736
+            });
 
-            // var tiltMaze = new TiltMaze({
-            //     x: 1105.5768,
-            //     y: 460.3298,
-            //     z: -80.4891
-            // });
-
-            // var whiteboard = new Whiteboard({
-            //     x: 1104,
-            //     y: 460.5,
-            //     z: -77
-            // }, {
-            //     x: 0,
-            //     y: -133,
-            //     z: 0
-            // });
-
-            // var myPlant = new Plant({
-            //     x: 1099.8785,
-            //     y: 460.3115,
-            //     z: -84.7736
-            // });
-
-            // var pingPongGun = new _PingPongGun({
-            //     x: 1101.2123,
-            //     y: 460.2328,
-            //     z: -65.8513
-            // }, {
-            //     x: 97.3683,
-            //     y: 179.0293,
-            //     z: 89.9698
-            // });
-
+            var pingPongGun = new _PingPongGun({
+                x: 1101.2123,
+                y: 460.2328,
+                z: -65.8513
+            }, {
+                x: 97.3683,
+                y: 179.0293,
+                z: 89.9698
+            });
             //v2.0
             // var musicBox = new MusicBox();
-            var cuckooClock = new MyCuckooClock(center);
+            //var cuckooClock = new MyCuckooClock(center);
+            var cuckooClock = new MyCuckooClock({
+                x: 1104.6,
+                y: 461.3,
+                z: -82.6
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
             // var doppelganger = new Doppelganger();
-            
+
         },
 
- 
+
         createKineticEntities: function() {
 
             var fruitBowl = new FruitBowl({
