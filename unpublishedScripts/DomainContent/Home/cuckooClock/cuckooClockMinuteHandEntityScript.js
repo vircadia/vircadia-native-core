@@ -17,7 +17,7 @@
         _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;
         _this.checkTime = true;
         _this.cuckooSound = SoundCache.getSound(CUCKOO_SOUND_URL);
-        _this.CUCKOO_SOUND_VOLUME = 0.0;
+        _this.CUCKOO_SOUND_VOLUME = 0.1;
 
     };
 
@@ -95,6 +95,11 @@
 
 
         update: function() {
+
+            if(iOwn === false) {
+                return;
+            }
+
             _this.clockBodyAnimationProps = Entities.getEntityProperties(_this.clockBody, "animation").animation;
             if (!_this.clockBodyAnimationProps) {
                 // print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
