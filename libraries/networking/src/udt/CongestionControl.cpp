@@ -62,10 +62,10 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
 
     if (_slowStart) {
         // we are in slow start phase - increase the congestion window size by the number of packets just ACKed
-        _congestionWindowSize += seqlen(_slowStartLastACK, ackNum);
+        _congestionWindowSize += seqlen(_lastACK, ackNum);
         
         // update the last ACK
-        _slowStartLastACK = ackNum;
+        _lastACK = ackNum;
 
         // check if we can get out of slow start (is our new congestion window size bigger than the max)
         if (_congestionWindowSize > _maxCongestionWindowSize) {
@@ -186,11 +186,11 @@ void DefaultCC::onTimeout() {
         stopSlowStart();
     } else {
         // UDT used to do the following on timeout if not in slow start - we should check if it could be helpful
-        // _lastDecreasePeriod = _packetSendPeriod;
-        // _packetSendPeriod = ceil(_packetSendPeriod * 2);
-        
+         _lastDecreasePeriod = _packetSendPeriod;
+         _packetSendPeriod = ceil(_packetSendPeriod * 2);
+
         // this seems odd - the last ack they were setting _lastDecreaseMaxSeq to only applies to slow start
-        // _lastDecreaseMaxSeq = _slowStartLastAck;
+         _lastDecreaseMaxSeq = _lastACK;
     }
 }
 
@@ -209,6 +209,5 @@ void DefaultCC::stopSlowStart() {
 }
 
 void DefaultCC::setInitialSendSequenceNumber(udt::SequenceNumber seqNum) {
-    _slowStartLastACK = seqNum;
-    _lastDecreaseMaxSeq = seqNum - 1;
+    _lastACK = _lastDecreaseMaxSeq = seqNum - 1;
 }

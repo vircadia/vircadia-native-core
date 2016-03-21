@@ -514,6 +514,11 @@ bool SendQueue::isInactive(bool sentAPacket) {
                     
                     // Note that thanks to the DoubleLock we have the _naksLock right now
                     _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+
+                    // we have the lock again - time to unlock it
+                    locker.unlock();
+                    
+                    emit timeout();
                 }
             }
         }

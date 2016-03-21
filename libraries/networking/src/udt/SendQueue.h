@@ -78,6 +78,8 @@ signals:
     void packetRetransmitted();
     
     void queueInactive();
+
+    void timeout();
     
 private slots:
     void run();
