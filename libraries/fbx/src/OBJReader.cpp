@@ -271,6 +271,7 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     QNetworkRequest netRequest(url);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
     if (!qApp || aboutToQuit) {
+        netReply->deleteLater();
         return nullptr;
     }
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal

@@ -1700,6 +1700,7 @@ bool Octree::readFromURL(const QString& urlString) {
             QDataStream inputStream(reply);
             readOk = readFromStream(resourceSize, inputStream);
         }
+        delete reply;
     }
     return readOk;
 }
