@@ -30,7 +30,6 @@ void AvatarUpdate::synchronousProcess() {
 
     // Keep our own updated value, so that our asynchronous code can consult it.
     _isHMDMode = qApp->isHMDMode();
-    auto frameCount = qApp->getFrameCount();
 
     QSharedPointer<AvatarManager> manager = DependencyManager::get<AvatarManager>();
     MyAvatar* myAvatar = manager->getMyAvatar();
@@ -38,7 +37,7 @@ void AvatarUpdate::synchronousProcess() {
 
     // transform the head pose from the displayPlugin into avatar coordinates.
     glm::mat4 invAvatarMat = glm::inverse(createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()));
-    _headPose = invAvatarMat * (myAvatar->getSensorToWorldMatrix() * qApp->getActiveDisplayPlugin()->getHeadPose(frameCount));
+    _headPose = invAvatarMat * (myAvatar->getSensorToWorldMatrix() * qApp->getActiveDisplayPlugin()->getHeadPose());
 
     if (!isThreaded()) {
         process();
