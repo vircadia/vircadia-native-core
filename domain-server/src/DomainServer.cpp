@@ -681,7 +681,12 @@ unsigned int DomainServer::countConnectedUsers() {
 }
 
 QUrl DomainServer::oauthRedirectURL() {
-    return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    if (_httpsManager) {
+        return QString("http://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    } else {
+        qWarning() << "Attempting to determine OAuth re-direct URL with no HTTPS server configured.";
+        return QUrl();
+    }
 }
 
 const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
