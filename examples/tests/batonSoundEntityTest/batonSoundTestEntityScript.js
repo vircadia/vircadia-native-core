@@ -30,10 +30,10 @@
             // We already have our injector so just restart it
             _this.soundInjector.restart();
         }
-        print("EBL SETTING TIMEOUT")
+        print("EBL TAKING OVER THE SOUND")
         Entities.editEntity(_this.batonDebugModel, {visible: true});
         _this.playSoundInterval = Script.setInterval(function() {
-             print("EBL RESTART");
+             print("EBL PLAY THE SOUND");
             _this.soundInjector.restart();
         }, _this.drumSound.duration * 1000); // Duration is in seconds so convert to ms
         iOwn = true;
@@ -65,7 +65,7 @@
 
         preload: function(entityID) {
             _this.entityID = entityID;
-            print("PRELOAD ENTITY SCRIPT!!!");
+            print("EBL PRELOAD ENTITY SCRIPT!!!");
             baton = virtualBaton({
                 // One winner for each entity
                 batonName: "io.highfidelity.soundEntityBatonTest:" + _this.entityID
