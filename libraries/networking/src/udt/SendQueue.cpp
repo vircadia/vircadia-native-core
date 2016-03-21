@@ -510,12 +510,12 @@ bool SendQueue::isInactive(bool sentAPacket) {
                 auto cvStatus = _emptyCondition.wait_for(locker, waitDuration);
                 
                 if (cvStatus == std::cv_status::timeout) {
-                    if (SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
+                    if (_naks.isEmpty() && SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
                         // after a timeout if we still have sent packets that the client hasn't ACKed we
                         // add them to the loss list
                         
                         // Note that thanks to the DoubleLock we have the _naksLock right now
-                        _naks.insert(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+                        _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
                     }
                 }
             }
