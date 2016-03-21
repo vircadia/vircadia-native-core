@@ -25,7 +25,7 @@
 
 
   function cleanup() {
-      Entities.deleteEntity(soundEntity);
+      // Entities.deleteEntity(soundEntity);
   }
 
   Script.scriptEnding.connect(cleanup);
