@@ -290,6 +290,7 @@ protected:
 
     EntityItemFBXService* _fbxService;
 
+    mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
 
     EntitySimulation* _simulation;
