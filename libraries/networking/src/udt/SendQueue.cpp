@@ -157,6 +157,9 @@ void SendQueue::ack(SequenceNumber ack) {
     }
     
     _lastACKSequenceNumber = (uint32_t) ack;
+
+    // call notify_one on the condition_variable_any in case the send thread is sleeping with a full congestion window
+    _emptyCondition.notify_one();
 }
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
