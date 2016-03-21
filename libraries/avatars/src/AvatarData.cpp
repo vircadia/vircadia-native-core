@@ -57,7 +57,6 @@ AvatarData::AvatarData() :
     _hasNewJointRotations(true),
     _hasNewJointTranslations(true),
     _headData(NULL),
-    _faceModelURL("http://invalid.com"),
     _displayNameTargetAlpha(1.0f),
     _displayNameAlpha(1.0f),
     _billboard(),
@@ -989,17 +988,13 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
     QDataStream packetStream(data);
 
     QUuid avatarUUID;
-    QUrl faceModelURL, skeletonModelURL;
+    QUrl unusedModelURL; // legacy faceModel support
+    QUrl skeletonModelURL;
     QVector<AttachmentData> attachmentData;
     QString displayName;
-    packetStream >> avatarUUID >> faceModelURL >> skeletonModelURL >> attachmentData >> displayName;
+    packetStream >> avatarUUID >> unusedModelURL >> skeletonModelURL >> attachmentData >> displayName;
 
     bool hasIdentityChanged = false;
-
-    if (faceModelURL != _faceModelURL) {
-        setFaceModelURL(faceModelURL);
-        hasIdentityChanged = true;
-    }
 
     if (skeletonModelURL != _skeletonModelURL) {
         setSkeletonModelURL(skeletonModelURL);
@@ -1025,7 +1020,9 @@ QByteArray AvatarData::identityByteArray() {
     QUrl emptyURL("");
     const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? emptyURL : _skeletonModelURL;
 
-    identityStream << QUuid() << _faceModelURL << urlToSend << _attachmentData << _displayName;
+    QUrl unusedModelURL; // legacy faceModel support
+
+    identityStream << QUuid() << unusedModelURL << urlToSend << _attachmentData << _displayName;
 
     return identityData;
 }
@@ -1036,12 +1033,6 @@ bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& data) {
     }
     _billboard = data;
     return true;
-}
-
-void AvatarData::setFaceModelURL(const QUrl& faceModelURL) {
-    _faceModelURL = faceModelURL;
-
-    qCDebug(avatars) << "Changing face model for avatar to" << _faceModelURL.toString();
 }
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
@@ -1445,9 +1436,6 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    if (!getFaceModelURL().isEmpty()) {
-        root[JSON_AVATAR_HEAD_MODEL] = getFaceModelURL().toString();
-    }
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
     }
@@ -1514,15 +1502,6 @@ void AvatarData::fromJson(const QJsonObject& json) {
         _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
     }
 
-    if (json.contains(JSON_AVATAR_HEAD_MODEL)) {
-        auto faceModelURL = json[JSON_AVATAR_HEAD_MODEL].toString();
-        if (faceModelURL != getFaceModelURL().toString()) {
-            QUrl faceModel(faceModelURL);
-            if (faceModel.isValid()) {
-                setFaceModelURL(faceModel);
-            }
-        }
-    }
     if (json.contains(JSON_AVATAR_BODY_MODEL)) {
         auto bodyModelURL = json[JSON_AVATAR_BODY_MODEL].toString();
         if (bodyModelURL != getSkeletonModelURL().toString()) {
