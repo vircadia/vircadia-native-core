@@ -28,16 +28,22 @@
 
     var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
 
+    var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
+
+
     var pingPongGunPath = Script.resolvePath("pingPongGun/wrapper.js?" + Math.random());
 
     var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
 
     Script.include(kineticPath);
+
     Script.include(utilsPath);
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
     Script.include(plantPath);
+    Script.include(cuckooClockPath);
+
     Script.include(pingPongGunPath);
 
     var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
@@ -90,7 +96,7 @@
                 }, 2500);
 
                 Script.setTimeout(function() {
-                    _this.createKineticEntities();
+                    // _this.createKineticEntities();
                     _this.createDynamicEntities();
                 }, 750)
 
@@ -121,6 +127,7 @@
             //     y: 0,
             //     z: 0
             // });
+
 
             var tiltMaze = new TiltMaze({
                 x: 1105.5768,
@@ -153,13 +160,22 @@
                 y: 179.0293,
                 z: 89.9698
             });
-
             //v2.0
             // var musicBox = new MusicBox();
-            // var cuckooClock = new CuckooClock();
+            //var cuckooClock = new MyCuckooClock(center);
+            var cuckooClock = new MyCuckooClock({
+                x: 1104.6,
+                y: 461.3,
+                z: -82.6
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
             // var doppelganger = new Doppelganger();
 
         },
+
 
         createKineticEntities: function() {
 
