@@ -128,7 +128,6 @@
                 z: 0
             });
 
-
             var tiltMaze = new TiltMaze({
                 x: 1105.5768,
                 y: 460.3298,
@@ -164,12 +163,12 @@
             // var musicBox = new MusicBox();
             //var cuckooClock = new MyCuckooClock(center);
             var cuckooClock = new MyCuckooClock({
-                x: 1104.6,
-                y: 461.3,
-                z: -82.6
+                x: 1105.172,
+                y: 461.44,
+                z: -81.86
             }, {
                 x: 0,
-                y: 0,
+                y: -53,
                 z: 0
             });
             // var doppelganger = new Doppelganger();

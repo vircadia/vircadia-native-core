@@ -265,7 +265,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             },
             collisionless: true,
             position: getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET),
-            visible: true
+            visible: false
         }
 
         var upperProps = {
@@ -284,7 +284,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             },
             collisionless: true,
             position: getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET),
-            visible: true
+            visible: false
         }
 
         lowerCorner = Entities.addEntity(lowerProps);
