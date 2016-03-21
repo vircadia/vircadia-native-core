@@ -4,7 +4,7 @@
 
     var baton;
     var iOwn = false;
-    var updateLoopConnected = false;
+    var soundIntervalConnected = false;
 
     var _this;
     BatonSoundEntity = function() {
@@ -23,18 +23,21 @@
             // We already have our injector so just restart it
             _this.soundInjector.restart();
         }
+        print("EBL SETTING TIMEOUT")
+        _this.playSoundInterval = Script.setInterval(function() {
+             print("EBL RESTART");
+            _this.soundInjector.restart();
+        }, _this.drumSound.duration * 1000); // Duration is in seconds so convert to ms
         iOwn = true;
-        updateLoopConnected = true;
-        print("START UPDATE");
-        Script.update.connect(_this.update);
+        soundIntervalConnected = true;
     }
 
     function stopUpdateAndReclaim() {
         // when the baton is release
         print("CLAIM BATON")
-        if (updateLoopConnected === true) {
-            updateLoopConnected = false;
-            Script.update.disconnect(_this.update);
+        if (soundIntervalConnected === true) {
+            soundIntervalConnected = false;
+            Script.clearInterval(_this.playSoundInterval);
         }
         iOwn = false;
 
@@ -63,9 +66,9 @@
         },
 
         unload: function() {
-            if (updateLoopConnected === true) {
-                updateLoopConnected = false;
-                Script.update.disconnect(_this.update);
+            if (soundIntervalConnected === true) {
+                soundIntervalConnected = false;
+                Script.clearInterval(_this.playSoundInterval);
             }
         }
 
