@@ -132,7 +132,12 @@ QEvent* OffscreenQmlRenderThread::Queue::take() {
 }
  
 OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
-    _canvas.create(shareContext);
+    if (!_canvas.create(shareContext)) {
+        static const char* error = "Failed to create OffscreenGLCanvas";
+        qWarning() << error;
+        throw error;
+    };
+
     _renderControl = new QMyQuickRenderControl();
     QQuickWindow::setDefaultAlphaBuffer(true);
     // Create a QQuickWindow that is associated with our render control.
