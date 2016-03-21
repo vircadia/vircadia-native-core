@@ -95,6 +95,11 @@
 
 
         update: function() {
+
+            if(iOwn === false) {
+                return;
+            }
+
             _this.clockBodyAnimationProps = Entities.getEntityProperties(_this.clockBody, "animation").animation;
             if (!_this.clockBodyAnimationProps) {
                 // print("NO CLOCK BODY ANIMATION PROPS! RETURNING");
