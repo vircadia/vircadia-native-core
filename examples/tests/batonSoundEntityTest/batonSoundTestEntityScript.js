@@ -1,6 +1,6 @@
 
 (function() {
-    Script.include("../../libraries/virtualBaton.js");
+    Script.include("../../libraries/virtualBaton.js?v2");
 
     var baton;
     var iOwn = false;
@@ -30,7 +30,7 @@
             // We already have our injector so just restart it
             _this.soundInjector.restart();
         }
-        print("EBL TAKING OVER THE SOUND")
+        print("EBL ")
         Entities.editEntity(_this.batonDebugModel, {visible: true});
         _this.playSoundInterval = Script.setInterval(function() {
              // print("EBL PLAY THE SOUND");
