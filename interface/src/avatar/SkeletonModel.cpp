@@ -93,12 +93,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         Rig::HeadParameters headParams;
-        headParams.enableLean = qApp->getAvatarUpdater()->isHMDMode();
+        headParams.enableLean = qApp->isHMDMode();
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
         headParams.torsoTwist = head->getTorsoTwist();
 
-        if (qApp->getAvatarUpdater()->isHMDMode()) {
+        if (qApp->isHMDMode()) {
             headParams.isInHMD = true;
 
             // get HMD position from sensor space into world space, and back into rig space

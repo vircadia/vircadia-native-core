@@ -394,7 +394,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (!frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
-        endRender();
         return;
     }
 
@@ -513,7 +512,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
-    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -925,7 +923,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
-    startUpdate();
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -944,7 +941,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving || _hasNewJointRotations || _hasNewJointTranslations) {
         locationChanged();
     }
-    endUpdate();
 
     return bytesRead;
 }
