@@ -96,7 +96,7 @@
                 }, 2500);
 
                 Script.setTimeout(function() {
-                    // _this.createKineticEntities();
+                    _this.createKineticEntities();
                     _this.createDynamicEntities();
                 }, 750)
 
