@@ -158,7 +158,6 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
-    Q_PROPERTY(QString faceModelURL READ getFaceModelURLFromScript WRITE setFaceModelURLFromScript)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
     Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
@@ -296,11 +295,8 @@ public:
 
     bool hasBillboardChangedAfterParsing(const QByteArray& data);
 
-    const QUrl& getFaceModelURL() const { return _faceModelURL; }
-    QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
-    virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
@@ -321,9 +317,6 @@ public:
 
     void setBillboardFromURL(const QString& billboardURL);
     const QString& getBillboardURL() { return _billboardURL; }
-
-    QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
-    void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
 
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
@@ -383,7 +376,6 @@ protected:
 
     HeadData* _headData;
 
-    QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
