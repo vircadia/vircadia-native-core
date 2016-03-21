@@ -51,7 +51,7 @@ void Material::setEmissive(const Color&  emissive, bool isSRGB) {
 }
 
 void Material::setOpacity(float opacity) {
-    _key.setTransparentFactor((opacity < 1.0f));
+    _key.setTranslucentFactor((opacity < 1.0f));
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
@@ -94,10 +94,10 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
                             // Texture has alpha, is nut just a mask or a true transparent channel
                             if (!usage.isAlphaMask()) {
                                 _key.setOpacityMaskMap(true);
-                                _key.setTransparentMap(false);
+                                _key.setTranslucentMap(false);
                             } else {
                                 _key.setOpacityMaskMap(false);
-                                _key.setTransparentMap(true);
+                                _key.setTranslucentMap(true);
                             }
                         }
                     }
@@ -112,7 +112,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 
         if (channel == MaterialKey::ALBEDO_MAP) {
             _key.setOpacityMaskMap(false);
-            _key.setTransparentMap(false);
+            _key.setTranslucentMap(false);
         }
 
         _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
