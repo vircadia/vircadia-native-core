@@ -33,7 +33,7 @@
         print("EBL TAKING OVER THE SOUND")
         Entities.editEntity(_this.batonDebugModel, {visible: true});
         _this.playSoundInterval = Script.setInterval(function() {
-             print("EBL PLAY THE SOUND");
+             // print("EBL PLAY THE SOUND");
             _this.soundInjector.restart();
         }, _this.drumSound.duration * 1000); // Duration is in seconds so convert to ms
         iOwn = true;
