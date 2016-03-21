@@ -680,7 +680,7 @@ unsigned int DomainServer::countConnectedUsers() {
 
 QUrl DomainServer::oauthRedirectURL() {
     if (_httpsManager) {
-        return QString("http://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+        return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
     } else {
         qWarning() << "Attempting to determine OAuth re-direct URL with no HTTPS server configured.";
         return QUrl();
