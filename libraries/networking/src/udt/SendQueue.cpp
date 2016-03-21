@@ -482,9 +482,6 @@ bool SendQueue::isInactive(bool sentAPacket) {
                 // use our condition_variable_any to wait
                 auto cvStatus = _emptyCondition.wait_for(locker, EMPTY_QUEUES_INACTIVE_TIMEOUT);
                 
-                // we have the lock again - Make sure to unlock it
-                locker.unlock();
-                
                 if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()) {
 #ifdef UDT_CONNECTION_DEBUG
                     qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
@@ -492,11 +489,15 @@ bool SendQueue::isInactive(bool sentAPacket) {
                         << "seconds and receiver has ACKed all packets."
                         << "The queue is now inactive and will be stopped.";
 #endif
+
+                    // we have the lock again - Make sure to unlock it
+                    locker.unlock();
                     
                     // Deactivate queue
                     deactivate();
                     return true;
                 }
+
             } else {
                 // We think the client is still waiting for data (based on the sequence number gap)
                 // Let's wait either for a response from the client or until the estimated timeout
