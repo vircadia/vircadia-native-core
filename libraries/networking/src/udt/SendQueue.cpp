@@ -133,7 +133,6 @@ void SendQueue::sendPacket(const Packet& packet) {
     
 void SendQueue::ack(SequenceNumber ack) {
     // this is a response from the client, re-set our timeout expiry and our last response time
-    _timeoutExpiryCount = 0;
     _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     if (_lastACKSequenceNumber == (uint32_t) ack) {
@@ -161,7 +160,6 @@ void SendQueue::ack(SequenceNumber ack) {
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
-    _timeoutExpiryCount = 0;
     _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     {
@@ -175,7 +173,6 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     // this is a response from the client, re-set our timeout expiry
-    _timeoutExpiryCount = 0;
     _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
     
     {
@@ -438,28 +435,31 @@ bool SendQueue::maybeResendPacket() {
 }
 
 bool SendQueue::isInactive(bool sentAPacket) {
-    if (!sentAPacket) {
-        // check if it is time to break this connection
-        
-        // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
-        // at least 5 seconds
-        static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
-        static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
-        if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE &&
-            _lastReceiverResponse > 0 &&
-            (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
-            // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
-            // then signal the queue is inactive and return so it can be cleaned up
-            
+    // check for connection timeout first
+
+    // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
+    // at least 5 seconds
+    static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
+    static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
+
+    auto sinceLastResponse = (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse);
+
+    if (sinceLastResponse >= quint64(NUM_TIMEOUTS_BEFORE_INACTIVE * _estimatedTimeout) &&
+        _lastReceiverResponse > 0 &&
+        sinceLastResponse > MIN_SECONDS_BEFORE_INACTIVE_MS) {
+        // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
+        // then signal the queue is inactive and return so it can be cleaned up
+
 #ifdef UDT_CONNECTION_DEBUG
-            qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
-                << "and 5s before receiving any ACK/NAK and is now inactive. Stopping.";
+        qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
+            << "and 5s before receiving any ACK/NAK and is now inactive. Stopping.";
 #endif
-            
-            deactivate();
-            return true;
-        }
-        
+
+        deactivate();
+        return true;
+    }
+
+    if (!sentAPacket) {
         // During our processing above we didn't send any packets
         
         // If that is still the case we should use a condition_variable_any to sleep until we have data to handle.
@@ -504,9 +504,6 @@ bool SendQueue::isInactive(bool sentAPacket) {
                 auto cvStatus = _emptyCondition.wait_for(locker, waitDuration);
                 
                 if (cvStatus == std::cv_status::timeout) {
-                    // increase the number of timeouts
-                    ++_timeoutExpiryCount;
-                    
                     if (SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
                         // after a timeout if we still have sent packets that the client hasn't ACKed we
                         // add them to the loss list
