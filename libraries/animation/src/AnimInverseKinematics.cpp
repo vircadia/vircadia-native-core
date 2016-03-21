@@ -481,7 +481,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             // smooth transitions by relaxing _hipsOffset toward the new value
             const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
-            float tau = dt > HIPS_OFFSET_SLAVE_TIMESCALE ? 1.0f : dt / HIPS_OFFSET_SLAVE_TIMESCALE;
+            float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
             _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
         }
     }

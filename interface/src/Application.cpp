@@ -272,11 +272,13 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
+#ifdef NDEBUG
             auto now = usecTimestampNow();
             auto lastHeartbeatAge = now - _heartbeat;
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 deadlockDetectionCrash();
             }
+#endif
         }
     }
 
@@ -1418,6 +1420,8 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
+    displayPlugin->updateHeadPose(_frameCount);
+
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
 
@@ -1598,12 +1602,7 @@ void Application::paintGL() {
             auto baseProjection = renderArgs._viewFrustum->getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
-
-            // Tell the plugin what pose we're using to render.  In this case we're just using the
-            // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-            // for rotational timewarp.  If we move to support positonal timewarp, we need to
-            // ensure this contains the full pose composed with the eye offsets.
-            mat4 headPose = displayPlugin->getHeadPose(_frameCount);
+            mat4 headPose = displayPlugin->getHeadPose();
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
@@ -1620,6 +1619,10 @@ void Application::paintGL() {
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
 
+                // Tell the plugin what pose we're using to render.  In this case we're just using the
+                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
+                // for rotational timewarp.  If we move to support positonal timewarp, we need to
+                // ensure this contains the full pose composed with the eye offsets.
                 displayPlugin->setEyeRenderPose(_frameCount, eye, headPose * glm::inverse(eyeOffsetTransform));
 
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
@@ -2975,7 +2978,7 @@ void Application::updateMyAvatarLookAtPosition() {
             lookAtPosition.x = -lookAtPosition.x;
         }
         if (isHMD) {
-            glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose(_frameCount);
+            glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
             glm::quat hmdRotation = glm::quat_cast(headPose);
             lookAtSpot = _myCamera.getPosition() + myAvatar->getOrientation() * (hmdRotation * lookAtPosition);
         } else {
@@ -4927,7 +4930,7 @@ mat4 Application::getEyeOffset(int eye) const {
 
 mat4 Application::getHMDSensorPose() const {
     if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getHeadPose(_frameCount);
+        return getActiveDisplayPlugin()->getHeadPose();
     }
     return mat4();
 }
