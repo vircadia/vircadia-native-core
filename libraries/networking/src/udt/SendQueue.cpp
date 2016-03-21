@@ -315,7 +315,7 @@ void SendQueue::run() {
 }
 
 bool SendQueue::maybeSendNewPacket() {
-    if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
+    if (!isFlowWindowFull()) {
         // we didn't re-send a packet, so time to send a new one
         
         if (!_packets.isEmpty()) {
@@ -470,11 +470,8 @@ bool SendQueue::isInactive(bool sentAPacket) {
         using DoubleLock = DoubleLock<std::recursive_mutex, std::mutex>;
         DoubleLock doubleLock(_packets.getLock(), _naksLock);
         DoubleLock::Lock locker(doubleLock, std::try_to_lock);
-
-        auto packetsOnWire = seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber);
-        bool congestionWindowFull = (packetsOnWire > _flowWindowSize);
         
-        if (locker.owns_lock() && (_packets.isEmpty() || congestionWindowFull) && _naks.isEmpty()) {
+        if (locker.owns_lock() && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()) {
             // The packets queue and loss list mutexes are now both locked and they're both empty
             
             if (uint32_t(_lastACKSequenceNumber) == uint32_t(_currentSequenceNumber)) {
@@ -488,7 +485,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
                 // we have the lock again - Make sure to unlock it
                 locker.unlock();
                 
-                if (cvStatus == std::cv_status::timeout) {
+                if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()) {
 #ifdef UDT_CONNECTION_DEBUG
                     qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
                         << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
@@ -509,14 +506,13 @@ bool SendQueue::isInactive(bool sentAPacket) {
                 // use our condition_variable_any to wait
                 auto cvStatus = _emptyCondition.wait_for(locker, waitDuration);
                 
-                if (cvStatus == std::cv_status::timeout) {
-                    if (_naks.isEmpty() && SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
-                        // after a timeout if we still have sent packets that the client hasn't ACKed we
-                        // add them to the loss list
-                        
-                        // Note that thanks to the DoubleLock we have the _naksLock right now
-                        _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
-                    }
+                if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()
+                    && SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
+                    // after a timeout if we still have sent packets that the client hasn't ACKed we
+                    // add them to the loss list
+                    
+                    // Note that thanks to the DoubleLock we have the _naksLock right now
+                    _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
                 }
             }
         }
@@ -530,4 +526,8 @@ void SendQueue::deactivate() {
     emit queueInactive();
     
     _state = State::Stopped;
+}
+
+bool SendQueue::isFlowWindowFull() const {
+    return seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber)  > _flowWindowSize;
 }

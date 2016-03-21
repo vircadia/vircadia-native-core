@@ -97,6 +97,8 @@ private:
     
     bool isInactive(bool sentAPacket);
     void deactivate(); // makes the queue inactive and cleans it up
+
+    bool isFlowWindowFull() const;
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
