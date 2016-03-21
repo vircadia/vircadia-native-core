@@ -1069,7 +1069,7 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
     }
 }
 
@@ -1277,14 +1277,16 @@ ModelBlender::ModelBlender() :
 ModelBlender::~ModelBlender() {
 }
 
-void ModelBlender::noteRequiresBlend(ModelPointer model) {
+void ModelBlender::noteRequiresBlend(Model* model) {
     if (_pendingBlenders < QThread::idealThreadCount()) {
         if (model->maybeStartBlender()) {
             _pendingBlenders++;
         }
         return;
     }
-    _modelsRequiringBlends.insert(model);
+    if (!_modelsRequiringBlends.contains(model)) {
+        _modelsRequiringBlends.append(model);
+    }
 }
 
 void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
@@ -1293,9 +1295,8 @@ void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNum
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }
     _pendingBlenders--;
-    while (!_modelsRequiringBlends.empty()) {
-        auto fistItem = _modelsRequiringBlends.begin();
-        ModelPointer nextModel = fistItem->lock();
+    while (!_modelsRequiringBlends.isEmpty()) {
+        Model* nextModel = _modelsRequiringBlends.takeFirst();
         if (nextModel && nextModel->maybeStartBlender()) {
             _pendingBlenders++;
             return;

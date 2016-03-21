@@ -18,6 +18,7 @@
 
 #include <HeadData.h>
 
+#include "FaceModel.h"
 #include "world.h"
 
 
@@ -75,6 +76,9 @@ public:
     glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
     glm::vec3 getMouthPosition() const { return _eyePosition - getUpDirection() * glm::length(_rightEyePosition - _leftEyePosition); }
 
+    FaceModel& getFaceModel() { return _faceModel; }
+    const FaceModel& getFaceModel() const { return _faceModel; }
+    
     bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     /// \return the point about which scaling occurs.
@@ -146,6 +150,7 @@ private:
     bool _isLookingAtMe;
     quint64 _lookingAtMeStarted;
     quint64 _wasLastLookingAtMe;
+    FaceModel _faceModel;
     
     glm::vec3 _correctedLookAtPosition;
 
@@ -157,6 +162,8 @@ private:
     void renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition);
     void calculateMouthShapes();
     void applyEyelidOffset(glm::quat headOrientation);
+
+    friend class FaceModel;
 };
 
 #endif // hifi_Head_h

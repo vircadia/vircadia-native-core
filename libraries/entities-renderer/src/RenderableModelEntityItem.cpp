@@ -463,8 +463,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
-    ModelPointer result = nullptr;
+Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+    Model* result = NULL;
 
     if (!renderer) {
         return result;
@@ -506,7 +506,7 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 
         // release interest
         _myRenderer->releaseModel(_model);
-        result = _model = nullptr;
+        result = _model = NULL;
         _needsInitialSimulation = true;
     }
 

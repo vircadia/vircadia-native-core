@@ -222,6 +222,7 @@ void Agent::executeScript() {
     scriptedAvatar->setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
+    scriptedAvatar->setFaceModelURL(QUrl());
     scriptedAvatar->setSkeletonModelURL(QUrl());
 
     // give this AvatarData object to the script engine

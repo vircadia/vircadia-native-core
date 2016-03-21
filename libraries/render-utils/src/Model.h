@@ -50,13 +50,8 @@ inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
     return qHash(a.get(), seed);
 }
 
-class Model;
-using ModelPointer = std::shared_ptr<Model>;
-using ModelWeakPointer = std::weak_ptr<Model>;
-
-
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public std::enable_shared_from_this<Model> {
+class Model : public QObject {
     Q_OBJECT
 
 public:
@@ -68,9 +63,6 @@ public:
     Model(RigPointer rig, QObject* parent = nullptr);
     virtual ~Model();
 
-    inline ModelPointer getThisPointer() const {
-        return std::static_pointer_cast<Model>(std::const_pointer_cast<Model>(shared_from_this()));
-    }
 
     /// Sets the URL of the model to render.
     Q_INVOKABLE void setURL(const QUrl& url);
@@ -395,7 +387,7 @@ class ModelBlender : public QObject, public Dependency {
 public:
 
     /// Adds the specified model to the list requiring vertex blends.
-    void noteRequiresBlend(ModelPointer model);
+    void noteRequiresBlend(Model* model);
 
 public slots:
     void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
@@ -405,7 +397,7 @@ private:
     ModelBlender();
     virtual ~ModelBlender();
 
-    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
+    QList<QPointer<Model> > _modelsRequiringBlends;
     int _pendingBlenders;
 };
 

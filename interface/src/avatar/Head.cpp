@@ -62,17 +62,20 @@ Head::Head(Avatar* owningAvatar) :
     _isLookingAtMe(false),
     _lookingAtMeStarted(0),
     _wasLastLookingAtMe(0),
+    _faceModel(this, std::make_shared<Rig>()),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
 }
 
 void Head::init() {
+    _faceModel.init();
 }
 
 void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
     _leanForward = _leanSideways = 0.0f;
+    _faceModel.reset();
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
@@ -230,6 +233,12 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     
     _leftEyePosition = _rightEyePosition = getPosition();
+    if (!billboard) {
+        _faceModel.simulate(deltaTime);
+        if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
+            static_cast<Avatar*>(_owningAvatar)->getSkeletonModel().getEyePositions(_leftEyePosition, _rightEyePosition);
+        }
+    }
     _eyePosition = calculateAverageEyePosition();
 }
 
@@ -402,7 +411,7 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
 }
 
 glm::vec3 Head::getScalePivot() const {
-    return _position;
+    return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
 }
 
 void Head::setFinalPitch(float finalPitch) {

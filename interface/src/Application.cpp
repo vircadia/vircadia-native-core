@@ -757,8 +757,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
         bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
-    // FIXME -- I'm a little concerned about this.
-    connect(getMyAvatar()->getSkeletonModel().get(), &SkeletonModel::skeletonLoaded,
+    connect(&getMyAvatar()->getSkeletonModel(), &SkeletonModel::skeletonLoaded,
         this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
@@ -4604,7 +4603,7 @@ void Application::notifyPacketVersionMismatch() {
 }
 
 void Application::checkSkeleton() {
-    if (getMyAvatar()->getSkeletonModel()->isActive() && !getMyAvatar()->getSkeletonModel()->hasSkeleton()) {
+    if (getMyAvatar()->getSkeletonModel().isActive() && !getMyAvatar()->getSkeletonModel().hasSkeleton()) {
         qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
 
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";

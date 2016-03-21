@@ -18,10 +18,6 @@
 class Avatar;
 class MuscleConstraint;
 
-class SkeletonModel;
-using SkeletonModelPointer = std::shared_ptr<SkeletonModel>;
-using SkeletonModelWeakPointer = std::weak_ptr<SkeletonModel>;
-
 /// A skeleton loaded from a model.
 class SkeletonModel : public Model {
     Q_OBJECT
