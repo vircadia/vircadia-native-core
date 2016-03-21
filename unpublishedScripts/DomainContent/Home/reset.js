@@ -118,15 +118,15 @@
 
         createDynamicEntities: function() {
 
-            // var fishTank = new FishTank({
-            //     x: 1098.9254,
-            //     y: 460.5814,
-            //     z: -79.1103
-            // }, {
-            //     x: 0,
-            //     y: 0,
-            //     z: 0
-            // });
+            var fishTank = new FishTank({
+                x: 1098.9254,
+                y: 460.5814,
+                z: -79.1103
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
 
 
             var tiltMaze = new TiltMaze({
