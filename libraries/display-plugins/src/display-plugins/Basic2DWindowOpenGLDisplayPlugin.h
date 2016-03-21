@@ -7,22 +7,22 @@
 //
 #pragma once
 
-#include "WindowOpenGLDisplayPlugin.h"
+#include "OpenGLDisplayPlugin.h"
 
 const float TARGET_FRAMERATE_Basic2DWindowOpenGL = 60.0f;
 
 class QScreen;
 class QAction;
 
-class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class Basic2DWindowOpenGLDisplayPlugin : public OpenGLDisplayPlugin {
     Q_OBJECT
-
+    using Parent = OpenGLDisplayPlugin;
 public:
     virtual const QString& getName() const override { return NAME; }
 
     virtual float getTargetFrameRate() override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 
-    virtual void activate() override;
+    virtual void internalActivate() override;
 
     virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
 

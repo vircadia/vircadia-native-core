@@ -11,6 +11,7 @@
 
 class InterleavedStereoDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
+    using Parent = StereoDisplayPlugin;
 public:
     const QString& getName() const override { return NAME; }
     grouping getGrouping() const override { return ADVANCED; }

@@ -105,6 +105,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     }
 
     if (_invalidView) {
+        // This is when the _view matrix gets assigned
         _view.getInverseMatrix(_camera._view);
     }
 
@@ -113,11 +114,11 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         if (stereo._enable) {
             _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
             for (int i = 0; i < 2; ++i) {
-                _cameras.push_back(_camera.getEyeCamera(i, stereo));
+                _cameras.push_back(_camera.getEyeCamera(i, stereo, _view));
             }
         } else {
             _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-            _cameras.push_back(_camera.recomputeDerived());
+            _cameras.push_back(_camera.recomputeDerived(_view));
         }
     }
 

@@ -150,6 +150,20 @@ QByteArray BasePacket::readWithoutCopy(qint64 maxSize) {
     return data;
 }
 
+qint64 BasePacket::writeString(const QString& string) {
+    QByteArray data = string.toUtf8();
+    writePrimitive(static_cast<uint32_t>(data.length()));
+    return writeData(data.constData(), data.length());
+}
+
+QString BasePacket::readString() {
+    uint32_t size;
+    readPrimitive(&size);
+    auto string = QString::fromUtf8(getPayload() + pos(), size);
+    seek(pos() + size);
+    return string;
+}
+
 bool BasePacket::reset() {
     if (isWritable()) {
         _payloadSize = 0;

@@ -182,9 +182,10 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3&
                 // if this entity is a zone, use this time to determine the bestZone
                 if (entity->getType() == EntityTypes::Zone) {
                     if (!entity->getVisible()) {
+                        #ifdef WANT_DEBUG
                         qCDebug(entitiesrenderer) << "not visible";
-                    }
-                    else {
+                        #endif
+                    } else {
                         float entityVolumeEstimate = entity->getVolumeEstimate();
                         if (entityVolumeEstimate < _bestZoneVolume) {
                             _bestZoneVolume = entityVolumeEstimate;
@@ -379,15 +380,19 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                     _pendingSkyboxTexture = false;
 
                     auto texture = _skyboxTexture->getGPUTexture();
-                    skybox->setCubemap(texture);
-                    if (!isAmbientTextureSet) {
-                        sceneKeyLight->setAmbientSphere(texture->getIrradiance());
-                        sceneKeyLight->setAmbientMap(texture);
-                        isAmbientTextureSet = true;
+                    if (texture) {
+                        skybox->setCubemap(texture);
+                        if (!isAmbientTextureSet) {
+                            sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                            sceneKeyLight->setAmbientMap(texture);
+                            isAmbientTextureSet = true;
+                        }
+                    } else {
+                        qCDebug(entitiesrenderer) << "Failed to load skybox texture:" << zone->getSkyboxProperties().getURL();
+                        skybox->setCubemap(nullptr);
                     }
                 } else {
                     skybox->setCubemap(nullptr);
-                    qCDebug(entitiesrenderer) << "Failed to load skybox:" << zone->getSkyboxProperties().getURL();
                 }
             }
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);

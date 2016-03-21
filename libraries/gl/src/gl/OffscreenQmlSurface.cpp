@@ -65,7 +65,11 @@ class OffscreenQmlRenderer : public OffscreenGLCanvas {
 public:
 
     OffscreenQmlRenderer(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
-        OffscreenGLCanvas::create(shareContext);
+        if (!OffscreenGLCanvas::create(shareContext)) {
+            static const char* error = "Failed to create OffscreenGLCanvas";
+            qWarning() << error;
+            throw error;
+        };
 
         _renderControl = new QMyQuickRenderControl();
 
@@ -153,7 +157,7 @@ private:
             qWarning("Failed to make context current on render thread");
             return;
         }
-        _renderControl->initialize(_context);
+        _renderControl->initialize(getContext());
         setupFbo();
         _escrow.setRecycler([this](GLuint texture){
             _textures.recycleTexture(texture);
@@ -498,12 +502,7 @@ void OffscreenQmlSurface::updateQuick() {
         _render = false;
     }
 
-    GLuint newTexture = _renderer->_escrow.fetch();
-    if (newTexture) {
-        if (_currentTexture) {
-            _renderer->_escrow.release(_currentTexture);
-        }
-        _currentTexture = newTexture;
+    if (_renderer->_escrow.fetchSignaledAndRelease(_currentTexture)) {
         emit textureUpdated(_currentTexture);
     }
 }

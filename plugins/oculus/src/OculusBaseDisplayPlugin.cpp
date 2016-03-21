@@ -34,16 +34,10 @@ void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
     GLenum err = glewInit();
     glGetError();
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 }
 
-void OculusBaseDisplayPlugin::init() {
-}
-
-void OculusBaseDisplayPlugin::deinit() {
-}
-
-void OculusBaseDisplayPlugin::activate() {
+void OculusBaseDisplayPlugin::internalActivate() {
     _session = acquireOculusSession();
 
     _hmdDesc = ovr_GetHmdDesc(_session);
@@ -74,7 +68,7 @@ void OculusBaseDisplayPlugin::activate() {
 
     if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
+        qWarning() << "Could not attach to sensor device";
     }
 
     // Parent class relies on our _session intialization, so it must come after that.
@@ -87,19 +81,14 @@ void OculusBaseDisplayPlugin::activate() {
         _sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
 
-    if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
-    }
-
     // This must come after the initialization, so that the values calculated 
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
-    HmdDisplayPlugin::activate();
+    Parent::internalActivate();
 }
 
-void OculusBaseDisplayPlugin::deactivate() {
-    HmdDisplayPlugin::deactivate();
+void OculusBaseDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
     releaseOculusSession();
     _session = nullptr;
 }

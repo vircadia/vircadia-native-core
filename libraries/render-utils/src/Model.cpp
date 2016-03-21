@@ -74,6 +74,21 @@ Model::~Model() {
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+bool Model::needsFixupInScene() {
+    if (readyToAddToScene()) {
+        // Once textures are loaded, fixup if they are now transparent
+        if (!_needsReload && _needsUpdateTransparentTextures && _geometry->isLoadedWithTextures()) {
+            _needsUpdateTransparentTextures = false;
+            if (_hasTransparentTextures != _geometry->hasTransparentTextures()) {
+                return true;
+            }
+        }
+        if (!_readyWhenAdded) {
+            return true;
+        }
+    }
+    return false;
+}
 
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
@@ -556,6 +571,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _renderItemsSet.clear();
+    _meshGroupsKnown = false;
     _readyWhenAdded = false;
 }
 
@@ -728,6 +744,8 @@ void Model::setURL(const QUrl& url) {
     }
 
     _needsReload = true;
+    _needsUpdateTransparentTextures = true;
+    _hasTransparentTextures = false;
     _meshGroupsKnown = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();

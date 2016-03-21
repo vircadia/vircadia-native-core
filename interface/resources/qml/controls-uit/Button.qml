@@ -15,8 +15,9 @@ import QtQuick.Controls.Styles 1.4
 import "../styles-uit"
 
 Original.Button {
-    id: button
     property int color: 0
+    property int colorScheme: hifi.colorSchemes.light
+
     width: 120
     height: 28
 
@@ -24,27 +25,43 @@ Original.Button {
 
         background: Rectangle {
             radius: hifi.buttons.radius
+
             gradient: Gradient {
                 GradientStop {
                     position: 0.2
-                    color: enabled
-                           ? (!pressed && button.color != hifi.buttons.black || (!hovered || pressed) && button.color == hifi.buttons.black
-                              ? hifi.buttons.colorStart[button.color] : hifi.buttons.colorFinish[button.color])
-                           : hifi.buttons.colorStart[hifi.buttons.white]
+                    color: {
+                        if (!control.enabled) {
+                            hifi.buttons.disabledColorStart[control.colorScheme]
+                        } else if (control.pressed) {
+                            hifi.buttons.pressedColor[control.color]
+                        } else if (control.hovered) {
+                            hifi.buttons.hoveredColor[control.color]
+                        } else {
+                            hifi.buttons.colorStart[control.color]
+                        }
+                    }
                 }
                 GradientStop {
                     position: 1.0
-                    color: enabled
-                           ? ((!hovered || pressed) && button.color != hifi.buttons.black || !pressed && button.color == hifi.buttons.black
-                              ? hifi.buttons.colorFinish[button.color] : hifi.buttons.colorStart[button.color])
-                           : hifi.buttons.colorFinish[hifi.buttons.white]
+                    color: {
+                        if (!control.enabled) {
+                            hifi.buttons.disabledColorFinish[control.colorScheme]
+                        } else if (control.pressed) {
+                            hifi.buttons.pressedColor[control.color]
+                        } else if (control.hovered) {
+                            hifi.buttons.hoveredColor[control.color]
+                        } else {
+                            hifi.buttons.colorFinish[control.color]
+                        }
+                    }
                 }
             }
         }
 
         label: RalewayBold {
             font.capitalization: Font.AllUppercase
-            color: enabled ? hifi.buttons.textColor[button.color] : hifi.colors.lightGrayText
+            color: enabled ? hifi.buttons.textColor[control.color]
+                           : hifi.buttons.disabledTextColor[control.colorScheme]
             size: hifi.fontSizes.buttonLabel
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter

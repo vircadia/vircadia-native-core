@@ -38,7 +38,7 @@ TextField {
                    : (textField.focus ? hifi.colors.white : hifi.colors.lightGrayText)
         background: Rectangle {
             color: isLightColorScheme
-                   ? (textField.focus ? hifi.colors.white : hifi.colors.lightGray)
+                   ? (textField.focus ? hifi.colors.white : hifi.colors.textFieldLightBackground)
                    : (textField.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: hifi.colors.primaryHighlight
             border.width: textField.focus ? 1 : 0

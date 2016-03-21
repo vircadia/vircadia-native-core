@@ -51,6 +51,9 @@ ModalWindow {
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
     focus: defaultButton === OriginalDialogs.StandardButton.NoButton
 
+    property int titleWidth: 0
+    onTitleWidthChanged: d.resize();
+
     function updateIcon() {
         if (!root) {
             return;
@@ -72,7 +75,7 @@ ModalWindow {
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = mainTextContainer.width
+                var targetWidth = Math.max(titleWidth, mainTextContainer.contentWidth)
                 var targetHeight = mainTextContainer.height + 3 * hifi.dimensions.contentSpacing.y
                         + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + 3 * hifi.dimensions.contentSpacing.y : 0)
                         + buttons.height
@@ -96,6 +99,7 @@ ModalWindow {
             }
             lineHeight: 2
             lineHeightMode: Text.ProportionalHeight
+            horizontalAlignment: Text.AlignHCenter
         }
 
         RalewaySemiBold {

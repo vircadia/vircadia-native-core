@@ -16,29 +16,31 @@
 #include <QSettings>
 #include <QTimer>
 
+#include "shared/ReadWriteLockable.h"
+
 namespace Setting {
     class Interface;
-    
-    class Manager : public QSettings {
+
+    class Manager : public QSettings, public ReadWriteLockable {
         Q_OBJECT
     protected:
         ~Manager();
         void registerHandle(Interface* handle);
         void removeHandle(const QString& key);
-        
+
         void loadSetting(Interface* handle);
         void saveSetting(Interface* handle);
-        
+
     private slots:
         void startTimer();
         void stopTimer();
-        
+
         void saveAll();
-        
+
     private:
         QHash<QString, Interface*> _handles;
         QPointer<QTimer> _saveTimer = nullptr;
-        
+
         friend class Interface;
         friend void cleanupPrivateInstance();
         friend void setupPrivateInstance();
