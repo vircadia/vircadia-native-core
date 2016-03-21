@@ -122,7 +122,7 @@ void OffscreenQmlRenderThread::Queue::add(QEvent::Type type) {
 
 QEvent* OffscreenQmlRenderThread::Queue::take() {
     QMutexLocker locker(&_mutex);
-    if (size() == 0) {
+    while (isEmpty()) {
         _isWaiting = true;
         _waitCondition.wait(&_mutex);
         _isWaiting = false;
@@ -130,7 +130,7 @@ QEvent* OffscreenQmlRenderThread::Queue::take() {
     QEvent* e = dequeue();
     return e;
 }
- 
+
 OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
     if (!_canvas.create(shareContext)) {
         static const char* error = "Failed to create OffscreenGLCanvas";
@@ -274,6 +274,7 @@ void OffscreenQmlRenderThread::resize() {
 
 void OffscreenQmlRenderThread::render() {
     if (_surface->_paused) {
+        _waitCondition.wakeOne();
         return;
     }
 
