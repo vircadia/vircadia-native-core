@@ -571,6 +571,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _renderItemsSet.clear();
+    _meshGroupsKnown = false;
     _readyWhenAdded = false;
 }
 
