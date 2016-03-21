@@ -1374,6 +1374,15 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
 
+    // Some plugins process message events, potentially leading to
+    // re-entering a paint event.  don't allow further processing if this
+    // happens
+    if (_inPaint) {
+        return;
+    }
+    _inPaint = true;
+    Finally clearFlagLambda([this] { _inPaint = false; });
+
     // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
@@ -1405,15 +1414,6 @@ void Application::paintGL() {
     if (nullptr == _displayPlugin) {
         return;
     }
-
-    // Some plugins process message events, potentially leading to
-    // re-entering a paint event.  don't allow further processing if this
-    // happens
-    if (_inPaint) {
-        return;
-    }
-    _inPaint = true;
-    Finally clearFlagLambda([this] { _inPaint = false; });
 
     auto displayPlugin = getActiveDisplayPlugin();
     // FIXME not needed anymore?
@@ -2494,10 +2494,9 @@ static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
 
-    if (_aboutToQuit) {
+    if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
     }
-
 
     checkChangeCursor();
 
