@@ -72,11 +72,15 @@ void GeometryReader::run() {
                 const bool grabLightmaps = true;
                 const float lightmapLevel = 1.0f;
                 fbxgeo = readFBX(_data, _mapping, _url.path(), grabLightmaps, lightmapLevel);
+                if (fbxgeo->meshes.size() == 0 && fbxgeo->joints.size() == 0) {
+                    // empty fbx geometry, indicates error
+                    throw QString("empty geometry, possibly due to an unsupported FBX version");
+                }
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxgeo = OBJReader().readOBJ(_data, _mapping, _url);
             } else {
                 QString errorStr("unsupported format");
-                emit onError(NetworkGeometry::ModelParseError, errorStr);
+                throw errorStr;
             }
             emit onSuccess(fbxgeo);
         } else {
