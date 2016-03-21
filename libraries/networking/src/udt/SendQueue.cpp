@@ -20,6 +20,7 @@
 #include <QtCore/QThread>
 
 #include <LogHandler.h>
+#include <NumericalConstants.h>
 #include <SharedUtil.h>
 
 #include "../NetworkLogging.h"
@@ -439,19 +440,19 @@ bool SendQueue::isInactive(bool sentAPacket) {
     // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
     // at least 5 seconds
     static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
-    static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
+    static const int MIN_MS_BEFORE_INACTIVE = 5 * 1000;
 
     auto sinceLastResponse = (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse);
 
-    if (sinceLastResponse >= quint64(NUM_TIMEOUTS_BEFORE_INACTIVE * _estimatedTimeout) &&
+    if (sinceLastResponse >= quint64(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
         _lastReceiverResponse > 0 &&
-        sinceLastResponse > MIN_SECONDS_BEFORE_INACTIVE_MS) {
+        sinceLastResponse > MIN_MS_BEFORE_INACTIVE) {
         // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
         // then signal the queue is inactive and return so it can be cleaned up
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
-            << "and 5s before receiving any ACK/NAK and is now inactive. Stopping.";
+            << "and" << MIN_MS_BEFORE_INACTIVE << "milliseconds before receiving any ACK/NAK and is now inactive. Stopping.";
 #endif
 
         deactivate();
