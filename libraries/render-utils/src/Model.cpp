@@ -252,25 +252,18 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
-
-        if (!_calculatedMeshBoxesValid) {
+        if (!_calculatedMeshBoxesValid || (pickAgainstTriangles && !_calculatedMeshTrianglesValid)) {
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
+        for (const auto& subMeshBox : _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
-                        if (!_calculatedMeshTrianglesValid) {
-                            recalculateMeshBoxes(pickAgainstTriangles);
-                        }
                         // check our triangles here....
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
-                        int t = 0;
-                        foreach (const Triangle& triangle, meshTriangles) {
-                            t++;
-
+                        for(const auto& triangle : meshTriangles) {
                             float thisTriangleDistance;
                             if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
                                 if (thisTriangleDistance < bestDistance) {
