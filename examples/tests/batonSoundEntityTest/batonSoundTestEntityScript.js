@@ -4,14 +4,21 @@
 
     var baton;
     var iOwn = false;
-    var soundIntervalConnected = false;
 
     var _this;
     BatonSoundEntity = function() {
         _this = this;
         _this.drumSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Drums/deepdrum1.wav");
         _this.injectorOptions = {position: MyAvatar.position, loop: false, volume: 1};
-        
+        _this.soundIntervalConnected = false;
+        _this.batonDebugModel = Entities.addEntity({
+            type: "Box",
+            color: {red: 200, green: 10, blue: 200},
+            position: Vec3.sum(MyAvatar.position, {x: 0, y: 1, z: 0}),
+            dimensions: {x: 0.5, y: 1, z: 0},
+            parentID: MyAvatar.sessionUUID,
+            visible: false
+        });
     };
 
     function startUpdate() {
@@ -24,24 +31,25 @@
             _this.soundInjector.restart();
         }
         print("EBL SETTING TIMEOUT")
+        Entities.editEntity(_this.batonDebugModel, {visible: true});
         _this.playSoundInterval = Script.setInterval(function() {
              print("EBL RESTART");
             _this.soundInjector.restart();
         }, _this.drumSound.duration * 1000); // Duration is in seconds so convert to ms
         iOwn = true;
-        soundIntervalConnected = true;
+        _this.soundIntervalConnected = true;
     }
 
     function stopUpdateAndReclaim() {
         // when the baton is release
-        print("CLAIM BATON")
-        if (soundIntervalConnected === true) {
-            soundIntervalConnected = false;
+        print("EBL CLAIM BATON")
+        if (_this.soundIntervalConnected === true) {
             Script.clearInterval(_this.playSoundInterval);
+            _this.soundIntervalConnected = false;
+            print("EBL CLEAR INTERVAL")
         }
         iOwn = false;
-
-
+        Entities.editEntity(_this.batonDebugModel, {visible: false});
         // hook up callbacks to the baton
         baton.claim(startUpdate, stopUpdateAndReclaim);
     }
@@ -66,9 +74,12 @@
         },
 
         unload: function() {
-            if (soundIntervalConnected === true) {
-                soundIntervalConnected = false;
+            Entities.deleteEntity(_this.batonDebugModel);
+            if (_this.soundIntervalConnected === true) {
                 Script.clearInterval(_this.playSoundInterval);
+                _this.soundIntervalConnected = false;
+                _this.soundInjector.stop();
+                delete _this.soundInjector;
             }
         }
 
