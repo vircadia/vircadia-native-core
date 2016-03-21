@@ -512,7 +512,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
                         // add them to the loss list
                         
                         // Note that thanks to the DoubleLock we have the _naksLock right now
-                        _naks.append(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
+                        _naks.insert(SequenceNumber(_lastACKSequenceNumber) + 1, _currentSequenceNumber);
                     }
                 }
             }
