@@ -203,9 +203,7 @@ void SendQueue::sendHandshake() {
     std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
-        static const auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
-
-        handshakePacket->seek(0);
+        auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
 
         handshakePacket->writePrimitive(_initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
