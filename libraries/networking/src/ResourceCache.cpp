@@ -228,9 +228,10 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
 
 Resource::~Resource() {
     if (_request) {
-        ResourceCache::requestCompleted(this);
+        _request->disconnect(this);
         _request->deleteLater();
         _request = nullptr;
+        ResourceCache::requestCompleted(this);
     }
 }
 
@@ -375,7 +376,14 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    Q_ASSERT(_request);
+    Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
+
+    if (!_request || _request != sender()) {
+        // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
+        qWarning(networking) << "Received signal Resource::handleReplyFinished from ResourceRequest that is not the current"
+            << " request: " << sender() << ", " << _request;
+        return;
+    }
     
     ResourceCache::requestCompleted(this);
     
