@@ -1162,7 +1162,7 @@ void AvatarData::setBillboardFromURL(const QString &billboardURL) {
 }
 
 void AvatarData::setBillboardFromNetworkReply() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
     setBillboard(networkReply->readAll());
     networkReply->deleteLater();
 }
