@@ -168,7 +168,7 @@
                 z: -81.86
             }, {
                 x: 0,
-                y: -53,
+                y: 0,
                 z: 0
             });
             // var doppelganger = new Doppelganger();
