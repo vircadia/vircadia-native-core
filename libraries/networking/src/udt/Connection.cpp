@@ -411,7 +411,15 @@ SequenceNumber Connection::nextACK() const {
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
     
     if (!_hasReceivedHandshake) {
-        // refuse to process any packets until we've received the handshake
+        // Refuse to process any packets until we've received the handshake
+        // Send handshake request to re-request a handshake
+        auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
+        _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
+
+#ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Received packet before receiving handshake, sending HandshakeRequest";
+#endif
+
         return false;
     }
     
@@ -535,6 +543,17 @@ void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
         case ControlPacket::ProbeTail:
             if (_isReceivingData) {
                 processProbeTail(move(controlPacket));
+            }
+            break;
+        case ControlPacket::HandshakeRequest:
+            if (_hasReceivedHandshakeACK) {
+                // We're already in a state where we've received a handshake ack, so we are likely in a state
+                // where the other end expired our connection. Let's reset.
+
+#ifdef UDT_CONNECTION_DEBUG
+                qCDebug(networking) << "Got handshake request, stopping SendQueue";
+#endif
+                stopSendQueue();
             }
             break;
     }
