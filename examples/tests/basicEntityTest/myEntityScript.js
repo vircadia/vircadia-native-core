@@ -11,7 +11,8 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-            print("EBL PRELOAD ENTITY SCRIPT!!!")
+            var randNum = Math.random().toFixed(3);
+            print("EBL PRELOAD ENTITY SCRIPT!!!", randNum)
 
         },
 
