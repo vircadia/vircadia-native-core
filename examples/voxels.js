@@ -16,8 +16,8 @@ var deletingVoxels = false;
 var addingSpheres = false;
 var deletingSpheres = false;
 
-var offAlpha = 0.5;
-var onAlpha = 0.9;
+var offAlpha = 0.8;
+var onAlpha = 1.0;
 var editSphereRadius = 4;
 
 function floorVector(v) {
@@ -48,52 +48,47 @@ var toolBar = (function () {
             height: toolHeight,
             alpha: onAlpha,
             visible: true,
-        });
+        }, false);
 
         addVoxelButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-add.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         deleteVoxelButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-delete.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         addSphereButton = toolBar.addTool({
             imageURL: toolIconUrl + "sphere-add.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         deleteSphereButton = toolBar.addTool({
             imageURL: toolIconUrl + "sphere-delete.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         addTerrainButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-terrain.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: onAlpha,
             visible: false
-        });
+        }, false);
 
         that.setActive(false);
     }
@@ -193,7 +188,6 @@ var toolBar = (function () {
 
     that.cleanup = function () {
         toolBar.cleanup();
-        // Overlays.deleteOverlay(activeButton);
     };
 
 
@@ -456,9 +450,6 @@ function keyReleaseEvent(event) {
 
 
 function cleanup() {
-    for (var i = 0; i < overlays.length; i++) {
-        Overlays.deleteOverlay(overlays[i]);
-    }
     toolBar.cleanup();
 }
 
