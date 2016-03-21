@@ -314,7 +314,6 @@ bool SendQueue::maybeSendNewPacket() {
     if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
         // we didn't re-send a packet, so time to send a new one
         
-        
         if (!_packets.isEmpty()) {
             SequenceNumber nextNumber = getNextSequenceNumber();
             
@@ -467,8 +466,11 @@ bool SendQueue::isInactive(bool sentAPacket) {
         using DoubleLock = DoubleLock<std::recursive_mutex, std::mutex>;
         DoubleLock doubleLock(_packets.getLock(), _naksLock);
         DoubleLock::Lock locker(doubleLock, std::try_to_lock);
+
+        auto packetsOnWire = seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber);
+        bool congestionWindowFull = (packetsOnWire > _flowWindowSize);
         
-        if (locker.owns_lock() && _packets.isEmpty() && _naks.isEmpty()) {
+        if (locker.owns_lock() && (_packets.isEmpty() || congestionWindowFull) && _naks.isEmpty()) {
             // The packets queue and loss list mutexes are now both locked and they're both empty
             
             if (uint32_t(_lastACKSequenceNumber) == uint32_t(_currentSequenceNumber)) {
