@@ -185,8 +185,7 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3&
                         #ifdef WANT_DEBUG
                         qCDebug(entitiesrenderer) << "not visible";
                         #endif
-                    }
-                    else {
+                    } else {
                         float entityVolumeEstimate = entity->getVolumeEstimate();
                         if (entityVolumeEstimate < _bestZoneVolume) {
                             _bestZoneVolume = entityVolumeEstimate;
