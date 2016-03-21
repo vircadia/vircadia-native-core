@@ -248,14 +248,14 @@ void GLBackend::render(Batch& batch) {
     if (!batch.isStereoEnabled()) {
         _stereo._enable = false;
     }
-    _stereo._enable =batch.isStereoEnabled();
-
-    glEnable(GL_CLIP_DISTANCE0);
     
     {
         PROFILE_RANGE("Transfer");
         renderPassTransfer(batch);
     }
+    _stereo._enable =batch.isStereoEnabled();
+    
+    glEnable(GL_CLIP_DISTANCE0);
 
     {
         PROFILE_RANGE(_stereo._enable ? "LeftRender" : "Render");
