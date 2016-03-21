@@ -373,7 +373,7 @@ function virtualBatonf(options) {
     };
 
     // Gather nAcceptors by making two proposals with some gathering time, even without a claim.
-    propose();
+   // propose();
     return exports;
 }
 if (typeof module !== 'undefined') { // Allow testing in nodejs.
