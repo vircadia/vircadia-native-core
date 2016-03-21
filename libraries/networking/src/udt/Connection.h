@@ -84,6 +84,7 @@ private slots:
     void recordSentPackets(int payload, int total);
     void recordRetransmission();
     void queueInactive();
+    void queueTimeout();
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);

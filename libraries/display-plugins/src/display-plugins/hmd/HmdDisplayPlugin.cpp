@@ -161,3 +161,7 @@ void HmdDisplayPlugin::updateFrameData() {
     Lock lock(_mutex);
     _currentRenderEyePoses = _renderEyePoses[_currentRenderFrameIndex];
 }
+
+glm::mat4 HmdDisplayPlugin::getHeadPose() const {
+    return _headPoseCache.get();
+}

@@ -178,8 +178,6 @@ public:
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
     Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
     Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
-    Q_INVOKABLE int getFaceBlendCoefNum() const { return getHead()->getFaceModel().getBlendshapeCoefficientsNum(); }
-    Q_INVOKABLE float getFaceBlendCoef(int index) const { return getHead()->getFaceModel().getBlendshapeCoefficient(index); }
 
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
@@ -279,7 +277,7 @@ public slots:
     void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
-    bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
+    bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
@@ -328,7 +326,6 @@ private:
     bool cameraInsideHead() const;
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
-    virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
