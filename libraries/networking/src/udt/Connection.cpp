@@ -410,7 +410,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     if (!_hasReceivedHandshake) {
         // Refuse to process any packets until we've received the handshake
         // Send handshake request to re-request a handshake
-        static auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
+        auto handshakeRequestPacket = ControlPacket::create(ControlPacket::HandshakeRequest, 0);
         _parentSocket->writeBasePacket(*handshakeRequestPacket, _destination);
 
 #ifdef UDT_CONNECTION_DEBUG
