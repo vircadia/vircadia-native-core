@@ -225,9 +225,6 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset(bool andReload) {
-    if (andReload) {
-        qApp->setRawAvatarUpdateThreading(false);
-    }
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
@@ -444,7 +441,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
+    bool inHmd = qApp->isHMDMode();
     bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
     if (inHmd && playing) {
         return;
@@ -1041,9 +1038,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
     const QString& urlString = fullAvatarURL.toString();
     if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
-        qApp->setRawAvatarUpdateThreading(false);
         setSkeletonModelURL(fullAvatarURL);
-        qApp->setRawAvatarUpdateThreading();
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
     sendIdentityPacket();
@@ -1477,7 +1472,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
 
-    if (qApp->getAvatarUpdater()->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
         glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
