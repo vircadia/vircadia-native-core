@@ -44,12 +44,6 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         return true;
     }
 
-    qWarning() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qWarning() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qWarning() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qWarning() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-    qWarning() << "Failed to create OffscreenGLCanvas";
-
     return false;
 }
 
