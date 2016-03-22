@@ -1,6 +1,6 @@
 
 (function() {
-    Script.include("../../libraries/virtualBaton.js?v2" + Math.random());
+    Script.include("../../libraries/virtualBaton.js");
 
     var baton;
     var iOwn = false;

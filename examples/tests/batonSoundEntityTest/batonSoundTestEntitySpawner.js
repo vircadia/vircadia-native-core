@@ -5,7 +5,7 @@
   var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 
   // Math.random ensures no caching of script
-  var SCRIPT_URL = Script.resolvePath("batonSoundTestEntityScript.js?v1" + Math.random())
+  var SCRIPT_URL = Script.resolvePath("batonSoundTestEntityScript.js")
 
   var soundEntity = Entities.addEntity({
       type: "Box",
