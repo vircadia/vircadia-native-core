@@ -8,6 +8,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
+@font-face {
+    font-family: Raleway-Bold;
+    src: url(../../resources/fonts/Raleway-Bold.ttf),  /* Production */
+         url(../../interface/resources/fonts/Raleway-Bold.ttf);  /* Development */
+}
+
+@font-face {
+    font-family: HiFi-Glyphs;
+    src: url(../../resources/fonts/hifi-glyphs.ttf), 
+         url(../../interface/resources/fonts/hifi-glyphs.ttf);
+}
+
 * {
 }
 
@@ -27,6 +39,7 @@ body {
     -ms-user-select: none;
     user-select: none;
 }
+
 
 .selectable {
     -webkit-touch-callout: text;
@@ -98,19 +111,60 @@ body {
 }
 
 input[type=button] {
-    cursor: pointer;
-    background-color: #608e96;
-    border-color: #608e96;
-    border-radius: 3.75pt;
-    padding: 3.75pt 7.5pt;
-    border: 0;
+    font-family: Raleway-Bold;
+    font-size: 13px;
+    vertical-align: top;
+    height: 28px;
+    min-width: 120px;
+    padding: 0px 12px;
+    margin-right: 8px;
+    border-radius: 5px;
+    border: none;
     color: #fff;
-    font-weight: bold;
+    background-color: #000;
+    background: linear-gradient(#343434, #000);
+    cursor: pointer;
 }
 
-#entity-list-header {
-    padding: 0.5em;
+input[type=button].glyph {
+    font-family: HiFi-Glyphs;
+    font-size: 20px;
+    min-width: 34px;
+    padding: 0;
 }
+
+input[type=button].red {
+    color: #fff;
+    background-color: #94132e;
+    background: linear-gradient(#d42043, #94132e);
+}
+
+input[type=button]:hover {
+    background: linear-gradient(#000, #000);
+    border: none;
+}
+
+input[type=button].red:hover {
+    background: linear-gradient(#d42043, #d42043);
+    border: none;
+}
+
+
+input[type=button]:active {
+    background: linear-gradient(#343434, #343434);
+}
+
+input[type=button].red:active {
+    background: linear-gradient(#94132e, #94132e);
+}
+
+
+#delete {
+    float: right;
+    margin-right: 0;
+    background-color: #ff0000;
+}
+
 
 #search-area {
     padding: 0.5em;
@@ -257,9 +311,6 @@ div#entity-table-scroll {
 div.input-area {
     display: inline-block;
     font-size: 9pt;
-}
-
-input {
 }
 
 #type, #id {
