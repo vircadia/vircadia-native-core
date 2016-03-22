@@ -373,6 +373,10 @@ Grabber.prototype.pressEvent = function(event) {
 
     beacon.updatePosition(this.startPosition);
 
+    if(!entityIsGrabbedByOther(this.entityID)){
+      this.moveEvent(event);
+    }
+     
     // TODO: play sounds again when we aren't leaking AudioInjector threads
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
 }
