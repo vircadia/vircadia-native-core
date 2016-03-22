@@ -75,12 +75,12 @@ Item {
         readonly property color lightGrayText80: "#ccafafaf"
         readonly property color faintGray80: "#cce3e3e3"
         readonly property color faintGray50: "#80e3e3e3"
-        readonly property color locked: "#252525"
 
         // Other colors
         readonly property color white: "#ffffff"
         readonly property color gray: "#808080"
         readonly property color black: "#000000"
+        readonly property color locked: "#252525"
         // Semitransparent
         readonly property color white50: "#80ffffff"
         readonly property color white30: "#4dffffff"
