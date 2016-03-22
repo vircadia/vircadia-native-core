@@ -30,7 +30,7 @@
             // We already have our injector so just restart it
             _this.soundInjector.restart();
         }
-        print("EBL START UPDATE")
+        print("EBL START UPDATE");
         Entities.editEntity(_this.batonDebugModel, {visible: true});
         _this.playSoundInterval = Script.setInterval(function() {
              // print("EBL PLAY THE SOUND");
@@ -41,8 +41,8 @@
     }
 
     function stopUpdateAndReclaim() {
+        print("EBL STOP UPDATE AND RECLAIM")
         // when the baton is release
-        print("EBL CLAIM BATON")
         if (_this.soundIntervalConnected === true) {
             Script.clearInterval(_this.playSoundInterval);
             _this.soundIntervalConnected = false;
@@ -69,7 +69,7 @@
             baton = virtualBaton({
                 // One winner for each entity
                 batonName: "io.highfidelity.soundEntityBatonTest:" + _this.entityID,
-                debugFlow: true
+                // debugFlow: true
             });
             stopUpdateAndReclaim();
         },
