@@ -1401,7 +1401,7 @@ void Application::paintGL() {
         _lastFramesPerSecondUpdate = now;
     }
 
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -2499,6 +2499,8 @@ static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
 
+    PROFILE_RANGE(__FUNCTION__);
+
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -2556,7 +2558,6 @@ void Application::idle(uint64_t now) {
     _lastTimeUpdated.start();
 
     {
-        PROFILE_RANGE(__FUNCTION__);
         static uint64_t lastIdleStart{ now };
         uint64_t idleStartToStartDuration = now - lastIdleStart;
         if (idleStartToStartDuration != 0) {
@@ -3173,6 +3174,9 @@ void Application::updateDialogs(float deltaTime) {
 }
 
 void Application::update(float deltaTime) {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
@@ -3269,6 +3273,8 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
 
     if (_physicsEnabled) {
+        PROFILE_RANGE_EX("Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+
         PerformanceTimer perfTimer("physics");
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
 
@@ -3339,9 +3345,13 @@ void Application::update(float deltaTime) {
         }
     }
 
-    _avatarUpdate->synchronousProcess();
+    {
+        PROFILE_RANGE_EX("Avatars", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        _avatarUpdate->synchronousProcess();
+    }
 
     {
+        PROFILE_RANGE_EX("Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
@@ -3361,6 +3371,7 @@ void Application::update(float deltaTime) {
 
     // Update my voxel servers with my current voxel query...
     {
+        PROFILE_RANGE_EX("QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;

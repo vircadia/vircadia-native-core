@@ -19,6 +19,7 @@
 #include <gpu/GLBackend.h>
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
+#include <shared/NsightHelpers.h>
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
@@ -106,6 +107,9 @@ void HmdDisplayPlugin::compositePointer() {
 }
 
 void HmdDisplayPlugin::internalPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
     // Composite together the scene, overlay and mouse cursor
     hmdPresent();
 

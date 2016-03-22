@@ -21,7 +21,7 @@
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
-
+#include <shared/NsightHelpers.h>
 #include <plugins/PluginContainer.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
@@ -527,6 +527,9 @@ void OpenGLDisplayPlugin::internalPresent() {
 
 void OpenGLDisplayPlugin::present() {
     incrementPresentCount();
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
     updateTextures();
     if (_currentSceneTexture) {
         // Write all layers to a local framebuffer
