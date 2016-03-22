@@ -84,8 +84,12 @@ void Material::setMetallic(float metallic) {
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));
-
+ 
         if (channel == MaterialKey::ALBEDO_MAP) {
+            // clear the previous flags whatever they were:
+            _key.setOpacityMaskMap(false);
+            _key.setTranslucentMap(false);
+
             if (textureMap->useAlphaChannel()) {
                 if (textureMap->isDefined()) {
                     if (textureMap->getTextureView().isValid()) {
