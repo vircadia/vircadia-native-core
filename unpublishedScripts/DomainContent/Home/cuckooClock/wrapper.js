@@ -14,6 +14,7 @@ var CLOCK_BODY_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/cu
 var CLOCK_FACE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cuckooClock2_FACE.fbx";
 var CLOCK_HOUR_HAND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cuckooClock2_HOUR_HAND.fbx";
 var CLOCK_MINUTE_HAND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cuckooClock2_MINUTE_HAND.fbx";
+var CLOCK_SECOND_HAND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/secondHand.fbx";
 
 MyCuckooClock = function(spawnPosition, spawnRotation) {
   var clockBody, clockFace, clockMinuteHand, clockHourHand, clockSecondHand;
@@ -23,7 +24,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockBody = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_BODY_URL,
-      name: "home_model_clockbody",
+      name: "hifi-home_model_clockbody",
       animation: {
         url: CLOCK_BODY_URL,
         running: false,
@@ -55,7 +56,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockFace = Entities.addEntity({
       type: "Model",
       parentID: clockBody,
-      name: "home_model_clockface",
+      name: "hifi-home_model_clockface",
       modelURL: CLOCK_FACE_URL,
       position: clockFacePosition,
       dimensions: {
@@ -91,7 +92,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var ANGULAR_ROLL_SPEED_HOUR_RADIANS = 0.000029098833;
     clockHourHand = Entities.addEntity({
       type: "Model",
-      name: "home_model_clockHourHand",
+      name: "hifi-home_model_clockHourHand",
       parentID: clockFace,
       modelURL: CLOCK_HOUR_HAND_URL,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
@@ -126,16 +127,16 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
     var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
     clockSecondHand = Entities.addEntity({
-      type: "Box",
+      type: "Model",
       parentID: clockBody,
-      // modelURL: CLOCK_SECOND_HAND_URL,
-      name: "home_model_clockSecondHand",
+      modelURL: CLOCK_SECOND_HAND_URL,
+      name: "hifi-home_model_clockSecondHand",
       position: Vec3.sum(clockFacePosition, clockHandOffset),
-      dimensions: {
-        x: 0.00263,
-        y: 0.0982,
-        z: 0.0024
-      },
+      // dimensions: {
+      //   x: 0.00263,
+      //   y: 0.0982,
+      //   z: 0.0024
+      // },
       color: {
         red: 200,
         green: 10,
@@ -146,7 +147,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.05,
         z: 0.5
       },
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
+      // rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
       angularDamping: 0,
       angularVelocity: {
         x: 0,
@@ -169,7 +170,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockMinuteHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_MINUTE_HAND_URL,
-      name: "home_model_clockMinuteHand",
+      name: "hifi-home_model_clockMinuteHand",
       parentID: clockFace,
       position: Vec3.sum(clockFacePosition, clockHandOffset),
       registrationPoint: {

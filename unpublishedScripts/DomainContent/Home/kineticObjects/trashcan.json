@@ -4,6 +4,7 @@
             "collisionsWillMove": 1,
             "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj",
             "created": "2016-03-15T23:06:41Z",
+            "name": "hifi-home-model-trashcan",
             "dimensions": {
                 "x": 0.4264354407787323,
                 "y": 0.50489801168441772,
