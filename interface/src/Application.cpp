@@ -3245,6 +3245,8 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
 
         {
+            PROFILE_RANGE_EX("UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+
             PerformanceTimer perfTimer("updateStates)");
             static VectorOfMotionStates motionStates;
             _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
@@ -3277,12 +3279,14 @@ void Application::update(float deltaTime) {
             });
         }
         {
+            PROFILE_RANGE_EX("StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("stepSimulation");
             getEntities()->getTree()->withWriteLock([&] {
                 _physicsEngine->stepSimulation();
             });
         }
         {
+            PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("havestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
@@ -3313,17 +3317,21 @@ void Application::update(float deltaTime) {
 
     // AvatarManager update
     {
-        PROFILE_RANGE_EX("Avatars", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
-
         PerformanceTimer perfTimer("AvatarManger");
 
         qApp->setAvatarSimrateSample(1.0f / deltaTime);
 
-        avatarManager->updateOtherAvatars(deltaTime);
+        {
+            PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            avatarManager->updateOtherAvatars(deltaTime);
+        }
 
         qApp->updateMyAvatarLookAtPosition();
 
-        avatarManager->updateMyAvatar(deltaTime);
+        {
+            PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            avatarManager->updateMyAvatar(deltaTime);
+        }
     }
 
     {
