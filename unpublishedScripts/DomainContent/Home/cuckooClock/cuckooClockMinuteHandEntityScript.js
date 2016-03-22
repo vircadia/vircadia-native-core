@@ -92,6 +92,7 @@
         },
 
         unload: function() {
+            baton.unload();
             if (connected === true) {
                 connected = false;
                 Script.update.disconnect(_this.update);

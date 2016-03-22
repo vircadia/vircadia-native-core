@@ -50,7 +50,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var clockFaceOffset = {
       x: -0.0345,
       y: 0.2587,
-      z: 0.1255
+      z: 0.3255
     };
     var clockFacePosition = Vec3.sum(spawnPosition, clockFaceOffset);
     clockFace = Entities.addEntity({
@@ -132,11 +132,11 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       modelURL: CLOCK_SECOND_HAND_URL,
       name: "hifi-home_model_clockSecondHand",
       position: Vec3.sum(clockFacePosition, clockHandOffset),
-      // dimensions: {
-      //   x: 0.00263,
-      //   y: 0.0982,
-      //   z: 0.0024
-      // },
+      dimensions: {
+        x: 0.0043,
+        y: 0.1117,
+        z: 0.0008
+      },
       color: {
         red: 200,
         green: 10,
@@ -147,7 +147,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.05,
         z: 0.5
       },
-      // rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
+      rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
       angularDamping: 0,
       angularVelocity: {
         x: 0,

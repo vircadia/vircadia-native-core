@@ -89,14 +89,14 @@
                 _this.showTidyingButton();
                 _this.playTidyingSound();
 
-                _this.findAndDeleteHomeEntities();
+                // _this.findAndDeleteHomeEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
                     _this.tidying = false;
                 }, 2500);
 
                 Script.setTimeout(function() {
-                    _this.createKineticEntities();
+                    // _this.createKineticEntities();
                     _this.createDynamicEntities();
                 }, 750)
 
@@ -118,61 +118,61 @@
 
         createDynamicEntities: function() {
 
-            var fishTank = new FishTank({
-                x: 1098.9254,
-                y: 460.5814,
-                z: -79.1103
-            }, {
-                x: 0,
-                y: 0,
-                z: 0
-            });
+            // var fishTank = new FishTank({
+            //     x: 1098.9254,
+            //     y: 460.5814,
+            //     z: -79.1103
+            // }, {
+            //     x: 0,
+            //     y: 0,
+            //     z: 0
+            // });
 
-            var tiltMaze = new TiltMaze({
-                x: 1105.5768,
-                y: 460.3298,
-                z: -80.4891
-            });
+            // var tiltMaze = new TiltMaze({
+            //     x: 1105.5768,
+            //     y: 460.3298,
+            //     z: -80.4891
+            // });
 
-            var whiteboard = new Whiteboard({
-                x: 1104,
-                y: 460.5,
-                z: -77
-            }, {
-                x: 0,
-                y: -133,
-                z: 0
-            });
+            // var whiteboard = new Whiteboard({
+            //     x: 1104,
+            //     y: 460.5,
+            //     z: -77
+            // }, {
+            //     x: 0,
+            //     y: -133,
+            //     z: 0
+            // });
 
-            var myPlant = new Plant({
-                x: 1099.8785,
-                y: 460.3115,
-                z: -84.7736
-            }, {
-                x: 0,
-                y: 0,
-                z: 0
-            });
+            // var myPlant = new Plant({
+            //     x: 1099.8785,
+            //     y: 460.3115,
+            //     z: -84.7736
+            // }, {
+            //     x: 0,
+            //     y: 0,
+            //     z: 0
+            // });
 
-            var pingPongGun = new _PingPongGun({
-                x: 1101.2123,
-                y: 460.2328,
-                z: -65.8513
-            }, {
-                x: 97.3683,
-                y: 179.0293,
-                z: 89.9698
-            });
+            // var pingPongGun = new _PingPongGun({
+            //     x: 1101.2123,
+            //     y: 460.2328,
+            //     z: -65.8513
+            // }, {
+            //     x: 97.3683,
+            //     y: 179.0293,
+            //     z: 89.9698
+            // });
             //v2.0
             // var musicBox = new MusicBox();
             //var cuckooClock = new MyCuckooClock(center);
             var cuckooClock = new MyCuckooClock({
-                x: 1105.172,
+                x: 1105.267,
                 y: 461.44,
-                z: -81.86
+                z: -81.9495
             }, {
                 x: 0,
-                y: 0,
+                y: -57,
                 z: 0
             });
             // var doppelganger = new Doppelganger();
@@ -264,7 +264,7 @@
             print('JBP after deleting home entities')
         },
         unload: function() {
-            this.findAndDeleteHomeEntities();
+            // this.findAndDeleteHomeEntities();
         }
 
     }
