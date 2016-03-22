@@ -203,13 +203,15 @@ public:
     // Also releases any previous texture held by the caller
     bool fetchSignaledAndRelease(T& value) {
         T originalValue = value;
-        if (fetchSignaled(value)) {
+        bool fetched = false;
+        while (fetchSignaled(value)) {
+            fetched = true;
             if (originalValue != invalid()) {
                 release(originalValue);
             }
-            return true;
+            originalValue = value;
         }
-        return false;
+        return fetched;
     }
 
     bool fetchAndReleaseWithFence(T& value, GLsync& sync) {
