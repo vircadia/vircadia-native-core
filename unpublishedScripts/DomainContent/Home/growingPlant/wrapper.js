@@ -92,6 +92,7 @@ Plant = function(spawnPosition, spawnRotation) {
       y: -2.0,
       z: 0
     },
+    velocity: {x: -0, y: -0.2, z: 0},
     rotation: waterCanRotation,
     userData: JSON.stringify({
       'hifiHomeKey': {
