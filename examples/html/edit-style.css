@@ -363,6 +363,8 @@ td {
 
 #no-entities {
     display: none;
+    position: absolute;
+    top: 54px;
     font-size: 120%;
     padding: 10pt;
     font-weight: bold;
