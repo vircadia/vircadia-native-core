@@ -402,11 +402,15 @@ public slots:
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
 private:
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
     ModelBlender();
     virtual ~ModelBlender();
 
     std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
     int _pendingBlenders;
+    Mutex _mutex;
 };
 
 

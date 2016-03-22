@@ -1277,20 +1277,26 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
         }
         return;
     }
-    _modelsRequiringBlends.insert(model);
+
+    {
+        Lock lock(_mutex);
+        _modelsRequiringBlends.insert(model);
+    }
 }
 
 void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
         const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+
     if (!model.isNull()) {
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }
     _pendingBlenders--;
-    while (!_modelsRequiringBlends.empty()) {
-        auto firstItem = _modelsRequiringBlends.begin();
-        if (firstItem != _modelsRequiringBlends.end()) {
-            _modelsRequiringBlends.erase(firstItem);
-            ModelPointer nextModel = firstItem->lock();
+    {
+        Lock lock(_mutex);
+        for (auto i = _modelsRequiringBlends.begin(); i != _modelsRequiringBlends.end();) {
+            auto weakPtr = *i;
+            _modelsRequiringBlends.erase(i++); // remove front of the set
+            ModelPointer nextModel = weakPtr.lock();
             if (nextModel && nextModel->maybeStartBlender()) {
                 _pendingBlenders++;
                 return;
