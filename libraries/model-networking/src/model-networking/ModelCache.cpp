@@ -213,10 +213,10 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
                 networkMaterial->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
             } else if (material->lightmapTextureName == name) {
-                material->emissiveTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
+                material->lightmapTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
 
                 auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
-                lightmapMap->setTextureSource(material->emissiveTexture->_textureSource);
+                lightmapMap->setTextureSource(material->lightmapTexture->_textureSource);
                 lightmapMap->setTextureTransform(
                     oldTextureMaps[model::MaterialKey::LIGHTMAP_MAP]->getTextureTransform());
                 glm::vec2 oldOffsetScale =
