@@ -158,6 +158,13 @@ void ScriptEngine::disconnectNonEssentialSignals() {
 }
 
 void ScriptEngine::runInThread() {
+    Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
+
+    if (_isThreaded) {
+        qCWarning(scriptengine) << "ScriptEngine already running in thread: " << getFilename();
+        return;
+    }
+
     _isThreaded = true;
     QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
