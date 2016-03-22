@@ -1,6 +1,10 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
+import "../../../styles-uit"
+import "../../../controls-uit" as HifiControls
+import "../../../windows-uit"
+
 Item {
     id: root
     implicitHeight: xspinner.height
@@ -14,12 +18,16 @@ Item {
 
     signal valueChanged();
 
-    SpinBox {
+    HifiConstants { id: hifi }
+
+    HifiControls.SpinBox {
         id: xspinner
         width: root.spinboxWidth
         anchors { left: parent.left }
         value: root.vector.x
-
+        labelInside: "X:"
+        colorScheme: hifi.colorSchemes.dark
+        colorLabelInside: hifi.colors.redHighlight
         decimals: root.decimals
         stepSize: root.stepSize
         maximumValue: root.maximumValue
@@ -32,12 +40,14 @@ Item {
         }
     }
 
-    SpinBox {
+    HifiControls.SpinBox {
         id: yspinner
         width: root.spinboxWidth
         anchors { horizontalCenter: parent.horizontalCenter }
         value: root.vector.y
-
+        labelInside: "Y:"
+        colorLabelInside: hifi.colors.greenHighlight
+        colorScheme: hifi.colorSchemes.dark
         decimals: root.decimals
         stepSize: root.stepSize
         maximumValue: root.maximumValue
@@ -50,12 +60,14 @@ Item {
         }
     }
 
-    SpinBox {
+    HifiControls.SpinBox {
         id: zspinner
         width: root.spinboxWidth
         anchors { right: parent.right; }
         value: root.vector.z
-
+        labelInside: "Z:"
+        colorLabelInside: hifi.colors.primaryHighlight
+        colorScheme: hifi.colorSchemes.dark
         decimals: root.decimals
         stepSize: root.stepSize
         maximumValue: root.maximumValue

@@ -342,7 +342,7 @@ void CompositorHelper::computeHmdPickRay(const glm::vec2& cursorPos, glm::vec3& 
 }
 
 glm::mat4 CompositorHelper::getUiTransform() const {
-    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose(_currentFrame));
+    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose());
 }
 
 //Finds the collision point of a world space ray

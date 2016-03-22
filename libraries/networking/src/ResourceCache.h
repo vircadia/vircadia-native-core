@@ -12,6 +12,7 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
+#include <mutex>
 #include <QtCore/QHash>
 #include <QtCore/QList>
 #include <QtCore/QObject>
@@ -53,12 +54,25 @@ static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 // object instead
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
 public:
-    QList<QPointer<Resource>> _pendingRequests;
-    QList<Resource*> _loadingRequests;
+    void appendPendingRequest(Resource* newRequest);
+    void appendActiveRequest(Resource* newRequest);
+    void removeRequest(Resource* doneRequest);
+    QList<QPointer<Resource>> getPendingRequests() const;
+    uint32_t getPendingRequestsCount() const;
+    QList<Resource*> getLoadingRequests() const;
+    Resource* getHighestPendingRequest();
+
 private:
     ResourceCacheSharedItems() { }
     virtual ~ResourceCacheSharedItems() { }
+
+    mutable Mutex _mutex;
+    QList<QPointer<Resource>> _pendingRequests;
+    QList<Resource*> _loadingRequests;
 };
 
 
@@ -75,11 +89,11 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*>& getLoadingRequests() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->_loadingRequests; }
+    static const QList<Resource*> getLoadingRequests() 
+        { return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests(); }
 
     static int getPendingRequestCount() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->_pendingRequests.size(); }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount(); }
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();

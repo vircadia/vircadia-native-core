@@ -145,9 +145,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             removeAvatar(avatarIterator.key());
             ++avatarIterator;
         } else {
-            avatar->startUpdate();
             avatar->simulate(deltaTime);
-            avatar->endUpdate();
             ++avatarIterator;
 
             avatar->updateRenderItem(pendingChanges);
@@ -169,7 +167,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
-        avatar->startUpdate();
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
@@ -183,7 +180,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
             avatar->simulate(deltaTime);
             ++fadingIterator;
         }
-        avatar->endUpdate();
     }
     scene->enqueuePendingChanges(pendingChanges);
 }

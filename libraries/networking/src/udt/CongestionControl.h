@@ -41,7 +41,7 @@ public:
     virtual void init() {}
     virtual void onACK(SequenceNumber ackNum) {}
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
-    
+    virtual void onTimeout() {}
 protected:
     void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRTO(int rto) { _userDefinedRTO = true; _rto = rto; }
@@ -107,7 +107,7 @@ public:
     virtual void onTimeout();
 
 protected:
-    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) { _slowStartLastACK = seqNum; }
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum);
 
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout
@@ -115,7 +115,7 @@ private:
     p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::now(); // last rate increase time
     
     bool _slowStart { true };	// if in slow start phase
-    SequenceNumber _slowStartLastACK; // last ACKed seq num from previous slow start check
+    SequenceNumber _lastACK; // last ACKed sequence number from previous
     bool _loss { false };	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecreasePeriod { 1 }; // value of _packetSendPeriod when last decrease happened

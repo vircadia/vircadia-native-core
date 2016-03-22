@@ -179,7 +179,7 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
 }
 
 static bool replyOK(QNetworkReply* netReply, QUrl url) { // This will be reworked when we make things asynchronous
-    return (netReply->isFinished() &&
+    return (netReply && netReply->isFinished() &&
             (url.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
              netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
              (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)));
@@ -191,11 +191,10 @@ bool OBJReader::isValidTexture(const QByteArray &filename) {
     }
     QUrl candidateUrl = _url.resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
-    if (!netReply) {
-        return false;
-    }
     bool isValid = replyOK(netReply, candidateUrl);
-    netReply->deleteLater();
+    if (netReply) {
+        netReply->deleteLater();
+    }
     return isValid;
 }
 
@@ -264,20 +263,20 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
+    bool aboutToQuit{ false };
+    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
+        aboutToQuit = true;
+    });
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
-    if (!qApp) {
-        return netReply;
+    if (!qApp || aboutToQuit) {
+        netReply->deleteLater();
+        return nullptr;
     }
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
-
-    bool aboutToQuit { false };
-    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
-        aboutToQuit = true;
-    });
     static const int WAIT_TIMEOUT_MS = 500;
     while (qApp && !aboutToQuit && !netReply->isReadable()) {
         netReply->waitForReadyRead(WAIT_TIMEOUT_MS); // so we might as well block this thread waiting for the response, rather than
@@ -570,9 +569,11 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 parseMaterialLibrary(netReply);
             } else {
                 qCDebug(modelformat) << "OBJ Reader WARNING:" << libraryName << "did not answer. Got"
-                    << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+                    << (!netReply ? "aborted" : netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString());
             }
-            netReply->deleteLater();
+            if (netReply) {
+                netReply->deleteLater();
+            }
         }
     }
 

@@ -75,6 +75,7 @@ Item {
         readonly property color lightGrayText80: "#ccafafaf"
         readonly property color faintGray80: "#cce3e3e3"
         readonly property color faintGray50: "#80e3e3e3"
+        readonly property color locked: "#252525"
 
         // Other colors
         readonly property color white: "#ffffff"
@@ -138,6 +139,7 @@ Item {
         readonly property real spinnerSize: 42
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23
+        readonly property real tableHeaderHeight: 40
         readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
         readonly property real modalDialogTitleHeight: 40
         readonly property real controlLineHeight: 29  // Height of spinbox control on 1920 x 1080 monitor

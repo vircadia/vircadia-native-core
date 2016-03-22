@@ -252,25 +252,18 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
-
-        if (!_calculatedMeshBoxesValid) {
+        if (!_calculatedMeshBoxesValid || (pickAgainstTriangles && !_calculatedMeshTrianglesValid)) {
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
+        for (const auto& subMeshBox : _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
-                        if (!_calculatedMeshTrianglesValid) {
-                            recalculateMeshBoxes(pickAgainstTriangles);
-                        }
                         // check our triangles here....
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
-                        int t = 0;
-                        foreach (const Triangle& triangle, meshTriangles) {
-                            t++;
-
+                        for(const auto& triangle : meshTriangles) {
                             float thisTriangleDistance;
                             if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
                                 if (thisTriangleDistance < bestDistance) {
@@ -571,6 +564,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _renderItemsSet.clear();
+    _meshGroupsKnown = false;
     _readyWhenAdded = false;
 }
 
@@ -1068,7 +1062,7 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
     }
 }
 
@@ -1276,16 +1270,14 @@ ModelBlender::ModelBlender() :
 ModelBlender::~ModelBlender() {
 }
 
-void ModelBlender::noteRequiresBlend(Model* model) {
+void ModelBlender::noteRequiresBlend(ModelPointer model) {
     if (_pendingBlenders < QThread::idealThreadCount()) {
         if (model->maybeStartBlender()) {
             _pendingBlenders++;
         }
         return;
     }
-    if (!_modelsRequiringBlends.contains(model)) {
-        _modelsRequiringBlends.append(model);
-    }
+    _modelsRequiringBlends.insert(model);
 }
 
 void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
@@ -1294,11 +1286,15 @@ void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNum
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }
     _pendingBlenders--;
-    while (!_modelsRequiringBlends.isEmpty()) {
-        Model* nextModel = _modelsRequiringBlends.takeFirst();
-        if (nextModel && nextModel->maybeStartBlender()) {
-            _pendingBlenders++;
-            return;
+    while (!_modelsRequiringBlends.empty()) {
+        auto firstItem = _modelsRequiringBlends.begin();
+        if (firstItem != _modelsRequiringBlends.end()) {
+            _modelsRequiringBlends.erase(firstItem);
+            ModelPointer nextModel = firstItem->lock();
+            if (nextModel && nextModel->maybeStartBlender()) {
+                _pendingBlenders++;
+                return;
+            }
         }
     }
 }
