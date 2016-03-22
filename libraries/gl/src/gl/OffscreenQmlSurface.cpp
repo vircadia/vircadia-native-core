@@ -192,7 +192,7 @@ void OffscreenQmlRenderThread::setupFbo() {
     // FIXME: Something upstream is polluting the context with a GL_INVALID_ENUM,
     //        likely from glewExperimental = true
     GLenum err = glGetError();
-    if (err != GLEW_OK) {
+    if (err != GL_NO_ERROR) {
         qDebug() << "Clearing outstanding GL error to set up QML FBO:" << glewGetErrorString(err);
     }
 
