@@ -40,7 +40,6 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 
-#include "avatar/AvatarUpdate.h"
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -215,7 +214,6 @@ public:
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
     float getAvatarSimrate();
     void setAvatarSimrateSample(float sample);
 
@@ -252,11 +250,6 @@ public slots:
     void packageModel();
 
     void openUrl(const QUrl& url);
-
-    void setAvatarUpdateThreading();
-    void setAvatarUpdateThreading(bool isThreaded);
-    void setRawAvatarUpdateThreading();
-    void setRawAvatarUpdateThreading(bool isThreaded);
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
@@ -420,7 +413,6 @@ private:
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};

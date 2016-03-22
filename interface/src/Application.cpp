@@ -876,7 +876,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice = std::make_shared<controller::StateController>();
 
     _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->getAvatarUpdater()->isHMDMode();
+        return (float)qApp->isHMDMode();
     }));
     _applicationStateDevice->addInputVariant(QString("SnapTurn"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getMyAvatar()->getSnapTurn();
@@ -1115,7 +1115,6 @@ void Application::cleanupBeforeQuit() {
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
-    _avatarUpdate->terminate();
     locationUpdateTimer.stop();
     balanceUpdateTimer.stop();
     identityPacketTimer.stop();
@@ -1376,6 +1375,15 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
 
+    // Some plugins process message events, potentially leading to
+    // re-entering a paint event.  don't allow further processing if this
+    // happens
+    if (_inPaint) {
+        return;
+    }
+    _inPaint = true;
+    Finally clearFlagLambda([this] { _inPaint = false; });
+
     // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
@@ -1407,15 +1415,6 @@ void Application::paintGL() {
     if (nullptr == _displayPlugin) {
         return;
     }
-
-    // Some plugins process message events, potentially leading to
-    // re-entering a paint event.  don't allow further processing if this
-    // happens
-    if (_inPaint) {
-        return;
-    }
-    _inPaint = true;
-    Finally clearFlagLambda([this] { _inPaint = false; });
 
     auto displayPlugin = getActiveDisplayPlugin();
     // FIXME not needed anymore?
@@ -1480,7 +1479,6 @@ void Application::paintGL() {
         auto myAvatar = getMyAvatar();
         boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FRONT;
 
-        myAvatar->startCapture();
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
             Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
@@ -1568,7 +1566,6 @@ void Application::paintGL() {
         if (!isHMDMode()) {
             _myCamera.update(1.0f / _fps);
         }
-        myAvatar->endCapture();
     }
 
     getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
@@ -2501,10 +2498,9 @@ void Application::idle(uint64_t now) {
 
     PROFILE_RANGE(__FUNCTION__);
 
-    if (_aboutToQuit) {
+    if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
     }
-
 
     checkChangeCursor();
 
@@ -2913,37 +2909,6 @@ void Application::init() {
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree.get(), &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(getMyAvatar(), &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
-
-    setAvatarUpdateThreading();
-}
-
-const bool ENABLE_AVATAR_UPDATE_THREADING = false;
-void Application::setAvatarUpdateThreading() {
-    setAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
-}
-void Application::setRawAvatarUpdateThreading() {
-    setRawAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
-}
-void Application::setRawAvatarUpdateThreading(bool isThreaded) {
-    if (_avatarUpdate) {
-        if (_avatarUpdate->isThreaded() == isThreaded) {
-            return;
-        }
-        _avatarUpdate->terminate();
-    }
-    _avatarUpdate = new AvatarUpdate();
-    _avatarUpdate->initialize(isThreaded);
-}
-void Application::setAvatarUpdateThreading(bool isThreaded) {
-    if (_avatarUpdate && (_avatarUpdate->isThreaded() == isThreaded)) {
-        return;
-    }
-
-    if (_avatarUpdate) {
-        _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
-    }
-    _avatarUpdate = new AvatarUpdate();
-    _avatarUpdate->initialize(isThreaded);
 }
 
 void Application::updateLOD() {
@@ -2971,7 +2936,7 @@ void Application::updateMyAvatarLookAtPosition() {
     auto eyeTracker = DependencyManager::get<EyeTracker>();
 
     bool isLookingAtSomeone = false;
-    bool isHMD = _avatarUpdate->isHMDMode();
+    bool isHMD = qApp->isHMDMode();
     glm::vec3 lookAtSpot;
     if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
@@ -3022,7 +2987,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
-                glm::mat4 headPose = _avatarUpdate->getHeadPose();
+                glm::mat4 headPose = myAvatar->getHMDSensorMatrix();
                 glm::quat headRotation = glm::quat_cast(headPose);
                 lookAtSpot = myAvatar->getPosition() +
                     myAvatar->getOrientation() * (headRotation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -3272,11 +3237,12 @@ void Application::update(float deltaTime) {
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
+    QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
+
     if (_physicsEnabled) {
         PROFILE_RANGE_EX("Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
         PerformanceTimer perfTimer("physics");
-        AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
 
         {
             PerformanceTimer perfTimer("updateStates)");
@@ -3345,9 +3311,19 @@ void Application::update(float deltaTime) {
         }
     }
 
+    // AvatarManager update
     {
         PROFILE_RANGE_EX("Avatars", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
-        _avatarUpdate->synchronousProcess();
+
+        PerformanceTimer perfTimer("AvatarManger");
+
+        qApp->setAvatarSimrateSample(1.0f / deltaTime);
+
+        avatarManager->updateOtherAvatars(deltaTime);
+
+        qApp->updateMyAvatarLookAtPosition();
+
+        avatarManager->updateMyAvatar(deltaTime);
     }
 
     {
@@ -3847,9 +3823,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
     auto myAvatar = getMyAvatar();
-    myAvatar->startRender();
     myAvatar->preRender(renderArgs);
-    myAvatar->endRender();
 
     // Update animation debug draw renderer
     AnimDebugDraw::getInstance().update();
@@ -3931,9 +3905,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
-        myAvatar->startRenderRun();
         _renderEngine->run();
-        myAvatar->endRenderRun();
     }
 
     activeRenderingThread = nullptr;

@@ -103,8 +103,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         qDebug() << "Setting up LimitedNodeList and assignments.";
         setupNodeListAndAssignments();
 
-        loadExistingSessionsFromSettings();
-
         // setup automatic networking settings with data server
         setupAutomaticNetworking();
 
@@ -681,7 +679,12 @@ unsigned int DomainServer::countConnectedUsers() {
 }
 
 QUrl DomainServer::oauthRedirectURL() {
-    return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    if (_httpsManager) {
+        return QString("https://%1:%2/oauth").arg(_hostname).arg(_httpsManager->serverPort());
+    } else {
+        qWarning() << "Attempting to determine OAuth re-direct URL with no HTTPS server configured.";
+        return QUrl();
+    }
 }
 
 const QString OAUTH_CLIENT_ID_QUERY_KEY = "client_id";
@@ -1642,10 +1645,11 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // add it to the set so we can handle the callback from the OAuth provider
             _webAuthenticationStateSet.insert(stateUUID);
 
-            QUrl oauthRedirectURL = oauthAuthorizationURL(stateUUID);
+            QUrl authURL = oauthAuthorizationURL(stateUUID);
 
             Headers redirectHeaders;
-            redirectHeaders.insert("Location", oauthRedirectURL.toEncoded());
+
+            redirectHeaders.insert("Location", authURL.toEncoded());
 
             connection->respond(HTTPConnection::StatusCode302,
                                 QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
@@ -1723,7 +1727,6 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
     return NetworkAccessManager::getInstance().get(profileRequest);
 }
 
-const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
 Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileReply) {
     Headers cookieHeaders;
 
@@ -1736,10 +1739,6 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     // add the profile to our in-memory data structure so we know who the user is when they send us their cookie
     DomainServerWebSessionData sessionData(userObject);
     _cookieSessionHash.insert(cookieUUID, sessionData);
-
-    // persist the cookie to settings file so we can get it back on DS relaunch
-    QStringList path = QStringList() << DS_SETTINGS_SESSIONS_GROUP << cookieUUID.toString();
-    Setting::Handle<QVariant>(path).set(QVariant::fromValue(sessionData));
 
     // setup expiry for cookie to 1 month from today
     QDateTime cookieExpiry = QDateTime::currentDateTimeUtc().addMonths(1);
@@ -1755,18 +1754,6 @@ Headers DomainServer::setupCookieHeadersFromProfileReply(QNetworkReply* profileR
     cookieHeaders.insert("Location", redirectString.toUtf8());
 
     return cookieHeaders;
-}
-
-void DomainServer::loadExistingSessionsFromSettings() {
-    // read data for existing web sessions into memory so existing sessions can be leveraged
-    Settings domainServerSettings;
-    domainServerSettings.beginGroup(DS_SETTINGS_SESSIONS_GROUP);
-
-    foreach(const QString& uuidKey, domainServerSettings.childKeys()) {
-        _cookieSessionHash.insert(QUuid(uuidKey),
-                                  domainServerSettings.value(uuidKey).value<DomainServerWebSessionData>());
-        qDebug() << "Pulled web session from settings - cookie UUID is" << uuidKey;
-    }
 }
 
 void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment) {
