@@ -76,6 +76,8 @@
 
         unload: function() {
             print("EBL UNLOAD");
+            virtualBaton.release();
+            virtualBaton.unload();
             Entities.deleteEntity(_this.batonDebugModel);
             if (_this.soundIntervalConnected === true) {
                 Script.clearInterval(_this.playSoundInterval);
