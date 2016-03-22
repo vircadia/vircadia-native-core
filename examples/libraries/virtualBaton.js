@@ -169,8 +169,6 @@ function virtualBatonf(options) {
             previousNSubscribers = LARGE_INTEGER;
         }
         return previousNSubscribers;
-        // print("EBL NUMBER SUBSCRIBERS ",  AvatarList.getAvatarIdentifiers().length);
-        // return AvatarList.getAvatarIdentifiers().length;
     }
 
     // MAIN ALGORITHM
