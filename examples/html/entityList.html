@@ -240,7 +240,23 @@
                   setTimeout(refreshEntities, 1000);
               }
           });
-        }
+
+          function resize() {
+              // Set the table height to take up available window space
+              var tableHeight = window.innerHeight - 180;
+              document.getElementById("entity-table-scroll").style.height = tableHeight;
+
+              // Update the widths of the header cells to match the body
+              var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
+              var ths = document.querySelectorAll("#entity-table thead th");
+              for (var i = 0; i < ths.length; i++) {
+                  ths[i].style.width = tds[i].offsetWidth;
+              }
+          };
+
+          window.onresize = resize;
+          resize();
+      }
     </script>
 </head>
 <body onload='loaded();'>
@@ -255,23 +271,37 @@
             <input type="text" class="search" id="filter" placeholder="Filter" />
             <span id="radius-and-unit"><input type="number" id="radius" value="100" />&nbsp;m</span>
         </div>
-        <table id="entity-table">
-            <thead>
-                <tr>
-                    <th id="entity-type" data-sort="type">Type <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
-                    <th id="entity-name" data-sort="type">Name <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
-                    <th id="entity-url" data-sort="url">URL <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
-                </tr>
-            </thead>
-            <tbody class="list" id="entity-table-body">
-                <tr>
-                    <td class="id" style="display: none">Type</td>
-                    <td class="type">Type</td>
-                    <td class="name">Name</td>
-                    <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
-                </tr>
-            </tbody>
-        </table>
+        <div id="entity-table-scroll">
+            <table id="entity-table">
+                <colgroup>
+                    <col span="1" id="col-type" />
+                    <col span="1" id="col-name" />
+                    <col span="1" id="col-url" />
+                    <col span="1" id="col-id" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th id="entity-type" data-sort="type">Type <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
+                        <th id="entity-name" data-sort="type">Name <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
+                        <th id="entity-url" data-sort="url">URL <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
+                        <th style="display: none"></th>
+                    </tr>
+                </thead>
+                <tbody class="list" id="entity-table-body">
+                    <tr>
+                        <td class="type">Type</td>
+                        <td class="name">Name</td>
+                        <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
+                        <td class="id" style="display: none">Type</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>Footer text</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     </div>
     <div id="no-entities">
         No entities found within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.

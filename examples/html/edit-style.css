@@ -13,7 +13,7 @@
 
 body {
     margin: 0;
-    padding: 0;
+    padding: 24px 12px 24px 12px;
 
     background-color: #404040;
     color: #afafaf;
@@ -161,14 +161,63 @@ input.no-spin::-webkit-inner-spin-button {
     margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
 }
 
-table#entity-table {
+
+#entity-list {
+    position: relative; /* New positioning context. */
+}
+
+div#entity-table-scroll {
+    /* Height is set by JavaScript. */
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: 24px; /* Space for header and footer outside of scroll region. */
+    margin-top: 24px;
+}
+
+#entity-table-scroll, #entity-table {
+    background-color: #2d2d2d;
+}
+
+#entity-table {
     border-collapse: collapse;
+    width: 100%;
+    margin-top: -24px;
+    margin-bottom: -24px;
+    table-layout: fixed;
     font-family: Sans-Serif;
     font-size: 9pt;
+}
+
+#col-type {
+    width: 15%;
+}
+#col-name {
+    width: 30%;
+}
+#col-url {
+    width: 54%;
+}
+#col-id {
+    width: 0;
+}
+
+#entity-table thead {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    width: 100%;
+}
+
+#entity-table tfoot {
+    position: absolute;
+    bottom: -18px;
+    left: 0;
     width: 100%;
 }
 
 #entity-table tr {
+    width: 100%;
     cursor: pointer;
     border-bottom: 0.75pt solid rgb(63, 63, 63)
 }
@@ -178,8 +227,11 @@ table#entity-table {
     background-color: #AAA;
 }
 
-#entity-table th {
+#entity-table th, #entity-table tfoot {
     background-color: #333;
+}
+
+#entity-table th {
     color: #fff;
     border: 0pt black solid;
     text-align: left;
@@ -190,20 +242,16 @@ table#entity-table {
 #entity-table td {
     font-size: 9.0pt;
     border: 0pt black solid;
-    word-wrap: nowrap;
-    white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    word-wrap: nowrap;
 }
 
 #entity-table td.url {
     white-space: nowrap;
     overflow: hidden;
 }
-
-th#entity-type {
-    width: 33.75pt;
-}
-
 
 
 div.input-area {
