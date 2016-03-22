@@ -21,7 +21,7 @@ void ShapeManagerTests::testShapeAccounting() {
     ShapeManager shapeManager;
     ShapeInfo info;
     info.setBox(glm::vec3(1.0f, 1.0f, 1.0f));
-    
+
     int numReferences = shapeManager.getNumReferences(info);
     QCOMPARE(numReferences, 0);
 
@@ -42,10 +42,10 @@ void ShapeManagerTests::testShapeAccounting() {
     QCOMPARE(numReferences, expectedNumReferences);
 
     // release all references
-    bool released = shapeManager.releaseShape(info);
+    bool released = shapeManager.releaseShape(shape);
     numReferences--;
     while (numReferences > 0) {
-        released = shapeManager.releaseShape(info) && released;
+        released = shapeManager.releaseShape(shape) && released;
         numReferences--;
     }
     QCOMPARE(released, true);
@@ -69,7 +69,7 @@ void ShapeManagerTests::testShapeAccounting() {
     QCOMPARE(numReferences, 1);
 
     // release reference and verify that it is collected as garbage
-    released = shapeManager.releaseShape(info);
+    released = shapeManager.releaseShape(shape);
     shapeManager.collectGarbage();
     QCOMPARE(shapeManager.getNumShapes(), 0);
     QCOMPARE(shapeManager.hasShape(shape), false);

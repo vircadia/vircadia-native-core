@@ -58,7 +58,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 // private helper method
-bool ShapeManager::releaseShape(const DoubleHashKey& key) {
+bool ShapeManager::releaseShapeByKey(const DoubleHashKey& key) {
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->refCount > 0) {
@@ -82,16 +82,12 @@ bool ShapeManager::releaseShape(const DoubleHashKey& key) {
     return false;
 }
 
-bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    return releaseShape(info.getHash());
-}
-
 bool ShapeManager::releaseShape(const btCollisionShape* shape) {
     int numShapes = _shapeMap.size();
     for (int i = 0; i < numShapes; ++i) {
         ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
         if (shape == shapeRef->shape) {
-            return releaseShape(shapeRef->key);
+            return releaseShapeByKey(shapeRef->key);
         }
     }
     return false;
