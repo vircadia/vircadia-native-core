@@ -39,6 +39,14 @@ GLWindow::~GLWindow() {
 bool GLWindow::makeCurrent() {
     bool makeCurrentResult = _context->makeCurrent(this);
     Q_ASSERT(makeCurrentResult);
+    
+    std::call_once(_reportOnce, []{
+        qDebug() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+    });
+    
     Q_ASSERT(_context == QOpenGLContext::currentContext());
     
     return makeCurrentResult;
