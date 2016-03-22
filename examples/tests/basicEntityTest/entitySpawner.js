@@ -5,7 +5,7 @@
   var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 
   // Math.random ensures no caching of script
-  var SCRIPT_URL = Script.resolvePath("myEntityScript.js?v1" + Math.random())
+  var SCRIPT_URL = Script.resolvePath("myEntityScript.js")
 
   var myEntity = Entities.addEntity({
       type: "Sphere",
