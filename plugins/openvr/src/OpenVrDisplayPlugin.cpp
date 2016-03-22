@@ -69,6 +69,9 @@ void OpenVrDisplayPlugin::internalActivate() {
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
 
+    // enable async time warp
+    // _compositor->ForceInterleavedReprojectionOn(true);
+
     // set up default sensor space such that the UI overlay will align with the front of the room.
     auto chaperone = vr::VRChaperone();
     if (chaperone) {
@@ -123,10 +126,7 @@ void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     const float NUM_PREDICTION_FRAMES = 2.0f;
     float predictedSecondsFromNow = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
 #else
-    uint64_t frameCounter;
-    float timeSinceLastVsync;
-    _system->GetTimeSinceLastVsync(&timeSinceLastVsync, &frameCounter);
-    float predictedSecondsFromNow = 2.0f * frameDuration - timeSinceLastVsync + vsyncToPhotons;
+    float predictedSecondsFromNow = frameDuration + vsyncToPhotons;
 #endif
 
     vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];

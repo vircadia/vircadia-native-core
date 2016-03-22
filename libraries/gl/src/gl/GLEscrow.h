@@ -71,11 +71,16 @@ public:
         }
 
         bool signaled() const {
+#if THREADED_PRESENT
             auto result = glClientWaitSync(_sync, 0, 0);
             if (GL_TIMEOUT_EXPIRED != result && GL_WAIT_FAILED != result) {
                 return true;
             }
             return false;
+#else
+            glWaitSync(_sync, 0, GL_TIMEOUT_IGNORED);
+            return true;
+#endif
         }
     };
 
