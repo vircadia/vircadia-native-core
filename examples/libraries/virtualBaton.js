@@ -145,32 +145,32 @@ function virtualBatonf(options) {
     // It would be great if we had a way to know how many subscribers our channel has. Failing that...
     var nNack = 0, previousNSubscribers = 0, lastGathering = 0, thisTimeout = electionTimeout;
     function nSubscribers() { // Answer the number of subscribers.
-        // // To find nQuorum, we need to know how many scripts are being run using this batonName, which isn't
-        // // the same as the number of clients!
-        // //
-        // // If we overestimate by too much, we may fail to reach consensus, which triggers a new
-        // // election proposal, so we take the number of acceptors to be the max(nPromises, nAccepted)
-        // // + nNack reported in the previous round.
-        // //
-        // // If we understimate by too much, there can be different pockets on the Internet that each
-        // // believe they have agreement on different holders of the baton, which is precisely what
-        // // the virtualBaton is supposed to avoid. Therefore we need to allow 'nack' to gather stragglers.
+        // To find nQuorum, we need to know how many scripts are being run using this batonName, which isn't
+        // the same as the number of clients!
+        //
+        // If we overestimate by too much, we may fail to reach consensus, which triggers a new
+        // election proposal, so we take the number of acceptors to be the max(nPromises, nAccepted)
+        // + nNack reported in the previous round.
+        //
+        // If we understimate by too much, there can be different pockets on the Internet that each
+        // believe they have agreement on different holders of the baton, which is precisely what
+        // the virtualBaton is supposed to avoid. Therefore we need to allow 'nack' to gather stragglers.
 
-        // var now = Date.now(), elapsed = now - lastGathering;
-        // if (elapsed >= thisTimeout) {
-        //     previousNSubscribers = Math.max(nPromises, nAccepted) + nNack;
-        //     lastGathering = now;
-        // } // ...otherwise we use the previous value unchanged.
+        var now = Date.now(), elapsed = now - lastGathering;
+        if (elapsed >= thisTimeout) {
+            previousNSubscribers = Math.max(nPromises, nAccepted) + nNack;
+            lastGathering = now;
+        } // ...otherwise we use the previous value unchanged.
 
-        // // On startup, we do one proposal that we cannot possibly close, so that we'll
-        // // lock things up for the full electionTimeout to gather responses.
-        // if (!previousNSubscribers) {
-        //     var LARGE_INTEGER = Number.MAX_SAFE_INTEGER || (-1 >>> 1); // QT doesn't define the ECMA constant. Max int will do for our purposes.
-        //     previousNSubscribers = LARGE_INTEGER;
-        // }
-        // return previousNSubscribers;
-        print("EBL NUMBER SUBSCRIBERS ",  AvatarList.getAvatarIdentifiers().length);
-        return AvatarList.getAvatarIdentifiers().length;
+        // On startup, we do one proposal that we cannot possibly close, so that we'll
+        // lock things up for the full electionTimeout to gather responses.
+        if (!previousNSubscribers) {
+            var LARGE_INTEGER = Number.MAX_SAFE_INTEGER || (-1 >>> 1); // QT doesn't define the ECMA constant. Max int will do for our purposes.
+            previousNSubscribers = LARGE_INTEGER;
+        }
+        return previousNSubscribers;
+        // print("EBL NUMBER SUBSCRIBERS ",  AvatarList.getAvatarIdentifiers().length);
+        // return AvatarList.getAvatarIdentifiers().length;
     }
 
     // MAIN ALGORITHM
