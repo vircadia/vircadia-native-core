@@ -15,12 +15,15 @@
 }
 
 @font-face {
+    font-family: Raleway-SemiBold;
+    src: url(../../resources/fonts/Raleway-SemiBold.ttf),
+         url(../../interface/resources/fonts/Raleway-SemiBold.ttf);
+}
+
+@font-face {
     font-family: HiFi-Glyphs;
     src: url(../../resources/fonts/hifi-glyphs.ttf), 
          url(../../interface/resources/fonts/hifi-glyphs.ttf);
-}
-
-* {
 }
 
 body {
@@ -38,6 +41,10 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+}
+
+td {
+    vertical-align: top;
 }
 
 
@@ -110,6 +117,95 @@ body {
 .grid-section {
 }
 
+
+input, textarea {
+    margin: 0;
+    padding: 0 12px;
+    color: #afafaf;
+    background-color: #252525;
+    border: none;
+    font-family: Raleway-SemiBold;
+    font-size: 15px;
+    font-style: normal;
+}
+
+textarea {
+    min-height: 28px;
+    width: 100%;
+    resize: vertical;
+}
+
+input {
+    height: 28px;
+    min-width: 120px;
+}
+
+input::-webkit-input-placeholder {
+    font-style: italic;
+}
+
+input.search {
+    border-radius: 14px;
+}
+
+input.url {
+    width: 100%;
+}
+
+input.coord {
+    width: 7em;
+    display: block;
+}
+
+input.no-spin::-webkit-outer-spin-button,
+input.no-spin::-webkit-inner-spin-button {
+    display: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input:disabled, textarea:disabled {
+    background-color: rgb(63, 63, 63);
+    color: rgb(160, 160, 160);
+}
+
+input[type="number"] {
+    position: relative;
+}
+
+input:focus {
+    color: #fff;
+    background-color: #000;
+    border: 1px dotted red;
+}
+
+input::selection {
+    background-color: #00b4ef;
+}
+
+/* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    background: #FFF url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKUlEQVQYlWNgwAT/sYhhKPiPT+F/LJgEsHv37v+EMGkmkuImoh2NoQAANlcun/q4OoYAAAAASUVORK5CYII=) no-repeat center center;
+    width: 0.9em;
+    height: 22px;
+    opacity: 0.5; /* shows Spin Buttons per default (Chrome >= 39) */
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-inner-spin-button:active {
+    opacity: .8;
+}
+
 input[type=button] {
     font-family: Raleway-Bold;
     font-size: 13px;
@@ -149,7 +245,6 @@ input[type=button].red:hover {
     border: none;
 }
 
-
 input[type=button]:active {
     background: linear-gradient(#343434, #343434);
 }
@@ -158,6 +253,35 @@ input[type=button].red:active {
     background: linear-gradient(#94132e, #94132e);
 }
 
+.color-picker {
+    width: 50px;
+    height: 10px;
+    margin: 5px;
+    border: 1px solid white;
+}
+
+.prop-x {
+    color:red !important;
+    background: rgba(255, 0, 0, .9);
+    height:2px !important;
+}
+
+.prop-y {
+    color:green !important;
+    background: rgba(0, 255, 0, .9);
+    height:2px !important;
+}
+
+.prop-z{
+    color:blue !important;
+    background: rgba(0, 0, 255, .9);
+    height:2px !important;
+}
+
+
+#entity-list-header {
+    margin-bottom: 24px;
+}
 
 #delete {
     float: right;
@@ -165,62 +289,30 @@ input[type=button].red:active {
     background-color: #ff0000;
 }
 
+#entity-list {
+    position: relative; /* New positioning context. */
+}
 
 #search-area {
-    padding: 0.5em;
-    box-sizing: border-box;
-    padding-right: 6em;
+    padding-right: 142px;
+    padding-bottom: 24px;
 }
 
 #filter {
-    width: 99%;
+    width: 98%;
 }
 
 #radius-and-unit {
-    width: 6em;
+    width: 142px;
     float: right;
-    margin-right: -6em;
+    margin-right: -152px;
 }
 
 #radius {
     width: 4em;
 }
 
-textarea, input {
-    margin: 0;
-    padding: 1.5pt;
-    border: 0.75pt solid #999;
-    background-color: #eee;
-}
-
-textarea {
-    width: 100%;
-    resize: vertical;
-}
-
-input.url {
-    width: 100%;
-}
-
-input.coord {
-    width: 7em;
-    display: block;
-}
-
-input.no-spin::-webkit-outer-spin-button,
-input.no-spin::-webkit-inner-spin-button {
-    display: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
-}
-
-
-#entity-list {
-    position: relative; /* New positioning context. */
-}
-
-div#entity-table-scroll {
+#entity-table-scroll {
     /* Height is set by JavaScript. */
     width: 100%;
     overflow-x: hidden;
@@ -258,7 +350,7 @@ div#entity-table-scroll {
 
 #entity-table thead {
     position: absolute;
-    top: 32px;
+    top: 54px;
     left: 0;
     width: 100%;
 }
@@ -307,6 +399,16 @@ div#entity-table-scroll {
     overflow: hidden;
 }
 
+#no-entities {
+    display: none;
+    position: absolute;
+    top: 54px;
+    font-size: 120%;
+    padding: 10pt;
+    font-weight: bold;
+    font-style: italic;
+}
+
 
 div.input-area {
     display: inline-block;
@@ -319,18 +421,6 @@ div.input-area {
 
 #type label, #id label {
     color: rgb(150, 150, 150);
-}
-
-input, textarea {
-    background-color: rgb(63, 63, 63);
-    color: rgb(255, 255, 255);
-    border: none;
-    font-size: 9pt;
-}
-
-input:disabled, textarea:disabled {
-    background-color: rgb(63, 63, 63);
-    color: rgb(160, 160, 160);
 }
 
 #properties-list input[type=checkbox] {
@@ -397,6 +487,10 @@ col#col-label {
     width: 97.5pt;
 }
 
+input#property-name {
+    width: 100%;
+}
+
 div.outer {
     position: relative;
 }
@@ -406,73 +500,4 @@ div.inner {
     white-space: nowrap;
     position: absolute;
     width: 100%;
-}
-
-td {
-    vertical-align: top;
-}
-
-#no-entities {
-    display: none;
-    position: absolute;
-    top: 54px;
-    font-size: 120%;
-    padding: 10pt;
-    font-weight: bold;
-    font-style: italic;
-}
-
-input[type="number"] {
-    position: relative;
-}
-
-/* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    background: #FFF url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKUlEQVQYlWNgwAT/sYhhKPiPT+F/LJgEsHv37v+EMGkmkuImoh2NoQAANlcun/q4OoYAAAAASUVORK5CYII=) no-repeat center center;
-    width: 0.9em;
-    height: 4px;
-    opacity: 0.5; /* shows Spin Buttons per default (Chrome >= 39) */
-    top: 0;
-    right: 0;
-    bottom: 0;
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
-    border-bottom-left-radius: 3px;
-}
-
-input[type="number"]::-webkit-inner-spin-button:hover,
-input[type="number"]::-webkit-inner-spin-button:active{
-    opacity: .8;
-}
-
-input#property-name {
-    width: 100%;
-}
-
-.color-picker {
-    width: 50px;
-    height: 10px;
-    margin: 5px;
-    border: 1px solid white;
-}
-
-.prop-x {
-    color:red !important;
-    background: rgba(255, 0, 0, .9);
-    height:2px !important;
-}
-
-.prop-y {
-    color:green !important;
-    background: rgba(0, 255, 0, .9);
-    height:2px !important;
-}
-
-.prop-z{
-    color:blue !important;
-    background: rgba(0, 0, 255, .9);
-    height:2px !important;
 }
