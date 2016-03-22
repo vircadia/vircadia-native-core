@@ -97,7 +97,7 @@ Windows.Window {
     function findFreeTab() {
         for (var i = 0; i < tabView.count; ++i) {
             var tab = tabView.getTab(i);
-            if (tab && !tab.originalUrl || tab.originalUrl === "") {
+            if (tab && (!tab.originalUrl || tab.originalUrl === "")) {
                 return i;
             }
         }
