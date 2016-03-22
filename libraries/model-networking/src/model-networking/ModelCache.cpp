@@ -151,13 +151,11 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 (material->lightmapTexture && !material->lightmapTexture->isLoaded())) {
                 return false;
             }
-            if (/*material->useAlbedoMapOpacity && */ material->albedoTexture && material->albedoTexture->getGPUTexture()) {
+            if (material->albedoTexture && material->albedoTexture->getGPUTexture()) {
+                // Reassign the texture to make sure that itsalbedo alpha channel material key is detected correctly
                 material->_material->setTextureMap(model::MaterialKey::ALBEDO_MAP, material->_material->getTextureMap(model::MaterialKey::ALBEDO_MAP));
-                // Reset the materialKey transparentTexture key only, as it is albedoTexture-dependent
                 const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
                 bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
-              //  material->_material->setTransparentTexture(isTransparentTexture);
-                // FIXME: Materials with *some* transparent textures seem to give all *other* textures alphas of 0.
                 _hasTransparentTextures = isTransparentTexture && _hasTransparentTextures;
             }
         }
@@ -385,7 +383,6 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
         if (!material.opacityTexture.filename.isEmpty()) {
             if (material.albedoTexture.filename == material.opacityTexture.filename) {
                 // Best case scenario, just indicating that the albedo map contains transparency
-                networkMaterial->useAlbedoMapOpacity;
                 albedoMap->setUseAlphaChannel(true);
             } else {
                 // Opacity Map is different from the Abledo map, not supported

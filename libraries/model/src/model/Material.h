@@ -32,11 +32,12 @@ public:
         METALLIC_VAL_BIT,
         GLOSSY_VAL_BIT,
         OPACITY_VAL_BIT,
-
-        EMISSIVE_MAP_BIT,
-        ALBEDO_MAP_BIT,
         OPACITY_MASK_MAP_BIT,           // OPacity Map and Opacity MASK map are mutually exclusive
         OPACITY_TRANSLUCENT_MAP_BIT,
+
+        // THe map bits must be in the smae sequence as the enum names for the map channels
+        EMISSIVE_MAP_BIT,
+        ALBEDO_MAP_BIT,
         METALLIC_MAP_BIT,
         ROUGHNESS_MAP_BIT,
         NORMAL_MAP_BIT,

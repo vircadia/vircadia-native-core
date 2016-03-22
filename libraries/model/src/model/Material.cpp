@@ -91,23 +91,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
                     if (textureMap->getTextureView().isValid()) {
                         auto usage = textureMap->getTextureView()._texture->getUsage();
                         if (usage.isAlpha()) {
-                            // Texture has alpha, is nut just a mask or a true transparent channel
-                            if (usage.isAlphaMask()) {
-                                _key.setOpacityMaskMap(true);
-                                _key.setTranslucentMap(false);
-                            } else {
-                                _key.setOpacityMaskMap(false);
-                                _key.setTranslucentMap(true);
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (textureMap->isDefined()) {
-                    if (textureMap->getTextureView().isValid()) {
-                        auto usage = textureMap->getTextureView()._texture->getUsage();
-                        if (usage.isAlpha()) {
-                            // Texture has alpha, is nut just a mask or a true transparent channel
+                            // Texture has alpha, is not just a mask or a true transparent channel
                             if (usage.isAlphaMask()) {
                                 _key.setOpacityMaskMap(true);
                                 _key.setTranslucentMap(false);
