@@ -187,6 +187,15 @@ bool OffscreenQmlRenderThread::event(QEvent *e) {
 void OffscreenQmlRenderThread::setupFbo() {
     using namespace oglplus;
     _textures.setSize(_size);
+
+    // Before making any ogl calls, clear any outstanding errors
+    // FIXME: Something upstream is polluting the context with a GL_INVALID_ENUM,
+    //        likely from glewExperimental = true
+    GLenum err = glGetError();
+    if (err != GLEW_OK) {
+        qDebug() << "Clearing outstanding GL error to set up QML FBO:" << glewGetErrorString(err);
+    }
+
     _depthStencil.reset(new Renderbuffer());
     Context::Bound(Renderbuffer::Target::Renderbuffer, *_depthStencil)
         .Storage(
