@@ -373,6 +373,7 @@ function virtualBatonf(options) {
     };
 
     // Gather nAcceptors by making two proposals with some gathering time, even without a claim.
+    print("EBL PROPOSE HAS BEEN COMMENTED OUT!");
    // propose();
     return exports;
 }
