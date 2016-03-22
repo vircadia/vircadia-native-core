@@ -149,6 +149,8 @@ void HmdDisplayPlugin::internalPresent() {
         });
         swapBuffers();
     }
+
+    postPreview();
 }
 
 void HmdDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
