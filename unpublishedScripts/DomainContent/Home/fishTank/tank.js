@@ -42,6 +42,7 @@
         iOwn = true;
         connected = true;
         Script.update.connect(_this.update);
+        print('JBP connecting in startupdate')
     }
 
     function stopUpdateAndReclaim() {
@@ -107,10 +108,13 @@
             if (properties.hasOwnProperty('userData') === false || properties.userData.length === 0) {
                 _this.initTimeout = Script.setTimeout(function() {
                     if (properties.hasOwnProperty('userData')) {
-                        // print('has user data property')
+                         print('JBP has user data property')
                     }
                     if (properties.userData.length === 0) {
-                        // print('user data length is zero')
+                         print('JBP user data length is zero')
+                    }
+                    if(properties.userData===""){
+                        print('JBP user data is empty')
                     }
 
                     // print('try again in one second')
@@ -122,9 +126,10 @@
                 _this.userData = null;
                 try {
                     _this.userData = JSON.parse(properties.userData);
+                    print('JBP set userdata to parsed json')
                 } catch (err) {
-                    // print('error parsing json');
-                    // print('properties are:' + properties.userData);
+                     print('JBP error parsing json');
+                     print('JBP properties are:' + properties.userData);
                     return;
                 }
                 // print('after parse')
@@ -171,7 +176,7 @@
             // print('i am the owner!')
             //do stuff
             updateFish(deltaTime);
-            _this.seeIfOwnerIsLookingAtTheTank();
+           // _this.seeIfOwnerIsLookingAtTheTank();
         },
 
         debugSphereOn: function(position) {
@@ -339,7 +344,7 @@
     var FISHTANK_USERDATA_KEY = 'hifi-home-fishtank'
 
     var LIFETIME = 300; //  Fish live for 5 minutes 
-    var NUM_FISH = 8;
+    var NUM_FISH = 2;
     var TANK_DIMENSIONS = {
         x: 0.8212,
         y: 0.8116,
@@ -416,8 +421,7 @@
             }
         }
 
-
-        //  print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
+          print('jbp has userdata fish??' + JSON.stringify(_this.userData))
 
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
@@ -698,6 +702,31 @@
     Script.scriptEnding.connect(function() {
         Script.update.disconnect(_this.update);
     })
+
+    function keepFishInTank(fish,position,rotation){
+
+        // cast a ray from the fish
+        // see if it hits the tank wall
+        // see how far it is from the tank wall
+        // if less than a certain distance, then apply opposite vector
+            var keepAwayDistance = 0.15;
+        
+
+            var pickRay = {
+                origin: position,
+                direction: rotation
+            };
+
+            var innerContainer = _this.userData['hifi-home-fishtank'].innerContainer;
+
+            var intersection = Entities.findRayIntersection(pickRay, true, [innerContainer], [_this.entityID]);
+
+            if (intersection.intersects && intersection.entityID === innerContainer) {
+
+            }
+
+            return newVector
+    }
 
 
     function setEntityUserData(id, data) {

@@ -128,6 +128,9 @@
                 z: 0
             });
 
+            //REMOVE BEFORE MERGE
+            return;
+
             var tiltMaze = new TiltMaze({
                 x: 1105.5768,
                 y: 460.3298,
@@ -181,7 +184,8 @@
 
 
         createKineticEntities: function() {
-
+            //REMOVE BEFORE MERGE
+            return;
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
                 y: 460.3221,
