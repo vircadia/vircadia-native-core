@@ -6,6 +6,7 @@
 
 
     this.startUpdate = function() {
+        print("EBL START UPDATE");
         Entities.editEntity(_this.batonOwnerIndicator, {
             visible: true
         });
@@ -26,6 +27,7 @@
     }
 
     this.maybeClaim = function() {
+        print("EBL MAYBE CLAIM");
         if (_this.isBatonOwner === true) {
             _this.isBatonOwner = false;
         }
@@ -36,12 +38,14 @@
     }
 
     this.unload = function() {
+        print("EBL UNLOAD");
         baton.unload();
         Entities.deleteEntity(_this.batonOwnerIndicator);
     }
 
 
     this.preload = function(entityID) {
+        print("EBL Preload!!");
         _this.entityID = entityID;
         _this.setupDebugEntities();
 
@@ -51,7 +55,6 @@
         _this.isBatonOwner = false;
         _this.maybeClaim();
 
-        print("EBL Preload!!");
     }
 
 
