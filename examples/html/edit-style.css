@@ -68,6 +68,8 @@ table {
     color: #afafaf;
     border-collapse: collapse;
     width: 100%;
+    border: 2px solid #575757;
+    border-radius: 7px;
 }
 
 thead {
@@ -89,6 +91,10 @@ tfoot {
     background-color: #1c1c1c;
     border-top: 1px solid #575757;
     width: 100%;
+}
+
+tfoot tr {
+    background-color: #1c1cff;
 }
 
 thead tr {
@@ -113,6 +119,7 @@ tfoot td {
     height: 18px;
     width: 100%;
     background-color: #1c1c1c;
+    margin-left: 12px;
 }
 
 tr {
@@ -425,6 +432,8 @@ input[type=button].red:active {
     overflow-y: auto;
     padding-top: 28px; /* Space for header and footer outside of scroll region. */
     margin-top: 28px;
+    border-left: 2px solid #575757;
+    border-right: 2px solid #575757;
 }
 
 #entity-table-scroll, #entity-table {
@@ -435,6 +444,26 @@ input[type=button].red:active {
     margin-top: -28px;
     margin-bottom: -18px;
     table-layout: fixed;
+    border: none;
+}
+
+#entity-table thead {
+    border: 2px solid #575757;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom: 1px solid #575757;
+}
+
+#entity-table tfoot {
+    border: 2px solid #575757;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-top: 1px solid #575757;
+}
+
+#entity-table thead tr, #entity-table thead tr th,
+#entity-table tfoot tr, #entity-table tfoot tr td {
+    background: none;
 }
 
 #col-type {
