@@ -117,129 +117,130 @@
         },
 
         createDynamicEntities: function() {
+
             print("EBL CREATE DYNAMIC ENTITIES");
 
-            // var fishTank = new FishTank({
-            //     x: 1098.9254,
-            //     y: 460.5814,
-            //     z: -79.1103
-            // }, {
-            //     x: 0,
-            //     y: 0,
-            //     z: 0
-            // });
+            var fishTank = new FishTank({
+                x: 1098.9254,
+                y: 460.5814,
+                z: -79.1103
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
 
-            // var tiltMaze = new TiltMaze({
-            //     x: 1105.5768,
-            //     y: 460.3298,
-            //     z: -80.4891
-            // });
+            var tiltMaze = new TiltMaze({
+                x: 1105.5768,
+                y: 460.3298,
+                z: -80.4891
+            });
 
-            // var whiteboard = new Whiteboard({
-            //     x: 1104,
-            //     y: 460.5,
-            //     z: -77
-            // }, {
-            //     x: 0,
-            //     y: -133,
-            //     z: 0
-            // });
+            var whiteboard = new Whiteboard({
+                x: 1104,
+                y: 460.5,
+                z: -77
+            }, {
+                x: 0,
+                y: -133,
+                z: 0
+            });
 
-            // var myPlant = new Plant({
-            //     x: 1099.8785,
-            //     y: 460.3115,
-            //     z: -84.7736
-            // }, {
-            //     x: 0,
-            //     y: 0,
-            //     z: 0
-            // });
+            var myPlant = new Plant({
+                x: 1099.8785,
+                y: 460.3115,
+                z: -84.7736
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
 
-            // var pingPongGun = new _PingPongGun({
-            //     x: 1101.2123,
-            //     y: 460.2328,
-            //     z: -65.8513
-            // }, {
-            //     x: 97.3683,
-            //     y: 179.0293,
-            //     z: 89.9698
-            // });
+            var pingPongGun = new _PingPongGun({
+                x: 1101.2123,
+                y: 460.2328,
+                z: -65.8513
+            }, {
+                x: 97.3683,
+                y: 179.0293,
+                z: 89.9698
+            });
+            var cuckooClock = new MyCuckooClock({
+                x: 1105.267,
+                y: 461.44,
+                z: -81.9495
+            }, {
+                x: 0,
+                y: -57,
+                z: 0
+            });
+
             //v2.0
             // var musicBox = new MusicBox();
-            // var cuckooClock = new MyCuckooClock({
-            //     x: 1105.267,
-            //     y: 461.44,
-            //     z: -81.9495
-            // }, {
-            //     x: 0,
-            //     y: -57,
-            //     z: 0
-            // });
             // var doppelganger = new Doppelganger();
 
         },
 
 
         createKineticEntities: function() {
-
-            // var fruitBowl = new FruitBowl({
-            //     x: 1105.3185,
-            //     y: 460.3221,
-            //     z: -81.2452
-            // });
-
-            // var livingRoomLamp = new LivingRoomLamp({
-            //     x: 1104.6732,
-            //     y: 460.3326,
-            //     z: -81.9710
-            // });
-
-            // var upperBookShelf = new UpperBookShelf({
-            //     x: 1106.2649,
-            //     y: 461.5352,
-            //     z: -80.3018
-            // });
-
-            // var lowerBookShelf = new LowerBookShelf({
-            //     x: 1106.2725,
-            //     y: 460.9600,
-            //     z: -80.2837
-            // });
-
-            // var rightDeskDrawer = new RightDeskDrawer({
-            //     x: 1105.1735,
-            //     y: 460.0446,
-            //     z: -81.3612
-            // });
-
-            // var leftDeskDrawer = new LeftDeskDrawer({
-            //     x: 1104.6478,
-            //     y: 460.0463,
-            //     z: -82.1095
-            // });
-
-            // var chair = new Chair({
-            //     x: 1105.2716,
-            //     y: 459.7251,
-            //     z: -79.8097
-            // });
-
-            // var trashcan = new Trashcan({
-            //     x: 1103.9034,
-            //     y: 459.4355,
-            //     z: -82.3619
-            // });
-
-            // var books = new Books({
-            //     x: 1106.1553,
-            //     y: 461.1,
-            //     z: -80.4890
-            // });
-            print("EBL CREATE KINETIC ENTITIES");
             var blocks = new Blocks({
-                x: 1097.3383,
+                x: 1097.1383,
                 y: 460.3790,
-                z: -66.8895
+                z: -66.4895
+            });
+
+            var fruitBowl = new FruitBowl({
+                x: 1105.3185,
+                y: 460.3221,
+                z: -81.2452
+            });
+
+            var livingRoomLamp = new LivingRoomLamp({
+                x: 1104.6732,
+                y: 460.3326,
+                z: -81.9710
+            });
+
+            var upperBookShelf = new UpperBookShelf({
+                x: 1106.2649,
+                y: 461.5352,
+                z: -80.3018
+            });
+
+            var lowerBookShelf = new LowerBookShelf({
+                x: 1106.2725,
+                y: 460.9600,
+                z: -80.2837
+            });
+
+            var rightDeskDrawer = new RightDeskDrawer({
+                x: 1105.1735,
+                y: 460.0446,
+                z: -81.3612
+            });
+
+            var leftDeskDrawer = new LeftDeskDrawer({
+                x: 1104.6478,
+                y: 460.0463,
+                z: -82.1095
+            });
+
+            var chair = new Chair({
+                x: 1105.2716,
+                y: 459.7251,
+                z: -79.8097
+            });
+
+            var trashcan = new Trashcan({
+                x: 1103.9034,
+                y: 459.4355,
+                z: -82.3619
+            });
+
+            var books = new Books({
+                x: 1106.1553,
+                y: 461.1,
+                z: -80.4890
             });
 
         },
@@ -270,7 +271,7 @@
             print('JBP after deleting home entities')
         },
         unload: function() {
-            // this.findAndDeleteHomeEntities();
+            this.findAndDeleteHomeEntities();
         }
 
     }

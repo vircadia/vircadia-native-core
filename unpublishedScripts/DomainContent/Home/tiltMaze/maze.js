@@ -24,7 +24,6 @@
     var BALL_RIGHT_OFFSET = -0.4 * SCALE;
     var BALL_VERTICAL_OFFSET = 0.02 * SCALE;
 
-
     var BALL_FRICTION = 0.7;
     var BALL_RESTITUTION = 0.1;
     var BALL_DAMPING = 0.6;

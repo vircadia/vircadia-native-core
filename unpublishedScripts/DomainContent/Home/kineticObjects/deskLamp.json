@@ -1,0 +1,89 @@
+{
+    "Entities": [{
+        "angularVelocity": {
+            "x": -0.00071254139766097069,
+            "y": 0.0045778844505548477,
+            "z": -0.0034651262685656548
+        },
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.obj",
+        "created": "2016-03-22T22:55:11Z",
+        "dimensions": {
+            "x": 0.35158795118331909,
+            "y": 0.27823561429977417,
+            "z": 0.35158795118331909
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -2,
+            "z": 0
+        },
+        "id": "{638e562d-77cc-45ee-b2c7-f5c678cf83eb}",
+        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.fbx",
+        "position": {
+            "x": 1104.558349609375,
+            "y": 460.93505859375,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.56977474689483643,
+            "x": 1104.2734375,
+            "y": 460.65017700195312,
+            "z": -0.28488737344741821
+        },
+        "restitution": 0.20000000298023224,
+        "rotation": {
+            "w": 0.80972349643707275,
+            "x": 8.0799843999557197e-05,
+            "y": -0.58680325746536255,
+            "z": 0.0031326396856456995
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "angularVelocity": {
+            "x": -0.0025625245179980993,
+            "y": -0.00052156101446598768,
+            "z": 0.000514673360157758
+        },
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.obj",
+        "created": "2016-03-22T22:50:49Z",
+        "dimensions": {
+            "x": 0.26436957716941833,
+            "y": 0.73171323537826538,
+            "z": 0.26436954736709595
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -9,
+            "z": 0
+        },
+        "id": "{1fdc3a04-fbee-4f23-bdf8-c44c58258388}",
+        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx",
+        "position": {
+            "x": 1104.5577392578125,
+            "y": 460.7225341796875,
+            "z": 0.0018768310546875
+        },
+        "queryAACube": {
+            "scale": 0.82169753313064575,
+            "x": 1104.1468505859375,
+            "y": 460.31167602539062,
+            "z": -0.40897193551063538
+        },
+        "rotation": {
+            "w": 0.98707658052444458,
+            "x": -5.647468424285762e-05,
+            "y": -0.16024939715862274,
+            "z": 2.5912273486028425e-05
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}

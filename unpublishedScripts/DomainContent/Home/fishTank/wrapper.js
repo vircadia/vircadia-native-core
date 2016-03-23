@@ -117,11 +117,16 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TANK_MODEL_URL,
             dimensions: TANK_DIMENSIONS,
             position: TANK_POSITION,
-            rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z),
+            rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
-            visible: true
+            visible: true,
+            // userData: JSON.stringify({
+            //     'hifiHomeKey': {
+            //         'reset': true
+            //     }
+            // }),
         }
 
         fishTank = Entities.addEntity(tankProperties);
@@ -172,7 +177,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             "alphaStart": 0.3,
             "alphaFinish": 0,
             "emitterShouldTrail": 0,
-            "textures": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/bubble-white.png"
+            "textures": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/bubble-white.png",
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         };
 
         bubbleProperties.type = "ParticleEffect";
@@ -239,7 +249,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             position: tankProperties.position,
             visible: false,
             collisionless: true,
-            dynamic: false
+            dynamic: false,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         };
 
         innerContainer = Entities.addEntity(containerProps);
@@ -265,7 +280,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             },
             collisionless: true,
             position: getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET),
-            visible: false
+            visible: false,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         var upperProps = {
@@ -284,7 +304,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             },
             collisionless: true,
             position: getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET),
-            visible: false
+            visible: false,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         lowerCorner = Entities.addEntity(lowerProps);
@@ -301,7 +326,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             parentID: fishTank,
             modelURL: ROCK_MODEL_URL,
             position: finalPosition,
-            dimensions: ROCK_DIMENSIONS
+            dimensions: ROCK_DIMENSIONS,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         rocks = Entities.addEntity(properties);
@@ -327,7 +357,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             position: finalPosition,
             shapeType: 'Sphere',
             rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
-            dimensions: ANEMONE_DIMENSIONS
+            dimensions: ANEMONE_DIMENSIONS,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         anemone = Entities.addEntity(properties);
@@ -344,7 +379,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TREASURE_MODEL_URL,
             position: finalPosition,
             dimensions: TREASURE_DIMENSIONS,
-            rotation: Quat.fromPitchYawRollDegrees(10, -45, 10)
+            rotation: Quat.fromPitchYawRollDegrees(10, -45, 10),
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         treasure = Entities.addEntity(properties);
@@ -363,7 +403,12 @@ FishTank = function(spawnPosition, spawnRotation) {
                 y: TANK_POSITION.y - BASE_VERTICAL_OFFSET,
                 z: TANK_POSITION.z
             },
-            dimensions: TANK_BASE_DIMENSIONS
+            dimensions: TANK_BASE_DIMENSIONS,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         tankBase = Entities.addEntity(properties);

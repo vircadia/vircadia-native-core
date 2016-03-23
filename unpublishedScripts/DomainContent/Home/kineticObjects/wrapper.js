@@ -8,11 +8,12 @@ var LEFT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/H
 var CHAIR_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/chair.json' + "?" + Math.random();
 var DESK_DRAWERS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskDrawers.json' + "?" + Math.random();
 var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/fruit.json' + "?" + Math.random()
-var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/labLamp.json' + "?" + Math.random();
-var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/livingRoomLamp.json' + "?" + Math.random();
+var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskLamp.json' + "?" + Math.random();
+var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskLamp.json' + "?" + Math.random();
 var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json' + "?" + Math.random();
 var BLOCKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/blocks.json' + "?" + Math.random();
-
+var PLAYA_POSTER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/postersPlaya.json' + "?" + Math.random();
+var CELL_POSTER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json' + "?" + Math.random();
 
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
@@ -252,11 +253,58 @@ Books = function(spawnLocation, spawnRotation) {
 }
 
 Blocks = function(spawnLocation, spawnRotation) {
-    print('EBL CREATE BLOCKS')
+    print('CREATE BLOCKS')
     var created = [];
 
     function create() {
         var success = Clipboard.importEntities(BLOCKS_URL);
+        if (success === true) {
+            created = Clipboard.pasteEntities(spawnLocation)
+            print('created ' + created);
+        }
+    };
+
+    function cleanup() {
+        created.forEach(function(obj) {
+            Entities.deleteEntity(obj);
+        })
+    };
+
+    create();
+
+    this.cleanup = cleanup;
+
+}
+
+PosterCell = function(spawnLocation, spawnRotation) {
+    print('CREATE CELL POSTER')
+    var created = [];
+
+    function create() {
+        var success = Clipboard.importEntities(CELL_POSTER_URL);
+        if (success === true) {
+            created = Clipboard.pasteEntities(spawnLocation)
+            print('created ' + created);
+        }
+    };
+
+    function cleanup() {
+        created.forEach(function(obj) {
+            Entities.deleteEntity(obj);
+        })
+    };
+
+    create();
+
+    this.cleanup = cleanup;
+}
+
+PosterPlaya = function(spawnLocation, spawnRotation) {
+    print('CREATE PLAYA POSTER')
+    var created = [];
+
+    function create() {
+        var success = Clipboard.importEntities(PLAYA_POSTER_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);

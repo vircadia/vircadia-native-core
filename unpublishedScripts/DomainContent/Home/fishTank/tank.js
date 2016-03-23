@@ -24,7 +24,7 @@
 
     var TANK_SEARCH_RADIUS = 5;
     var WANT_LOOK_DEBUG_LINE = false;
-    var WANT_LOOK_DEBUG_SPHERE = false;
+    var WANT_LOOK_DEBUG_SPHERE = true;
 
     var INTERSECT_COLOR = {
         red: 255,
@@ -42,6 +42,7 @@
         iOwn = true;
         connected = true;
         Script.update.connect(_this.update);
+        print('JBP connecting in startupdate')
     }
 
     function stopUpdateAndReclaim() {
@@ -107,10 +108,13 @@
             if (properties.hasOwnProperty('userData') === false || properties.userData.length === 0) {
                 _this.initTimeout = Script.setTimeout(function() {
                     if (properties.hasOwnProperty('userData')) {
-                        // print('has user data property')
+                        print('JBP has user data property')
                     }
                     if (properties.userData.length === 0) {
-                        // print('user data length is zero')
+                        print('JBP user data length is zero')
+                    }
+                    if (properties.userData === "") {
+                        print('JBP user data is empty')
                     }
 
                     // print('try again in one second')
@@ -122,9 +126,10 @@
                 _this.userData = null;
                 try {
                     _this.userData = JSON.parse(properties.userData);
+                    print('JBP set userdata to parsed json')
                 } catch (err) {
-                    // print('error parsing json');
-                    // print('properties are:' + properties.userData);
+                    print('JBP error parsing json');
+                    print('JBP properties are:' + properties.userData);
                     return;
                 }
                 // print('after parse')
@@ -171,7 +176,7 @@
             // print('i am the owner!')
             //do stuff
             updateFish(deltaTime);
-            _this.seeIfOwnerIsLookingAtTheTank();
+            // _this.seeIfOwnerIsLookingAtTheTank();
         },
 
         debugSphereOn: function(position) {
@@ -416,8 +421,7 @@
             }
         }
 
-
-        //  print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
+        // print('jbp has userdata fish??' + JSON.stringify(_this.userData))
 
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
@@ -427,11 +431,6 @@
             var data = {
                 fishLoaded: true,
                 bubbleSystem: _this.userData['hifi-home-fishtank'].bubbleSystem,
-                // bubbleSound: _this.userData['hifi-home-fishtank'].bubbleSound,
-                // corners: {
-                //     brn: _this.userData['hifi-home-fishtank'].lowerCorner,
-                //     tfl: _this.userData['hifi-home-fishtank'].upperCorner
-                // },
                 innerContainer: _this.userData['hifi-home-fishtank'].innerContainer,
 
             }
@@ -476,15 +475,27 @@
         var innerContainer = userData['hifi-home-fishtank']['innerContainer'];
         // var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
 
-        lowerCorner = getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET);
-        upperCorner = getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET);
+
         // print('LOADFISH LOWER' + JSON.stringify(lowerCorner));
         // print('LOADFISH UPPER' + JSON.stringify(upperCorner));
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 
         var flockProperties = [];
+        var tankProps = Entities.getEntityProperties(_this.entityID);
+        var tankXForm = new Xform(tankProps.rotation, tankProps.position);
+        var inverseTankXForm = tankXForm.inv();
+
+        var lowerCorner = getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET);
+        var upperCorner = getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET);
+
+
+        lowerCorner = inverseTankXForm.xFormPoint(lowerCorner);
+        upperCorner = inverseTankXForm.xFormPoint(upperCorner);
+
         for (var i = 0; i < fish.length; i++) {
             var otherProps = Entities.getEntityProperties(fish[i], ["position", "velocity", "rotation"]);
+            otherProps.position = inverseTankXForm.xFormPoint(otherProps.position);
+            otherProps.velocity = inverseTankXForm.xFormVector(otherProps.velocity)
             flockProperties.push(otherProps);
         }
 
@@ -509,16 +520,7 @@
                     y: properties.position.y,
                     z: properties.position.z
                 };
-                averageVelocity = {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                };
-                averagePosition = {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                };
+   
 
                 var othersCounted = 0;
                 for (var j = 0; j < fish.length; j++) {
@@ -550,15 +552,6 @@
                     //attractors
                     //[position, radius, force]
 
-
-
-                }
-
-                if (_this.hasLookAttractor === true) {
-                    //print('has a look attractor, so use it')
-                    var attractorPosition = _this.lookAttractor.position;
-                    var towardAttractor = Vec3.subtract(attractorPosition, position);
-                    velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardAttractor), Vec3.length(velocity)), LOOK_ATTRACTOR_FORCE);
                 }
 
                 //  Try to swim at a constant speed
@@ -588,36 +581,50 @@
                 }
 
                 //  Orient in direction of velocity 
-                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
+                
 
-                var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
-                var VELOCITY_FOLLOW_RATE = 0.30;
+                // var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+                // var VELOCITY_FOLLOW_RATE = 0.30;
 
-                var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+                // var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
 
-                var safeEuler = Quat.safeEulerAngles(rotation);
-                safeEuler.z = safeEuler.z *= 0.925;
+                // var safeEuler = Quat.safeEulerAngles(rotation);
+                // safeEuler.z = safeEuler.z *= 0.925;
 
-                //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
-                var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
+                // //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
+                // var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
 
-                var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
+                // var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
 
 
-                //  Only update properties if they have changed, to save bandwidth
-                var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
-                if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
-                    Entities.editEntity(fish[i], {
-                        velocity: velocity,
-                        rotation: finalQuat
-                    });
-                } else {
-                    Entities.editEntity(fish[i], {
-                        position: position,
-                        velocity: velocity,
-                        rotation: finalQuat
-                    });
-                }
+                // //  Only update properties if they have changed, to save bandwidth
+                // var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
+
+
+                var primePosition = tankXForm.xFormPoint(position);
+                var primeVelocity = tankXForm.xFormVector(velocity);
+                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, primeVelocity);
+                var normalizedPrimeVelocity = Vec3.normalize(primeVelocity)
+                var pitch = Math.acos(Vec3.dot(normalizedPrimeVelocity,{x:0,y:1,z:0}));
+                // if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
+                //     print('under min position change')
+                //     Entities.editEntity(fish[i], {
+                //         velocity: primeVector,
+                //         // rotation: finalQuat
+                //     });
+                // } else {
+                //     Entities.editEntity(fish[i], {
+                //         position: primePosition,
+                //         velocity: primeVector,
+                //         // rotation: finalQuat
+                //     });
+                // }
+
+                Entities.editEntity(fish[i], {
+                    position: primePosition,
+                    velocity: primeVelocity,
+                    // rotation: rotation
+                });
             }
         }
     }
@@ -629,12 +636,12 @@
         _this.currentProperties = Entities.getEntityProperties(_this.entityID);
         var center = _this.currentProperties.position;
 
-        lowerCorner = {
+        var lowerCorner = {
             x: center.x - (_this.currentProperties.dimensions.z / 2),
             y: center.y,
             z: center.z - (_this.currentProperties.dimensions.z / 2)
         };
-        upperCorner = {
+        var upperCorner = {
             x: center.x + (_this.currentProperties.dimensions.z / 2),
             y: center.y + _this.currentProperties.dimensions.y,
             z: center.z + (_this.currentProperties.dimensions.z / 2)
@@ -658,7 +665,7 @@
                     type: "Model",
                     modelURL: fish.length % 2 === 0 ? FISH_MODEL_URL : FISH_MODEL_TWO_URL,
                     position: position,
-                    parentID: _this.entityID,
+                    // parentID: _this.entityID,
                     // rotation: {
                     //     x: 0,
                     //     y: 0,
@@ -680,7 +687,12 @@
                         red: 0,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    userData: JSON.stringify({
+                        'hifiHomeKey': {
+                            'reset': true
+                        }
+                    }),
                 })
             );
 
@@ -693,7 +705,6 @@
     Script.scriptEnding.connect(function() {
         Script.update.disconnect(_this.update);
     })
-
 
     function setEntityUserData(id, data) {
         var json = JSON.stringify(data)
@@ -738,21 +749,49 @@
         }
     }
 
-    function transformFishFromTankToWorldSpace(position, velocity) {
+    function Xform(rot, pos) {
+        this.rot = rot;
+        this.pos = pos;
+    };
 
-        var Q = Entities.getEntityProperties(_this.entityID).rotation;
-        var tPosition = Vec3.multiplyQbyV(Q, position);
-        var tVelocity = Vec3.multiplyQbyV(Q, velocity);
+    Xform.ident = function() {
+        return new Xform({
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1
+        }, {
+            x: 0,
+            y: 0,
+            z: 0
+        });
+    };
 
-        var inverseQ = Quat.inverse(Q);
-        var finalPosition = Vec3.multiplyQbyV(inverseQ, tPosition);
-        var finalVelocity = Vec3.multiplyQbyV(inverseQ,tVelocity);
+    Xform.mul = function(lhs, rhs) {
+        var rot = Quat.multiply(lhs.rot, rhs.rot);
+        var pos = Vec3.sum(lhs.pos, Vec3.multiplyQbyV(lhs.rot, rhs.pos));
+        return new Xform(rot, pos);
+    };
 
-        return {
-            position: finalPosition,
-            velocity: finalVelocity
-        };
-    }
+    Xform.prototype.inv = function() {
+        var invRot = Quat.inverse(this.rot);
+        var invPos = Vec3.multiply(-1, this.pos);
+        return new Xform(invRot, Vec3.multiplyQbyV(invRot, invPos));
+    };
+
+    Xform.prototype.xFormPoint = function(point) {
+        return Vec3.sum(Vec3.multiplyQbyV(this.rot, point), this.pos);
+    };
+
+    Xform.prototype.xFormVector = function(vector) {
+        return Vec3.multiplyQbyV(this.rot, vector);
+    };
+
+    Xform.prototype.toString = function() {
+        var rot = this.rot;
+        var pos = this.pos;
+        return "Xform rot = (" + rot.x + ", " + rot.y + ", " + rot.z + ", " + rot.w + "), pos = (" + pos.x + ", " + pos.y + ", " + pos.z + ")";
+    };
 
     return new FishTank();
 });
