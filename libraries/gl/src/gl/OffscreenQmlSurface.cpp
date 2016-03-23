@@ -214,22 +214,19 @@ void OffscreenQmlRenderThread::init() {
     connect(_renderControl, &QQuickRenderControl::sceneChanged, _surface, &OffscreenQmlSurface::requestUpdate);
 
     if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on render thread");
+        // Failed to make GL context current, this OffscreenQmlSurface is basically dead
+        qWarning("Failed to make context current on QML Renderer Thread");
         return;
     }
+
     _renderControl->initialize(_canvas.getContext());
     setupFbo();
     _escrow.setRecycler([this](GLuint texture){
         _textures.recycleTexture(texture);
     });
-    _canvas.doneCurrent();
 }
 
 void OffscreenQmlRenderThread::cleanup() {
-    if (!_canvas.makeCurrent()) {
-        qFatal("Failed to make context current on render thread");
-        return;
-    }
     _renderControl->invalidate();
 
     _fbo.reset();
@@ -237,7 +234,6 @@ void OffscreenQmlRenderThread::cleanup() {
     _textures.clear();
 
     _canvas.doneCurrent();
-
     _canvas.getContextObject()->moveToThread(QCoreApplication::instance()->thread());
 
     _quit = true;
@@ -267,28 +263,16 @@ void OffscreenQmlRenderThread::resize() {
     }
     _size = newOffscreenSize;
 
-    // Clear out any fbos with the old size
-    if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on render thread");
-        return;
-    }
-
     qDebug() << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
 
     locker.unlock();
 
     setupFbo();
-    _canvas.doneCurrent();
 }
 
 void OffscreenQmlRenderThread::render() {
     if (_surface->_paused) {
         _waitCondition.wakeOne();
-        return;
-    }
-
-    if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on render thread");
         return;
     }
 
