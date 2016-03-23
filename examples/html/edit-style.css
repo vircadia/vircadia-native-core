@@ -66,12 +66,15 @@ table {
     font-family: FiraSans-SemiBold;
     font-size: 15px;
     color: #afafaf;
+    border-collapse: collapse;
+    width: 100%;
 }
 
 thead {
     font-family: Raleway-Regular;
     font-size: 12px;
     background-color: #1c1c1c;
+    padding: 1px 0px;
     border-bottom: 1px solid #575757;
     width: 100%;
 }
@@ -89,14 +92,17 @@ tfoot {
 }
 
 thead tr {
-    height: 30px;
-    padding-top: 3px;
-    padding-bottom: 3px;
+    height: 26px;  /* 28px with thead padding */
 }
 
 thead th {
-    height: 28px;
+    height: 26px;
     background-color: #1c1c1c;
+    border-right: 1px solid #575757;
+}
+
+thead th:last-child {
+    border: none;
 }
 
 tbody td {
@@ -426,8 +432,6 @@ input[type=button].red:active {
 }
 
 #entity-table {
-    border-collapse: collapse;
-    width: 100%;
     margin-top: -28px;
     margin-bottom: -18px;
     table-layout: fixed;
@@ -448,6 +452,10 @@ input[type=button].red:active {
     top: 52px; /* 24px below search field and 28px for header */
     left: 0;
     width: 100%;
+}
+
+#entity-table thead th {
+    padding: 0;
 }
 
 #entity-table tfoot {
