@@ -37,6 +37,14 @@
         },
 
         startHold: function() {
+            if (_this.waterSpout) {
+                _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
+                _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
+                _this.createWaterEffect();
+            } else {
+                print("EBL NO WATER SPOUT FOUND RETURNING");
+                return;
+            }
             _this.findGrowableEntities();
         },
 
@@ -50,6 +58,9 @@
 
         releaseHold: function() {
             _this.stopPouring();
+            Script.setTimeout(function() {
+               Entities.deleteEntity(_this.waterEffect);
+            }, 2000);
         },
 
         stopPouring: function() {
@@ -130,8 +141,6 @@
 
         },
 
-
-
         createWaterEffect: function() {
             var waterEffectPosition = Vec3.sum(_this.waterSpoutPosition, Vec3.multiply(Quat.getFront(_this.waterSpoutRotation), -0.04));
             _this.waterEffect = Entities.addEntity({
@@ -157,6 +166,7 @@
                 },
                 maxParticles: 20000,
                 lifespan: 2,
+                lifetime: 5000, //Doubtful anyone will hold water can longer than this
                 emitRate: 2000,
                 emitSpeed: .3,
                 speedSpread: 0.1,
@@ -222,13 +232,7 @@
                     }
                 });
 
-                if (_this.waterSpout) {
-                    _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
-                    _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
-                    _this.createWaterEffect();
-                }
-
-            }, 3000);
+            }, 2000);
 
         },
 

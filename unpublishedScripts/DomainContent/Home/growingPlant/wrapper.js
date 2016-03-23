@@ -127,13 +127,6 @@ Plant = function(spawnPosition, spawnRotation) {
 
   var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
   var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
-  // var waterSpoutRotation = {
-  //     x: waterSpoutRotation.x,
-  //     y: waterSpoutRotation.y,
-  //     z: waterSpoutRotation.z,
-  //     w: waterSpoutRotation.w
-  //   };
-  print("EBL SET ROTATION")
   var waterSpout = Entities.addEntity({
     type: "Box",
     name: "hifi-water-spout",
@@ -150,7 +143,7 @@ Plant = function(spawnPosition, spawnRotation) {
     position: waterSpoutPosition,
     rotation: waterSpoutRotation,
     parentID: waterCan,
-    // visible: false,
+    visible: false,
     userData: JSON.stringify({
       'hifiHomeKey': {
         'reset': true
