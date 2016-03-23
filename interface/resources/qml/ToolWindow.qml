@@ -50,6 +50,7 @@ Window {
         id: tabView;
         width: pane.contentWidth
         height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
+        property int tabCount: 0
 
         Repeater {
             model: 4
@@ -85,7 +86,7 @@ Window {
                     text: styleData.title
                     font.capitalization: Font.AllUppercase
                     size: hifi.fontSizes.tabName
-                    width: control.count > 1 ? styleData.availableWidth / control.count : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
+                    width: tabView.tabCount > 1 ? styleData.availableWidth / tabView.tabCount : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
                     elide: Text.ElideRight
                     color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
                     horizontalAlignment: Text.AlignHCenter
@@ -212,6 +213,7 @@ Window {
         newTab.originalUrl = properties.source;
         newTab.item.url = properties.source;
         newTab.active = true;
+        tabView.tabCount++;
 
         if (properties.width) {
             tabView.width = Math.min(Math.max(tabView.width, properties.width),
