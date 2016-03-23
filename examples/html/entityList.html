@@ -36,6 +36,7 @@
               elDelete = document.getElementById("delete");
               elTeleport = document.getElementById("teleport");
               elRadius = document.getElementById("radius");
+              elFooter = document.getElementById("footer-text");
               elNoEntitiesMessage = document.getElementById("no-entities");
               elNoEntitiesRadius = document.getElementById("no-entities-radius");
               
@@ -178,6 +179,15 @@
                           notFound = true;
                       }
                   }
+
+                  if (selectedEntities.length > 2) {
+                      elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
+                  } else if (selectedEntities.length === 1) {
+                      elFooter.firstChild.nodeValue = "1 entity selected";
+                  } else {
+                      elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
+                  }
+
                   return notFound;
               }
               
@@ -296,7 +306,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="4">Footer text</td>
+                        <td id="footer-text" colspan="3">Footer text</td>
                     </tr>
                 </tfoot>
             </table>
