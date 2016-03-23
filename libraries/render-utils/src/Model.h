@@ -384,7 +384,7 @@ protected:
     RigPointer _rig;
 };
 
-Q_DECLARE_METATYPE(QPointer<Model>)
+Q_DECLARE_METATYPE(ModelPointer)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 
 /// Handle management of pending models that need blending
@@ -398,7 +398,7 @@ public:
     void noteRequiresBlend(ModelPointer model);
 
 public slots:
-    void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+    void setBlendedVertices(ModelPointer model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
 private:
