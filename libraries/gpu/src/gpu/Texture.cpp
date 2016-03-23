@@ -17,6 +17,30 @@
 
 using namespace gpu;
 
+std::atomic<uint32_t> Texture::_textureSystemMemoryUsage;
+std::atomic<uint32_t> Texture::_textureVideoMemoryUsage;
+
+uint32_t Texture::getCurrentSystemMemoryUsage() {
+    return _textureSystemMemoryUsage.load();
+}
+uint32_t Texture::getCurrentVideoMemoryUsage() {
+    return _textureVideoMemoryUsage.load();
+}
+
+void Texture::addSystemMemoryUsage(uint32_t memorySize) {
+    _textureSystemMemoryUsage.fetch_add(memorySize);
+}
+void Texture::subSystemMemoryUsage(uint32_t memorySize) {
+    _textureSystemMemoryUsage.fetch_sub(memorySize);
+}
+
+void Texture::addVideoMemoryUsage(uint32_t memorySize) {
+    _textureVideoMemoryUsage.fetch_add(memorySize);
+}
+void Texture::subVideoMemoryUsage(uint32_t memorySize) {
+    _textureVideoMemoryUsage.fetch_sub(memorySize);
+}
+
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
@@ -26,6 +50,15 @@ Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
 }
 
 Texture::Pixels::~Pixels() {
+}
+
+Texture::Size Texture::Pixels::resize(Size pSize) {
+    return _sysmem.resize(pSize);
+}
+
+void Texture::Pixels::notifyGPULoaded() {
+    _isGPULoaded = true;
+    _sysmem.resize(0);
 }
 
 void Texture::Storage::assignTexture(Texture* texture) {
@@ -60,8 +93,7 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
 void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
     if (mipFace && (_type != TEX_CUBE)) {
-        mipFace->_isGPULoaded = true;
-        mipFace->_sysmem.resize(0);
+        mipFace->notifyGPULoaded();
     }
 }
 

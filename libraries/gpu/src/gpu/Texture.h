@@ -15,6 +15,7 @@
 
 #include <algorithm> //min max and more
 #include <bitset>
+#include <atomic>
 
 #include <QUrl>
 
@@ -138,7 +139,19 @@ protected:
 };
 
 class Texture : public Resource {
+    static std::atomic<uint32_t> _textureSystemMemoryUsage;
+    static std::atomic<uint32_t> _textureVideoMemoryUsage;
+
+    void addSystemMemoryUsage(uint32_t memorySize);
+    void subSystemMemoryUsage(uint32_t memorySize);
+
+    void addVideoMemoryUsage(uint32_t memorySize);
+    void subVideoMemoryUsage(uint32_t memorySize);
+
 public:
+
+    uint32_t getCurrentSystemMemoryUsage();
+    uint32_t getCurrentVideoMemoryUsage();
 
     class Usage {
     public:
@@ -194,8 +207,13 @@ public:
         Pixels(const Element& format, Size size, const Byte* bytes);
         ~Pixels();
 
-        Sysmem _sysmem;
+        Size getSize() const { return _sysmem.getSize(); }
+        Size resize(Size pSize);
+        void notifyGPULoaded();
+
+    protected:
         Element _format;
+        Sysmem _sysmem;
         bool _isGPULoaded;
     };
     typedef std::shared_ptr< Pixels > PixelsPointer;
