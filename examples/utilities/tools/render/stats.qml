@@ -19,7 +19,7 @@ Column {
 
         Repeater {
             model: [
-                "num Textures:numTextures",
+                "num Textures:numTextures:1",
                 "Sysmem Usage:textureSysmemUsage",
                 "num GPU Textures:numGPUTextures",
                 "Vidmem Usage:textureVidmemUsage"
