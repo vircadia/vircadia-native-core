@@ -39,6 +39,7 @@
               elFooter = document.getElementById("footer-text");
               elNoEntitiesMessage = document.getElementById("no-entities");
               elNoEntitiesRadius = document.getElementById("no-entities-radius");
+              elEntityTableScroll = document.getElementById("entity-table-scroll");
               
               document.getElementById("entity-name").onclick = function() {
                   setSortColumn('name');
@@ -248,25 +249,24 @@
                   });
                   setTimeout(refreshEntities, 1000);
               }
-          });
 
-          function resize() {
-              // Set the table height to take up available window space
-              var tableHeight = window.innerHeight - 218;
-              document.getElementById("entity-table-scroll").style.height = tableHeight;
+              function resize() {
+                  // Take up available window space
+                  elEntityTableScroll.style.height = window.innerHeight - 218;
 
-              // Update the widths of the header cells to match the body
-              var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
-              var ths = document.querySelectorAll("#entity-table thead th");
-              if (tds.length >= ths.length) {
-                  for (var i = 0; i < ths.length; i++) {
-                      ths[i].style.width = tds[i].offsetWidth;
+                  // Update the widths of the header cells to match the body
+                  var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
+                  var ths = document.querySelectorAll("#entity-table thead th");
+                  if (tds.length >= ths.length) {
+                      for (var i = 0; i < ths.length; i++) {
+                          ths[i].style.width = tds[i].offsetWidth;
+                      }
                   }
-              }
-          };
+              };
 
-          window.onresize = resize;
-          resize();
+              window.onresize = resize;
+              resize();
+          });
       }
     </script>
 </head>
