@@ -496,7 +496,6 @@
             var otherProps = Entities.getEntityProperties(fish[i], ["position", "velocity", "rotation"]);
             otherProps.position = inverseTankXForm.xFormPoint(otherProps.position);
             otherProps.velocity = inverseTankXForm.xFormVector(otherProps.velocity)
-            print('TRANSFORMED POSITION::' + JSON.stringify(otherProps.position));
             flockProperties.push(otherProps);
         }
 
@@ -521,16 +520,7 @@
                     y: properties.position.y,
                     z: properties.position.z
                 };
-                averageVelocity = {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                };
-                averagePosition = {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                };
+   
 
                 var othersCounted = 0;
                 for (var j = 0; j < fish.length; j++) {
@@ -564,12 +554,6 @@
 
                 }
 
-                // if (_this.hasLookAttractor === true) {
-                //     var attractorPosition = _this.lookAttractor.position;
-                //     var towardAttractor = Vec3.subtract(attractorPosition, position);
-                //     velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardAttractor), Vec3.length(velocity)), LOOK_ATTRACTOR_FORCE);
-                // }
-
                 //  Try to swim at a constant speed
                 velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(velocity), SWIMMING_SPEED), SWIMMING_FORCE);
 
@@ -597,29 +581,31 @@
                 }
 
                 //  Orient in direction of velocity 
-                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
+                
 
-                var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
-                var VELOCITY_FOLLOW_RATE = 0.30;
+                // var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+                // var VELOCITY_FOLLOW_RATE = 0.30;
 
-                var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+                // var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
 
-                var safeEuler = Quat.safeEulerAngles(rotation);
-                safeEuler.z = safeEuler.z *= 0.925;
+                // var safeEuler = Quat.safeEulerAngles(rotation);
+                // safeEuler.z = safeEuler.z *= 0.925;
 
-                //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
-                var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
+                // //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
+                // var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
 
-                var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
+                // var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
 
 
-                //  Only update properties if they have changed, to save bandwidth
-                var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
+                // //  Only update properties if they have changed, to save bandwidth
+                // var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
 
 
                 var primePosition = tankXForm.xFormPoint(position);
-                var primeVector = tankXForm.xFormVector(velocity);
-
+                var primeVelocity = tankXForm.xFormVector(velocity);
+                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, primeVelocity);
+                var normalizedPrimeVelocity = Vec3.normalize(primeVelocity)
+                var pitch = Math.acos(Vec3.dot(normalizedPrimeVelocity,{x:0,y:1,z:0}));
                 // if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
                 //     print('under min position change')
                 //     Entities.editEntity(fish[i], {
@@ -636,8 +622,8 @@
 
                 Entities.editEntity(fish[i], {
                     position: primePosition,
-                    velocity: primeVector,
-                    //rotation: finalQuat
+                    velocity: primeVelocity,
+                    // rotation: rotation
                 });
             }
         }
@@ -679,7 +665,7 @@
                     type: "Model",
                     modelURL: fish.length % 2 === 0 ? FISH_MODEL_URL : FISH_MODEL_TWO_URL,
                     position: position,
-                    parentID: _this.entityID,
+                    // parentID: _this.entityID,
                     // rotation: {
                     //     x: 0,
                     //     y: 0,
@@ -767,6 +753,7 @@
         this.rot = rot;
         this.pos = pos;
     };
+
     Xform.ident = function() {
         return new Xform({
             x: 0,
