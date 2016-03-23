@@ -24,6 +24,7 @@ private slots:
     void addSphereShape();
     void addCylinderShape();
     void addCapsuleShape();
+    void addCompoundShape();
 };
 
 #endif // hifi_ShapeManagerTests_h
