@@ -72,12 +72,16 @@ public:
     static GLuint getBufferID(const Buffer& buffer);
 
     class GLTexture : public GPUObject {
+        GLuint _size;
     public:
         Stamp _storageStamp;
         Stamp _contentStamp;
         GLuint _texture;
         GLenum _target;
-        GLuint _size;
+
+
+        void setSize(GLuint size);
+        GLuint size() const { return _size; }
 
         GLTexture();
         ~GLTexture();

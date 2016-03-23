@@ -268,7 +268,7 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-#ifdef NDEBUG
+#ifdef ____NDEBUG
             auto now = usecTimestampNow();
             auto lastHeartbeatAge = now - _heartbeat;
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {

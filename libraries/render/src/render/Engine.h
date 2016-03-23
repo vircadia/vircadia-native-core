@@ -19,34 +19,69 @@
 
 namespace render {
 
-// The render engine holds all render tasks, and is itself a render task.
-// State flows through tasks to jobs via the render and scene contexts -
-// the engine should not be known from its jobs.
-class Engine : public Task {
-public:
-    Engine();
-    ~Engine() = default;
+    // The render engine holds all render tasks, and is itself a render task.
+    // State flows through tasks to jobs via the render and scene contexts -
+    // the engine should not be known from its jobs.
+    class Engine : public Task {
+    public:
 
-    // Load any persisted settings, and set up the presets
-    // This should be run after adding all jobs, and before building ui
-    void load();
+        Engine();
+        ~Engine() = default;
 
-    // Register the scene
-    void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
+        // Load any persisted settings, and set up the presets
+        // This should be run after adding all jobs, and before building ui
+        void load();
 
-    // Push a RenderContext
-    void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
-    RenderContextPointer getRenderContext() const { return _renderContext; }
+        // Register the scene
+        void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
 
-    // Render a frame
-    // A frame must have a scene registered and a context set to render
-    void run();
+        // Push a RenderContext
+        void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
+        RenderContextPointer getRenderContext() const { return _renderContext; }
 
-protected:
-    SceneContextPointer _sceneContext;
-    RenderContextPointer _renderContext;
-};
-using EnginePointer = std::shared_ptr<Engine>;
+        // Render a frame
+        // A frame must have a scene registered and a context set to render
+        void run();
+
+    protected:
+        SceneContextPointer _sceneContext;
+        RenderContextPointer _renderContext;
+    };
+    using EnginePointer = std::shared_ptr<Engine>;
+
+
+    // A simple job collecting global stats on the Engine / Scene / GPU
+    class EngineStatsConfig : public Job::Config{
+        Q_OBJECT
+            Q_PROPERTY(int numTextures MEMBER numTextures NOTIFY dirty)
+            Q_PROPERTY(int numGPUTextures MEMBER numGPUTextures NOTIFY dirty)
+        Q_PROPERTY(qint64 textureSysmemUsage MEMBER textureSysmemUsage NOTIFY dirty)
+        Q_PROPERTY(qint64 textureVidmemUsage MEMBER textureVidmemUsage NOTIFY dirty)
+    public:
+        EngineStatsConfig() : Job::Config(true) {}
+
+        int numTextures{ 0 };
+        int numGPUTextures{ 0 };
+        qint64 textureSysmemUsage{ 0 };
+        qint64 textureVidmemUsage{ 0 };
+
+        void emitDirty() { emit dirty(); }
+
+    signals:
+        void dirty();
+    };
+
+    class EngineStats {
+    public:
+        using Config = EngineStatsConfig;
+        using JobModel = Job::Model<EngineStats, Config>;
+
+        EngineStats() {}
+
+        void configure(const Config& configuration) {}
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+    };
+
 
 }
 

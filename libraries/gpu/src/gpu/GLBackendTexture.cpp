@@ -19,12 +19,29 @@ GLBackend::GLTexture::GLTexture() :
     _texture(0),
     _target(GL_TEXTURE_2D),
     _size(0)
-{}
+{
+    Texture::_numGPUTextures++;
+}
 
 GLBackend::GLTexture::~GLTexture() {
     if (_texture != 0) {
         glDeleteTextures(1, &_texture);
     }
+    Texture::_textureVideoMemoryUsage.fetch_sub(_size);
+    Texture::_numGPUTextures--;
+}
+
+void GLBackend::GLTexture::setSize(GLuint size) {
+    if (_size == size) {
+        return;
+    }
+    if (size > _size) {
+        Texture::_textureVideoMemoryUsage.fetch_add(size - _size);
+    } else {
+        Texture::_textureVideoMemoryUsage.fetch_sub(_size - size);
+    }
+
+    _size = size;
 }
 
 class GLTexelFormat {
@@ -483,7 +500,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->_size = (GLuint)texture.getSize();
+                object->setSize((GLuint)texture.getSize());
             }
 
             glBindTexture(GL_TEXTURE_2D, boundTex);
@@ -561,7 +578,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->_size = (GLuint)texture.getSize();
+                object->setSize((GLuint)texture.getSize());
             }
 
             glBindTexture(GL_TEXTURE_CUBE_MAP, boundTex);

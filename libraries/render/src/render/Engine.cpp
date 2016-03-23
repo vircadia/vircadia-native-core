@@ -23,6 +23,7 @@ using namespace render;
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),
     _renderContext(std::make_shared<RenderContext>()) {
+    addJob<EngineStats>("Stats");
 }
 
 void Engine::load() {
@@ -57,4 +58,19 @@ void Engine::run() {
     for (auto job : _jobs) {
         job.run(_sceneContext, _renderContext);
     }
+
+}
+
+#include <gpu/Texture.h>
+void EngineStats::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    const size_t KILO_BYTES = 1024;
+    // Update the stats
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+
+    config->numTextures = gpu::Texture::getCurrentNumTextures();
+    config->textureSysmemUsage = gpu::Texture::getCurrentSystemMemoryUsage();
+    config->numGPUTextures = gpu::Texture::getCurrentNumGPUTextures();
+    config->textureVidmemUsage = gpu::Texture::getCurrentVideoMemoryUsage();
+
+    config->emitDirty();
 }

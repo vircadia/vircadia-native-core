@@ -17,12 +17,24 @@
 
 using namespace gpu;
 
-std::atomic<Texture::Size> Texture::_textureSystemMemoryUsage{ 0 };
-std::atomic<Texture::Size> Texture::_textureVideoMemoryUsage{ 0 };
+std::atomic<int> Texture::_numTextures{ 0 };
+std::atomic<int> Texture::_numGPUTextures{ 0 };
+std::atomic<unsigned long long> Texture::_textureSystemMemoryUsage{ 0 };
+std::atomic<unsigned long long> Texture::_textureVideoMemoryUsage{ 0 };
+
+
+int Texture::getCurrentNumTextures() {
+    return _numTextures.load();
+}
 
 Texture::Size Texture::getCurrentSystemMemoryUsage() {
     return _textureSystemMemoryUsage.load();
 }
+
+int Texture::getCurrentNumGPUTextures() {
+    return _numGPUTextures.load();
+}
+
 Texture::Size Texture::getCurrentVideoMemoryUsage() {
     return _textureVideoMemoryUsage.load();
 }
@@ -43,8 +55,6 @@ void Texture::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     } else {
         addSystemMemoryUsage(newObjectSize - prevObjectSize);
     }
-    
-    qCDebug(gpulogging) << "Texture::SysMem = " << getCurrentSystemMemoryUsage();
 }
 
 void Texture::addVideoMemoryUsage(Size memorySize) {
@@ -122,7 +132,7 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
 void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
    // if (mipFace && (_type != TEX_CUBE)) {
-        if (mipFaced) {
+        if (mipFace) {
             mipFace->notifyGPULoaded();
     }
 }
@@ -229,10 +239,12 @@ Texture* Texture::createFromStorage(Storage* storage) {
 Texture::Texture():
     Resource()
 {
+    _numTextures++;
 }
 
 Texture::~Texture()
 {
+    _numTextures--;
 }
 
 Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices) {

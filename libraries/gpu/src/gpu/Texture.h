@@ -139,9 +139,12 @@ protected:
 };
 
 class Texture : public Resource {
+    static std::atomic<int> _numTextures;
     static std::atomic<Size> _textureSystemMemoryUsage;
+public:
+    static std::atomic<int> _numGPUTextures;
     static std::atomic<Size> _textureVideoMemoryUsage;
-
+private:
     static void addSystemMemoryUsage(Size memorySize);
     static void subSystemMemoryUsage(Size memorySize);
     static void updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize);
@@ -151,7 +154,9 @@ class Texture : public Resource {
 
 public:
 
+    static int getCurrentNumTextures();
     static Size getCurrentSystemMemoryUsage();
+    static int getCurrentNumGPUTextures();
     static Size getCurrentVideoMemoryUsage();
 
     class Usage {
