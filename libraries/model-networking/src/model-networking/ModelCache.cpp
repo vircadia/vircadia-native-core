@@ -176,9 +176,9 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
                 auto albedoMap = model::TextureMapPointer(new model::TextureMap());
                 albedoMap->setTextureSource(material->albedoTexture->_textureSource);
-                albedoMap->setTextureTransform(
-                    oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
-
+                albedoMap->setTextureTransform(oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
+                // when reassigning the albedo texture we also check for the alpha channel used as opacity
+                albedoMap->setUseAlphaChannel(true); 
                 networkMaterial->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);
