@@ -96,7 +96,7 @@
                 }, 2500);
 
                 Script.setTimeout(function() {
-                    // _this.createKineticEntities();
+                    _this.createKineticEntities();
                     _this.createDynamicEntities();
                 }, 750)
 
@@ -117,6 +117,7 @@
         },
 
         createDynamicEntities: function() {
+            print("EBL CREATE DYNAMIC ENTITIES");
 
             // var fishTank = new FishTank({
             //     x: 1098.9254,
@@ -165,16 +166,15 @@
             // });
             //v2.0
             // var musicBox = new MusicBox();
-            //var cuckooClock = new MyCuckooClock(center);
-            var cuckooClock = new MyCuckooClock({
-                x: 1105.267,
-                y: 461.44,
-                z: -81.9495
-            }, {
-                x: 0,
-                y: -57,
-                z: 0
-            });
+            // var cuckooClock = new MyCuckooClock({
+            //     x: 1105.267,
+            //     y: 461.44,
+            //     z: -81.9495
+            // }, {
+            //     x: 0,
+            //     y: -57,
+            //     z: 0
+            // });
             // var doppelganger = new Doppelganger();
 
         },
@@ -182,58 +182,64 @@
 
         createKineticEntities: function() {
 
-            var fruitBowl = new FruitBowl({
-                x: 1105.3185,
-                y: 460.3221,
-                z: -81.2452
-            });
+            // var fruitBowl = new FruitBowl({
+            //     x: 1105.3185,
+            //     y: 460.3221,
+            //     z: -81.2452
+            // });
 
-            var livingRoomLamp = new LivingRoomLamp({
-                x: 1104.6732,
-                y: 460.3326,
-                z: -81.9710
-            });
+            // var livingRoomLamp = new LivingRoomLamp({
+            //     x: 1104.6732,
+            //     y: 460.3326,
+            //     z: -81.9710
+            // });
 
-            var upperBookShelf = new UpperBookShelf({
-                x: 1106.2649,
-                y: 461.5352,
-                z: -80.3018
-            });
+            // var upperBookShelf = new UpperBookShelf({
+            //     x: 1106.2649,
+            //     y: 461.5352,
+            //     z: -80.3018
+            // });
 
-            var lowerBookShelf = new LowerBookShelf({
-                x: 1106.2725,
-                y: 460.9600,
-                z: -80.2837
-            });
+            // var lowerBookShelf = new LowerBookShelf({
+            //     x: 1106.2725,
+            //     y: 460.9600,
+            //     z: -80.2837
+            // });
 
-            var rightDeskDrawer = new RightDeskDrawer({
-                x: 1105.1735,
-                y: 460.0446,
-                z: -81.3612
-            });
+            // var rightDeskDrawer = new RightDeskDrawer({
+            //     x: 1105.1735,
+            //     y: 460.0446,
+            //     z: -81.3612
+            // });
 
-            var leftDeskDrawer = new LeftDeskDrawer({
-                x: 1104.6478,
-                y: 460.0463,
-                z: -82.1095
-            });
+            // var leftDeskDrawer = new LeftDeskDrawer({
+            //     x: 1104.6478,
+            //     y: 460.0463,
+            //     z: -82.1095
+            // });
 
-            var chair = new Chair({
-                x: 1105.2716,
-                y: 459.7251,
-                z: -79.8097
-            });
+            // var chair = new Chair({
+            //     x: 1105.2716,
+            //     y: 459.7251,
+            //     z: -79.8097
+            // });
 
-            var trashcan = new Trashcan({
-                x: 1103.9034,
-                y: 459.4355,
-                z: -82.3619
-            });
+            // var trashcan = new Trashcan({
+            //     x: 1103.9034,
+            //     y: 459.4355,
+            //     z: -82.3619
+            // });
 
-            var books = new Books({
-                x: 1106.1553,
-                y: 461.1,
-                z: -80.4890
+            // var books = new Books({
+            //     x: 1106.1553,
+            //     y: 461.1,
+            //     z: -80.4890
+            // });
+            print("EBL CREATE KINETIC ENTITIES");
+            var blocks = new Blocks({
+                x: 1097.3383,
+                y: 460.3790,
+                z: -66.8895
             });
 
         },

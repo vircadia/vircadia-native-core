@@ -11,6 +11,8 @@ var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/ki
 var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/labLamp.json' + "?" + Math.random();
 var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/livingRoomLamp.json' + "?" + Math.random();
 var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json' + "?" + Math.random();
+var BLOCKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/blocks.json' + "?" + Math.random();
+
 
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
@@ -19,7 +21,6 @@ FruitBowl = function(spawnLocation, spawnRotation) {
     function create() {
         var success = Clipboard.importEntities(FRUIT_BOWL_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -47,7 +48,6 @@ LabLamp = function(spawnLocation, spawnRotation) {
     function create() {
         var success = Clipboard.importEntities(LAB_LAMP_URL);
         if (success === true) {
-            hasBow = true;
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
         }
@@ -234,6 +234,29 @@ Books = function(spawnLocation, spawnRotation) {
 
     function create() {
         var success = Clipboard.importEntities(BOOKS_URL);
+        if (success === true) {
+            created = Clipboard.pasteEntities(spawnLocation)
+            print('created ' + created);
+        }
+    };
+
+    function cleanup() {
+        created.forEach(function(obj) {
+            Entities.deleteEntity(obj);
+        })
+    };
+
+    create();
+
+    this.cleanup = cleanup;
+}
+
+Blocks = function(spawnLocation, spawnRotation) {
+    print('EBL CREATE BLOCKS')
+    var created = [];
+
+    function create() {
+        var success = Clipboard.importEntities(BLOCKS_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
