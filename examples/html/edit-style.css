@@ -9,15 +9,33 @@
 */
 
 @font-face {
+    font-family: Raleway-Regular;
+    src: url(../../resources/fonts/Raleway-Regular.ttf),  /* Production */
+         url(../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development */
+}
+
+@font-face {
+    font-family: Raleway-Light;
+    src: url(../../resources/fonts/Raleway-Light.ttf),
+         url(../../interface/resources/fonts/Raleway-Light.ttf);
+}
+
+@font-face {
     font-family: Raleway-Bold;
-    src: url(../../resources/fonts/Raleway-Bold.ttf),  /* Production */
-         url(../../interface/resources/fonts/Raleway-Bold.ttf);  /* Development */
+    src: url(../../resources/fonts/Raleway-Bold.ttf),
+         url(../../interface/resources/fonts/Raleway-Bold.ttf);
 }
 
 @font-face {
     font-family: Raleway-SemiBold;
     src: url(../../resources/fonts/Raleway-SemiBold.ttf),
          url(../../interface/resources/fonts/Raleway-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: FiraSans-SemiBold;
+    src: url(../../resources/fonts/FiraSans-SemiBold.ttf),
+         url(../../interface/resources/fonts/FiraSans-SemiBold.ttf);
 }
 
 @font-face {
@@ -30,10 +48,10 @@ body {
     margin: 0;
     padding: 24px 12px 24px 12px;
 
-    background-color: #404040;
     color: #afafaf;
-    font-family: Arial;
-    font-size: 9.0pt;
+    background-color: #404040;
+    font-family: Raleway-Regular;
+    font-size: 15px;
 
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -43,78 +61,92 @@ body {
     user-select: none;
 }
 
-td {
-    vertical-align: top;
+
+table {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    color: #afafaf;
 }
 
-
-.selectable {
-    -webkit-touch-callout: text;
-    -webkit-user-select: text;
-    -khtml-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
-
-    cursor: text;
+thead {
+    font-family: Raleway-Regular;
+    font-size: 12px;
+    background-color: #1c1c1c;
+    border-bottom: 1px solid #575757;
+    width: 100%;
 }
 
-.color-box {
-    display: inline-block;
-    width: 15pt;
-    height: 15pt;
-    border: 0.75pt solid black;
-    margin: 1.5pt;
+tbody {
+    width: 100%;
+}
+
+tfoot {
+    font-family: Raleway-Light;
+    font-size: 13px;
+    background-color: #1c1c1c;
+    border-top: 1px solid #575757;
+    width: 100%;
+}
+
+thead tr {
+    height: 30px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+thead th {
+    height: 28px;
+    background-color: #1c1c1c;
+}
+
+tbody td {
+    height: 26px;
+}
+
+tfoot td {
+    height: 18px;
+    width: 100%;
+    background-color: #1c1c1c;
+}
+
+tr {
+    width: 100%;
     cursor: pointer;
 }
 
-.color-box.highlight {
-    width: 13.5pt;
-    height: 13.5pt;
-    border: 1.5pt solid black;
+tr:nth-child(odd) {
+    background-color: #2e2e2e;
 }
 
-.section-header, .sub-section-header {
-    background: #AAA;
-    border-bottom: 0.75pt solid #CCC;
-    background-color: #333333;
-    color: #999;
-    padding: 3pt;
-    padding-top: 6pt;
+tr:nth-child(even) {
+    background-color: #1c1c1c;
 }
 
-.section-header label, .sub-section-header label {
-    font-weight: bold;
-    font-size: 11pt;
+tr.selected {
+    color: #000000;
+    background-color: #00b4ef;
 }
 
-.sub-section-header {
-    padding-top: 4px;
+th {
+    text-align: center;
+    word-wrap: nowrap;
+    white-space: nowrap;
+    padding-left: 12px;
+    padding-right: 12px;
 }
 
-.sub-section-header label {
-    font-size: 9pt;
+td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-wrap: nowrap;
+    padding-left: 12px;
+    padding-right: 12px;
 }
 
-.multi-property-section {
-}
-
-.property-section {
-    display: block;
-    margin: 10 10;
-    height: 22.5pt;
-}
-
-
-.property-section label {
-    font-weight: bold;
-}
-
-.property-section span {
-    float: right;
-}
-
-.grid-section {
+td.url {
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 
@@ -253,6 +285,75 @@ input[type=button].red:active {
     background: linear-gradient(#94132e, #94132e);
 }
 
+
+.selectable {
+    -webkit-touch-callout: text;
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+
+    cursor: text;
+}
+
+.color-box {
+    display: inline-block;
+    width: 15pt;
+    height: 15pt;
+    border: 0.75pt solid black;
+    margin: 1.5pt;
+    cursor: pointer;
+}
+
+.color-box.highlight {
+    width: 13.5pt;
+    height: 13.5pt;
+    border: 1.5pt solid black;
+}
+
+.section-header, .sub-section-header {
+    background: #AAA;
+    border-bottom: 0.75pt solid #CCC;
+    background-color: #333333;
+    color: #999;
+    padding: 3pt;
+    padding-top: 6pt;
+}
+
+.section-header label, .sub-section-header label {
+    font-weight: bold;
+    font-size: 11pt;
+}
+
+.sub-section-header {
+    padding-top: 4px;
+}
+
+.sub-section-header label {
+    font-size: 9pt;
+}
+
+.multi-property-section {
+}
+
+.property-section {
+    display: block;
+    margin: 10 10;
+    height: 22.5pt;
+}
+
+.property-section label {
+    font-weight: bold;
+}
+
+.property-section span {
+    float: right;
+}
+
+.grid-section {
+}
+
 .color-picker {
     width: 50px;
     height: 10px;
@@ -294,7 +395,7 @@ input[type=button].red:active {
 }
 
 #search-area {
-    padding-right: 142px;
+    padding-right: 148px;
     padding-bottom: 24px;
 }
 
@@ -303,9 +404,8 @@ input[type=button].red:active {
 }
 
 #radius-and-unit {
-    width: 142px;
     float: right;
-    margin-right: -152px;
+    margin-right: -148px;
 }
 
 #radius {
@@ -317,96 +417,55 @@ input[type=button].red:active {
     width: 100%;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-top: 24px; /* Space for header and footer outside of scroll region. */
-    margin-top: 24px;
+    padding-top: 28px; /* Space for header and footer outside of scroll region. */
+    margin-top: 28px;
 }
 
 #entity-table-scroll, #entity-table {
-    background-color: #2d2d2d;
+    background-color: #1c1c1c;
 }
 
 #entity-table {
     border-collapse: collapse;
     width: 100%;
-    margin-top: -24px;
-    margin-bottom: -24px;
+    margin-top: -28px;
+    margin-bottom: -18px;
     table-layout: fixed;
-    font-family: Sans-Serif;
-    font-size: 9pt;
 }
 
 #col-type {
-    width: 15%;
+    width: 16%;
 }
 #col-name {
-    width: 30%;
+    width: 42%;
 }
 #col-url {
-    width: 54%;
-}
-#col-id {
-    width: 0;
+    width: 42%;
 }
 
 #entity-table thead {
     position: absolute;
-    top: 54px;
+    top: 52px; /* 24px below search field and 28px for header */
     left: 0;
     width: 100%;
 }
 
 #entity-table tfoot {
     position: absolute;
-    bottom: -18px;
+    bottom: -17px;
     left: 0;
     width: 100%;
-}
-
-#entity-table tr {
-    width: 100%;
-    cursor: pointer;
-    border-bottom: 0.75pt solid rgb(63, 63, 63)
-}
-
-#entity-table tr.selected {
-    color: rgb(43, 43, 43);
-    background-color: #AAA;
-}
-
-#entity-table th, #entity-table tfoot {
-    background-color: #333;
-}
-
-#entity-table th {
-    color: #fff;
-    border: 0pt black solid;
-    text-align: left;
-    word-wrap: nowrap;
-    white-space: nowrap;
-}
-
-#entity-table td {
-    font-size: 9.0pt;
-    border: 0pt black solid;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    word-wrap: nowrap;
-}
-
-#entity-table td.url {
-    white-space: nowrap;
-    overflow: hidden;
 }
 
 #no-entities {
     display: none;
     position: absolute;
-    top: 54px;
-    font-size: 120%;
-    padding: 10pt;
-    font-weight: bold;
+    top: 80px;
+    padding: 12px;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
     font-style: italic;
+    color: #afafaf;
 }
 
 
