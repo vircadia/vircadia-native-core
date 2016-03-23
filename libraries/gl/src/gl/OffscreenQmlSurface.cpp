@@ -426,7 +426,11 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
 }
 
 QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    _qmlComponent->loadUrl(qmlSource);
+    // Synchronous loading may take a while; restart the deadlock timer
+    QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
+
+    _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
+
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
             [this, f](QQmlComponent::Status){
