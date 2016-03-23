@@ -89,7 +89,7 @@
                 _this.showTidyingButton();
                 _this.playTidyingSound();
 
-                _this.findAndDeleteHomeEntities();
+                // _this.findAndDeleteHomeEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
                     _this.tidying = false;
@@ -118,18 +118,17 @@
 
         createDynamicEntities: function() {
 
+            print("EBL CREATE DYNAMIC ENTITIES");
+
             var fishTank = new FishTank({
                 x: 1098.9254,
                 y: 460.5814,
                 z: -79.1103
             }, {
                 x: 0,
-                y: 152,
+                y: 0,
                 z: 0
             });
-
-            //REMOVE BEFORE MERGE
-            return;
 
             var tiltMaze = new TiltMaze({
                 x: 1105.5768,
@@ -166,26 +165,30 @@
                 y: 179.0293,
                 z: 89.9698
             });
-            //v2.0
-            // var musicBox = new MusicBox();
-            //var cuckooClock = new MyCuckooClock(center);
             var cuckooClock = new MyCuckooClock({
-                x: 1105.172,
+                x: 1105.267,
                 y: 461.44,
-                z: -81.86
+                z: -81.9495
             }, {
                 x: 0,
-                y: 0,
+                y: -57,
                 z: 0
             });
+
+            //v2.0
+            // var musicBox = new MusicBox();
             // var doppelganger = new Doppelganger();
 
         },
 
 
         createKineticEntities: function() {
-            //REMOVE BEFORE MERGE
-            return;
+            var blocks = new Blocks({
+                x: 1097.1383,
+                y: 460.3790,
+                z: -66.4895
+            });
+
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
                 y: 460.3221,
