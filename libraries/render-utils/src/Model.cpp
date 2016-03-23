@@ -29,7 +29,7 @@
 
 using namespace std;
 
-static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
+static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
@@ -821,21 +821,21 @@ QStringList Model::getJointNames() const {
 class Blender : public QRunnable {
 public:
 
-    Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+    Blender(ModelPointer model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
 
     virtual void run();
 
 private:
 
-    QPointer<Model> _model;
+    ModelPointer _model;
     int _blendNumber;
     QWeakPointer<NetworkGeometry> _geometry;
     QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+Blender::Blender(ModelPointer model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
     _model(model),
     _blendNumber(blendNumber),
@@ -847,7 +847,7 @@ Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeomet
 void Blender::run() {
     PROFILE_RANGE(__FUNCTION__);
     QVector<glm::vec3> vertices, normals;
-    if (!_model.isNull()) {
+    if (_model) {
         int offset = 0;
         foreach (const FBXMesh& mesh, _meshes) {
             if (mesh.blendshapes.isEmpty()) {
@@ -877,7 +877,7 @@ void Blender::run() {
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
+        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
 }
@@ -1088,7 +1088,7 @@ float Model::getLimbLength(int jointIndex) const {
 bool Model::maybeStartBlender() {
     const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
     if (fbxGeometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(this, ++_blendNumber, _geometry,
+        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _geometry,
             fbxGeometry.meshes, _blendshapeCoefficients));
         return true;
     }
@@ -1284,10 +1284,9 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
     }
 }
 
-void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber,
         const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-
-    if (!model.isNull()) {
+    if (model) {
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }
     _pendingBlenders--;
