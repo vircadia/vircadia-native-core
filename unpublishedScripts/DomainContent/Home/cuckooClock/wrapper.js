@@ -34,7 +34,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         loop: false
       },
       position: spawnPosition,
-      // rotation: clockRotation,
+      rotation: clockRotation,
       dimensions: {
         x: 0.8181,
         y: 1.3662,
@@ -84,7 +84,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var myDate = new Date()
 
     // HOUR HAND *************************
-    var clockHandForwardOffset = -0.05;
+    var clockHandForwardOffset = -0.02;
     var hourHandPosition = Vec3.sum(clockFacePosition, Vec3.multiply(Quat.getFront(clockRotation), clockHandForwardOffset));
     var DEGREES_FOR_HOUR = 30
     var hours = myDate.getHours();
@@ -94,6 +94,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     // var ANGULAR_ROLL_SPEED_HOUR_RADIANS = 0.000029098833;
     clockHourHand = Entities.addEntity({
       type: "Model",
+      visible: false,
       name: "hifi-home-model-clockHourHand",
       parentID: clockFace,
       modelURL: CLOCK_HOUR_HAND_URL,
@@ -127,7 +128,15 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var DEGREES_FOR_SECOND = 6;
     var seconds = myDate.getSeconds();
     secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
+    var localClockHandRotation = Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees);
+    var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
     var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
+    var localAngularVelocity = {
+        x: 0,
+        y: 0,
+        z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
+      };
+    var worldAngularVelocity = Vec3.multiplyQbyV(clockRotation, localAngularVelocity);
     clockSecondHand = Entities.addEntity({
       type: "Model",
       parentID: clockBody,
@@ -149,13 +158,9 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.05,
         z: 0.5
       },
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees),
+      rotation:worldClockHandRotation,
       angularDamping: 0,
-      angularVelocity: {
-        x: 0,
-        y: 0,
-        z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
-      },
+      angularVelocity: worldAngularVelocity ,
       userData: JSON.stringify({
         hifiHomeKey: {
           reset: true
@@ -175,6 +180,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       modelURL: CLOCK_HOUR_HAND_URL,
       name: "hifi-home-model-clockMinuteHand",
       parentID: clockFace,
+      visible: false,
       position: hourHandPosition,
       registrationPoint: {
         x: 0.5,

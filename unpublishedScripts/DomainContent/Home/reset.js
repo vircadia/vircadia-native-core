@@ -172,7 +172,7 @@
                 z: -81.9495
             }, {
                 x: 0,
-                y: 0,
+                y: -57,
                 z: 0
             });
             // var doppelganger = new Doppelganger();
