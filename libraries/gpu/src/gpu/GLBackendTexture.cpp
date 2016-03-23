@@ -427,8 +427,8 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
             if (needUpdate) {
                 if (texture.isStoredMipFaceAvailable(0)) {
                     Texture::PixelsPointer mip = texture.accessStoredMipFace(0);
-                    const GLvoid* bytes = mip->_sysmem.read<Byte>();
-                    Element srcFormat = mip->_format;
+                    const GLvoid* bytes = mip->readData();
+                    Element srcFormat = mip->getFormat();
                 
                     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
 
@@ -458,8 +458,8 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 if (texture.isStoredMipFaceAvailable(0)) {
                     Texture::PixelsPointer mip = texture.accessStoredMipFace(0);
                 
-                    bytes = mip->_sysmem.read<Byte>();
-                    srcFormat = mip->_format;
+                    bytes = mip->readData();
+                    srcFormat = mip->getFormat();
 
                     object->_contentStamp = texture.getDataStamp();
                 }
@@ -507,11 +507,11 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 for (int f = 0; f < NUM_FACES; f++) {
                     if (texture.isStoredMipFaceAvailable(0, f)) {
                         Texture::PixelsPointer mipFace = texture.accessStoredMipFace(0, f);
-                        Element srcFormat = mipFace->_format;
+                        Element srcFormat = mipFace->getFormat();
                         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
 
                         glTexSubImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, texture.getWidth(), texture.getWidth(), 0,
-                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->_sysmem.read<Byte>()));
+                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->readData()));
 
                         // At this point the mip pixels have been loaded, we can notify
                         texture.notifyMipFaceGPULoaded(0, f);
@@ -536,11 +536,11 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 for (int f = 0; f < NUM_FACES; f++) {
                     if (texture.isStoredMipFaceAvailable(0, f)) {
                         Texture::PixelsPointer mipFace = texture.accessStoredMipFace(0, f);
-                        Element srcFormat = mipFace->_format;
+                        Element srcFormat = mipFace->getFormat();
                         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
 
                         glTexImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, texture.getWidth(), texture.getWidth(), 0,
-                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->_sysmem.read<Byte>()));
+                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->readData()));
 
                         // At this point the mip pixels have been loaded, we can notify
                         texture.notifyMipFaceGPULoaded(0, f);

@@ -139,19 +139,20 @@ protected:
 };
 
 class Texture : public Resource {
-    static std::atomic<uint32_t> _textureSystemMemoryUsage;
-    static std::atomic<uint32_t> _textureVideoMemoryUsage;
+    static std::atomic<Size> _textureSystemMemoryUsage;
+    static std::atomic<Size> _textureVideoMemoryUsage;
 
-    void addSystemMemoryUsage(uint32_t memorySize);
-    void subSystemMemoryUsage(uint32_t memorySize);
+    static void addSystemMemoryUsage(Size memorySize);
+    static void subSystemMemoryUsage(Size memorySize);
+    static void updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
-    void addVideoMemoryUsage(uint32_t memorySize);
-    void subVideoMemoryUsage(uint32_t memorySize);
+    static void addVideoMemoryUsage(Size memorySize);
+    static void subVideoMemoryUsage(Size memorySize);
 
 public:
 
-    uint32_t getCurrentSystemMemoryUsage();
-    uint32_t getCurrentVideoMemoryUsage();
+    static Size getCurrentSystemMemoryUsage();
+    static Size getCurrentVideoMemoryUsage();
 
     class Usage {
     public:
@@ -207,14 +208,21 @@ public:
         Pixels(const Element& format, Size size, const Byte* bytes);
         ~Pixels();
 
+        const Byte* readData() const { return _sysmem.readData(); }
         Size getSize() const { return _sysmem.getSize(); }
         Size resize(Size pSize);
+        Size setData(const Element& format, Size size, const Byte* bytes );
+        
+        const Element& getFormat() const { return _format; }
+        
         void notifyGPULoaded();
-
+        
     protected:
         Element _format;
         Sysmem _sysmem;
         bool _isGPULoaded;
+        
+        friend class Texture;
     };
     typedef std::shared_ptr< Pixels > PixelsPointer;
 

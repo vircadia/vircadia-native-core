@@ -12,53 +12,82 @@
 #include "Texture.h"
 
 #include <glm/gtc/constants.hpp>
-
-#include <QDebug>
+#include "GPULogging.h"
+//#include <QDebug>
 
 using namespace gpu;
 
-std::atomic<uint32_t> Texture::_textureSystemMemoryUsage;
-std::atomic<uint32_t> Texture::_textureVideoMemoryUsage;
+std::atomic<Texture::Size> Texture::_textureSystemMemoryUsage{ 0 };
+std::atomic<Texture::Size> Texture::_textureVideoMemoryUsage{ 0 };
 
-uint32_t Texture::getCurrentSystemMemoryUsage() {
+Texture::Size Texture::getCurrentSystemMemoryUsage() {
     return _textureSystemMemoryUsage.load();
 }
-uint32_t Texture::getCurrentVideoMemoryUsage() {
+Texture::Size Texture::getCurrentVideoMemoryUsage() {
     return _textureVideoMemoryUsage.load();
 }
 
-void Texture::addSystemMemoryUsage(uint32_t memorySize) {
+void Texture::addSystemMemoryUsage(Size memorySize) {
     _textureSystemMemoryUsage.fetch_add(memorySize);
 }
-void Texture::subSystemMemoryUsage(uint32_t memorySize) {
+void Texture::subSystemMemoryUsage(Size memorySize) {
     _textureSystemMemoryUsage.fetch_sub(memorySize);
 }
 
-void Texture::addVideoMemoryUsage(uint32_t memorySize) {
+void Texture::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (prevObjectSize > newObjectSize) {
+        subSystemMemoryUsage(prevObjectSize - newObjectSize);
+    } else {
+        addSystemMemoryUsage(newObjectSize - prevObjectSize);
+    }
+    
+    qCDebug(gpulogging) << "Texture::SysMem = " << getCurrentSystemMemoryUsage();
+}
+
+void Texture::addVideoMemoryUsage(Size memorySize) {
     _textureVideoMemoryUsage.fetch_add(memorySize);
 }
-void Texture::subVideoMemoryUsage(uint32_t memorySize) {
+void Texture::subVideoMemoryUsage(Size memorySize) {
     _textureVideoMemoryUsage.fetch_sub(memorySize);
 }
 
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
-    _sysmem(size, bytes),
     _format(format),
+    _sysmem(size, bytes),
     _isGPULoaded(false) {
+    Texture::updateSystemMemoryUsage(0, _sysmem.getSize());
 }
 
 Texture::Pixels::~Pixels() {
+    Texture::updateSystemMemoryUsage(_sysmem.getSize(), 0);
 }
 
 Texture::Size Texture::Pixels::resize(Size pSize) {
-    return _sysmem.resize(pSize);
+    auto prevSize = _sysmem.getSize();
+    auto newSize = _sysmem.resize(pSize);
+    Texture::updateSystemMemoryUsage(prevSize, newSize);
+    return newSize;
+}
+
+Texture::Size Texture::Pixels::setData(const Element& format, Size size, const Byte* bytes ) {
+    _format = format;
+    auto prevSize = _sysmem.getSize();
+    auto newSize = _sysmem.setData(size, bytes);
+    Texture::updateSystemMemoryUsage(prevSize, newSize);
+    _isGPULoaded = false;
+    return newSize;
 }
 
 void Texture::Pixels::notifyGPULoaded() {
     _isGPULoaded = true;
-    _sysmem.resize(0);
+    auto prevSize = _sysmem.getSize();
+    auto newSize = _sysmem.resize(0);
+    Texture::updateSystemMemoryUsage(prevSize, newSize);
 }
 
 void Texture::Storage::assignTexture(Texture* texture) {
@@ -92,14 +121,15 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
 
 void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
-    if (mipFace && (_type != TEX_CUBE)) {
-        mipFace->notifyGPULoaded();
+   // if (mipFace && (_type != TEX_CUBE)) {
+        if (mipFaced) {
+            mipFace->notifyGPULoaded();
     }
 }
 
 bool Texture::Storage::isMipAvailable(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
-    return (mipFace && mipFace->_sysmem.getSize());
+    return (mipFace && mipFace->getSize());
 }
 
 bool Texture::Storage::allocateMip(uint16 level) {
@@ -135,9 +165,7 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
     auto faceBytes = bytes;
     Size allocated = 0;
     for (auto& face : mip) {
-        face->_format = format;
-        allocated += face->_sysmem.setData(sizePerFace, faceBytes);
-        face->_isGPULoaded = false;
+        allocated += face->setData(format, sizePerFace, faceBytes);
         faceBytes += sizePerFace;
     }
 
@@ -154,9 +182,7 @@ bool Texture::Storage::assignMipFaceData(uint16 level, const Element& format, Si
     Size allocated = 0;
     if (face < mip.size()) { 
         auto mipFace = mip[face];
-        mipFace->_format = format;
-        allocated += mipFace->_sysmem.setData(size, bytes);
-        mipFace->_isGPULoaded = false;
+        allocated += mipFace->setData(format, size, bytes);
         bumpStamp();
     }
 
@@ -396,7 +422,7 @@ uint16 Texture::autoGenerateMips(uint16 maxMip) {
 
 uint16 Texture::getStoredMipWidth(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->_sysmem.getSize()) {
+    if (mipFace && mipFace->getSize()) {
         return evalMipWidth(level);
     }
     return 0;
@@ -404,7 +430,7 @@ uint16 Texture::getStoredMipWidth(uint16 level) const {
 
 uint16 Texture::getStoredMipHeight(uint16 level) const {
     PixelsPointer mip = accessStoredMipFace(level);
-    if (mip && mip->_sysmem.getSize()) {
+    if (mip && mip->getSize()) {
         return evalMipHeight(level);
     }
         return 0;
@@ -412,7 +438,7 @@ uint16 Texture::getStoredMipHeight(uint16 level) const {
 
 uint16 Texture::getStoredMipDepth(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->_sysmem.getSize()) {
+    if (mipFace && mipFace->getSize()) {
         return evalMipDepth(level);
     }
     return 0;
@@ -420,7 +446,7 @@ uint16 Texture::getStoredMipDepth(uint16 level) const {
 
 uint32 Texture::getStoredMipNumTexels(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->_sysmem.getSize()) {
+    if (mipFace && mipFace->getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level);
     }
     return 0;
@@ -428,7 +454,7 @@ uint32 Texture::getStoredMipNumTexels(uint16 level) const {
 
 uint32 Texture::getStoredMipSize(uint16 level) const {
     PixelsPointer mipFace = accessStoredMipFace(level);
-    if (mipFace && mipFace->_sysmem.getSize()) {
+    if (mipFace && mipFace->getSize()) {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
     }
     return 0;
@@ -674,8 +700,8 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
 
-        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->_format.getScalarCount();
-        auto data = cubeTexture.accessStoredMipFace(0,face)->_sysmem.readData();
+        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->getFormat().getScalarCount();
+        auto data = cubeTexture.accessStoredMipFace(0,face)->readData();
         if (data == nullptr) {
             continue;
         }
