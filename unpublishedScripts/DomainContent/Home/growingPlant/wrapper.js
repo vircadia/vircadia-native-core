@@ -12,14 +12,13 @@
 var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
 Plant = function(spawnPosition, spawnRotation) {
-  var orientation = Camera.getOrientation();
-  orientation = Quat.safeEulerAngles(orientation);
-  orientation.x = 0;
-  orientation = Quat.fromVec3Degrees(orientation);
+  var orientation;
   if (spawnRotation !== undefined) {
-    orientation = spawnRotation;
+    orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
+  } else {
+    orientation = Camera.getOrientation();
   }
-
+  print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
   var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
   var bowlDimensions = {
