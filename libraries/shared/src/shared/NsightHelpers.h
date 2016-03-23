@@ -9,6 +9,7 @@
 #ifndef hifi_gl_NsightHelpers_h
 #define hifi_gl_NsightHelpers_h
 
+#ifdef _WIN32
 #include <stdint.h>
 
 class ProfileRange {
@@ -20,5 +21,9 @@ public:
 
 #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
 #define PROFILE_RANGE_EX(name, argbColor, payload) ProfileRange profileRangeThis(name, argbColor, payload);
+#else
+#define PROFILE_RANGE(name)
+#define PROFILE_RANGE_EX(name, argbColor, payload)
+#endif
 
 #endif
