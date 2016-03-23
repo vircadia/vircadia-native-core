@@ -7,13 +7,13 @@
   // Math.random ensures no caching of script
   var SCRIPT_URL = Script.resolvePath("batonSimpleEntityScript.js?v1" + Math.random());
 
-  var myEntity = Entities.addEntity({
+  var batonBox = Entities.addEntity({
       type: "Box",
       name: "hifi-baton-entity",
       color: {
           red: 200,
-          green: 10,
-          blue: 10
+          green: 200,
+          blue: 200
       },
       position: center,
       dimensions: {
@@ -25,8 +25,9 @@
   });
 
 
+
   function cleanup() {
-      Entities.deleteEntity(myEntity);
+      Entities.deleteEntity(batonBox);
   }
 
   Script.scriptEnding.connect(cleanup);

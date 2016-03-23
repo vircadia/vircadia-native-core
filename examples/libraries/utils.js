@@ -28,7 +28,6 @@ colorMix = function(colorA, colorB, mix) {
     }
     return result;
 }
-
 scaleLine = function (start, end, scale) {
     var v = Vec3.subtract(end, start);
     var length = Vec3.length(v);
@@ -262,12 +261,22 @@ randInt = function(low, high) {
     return Math.floor(randFloat(low, high));
 }
 
+
+randomColor = function() {
+    return {
+                red: randInt(0, 255),
+                green: randInt(0, 255),
+                blue: randInt(0, 255)
+            }
+}
+
+
 hexToRgb = function(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
         red: parseInt(result[1], 16),
         green: parseInt(result[2], 16),
-        blue: parseInt(result[3], 16)
+        blue: parseInt(resulta[3], 16)
     } : null;
 }
 
