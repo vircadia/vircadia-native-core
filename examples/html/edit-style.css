@@ -180,11 +180,6 @@ textarea {
     resize: vertical;
 }
 
-input {
-    height: 28px;
-    min-width: 120px;
-}
-
 input::-webkit-input-placeholder {
     font-style: italic;
 }
@@ -213,6 +208,11 @@ input.no-spin::-webkit-inner-spin-button {
 input:disabled, textarea:disabled {
     background-color: rgb(63, 63, 63);
     color: rgb(160, 160, 160);
+}
+
+input[type="text"], input[type="number"] {
+    height: 28px;
+    min-width: 120px;
 }
 
 input[type="number"] {

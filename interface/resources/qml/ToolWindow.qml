@@ -30,6 +30,7 @@ Window {
     title: "Tools"
     property string newTabSource
     property alias tabView: tabView
+    minSize: Qt.vector2d(400, 500)
 
     HifiConstants { id: hifi }
 
