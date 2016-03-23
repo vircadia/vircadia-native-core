@@ -11,7 +11,7 @@
 
     this.maybeClaim = function() {
         if (_this.isBatonOwner === true) {
-            _this.soundIntervalConnected = false;
+            _this.isBatonOwner = false;
         }
         Entities.editEntity(_this.batonDebugModel, {visible: false});
         baton.claim(_this.startUpdate, _this.maybeClaim);

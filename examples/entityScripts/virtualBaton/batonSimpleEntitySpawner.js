@@ -9,6 +9,7 @@
 
   var myEntity = Entities.addEntity({
       type: "Box",
+      name: "hifi-baton-entity",
       color: {
           red: 200,
           green: 10,
