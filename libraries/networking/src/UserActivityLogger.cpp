@@ -78,13 +78,15 @@ void UserActivityLogger::requestError(QNetworkReply& errorReply) {
     qCDebug(networking) << errorReply.error() << "-" << errorReply.errorString();
 }
 
-void UserActivityLogger::launch(QString applicationVersion, bool previousSessionCrashed) {
+void UserActivityLogger::launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime) {
     const QString ACTION_NAME = "launch";
     QJsonObject actionDetails;
     QString VERSION_KEY = "version";
     QString CRASH_KEY = "previousSessionCrashed";
+    QString RUNTIME_KEY = "previousSessionRuntime";
     actionDetails.insert(VERSION_KEY, applicationVersion);
     actionDetails.insert(CRASH_KEY, previousSessionCrashed);
+    actionDetails.insert(RUNTIME_KEY, previousSessionRuntime);
     
     logAction(ACTION_NAME, actionDetails);
 }

@@ -169,8 +169,6 @@
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
-
-
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -195,6 +193,7 @@ static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 
+static const int MSECS_PER_SEC = 1000;
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
 static const int MIRROR_VIEW_WIDTH = 265;
@@ -452,8 +451,11 @@ PluginContainer* _pluginContainer;
 OffscreenGLCanvas* _chromiumShareContext { nullptr };
 Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
+Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
+
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
+    _sessionRunTimer(startupTimer),
     _window(new MainWindow(desktop())),
     _previousSessionCrashed(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
@@ -605,7 +607,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
-    const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
+    const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * MSECS_PER_SEC;
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
@@ -627,7 +629,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
 
-    const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * 1000;
+    const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * MSECS_PER_SEC;
 
     connect(&balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
     balanceUpdateTimer.start(BALANCE_UPDATE_INTERVAL_MSECS);
@@ -642,7 +644,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     accountManager.setIsAgent(true);
     accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
-    UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed);
+    UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed, sessionRunTime.get()); // before loadSettings resets sessionRuntTime.
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -2804,6 +2806,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
 
 void Application::loadSettings() {
 
+    sessionRunTime.set(0); // Just clean living. We're about to saveSettings, which will update value.
     DependencyManager::get<AudioClient>()->loadSettings();
     DependencyManager::get<LODManager>()->loadSettings();
 
@@ -2817,6 +2820,7 @@ void Application::loadSettings() {
 }
 
 void Application::saveSettings() {
+    sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SEC);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
 

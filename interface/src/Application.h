@@ -375,6 +375,7 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event);
 
     MainWindow* _window;
+    QElapsedTimer& _sessionRunTimer;
 
     bool _previousSessionCrashed;
 
