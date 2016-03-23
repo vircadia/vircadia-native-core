@@ -80,6 +80,10 @@ void Connection::resetRTT() {
     _rttVariance = _rtt / 2;
 }
 
+void Connection::setMaxBandwidth(int maxBandwidth) {
+    _congestionControl->setMaxBandwidth(maxBandwidth);
+}
+
 SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
 
