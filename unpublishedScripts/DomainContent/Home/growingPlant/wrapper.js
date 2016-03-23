@@ -12,14 +12,13 @@
 var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
 Plant = function(spawnPosition, spawnRotation) {
-  var orientation = Camera.getOrientation();
-  orientation = Quat.safeEulerAngles(orientation);
-  orientation.x = 0;
-  orientation = Quat.fromVec3Degrees(orientation);
+  var orientation;
   if (spawnRotation !== undefined) {
-    orientation = spawnRotation;
+    orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
+  } else {
+    orientation = Camera.getOrientation();
   }
-
+  print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
   var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
   var bowlDimensions = {
@@ -128,6 +127,13 @@ Plant = function(spawnPosition, spawnRotation) {
 
   var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
   var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
+  // var waterSpoutRotation = {
+  //     x: waterSpoutRotation.x,
+  //     y: waterSpoutRotation.y,
+  //     z: waterSpoutRotation.z,
+  //     w: waterSpoutRotation.w
+  //   };
+  print("EBL SET ROTATION")
   var waterSpout = Entities.addEntity({
     type: "Box",
     name: "hifi-water-spout",
@@ -144,7 +150,7 @@ Plant = function(spawnPosition, spawnRotation) {
     position: waterSpoutPosition,
     rotation: waterSpoutRotation,
     parentID: waterCan,
-    visible: false,
+    // visible: false,
     userData: JSON.stringify({
       'hifiHomeKey': {
         'reset': true
