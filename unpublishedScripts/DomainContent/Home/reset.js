@@ -243,6 +243,18 @@
                 z: -80.4890
             });
 
+            var cellPoster = new PosterCell({
+                x:1103.81,
+                y:461.0729,
+                z:-70.24
+            });
+
+            var playaPoster = new PosterPlaya({
+                x:1101.72,
+                y:451.51,
+                z:-73.22
+            });
+
         },
 
         findAndDeleteHomeEntities: function() {
