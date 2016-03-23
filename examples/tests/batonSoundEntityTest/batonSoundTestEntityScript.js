@@ -3,7 +3,6 @@
     Script.include("../../libraries/virtualBaton.js");
 
     var baton;
-    var iOwn = false;
 
     var _this;
     BatonSoundEntity = function() {
@@ -35,7 +34,6 @@
         _this.playSoundInterval = Script.setInterval(function() {
             _this.soundInjector.restart();
         }, _this.drumSound.duration * 1000); // Duration is in seconds so convert to ms
-        iOwn = true;
         _this.soundIntervalConnected = true;
     }
 
@@ -47,7 +45,6 @@
             _this.soundIntervalConnected = false;
             print("EBL CLEAR INTERVAL")
         }
-        iOwn = false;
         Entities.editEntity(_this.batonDebugModel, {visible: false});
         // hook up callbacks to the baton
         baton.claim(startUpdate, stopUpdateAndReclaim);
@@ -55,12 +52,6 @@
 
     BatonSoundEntity.prototype = {
 
-        update: function() {
-            if (iOwn === false) {
-                return;
-            }
-
-        },
 
         preload: function(entityID) {
             _this.entityID = entityID;
