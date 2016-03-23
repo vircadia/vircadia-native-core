@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
+#include <Finally.h>
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
@@ -84,6 +85,7 @@ protected:
     Queue _queue;
     QMutex _mutex;
     QWaitCondition _waitCondition;
+    std::atomic<bool> _rendering { false };
 
 private:
     // Event-driven methods
@@ -214,22 +216,19 @@ void OffscreenQmlRenderThread::init() {
     connect(_renderControl, &QQuickRenderControl::sceneChanged, _surface, &OffscreenQmlSurface::requestUpdate);
 
     if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on render thread");
+        // Failed to make GL context current, this OffscreenQmlSurface is basically dead
+        qWarning("Failed to make context current on QML Renderer Thread");
         return;
     }
+
     _renderControl->initialize(_canvas.getContext());
     setupFbo();
     _escrow.setRecycler([this](GLuint texture){
         _textures.recycleTexture(texture);
     });
-    _canvas.doneCurrent();
 }
 
 void OffscreenQmlRenderThread::cleanup() {
-    if (!_canvas.makeCurrent()) {
-        qFatal("Failed to make context current on render thread");
-        return;
-    }
     _renderControl->invalidate();
 
     _fbo.reset();
@@ -237,7 +236,6 @@ void OffscreenQmlRenderThread::cleanup() {
     _textures.clear();
 
     _canvas.doneCurrent();
-
     _canvas.getContextObject()->moveToThread(QCoreApplication::instance()->thread());
 
     _quit = true;
@@ -245,57 +243,55 @@ void OffscreenQmlRenderThread::cleanup() {
 
 void OffscreenQmlRenderThread::resize() {
     // Lock _newSize changes
-    QMutexLocker locker(&_mutex);
+    {
+        QMutexLocker locker(&_mutex);
 
-    // Update our members
-    if (_quickWindow) {
-        _quickWindow->setGeometry(QRect(QPoint(), _newSize));
-        _quickWindow->contentItem()->setSize(_newSize);
+        // Update our members
+        if (_quickWindow) {
+            _quickWindow->setGeometry(QRect(QPoint(), _newSize));
+            _quickWindow->contentItem()->setSize(_newSize);
+        }
+
+        // Qt bug in 5.4 forces this check of pixel ratio,
+        // even though we're rendering offscreen.
+        qreal pixelRatio = 1.0;
+        if (_renderControl && _renderControl->_renderWindow) {
+            pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
+        }
+
+        uvec2 newOffscreenSize = toGlm(_newSize * pixelRatio);
+        if (newOffscreenSize == _size) {
+            return;
+        }
+
+        qDebug() << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
+        _size = newOffscreenSize;
     }
 
-    // Qt bug in 5.4 forces this check of pixel ratio,
-    // even though we're rendering offscreen.
-    qreal pixelRatio = 1.0;
-    if (_renderControl && _renderControl->_renderWindow) {
-        pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
-    }
-
-    uvec2 newOffscreenSize = toGlm(_newSize * pixelRatio);
-    _textures.setSize(newOffscreenSize);
-    if (newOffscreenSize == _size) {
-        return;
-    }
-    _size = newOffscreenSize;
-
-    // Clear out any fbos with the old size
-    if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on render thread");
-        return;
-    }
-
-    qDebug() << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
-
-    locker.unlock();
-
+    _textures.setSize(_size);
     setupFbo();
-    _canvas.doneCurrent();
 }
 
 void OffscreenQmlRenderThread::render() {
-    if (_surface->_paused) {
+    // Ensure we always release the main thread
+    Finally releaseMainThread([this] {
         _waitCondition.wakeOne();
+    });
+
+    if (_surface->_paused) {
         return;
     }
 
-    if (!_canvas.makeCurrent()) {
-        qWarning("Failed to make context current on render thread");
-        return;
-    }
+    _rendering = true;
+    Finally unmarkRenderingFlag([this] {
+        _rendering = false;
+    });
 
-    QMutexLocker locker(&_mutex);
-    _renderControl->sync();
-    _waitCondition.wakeOne();
-    locker.unlock();
+    {
+        QMutexLocker locker(&_mutex);
+        _renderControl->sync();
+        releaseMainThread.trigger();
+    }
 
     using namespace oglplus;
 
@@ -308,6 +304,7 @@ void OffscreenQmlRenderThread::render() {
         _fbo->AttachTexture(Framebuffer::Target::Draw, FramebufferAttachment::Color, *texture, 0);
         _fbo->Complete(Framebuffer::Target::Draw);
         {
+            PROFILE_RANGE("qml_render->rendercontrol")
             _renderControl->render();
             // FIXME The web browsers seem to be leaving GL in an error state.
             // Need a debug context with sync logging to figure out why.
@@ -338,10 +335,10 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);
 
-    qDebug() << "Stopping QML render thread " << _renderer->currentThreadId();
+    qDebug() << "Stopping QML Renderer Thread " << _renderer->currentThreadId();
     _renderer->_queue.add(STOP);
     if (!_renderer->wait(MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
-        qWarning() << "Failed to shut down the QML render thread";
+        qWarning() << "Failed to shut down the QML Renderer Thread";
     }
 
     delete _rootItem;
@@ -395,8 +392,6 @@ void OffscreenQmlSurface::resize(const QSize& newSize_) {
                 std::max(static_cast<int>(scale * newSize.width()), 10),
                 std::max(static_cast<int>(scale * newSize.height()), 10));
     }
-
-
 
     QSize currentSize = _renderer->_quickWindow->geometry().size();
     if (newSize == currentSize) {
@@ -508,7 +503,12 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 }
 
 void OffscreenQmlSurface::updateQuick() {
-    if (!_renderer || !_renderer->allowNewFrame(_maxFps)) {
+    // If we're 
+    //   a) not set up
+    //   b) already rendering a frame
+    //   c) rendering too fast
+    // then skip this 
+    if (!_renderer || _renderer->_rendering || !_renderer->allowNewFrame(_maxFps)) {
         return;
     }
 
@@ -518,11 +518,11 @@ void OffscreenQmlSurface::updateQuick() {
     }
 
     if (_render) {
+        PROFILE_RANGE(__FUNCTION__);
         // Lock the GUI size while syncing
         QMutexLocker locker(&(_renderer->_mutex));
         _renderer->_queue.add(RENDER);
         _renderer->_waitCondition.wait(&(_renderer->_mutex));
-
         _render = false;
     }
 
