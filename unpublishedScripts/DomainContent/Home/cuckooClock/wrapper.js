@@ -82,19 +82,27 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     // ___________
 
     var myDate = new Date()
+      // HOUR HAND *************************
+    var clockHandForwardOffset = -0.017;
 
-    // HOUR HAND *************************
-    var clockHandForwardOffset = -0.02;
+
     var hourHandPosition = Vec3.sum(clockFacePosition, Vec3.multiply(Quat.getFront(clockRotation), clockHandForwardOffset));
     var DEGREES_FOR_HOUR = 30
     var hours = myDate.getHours();
     var hourRollDegrees = -hours * DEGREES_FOR_HOUR;
-    var worldClockRotation = Quat.fromPitchYawRollDegrees
+    var localClockHandRotation = Quat.fromPitchYawRollDegrees(0, 0, hourRollDegrees);
+    var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
 
-    // var ANGULAR_ROLL_SPEED_HOUR_RADIANS = 0.000029098833;
+    var ANGULAR_ROLL_SPEED_HOUR_RADIANS = 0.000029098833;
+    var localAngularVelocity = {
+      x: 0,
+      y: 0,
+      z: -ANGULAR_ROLL_SPEED_HOUR_RADIANS
+    };
+    var worldAngularVelocity = Vec3.multiplyQbyV(clockRotation, localAngularVelocity);
+
     clockHourHand = Entities.addEntity({
       type: "Model",
-      visible: false,
       name: "hifi-home-model-clockHourHand",
       parentID: clockFace,
       modelURL: CLOCK_HOUR_HAND_URL,
@@ -104,13 +112,9 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.05,
         z: 0.5
       },
-      // rotation:hourHandRotation,      
-      //angularDamping: 0,
-      // angularVelocity: {
-      //   x: 0,
-      //   y: 0,
-      //   z: -ANGULAR_ROLL_SPEED_HOUR_RADIANS
-      // },
+      rotation: worldClockHandRotation,
+      angularDamping: 0,
+      angularVelocity: worldAngularVelocity,
       dimensions: {
         x: 0.0263,
         y: 0.0982,
@@ -132,10 +136,10 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
     var ANGULAR_ROLL_SPEED_SECOND_RADIANS = 0.10472
     var localAngularVelocity = {
-        x: 0,
-        y: 0,
-        z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
-      };
+      x: 0,
+      y: 0,
+      z: -ANGULAR_ROLL_SPEED_SECOND_RADIANS
+    };
     var worldAngularVelocity = Vec3.multiplyQbyV(clockRotation, localAngularVelocity);
     clockSecondHand = Entities.addEntity({
       type: "Model",
@@ -158,9 +162,9 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
         y: 0.05,
         z: 0.5
       },
-      rotation:worldClockHandRotation,
+      rotation: worldClockHandRotation,
       angularDamping: 0,
-      angularVelocity: worldAngularVelocity ,
+      angularVelocity: worldAngularVelocity,
       userData: JSON.stringify({
         hifiHomeKey: {
           reset: true
@@ -173,33 +177,37 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     var DEGREES_FOR_MINUTE = 6;
     var minutes = myDate.getMinutes();
     var minuteRollDegrees = -minutes * DEGREES_FOR_MINUTE;
+
+    var localClockHandRotation = Quat.fromPitchYawRollDegrees(0, 0, minuteRollDegrees);
+    var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
+
     var ANGULAR_ROLL_SPEED_MINUTE_RADIANS = 0.00174533;
+    var localAngularVelocity = {
+      x: 0,
+      y: 0,
+      z: -ANGULAR_ROLL_SPEED_MINUTE_RADIANS
+    };
+    var worldAngularVelocity = Vec3.multiplyQbyV(clockRotation, localAngularVelocity);
     clockMinuteHand = Entities.addEntity({
       type: "Model",
-      // visible: false,
       modelURL: CLOCK_HOUR_HAND_URL,
       name: "hifi-home-model-clockMinuteHand",
       parentID: clockFace,
-      visible: false,
       position: hourHandPosition,
       registrationPoint: {
         x: 0.5,
         y: 0.05,
         z: 0.5
       },
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, minuteRollDegrees),
+      rotation:worldClockHandRotation,
       angularDamping: 0,
-      angularVelocity: {
-        x: 0,
-        y: 0,
-        z: -ANGULAR_ROLL_SPEED_MINUTE_RADIANS
-      },
+      angularVelocity: worldAngularVelocity,
       dimensions: {
         x: 0.0251,
         y: 0.1179,
         z: 0.0032
       },
-      // script: MINUTE_HAND_CLOCK_SCRIPT_URL,
+      script: MINUTE_HAND_CLOCK_SCRIPT_URL,
       userData: JSON.stringify({
         clockBody: clockBody,
         secondHand: clockSecondHand,

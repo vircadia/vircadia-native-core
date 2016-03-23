@@ -85,8 +85,10 @@
             var myDate = new Date();
             var seconds = myDate.getSeconds();
             secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
+            var localClockHandRotation = Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees);
+            var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
             Entities.editEntity(_this.secondHand, {
-                rotation: Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees)
+                rotation: worldClockHandRotation
             });
 
         },
