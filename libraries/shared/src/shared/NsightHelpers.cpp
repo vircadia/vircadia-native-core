@@ -8,6 +8,7 @@
 
 #include "NsightHelpers.h"
 
+#ifdef _WIN32
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
@@ -39,3 +40,4 @@ ProfileRange::ProfileRange(const char *name) {}
 ProfileRange::ProfileRange(const char *name, uint32_t argbColor, uint64_t payload) {}
 ProfileRange::~ProfileRange() {}
 #endif
+#endif // _WIN32
