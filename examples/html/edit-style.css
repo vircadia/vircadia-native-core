@@ -393,6 +393,21 @@ input[type=button].red:active {
 }
 
 
+::-webkit-scrollbar {
+    width: 10px;
+}
+ 
+::-webkit-scrollbar-track {
+    background-color: #2e2e2e;
+}
+ 
+::-webkit-scrollbar-thumb {
+    background-color: #696969;
+    border: 2px solid #2e2e2e;
+    border-radius: 8px;
+}
+
+
 #entity-list-header {
     margin-bottom: 24px;
 }
@@ -478,7 +493,7 @@ input[type=button].red:active {
 
 #entity-table thead {
     position: absolute;
-    top: 52px; /* 24px below search field and 28px for header */
+    top: 49px;
     left: 0;
     width: 100%;
 }
@@ -489,7 +504,7 @@ input[type=button].red:active {
 
 #entity-table tfoot {
     position: absolute;
-    bottom: -17px;
+    bottom: -21px;
     left: 0;
     width: 100%;
 }
