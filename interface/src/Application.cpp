@@ -369,7 +369,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    CrashHandler::checkForAndHandleCrash();
+    bool previousSessionCrashed = CrashHandler::checkForAndHandleCrash();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
@@ -431,7 +431,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
-    return true;
+    return previousSessionCrashed;
 }
 
 // FIXME move to header, or better yet, design some kind of UI manager
@@ -455,7 +455,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
-    _dependencyManagerIsSetup(setupEssentials(argc, argv)),
+    _previousSessionCrashed(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
     _frameCount(0),
     _fps(60.0f),
@@ -642,7 +642,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     accountManager.setIsAgent(true);
     accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
-    UserActivityLogger::getInstance().launch(applicationVersion());
+    UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed);
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);

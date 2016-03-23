@@ -376,7 +376,7 @@ private:
 
     MainWindow* _window;
 
-    bool _dependencyManagerIsSetup;
+    bool _previousSessionCrashed;
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
