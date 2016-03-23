@@ -30,7 +30,7 @@ bool OculusBaseDisplayPlugin::isSupported() const {
 void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
     GLenum err = glewInit();
-    glGetError();
+    glGetError(); // clear the potential error from glewExperimental
     Parent::customizeContext();
 }
 

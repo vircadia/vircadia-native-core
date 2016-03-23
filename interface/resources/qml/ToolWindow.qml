@@ -28,7 +28,6 @@ Window {
     visible: false
     width: 384; height: 640;
     title: "Tools"
-    property string newTabSource
     property alias tabView: tabView
     minSize: Qt.vector2d(400, 500)
 
@@ -47,28 +46,23 @@ Window {
         property alias y: toolWindow.y
     }
 
-    property var webTabCreator: Component {
-        WebView {
-            id: webView
-            property string originalUrl;
-
-            // Both toolWindow.newTabSource and url can change, so we need
-            // to store the original url here, without creating any bindings
-            Component.onCompleted: {
-                originalUrl = toolWindow.newTabSource;
-                url = originalUrl;
-            }
-        }
-    }
-
     TabView {
         id: tabView;
         width: pane.contentWidth
         height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
 
-        onCountChanged: {
-            if (0 == count) {
-                toolWindow.visible = false
+        Repeater {
+            model: 4
+            Tab {
+                active: true
+                enabled: false;
+                // we need to store the original url here for future identification
+                property string originalUrl: "";
+                onEnabledChanged: toolWindow.updateVisiblity();
+                WebView {
+                    id: webView;
+                    anchors.fill: parent
+                }
             }
         }
 
@@ -140,8 +134,7 @@ Window {
     function findIndexForUrl(source) {
         for (var i = 0; i < tabView.count; ++i) {
             var tab = tabView.getTab(i);
-            if (tab && tab.item && tab.item.originalUrl &&
-                tab.item.originalUrl === source) {
+            if (tab.originalUrl === source) {
                 return i;
             }
         }
@@ -173,21 +166,32 @@ Window {
         }
     }
 
+    function findFreeTab() {
+        for (var i = 0; i < tabView.count; ++i) {
+            var tab = tabView.getTab(i);
+            if (tab && (!tab.originalUrl || tab.originalUrl === "")) {
+                return i;
+            }
+        }
+        console.warn("Could not find free tab");
+        return -1;
+    }
+
     function removeTabForUrl(source) {
         var index = findIndexForUrl(source);
         if (index < 0) {
             return;
         }
+
         var tab = tabView.getTab(index);
-        tab.enabledChanged.disconnect(updateVisiblity);
-        tabView.removeTab(index);
-        console.log("Updating visibility based on child tab removed");
-        updateVisiblity();
+        tab.title = "";
+        tab.originalUrl = "";
+        tab.enabled = false;
     }
 
     function addWebTab(properties) {
         if (!properties.source) {
-            console.warn("Attempted to open Web Tool Pane without URl")
+            console.warn("Attempted to open Web Tool Pane without URL")
             return;
         }
 
@@ -197,11 +201,17 @@ Window {
             return tabView.getTab(existingTabIndex);
         }
 
-        var title = properties.title || "Unknown";
-        newTabSource = properties.source;
-        var newTab = tabView.addTab(title, webTabCreator);
+        var freeTabIndex = findFreeTab();
+        if (freeTabIndex === -1) {
+            console.warn("Unable to add new tab");
+            return;
+        }
+
+        var newTab = tabView.getTab(freeTabIndex);
+        newTab.title = properties.title || "Unknown";
+        newTab.originalUrl = properties.source;
+        newTab.item.url = properties.source;
         newTab.active = true;
-        newTab.enabled = false;
 
         if (properties.width) {
             tabView.width = Math.min(Math.max(tabView.width, properties.width),
