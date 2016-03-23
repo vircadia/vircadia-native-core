@@ -17,6 +17,10 @@
         baton.claim(_this.startUpdate, _this.maybeClaim);
     }
 
+    this.unload = function() {
+        baton.unload();
+    }
+
     this.preload = function(entityID) {
         _this.entityID = entityID
         _this.batonDebugModel = Entities.addEntity({
