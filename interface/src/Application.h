@@ -271,6 +271,8 @@ public slots:
 
     void reloadResourceCaches();
 
+    void updateHeartbeat();
+
     void crashApplication();
     void deadlockApplication();
 
@@ -505,6 +507,8 @@ private:
     mutable QMutex _changeCursorLock { QMutex::Recursive };
     QCursor _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
+
+    QThread* _deadlockWatchdogThread;
 };
 
 #endif // hifi_Application_h

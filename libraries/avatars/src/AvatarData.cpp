@@ -968,9 +968,10 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
 
     bool hasIdentityChanged = false;
 
-    if (skeletonModelURL != _skeletonModelURL) {
+    if (_firstSkeletonCheck || (skeletonModelURL != _skeletonModelURL)) {
         setSkeletonModelURL(skeletonModelURL);
         hasIdentityChanged = true;
+        _firstSkeletonCheck = false;
     }
 
     if (displayName != _displayName) {

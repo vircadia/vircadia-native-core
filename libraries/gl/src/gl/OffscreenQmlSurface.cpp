@@ -187,6 +187,15 @@ bool OffscreenQmlRenderThread::event(QEvent *e) {
 void OffscreenQmlRenderThread::setupFbo() {
     using namespace oglplus;
     _textures.setSize(_size);
+
+    // Before making any ogl calls, clear any outstanding errors
+    // FIXME: Something upstream is polluting the context with a GL_INVALID_ENUM,
+    //        likely from glewExperimental = true
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        qDebug() << "Clearing outstanding GL error to set up QML FBO:" << glewGetErrorString(err);
+    }
+
     _depthStencil.reset(new Renderbuffer());
     Context::Bound(Renderbuffer::Target::Renderbuffer, *_depthStencil)
         .Storage(
@@ -417,7 +426,11 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
 }
 
 QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    _qmlComponent->loadUrl(qmlSource);
+    // Synchronous loading may take a while; restart the deadlock timer
+    QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
+
+    _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
+
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this, 
             [this, f](QQmlComponent::Status){

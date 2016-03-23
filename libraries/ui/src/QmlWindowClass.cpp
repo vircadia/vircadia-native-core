@@ -172,7 +172,6 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
             setupServer();
             retVal = builder(newTab);
             retVal->_toolWindow = true;
-            offscreenUi->getRootContext()->engine()->setObjectOwnership(retVal->_qmlWindow, QQmlEngine::CppOwnership);
             registerObject(url.toLower(), retVal);
             return QVariant();
         });
@@ -330,10 +329,8 @@ void QmlWindowClass::close() {
     if (_qmlWindow) {
         if (_toolWindow) {
             auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            auto qmlWindow = _qmlWindow;
             offscreenUi->executeOnUiThread([=] {
                 auto toolWindow = offscreenUi->getToolWindow();
-                offscreenUi->getRootContext()->engine()->setObjectOwnership(qmlWindow, QQmlEngine::JavaScriptOwnership);
                 auto invokeResult = QMetaObject::invokeMethod(toolWindow, "removeTabForUrl", Qt::DirectConnection,
                     Q_ARG(QVariant, _source));
                 Q_ASSERT(invokeResult);

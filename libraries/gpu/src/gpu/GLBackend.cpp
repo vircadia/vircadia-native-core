@@ -87,18 +87,15 @@ void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-
         qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-
         qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-
         qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
         glewExperimental = true;
         GLenum err = glewInit();
-        glGetError();
+        glGetError(); // clear the potential error from glewExperimental
         if (GLEW_OK != err) {
-            /* Problem: glewInit failed, something is seriously wrong. */
+            // glewInit failed, something is seriously wrong.
             qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
         }
         qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));

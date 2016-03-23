@@ -78,10 +78,14 @@ bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
 
     auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
         // Check whether the point is "behind" all the primitives.
+        int verticesSize = mesh.vertices.size();
         for (int j = 0;
              j < indices.size() - 2; // -2 in case the vertices aren't the right size -- we access j + 2 below
              j += primitiveSize) {
-            if (!isPointBehindTrianglesPlane(point,
+            if (indices[j] < verticesSize &&
+                indices[j + 1] < verticesSize &&
+                indices[j + 2] < verticesSize &&
+                !isPointBehindTrianglesPlane(point,
                                              mesh.vertices[indices[j]],
                                              mesh.vertices[indices[j + 1]],
                                              mesh.vertices[indices[j + 2]])) {

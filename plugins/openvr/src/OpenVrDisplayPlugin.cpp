@@ -104,7 +104,7 @@ void OpenVrDisplayPlugin::customizeContext() {
     std::call_once(once, []{
         glewExperimental = true;
         GLenum err = glewInit();
-        glGetError();
+        glGetError(); // clear the potential error from glewExperimental
     });
     Parent::customizeContext();
 }

@@ -239,11 +239,7 @@ class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-#ifdef DEBUG
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 600 * USECS_PER_SECOND;
-#else
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 10 * USECS_PER_SECOND;
-#endif
 
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
@@ -511,8 +507,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
-    auto deadlockWatchdog = new DeadlockWatchdogThread();
-    deadlockWatchdog->start();
+    _deadlockWatchdogThread = new DeadlockWatchdogThread();
+    _deadlockWatchdogThread->start();
 
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
 
@@ -586,7 +582,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
-    deadlockWatchdog->updateHeartbeat();
+    updateHeartbeat();
 
     // Setup MessagesClient
     auto messagesClient = DependencyManager::get<MessagesClient>();
@@ -734,7 +730,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     initializeGL();
     _offscreenContext->makeCurrent();
     // Make sure we don't time out during slow operations at startup
-    deadlockWatchdog->updateHeartbeat();
+    updateHeartbeat();
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
@@ -746,7 +742,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _overlays.init(); // do this before scripts load
     // Make sure we don't time out during slow operations at startup
-    deadlockWatchdog->updateHeartbeat();
+    updateHeartbeat();
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
@@ -900,11 +896,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // do this as late as possible so that all required subsystems are initialized
     scriptEngines->loadScripts();
     // Make sure we don't time out during slow operations at startup
-    deadlockWatchdog->updateHeartbeat();
+    updateHeartbeat();
 
     loadSettings();
     // Make sure we don't time out during slow operations at startup
-    deadlockWatchdog->updateHeartbeat();
+    updateHeartbeat();
 
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
     connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
@@ -1019,7 +1015,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     // Make sure we don't time out during slow operations at startup
-    deadlockWatchdog->updateHeartbeat();
+    updateHeartbeat();
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
@@ -1058,6 +1054,10 @@ void Application::showCursor(const QCursor& cursor) {
     QMutexLocker locker(&_changeCursorLock);
     _desiredCursor = cursor;
     _cursorNeedsChanging = true;
+}
+
+void Application::updateHeartbeat() {
+    static_cast<DeadlockWatchdogThread*>(_deadlockWatchdogThread)->updateHeartbeat();
 }
 
 void Application::aboutToQuit() {
