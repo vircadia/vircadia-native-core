@@ -322,10 +322,10 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
     QObject::disconnect(qApp);
 
-    qDebug() << "Stopping QML render thread " << _renderer->currentThreadId();
+    qDebug() << "Stopping QML Renderer Thread " << _renderer->currentThreadId();
     _renderer->_queue.add(STOP);
     if (!_renderer->wait(MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
-        qWarning() << "Failed to shut down the QML render thread";
+        qWarning() << "Failed to shut down the QML Renderer Thread";
     }
 
     delete _rootItem;
