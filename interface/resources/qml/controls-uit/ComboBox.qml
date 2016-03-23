@@ -162,6 +162,30 @@ FocusScope {
             height: 480
             width: root.width + 4
 
+            style: ScrollViewStyle {
+                decrementControl: Item {
+                    visible: false
+                }
+                incrementControl: Item {
+                    visible: false
+                }
+                scrollBarBackground: Rectangle{
+                    implicitWidth: 14
+                    color: hifi.colors.baseGray
+                }
+
+                handle:
+                    Rectangle {
+                    implicitWidth: 8
+                    anchors.left: parent.left
+                    anchors.leftMargin: 3
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    radius: 3
+                    color: hifi.colors.lightGrayText
+                }
+            }
+
             ListView {
                 id: listView
                 height: textField.height * count * 1.4
