@@ -241,32 +241,32 @@ void OffscreenQmlRenderThread::cleanup() {
 
 void OffscreenQmlRenderThread::resize() {
     // Lock _newSize changes
-    QMutexLocker locker(&_mutex);
+    {
+        QMutexLocker locker(&_mutex);
 
-    // Update our members
-    if (_quickWindow) {
-        _quickWindow->setGeometry(QRect(QPoint(), _newSize));
-        _quickWindow->contentItem()->setSize(_newSize);
+        // Update our members
+        if (_quickWindow) {
+            _quickWindow->setGeometry(QRect(QPoint(), _newSize));
+            _quickWindow->contentItem()->setSize(_newSize);
+        }
+
+        // Qt bug in 5.4 forces this check of pixel ratio,
+        // even though we're rendering offscreen.
+        qreal pixelRatio = 1.0;
+        if (_renderControl && _renderControl->_renderWindow) {
+            pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
+        }
+
+        uvec2 newOffscreenSize = toGlm(_newSize * pixelRatio);
+        if (newOffscreenSize == _size) {
+            return;
+        }
+
+        qDebug() << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
+        _size = newOffscreenSize;
     }
 
-    // Qt bug in 5.4 forces this check of pixel ratio,
-    // even though we're rendering offscreen.
-    qreal pixelRatio = 1.0;
-    if (_renderControl && _renderControl->_renderWindow) {
-        pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
-    }
-
-    uvec2 newOffscreenSize = toGlm(_newSize * pixelRatio);
-    _textures.setSize(newOffscreenSize);
-    if (newOffscreenSize == _size) {
-        return;
-    }
-    _size = newOffscreenSize;
-
-    qDebug() << "Offscreen UI resizing to " << _newSize.width() << "x" << _newSize.height() << " with pixel ratio " << pixelRatio;
-
-    locker.unlock();
-
+    _textures.setSize(_size);
     setupFbo();
 }
 
