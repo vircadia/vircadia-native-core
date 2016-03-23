@@ -152,11 +152,10 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 return false;
             }
             if (material->albedoTexture && material->albedoTexture->getGPUTexture()) {
-                // Reset the materialKey transparentTexture key only, as it is albedoTexture-dependent
+                // Reassign the texture to make sure that itsalbedo alpha channel material key is detected correctly
+                material->_material->setTextureMap(model::MaterialKey::ALBEDO_MAP, material->_material->getTextureMap(model::MaterialKey::ALBEDO_MAP));
                 const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
                 bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
-                material->_material->setTransparentTexture(isTransparentTexture);
-                // FIXME: Materials with *some* transparent textures seem to give all *other* textures alphas of 0.
                 _hasTransparentTextures = isTransparentTexture && _hasTransparentTextures;
             }
         }
@@ -212,10 +211,10 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
                 networkMaterial->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
             } else if (material->lightmapTextureName == name) {
-                material->emissiveTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
+                material->lightmapTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
 
                 auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
-                lightmapMap->setTextureSource(material->emissiveTexture->_textureSource);
+                lightmapMap->setTextureSource(material->lightmapTexture->_textureSource);
                 lightmapMap->setTextureTransform(
                     oldTextureMaps[model::MaterialKey::LIGHTMAP_MAP]->getTextureTransform());
                 glm::vec2 oldOffsetScale =
@@ -380,8 +379,19 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
         auto albedoMap = setupNetworkTextureMap(geometry, textureBaseUrl, material.albedoTexture, DEFAULT_TEXTURE,
             networkMaterial->albedoTexture, networkMaterial->albedoTextureName);
         albedoMap->setTextureTransform(material.albedoTexture.transform);
+
+        if (!material.opacityTexture.filename.isEmpty()) {
+            if (material.albedoTexture.filename == material.opacityTexture.filename) {
+                // Best case scenario, just indicating that the albedo map contains transparency
+                albedoMap->setUseAlphaChannel(true);
+            } else {
+                // Opacity Map is different from the Abledo map, not supported
+            }
+        }
+
         material._material->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
     }
+
 
     if (!material.normalTexture.filename.isEmpty()) {
         auto normalMap = setupNetworkTextureMap(geometry, textureBaseUrl, material.normalTexture,

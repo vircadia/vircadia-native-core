@@ -56,6 +56,9 @@ public:
     void setTextureTransform(const Transform& texcoordTransform);
     const Transform& getTextureTransform() const { return _texcoordTransform; }
 
+    void setUseAlphaChannel(bool useAlpha) { _useAlphaChannel = useAlpha; }
+    bool useAlphaChannel() const { return _useAlphaChannel; }
+
     void setLightmapOffsetScale(float offset, float scale);
     const glm::vec2& getLightmapOffsetScale() const { return _lightmapOffsetScale; }
 
@@ -64,6 +67,8 @@ protected:
 
     Transform _texcoordTransform;
     glm::vec2 _lightmapOffsetScale{ 0.0f, 1.0f };
+
+    bool _useAlphaChannel{ false };
 };
 typedef std::shared_ptr< TextureMap > TextureMapPointer;
 
