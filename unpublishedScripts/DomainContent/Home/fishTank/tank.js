@@ -373,7 +373,7 @@
     var FISH_ANGULAR_DAMPING = 0.55;
 
     var THROTTLE = false;
-    var THROTTLE_RATE = 100;
+    var THROTTLE_RATE = 200;
     var sinceLastUpdate = 0;
 
 
@@ -580,21 +580,6 @@
                     velocity.z *= -0.15
                 }
 
-                //  Orient in direction of velocity 
-                
-
-                // var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
-                // var VELOCITY_FOLLOW_RATE = 0.30;
-
-                // var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
-
-                // var safeEuler = Quat.safeEulerAngles(rotation);
-                // safeEuler.z = safeEuler.z *= 0.925;
-
-                // //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
-                // var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
-
-                // var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
 
 
                 // //  Only update properties if they have changed, to save bandwidth
@@ -603,9 +588,28 @@
 
                 var primePosition = tankXForm.xFormPoint(position);
                 var primeVelocity = tankXForm.xFormVector(velocity);
-                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, primeVelocity);
-                var normalizedPrimeVelocity = Vec3.normalize(primeVelocity)
-                var pitch = Math.acos(Vec3.dot(normalizedPrimeVelocity,{x:0,y:1,z:0}));
+
+                                //  Orient in direction of velocity 
+                                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, primeVelocity);
+
+
+                var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+                var VELOCITY_FOLLOW_RATE = 0.30;
+
+                var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+
+                var safeEuler = Quat.safeEulerAngles(rotation);
+                safeEuler.z = safeEuler.z *= 0.925;
+
+                //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
+                var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
+
+                var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
+
+
+
+                // var normalizedPrimeVelocity = Vec3.normalize(primeVelocity)
+                // var pitch = Math.acos(Vec3.dot(normalizedPrimeVelocity,{x:0,y:1,z:0}));
                 // if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
                 //     print('under min position change')
                 //     Entities.editEntity(fish[i], {
@@ -623,7 +627,7 @@
                 Entities.editEntity(fish[i], {
                     position: primePosition,
                     velocity: primeVelocity,
-                    // rotation: rotation
+                     rotation: finalQuat
                 });
             }
         }

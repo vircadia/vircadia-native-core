@@ -89,7 +89,7 @@
                 _this.showTidyingButton();
                 _this.playTidyingSound();
 
-                // _this.findAndDeleteHomeEntities();
+                _this.findAndDeleteHomeEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
                     _this.tidying = false;
