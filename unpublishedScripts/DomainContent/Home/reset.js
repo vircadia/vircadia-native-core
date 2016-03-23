@@ -148,6 +148,10 @@
                 x: 1099.8785,
                 y: 460.3115,
                 z: -84.7736
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
             });
 
             var pingPongGun = new _PingPongGun({

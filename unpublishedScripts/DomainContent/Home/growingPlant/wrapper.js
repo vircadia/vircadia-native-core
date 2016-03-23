@@ -69,7 +69,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx?v1" + Math.random();
+  var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx";
 
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
@@ -92,6 +92,7 @@ Plant = function(spawnPosition, spawnRotation) {
       y: -2.0,
       z: 0
     },
+    velocity: {x: -0, y: -0.2, z: 0},
     rotation: waterCanRotation,
     userData: JSON.stringify({
       'hifiHomeKey': {
