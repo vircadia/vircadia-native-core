@@ -139,7 +139,7 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     }
 
     if (!_isLoadedWithTextures) {
-        _hasTransparentTextures = true;
+        _hasTransparentTextures = false;
 
         for (auto&& material : _materials) {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
@@ -156,7 +156,7 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 material->_material->setTextureMap(model::MaterialKey::ALBEDO_MAP, material->_material->getTextureMap(model::MaterialKey::ALBEDO_MAP));
                 const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
                 bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
-                _hasTransparentTextures = isTransparentTexture && _hasTransparentTextures;
+                _hasTransparentTextures |= isTransparentTexture;
             }
         }
 
