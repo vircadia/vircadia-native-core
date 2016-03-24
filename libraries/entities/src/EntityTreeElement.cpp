@@ -957,7 +957,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         } else {
                             #ifdef WANT_DEBUG
-                                qDebug() << "Recieved packet for previously deleted entity [" <<
+                                qDebug() << "Received packet for previously deleted entity [" <<
                                         entityItem->getID() << "] ignoring. (inside " << __FUNCTION__ << ")";
                             #endif
                         }
