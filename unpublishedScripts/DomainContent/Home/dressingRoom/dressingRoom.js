@@ -249,7 +249,7 @@
         RightHandPinky3: "RightHandPinky2",
         RightHandPinky4: "RightHandPinky3",
         LeftShoulder: "Spine3",
-        LeftArm: "LeftShoulder", 
+        LeftArm: "LeftShoulder",
         LeftForeArm: "LeftArm",
         LeftHand: "LeftForeArm",
         LeftHandThumb1: "LeftHand",
@@ -448,7 +448,6 @@
         return offset
     }
 
-
     function matchBaseRotation() {
         var ids = Entities.findEntities(MyAvatar.position, 20);
         var hasBase = false;
@@ -463,7 +462,6 @@
             }
         }
     }
-
 
     var isConnected = false;
 
@@ -509,8 +507,10 @@
         }
         var relativeXforms = buildRelativeXformsFromAbsoluteXforms(absoluteXforms);
         print('DOPPELGANGERS:::: ' + doppelgangers.length);
-         print('DOPPELGANGERS:::: ' + JSON.stringify(doppelgangers));
-        setJointData(doppelgangers[0], relativeXforms);
+        print('DOPPELGANGERS:::: ' + JSON.stringify(doppelgangers));
+        doppelgangers.forEach(function(doppelganger) {
+            setJointData(doppelganger, relativeXforms);
+        })
 
     }
 
