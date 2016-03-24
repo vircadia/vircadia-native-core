@@ -646,7 +646,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     accountManager.setIsAgent(true);
     accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
-    UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed, sessionRunTime.get()); // before loadSettings resets sessionRuntTime.
+    // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
+    // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+    UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed, sessionRunTime.get());
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
