@@ -44,7 +44,7 @@
         },
         unload: function() {
             this.setUnoccupied();
-            this.cleanup();
+            cleanup();
         },
     };
 
@@ -59,8 +59,6 @@
     //  Distributed under the Apache License, Version 2.0.
     //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
     //
-
-
 
     var MIRROR_JOINT_DATA = true;
     var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
