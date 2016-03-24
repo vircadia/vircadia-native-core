@@ -79,7 +79,7 @@
             type: 'Model',
             modelURL: avatarModelURL,
             // dimensions: getAvatarDimensions(avatar),
-            position: matchBaseRotation(),
+            position: matchBasePosition(),
             rotation: matchBaseRotation(),
             collisionsWillMove: false,
             ignoreForCollisions: false,
