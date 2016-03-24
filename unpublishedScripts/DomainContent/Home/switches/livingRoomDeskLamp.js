@@ -14,7 +14,7 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-desk-lamp',
+        prefix: 'hifi-home-living-room-desk-lamp-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -28,13 +28,13 @@
 
         modelEmitOn: function(discModel) {
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:' + EMISSIVE_TEXTURE_URL ',\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+
             })
         },
 
         modelEmitOff: function(discModel) {
             Entities.editEntity(glowDisc, {
-                textures: 'emissive:"",\ndiffuse:"' + DIFFUSE_TEXTURE_URL + '"'
+
             })
         },
 
@@ -44,7 +44,8 @@
             });
         },
 
-        masterLightOff: function() {
+        masterLightOff: function(masterLight) {
+            print("EBL TURN LIGHT OFF");
             Entities.editEntity(masterLight, {
                 visible: false
             });
@@ -53,10 +54,11 @@
 
         findMasterLights: function() {
             var found = [];
-            var results = Entities.findEntities(this.position, SEARCH_RADIUS);
+            var results = Entities.findEntities(_this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
                 if (properties.name === _this.prefix + "spotlight") {
+                    print("EBL FOUND THE SPOTLIGHT!");
                     found.push(result);
                 }
             });
@@ -76,6 +78,7 @@
         },
 
         toggleLights: function() {
+            print("EBL TOGGLE LIGHTS");
 
             this._switch = getEntityCustomData('home-switch', this.entityID, {
                 state: 'off'
@@ -85,7 +88,7 @@
             var emitModels = this.findEmitModels();
 
             if (this._switch.state === 'off') {
-
+                print("EBL TURN LIGHTS ON");
                 masterLights.forEach(function(masterLight) {
                     _this.masterLightOn(masterLight);
                 });
@@ -97,7 +100,7 @@
                 });
 
             } else {
-
+                print("EBL TURN LIGHTS OFF");
                 masterLights.forEach(function(masterLight) {
                     _this.masterLightOff(masterLight);
                 });
@@ -109,7 +112,6 @@
                 });
             }
 
-            this.flipSwitch();
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
                 position: this.position
@@ -117,22 +119,9 @@
 
         },
 
-        flipSwitch: function() {
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var axis = {
-                x: 0,
-                y: 1,
-                z: 0
-            };
-            var dQ = Quat.angleAxis(180, axis);
-            rotation = Quat.multiply(rotation, dQ);
-
-            Entities.editEntity(this.entityID, {
-                rotation: rotation
-            });
-        },
 
         preload: function(entityID) {
+            print("EBL PRELOAD LIGHT SWITCH SCRIPT");
             this.entityID = entityID;
             setEntityCustomData('grabbableKey', this.entityID, {
                 wantsTrigger: true
