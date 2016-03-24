@@ -306,8 +306,10 @@ void SendQueue::run() {
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
+        auto newPacketCount = 0;
         if (!attemptedToSendPacket) {
-            attemptedToSendPacket = maybeSendNewPacket();
+            newPacketCount = maybeSendNewPacket();
+            attemptedToSendPacket = (newPacketCount > 0);
         }
         
         // since we're a while loop, give the thread a chance to process events
@@ -322,7 +324,8 @@ void SendQueue::run() {
         }
 
         // push the next packet timestamp forwards by the current packet send period
-        nextPacketTimestamp += std::chrono::microseconds(_packetSendPeriod);
+        auto nextPacketDelta = (newPacketCount == 2 ? 2 : 1) * _packetSendPeriod;
+        nextPacketTimestamp += std::chrono::microseconds(nextPacketDelta);
 
         // sleep as long as we need until next packet send, if we can
         const auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - p_high_resolution_clock::now());
@@ -331,7 +334,7 @@ void SendQueue::run() {
     }
 }
 
-bool SendQueue::maybeSendNewPacket() {
+int SendQueue::maybeSendNewPacket() {
     if (!isFlowWindowFull()) {
         // we didn't re-send a packet, so time to send a new one
         
@@ -366,14 +369,18 @@ bool SendQueue::maybeSendNewPacket() {
                     static auto pairTailPacket = ControlPacket::create(ControlPacket::ProbeTail);
                     _socket->writeBasePacket(*pairTailPacket, _destination);
                 }
-            }
 
-            // We attempted to send packet(s), return here
-            return true;
+                // we attempted to send two packets, return 2
+                return 2;
+            } else {
+                // we attempted to send a single packet, return 1
+                return 1;
+            }
         }
     }
+    
     // No packets were sent
-    return false;
+    return 0;
 }
 
 bool SendQueue::maybeResendPacket() {
