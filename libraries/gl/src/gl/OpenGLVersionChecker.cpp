@@ -25,8 +25,22 @@ OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
 bool OpenGLVersionChecker::isValidVersion() {
     bool valid = true;
 
-    // Retrieve OpenGL version
     GLWidget* glWidget = new GLWidget();
+    valid = glWidget->isValid();
+    // Inform user if no OpenGL support
+    if (!valid) {
+        QMessageBox messageBox;
+        messageBox.setWindowTitle("Missing OpenGL Support");
+        messageBox.setIcon(QMessageBox::Warning);
+        messageBox.setText(QString().sprintf("Your system does not support OpenGL, Interface cannot run."));
+        messageBox.setInformativeText("Press OK to exit.");
+        messageBox.setStandardButtons(QMessageBox::Ok);
+        messageBox.setDefaultButton(QMessageBox::Ok);
+        messageBox.exec();
+        return false;
+    }
+    
+    // Retrieve OpenGL version
     glWidget->initializeGL();
     QString glVersion = QString((const char*)glGetString(GL_VERSION));
     delete glWidget;
