@@ -134,7 +134,7 @@ int SendQueue::sendPacket(const Packet& packet) {
     
 void SendQueue::ack(SequenceNumber ack) {
     // this is a response from the client, re-set our timeout expiry and our last response time
-    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
     
     if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
@@ -164,7 +164,7 @@ void SendQueue::ack(SequenceNumber ack) {
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
     
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
@@ -177,7 +177,7 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
 
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
@@ -473,7 +473,8 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
 
     auto sinceLastResponse = (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse);
 
-    if (sinceLastResponse >= quint64(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
+    if (sinceLastResponse > 0 &&
+        sinceLastResponse >= int64_t(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
         _lastReceiverResponse > 0 &&
         sinceLastResponse > MIN_MS_BEFORE_INACTIVE) {
         // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
