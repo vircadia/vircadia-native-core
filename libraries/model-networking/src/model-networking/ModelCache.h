@@ -101,7 +101,11 @@ public:
     virtual bool areTexturesLoaded() const { return isLoaded() && Geometry::areTexturesLoaded(); }
 
 protected:
-    virtual bool isCacheable() const override { return _loaded; }
+    friend class GeometryMappingResource;
+
+    virtual bool isCacheable() const override { return _loaded && _isCacheable; }
+
+    bool _isCacheable { true };
 };
 
 class NetworkGeometry : public QObject {

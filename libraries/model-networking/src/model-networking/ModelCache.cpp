@@ -67,7 +67,15 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
         _geometryResource = modelCache->getResource(url, QUrl(), true, &extra).staticCast<GeometryResource>();
-        connect(_geometryResource.data(), &Resource::finished, this, &GeometryMappingResource::onGeometryMappingLoaded);
+
+        if (_geometryResource->isLoaded()) {
+            onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
+        } else {
+            connect(_geometryResource.data(), &Resource::finished, this, &GeometryMappingResource::onGeometryMappingLoaded);
+        }
+
+        // Avoid caching nested resources - their references will be held by the parent
+        _geometryResource->_isCacheable = false;
     }
 }
 
@@ -290,7 +298,7 @@ NetworkGeometry::NetworkGeometry(const GeometryResource::Pointer& networkGeometr
     connect(_resource.data(), &Resource::finished, this, &NetworkGeometry::resourceFinished);
     connect(_resource.data(), &Resource::onRefresh, this, &NetworkGeometry::resourceRefreshed);
     if (_resource->isLoaded()) {
-        resourceFinished(true);
+        resourceFinished(!_resource->getURL().isEmpty());
     }
 }
 
