@@ -692,12 +692,10 @@
 
     function cleanup() {
 
-
-        disconnectDoppelgangerUpdates();
-
+        Script.update.disconnect(updateDoppelganger);
 
         doppelgangers.forEach(function(doppelganger) {
-            print('DOPPELGANGER' + doppelganger.id)
+            print('DELETING DOPPELGANGER' + doppelganger.id)
             Entities.deleteEntity(doppelganger.id);
         });
 
