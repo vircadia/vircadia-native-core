@@ -194,7 +194,6 @@ public:
     Q_INVOKABLE void allReferencesCleared();
     
     const QUrl& getURL() const { return _url; }
-    const QByteArray& getData() const { return _data; }
 
 signals:
     /// Fired when the resource has been downloaded.
@@ -235,7 +234,6 @@ protected:
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
-    QByteArray _data;
     
 private slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
