@@ -280,19 +280,42 @@ public:
             auto sinceLastReport = now - _lastReport;
             int elapsedMovingAverage = _movingAverage.average;
 
-            if (elapsedMovingAverage > _maxElapsed) {
-                _maxElapsed = elapsedMovingAverage;
+            if (elapsedMovingAverage > _maxElapsedAverage) {
+                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "maxElapsed:" << _maxElapsed
+                    << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
+                    << "NEW maxElapsedAverage:" << elapsedMovingAverage
+                    << "numSamples:" << _movingAverage.numSamples;
+                _maxElapsedAverage = elapsedMovingAverage;
+            }
+            if (lastHeartbeatAge > _maxElapsed) {
+                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsed:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "PREVIOUS maxElapsed:" << _maxElapsed
+                    << "NEW maxElapsed:" << lastHeartbeatAge
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "numSamples:" << _movingAverage.numSamples;
+                _maxElapsed = lastHeartbeatAge;
             }
             if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
-                qDebug() << "updateHeartbeat.elapsedMovingAverage:" << elapsedMovingAverage 
-                         << " maxElapsed:" << _maxElapsed << "numSamples:" << _movingAverage.numSamples;
+                qDebug() << "DEADLOCK WATCHDOG STATUS -- lastHeartbeatAge:" << lastHeartbeatAge
+                         << "elapsedMovingAverage:" << elapsedMovingAverage
+                         << "maxElapsed:" << _maxElapsed
+                         << "maxElapsedAverage:" << _maxElapsedAverage
+                         << "numSamples:" << _movingAverage.numSamples;
                 _lastReport = now;
             }
 
 #ifdef NDEBUG
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
-                qDebug() << "DEADLOCK DETECTED -- updateHeartbeat.elapsedMovingAverage:" << elapsedMovingAverage
-                         << " maxElapsed:" << _maxElapsed << "numSamples:" << _movingAverage.numSamples;
+                qDebug() << "DEADLOCK DETECTED -- lastHeartbeatAge:" << lastHeartbeatAge 
+                         << "elapsedMovingAverage:" << elapsedMovingAverage
+                         << "maxElapsed:" << _maxElapsed
+                         << "maxElapsedAverage:" << _maxElapsedAverage
+                         << "numSamples:" << _movingAverage.numSamples;
                 deadlockDetectionCrash();
             }
 #endif
@@ -302,6 +325,7 @@ public:
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _lastReport;
     static std::atomic<int> _maxElapsed;
+    static std::atomic<int> _maxElapsedAverage;
     bool _quit { false };
     MovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
 };
@@ -309,6 +333,7 @@ public:
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsed;
+std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
