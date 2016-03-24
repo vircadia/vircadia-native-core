@@ -16,6 +16,7 @@
         },
         enterEntity: function() {
             print('ENTER DRESSING ROOM');
+            avatarModelURL = getAvatarFBX();
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
             subscribeToFreezeMessages();
