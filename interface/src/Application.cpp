@@ -2496,8 +2496,6 @@ static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
 
-    PROFILE_RANGE(__FUNCTION__);
-
     if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
     }
@@ -2549,6 +2547,8 @@ void Application::idle(uint64_t now) {
         // there's no use in simulating or rendering faster then the present rate.
         return;
     }
+
+    PROFILE_RANGE(__FUNCTION__);
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
@@ -3140,7 +3140,7 @@ void Application::updateDialogs(float deltaTime) {
 
 void Application::update(float deltaTime) {
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
