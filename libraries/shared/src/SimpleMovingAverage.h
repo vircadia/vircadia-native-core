@@ -44,11 +44,6 @@ private:
 
 template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
 public:
-    const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
-    const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
-    std::atomic<int> numSamples { 0 };
-    std::atomic<T> average;
-
     void clear() {
         numSamples = 0;
     }
@@ -64,6 +59,15 @@ public:
         }
         numSamples++;
     }
+
+    T getAverage() const { return average; }
+    T getNumSamples() const { return numSamples; }
+
+private:
+    const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
+    const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
+    std::atomic<int> numSamples{ 0 };
+    std::atomic<T> average;
 };
 
 #endif // hifi_SimpleMovingAverage_h

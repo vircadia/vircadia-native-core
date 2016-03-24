@@ -248,13 +248,8 @@ public:
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
         setObjectName("Deadlock Watchdog");
-        QTimer* heartbeatTimer = new QTimer();
         // Give the heartbeat an initial value
         _heartbeat = usecTimestampNow();
-        connect(heartbeatTimer, &QTimer::timeout, [this] {
-            updateHeartbeat();
-        });
-        heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
@@ -278,7 +273,7 @@ public:
             auto now = usecTimestampNow();
             auto lastHeartbeatAge = now - _heartbeat;
             auto sinceLastReport = now - _lastReport;
-            int elapsedMovingAverage = _movingAverage.average;
+            auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
                 qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
@@ -287,7 +282,7 @@ public:
                     << "maxElapsed:" << _maxElapsed
                     << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
                     << "NEW maxElapsedAverage:" << elapsedMovingAverage
-                    << "numSamples:" << _movingAverage.numSamples;
+                    << "numSamples:" << _movingAverage.getNumSamples();
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
@@ -297,7 +292,7 @@ public:
                     << "PREVIOUS maxElapsed:" << _maxElapsed
                     << "NEW maxElapsed:" << lastHeartbeatAge
                     << "maxElapsedAverage:" << _maxElapsedAverage
-                    << "numSamples:" << _movingAverage.numSamples;
+                    << "numSamples:" << _movingAverage.getNumSamples();
                 _maxElapsed = lastHeartbeatAge;
             }
             if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
@@ -305,7 +300,7 @@ public:
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "numSamples:" << _movingAverage.numSamples;
+                         << "numSamples:" << _movingAverage.getNumSamples();
                 _lastReport = now;
             }
 
@@ -315,7 +310,7 @@ public:
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "numSamples:" << _movingAverage.numSamples;
+                         << "numSamples:" << _movingAverage.getNumSamples();
                 deadlockDetectionCrash();
             }
 #endif
