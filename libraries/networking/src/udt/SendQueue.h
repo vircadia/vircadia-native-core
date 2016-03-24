@@ -79,6 +79,7 @@ signals:
     
     void queueInactive();
 
+    void shortCircuitLoss(quint32 sequenceNumber);
     void timeout();
     
 private slots:
@@ -91,13 +92,13 @@ private:
     
     void sendHandshake();
     
-    void sendPacket(const Packet& packet);
-    void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
+    int sendPacket(const Packet& packet);
+    bool sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
     bool maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
-    bool isInactive(bool sentAPacket);
+    bool isInactive(bool attemptedToSendPacket);
     void deactivate(); // makes the queue inactive and cleans it up
 
     bool isFlowWindowFull() const;

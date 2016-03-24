@@ -201,7 +201,7 @@ void DefaultCC::onTimeout() {
 
 void DefaultCC::stopSlowStart() {
     _slowStart = false;
-    
+
     if (_receiveRate > 0) {
         // Set the sending rate to the receiving rate.
         setPacketSendPeriod(USECS_PER_SECOND / _receiveRate);
