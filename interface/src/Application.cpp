@@ -169,6 +169,8 @@
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
+
+
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
