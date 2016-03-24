@@ -19,7 +19,7 @@
             avatarModelURL = getAvatarFBX();
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
-            subscribeToFreezeMessages();
+            // subscribeToFreezeMessages();
             this.setOccupied();
             var doppelProps = Entities.getEntityProperties(this.entityID);
             Entities.editEntity(doppelgangers[0], {
@@ -465,20 +465,15 @@
         }
     }
 
-    var isConnected = false;
+
 
     function connectDoppelgangerUpdates() {
         Script.update.connect(updateDoppelganger);
-        isConnected = true;
+
     }
 
     function disconnectDoppelgangerUpdates() {
-
-        if (isConnected === true) {
-            print('SHOULD DISCONNECT')
-            Script.update.disconnect(updateDoppelganger);
-        }
-        isConnected = false;
+        Script.update.disconnect(updateDoppelganger);
     }
 
     var sinceLastUpdate = 0;
@@ -698,9 +693,9 @@
 
     function cleanup() {
 
-        if (isConnected === true) {
-            disconnectDoppelgangerUpdates();
-        }
+
+        disconnectDoppelgangerUpdates();
+
 
         doppelgangers.forEach(function(doppelganger) {
             print('DOPPELGANGER' + doppelganger.id)
