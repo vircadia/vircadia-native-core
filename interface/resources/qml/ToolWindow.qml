@@ -26,9 +26,9 @@ Window {
     destroyOnInvisible: false
     closable: true
     visible: false
-    width: 384; height: 640;
-    title: "Tools"
+    title: "Edit"
     property alias tabView: tabView
+    implicitWidth: 520; implicitHeight: 695
     minSize: Qt.vector2d(400, 500)
 
     HifiConstants { id: hifi }
