@@ -73,7 +73,6 @@
     var doppelgangers = [];
 
 
-
     function Doppelganger(avatar) {
         this.initialProperties = {
             name: 'Hifi-Doppelganger',
@@ -93,7 +92,7 @@
             })
         };
 
-        this.id = createDoppelgangerEntity(this);
+        this.id = createDoppelgangerEntity(this.initialProperties);
         this.avatar = avatar;
         return this;
     }
@@ -250,7 +249,7 @@
         RightHandPinky3: "RightHandPinky2",
         RightHandPinky4: "RightHandPinky3",
         LeftShoulder: "Spine3",
-        LeftArm: "LeftShoulder",
+        LeftArm: "LeftShoulder", 
         LeftForeArm: "LeftArm",
         LeftHand: "LeftForeArm",
         LeftHandThumb1: "LeftHand",
@@ -399,8 +398,8 @@
         return new Doppelganger(avatar);
     }
 
-    function createDoppelgangerEntity(doppelganger) {
-        return Entities.addEntity(doppelganger.initialProperties);
+    function createDoppelgangerEntity(initialProperties) {
+        return Entities.addEntity(initialProperties);
     }
 
     function matchBasePosition() {
@@ -694,6 +693,7 @@
 
 
     function cleanup() {
+
         if (isConnected === true) {
             disconnectDoppelgangerUpdates();
         }
@@ -702,6 +702,8 @@
             print('DOPPELGANGER' + doppelganger.id)
             Entities.deleteEntity(doppelganger.id);
         });
+
+        doppelgangers = [];
     }
 
     return new DressingRoom();
