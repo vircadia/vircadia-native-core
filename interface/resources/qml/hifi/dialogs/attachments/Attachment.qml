@@ -36,7 +36,7 @@ Item {
         Item {
             height: modelChooserButton.height + urlLabel.height + 4
             anchors { left: parent.left; right: parent.right;}
-            HifiControls.Label { id: urlLabel; color: hifi.colors.lightGrayText; text: "Model URL:"; anchors.top: parent.top;}
+            HifiControls.Label { id: urlLabel; color: hifi.colors.lightGrayText; text: "Model URL"; anchors.top: parent.top;}
             HifiControls.TextField {
                 id: modelUrl;
                 height:  jointChooser.height;
@@ -57,12 +57,12 @@ Item {
                 colorScheme: hifi.colorSchemes.dark
                 anchors { right: parent.right; verticalCenter: modelUrl.verticalCenter }
                 Component {
-                    id: modelBrowserBuiler;
+                    id: modelBrowserBuilder;
                     ModelBrowserDialog {}
                 }
 
                 onClicked: {
-                    var browser = modelBrowserBuiler.createObject(desktop);
+                    var browser = modelBrowserBuilder.createObject(desktop);
                     browser.selected.connect(function(newModelUrl){
                         modelUrl.text = newModelUrl;
                     })
@@ -75,7 +75,7 @@ Item {
             anchors { left: parent.left; right: parent.right; }
             HifiControls.Label {
                 id: jointLabel;
-                text: "Joint:";
+                text: "Joint";
                 color: hifi.colors.lightGrayText;
                 anchors.top: parent.top
             }
@@ -97,7 +97,7 @@ Item {
         Item {
             height: translation.height + translationLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
-             HifiControls.Label { id: translationLabel; color: hifi.colors.lightGrayText; text: "Translation:"; anchors.top: parent.top; }
+            HifiControls.Label { id: translationLabel; color: hifi.colors.lightGrayText; text: "Translation"; anchors.top: parent.top; }
             Translation {
                 id: translation;
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom}
@@ -114,7 +114,7 @@ Item {
         Item {
             height: rotation.height + rotationLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
-            HifiControls.Label { id: rotationLabel; color: hifi.colors.lightGrayText; text: "Rotation:"; anchors.top: parent.top; }
+            HifiControls.Label { id: rotationLabel; color: hifi.colors.lightGrayText; text: "Rotation"; anchors.top: parent.top; }
             Rotation {
                 id: rotation;
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom; }
@@ -129,15 +129,15 @@ Item {
         }
 
         Item {
-           height: scaleItem.height
-           anchors {left: parent.left; right: parent.right;}
+            height: scaleItem.height
+            anchors { left: parent.left; right: parent.right; }
 
             Item {
-               id: scaleItem
+                id: scaleItem
                 height: scaleSpinner.height + scaleLabel.height + 4
-                width: parent.width - isSoftItem.width
-                anchors { left: isSoftItem.right; right: parent.right; }
-                 HifiControls.Label { id: scaleLabel; color: hifi.colors.lightGrayText; text: "Scale:"; anchors.top: parent.top; }
+                width: parent.width / 3 - 8
+                anchors { right: parent.right; }
+                HifiControls.Label { id: scaleLabel; color: hifi.colors.lightGrayText; text: "Scale"; anchors.top: parent.top; }
                 HifiControls.SpinBox {
                     id: scaleSpinner;
                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom; }
@@ -158,13 +158,18 @@ Item {
 
             Item {
                 id: isSoftItem
-                height: soft.height
-                width: parent.width * 0.2
-                anchors { left: parent.left; bottom: parent.bottom }
-                HifiControls.Label { id: softLabel; color: hifi.colors.lightGrayText; text: "Is soft"; anchors.left: soft.right; anchors.leftMargin: 8; }
+                height: scaleSpinner.height
+                anchors {
+                    left: parent.left
+                    bottom: parent.bottom
+                }
                 HifiControls.CheckBox {
-                    id: soft;
-                    anchors { left: parent.left; bottom: parent.bottom;}
+                    id: soft
+                    text: "Is soft"
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                    }
                     checked: attachment ? attachment.soft : false
                     colorScheme: hifi.colorSchemes.dark
                     onCheckedChanged: {

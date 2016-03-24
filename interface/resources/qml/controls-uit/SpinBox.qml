@@ -35,7 +35,6 @@ SpinBox {
     style: SpinBoxStyle {
         id: spinStyle
         background: Rectangle {
-            id: backgrondRec
             color: isLightColorScheme
                    ? (spinBox.focus ? hifi.colors.white : hifi.colors.lightGray)
                    : (spinBox.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
