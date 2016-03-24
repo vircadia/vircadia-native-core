@@ -404,7 +404,11 @@ void OpenGLDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overla
 
 void OpenGLDisplayPlugin::updateTextures() {
     // FIXME intrduce a GPU wait instead of a CPU/GPU sync point?
+#if THREADED_PRESENT
     if (_sceneTextureEscrow.fetchSignaledAndRelease(_currentSceneTexture)) {
+#else
+    if (_sceneTextureEscrow.fetchAndReleaseWithGpuWait(_currentSceneTexture)) {
+#endif
         updateFrameData();
     }
 
