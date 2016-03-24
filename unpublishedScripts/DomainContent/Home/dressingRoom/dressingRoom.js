@@ -146,7 +146,7 @@
             jointRotations.push(relativeXforms[i].rot);
         }
         var setJointSuccess = Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
-        // print('SUCCESS SETTING JOINTS?' +  setJointSuccess + "for " +doppelganger.id)
+        print('SUCCESS SETTING JOINTS?' + setJointSuccess + "for " + doppelganger.id)
         return true;
     }
 
@@ -508,9 +508,8 @@
             absoluteXforms = mirroredAbsoluteXforms;
         }
         var relativeXforms = buildRelativeXformsFromAbsoluteXforms(absoluteXforms);
-        doppelgangers.forEach(function(doppelganger) {
-            setJointData(doppelganger, relativeXforms);
-        });
+        setJointData(doppelgangers[0], relativeXforms);
+
     }
 
     function makeDoppelgangerForMyAvatar() {
