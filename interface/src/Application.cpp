@@ -239,7 +239,7 @@ class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 10 * USECS_PER_SECOND;
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 15 * USECS_PER_SECOND;
 
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
