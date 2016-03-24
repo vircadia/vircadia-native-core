@@ -147,8 +147,9 @@
             jointRotations.push(relativeXforms[i].rot);
         }
         var setJointSuccess = Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
+        print('JOINT ROTATIONS:: ' + JSON.stringify(jointRotations));
         print('SUCCESS SETTING JOINTS?' + setJointSuccess + "for " + doppelganger.id)
-        return true;
+        return;
     }
 
     // maps joint names to their mirrored joint
