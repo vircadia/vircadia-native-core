@@ -16,7 +16,7 @@
 
 class ShapeManagerTests : public QObject {
     Q_OBJECT
-    
+
 private slots:
     void testShapeAccounting();
     void addManyShapes();
@@ -24,6 +24,7 @@ private slots:
     void addSphereShape();
     void addCylinderShape();
     void addCapsuleShape();
+    void addCompoundShape();
 };
 
 #endif // hifi_ShapeManagerTests_h
