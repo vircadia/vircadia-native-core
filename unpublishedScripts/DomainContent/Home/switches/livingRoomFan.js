@@ -1,7 +1,7 @@
 (function() {
     var SEARCH_RADIUS = 100;
     var _this;
-    var utilitiesScript = Script.resolvePath('../../../../libraries/utils.js');
+    var utilitiesScript = Script.resolvePath('../utils.js');
     Script.include(utilitiesScript);
     Switch = function() {
         _this = this;
