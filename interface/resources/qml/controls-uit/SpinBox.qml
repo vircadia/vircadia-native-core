@@ -91,4 +91,27 @@ SpinBox {
         color: spinBox.colorLabelInside
         visible: spinBox.labelInside != ""
     }
+
+    MouseArea {
+        anchors.fill: parent
+        propagateComposedEvents: true
+        onWheel: {
+            if(spinBox.focus)
+                wheel.accepted = false
+            else
+                wheel.accepted = true
+        }
+        onPressed: {
+            mouse.accepted = false
+        }
+        onReleased: {
+            mouse.accepted = false
+        }
+        onClicked: {
+            mouse.accepted = false
+        }
+        onDoubleClicked: {
+            mouse.accepted = false
+        }
+    }
 }

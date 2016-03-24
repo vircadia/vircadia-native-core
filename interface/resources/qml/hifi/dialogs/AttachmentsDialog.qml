@@ -4,13 +4,9 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 import QtQuick.Controls.Styles 1.4
 
-//import "../../windows"
-
-
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows-uit"
-
 import "attachments"
 
 Window {
@@ -43,6 +39,7 @@ Window {
             listView.model.append({});
         }
     }
+
     Column {
         width: pane.contentWidth
 
@@ -55,7 +52,7 @@ Window {
             Rectangle {
                 id: attachmentsBackground
                 anchors { left: parent.left; right: parent.right; top: parent.top; bottom: newAttachmentButton.top; margins: 8 }
-                color: hifi.colors.lightGrayText
+                color: hifi.colors.baseGrayShadow
                 radius: 4
 
                 ScrollView{
@@ -72,8 +69,10 @@ Window {
                         scrollBarBackground: Rectangle{
                             implicitWidth: 14
                             color: hifi.colors.baseGray
+                            anchors.left: attachmentDelegate.right
+                            anchors.leftMargin: 5
+                            radius: 3
                         }
-
                         handle:
                             Rectangle {
                             implicitWidth: 8
@@ -90,8 +89,9 @@ Window {
                         id: listView
                         model: ListModel {}
                         delegate: Item {
+                            id: attachmentDelegate
                             implicitHeight: attachmentView.height + 8;
-                            implicitWidth: attachmentView.width;
+                            implicitWidth: attachmentView.width
                             Attachment {
                                 id: attachmentView
                                 width: scrollView.width
@@ -113,7 +113,7 @@ Window {
                 anchors { left: parent.left; right: parent.right; bottom: buttonRow.top; margins: 8 }
                 text: "New Attachment"
                 color: hifi.buttons.black
-		colorScheme: hifi.colorSchemes.dark 
+                colorScheme: hifi.colorSchemes.dark
                 onClicked: {
                     var template = {
                         modelUrl: "",
@@ -136,12 +136,12 @@ Window {
                 HifiControls.Button {
                     action: cancelAction
                     color: hifi.buttons.black
-                    colorScheme: hifi.colorSchemes.dark 
+                    colorScheme: hifi.colorSchemes.dark
                 }
                 HifiControls.Button {
                     action: okAction
                     color: hifi.buttons.black
-                    colorScheme: hifi.colorSchemes.dark 
+                    colorScheme: hifi.colorSchemes.dark
                 }
             }
 
