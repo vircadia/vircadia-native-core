@@ -216,17 +216,13 @@ Resource* ResourceCacheSharedItems::getHighestPendingRequest() {
 bool ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
 
-    // Disable request limiting for ATP
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        if (_requestsActive >= _requestLimit) {
-            // wait until a slot becomes available
-            sharedItems->appendPendingRequest(resource);
-            return false;
-        }
-
-        ++_requestsActive;
+    if (_requestsActive >= _requestLimit) {
+        // wait until a slot becomes available
+        sharedItems->appendPendingRequest(resource);
+        return false;
     }
-
+    
+    ++_requestsActive;
     sharedItems->appendActiveRequest(resource);
     resource->makeRequest();
     return true;
@@ -235,9 +231,7 @@ bool ResourceCache::attemptRequest(Resource* resource) {
 void ResourceCache::requestCompleted(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->removeRequest(resource);
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        --_requestsActive;
-    }
+    --_requestsActive;
 
     attemptHighestPriorityRequest();
 }
