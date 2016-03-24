@@ -67,5 +67,5 @@ void RangeTimer::end(gpu::Batch& batch) {
 }
 
 double RangeTimer::getAverage() const {
-    return _movingAverage.getAverage();
+    return _movingAverage.average;
 }

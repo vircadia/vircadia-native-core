@@ -322,7 +322,7 @@ public:
     static std::atomic<int> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
     bool _quit { false };
-    MovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
+    ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;

@@ -44,6 +44,11 @@ private:
 
 template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
 public:
+    const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
+    const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
+    int numSamples{ 0 };
+    T average;
+
     void clear() {
         numSamples = 0;
     }
@@ -62,6 +67,29 @@ public:
 
     T getAverage() const { return average; }
     T getNumSamples() const { return numSamples; }
+};
+
+template <class T, int MAX_NUM_SAMPLES> class ThreadSafeMovingAverage {
+public:
+    void clear() {
+        numSamples = 0;
+    }
+
+    bool isAverageValid() const { return (numSamples > 0); }
+
+    void addSample(T sample) {
+        if (numSamples > 0) {
+            T lastAverage = average;
+            average = (sample * WEIGHTING) + (lastAverage * ONE_MINUS_WEIGHTING);
+        }
+        else {
+            average = sample;
+        }
+        numSamples++;
+    }
+
+    T getAverage() const { return average; }
+    T getNumSamples() const { return numSamples; }
 
 private:
     const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
@@ -69,5 +97,6 @@ private:
     std::atomic<int> numSamples{ 0 };
     std::atomic<T> average;
 };
+
 
 #endif // hifi_SimpleMovingAverage_h
