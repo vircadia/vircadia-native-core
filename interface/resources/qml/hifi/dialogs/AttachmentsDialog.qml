@@ -11,7 +11,7 @@ import "attachments"
 
 Window {
     id: root
-    title: "Attachments Dialog"
+    title: "Attachments"
     objectName: "AttachmentsDialog"
     width: 600
     height: 600
@@ -55,11 +55,19 @@ Window {
                 color: hifi.colors.baseGrayShadow
                 radius: 4
 
-                ScrollView{
+                ScrollView {
                     id: scrollView
                     anchors.fill: parent
                     anchors.margins: 4
+
                     style: ScrollViewStyle {
+
+                        padding {
+                            top: 0
+                            right: 0
+                            bottom: 0
+                        }
+
                         decrementControl: Item {
                             visible: false
                         }
@@ -69,18 +77,29 @@ Window {
                         scrollBarBackground: Rectangle{
                             implicitWidth: 14
                             color: hifi.colors.baseGray
-                            anchors.left: attachmentDelegate.right
-                            anchors.leftMargin: 5
-                            radius: 3
+                            radius: 4
+                            Rectangle {
+                                // Make top left corner of scrollbar appear square
+                                width: 8
+                                height: 4
+                                color: hifi.colors.baseGray
+                                anchors.top: parent.top
+                                anchors.horizontalCenter: parent.left
+                            }
+
                         }
                         handle:
                             Rectangle {
                             implicitWidth: 8
-                            anchors.left: parent.left
-                            anchors.leftMargin: 3
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            radius: 3
+                            anchors {
+                                left: parent.left
+                                leftMargin: 3
+                                top: parent.top
+                                topMargin: 3
+                                bottom: parent.bottom
+                                bottomMargin: 4
+                            }
+                            radius: 4
                             color: hifi.colors.lightGrayText
                         }
                     }
@@ -134,12 +153,12 @@ Window {
                 spacing: 8
                 anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
                 HifiControls.Button {
-                    action: cancelAction
+                    action: okAction
                     color: hifi.buttons.black
                     colorScheme: hifi.colorSchemes.dark
                 }
                 HifiControls.Button {
-                    action: okAction
+                    action: cancelAction
                     color: hifi.buttons.black
                     colorScheme: hifi.colorSchemes.dark
                 }
