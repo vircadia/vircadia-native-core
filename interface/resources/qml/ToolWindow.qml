@@ -188,6 +188,7 @@ Window {
         tab.title = "";
         tab.originalUrl = "";
         tab.enabled = false;
+        tabView.tabCount--;
     }
 
     function addWebTab(properties) {
