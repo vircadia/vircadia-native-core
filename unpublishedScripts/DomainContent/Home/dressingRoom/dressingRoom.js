@@ -20,6 +20,10 @@
             subscribeToWearableMessages();
             subscribeToFreezeMessages();
             this.setOccupied();
+            var doppelProps = Entities.getEntityProperties(this.entityID);
+            Entities.editEntity(doppelgangers[0], {
+                dimensions: doppelProps.naturalDimensions,
+            });
         },
         leaveEntity: function() {
             print('EXIT DRESSING ROOM!');
