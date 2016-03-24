@@ -3228,7 +3228,9 @@ void Application::update(float deltaTime) {
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-    myAvatar->setHandControllerPosesInWorldFrame(leftHandPose.transform(myAvatarMatrix), rightHandPose.transform(myAvatarMatrix));
+    auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
+    auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
+    myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -3315,6 +3317,9 @@ void Application::update(float deltaTime) {
 
         qApp->updateMyAvatarLookAtPosition();
 
+        // update sensorToWorldMatrix for camera and hand controllers
+        myAvatar->updateSensorToWorldMatrix();
+
         avatarManager->updateMyAvatar(deltaTime);
     }
 
@@ -3374,9 +3379,6 @@ void Application::update(float deltaTime) {
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
-
-    // update sensorToWorldMatrix for rendering camera.
-    myAvatar->updateSensorToWorldMatrix();
 }
 
 
