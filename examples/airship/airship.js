@@ -285,7 +285,7 @@
                 green: 125,
                 blue: 125
             },
-            colorFinish: {
+             colorFinish: {
                 red: 10,
                 green: 10,
                 blue: 10

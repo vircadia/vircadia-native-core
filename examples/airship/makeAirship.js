@@ -14,8 +14,8 @@ var TYPE = "Model";            //   Right now this can be "Box" or "Model" or "S
 var MODEL_URL = "https://s3.amazonaws.com/hifi-public/philip/airship_compact.fbx"
 
 var MODEL_DIMENSION = { x: 19.257, y: 24.094, z: 40.3122 };
-//var ENTITY_URL = "https://s3.amazonaws.com/hifi-public/scripts/airship/airship.js?"+Math.random();
-var ENTITY_URL = "file:///c:/users/dev/philip/examples/airship/airship.js?"+Math.random();
+var ENTITY_URL = "https://s3.amazonaws.com/hifi-public/scripts/airship/airship.js";
+
 
 var LIFETIME = 3600 * 48;            
 
