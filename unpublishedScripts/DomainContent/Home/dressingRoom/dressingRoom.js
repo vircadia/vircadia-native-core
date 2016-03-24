@@ -1,58 +1,25 @@
 (function() {
 
-    var utilsPath = Script.resolvePath("../utils.js");
-    Script.include(utilsPath);
-    var avatarModelURL;
-
     DressingRoom = function() {
         return this
     }
 
     DressingRoom.prototype = {
         preload: function(entityID) {
-            print('PRELOAD DRESSING ROOM');
+            print('PRELOAD DRESSING ROOM')
             this.entityID = entityID;
-            avatarModelURL = getAvatarFBX();
         },
         enterEntity: function() {
-            print('ENTER DRESSING ROOM');
-            avatarModelURL = getAvatarFBX();
+            print('ENTER DRESSING ROOM')
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
-            // subscribeToFreezeMessages();
-            this.setOccupied();
-            var doppelProps = Entities.getEntityProperties(this.entityID);
-            Entities.editEntity(doppelgangers[0], {
-                dimensions: doppelProps.naturalDimensions,
-            });
+            subscribeToFreezeMessages();
         },
         leaveEntity: function() {
-            print('EXIT DRESSING ROOM!');
-            this.setUnoccupied();
+            print('EXIT DRESSING ROOM!')
             cleanup();
-        },
-        checkIfOccupied: function() {
-            var data = getEntityCustomData('hifi-home-dressing-room', this.entityID, {
-                occupied: false
-            });
-            return data.occupied;
-        },
-        setOccupied: function() {
-            setEntityCustomData('hifi-home-dressing-room', this.entityID, {
-                occupied: true
-            });
-        },
-        setUnoccupied: function() {
-            setEntityCustomData('hifi-home-dressing-room', this.entityID, {
-                occupied: false
-            });
-        },
-        unload: function() {
-            this.setUnoccupied();
-            cleanup();
-        },
+        }
     };
-
     //
     //  doppelganger.js
     //
@@ -64,26 +31,30 @@
     //  Distributed under the Apache License, Version 2.0.
     //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
     //
+    //  To-Do:  mirror joints, rotate avatar fully, automatically get avatar fbx, make sure dimensions for avatar are right when u bring it in
+
+    var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
 
     var MIRROR_JOINT_DATA = true;
     var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
     var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000))
-    var THROTTLE = true;
+    var THROTTLE = false;
     var THROTTLE_RATE = 100;
     var doppelgangers = [];
+
 
 
     function Doppelganger(avatar) {
         this.initialProperties = {
             name: 'Hifi-Doppelganger',
             type: 'Model',
-            modelURL: avatarModelURL,
+            modelURL: TEST_MODEL_URL,
             // dimensions: getAvatarDimensions(avatar),
-            position: matchBasePosition(),
-            rotation: matchBaseRotation(),
+            position: putDoppelgangerAcrossFromAvatar(this, avatar),
+            rotation: rotateDoppelgangerTowardAvatar(this, avatar),
             collisionsWillMove: false,
             ignoreForCollisions: false,
-            // script: FREEZE_TOGGLER_SCRIPT_URL,
+            script: FREEZE_TOGGLER_SCRIPT_URL,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false,
@@ -92,34 +63,9 @@
             })
         };
 
-        this.id = createDoppelgangerEntity(this.initialProperties);
+        this.id = createDoppelgangerEntity(this);
         this.avatar = avatar;
         return this;
-    }
-
-    function getAvatarFBX() {
-        var skeletonURL = MyAvatar.skeletonModelURL;
-        var req = new XMLHttpRequest();
-        req.open("GET", skeletonURL, false);
-        req.send();
-
-        var fst = req.responseText;
-
-        var fbxURL;
-
-        var split = fst.split('\n');
-        split.forEach(function(line) {
-            if (line.indexOf('filename') > -1) {
-                var innerSplit = line.split(" ");
-                innerSplit.forEach(function(inner) {
-                    if (inner.indexOf('.fbx') > -1) {
-                        fbxURL = inner;
-                    }
-                })
-            }
-        });
-
-        return fbxURL
     }
 
     function getJointData(avatar) {
@@ -140,16 +86,14 @@
     }
 
     function setJointData(doppelganger, relativeXforms) {
-        print('setting joint data for ' + doppelganger.id)
         var jointRotations = [];
         var i, l = relativeXforms.length;
         for (i = 0; i < l; i++) {
             jointRotations.push(relativeXforms[i].rot);
         }
         var setJointSuccess = Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
-        print('JOINT ROTATIONS:: ' + JSON.stringify(jointRotations));
-        print('SUCCESS SETTING JOINTS?' + setJointSuccess + "for " + doppelganger.id)
-        return;
+        // print('SUCCESS SETTING JOINTS?' +  setJointSuccess + "for " +doppelganger.id)
+        return true;
     }
 
     // maps joint names to their mirrored joint
@@ -400,12 +344,16 @@
         return new Doppelganger(avatar);
     }
 
-    function createDoppelgangerEntity(initialProperties) {
-        return Entities.addEntity(initialProperties);
+    function createDoppelgangerEntity(doppelganger) {
+        return Entities.addEntity(doppelganger.initialProperties);
     }
 
-    function matchBasePosition() {
+    function putDoppelgangerAcrossFromAvatar(doppelganger, avatar) {
+        var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
+        var position;
+
         var ids = Entities.findEntities(MyAvatar.position, 20);
+        var hasBase = false;
         for (var i = 0; i < ids.length; i++) {
             var entityID = ids[i];
             var props = Entities.getEntityProperties(entityID, "name");
@@ -414,12 +362,18 @@
                 var details = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
                 details.position.y += getAvatarFootOffset();
                 details.position.y += details.dimensions.y / 2;
-                print('JBP BASE POSITION ' + JSON.stringify(details.position))
-                return details.position;
+                position = details.position;
+                hasBase = true;
             }
         }
-    }
 
+        if (hasBase === false) {
+            position = Vec3.sum(avatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
+
+        }
+
+        return position;
+    }
 
     function getAvatarFootOffset() {
         var data = getJointData();
@@ -450,7 +404,14 @@
         return offset
     }
 
-    function matchBaseRotation() {
+
+    function getAvatarDimensions(avatar) {
+        return dimensions;
+    }
+
+    function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
+        var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
+
         var ids = Entities.findEntities(MyAvatar.position, 20);
         var hasBase = false;
         for (var i = 0; i < ids.length; i++) {
@@ -459,21 +420,29 @@
             var name = props.name;
             if (name === "Hifi-Dressing-Room-Base") {
                 var details = Entities.getEntityProperties(entityID, "rotation");
-                print('JBP DOPPELGANGER ROTATION SET TO BASE:: ' + JSON.stringify(details.rotation))
-                return details.rotation;
+                avatarRot = details.rotation;
             }
         }
+        if (hasBase === false) {
+            avatarRot = Vec3.multiply(-1, avatarRot);
+        }
+        return avatarRot;
     }
 
-
+    var isConnected = false;
 
     function connectDoppelgangerUpdates() {
         Script.update.connect(updateDoppelganger);
-
+        isConnected = true;
     }
 
     function disconnectDoppelgangerUpdates() {
-        Script.update.disconnect(updateDoppelganger);
+     
+        if (isConnected === true) {
+               print('SHOULD DISCONNECT')
+            Script.update.disconnect(updateDoppelganger);
+        }
+        isConnected = false;
     }
 
     var sinceLastUpdate = 0;
@@ -503,16 +472,12 @@
             absoluteXforms = mirroredAbsoluteXforms;
         }
         var relativeXforms = buildRelativeXformsFromAbsoluteXforms(absoluteXforms);
-        print('DOPPELGANGERS:::: ' + doppelgangers.length);
-        print('first doppel id:: ' + doppelgangers[0].id);
         doppelgangers.forEach(function(doppelganger) {
             setJointData(doppelganger, relativeXforms);
-        })
-
+        });
     }
 
     function makeDoppelgangerForMyAvatar() {
-        doppelgangers = [];
         var doppelganger = createDoppelganger(MyAvatar);
         doppelgangers.push(doppelganger);
         connectDoppelgangerUpdates();
@@ -550,6 +515,7 @@
         }
         if (parsedMessage.action === 'unfreeze') {
             print('ACTUAL UNFREEZE')
+
             connectDoppelgangerUpdates();
         }
 
@@ -691,15 +657,14 @@
 
 
     function cleanup() {
-
-        Script.update.disconnect(updateDoppelganger);
+        if (isConnected === true) {
+            disconnectDoppelgangerUpdates();
+        }
 
         doppelgangers.forEach(function(doppelganger) {
-            print('DELETING DOPPELGANGER' + doppelganger.id)
+            print('DOPPELGANGER' + doppelganger.id)
             Entities.deleteEntity(doppelganger.id);
         });
-
-        doppelgangers = [];
     }
 
     return new DressingRoom();
