@@ -1,89 +1,181 @@
 {
-    "Entities": [{
-        "angularVelocity": {
-            "x": -0.00071254139766097069,
-            "y": 0.0045778844505548477,
-            "z": -0.0034651262685656548
+    "Entities": [
+        {
+            "angularVelocity": {
+                "x": -0.026321493089199066,
+                "y": -0.028931867331266403,
+                "z": 0.010236549191176891
+            },
+            "collisionsWillMove": 1,
+            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.obj",
+            "created": "2016-03-22T22:55:11Z",
+            "dimensions": {
+                "x": 0.35158795118331909,
+                "y": 0.27823561429977417,
+                "z": 0.35158795118331909
+            },
+            "dynamic": 1,
+            "gravity": {
+                "x": 0,
+                "y": -2,
+                "z": 0
+            },
+            "id": "{747a8714-3cc5-4336-bac3-de3c8ec1494d}",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.fbx",
+            "name": "hifi-home-model-bulldog-shade",
+            "position": {
+                "x": 0.085205078125,
+                "y": 0.5194091796875,
+                "z": 0
+            },
+            "queryAACube": {
+                "scale": 0.56977474689483643,
+                "x": -0.19968229532241821,
+                "y": 0.23452180624008179,
+                "z": -0.28488737344741821
+            },
+            "restitution": 0.20000000298023224,
+            "rotation": {
+                "w": 0.98912078142166138,
+                "x": -0.0035601628478616476,
+                "y": -0.14705567061901093,
+                "z": 0.0014477154472842813
+            },
+            "shapeType": "compound",
+            "type": "Model",
+            "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+            "velocity": {
+                "x": 0.0051150284707546234,
+                "y": 0.00043292529881000519,
+                "z": 0.00053954275790601969
+            }
         },
-        "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.obj",
-        "created": "2016-03-22T22:55:11Z",
-        "dimensions": {
-            "x": 0.35158795118331909,
-            "y": 0.27823561429977417,
-            "z": 0.35158795118331909
+        {
+            "angularVelocity": {
+                "x": -0.0016508022090420127,
+                "y": 0.00053207820747047663,
+                "z": -0.0033033043146133423
+            },
+            "collisionsWillMove": 1,
+            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.obj",
+            "created": "2016-03-22T22:50:49Z",
+            "dimensions": {
+                "x": 0.26436957716941833,
+                "y": 0.73171323537826538,
+                "z": 0.26436954736709595
+            },
+            "dynamic": 1,
+            "gravity": {
+                "x": 0,
+                "y": -9,
+                "z": 0
+            },
+            "id": "{5dcc642f-34a6-44a7-8da8-275cbbbef9d6}",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx",
+            "name": "hifi-home-model-bulldog-base",
+            "position": {
+                "x": 0.08642578125,
+                "y": 0.306884765625,
+                "z": 0.00026702880859375
+            },
+            "queryAACube": {
+                "scale": 0.82169753313064575,
+                "x": -0.32442298531532288,
+                "y": -0.10396400094032288,
+                "z": -0.41058173775672913
+            },
+            "rotation": {
+                "w": 0.84591019153594971,
+                "x": -6.7644752562046051e-05,
+                "y": -0.53332537412643433,
+                "z": 8.2868709796457551e-06
+            },
+            "shapeType": "compound",
+            "type": "Model",
+            "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+            "velocity": {
+                "x": 0.0011470125755295157,
+                "y": 0.0010520070791244507,
+                "z": -0.0011547321919351816
+            }
         },
-        "dynamic": 1,
-        "gravity": {
-            "x": 0,
-            "y": -2,
-            "z": 0
+        {
+            "color": {
+                "blue": 68,
+                "green": 252,
+                "red": 243
+            },
+            "created": "2016-03-24T22:21:38Z",
+            "cutoff": 90,
+            "dimensions": {
+                "x": 4,
+                "y": 4,
+                "z": 4
+            },
+            "falloffRadius": 0.30000001192092896,
+            "id": "{1f15e48e-66cd-4ecd-8d60-a391f050ec8d}",
+            "intensity": 20,
+            "isSpotlight": 1,
+            "name": "hifi-home-living-room-desk-lamp-spotlight",
+            "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0.727783203125
+            },
+            "queryAACube": {
+                "scale": 6.9282031059265137,
+                "x": -3.4641015529632568,
+                "y": -3.4641015529632568,
+                "z": -2.7363183498382568
+            },
+            "rotation": {
+                "w": 0.63591969013214111,
+                "x": 0.26338601112365723,
+                "y": -0.27760738134384155,
+                "z": -0.67016100883483887
+            },
+            "type": "Light",
+            "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
-        "id": "{638e562d-77cc-45ee-b2c7-f5c678cf83eb}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.fbx",
-        "position": {
-            "x": 1104.558349609375,
-            "y": 460.93505859375,
-            "z": 0
-        },
-        "queryAACube": {
-            "scale": 0.56977474689483643,
-            "x": 1104.2734375,
-            "y": 460.65017700195312,
-            "z": -0.28488737344741821
-        },
-        "restitution": 0.20000000298023224,
-        "rotation": {
-            "w": 0.80972349643707275,
-            "x": 8.0799843999557197e-05,
-            "y": -0.58680325746536255,
-            "z": 0.0031326396856456995
-        },
-        "shapeType": "compound",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
-    }, {
-        "angularVelocity": {
-            "x": -0.0025625245179980993,
-            "y": -0.00052156101446598768,
-            "z": 0.000514673360157758
-        },
-        "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.obj",
-        "created": "2016-03-22T22:50:49Z",
-        "dimensions": {
-            "x": 0.26436957716941833,
-            "y": 0.73171323537826538,
-            "z": 0.26436954736709595
-        },
-        "dynamic": 1,
-        "gravity": {
-            "x": 0,
-            "y": -9,
-            "z": 0
-        },
-        "id": "{1fdc3a04-fbee-4f23-bdf8-c44c58258388}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx",
-        "position": {
-            "x": 1104.5577392578125,
-            "y": 460.7225341796875,
-            "z": 0.0018768310546875
-        },
-        "queryAACube": {
-            "scale": 0.82169753313064575,
-            "x": 1104.1468505859375,
-            "y": 460.31167602539062,
-            "z": -0.40897193551063538
-        },
-        "rotation": {
-            "w": 0.98707658052444458,
-            "x": -5.647468424285762e-05,
-            "y": -0.16024939715862274,
-            "z": 2.5912273486028425e-05
-        },
-        "shapeType": "compound",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
-    }],
+        {
+            "collisionless": 1,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 255
+            },
+            "created": "2016-03-24T22:17:16Z",
+            "dimensions": {
+                "x": 0.15776367485523224,
+                "y": 0.26723021268844604,
+                "z": 0.16535492241382599
+            },
+            "id": "{51eb700c-62ba-4e1d-813a-2c23deb02e26}",
+            "ignoreForCollisions": 1,
+            "name": "hifi-home-living-room-desk-lamp-trigger",
+            "position": {
+                "x": 0.09033203125,
+                "y": 0.149169921875,
+                "z": 0.00484466552734375
+            },
+            "queryAACube": {
+                "scale": 0.35162994265556335,
+                "x": -0.085482940077781677,
+                "y": -0.026645049452781677,
+                "z": -0.17097030580043793
+            },
+            "rotation": {
+                "w": 1,
+                "x": -1.52587890625e-05,
+                "y": -1.52587890625e-05,
+                "z": -1.52587890625e-05
+            },
+            "script": "https://rawgit.com/ericrius1/hifi/homereset/unpublishedScripts/DomainContent/Home/switches/livingRoomDeskLamp.js",
+            "scriptTimestamp": 1458860464095,
+            "type": "Box",
+            "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"wantsTrigger\":true},\"home-switch\":{\"state\":\"on\"}}",
+            "visible": 0
+        }
+    ],
     "Version": 57
 }
