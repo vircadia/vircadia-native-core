@@ -122,8 +122,8 @@ void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     float vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
 
 #if THREADED_PRESENT
-    // 2 frames of prediction + vsyncToPhotons = 33ms total
-    const float NUM_PREDICTION_FRAMES = 2.0f;
+    // 3 frames of prediction + vsyncToPhotons = 44ms total
+    const float NUM_PREDICTION_FRAMES = 3.0f;
     float predictedSecondsFromNow = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
 #else
     float predictedSecondsFromNow = frameDuration + vsyncToPhotons;
