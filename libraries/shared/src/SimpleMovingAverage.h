@@ -57,7 +57,8 @@ public:
 
     void addSample(T sample) {
         if (numSamples > 0) {
-            average = (sample * WEIGHTING) + (average * ONE_MINUS_WEIGHTING);
+            T lastAverage = average;
+            average = (sample * WEIGHTING) + (lastAverage * ONE_MINUS_WEIGHTING);
         } else {
             average = sample;
         }
