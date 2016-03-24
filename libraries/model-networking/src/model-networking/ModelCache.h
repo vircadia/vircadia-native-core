@@ -199,7 +199,6 @@ public:
     QSharedPointer<NetworkTexture> occlusionTexture;
     QString lightmapTextureName;
     QSharedPointer<NetworkTexture> lightmapTexture;
-
 };
 
 

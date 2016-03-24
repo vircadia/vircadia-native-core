@@ -4,18 +4,14 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 import QtQuick.Controls.Styles 1.4
 
-//import "../../windows"
-
-
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows-uit"
-
 import "attachments"
 
 Window {
     id: root
-    title: "Attachments Dialog"
+    title: "Attachments"
     objectName: "AttachmentsDialog"
     width: 600
     height: 600
@@ -43,6 +39,7 @@ Window {
             listView.model.append({});
         }
     }
+
     Column {
         width: pane.contentWidth
 
@@ -55,14 +52,22 @@ Window {
             Rectangle {
                 id: attachmentsBackground
                 anchors { left: parent.left; right: parent.right; top: parent.top; bottom: newAttachmentButton.top; margins: 8 }
-                color: hifi.colors.lightGrayText
+                color: hifi.colors.baseGrayShadow
                 radius: 4
 
-                ScrollView{
+                ScrollView {
                     id: scrollView
                     anchors.fill: parent
                     anchors.margins: 4
+
                     style: ScrollViewStyle {
+
+                        padding {
+                            top: 0
+                            right: 0
+                            bottom: 0
+                        }
+
                         decrementControl: Item {
                             visible: false
                         }
@@ -72,16 +77,29 @@ Window {
                         scrollBarBackground: Rectangle{
                             implicitWidth: 14
                             color: hifi.colors.baseGray
-                        }
+                            radius: 4
+                            Rectangle {
+                                // Make top left corner of scrollbar appear square
+                                width: 8
+                                height: 4
+                                color: hifi.colors.baseGray
+                                anchors.top: parent.top
+                                anchors.horizontalCenter: parent.left
+                            }
 
+                        }
                         handle:
                             Rectangle {
                             implicitWidth: 8
-                            anchors.left: parent.left
-                            anchors.leftMargin: 3
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            radius: 3
+                            anchors {
+                                left: parent.left
+                                leftMargin: 3
+                                top: parent.top
+                                topMargin: 3
+                                bottom: parent.bottom
+                                bottomMargin: 4
+                            }
+                            radius: 4
                             color: hifi.colors.lightGrayText
                         }
                     }
@@ -90,8 +108,9 @@ Window {
                         id: listView
                         model: ListModel {}
                         delegate: Item {
+                            id: attachmentDelegate
                             implicitHeight: attachmentView.height + 8;
-                            implicitWidth: attachmentView.width;
+                            implicitWidth: attachmentView.width
                             Attachment {
                                 id: attachmentView
                                 width: scrollView.width
@@ -113,7 +132,7 @@ Window {
                 anchors { left: parent.left; right: parent.right; bottom: buttonRow.top; margins: 8 }
                 text: "New Attachment"
                 color: hifi.buttons.black
-		colorScheme: hifi.colorSchemes.dark 
+                colorScheme: hifi.colorSchemes.dark
                 onClicked: {
                     var template = {
                         modelUrl: "",
@@ -134,14 +153,14 @@ Window {
                 spacing: 8
                 anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
                 HifiControls.Button {
-                    action: cancelAction
-                    color: hifi.buttons.black
-                    colorScheme: hifi.colorSchemes.dark 
-                }
-                HifiControls.Button {
                     action: okAction
                     color: hifi.buttons.black
-                    colorScheme: hifi.colorSchemes.dark 
+                    colorScheme: hifi.colorSchemes.dark
+                }
+                HifiControls.Button {
+                    action: cancelAction
+                    color: hifi.buttons.black
+                    colorScheme: hifi.colorSchemes.dark
                 }
             }
 
