@@ -2,6 +2,7 @@
 
     var utilsPath = Script.resolvePath("../utils.js");
     Script.include(utilsPath);
+    var avatarModelURL;
 
     DressingRoom = function() {
         return this
@@ -11,6 +12,7 @@
         preload: function(entityID) {
             print('PRELOAD DRESSING ROOM');
             this.entityID = entityID;
+            avatarModelURL = getAvatarFBX();
         },
         enterEntity: function() {
             print('ENTER DRESSING ROOM');
@@ -45,7 +47,7 @@
             this.cleanup();
         },
     };
-    
+
     //
     //  doppelganger.js
     //
@@ -58,7 +60,7 @@
     //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
     //
 
-    var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
+
 
     var MIRROR_JOINT_DATA = true;
     var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
@@ -73,7 +75,7 @@
         this.initialProperties = {
             name: 'Hifi-Doppelganger',
             type: 'Model',
-            modelURL: TEST_MODEL_URL,
+            modelURL: avatarModelURL,
             // dimensions: getAvatarDimensions(avatar),
             position: putDoppelgangerAcrossFromAvatar(this, avatar),
             rotation: rotateDoppelgangerTowardAvatar(this, avatar),
@@ -91,6 +93,31 @@
         this.id = createDoppelgangerEntity(this);
         this.avatar = avatar;
         return this;
+    }
+
+    function getAvatarFBX() {
+        var skeletonURL = MyAvatar.skeletonModelURL;
+        var req = new XMLHttpRequest();
+        req.open("GET", skeletonURL, false);
+        req.send();
+
+        var fst = req.responseText;
+
+        var fbxURL;
+
+        var split = fst.split('\n');
+        split.forEach(function(line) {
+            if (line.indexOf('filename') > -1) {
+                var innerSplit = line.split(" ");
+                innerSplit.forEach(function(inner) {
+                    if (inner.indexOf('.fbx') > -1) {
+                        fbxURL = inner;
+                    }
+                })
+            }
+        });
+
+        return fbxURL
     }
 
     function getJointData(avatar) {
