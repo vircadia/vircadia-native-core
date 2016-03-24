@@ -377,8 +377,9 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event);
 
     MainWindow* _window;
+    QElapsedTimer& _sessionRunTimer;
 
-    bool _dependencyManagerIsSetup;
+    bool _previousSessionCrashed;
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
