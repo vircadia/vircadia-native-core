@@ -68,7 +68,7 @@
     var MIRROR_JOINT_DATA = true;
     var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
     var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000))
-    var THROTTLE = false;
+    var THROTTLE = true;
     var THROTTLE_RATE = 100;
     var doppelgangers = [];
 
