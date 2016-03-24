@@ -240,14 +240,17 @@ class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 15 * USECS_PER_SECOND;
-
+    static const unsigned long HEARTBEAT_REPORT_INTERVAL_USECS = 5 * USECS_PER_SECOND;
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
+    static const uint64_t WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
+    static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
+    
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
         setObjectName("Deadlock Watchdog");
         QTimer* heartbeatTimer = new QTimer();
         // Give the heartbeat an initial value
-        updateHeartbeat();
+        _heartbeat = usecTimestampNow();
         connect(heartbeatTimer, &QTimer::timeout, [this] {
             updateHeartbeat();
         });
@@ -258,7 +261,10 @@ public:
     }
 
     void updateHeartbeat() {
-        _heartbeat = usecTimestampNow();
+        auto now = usecTimestampNow();
+        auto elapsed = now - _heartbeat;
+        _movingAverage.addSample(elapsed);
+        _heartbeat = now;
     }
 
     void deadlockDetectionCrash() {
@@ -269,10 +275,24 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-#ifdef NDEBUG
             auto now = usecTimestampNow();
             auto lastHeartbeatAge = now - _heartbeat;
+            auto sinceLastReport = now - _lastReport;
+            int elapsedMovingAverage = _movingAverage.average;
+
+            if (elapsedMovingAverage > _maxElapsed) {
+                _maxElapsed = elapsedMovingAverage;
+            }
+            if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
+                qDebug() << "updateHeartbeat.elapsedMovingAverage:" << elapsedMovingAverage 
+                         << " maxElapsed:" << _maxElapsed << "numSamples:" << _movingAverage.numSamples;
+                _lastReport = now;
+            }
+
+#ifdef NDEBUG
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
+                qDebug() << "DEADLOCK DETECTED -- updateHeartbeat.elapsedMovingAverage:" << elapsedMovingAverage
+                         << " maxElapsed:" << _maxElapsed << "numSamples:" << _movingAverage.numSamples;
                 deadlockDetectionCrash();
             }
 #endif
@@ -280,10 +300,15 @@ public:
     }
 
     static std::atomic<uint64_t> _heartbeat;
+    static std::atomic<uint64_t> _lastReport;
+    static std::atomic<int> _maxElapsed;
     bool _quit { false };
+    MovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
+std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
+std::atomic<int> DeadlockWatchdogThread::_maxElapsed;
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -1380,6 +1405,8 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+
+    updateHeartbeat();
 
     // Some plugins process message events, potentially leading to
     // re-entering a paint event.  don't allow further processing if this
@@ -2501,6 +2528,8 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
+
+    updateHeartbeat();
 
     if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.

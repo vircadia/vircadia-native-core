@@ -14,6 +14,7 @@
 #ifndef hifi_SimpleMovingAverage_h
 #define hifi_SimpleMovingAverage_h
 
+#include <atomic>
 #include <stdint.h>
 
 class SimpleMovingAverage {
@@ -45,8 +46,8 @@ template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
 public:
     const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
     const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
-    int numSamples{ 0 };
-    T average;
+    std::atomic<int> numSamples { 0 };
+    std::atomic<T> average;
 
     void clear() {
         numSamples = 0;
