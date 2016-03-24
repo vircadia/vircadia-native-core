@@ -75,8 +75,8 @@
             type: 'Model',
             modelURL: avatarModelURL,
             // dimensions: getAvatarDimensions(avatar),
-            position: putDoppelgangerAcrossFromAvatar(this, avatar),
-            rotation: rotateDoppelgangerTowardAvatar(this, avatar),
+            position: matchBaseRotation(),
+            rotation: matchBaseRotation(),
             collisionsWillMove: false,
             ignoreForCollisions: false,
             script: FREEZE_TOGGLER_SCRIPT_URL,
@@ -398,12 +398,8 @@
         return Entities.addEntity(doppelganger.initialProperties);
     }
 
-    function putDoppelgangerAcrossFromAvatar(doppelganger, avatar) {
-        var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
-        var position;
-
+    function matchBasePosition(){
         var ids = Entities.findEntities(MyAvatar.position, 20);
-        var hasBase = false;
         for (var i = 0; i < ids.length; i++) {
             var entityID = ids[i];
             var props = Entities.getEntityProperties(entityID, "name");
@@ -412,18 +408,11 @@
                 var details = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
                 details.position.y += getAvatarFootOffset();
                 details.position.y += details.dimensions.y / 2;
-                position = details.position;
-                hasBase = true;
+                return details.position;
             }
-        }
-
-        if (hasBase === false) {
-            position = Vec3.sum(avatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
-
-        }
-
-        return position;
+        } 
     }
+
 
     function getAvatarFootOffset() {
         var data = getJointData();
@@ -459,9 +448,7 @@
         return dimensions;
     }
 
-    function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
-        var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
-
+    function matchBaseRotation(){
         var ids = Entities.findEntities(MyAvatar.position, 20);
         var hasBase = false;
         for (var i = 0; i < ids.length; i++) {
@@ -470,14 +457,12 @@
             var name = props.name;
             if (name === "Hifi-Dressing-Room-Base") {
                 var details = Entities.getEntityProperties(entityID, "rotation");
-                avatarRot = details.rotation;
+                print('DOPPELGANGER ROTATION SET TO BASE:: ' + JSON.stringify(details.rotation))
+                return details.rotation;
             }
         }
-        if (hasBase === false) {
-            avatarRot = Vec3.multiply(-1, avatarRot);
-        }
-        return avatarRot;
     }
+
 
     var isConnected = false;
 
@@ -488,10 +473,10 @@
 
     function disconnectDoppelgangerUpdates() {
 
-        if (isConnected === true) {
+        // if (isConnected === true) {
             print('SHOULD DISCONNECT')
             Script.update.disconnect(updateDoppelganger);
-        }
+        // }
         isConnected = false;
     }
 
