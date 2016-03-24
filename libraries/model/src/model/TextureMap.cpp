@@ -56,7 +56,7 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
     bool validAlpha = false;
     bool alphaAsMask = true;
     const uint8 OPAQUE_ALPHA = 255;
-    const uint8 TRANSLUCENT_ALPHA = 0;
+    const uint8 TRANSPARENT_ALPHA = 0;
     if (image.hasAlphaChannel()) {
         std::map<uint8, uint32> alphaHistogram;
 
@@ -70,10 +70,7 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
             for (int x = 0; x < image.width(); ++x) {
                 auto alpha = qAlpha(data[x]);
                 alphaHistogram[alpha] ++;
-                if (alpha != OPAQUE_ALPHA) {
-                    validAlpha = true;
-                    break;
-                }
+                validAlpha = validAlpha || (alpha != OPAQUE_ALPHA);
             }
         }
 
@@ -81,10 +78,10 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         if (validAlpha && (alphaHistogram.size() > 1)) {
             auto totalNumPixels = image.height() * image.width();
             auto numOpaques = alphaHistogram[OPAQUE_ALPHA];
-            auto numTranslucents = alphaHistogram[TRANSLUCENT_ALPHA];
-            auto numTransparents = totalNumPixels - numOpaques - numTranslucents;
+            auto numTransparents = alphaHistogram[TRANSPARENT_ALPHA];
+            auto numTranslucents = totalNumPixels - numOpaques - numTransparents;
 
-            alphaAsMask = ((numTransparents / (double)totalNumPixels) < 0.05);
+            alphaAsMask = ((numTranslucents / (double)totalNumPixels) < 0.05);
         }
     } 
     

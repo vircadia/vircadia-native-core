@@ -48,9 +48,11 @@ QStringList FBXGeometry::getJointNames() const {
 }
 
 bool FBXGeometry::hasBlendedMeshes() const {
-    foreach (const FBXMesh& mesh, meshes) {
-        if (!mesh.blendshapes.isEmpty()) {
-            return true;
+    if (!meshes.isEmpty()) {
+        foreach (const FBXMesh& mesh, meshes) {
+            if (!mesh.blendshapes.isEmpty()) {
+                return true;
+            }
         }
     }
     return false;
@@ -76,8 +78,14 @@ bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
 
     auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
         // Check whether the point is "behind" all the primitives.
-        for (int j = 0; j < indices.size(); j += primitiveSize) {
-            if (!isPointBehindTrianglesPlane(point,
+        int verticesSize = mesh.vertices.size();
+        for (int j = 0;
+             j < indices.size() - 2; // -2 in case the vertices aren't the right size -- we access j + 2 below
+             j += primitiveSize) {
+            if (indices[j] < verticesSize &&
+                indices[j + 1] < verticesSize &&
+                indices[j + 2] < verticesSize &&
+                !isPointBehindTrianglesPlane(point,
                                              mesh.vertices[indices[j]],
                                              mesh.vertices[indices[j + 1]],
                                              mesh.vertices[indices[j + 2]])) {
@@ -1094,8 +1102,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_color_map")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
-                            // THis is how Maya assign a texture that affect diffuse color AND transparency ?
+                        } else if (type.contains("transparentcolor")) { // Maya way of passing TransparentMap
+                            transparentTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("transparencyfactor")) { // Blender way of passing TransparentMap
                             transparentTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));

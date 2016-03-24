@@ -151,7 +151,7 @@
                 data.properties[group][property] = {
                      x: elX.value,
                      y: elY.value,
-                     z: elZ.value,
+                     z: elZ ? elZ.value : 0,
                 };
                 EventBridge.emitWebEvent(JSON.stringify(data));
             }
@@ -683,7 +683,6 @@
                                     elZoneKeyLightAmbientIntensity.value = properties.keyLight.ambientIntensity.toFixed(2);
                                     elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                                     elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
-                                    elZoneKeyLightDirectionZ.value = properties.keyLight.direction.z.toFixed(2);
                                     elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
     
     
@@ -937,12 +936,11 @@
                 elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
                 elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','intensity'));
                 elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
-                var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
+                elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
+                var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
                 elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
                 elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-                elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-                elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
-    
+
                 elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
                 elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
                 elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
@@ -1170,9 +1168,8 @@
         <div class="zone-section keyLight-section property">
             <div class="label">Light Direction</div>
             <div class="value">
-                <div class="input-area">Pitch <input class="coord" type="number" id="property-zone-key-light-direction-x"></div>
-                <div class="input-area">Yaw <input class="coord" type="number" id="property-zone-key-light-direction-y"></div>
-                <div class="input-area">Roll <input class="coord" type="number" id="property-zone-key-light-direction-z"></div>
+                <div class="input-area">Altitude <input class="coord" type="number" id="property-zone-key-light-direction-x"></div>
+                <div class="input-area">Azimuth <input class="coord" type="number" id="property-zone-key-light-direction-y"></div>
             </div>
         </div>
 

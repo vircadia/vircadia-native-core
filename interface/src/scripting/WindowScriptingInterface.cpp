@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QClipboard>
 #include <QtCore/QDir>
 #include <QMessageBox>
 #include <QScriptValue>
@@ -138,4 +139,9 @@ int WindowScriptingInterface::getX() {
 
 int WindowScriptingInterface::getY() {
     return qApp->getWindow()->y();
+}
+
+void WindowScriptingInterface::copyToClipboard(const QString& text) {
+    qDebug() << "Copying";
+    QApplication::clipboard()->setText(text);
 }

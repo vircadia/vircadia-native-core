@@ -157,6 +157,66 @@ void EntityTreeRenderer::update() {
     deleteReleasedModels();
 }
 
+bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
+    bool didUpdate = false;
+    float radius = 1.0f; // for now, assume 1 meter radius
+    QVector<EntityItemPointer> foundEntities;
+
+    // find the entities near us
+    // don't let someone else change our tree while we search
+    _tree->withReadLock([&] {
+        std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+
+        // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+        auto oldBestZone = _bestZone;
+        _bestZone = nullptr; // NOTE: Is this what we want?
+        _bestZoneVolume = std::numeric_limits<float>::max();
+
+        // create a list of entities that actually contain the avatar's position
+        foreach(EntityItemPointer entity, foundEntities) {
+            if (entity->contains(avatarPosition)) {
+                if (entitiesContainingAvatar) {
+                    *entitiesContainingAvatar << entity->getEntityItemID();
+                }
+
+                // if this entity is a zone, use this time to determine the bestZone
+                if (entity->getType() == EntityTypes::Zone) {
+                    if (!entity->getVisible()) {
+                        #ifdef WANT_DEBUG
+                        qCDebug(entitiesrenderer) << "not visible";
+                        #endif
+                    } else {
+                        float entityVolumeEstimate = entity->getVolumeEstimate();
+                        if (entityVolumeEstimate < _bestZoneVolume) {
+                            _bestZoneVolume = entityVolumeEstimate;
+                            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                        }
+                        else if (entityVolumeEstimate == _bestZoneVolume) {
+                            if (!_bestZone) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            }
+                            else {
+                                // in the case of the volume being equal, we will use the
+                                // EntityItemID to deterministically pick one entity over the other
+                                if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                    _bestZoneVolume = entityVolumeEstimate;
+                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (_bestZone != oldBestZone) {
+            applyZonePropertiesToScene(_bestZone);
+            didUpdate = true;
+        }
+    });
+    return didUpdate;
+}
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
     bool didUpdate = false;
 
@@ -164,54 +224,8 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
         if (avatarPosition != _lastAvatarPosition) {
-            float radius = 1.0f; // for now, assume 1 meter radius
-            QVector<EntityItemPointer> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
-            
-            // find the entities near us
-            // don't let someone else change our tree while we search
-            _tree->withReadLock([&] {
-                std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
-
-                // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-                auto oldBestZone = _bestZone;
-                _bestZone = nullptr; // NOTE: Is this what we want?
-                _bestZoneVolume = std::numeric_limits<float>::max();
-
-                // create a list of entities that actually contain the avatar's position
-                foreach(EntityItemPointer entity, foundEntities) {
-                    if (entity->contains(avatarPosition)) {
-                        entitiesContainingAvatar << entity->getEntityItemID();
-
-                        // if this entity is a zone, use this time to determine the bestZone
-                        if (entity->getType() == EntityTypes::Zone) {
-                            float entityVolumeEstimate = entity->getVolumeEstimate();
-                            if (entityVolumeEstimate < _bestZoneVolume) {
-                                _bestZoneVolume = entityVolumeEstimate;
-                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                            } else if (entityVolumeEstimate == _bestZoneVolume) {
-                                if (!_bestZone) {
-                                    _bestZoneVolume = entityVolumeEstimate;
-                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                } else {
-                                    // in the case of the volume being equal, we will use the
-                                    // EntityItemID to deterministically pick one entity over the other
-                                    if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
-                                        _bestZoneVolume = entityVolumeEstimate;
-                                        _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                }
-
-                if (_bestZone != oldBestZone) {
-                    applyZonePropertiesToScene(_bestZone);
-                    didUpdate = true;
-                }
-            });
+            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, &entitiesContainingAvatar);
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The callEntityScriptMethod() method is robust against attempting to call scripts
@@ -234,6 +248,8 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
+        } else {
+            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, nullptr);
         }
     }
     return didUpdate;
@@ -364,18 +380,21 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                     _pendingSkyboxTexture = false;
 
                     auto texture = _skyboxTexture->getGPUTexture();
-                    skybox->setCubemap(texture);
-                    if (!isAmbientTextureSet) {
-                        sceneKeyLight->setAmbientSphere(texture->getIrradiance());
-                        sceneKeyLight->setAmbientMap(texture);
-                        isAmbientTextureSet = true;
+                    if (texture) {
+                        skybox->setCubemap(texture);
+                        if (!isAmbientTextureSet) {
+                            sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                            sceneKeyLight->setAmbientMap(texture);
+                            isAmbientTextureSet = true;
+                        }
+                    } else {
+                        qCDebug(entitiesrenderer) << "Failed to load skybox texture:" << zone->getSkyboxProperties().getURL();
+                        skybox->setCubemap(nullptr);
                     }
                 } else {
                     skybox->setCubemap(nullptr);
-                    qCDebug(entitiesrenderer) << "Failed to load skybox:" << zone->getSkyboxProperties().getURL();
                 }
             }
-
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             break;
         }
@@ -401,7 +420,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
-        Model* model = modelEntityItem->getModel(this);
+        ModelPointer model = modelEntityItem->getModel(this);
         if (model) {
             result = &model->getGeometry()->getFBXGeometry();
         }
@@ -409,8 +428,8 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
     return result;
 }
 
-const Model* EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
-    const Model* result = NULL;
+ModelPointer EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
+    ModelPointer result = nullptr;
     if (entityItem->getType() == EntityTypes::Model) {
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
@@ -426,7 +445,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         if (modelEntityItem->hasCompoundShapeURL()) {
-            Model* model = modelEntityItem->getModel(this);
+            ModelPointer model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
                 if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
@@ -442,25 +461,25 @@ void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const Sha
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
-Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
-    Model* model = NULL;
+ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
+    ModelPointer model = nullptr;
     // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
-                Q_RETURN_ARG(Model*, model),
+                Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(const QString&, url));
 
         return model;
     }
-    model = new Model(std::make_shared<Rig>());
+    model = std::make_shared<Model>(std::make_shared<Rig>());
     model->init();
     model->setURL(QUrl(url));
     model->setCollisionModelURL(QUrl(collisionUrl));
     return model;
 }
 
-Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, const QString& collisionUrl) {
-    Model* model = NULL;
+ModelPointer EntityTreeRenderer::updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl) {
+    ModelPointer model = nullptr;
 
     // The caller shouldn't call us if the URL doesn't need to change. But if they
     // do, we just return their original back to them.
@@ -471,8 +490,8 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     // Before we do any creating or deleting, make sure we're on our renderer thread
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
-                Q_RETURN_ARG(Model*, model),
-                Q_ARG(Model*, original),
+            Q_RETURN_ARG(ModelPointer, model),
+                Q_ARG(ModelPointer, original),
                 Q_ARG(const QString&, newUrl));
 
         return model;
@@ -481,11 +500,11 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     // at this point we know we need to replace the model, and we know we're on the
     // correct thread, so we can do all our work.
     if (original) {
-        delete original; // delete the old model...
+        original.reset(); // delete the old model...
     }
 
     // create the model and correctly initialize it with the new url
-    model = new Model(std::make_shared<Rig>());
+    model = std::make_shared<Model>(std::make_shared<Rig>());
     model->init();
     model->setURL(QUrl(newUrl));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -493,19 +512,19 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     return model;
 }
 
-void EntityTreeRenderer::releaseModel(Model* model) {
+void EntityTreeRenderer::releaseModel(ModelPointer model) {
     // If we're not on the renderer's thread, then remember this model to be deleted later
     if (QThread::currentThread() != thread()) {
         _releasedModels << model;
     } else { // otherwise just delete it right away
-        delete model;
+        model.reset();
     }
 }
 
 void EntityTreeRenderer::deleteReleasedModels() {
     if (_releasedModels.size() > 0) {
-        foreach(Model* model, _releasedModels) {
-            delete model;
+        foreach(ModelPointer model, _releasedModels) {
+            model.reset();
         }
         _releasedModels.clear();
     }
@@ -872,7 +891,9 @@ void EntityTreeRenderer::updateZone(const EntityItemID& id) {
             _currentEntitiesInside << id;
             emit enterEntity(id);
             _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
-            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+            if (zone->getVisible()) {
+                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+            }
         }
     }
     if (_bestZone && _bestZone->getID() == id) {

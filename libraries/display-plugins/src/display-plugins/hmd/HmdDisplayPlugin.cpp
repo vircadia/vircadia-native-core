@@ -18,6 +18,7 @@
 #include <plugins/PluginContainer.h>
 #include <gpu/GLBackend.h>
 #include <CursorManager.h>
+#include <gl/GLWidget.h>
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
@@ -30,7 +31,7 @@ glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
 
-void HmdDisplayPlugin::activate() {
+void HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
 
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -39,11 +40,7 @@ void HmdDisplayPlugin::activate() {
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
-    Parent::activate();
-}
-
-void HmdDisplayPlugin::deactivate() {
-    Parent::deactivate();
+    Parent::internalActivate();
 }
 
 void HmdDisplayPlugin::customizeContext() {
@@ -114,7 +111,8 @@ void HmdDisplayPlugin::internalPresent() {
 
     // screen preview mirroring
     if (_enablePreview) {
-        auto windowSize = toGlm(_window->size());
+        auto window = _container->getPrimaryWidget();
+        auto windowSize = toGlm(window->size());
         float windowAspect = aspect(windowSize);
         float sceneAspect = aspect(_renderTargetSize);
         if (_monoPreview) {
@@ -162,4 +160,8 @@ void HmdDisplayPlugin::updateFrameData() {
     Parent::updateFrameData();
     Lock lock(_mutex);
     _currentRenderEyePoses = _renderEyePoses[_currentRenderFrameIndex];
+}
+
+glm::mat4 HmdDisplayPlugin::getHeadPose() const {
+    return _headPoseCache.get();
 }

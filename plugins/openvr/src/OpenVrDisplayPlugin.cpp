@@ -38,10 +38,11 @@ static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return vr::VR_IsHmdPresent();
+    return !isOculusPresent() && vr::VR_IsHmdPresent();
 }
 
-void OpenVrDisplayPlugin::activate() {
+void OpenVrDisplayPlugin::internalActivate() {
+    Parent::internalActivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     if (!_system) {
@@ -67,7 +68,6 @@ void OpenVrDisplayPlugin::activate() {
 
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
-    HmdDisplayPlugin::activate();
 
     // set up default sensor space such that the UI overlay will align with the front of the room.
     auto chaperone = vr::VRChaperone();
@@ -85,11 +85,8 @@ void OpenVrDisplayPlugin::activate() {
     }
 }
 
-void OpenVrDisplayPlugin::deactivate() {
-    // Base class deactivate must come before our local deactivate
-    // because the OpenGL base class handles the wait for the present 
-    // thread before continuing
-    HmdDisplayPlugin::deactivate();
+void OpenVrDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         releaseOpenVrSystem();
@@ -104,9 +101,9 @@ void OpenVrDisplayPlugin::customizeContext() {
     std::call_once(once, []{
         glewExperimental = true;
         GLenum err = glewInit();
-        glGetError();
+        glGetError(); // clear the potential error from glewExperimental
     });
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
@@ -115,7 +112,7 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
+void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
 
     float displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     float frameDuration = 1.f / displayFrequency;
@@ -142,14 +139,15 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
         _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
         _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
-    return _trackedDevicePoseMat4[0];
+
+    _headPoseCache.set(_trackedDevicePoseMat4[0]);
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-    
+
     vr::Texture_t texture { (void*)oglplus::GetName(_compositeFramebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
 
     _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);

@@ -39,7 +39,7 @@ int main(int argc, const char* argv[]) {
     static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
     static const char* BUG_SPLAT_DATABASE = "interface_alpha";
     static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
-    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION.toLatin1().constData(),
+    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, qPrintable(BuildInfo::VERSION),
                              nullptr, BUG_SPLAT_FLAGS };
 #endif
     
@@ -143,6 +143,18 @@ int main(int argc, const char* argv[]) {
 
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
 
+#ifdef HAS_BUGSPLAT
+        AccountManager& accountManager = AccountManager::getInstance();
+        mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
+        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
+            mpSender.setDefaultUserName(qPrintable(newUsername));
+        });
+
+        // BugSplat WILL NOT work with file paths that do not use OS native separators.
+        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        mpSender.sendAdditionalFile(qPrintable(logPath));
+#endif
+
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
@@ -155,5 +167,9 @@ int main(int argc, const char* argv[]) {
     Application::shutdownPlugins();
 
     qCDebug(interfaceapp, "Normal exit.");
+#ifndef DEBUG
+    // HACK: exit immediately (don't handle shutdown callbacks) for Release build
+    _exit(exitCode);
+#endif
     return exitCode;
 }

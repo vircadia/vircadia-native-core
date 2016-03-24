@@ -10,6 +10,8 @@
 #ifndef hifi_RenderableProcedrualItem_h
 #define hifi_RenderableProcedrualItem_h
 
+#include <atomic>
+
 #include <QtCore/qglobal.h>
 #include <QtCore/QString>
 #include <QtCore/QUrl>
@@ -74,7 +76,7 @@ protected:
     NetworkShaderPointer _networkShader;
     QJsonObject _parsedUniforms;
     QJsonArray _parsedChannels;
-    bool _proceduralDataDirty { true };
+    std::atomic_bool _proceduralDataDirty;
     bool _shaderDirty { true };
     bool _uniformsDirty { true };
     bool _channelsDirty { true };

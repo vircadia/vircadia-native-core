@@ -166,7 +166,30 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Downloads: ";
+                        text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
+                              ", Pending: " + root.downloadsPending;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded && root.downloadUrls.length > 0;
+                        text: "Download URLs:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.downloadUrls.length * 15
+
+                        visible: root.expanded && root.downloadUrls.length > 0;
+
+                        model: root.downloadUrls
+                        delegate: Text {
+                            color: root.fontColor;
+                            font.pixelSize: root.fontSize
+                            visible: root.expanded;
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
                     }
                 }
             }

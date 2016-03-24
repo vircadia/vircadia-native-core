@@ -48,6 +48,13 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
 
 void RenderableModelEntityItem::setModelURL(const QString& url) {
     auto& currentURL = getParsedModelURL();
+    if (_model && (currentURL != url)) {
+        // The machinery for updateModelBounds will give existing models the opportunity to fix their translation/rotation/scale/registration.
+        // The first two are straightforward, but the latter two have guards to make sure they don't happen after they've already been set.
+        // Here we reset those guards. This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
+        _model->setScaleToFit(false, getDimensions());
+        _model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+    }
     ModelEntityItem::setModelURL(url);
 
     if (currentURL != getParsedModelURL() || !_model) {
@@ -456,8 +463,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
-    Model* result = NULL;
+ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+    ModelPointer result = nullptr;
 
     if (!renderer) {
         return result;
@@ -499,7 +506,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 
         // release interest
         _myRenderer->releaseModel(_model);
-        result = _model = NULL;
+        result = _model = nullptr;
         _needsInitialSimulation = true;
     }
 

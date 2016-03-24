@@ -15,14 +15,11 @@ void OculusBaseDisplayPlugin::resetSensors() {
     ovr_RecenterPose(_session);
 }
 
-glm::mat4 OculusBaseDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    static uint32_t lastFrameSeen = 0;
+void OculusBaseDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     auto displayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, displayTime, frameIndex > lastFrameSeen);
-    if (frameIndex > lastFrameSeen) {
-        lastFrameSeen = frameIndex;
-    }
-    return toGlm(trackingState.HeadPose.ThePose);
+    auto trackingState = ovr_GetTrackingState(_session, displayTime, true);
+    mat4 headPose = toGlm(trackingState.HeadPose.ThePose);
+    _headPoseCache.set(headPose);
 }
 
 bool OculusBaseDisplayPlugin::isSupported() const {
@@ -33,17 +30,11 @@ bool OculusBaseDisplayPlugin::isSupported() const {
 void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
     GLenum err = glewInit();
-    glGetError();
-    HmdDisplayPlugin::customizeContext();
+    glGetError(); // clear the potential error from glewExperimental
+    Parent::customizeContext();
 }
 
-void OculusBaseDisplayPlugin::init() {
-}
-
-void OculusBaseDisplayPlugin::deinit() {
-}
-
-void OculusBaseDisplayPlugin::activate() {
+void OculusBaseDisplayPlugin::internalActivate() {
     _session = acquireOculusSession();
 
     _hmdDesc = ovr_GetHmdDesc(_session);
@@ -74,7 +65,7 @@ void OculusBaseDisplayPlugin::activate() {
 
     if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
+        qWarning() << "Could not attach to sensor device";
     }
 
     // Parent class relies on our _session intialization, so it must come after that.
@@ -87,19 +78,14 @@ void OculusBaseDisplayPlugin::activate() {
         _sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
 
-    if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qFatal("Could not attach to sensor device");
-    }
-
     // This must come after the initialization, so that the values calculated 
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
-    HmdDisplayPlugin::activate();
+    Parent::internalActivate();
 }
 
-void OculusBaseDisplayPlugin::deactivate() {
-    HmdDisplayPlugin::deactivate();
+void OculusBaseDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
     releaseOculusSession();
     _session = nullptr;
 }

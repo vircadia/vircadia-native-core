@@ -12,6 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+bool isOculusPresent();
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 

@@ -63,6 +63,8 @@ public:
     QByteArray read(qint64 size);
     QByteArray readAll();
 
+    QString readString();
+
     QByteArray readHead(qint64 size);
 
     // This will return a QByteArray referencing the underlying data _without_ refcounting that data.
@@ -86,7 +88,6 @@ private:
     QByteArray _data;
     QByteArray _headData;
 
-    std::atomic<qint64> _size { true };  
     std::atomic<qint64> _position { 0 };
     std::atomic<qint64> _numPackets { 0 };
 

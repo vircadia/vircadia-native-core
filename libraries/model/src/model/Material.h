@@ -31,13 +31,15 @@ public:
         ALBEDO_VAL_BIT,
         METALLIC_VAL_BIT,
         GLOSSY_VAL_BIT,
-        TRANSPARENT_VAL_BIT,
+        OPACITY_VAL_BIT,
+        OPACITY_MASK_MAP_BIT,           // OPacity Map and Opacity MASK map are mutually exclusive
+        OPACITY_TRANSLUCENT_MAP_BIT,
 
+        // THe map bits must be in the smae sequence as the enum names for the map channels
         EMISSIVE_MAP_BIT,
         ALBEDO_MAP_BIT,
         METALLIC_MAP_BIT,
         ROUGHNESS_MAP_BIT,
-        TRANSPARENT_MAP_BIT,
         NORMAL_MAP_BIT,
         OCCLUSION_MAP_BIT,
         LIGHTMAP_MAP_BIT,
@@ -51,7 +53,6 @@ public:
         ALBEDO_MAP,
         METALLIC_MAP,
         ROUGHNESS_MAP,
-        TRANSPARENT_MAP,
         NORMAL_MAP,
         OCCLUSION_MAP,
         LIGHTMAP_MAP,
@@ -76,13 +77,15 @@ public:
         Builder& withAlbedo() { _flags.set(ALBEDO_VAL_BIT); return (*this); }
         Builder& withMetallic() { _flags.set(METALLIC_VAL_BIT); return (*this); }
         Builder& withGlossy() { _flags.set(GLOSSY_VAL_BIT); return (*this); }
-        Builder& withTransparent() { _flags.set(TRANSPARENT_VAL_BIT); return (*this); }
+        Builder& withTranslucentFactor() { _flags.set(OPACITY_VAL_BIT); return (*this); }
 
         Builder& withEmissiveMap() { _flags.set(EMISSIVE_MAP_BIT); return (*this); }
         Builder& withAlbedoMap() { _flags.set(ALBEDO_MAP_BIT); return (*this); }
         Builder& withMetallicMap() { _flags.set(METALLIC_MAP_BIT); return (*this); }
         Builder& withRoughnessMap() { _flags.set(ROUGHNESS_MAP_BIT); return (*this); }
-        Builder& withTransparentMap() { _flags.set(TRANSPARENT_MAP_BIT); return (*this); }
+
+        Builder& withTranslucentMap() { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
+        Builder& withMaskMap() { _flags.set(OPACITY_MASK_MAP_BIT); return (*this); }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
         Builder& withOcclusionMap() { _flags.set(OCCLUSION_MAP_BIT); return (*this); }
@@ -117,13 +120,15 @@ public:
     void setRoughnessMap(bool value) { _flags.set(ROUGHNESS_MAP_BIT, value); }
     bool isRoughnessMap() const { return _flags[ROUGHNESS_MAP_BIT]; }
 
-    void setTransparent(bool value) { _flags.set(TRANSPARENT_VAL_BIT, value); }
-    bool isTransparent() const { return _flags[TRANSPARENT_VAL_BIT]; }
-    bool isOpaque() const { return !_flags[TRANSPARENT_VAL_BIT]; }
+    void setTranslucentFactor(bool value) { _flags.set(OPACITY_VAL_BIT, value); }
+    bool isTranslucentFactor() const { return _flags[OPACITY_VAL_BIT]; }
 
-    void setTransparentMap(bool value) { _flags.set(TRANSPARENT_MAP_BIT, value); }
-    bool isTransparentMap() const { return _flags[TRANSPARENT_MAP_BIT]; }
+    void setTranslucentMap(bool value) { _flags.set(OPACITY_TRANSLUCENT_MAP_BIT, value); }
+    bool isTranslucentMap() const { return _flags[OPACITY_TRANSLUCENT_MAP_BIT]; }
 
+    void setOpacityMaskMap(bool value) { _flags.set(OPACITY_MASK_MAP_BIT, value); }
+    bool isOpacityMaskMap() const { return _flags[OPACITY_MASK_MAP_BIT]; }
+    
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
 
@@ -136,6 +141,12 @@ public:
     void setMapChannel(MapChannel channel, bool value) { _flags.set(EMISSIVE_MAP_BIT + channel, value); }
     bool isMapChannel(MapChannel channel) const { return _flags[EMISSIVE_MAP_BIT + channel]; }
 
+
+    // Translucency and Opacity Heuristics are combining several flags:
+    bool isTranslucent() const { return isTranslucentFactor() || isTranslucentMap(); }
+    bool isOpaque() const { return !isTranslucent(); }
+    bool isSurfaceOpaque() const { return isOpaque() && !isOpacityMaskMap(); }
+    bool isTexelOpaque() const { return isOpaque() && isOpacityMaskMap(); }
 };
 
 
@@ -179,11 +190,14 @@ public:
         Builder& withoutRoughnessMap()       { _value.reset(MaterialKey::ROUGHNESS_MAP_BIT); _mask.set(MaterialKey::ROUGHNESS_MAP_BIT); return (*this); }
         Builder& withRoughnessMap()        { _value.set(MaterialKey::ROUGHNESS_MAP_BIT);  _mask.set(MaterialKey::ROUGHNESS_MAP_BIT); return (*this); }
 
-        Builder& withoutTransparent()       { _value.reset(MaterialKey::TRANSPARENT_VAL_BIT); _mask.set(MaterialKey::TRANSPARENT_VAL_BIT); return (*this); }
-        Builder& withTransparent()        { _value.set(MaterialKey::TRANSPARENT_VAL_BIT);  _mask.set(MaterialKey::TRANSPARENT_VAL_BIT); return (*this); }
+        Builder& withoutTranslucentFactor()       { _value.reset(MaterialKey::OPACITY_VAL_BIT); _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
+        Builder& withTranslucentFactor()        { _value.set(MaterialKey::OPACITY_VAL_BIT);  _mask.set(MaterialKey::OPACITY_VAL_BIT); return (*this); }
 
-        Builder& withoutTransparentMap()       { _value.reset(MaterialKey::TRANSPARENT_MAP_BIT); _mask.set(MaterialKey::TRANSPARENT_MAP_BIT); return (*this); }
-        Builder& withTransparentMap()        { _value.set(MaterialKey::TRANSPARENT_MAP_BIT);  _mask.set(MaterialKey::TRANSPARENT_MAP_BIT); return (*this); }
+        Builder& withoutTranslucentMap()       { _value.reset(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
+        Builder& withTranslucentMap()        { _value.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT);  _mask.set(MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT); return (*this); }
+
+        Builder& withoutMaskMap()       { _value.reset(MaterialKey::OPACITY_MASK_MAP_BIT); _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
+        Builder& withMaskMap()        { _value.set(MaterialKey::OPACITY_MASK_MAP_BIT);  _mask.set(MaterialKey::OPACITY_MASK_MAP_BIT); return (*this); }
 
         Builder& withoutNormalMap()       { _value.reset(MaterialKey::NORMAL_MAP_BIT); _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
         Builder& withNormalMap()        { _value.set(MaterialKey::NORMAL_MAP_BIT);  _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
@@ -195,7 +209,7 @@ public:
         Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static MaterialFilter opaqueAlbedo() { return Builder().withAlbedo().withoutTransparent().build(); }
+        static MaterialFilter opaqueAlbedo() { return Builder().withAlbedo().withoutTranslucentFactor().build(); }
     };
 
     // Item Filter operator testing if a key pass the filter
@@ -248,6 +262,7 @@ public:
     void setRoughness(float roughness);
     float getRoughness() const { return _schemaBuffer.get<Schema>()._roughness; }
 
+
     // Schema to access the attribute values of the material
     class Schema {
     public:
@@ -260,8 +275,7 @@ public:
         glm::vec3 _fresnel{ 0.03f }; // Fresnel value for a default non metallic
         float _metallic{ 0.0f }; // Not Metallic
 
-
-        glm::vec3 _spare0{ 0.0f };
+        glm::vec3 _spare{ 0.0f };
 
         uint32_t _key{ 0 }; // a copy of the materialKey
 
@@ -275,6 +289,7 @@ public:
     // The texture map to channel association
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
     const TextureMaps& getTextureMaps() const { return _textureMaps; }
+    const TextureMapPointer getTextureMap(MapChannel channel) const;
 
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }

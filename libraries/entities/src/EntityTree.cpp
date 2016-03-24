@@ -57,10 +57,13 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
-    foreach (EntityTreeElementPointer element, _entityToElementMap) {
-        element->cleanupEntities();
+    {
+        QWriteLocker locker(&_entityToElementLock);
+        foreach(EntityTreeElementPointer element, _entityToElementMap) {
+            element->cleanupEntities();
+        }
+        _entityToElementMap.clear();
     }
-    _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
@@ -212,7 +215,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setAccelerationChanged(false);
 
                 if (wantTerseEditLogging()) {
-                    qCDebug(entities) << senderNode->getUUID() << "physical edits suppressed";
+                    qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";
                 }
             }
         }
@@ -1229,13 +1232,13 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 }
 
 EntityTreeElementPointer EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
-    // TODO: do we need to make this thread safe? Or is it acceptable as is
+    QReadLocker locker(&_entityToElementLock);
     EntityTreeElementPointer element = _entityToElementMap.value(entityItemID);
     return element;
 }
 
 void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element) {
-    // TODO: do we need to make this thread safe? Or is it acceptable as is
+    QWriteLocker locker(&_entityToElementLock);
     if (element) {
         _entityToElementMap[entityItemID] = element;
     } else {
@@ -1245,6 +1248,7 @@ void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTr
 
 void EntityTree::debugDumpMap() {
     qCDebug(entities) << "EntityTree::debugDumpMap() --------------------------";
+    QReadLocker locker(&_entityToElementLock);
     QHashIterator<EntityItemID, EntityTreeElementPointer> i(_entityToElementMap);
     while (i.hasNext()) {
         i.next();

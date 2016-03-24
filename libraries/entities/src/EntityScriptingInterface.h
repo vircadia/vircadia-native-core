@@ -84,6 +84,9 @@ public slots:
     /// adds a model with the specific properties
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties);
 
+    /// temporary method until addEntity can be used from QJSEngine
+    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position);
+
     /// gets the current model properties for a specific model
     /// this function will not find return results in script engine contexts which don't have access to models
     Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
