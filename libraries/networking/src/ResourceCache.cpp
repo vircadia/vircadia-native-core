@@ -380,6 +380,7 @@ void Resource::finishedLoading(bool success) {
         _failedToLoad = true;
     }
     _loadPriorities.clear();
+    emit finished(success);
 }
 
 void Resource::reinsert() {
