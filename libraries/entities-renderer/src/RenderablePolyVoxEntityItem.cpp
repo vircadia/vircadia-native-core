@@ -99,7 +99,7 @@ bool isEdged(PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle) {
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
     bool doDecompress = true;
     withWriteLock([&] {
-        if (_voxelData == voxelData && _voxelDataDirty == false) {
+        if (_voxelData == voxelData) {
             doDecompress = false;
             return;
         }
@@ -126,6 +126,7 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
         bool willBeEdged = isEdged(voxelSurfaceStyle);
 
         if (wasEdged != willBeEdged) {
+            qDebug() << "setvoxelsurfacestyle _volDataDirty = true";
             _volDataDirty = true;
             if (_volData) {
                 delete _volData;
@@ -232,6 +233,7 @@ void RenderablePolyVoxEntityItem::setVoxelsFromData(QByteArray uncompressedData,
         qDebug() << "setvoxelsfromdata _volDataDirty = true";
         _volDataDirty = true;
     });
+    getMesh();
 }
 
 void RenderablePolyVoxEntityItem::forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
@@ -548,18 +550,10 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
     model::MeshPointer mesh;
     glm::vec3 voxelVolumeSize;
-    bool doGetMesh = false;
     withReadLock([&] {
-        if (_volDataDirty) {
-            doGetMesh = true;
-        }
         mesh = _mesh;
         voxelVolumeSize = _voxelVolumeSize;
     });
-    if (doGetMesh) {
-        qDebug() << "RENDER calling getMesh";
-        getMesh();
-    }
 
     if (!_pipeline) {
         gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
@@ -836,7 +830,7 @@ bool RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
 void RenderablePolyVoxEntityItem::decompressVolumeData() {
     // take compressed data and expand it into _volData.
     QByteArray voxelData;
-    EntityItemPointer entity = getThisPointer();
+    auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
     withReadLock([&] {
         voxelData = _voxelData;
@@ -854,7 +848,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
             voxelZSize == 0 || voxelZSize > PolyVoxEntityItem::MAX_VOXEL_DIMENSION) {
             qDebug() << "voxelSize is not reasonable, skipping decompressions."
                      << voxelXSize << voxelYSize << voxelZSize << getName() << getID();
-            // std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->setVoxelDataDirty(true);
+            entity->setVoxelDataDirty(false);
             return;
         }
         int rawSize = voxelXSize * voxelYSize * voxelZSize;
@@ -868,12 +862,11 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
             qDebug() << "PolyVox decompress -- size is (" << voxelXSize << voxelYSize << voxelZSize << ")"
                      << "so expected uncompressed length of" << rawSize << "but length is" << uncompressedData.size()
                      << getName() << getID();
-            std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->setVoxelDataDirty(false);
+            entity->setVoxelDataDirty(false);
             return;
         }
 
-        std::static_pointer_cast<RenderablePolyVoxEntityItem>(entity)->setVoxelsFromData(uncompressedData,
-                                                                                         voxelXSize, voxelYSize, voxelZSize);
+        entity->setVoxelsFromData(uncompressedData, voxelXSize, voxelYSize, voxelZSize);
     });
 }
 
@@ -1140,7 +1133,8 @@ void RenderablePolyVoxEntityItem::getMesh() {
         if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
             vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
         }
-        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize, sizeof(PolyVox::PositionMaterialNormal),
+        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize,
+                                                    sizeof(PolyVox::PositionMaterialNormal),
                                                     gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
         mesh->setVertexBuffer(*vertexBufferView);
         mesh->addAttribute(gpu::Stream::NORMAL,
@@ -1192,8 +1186,6 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
     });
 
     if (!meshInitialized) {
-        qDebug() << "computeShapeInfoWorker calling getMesh";
-        getMesh();
         return;
     }
 

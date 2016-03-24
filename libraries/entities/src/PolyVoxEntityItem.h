@@ -129,6 +129,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void rebakeMesh() {};
 
     void setVoxelDataDirty(bool value) { withWriteLock([&] { _voxelDataDirty = value; }); }
+    virtual void getMesh() {}; // recompute mesh
 
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes

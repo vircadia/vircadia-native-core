@@ -159,11 +159,8 @@ private:
     // these are run off the main thread
     void decompressVolumeData();
     void compressVolumeDataAndSendEditPacket();
-    void compressVolumeDataAndSendEditPacketAsync();
-    void getMesh();
-    void getMeshAsync();
+    virtual void getMesh(); // recompute mesh
     void computeShapeInfoWorker();
-    void computeShapeInfoWorkerAsync();
 
     // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
     EntityItemWeakPointer _xNNeighbor; // neighor found by going along negative X axis
