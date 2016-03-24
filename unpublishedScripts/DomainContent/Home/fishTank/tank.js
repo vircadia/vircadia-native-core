@@ -108,13 +108,13 @@
             if (properties.hasOwnProperty('userData') === false || properties.userData.length === 0) {
                 _this.initTimeout = Script.setTimeout(function() {
                     if (properties.hasOwnProperty('userData')) {
-                        print('JBP has user data property')
+                        //print('JBP has user data property')
                     }
                     if (properties.userData.length === 0) {
-                        print('JBP user data length is zero')
+                        //print('JBP user data length is zero')
                     }
                     if (properties.userData === "") {
-                        print('JBP user data is empty')
+                        //print('JBP user data is empty')
                     }
 
                     // print('try again in one second')

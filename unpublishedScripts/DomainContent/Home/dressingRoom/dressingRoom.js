@@ -402,7 +402,7 @@
         return Entities.addEntity(doppelganger.initialProperties);
     }
 
-    function matchBasePosition(){
+    function matchBasePosition() {
         var ids = Entities.findEntities(MyAvatar.position, 20);
         for (var i = 0; i < ids.length; i++) {
             var entityID = ids[i];
@@ -412,9 +412,10 @@
                 var details = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
                 details.position.y += getAvatarFootOffset();
                 details.position.y += details.dimensions.y / 2;
+                print('JBP BASE POSITION ' + JSON.stringify(details.position))
                 return details.position;
             }
-        } 
+        }
     }
 
 
@@ -448,11 +449,7 @@
     }
 
 
-    function getAvatarDimensions(avatar) {
-        return dimensions;
-    }
-
-    function matchBaseRotation(){
+    function matchBaseRotation() {
         var ids = Entities.findEntities(MyAvatar.position, 20);
         var hasBase = false;
         for (var i = 0; i < ids.length; i++) {
@@ -461,7 +458,7 @@
             var name = props.name;
             if (name === "Hifi-Dressing-Room-Base") {
                 var details = Entities.getEntityProperties(entityID, "rotation");
-                print('DOPPELGANGER ROTATION SET TO BASE:: ' + JSON.stringify(details.rotation))
+                print('JBP DOPPELGANGER ROTATION SET TO BASE:: ' + JSON.stringify(details.rotation))
                 return details.rotation;
             }
         }
@@ -477,10 +474,10 @@
 
     function disconnectDoppelgangerUpdates() {
 
-        // if (isConnected === true) {
+        if (isConnected === true) {
             print('SHOULD DISCONNECT')
             Script.update.disconnect(updateDoppelganger);
-        // }
+        }
         isConnected = false;
     }
 
@@ -517,6 +514,7 @@
     }
 
     function makeDoppelgangerForMyAvatar() {
+        doppelgangers = [];
         var doppelganger = createDoppelganger(MyAvatar);
         doppelgangers.push(doppelganger);
         connectDoppelgangerUpdates();
