@@ -57,16 +57,12 @@ public:
 
     void addSample(T sample) {
         if (numSamples > 0) {
-            T lastAverage = average;
-            average = (sample * WEIGHTING) + (lastAverage * ONE_MINUS_WEIGHTING);
+            average = (sample * WEIGHTING) + (average * ONE_MINUS_WEIGHTING);
         } else {
             average = sample;
         }
         numSamples++;
     }
-
-    T getAverage() const { return average; }
-    T getNumSamples() const { return numSamples; }
 };
 
 template <class T, int MAX_NUM_SAMPLES> class ThreadSafeMovingAverage {
