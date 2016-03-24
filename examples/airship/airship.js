@@ -27,7 +27,7 @@
         properties,
         lightTimer = 0,
         lightTimeoutID = undefined,
-        audioInjector = null
+        audioInjector = null;
 
     var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
     var cannonSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "philip/cannonShot.wav");
@@ -199,8 +199,6 @@
         });
         makeParticles(properties.position, bullet, timeOfFlight * 2);
         Script.setTimeout(explode, timeOfFlight * 1000);
-        
-
     }
 
     function explode() {
@@ -225,8 +223,8 @@
             shoot();
         }
 
-        var timeToNextCheck = 33;
-        timeoutID = Script.setTimeout(maybe, timeToNextCheck);
+        var TIME_TO_NEXT_CHECK = 33;
+        timeoutID = Script.setTimeout(maybe, TIME_TO_NEXT_CHECK);
     }
 
     this.preload = function (givenEntityID) {
@@ -252,52 +250,52 @@
 
     function makeParticles(position, parent, lifespan) {
         particles = Entities.addEntity({
-        type: 'ParticleEffect',
-        position: position,  
-        parentID: parent,
-        color: {
-            red: 70,
-            green: 70,
-            blue: 70
-        },
-        isEmitting: 1,
-        maxParticles: 1000,
-        lifetime: lifespan,
-        lifespan: lifespan / 3,   
-        emitRate: 80,
-        emitSpeed: 0,
-        speedSpread: 1.0,
-        emitRadiusStart: 1,
-        polarStart: -Math.PI/8,
-        polarFinish: Math.PI/8,
-        azimuthStart: -Math.PI/4,
-        azimuthFinish: Math.PI/4,
-        emitAcceleration: {  x: 0, y: 0, z: 0 },
-        particleRadius: 0.25,
-        radiusSpread: 0.1,
-        radiusStart: 0.3,
-        radiusFinish: 0.15,
-        colorSpread: {
-            red: 100,
-            green: 100,
-            blue: 0
-        },
-        colorStart: {
-            red: 125,
-            green: 125,
-            blue: 125
-        },
-        colorFinish: {
-            red: 10,
-            green: 10,
-            blue: 10
-        },
-        alpha: 0.5,
-        alphaSpread: 0,
-        alphaStart: 1,
-        alphaFinish: 0,
-        emitterShouldTrail: true,
-        textures: 'https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png'
-    });
+            type: 'ParticleEffect',
+            position: position,  
+            parentID: parent,
+            color: {
+                red: 70,
+                green: 70,
+                blue: 70
+            },
+            isEmitting: 1,
+            maxParticles: 1000,
+            lifetime: lifespan,
+            lifespan: lifespan / 3,   
+            emitRate: 80,
+            emitSpeed: 0,
+            speedSpread: 1.0,
+            emitRadiusStart: 1,
+            polarStart: -Math.PI/8,
+            polarFinish: Math.PI/8,
+            azimuthStart: -Math.PI/4,
+            azimuthFinish: Math.PI/4,
+            emitAcceleration: {  x: 0, y: 0, z: 0 },
+            particleRadius: 0.25,
+            radiusSpread: 0.1,
+            radiusStart: 0.3,
+            radiusFinish: 0.15,
+            colorSpread: {
+                red: 100,
+                green: 100,
+                blue: 0
+            },
+            colorStart: {
+                red: 125,
+                green: 125,
+                blue: 125
+            },
+            colorFinish: {
+                red: 10,
+                green: 10,
+                blue: 10
+            },
+            alpha: 0.5,
+            alphaSpread: 0,
+            alphaStart: 1,
+            alphaFinish: 0,
+            emitterShouldTrail: true,
+            textures: 'https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png'
+        });
     }
 })
