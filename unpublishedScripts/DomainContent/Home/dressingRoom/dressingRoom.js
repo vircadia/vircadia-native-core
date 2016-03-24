@@ -508,6 +508,8 @@
             absoluteXforms = mirroredAbsoluteXforms;
         }
         var relativeXforms = buildRelativeXformsFromAbsoluteXforms(absoluteXforms);
+        print('DOPPELGANGERS:::: ' + doppelgangers.length);
+         print('DOPPELGANGERS:::: ' + JSON.stringify(doppelgangers));
         setJointData(doppelgangers[0], relativeXforms);
 
     }
