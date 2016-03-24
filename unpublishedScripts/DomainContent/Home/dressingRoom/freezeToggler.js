@@ -67,8 +67,6 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-            this.initialProperties = Entities.getEntityProperties(this.entityID);
-            this.userData = JSON.parse(this.initialProperties.userData);
         },
     };
 
