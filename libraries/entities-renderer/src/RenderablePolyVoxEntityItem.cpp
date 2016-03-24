@@ -488,9 +488,7 @@ ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
 
 void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
-        withWriteLock([&] {
-            _meshDirty = true;
-        });
+        _meshDirty = true;
         EntityItem::updateRegistrationPoint(value);
     }
 }
@@ -1016,7 +1014,6 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     EntityItemPointer currentZPNeighbor = _zPNeighbor.lock();
 
     if (currentXPNeighbor) {
-        assert(currentXPNeighbor->getID() != _id);
         auto polyVoxXPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentXPNeighbor);
         if (polyVoxXPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             withWriteLock([&] {
@@ -1032,7 +1029,6 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     }
 
     if (currentYPNeighbor) {
-        assert(currentYPNeighbor->getID() != _id);
         auto polyVoxYPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentYPNeighbor);
         if (polyVoxYPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             withWriteLock([&] {
@@ -1048,7 +1044,6 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
     }
 
     if (currentZPNeighbor) {
-        assert(currentZPNeighbor->getID() != _id);
         auto polyVoxZPNeighbor = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(currentZPNeighbor);
         if (polyVoxZPNeighbor->getVoxelVolumeSize() == _voxelVolumeSize) {
             withWriteLock([&] {
@@ -1082,12 +1077,6 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
 
 
 void RenderablePolyVoxEntityItem::getMesh() {
-    qDebug() << "|";
-    qDebug() << "|";
-    qDebug() << "getMesh" << _id;
-    qDebug() << "|";
-    qDebug() << "|";
-
     cacheNeighbors();
     copyUpperEdgesFromNeighbors();
 
@@ -1181,7 +1170,6 @@ void RenderablePolyVoxEntityItem::setCollisionPoints(const QVector<QVector<glm::
             QString::number(_registrationPoint.z);
         _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
         _shapeInfo.setConvexHulls(points);
-        // adjustShapeInfoByRegistration(_shapeInfo);
         _meshDirty = false;
     });
 }
@@ -1321,6 +1309,10 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
 
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
+    if (xNNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
+
     if (xNNeighborID != _xNNeighborID) {
         PolyVoxEntityItem::setXNNeighborID(xNNeighborID);
         cacheNeighbors();
@@ -1328,6 +1320,10 @@ void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighbor
 }
 
 void RenderablePolyVoxEntityItem::setYNNeighborID(const EntityItemID& yNNeighborID) {
+    if (yNNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
+
     if (yNNeighborID != _yNNeighborID) {
         PolyVoxEntityItem::setYNNeighborID(yNNeighborID);
         cacheNeighbors();
@@ -1335,12 +1331,15 @@ void RenderablePolyVoxEntityItem::setYNNeighborID(const EntityItemID& yNNeighbor
 }
 
 void RenderablePolyVoxEntityItem::setZNNeighborID(const EntityItemID& zNNeighborID) {
+    if (zNNeighborID == _id) { // TODO loops are still possible
+        return;
+    }
+
     if (zNNeighborID != _zNNeighborID) {
         PolyVoxEntityItem::setZNNeighborID(zNNeighborID);
         cacheNeighbors();
     }
 }
-
 
 void RenderablePolyVoxEntityItem::setXPNeighborID(const EntityItemID& xPNeighborID) {
     if (xPNeighborID == _id) { // TODO loops are still possible
