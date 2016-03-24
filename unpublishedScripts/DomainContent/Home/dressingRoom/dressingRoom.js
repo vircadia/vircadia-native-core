@@ -140,6 +140,7 @@
     }
 
     function setJointData(doppelganger, relativeXforms) {
+        print('setting joint data for ' + doppelganger.id)
         var jointRotations = [];
         var i, l = relativeXforms.length;
         for (i = 0; i < l; i++) {
@@ -507,7 +508,7 @@
         }
         var relativeXforms = buildRelativeXformsFromAbsoluteXforms(absoluteXforms);
         print('DOPPELGANGERS:::: ' + doppelgangers.length);
-        print('DOPPELGANGERS:::: ' + JSON.stringify(doppelgangers));
+        print('first doppel id:: ' + doppelgangers[0].id);
         doppelgangers.forEach(function(doppelganger) {
             setJointData(doppelganger, relativeXforms);
         })
