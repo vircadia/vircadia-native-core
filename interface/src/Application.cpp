@@ -4677,13 +4677,18 @@ qreal Application::getDevicePixelRatio() {
 }
 
 DisplayPlugin* Application::getActiveDisplayPlugin() {
-    std::unique_lock<std::recursive_mutex> lock(_displayPluginLock);
-    if (nullptr == _displayPlugin && QThread::currentThread() == thread()) {
-        updateDisplayMode();
-        Q_ASSERT(_displayPlugin);
+    DisplayPlugin* result = nullptr;
+    if (QThread::currentThread() == thread()) {
+        if (nullptr == _displayPlugin) {
+            updateDisplayMode();
+            Q_ASSERT(_displayPlugin);
+        }
+        result = _displayPlugin.get();
+    } else {
+        std::unique_lock<std::mutex> lock(_displayPluginLock);
+        result = _displayPlugin.get();
     }
-    
-    return _displayPlugin.get();
+    return result;
 }
 
 const DisplayPlugin* Application::getActiveDisplayPlugin() const {
@@ -4801,20 +4806,26 @@ void Application::updateDisplayMode() {
         return;
     }
 
-    if (_displayPlugin) {
-        _displayPlugin->deactivate();
-    }
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
-    // FIXME probably excessive and useless context switching
-    _offscreenContext->makeCurrent();
-    newDisplayPlugin->activate();
-    _offscreenContext->makeCurrent();
-    offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
-    _offscreenContext->makeCurrent();
-    getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
-    _displayPlugin = newDisplayPlugin;
+    // Make the switch atomic from the perspective of other threads
+    {
+        std::unique_lock<std::mutex> lock(_displayPluginLock);
+
+        if (_displayPlugin) {
+            _displayPlugin->deactivate();
+        }
+
+        // FIXME probably excessive and useless context switching
+        _offscreenContext->makeCurrent();
+        newDisplayPlugin->activate();
+        _offscreenContext->makeCurrent();
+        offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
+        _offscreenContext->makeCurrent();
+        getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
+        _displayPlugin = newDisplayPlugin;
+    }
+
 
     emit activeDisplayPluginChanged();
 
