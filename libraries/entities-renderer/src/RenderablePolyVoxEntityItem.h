@@ -48,6 +48,8 @@ public:
 
     virtual ~RenderablePolyVoxEntityItem();
 
+    void initializePolyVox();
+
     virtual void somethingChangedNotification() {
         // This gets called from EnityItem::readEntityDataFromBuffer every time a packet describing
         // this entity comes from the entity-server.  It gets called even if nothing has actually changed
@@ -118,13 +120,24 @@ public:
 
     virtual void updateRegistrationPoint(const glm::vec3& value);
 
+    void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);
+    void forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
+                           std::function<void(int, int, int, uint8_t)> thunk);
+
+    void setMesh(model::MeshPointer mesh);
+    void setCollisionPoints(const QVector<QVector<glm::vec3>> points, AABox box);
+    PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
+
+    uint8_t getVoxelInternal(int x, int y, int z);
+    bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
     model::MeshPointer _mesh;
-    bool _meshDirty; // does collision-shape need to be recomputed?
-    mutable QReadWriteLock _meshLock{QReadWriteLock::Recursive};
+    bool _meshDirty { true }; // does collision-shape need to be recomputed?
+    bool _meshInitialized { false };
 
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;
@@ -135,31 +148,22 @@ private:
     static gpu::PipelinePointer _pipeline;
 
     ShapeInfo _shapeInfo;
-    mutable QReadWriteLock _shapeInfoLock;
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
-    mutable QReadWriteLock _volDataLock{QReadWriteLock::Recursive}; // lock for _volData
     bool _volDataDirty = false; // does getMesh need to be called?
     int _onCount; // how many non-zero voxels are in _volData
 
-    bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
-                      int x, int y, int z) const;
-    uint8_t getVoxelInternal(int x, int y, int z);
-    bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
     bool updateOnCount(int x, int y, int z, uint8_t toValue);
     PolyVox::RaycastResult doRayCast(glm::vec4 originInVoxel, glm::vec4 farInVoxel, glm::vec4& result) const;
 
     // these are run off the main thread
     void decompressVolumeData();
-    void decompressVolumeDataAsync();
     void compressVolumeDataAndSendEditPacket();
     void compressVolumeDataAndSendEditPacketAsync();
     void getMesh();
     void getMeshAsync();
     void computeShapeInfoWorker();
     void computeShapeInfoWorkerAsync();
-
-    QSemaphore _threadRunning{1};
 
     // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
     EntityItemWeakPointer _xNNeighbor; // neighor found by going along negative X axis
@@ -174,5 +178,7 @@ private:
     void bonkNeighbors();
 };
 
+bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
+                  int x, int y, int z);
 
 #endif // hifi_RenderablePolyVoxEntityItem_h
