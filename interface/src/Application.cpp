@@ -457,8 +457,8 @@ Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
-    _sessionRunTimer(startupTimer),
     _window(new MainWindow(desktop())),
+    _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
     _frameCount(0),
