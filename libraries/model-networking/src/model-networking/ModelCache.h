@@ -117,8 +117,12 @@ public:
     /// Returns the geometry, if it is loaded (must be checked!)
     const Geometry::Pointer& getGeometry() { return _instance; }
 
+signals:
+    /// Emitted when the NetworkGeometry loads (or fails to)
+    void finished(bool success);
+
 private slots:
-    void resourceFinished();
+    void resourceFinished(bool success);
     void resourceRefreshed();
 
 private:

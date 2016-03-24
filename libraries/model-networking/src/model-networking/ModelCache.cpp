@@ -290,12 +290,15 @@ NetworkGeometry::NetworkGeometry(const GeometryResource::Pointer& networkGeometr
     connect(_resource.data(), &Resource::finished, this, &NetworkGeometry::resourceFinished);
     connect(_resource.data(), &Resource::onRefresh, this, &NetworkGeometry::resourceRefreshed);
     if (_resource->isLoaded()) {
-        resourceFinished();
+        resourceFinished(true);
     }
 }
 
-void NetworkGeometry::resourceFinished() {
-    _instance = std::make_shared<Geometry>(*_resource);
+void NetworkGeometry::resourceFinished(bool success) {
+    if (success) {
+        _instance = std::make_shared<Geometry>(*_resource);
+    }
+    emit finished(success);
 }
 
 void NetworkGeometry::resourceRefreshed() {
