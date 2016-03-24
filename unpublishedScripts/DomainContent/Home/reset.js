@@ -255,6 +255,13 @@
                 z:-73.22
             });
 
+
+            var livingRoomLampTriggerBoxName = "hifi-home-living-room-desk-lamp-trigger";
+            var livingRoomLampModelName = "hifi-home-model-bulldog-base";
+            Script.setTimeout(function() {
+                attachChildToParent(livingRoomLampTriggerBoxName, livingRoomLampModelName, MyAvatar.position, 20);
+            }, 1000);
+
         },
 
         findAndDeleteHomeEntities: function() {
