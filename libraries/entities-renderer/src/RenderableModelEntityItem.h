@@ -85,9 +85,8 @@ private:
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
     EntityTreeRenderer* _myRenderer = nullptr;
-    QString _currentTextures;
-    QStringList _originalTextures;
-    QVariantMap _originalTexturesMap;
+    QVariantMap _currentTextures;
+    QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
