@@ -116,8 +116,6 @@ public:
     virtual void setYPNeighborID(const EntityItemID& yPNeighborID);
     virtual void setZPNeighborID(const EntityItemID& zPNeighborID);
 
-    virtual void rebakeMesh();
-
     virtual void updateRegistrationPoint(const glm::vec3& value);
 
     void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);
@@ -153,6 +151,8 @@ private:
     bool _volDataDirty = false; // does getMesh need to be called?
     int _onCount; // how many non-zero voxels are in _volData
 
+    bool _neighborsNeedUpdate { false };
+
     bool updateOnCount(int x, int y, int z, uint8_t toValue);
     PolyVox::RaycastResult doRayCast(glm::vec4 originInVoxel, glm::vec4 farInVoxel, glm::vec4& result) const;
 
@@ -169,7 +169,6 @@ private:
     EntityItemWeakPointer _xPNeighbor; // neighor found by going along positive X axis
     EntityItemWeakPointer _yPNeighbor;
     EntityItemWeakPointer _zPNeighbor;
-    void clearOutOfDateNeighbors();
     void cacheNeighbors();
     void copyUpperEdgesFromNeighbors();
     void bonkNeighbors();
