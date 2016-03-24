@@ -121,12 +121,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
-            visible: true,
-            // userData: JSON.stringify({
-            //     'hifiHomeKey': {
-            //         'reset': true
-            //     }
-            // }),
+            visible: true
         }
 
         fishTank = Entities.addEntity(tankProperties);

@@ -1,25 +1,51 @@
 (function() {
 
+    var utilsPath = Script.resolvePath("../utils.js");
+    Script.include(utilsPath);
+
     DressingRoom = function() {
         return this
     }
 
     DressingRoom.prototype = {
         preload: function(entityID) {
-            print('PRELOAD DRESSING ROOM')
+            print('PRELOAD DRESSING ROOM');
             this.entityID = entityID;
         },
         enterEntity: function() {
-            print('ENTER DRESSING ROOM')
+            print('ENTER DRESSING ROOM');
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
             subscribeToFreezeMessages();
+            this.setOccupied();
         },
         leaveEntity: function() {
-            print('EXIT DRESSING ROOM!')
+            print('EXIT DRESSING ROOM!');
+            this.setUnoccupied();
             cleanup();
-        }
+        },
+        checkIfOccupied: function() {
+            var data = getEntityCustomData('hifi-home-dressing-room', this.entityID, {
+                occupied: false
+            });
+            return data.occupied;
+        },
+        setOccupied: function() {
+            setEntityCustomData('hifi-home-dressing-room', this.entityID, {
+                occupied: true
+            });
+        },
+        setUnoccupied: function() {
+            setEntityCustomData('hifi-home-dressing-room', this.entityID, {
+                occupied: false
+            });
+        },
+        unload: function() {
+            this.setUnoccupied();
+            this.cleanup();
+        },
     };
+    
     //
     //  doppelganger.js
     //
@@ -31,7 +57,6 @@
     //  Distributed under the Apache License, Version 2.0.
     //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
     //
-    //  To-Do:  mirror joints, rotate avatar fully, automatically get avatar fbx, make sure dimensions for avatar are right when u bring it in
 
     var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
 
@@ -437,9 +462,9 @@
     }
 
     function disconnectDoppelgangerUpdates() {
-     
+
         if (isConnected === true) {
-               print('SHOULD DISCONNECT')
+            print('SHOULD DISCONNECT')
             Script.update.disconnect(updateDoppelganger);
         }
         isConnected = false;
