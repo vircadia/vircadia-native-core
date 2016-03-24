@@ -83,7 +83,7 @@
             rotation: matchBaseRotation(),
             collisionsWillMove: false,
             ignoreForCollisions: false,
-            script: FREEZE_TOGGLER_SCRIPT_URL,
+            // script: FREEZE_TOGGLER_SCRIPT_URL,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false,
@@ -550,7 +550,6 @@
         }
         if (parsedMessage.action === 'unfreeze') {
             print('ACTUAL UNFREEZE')
-
             connectDoppelgangerUpdates();
         }
 
