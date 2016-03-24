@@ -36,6 +36,10 @@ void main(void) {
     int matKey = getMaterialKey(mat);
     <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex, occlusionTex)$>
 
+    float opacity = getMaterialOpacity(mat) * _alpha;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)&>;
+    <$discardTransparent(opacity)$>;
+
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
@@ -52,8 +56,6 @@ void main(void) {
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
 
-    float fragOpacity = getMaterialOpacity(mat) * albedoTex.a * _alpha;
-
     TransformCamera cam = getTransformCamera();
 
     _fragColor =  vec4(evalAmbientSphereGlobalColor(
@@ -66,5 +68,5 @@ void main(void) {
         metallic,
         emissive,
         roughness),
-        fragOpacity);
+        opacity);
 }

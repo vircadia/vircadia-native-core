@@ -102,15 +102,19 @@ void FBXReader::consolidateFBXMaterials() {
             detectDifferentUVs = (diffuseTexture.texcoordSet != 0) || (!diffuseTexture.transform.isIdentity());
         }
 
-
         FBXTexture transparentTexture;
         QString transparentTextureID = transparentTextures.value(material.materialID);
+        // If PBS Material, systematically bind the albedo texture as transparency texture and check for the alpha channel
+        if (material.isPBSMaterial) {
+            transparentTextureID = diffuseTextureID;
+        }
         if (!transparentTextureID.isNull()) {
             transparentTexture = getTexture(transparentTextureID);
-         
             material.opacityTexture = transparentTexture;
             detectDifferentUVs |= (transparentTexture.texcoordSet != 0) || (!transparentTexture.transform.isIdentity());
         }
+
+
 
         FBXTexture normalTexture;
         QString bumpTextureID = bumpTextures.value(material.materialID);
