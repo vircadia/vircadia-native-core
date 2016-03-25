@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QLocalSocket>
 #include <QLocalServer>
+#include <QProcess>
 #include <QSettings>
 #include <QSharedMemory>
 #include <QSysInfo>
@@ -25,7 +26,6 @@
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "MainWindow.h"
-#include <QtCore/QProcess>
 
 #ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
@@ -194,7 +194,7 @@ int main(int argc, const char* argv[]) {
             qDebug().noquote() << "\tProcessor Type: " << si.dwProcessorType;
             qDebug().noquote() << "\tProcessor Level: " << si.wProcessorLevel;
             qDebug().noquote() << "\tProcessor Revision: "
-                << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
+                               << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
             qDebug().noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
             qDebug().noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
             qDebug().noquote() << "\tMin Application Address: "
