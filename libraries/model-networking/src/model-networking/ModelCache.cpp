@@ -293,7 +293,7 @@ void NetworkGeometry::requestModel(const QUrl& url) {
     connect(_resource, &Resource::failed, this, &NetworkGeometry::modelRequestError);
 }
 
-void NetworkGeometry::mappingRequestDone(const QByteArray& data) {
+void NetworkGeometry::mappingRequestDone(const QByteArray data) {
     assert(_state == RequestMappingState);
 
     // parse the mapping file
@@ -325,7 +325,7 @@ void NetworkGeometry::mappingRequestError(QNetworkReply::NetworkError error) {
     emit onFailure(*this, MappingRequestError);
 }
 
-void NetworkGeometry::modelRequestDone(const QByteArray& data) {
+void NetworkGeometry::modelRequestDone(const QByteArray data) {
     assert(_state == RequestModelState);
 
     _state = ParsingModelState;

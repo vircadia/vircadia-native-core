@@ -320,13 +320,12 @@ void ImageReader::run() {
     }
 
     QMetaObject::invokeMethod(texture.data(), "setImage", 
-        Q_ARG(const QImage&, image),
         Q_ARG(void*, theTexture),
         Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
     QThread::currentThread()->setPriority(originalPriority);
 }
 
-void NetworkTexture::setImage(const QImage& image, void* voidTexture, int originalWidth,
+void NetworkTexture::setImage(void* voidTexture, int originalWidth,
                               int originalHeight) {
     _originalWidth = originalWidth;
     _originalHeight = originalHeight;

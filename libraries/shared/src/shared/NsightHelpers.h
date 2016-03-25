@@ -9,16 +9,21 @@
 #ifndef hifi_gl_NsightHelpers_h
 #define hifi_gl_NsightHelpers_h
 
-#if defined(NSIGHT_FOUND)
-    class ProfileRange {
-    public:
-        ProfileRange(const char *name);
-        ~ProfileRange();
-    };
+#ifdef _WIN32
+#include <stdint.h>
+
+class ProfileRange {
+public:
+    ProfileRange(const char *name);
+    ProfileRange(const char *name, uint32_t argbColor, uint64_t payload);
+    ~ProfileRange();
+};
+
 #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
+#define PROFILE_RANGE_EX(name, argbColor, payload) ProfileRange profileRangeThis(name, argbColor, payload);
 #else
 #define PROFILE_RANGE(name)
+#define PROFILE_RANGE_EX(name, argbColor, payload)
 #endif
-
 
 #endif

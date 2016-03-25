@@ -113,10 +113,10 @@ public slots:
     void textureLoaded(const QWeakPointer<NetworkTexture>& networkTexture);
 
 protected slots:
-    void mappingRequestDone(const QByteArray& data);
+    void mappingRequestDone(const QByteArray data);
     void mappingRequestError(QNetworkReply::NetworkError error);
 
-    void modelRequestDone(const QByteArray& data);
+    void modelRequestDone(const QByteArray data);
     void modelRequestError(QNetworkReply::NetworkError error);
 
     void modelParseSuccess(FBXGeometry* geometry);
