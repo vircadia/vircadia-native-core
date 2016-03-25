@@ -321,8 +321,9 @@ public:
     static std::atomic<uint64_t> _lastReport;
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
-    bool _quit { false };
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
+
+    bool _quit { false };
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;

@@ -14,7 +14,7 @@
 #ifndef hifi_SimpleMovingAverage_h
 #define hifi_SimpleMovingAverage_h
 
-#include <atomic>
+#include <mutex>
 #include <stdint.h>
 
 class SimpleMovingAverage {
@@ -68,12 +68,17 @@ public:
 template <class T, int MAX_NUM_SAMPLES> class ThreadSafeMovingAverage {
 public:
     void clear() {
+        std::unique_lock<std::mutex> lock(_lock);
         numSamples = 0;
     }
 
-    bool isAverageValid() const { return (numSamples > 0); }
+    bool isAverageValid() const { 
+        std::unique_lock<std::mutex> lock(_lock);
+        return (numSamples > 0);
+    }
 
     void addSample(T sample) {
+        std::unique_lock<std::mutex> lock(_lock);
         if (numSamples > 0) {
             T lastAverage = average;
             average = (sample * WEIGHTING) + (lastAverage * ONE_MINUS_WEIGHTING);
@@ -84,14 +89,22 @@ public:
         numSamples++;
     }
 
-    T getAverage() const { return average; }
-    T getNumSamples() const { return numSamples; }
+    T getAverage() const { 
+        std::unique_lock<std::mutex> lock(_lock);
+        return average;
+    }
+
+    T getNumSamples() const { 
+        std::unique_lock<std::mutex> lock(_lock);
+        return numSamples;
+    }
 
 private:
     const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
     const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
-    std::atomic<int> numSamples{ 0 };
-    std::atomic<T> average;
+    int numSamples { 0 };
+    T average;
+    mutable std::mutex _lock;
 };
 
 
