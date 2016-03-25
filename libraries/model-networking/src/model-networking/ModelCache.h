@@ -167,6 +167,10 @@ private:
         TextureType type, MapChannel channel);
     model::TextureMapPointer fetchTextureMap(const QUrl& url, TextureType type, MapChannel channel);
 
+    Transform _albedoTransform;
+    Transform _lightmapTransform;
+    vec2 _lightmapParams;
+
     bool _isOriginal;
 };
 

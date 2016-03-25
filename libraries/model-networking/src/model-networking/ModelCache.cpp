@@ -355,8 +355,9 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, Textu
 }
 
 NetworkMaterial::NetworkMaterial(const NetworkMaterial& material, const QVariantMap& textureMap) :
-    _textures(material._textures), _isOriginal(false)
+    NetworkMaterial(material)
 {
+    _isOriginal = false;
     setTextures(textureMap);
 }
 
@@ -366,7 +367,8 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
-        map->setTextureTransform(material.albedoTexture.transform);
+        _albedoTransform = material.albedoTexture.transform;
+        map->setTextureTransform(_albedoTransform);
 
         if (!material.opacityTexture.filename.isEmpty()) {
             if (material.albedoTexture.filename == material.opacityTexture.filename) {
@@ -414,8 +416,10 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
 
     if (!material.lightmapTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.lightmapTexture, LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-        map->setTextureTransform(material.lightmapTexture.transform);
-        map->setLightmapOffsetScale(material.lightmapParams.x, material.lightmapParams.y);
+        _lightmapTransform = material.lightmapTexture.transform;
+        _lightmapParams = material.lightmapParams;
+        map->setTextureTransform(_lightmapTransform);
+        map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
         setTextureMap(MapChannel::LIGHTMAP_MAP, map);
     }
 }
@@ -431,9 +435,9 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!albedoName.isEmpty() && textureMap.contains(albedoName)) {
         auto map = fetchTextureMap(textureMap[albedoName].toUrl(), DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
-        map->setTextureTransform(getTextureMap(MapChannel::ALBEDO_MAP)->getTextureTransform());
+        map->setTextureTransform(_albedoTransform);
         // when reassigning the albedo texture we also check for the alpha channel used as opacity
-        map->setUseAlphaChannel(true); 
+        map->setUseAlphaChannel(true);
         setTextureMap(MapChannel::ALBEDO_MAP, map);
     }
 
@@ -466,10 +470,8 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!lightmapName.isEmpty() && textureMap.contains(lightmapName)) {
         auto map = fetchTextureMap(textureMap[lightmapName].toUrl(), LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-        auto oldMap = getTextureMap(MapChannel::LIGHTMAP_MAP);
-        map->setTextureTransform(oldMap->getTextureTransform());
-        glm::vec2 offsetScale = oldMap->getLightmapOffsetScale();
-        map->setLightmapOffsetScale(offsetScale.x, offsetScale.y);
+        map->setTextureTransform(_lightmapTransform);
+        map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
         setTextureMap(MapChannel::LIGHTMAP_MAP, map);
     }
 }
