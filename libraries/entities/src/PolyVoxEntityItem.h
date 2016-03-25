@@ -52,7 +52,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void debugDump() const;
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
-    virtual const glm::vec3& getVoxelVolumeSize() const;
+    virtual glm::vec3 getVoxelVolumeSize() const;
 
     virtual void setVoxelData(QByteArray voxelData);
     virtual const QByteArray getVoxelData() const;
@@ -128,12 +128,14 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void rebakeMesh() {};
 
+    void setVoxelDataDirty(bool value) { withWriteLock([&] { _voxelDataDirty = value; }); }
+    virtual void getMesh() {}; // recompute mesh
+
  protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
 
-    mutable QReadWriteLock _voxelDataLock;
     QByteArray _voxelData;
-    bool _voxelDataDirty;
+    bool _voxelDataDirty; // _voxelData has changed, things that depend on it should be updated
 
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
 
