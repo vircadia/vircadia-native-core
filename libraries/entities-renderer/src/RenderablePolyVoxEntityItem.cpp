@@ -533,6 +533,10 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
 
+    if (_volDataDirty) {
+        getMesh();
+    }
+
     model::MeshPointer mesh;
     glm::vec3 voxelVolumeSize;
     withReadLock([&] {
