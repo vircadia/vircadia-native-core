@@ -18,25 +18,33 @@ using namespace gpu;
 Material::Material() :
     _key(0),
     _schemaBuffer(),
-    _textureMaps() {
-       
-        // only if created from nothing shall we create the Buffer to store the properties
-        Schema schema;
-        _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _textureMaps()
+{
+    // created from nothing: create the Buffer to store the properties
+    Schema schema;
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
         
 
 }
 
 Material::Material(const Material& material) :
     _key(material._key),
-    _schemaBuffer(material._schemaBuffer),
-    _textureMaps(material._textureMaps) {
+    _textureMaps(material._textureMaps)
+{
+    // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
+    Schema schema;
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 }
 
 Material& Material::operator= (const Material& material) {
     _key = (material._key);
-    _schemaBuffer = (material._schemaBuffer);
     _textureMaps = (material._textureMaps);
+
+    // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
+    Schema schema;
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 
     return (*this);
 }
