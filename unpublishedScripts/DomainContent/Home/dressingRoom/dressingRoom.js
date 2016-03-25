@@ -2,7 +2,7 @@
 
     var utilsPath = Script.resolvePath("../utils.js");
     Script.include(utilsPath);
-    var avatarModelURL;
+    var avatarModelURL ='https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
 
     DressingRoom = function() {
         return this
@@ -12,19 +12,19 @@
         preload: function(entityID) {
             print('PRELOAD DRESSING ROOM');
             this.entityID = entityID;
-            avatarModelURL = getAvatarFBX();
+            // avatarModelURL = getAvatarFBX();
         },
         enterEntity: function() {
             print('ENTER DRESSING ROOM');
-            avatarModelURL = getAvatarFBX();
+            // avatarModelURL = getAvatarFBX();
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
-            subscribeToFreezeMessages();
+            // subscribeToFreezeMessages();
             this.setOccupied();
             var doppelProps = Entities.getEntityProperties(this.entityID);
-            Entities.editEntity(doppelgangers[0], {
-                dimensions: doppelProps.naturalDimensions,
-            });
+            // Entities.editEntity(doppelgangers[0], {
+            //     dimensions: doppelProps.naturalDimensions,
+            // });
         },
         leaveEntity: function() {
             print('EXIT DRESSING ROOM!');
@@ -73,7 +73,6 @@
     var doppelgangers = [];
 
 
-
     function Doppelganger(avatar) {
         this.initialProperties = {
             name: 'Hifi-Doppelganger',
@@ -84,7 +83,7 @@
             rotation: matchBaseRotation(),
             collisionsWillMove: false,
             ignoreForCollisions: false,
-            script: FREEZE_TOGGLER_SCRIPT_URL,
+            // script: FREEZE_TOGGLER_SCRIPT_URL,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false,
@@ -93,7 +92,7 @@
             })
         };
 
-        this.id = createDoppelgangerEntity(this);
+        this.id = createDoppelgangerEntity(this.initialProperties);
         this.avatar = avatar;
         return this;
     }
@@ -141,14 +140,16 @@
     }
 
     function setJointData(doppelganger, relativeXforms) {
+        print('setting joint data for ' + doppelganger.id)
         var jointRotations = [];
         var i, l = relativeXforms.length;
         for (i = 0; i < l; i++) {
             jointRotations.push(relativeXforms[i].rot);
         }
         var setJointSuccess = Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
+        // print('JOINT ROTATIONS:: ' + JSON.stringify(jointRotations));
         print('SUCCESS SETTING JOINTS?' + setJointSuccess + "for " + doppelganger.id)
-        return true;
+        return;
     }
 
     // maps joint names to their mirrored joint
@@ -399,8 +400,8 @@
         return new Doppelganger(avatar);
     }
 
-    function createDoppelgangerEntity(doppelganger) {
-        return Entities.addEntity(doppelganger.initialProperties);
+    function createDoppelgangerEntity(initialProperties) {
+        return Entities.addEntity(initialProperties);
     }
 
     function matchBasePosition() {
@@ -449,7 +450,6 @@
         return offset
     }
 
-
     function matchBaseRotation() {
         var ids = Entities.findEntities(MyAvatar.position, 20);
         var hasBase = false;
@@ -466,20 +466,14 @@
     }
 
 
-    var isConnected = false;
 
     function connectDoppelgangerUpdates() {
         Script.update.connect(updateDoppelganger);
-        isConnected = true;
+
     }
 
     function disconnectDoppelgangerUpdates() {
-
-        if (isConnected === true) {
-            print('SHOULD DISCONNECT')
-            Script.update.disconnect(updateDoppelganger);
-        }
-        isConnected = false;
+        Script.update.disconnect(updateDoppelganger);
     }
 
     var sinceLastUpdate = 0;
@@ -509,7 +503,11 @@
             absoluteXforms = mirroredAbsoluteXforms;
         }
         var relativeXforms = buildRelativeXformsFromAbsoluteXforms(absoluteXforms);
-        setJointData(doppelgangers[0], relativeXforms);
+        // print('DOPPELGANGERS:::: ' + doppelgangers.length);
+        // print('first doppel id:: ' + doppelgangers[0].id);
+        doppelgangers.forEach(function(doppelganger) {
+            setJointData(doppelganger, relativeXforms);
+        })
 
     }
 
@@ -552,7 +550,6 @@
         }
         if (parsedMessage.action === 'unfreeze') {
             print('ACTUAL UNFREEZE')
-
             connectDoppelgangerUpdates();
         }
 
@@ -694,14 +691,15 @@
 
 
     function cleanup() {
-        if (isConnected === true) {
-            disconnectDoppelgangerUpdates();
-        }
+
+        Script.update.disconnect(updateDoppelganger);
 
         doppelgangers.forEach(function(doppelganger) {
-            print('DOPPELGANGER' + doppelganger.id)
+            print('DELETING DOPPELGANGER' + doppelganger.id)
             Entities.deleteEntity(doppelganger.id);
         });
+
+        doppelgangers = [];
     }
 
     return new DressingRoom();
