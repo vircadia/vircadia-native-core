@@ -244,16 +244,23 @@
             });
 
             var cellPoster = new PosterCell({
-                x:1103.81,
-                y:461.0729,
-                z:-70.24
+                x:1103.78,
+                y:461,
+                z:-70.3
             });
 
             var playaPoster = new PosterPlaya({
-                x:1101.72,
-                y:451.51,
-                z:-73.22
+                x:1101.8,
+                y:461,
+                z:-73.3
             });
+
+
+            var livingRoomLampTriggerBoxName = "hifi-home-living-room-desk-lamp-trigger";
+            var livingRoomLampModelName = "hifi-home-model-bulldog-base";
+            Script.setTimeout(function() {
+                attachChildToParent(livingRoomLampTriggerBoxName, livingRoomLampModelName, MyAvatar.position, 20);
+            }, 1000);
 
         },
 

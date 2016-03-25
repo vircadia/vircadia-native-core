@@ -34,7 +34,8 @@
             max: 1000
         };
         _this.canCreateFlower = true;
-        _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
+        // _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
+        _this.SHADER_URL = "atp:/shaders/flower.fs";
         // _this.SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
 
         _this.flowerHSLColors = [{

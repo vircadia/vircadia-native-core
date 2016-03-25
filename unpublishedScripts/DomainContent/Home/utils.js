@@ -11,14 +11,18 @@ map = function(value, min1, max1, min2, max2) {
 }
 
 vec3toStr = function(v, digits) {
-    if (!digits) { digits = 3; }
-    return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
+    if (!digits) {
+        digits = 3;
+    }
+    return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits) + " }";
 }
 
 quatToStr = function(q, digits) {
-    if (!digits) { digits = 3; }
+    if (!digits) {
+        digits = 3;
+    }
     return "{ " + q.w.toFixed(digits) + ", " + q.x.toFixed(digits) + ", " +
-        q.y.toFixed(digits) + ", " + q.z.toFixed(digits)+ " }";
+        q.y.toFixed(digits) + ", " + q.z.toFixed(digits) + " }";
 }
 
 vec3equal = function(v0, v1) {
@@ -33,7 +37,7 @@ colorMix = function(colorA, colorB, mix) {
     return result;
 }
 
-scaleLine = function (start, end, scale) {
+scaleLine = function(start, end, scale) {
     var v = Vec3.subtract(end, start);
     var length = Vec3.length(v);
     v = Vec3.multiply(scale, v);
@@ -61,7 +65,9 @@ addLine = function(origin, vector, color) {
 // FIXME fetch from a subkey of user data to support non-destructive modifications
 setEntityUserData = function(id, data) {
     var json = JSON.stringify(data)
-    Entities.editEntity(id, { userData: json });
+    Entities.editEntity(id, {
+        userData: json
+    });
 }
 
 // FIXME do non-destructive modification of the existing user data
@@ -71,7 +77,7 @@ getEntityUserData = function(id) {
     if (properties.userData) {
         try {
             results = JSON.parse(properties.userData);
-        } catch(err) {
+        } catch (err) {
             logDebug(err);
             logDebug(properties.userData);
         }
@@ -169,7 +175,7 @@ findSphereHit = function(point, sphereRadius) {
 }
 
 findSpherePointHit = function(sphereCenter, sphereRadius, point) {
-    return findSphereHit(Vec3.subtract(point,sphereCenter), sphereRadius);
+    return findSphereHit(Vec3.subtract(point, sphereCenter), sphereRadius);
 }
 
 findSphereSphereHit = function(firstCenter, firstRadius, secondCenter, secondRadius) {
@@ -188,8 +194,8 @@ getAvatarRelativeRotation = function(q) {
 
 pointInExtents = function(point, minPoint, maxPoint) {
     return (point.x >= minPoint.x && point.x <= maxPoint.x) &&
-           (point.y >= minPoint.y && point.y <= maxPoint.y) &&
-           (point.z >= minPoint.z && point.z <= maxPoint.z);
+        (point.y >= minPoint.y && point.y <= maxPoint.y) &&
+        (point.z >= minPoint.z && point.z <= maxPoint.z);
 }
 
 /**
@@ -293,14 +299,49 @@ calculateHandSizeRatio = function() {
     // Right now units are in cm, so convert to meters
     wristToFingertipDistance /= 100;
 
-    var centerHandPoint = wristToFingertipDistance/2;
+    var centerHandPoint = wristToFingertipDistance / 2;
 
     // Compare against standard hand (Owen)
-    var handSizeRatio = centerHandPoint/standardCenterHandPoint;
+    var handSizeRatio = centerHandPoint / standardCenterHandPoint;
     return handSizeRatio;
 }
 
-clamp = function(val, min, max){
-     return Math.max(min, Math.min(max, val))
- } 
+clamp = function(val, min, max) {
+    return Math.max(min, Math.min(max, val))
+}
 
+attachChildToParent = function(childName, parentName, position, searchRadius) {
+    var childEntity, parentEntity;
+    var entities = Entities.findEntities(position, searchRadius)
+    for (var i = 0; i < entities.length; i++) {
+        // first go through and find the entity we want to attach to its parent
+        var entity = entities[i];
+        var name = Entities.getEntityProperties(entity, "name").name;
+        if (name === childName) {
+            childEntity = entity;
+            break;
+        }
+    }
+
+    if (!childEntity) {
+        print("You are trying to attach an entity that doesn't exist! Returning");
+    }
+
+    for (var i = 0; i < entities.length; i++) {
+        // first go through and find the entity we want to attach to its parent
+        var entity = entities[i];
+        var name = Entities.getEntityProperties(entity, "name").name;
+        if (name === parentName) {
+            parentEntity = entity;
+            break;
+        }
+    }
+
+    if (!parentEntity) {
+        print("You are trying to attach an entity to a parent that doesn't exist! Returning");
+        return;
+    }
+
+    print("Successfully attached " + childName + " to " + parentName);
+    Entities.editEntity(childEntity, {parentID: parentEntity});
+}
