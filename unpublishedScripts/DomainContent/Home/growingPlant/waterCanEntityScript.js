@@ -197,7 +197,7 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
+                textures: "atp:/images/raindrop.png",
                 userData: JSON.stringify({
                     'hifiHomeKey': {
                         'reset': true
