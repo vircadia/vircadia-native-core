@@ -144,9 +144,19 @@ int main(int argc, const char* argv[]) {
         Application app(argc, const_cast<char**>(argv), startupTime);
 
         // If we failed the OpenGLVersion check, log it.
-        // This needed to wait until the Application ctor for credentials.
         if (override) {
-            UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+            auto& accountManager = AccountManager::getInstance();
+            if (accountManager.isLoggedIn()) {
+                UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+            } else {
+                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glVersion](){
+                    static bool loggedInsufficientGL = false;
+                    if (!loggedInsufficientGL) {
+                        UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+                        loggedInsufficientGL = true;
+                    }
+                });
+            }
         }
 
         // Setup local server
