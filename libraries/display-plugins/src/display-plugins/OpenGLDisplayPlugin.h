@@ -17,9 +17,9 @@
 #include <GLMHelpers.h>
 #include <SimpleMovingAverage.h>
 #include <gl/OglplusHelpers.h>
-#include <gl/GLEscrow.h>
 
 #define THREADED_PRESENT 1
+#include <gl/GLEscrow.h>
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
 protected:
