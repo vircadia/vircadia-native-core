@@ -111,7 +111,6 @@ Preference {
 
                 case Preference.Checkbox:
                     checkBoxCount++;
-                    console.log("####### checkBoxCount = " + checkBoxCount);
                     builder = checkboxBuilder;
                     break;
 

@@ -44,8 +44,12 @@
          url(../../interface/resources/fonts/hifi-glyphs.ttf);
 }
 
-body {
+* {
     margin: 0;
+    padding: 0;
+}
+
+body {
     padding: 24px 12px 24px 12px;
 
     color: #afafaf;
@@ -163,15 +167,14 @@ td.url {
 }
 
 
-input, textarea {
+input[type="text"], input[type="number"], textarea {
     margin: 0;
     padding: 0 12px;
     color: #afafaf;
     background-color: #252525;
     border: none;
-    font-family: Raleway-SemiBold;
+    font-family: FiraSans-SemiBold;
     font-size: 15px;
-    font-style: normal;
 }
 
 textarea {
@@ -212,7 +215,7 @@ input:disabled, textarea:disabled {
 
 input[type="text"], input[type="number"] {
     height: 28px;
-    min-width: 120px;
+    width: 120px;
 }
 
 input[type="number"] {
@@ -222,7 +225,6 @@ input[type="number"] {
 input:focus {
     color: #fff;
     background-color: #000;
-    border: 1px dotted red;
 }
 
 input::selection {
@@ -326,46 +328,60 @@ input[type=button].red:active {
 }
 
 .section-header, .sub-section-header {
-    background: #AAA;
-    border-bottom: 0.75pt solid #CCC;
-    background-color: #333333;
-    color: #999;
-    padding: 3pt;
-    padding-top: 6pt;
+    padding: 0 0 0 0;
+    font-size: 12px;
+    color: #afafaf;
 }
 
-.section-header label, .sub-section-header label {
-    font-weight: bold;
-    font-size: 11pt;
+.property {
+    display: table;
+    width: 100%;
+    margin-top: 22px;
+    min-height: 29px;
 }
 
-.sub-section-header {
-    padding-top: 4px;
+.property label {
+    display: table-cell;
+    vertical-align: middle;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+    vertical-align: middle;
 }
 
-.sub-section-header label {
-    font-size: 9pt;
+.checkbox + .checkbox {
+    margin-top: 0;
+}
+.checkbox span {
+    display: table-cell;
+    width: 21px;
+    vertical-align: middle;
 }
 
-.multi-property-section {
+.property .number {
+    float: left;
+}
+.number + .number {
+    margin-left: 12px;
 }
 
-.property-section {
-    display: block;
-    margin: 10 10;
-    height: 22.5pt;
+.number label {
+    float: left;
+    margin-bottom: 4px;
+}
+.number span {
+    clear: both;
+    float: left;
 }
 
-.property-section label {
-    font-weight: bold;
+.color span, .color label {
+    display: inline-block;
+    float: left;
+}
+.color label {
+    padding: 4px 12px 0 0;
+    margin-left: 12px;
 }
 
-.property-section span {
-    float: right;
-}
-
-.grid-section {
-}
 
 .color-picker {
     width: 50px;
@@ -436,9 +452,6 @@ input[type=button].red:active {
     margin-right: -148px;
 }
 
-#radius {
-    width: 4em;
-}
 
 #entity-table-scroll {
     /* Height is set by JavaScript. */
