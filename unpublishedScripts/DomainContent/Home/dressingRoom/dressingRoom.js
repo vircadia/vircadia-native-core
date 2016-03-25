@@ -2,7 +2,7 @@
 
     var utilsPath = Script.resolvePath("../utils.js");
     Script.include(utilsPath);
-    var avatarModelURL;
+    var avatarModelURL ='https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
 
     DressingRoom = function() {
         return this
@@ -12,19 +12,19 @@
         preload: function(entityID) {
             print('PRELOAD DRESSING ROOM');
             this.entityID = entityID;
-            avatarModelURL = getAvatarFBX();
+            // avatarModelURL = getAvatarFBX();
         },
         enterEntity: function() {
             print('ENTER DRESSING ROOM');
-            avatarModelURL = getAvatarFBX();
+            // avatarModelURL = getAvatarFBX();
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
             // subscribeToFreezeMessages();
             this.setOccupied();
             var doppelProps = Entities.getEntityProperties(this.entityID);
-            Entities.editEntity(doppelgangers[0], {
-                dimensions: doppelProps.naturalDimensions,
-            });
+            // Entities.editEntity(doppelgangers[0], {
+            //     dimensions: doppelProps.naturalDimensions,
+            // });
         },
         leaveEntity: function() {
             print('EXIT DRESSING ROOM!');
@@ -68,7 +68,7 @@
     var MIRROR_JOINT_DATA = true;
     var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
     var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000))
-    var THROTTLE = true;
+    var THROTTLE = false;
     var THROTTLE_RATE = 100;
     var doppelgangers = [];
 
@@ -147,7 +147,7 @@
             jointRotations.push(relativeXforms[i].rot);
         }
         var setJointSuccess = Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
-        print('JOINT ROTATIONS:: ' + JSON.stringify(jointRotations));
+        // print('JOINT ROTATIONS:: ' + JSON.stringify(jointRotations));
         print('SUCCESS SETTING JOINTS?' + setJointSuccess + "for " + doppelganger.id)
         return;
     }
