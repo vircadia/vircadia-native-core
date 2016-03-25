@@ -337,8 +337,8 @@ void SendQueue::run() {
         // which can lock the NodeList if it's attempting to clear connections
         // for now we guard this by capping the time this thread and sleep for
 
-        const int MAX_SEND_QUEUE_SLEEP_USECS = 5000000;
-        if (timeToSleep.count() > MAX_SEND_QUEUE_SLEEP_USECS) {
+        const microseconds MAX_SEND_QUEUE_SLEEP_USECS { 5000000 };
+        if (timeToSleep > MAX_SEND_QUEUE_SLEEP_USECS) {
             // alright, we're in a weird state
             // we want to know why this is happening so we can implement a better fix than this guard
             // send some details up to the API (if the user allows us) that indicate how we could such a large timeToSleep
@@ -355,7 +355,7 @@ void SendQueue::run() {
             // hopefully send this event using the user activity logger
             UserActivityLogger::getInstance().logAction(SEND_QUEUE_LONG_SLEEP_ACTION, longSleepObject);
 
-            timeToSleep = std::chrono::microseconds(MAX_SEND_QUEUE_SLEEP_USECS);
+            timeToSleep = MAX_SEND_QUEUE_SLEEP_USECS;
         }
 
         std::this_thread::sleep_for(timeToSleep);

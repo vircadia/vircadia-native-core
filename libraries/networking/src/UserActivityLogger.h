@@ -39,7 +39,6 @@ public slots:
     void wentTo(QString destinationType, QString destinationName);
     
 private slots:
-    void requestFinished(QNetworkReply& requestReply);
     void requestError(QNetworkReply& errorReply);
     
 private:
