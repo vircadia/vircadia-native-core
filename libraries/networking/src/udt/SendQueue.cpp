@@ -352,11 +352,11 @@ void SendQueue::run() {
 
             // setup a json object with the details we want
             QJsonObject longSleepObject;
-            longSleepObject["timeToSleep"] = int64_t(timeToSleep.count());
+            longSleepObject["timeToSleep"] = qint64(timeToSleep.count());
             longSleepObject["packetSendPeriod"] = _packetSendPeriod.load();
             longSleepObject["nextPacketDelta"] = nextPacketDelta;
-            longSleepObject["nextPacketTimestamp"] = int64_t(nextPacketTimestamp.time_since_epoch().count());
-            longSleepObject["then"] = int64_t(now.time_since_epoch().count());
+            longSleepObject["nextPacketTimestamp"] = qint64(nextPacketTimestamp.time_since_epoch().count());
+            longSleepObject["then"] = qint64(now.time_since_epoch().count());
 
             // hopefully send this event using the user activity logger
             UserActivityLogger::getInstance().logAction(SEND_QUEUE_LONG_SLEEP_ACTION, longSleepObject);
