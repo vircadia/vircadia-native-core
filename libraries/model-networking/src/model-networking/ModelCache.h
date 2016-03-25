@@ -139,7 +139,6 @@ public:
     using MapChannel = model::Material::MapChannel;
 
     NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
-    NetworkMaterial(const NetworkMaterial& material, const QVariantMap& textureMap);
 
 protected:
     friend class Geometry;
@@ -171,7 +170,7 @@ private:
     Transform _lightmapTransform;
     vec2 _lightmapParams;
 
-    bool _isOriginal;
+    bool _isOriginal { true };
 };
 
 class NetworkShape {
