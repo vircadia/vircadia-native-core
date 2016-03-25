@@ -57,16 +57,18 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
 }
 
 void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
-    EntitySimulation::removeEntityInternal(entity);
-    QMutexLocker lock(&_mutex);
-    _entitiesToAddToPhysics.remove(entity);
+    if (entity->isSimulated()) {
+        EntitySimulation::removeEntityInternal(entity);
+        QMutexLocker lock(&_mutex);
+        _entitiesToAddToPhysics.remove(entity);
 
-    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-    if (motionState) {
-        _outgoingChanges.remove(motionState);
-        _entitiesToRemoveFromPhysics.insert(entity);
-    } else {
-        _entitiesToDelete.insert(entity);
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            _outgoingChanges.remove(motionState);
+            _entitiesToRemoveFromPhysics.insert(entity);
+        } else {
+            _entitiesToDelete.insert(entity);
+        }
     }
 }
 
@@ -175,7 +177,7 @@ void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionState
             _entitiesToRelease.insert(entity);
         }
 
-        if (entity->isSimulated() && entity->isDead()) {
+        if (entity->isDead()) {
             _entitiesToDelete.insert(entity);
         }
     }
@@ -190,7 +192,7 @@ void PhysicalEntitySimulation::deleteObjectsRemovedFromPhysics() {
         entity->setPhysicsInfo(nullptr);
         delete motionState;
 
-        if (entity->isSimulated() && entity->isDead()) {
+        if (entity->isDead()) {
             _entitiesToDelete.insert(entity);
         }
     }

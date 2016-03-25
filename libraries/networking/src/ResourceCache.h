@@ -198,7 +198,7 @@ public:
 signals:
     /// Fired when the resource has been downloaded.
     /// This can be used instead of downloadFinished to access data before it is processed.
-    void loaded(const QByteArray& request);
+    void loaded(const QByteArray request);
 
     /// Fired when the resource has finished loading.
     void finished(bool success);
