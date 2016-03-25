@@ -1071,18 +1071,21 @@ float Model::getLimbLength(int jointIndex) const {
 }
 
 bool Model::maybeStartBlender() {
-    const FBXGeometry& fbxGeometry = getFBXGeometry();
-    if (fbxGeometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _geometry,
-            fbxGeometry.meshes, _blendshapeCoefficients));
-        return true;
+    if (isLoaded()) {
+        const FBXGeometry& fbxGeometry = getFBXGeometry();
+        if (fbxGeometry.hasBlendedMeshes()) {
+            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _geometry,
+                fbxGeometry.meshes, _blendshapeCoefficients));
+            return true;
+        }
     }
     return false;
 }
 
 void Model::setBlendedVertices(int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (_geometry != geometry.lock() || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
+    auto geometryRef = geometry.lock();
+    if (!geometryRef || _geometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
         return;
     }
     _appliedBlendNumber = blendNumber;
