@@ -139,7 +139,7 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     }
 
     if (!_isLoadedWithTextures) {
-        _hasTransparentTextures = true;
+        _hasTransparentTextures = false;
 
         for (auto&& material : _materials) {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
@@ -156,7 +156,7 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 material->_material->setTextureMap(model::MaterialKey::ALBEDO_MAP, material->_material->getTextureMap(model::MaterialKey::ALBEDO_MAP));
                 const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
                 bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
-                _hasTransparentTextures = isTransparentTexture && _hasTransparentTextures;
+                _hasTransparentTextures |= isTransparentTexture;
             }
         }
 
@@ -176,9 +176,9 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
                 auto albedoMap = model::TextureMapPointer(new model::TextureMap());
                 albedoMap->setTextureSource(material->albedoTexture->_textureSource);
-                albedoMap->setTextureTransform(
-                    oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
-
+                albedoMap->setTextureTransform(oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
+                // when reassigning the albedo texture we also check for the alpha channel used as opacity
+                albedoMap->setUseAlphaChannel(true); 
                 networkMaterial->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);

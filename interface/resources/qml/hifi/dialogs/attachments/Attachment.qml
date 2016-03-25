@@ -4,11 +4,8 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-//import "../../../windows"
-//import "../../../controls" as VrControls
 import "."
 import ".."
-
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
 import "../../../windows-uit"
@@ -33,13 +30,13 @@ Item {
     Column {
         y: 8
         id: column
-        anchors { left: parent.left; right: parent.right; margins: 8 }
+        anchors { left: parent.left; right: parent.right; margins: 20 }
         spacing: 8
 
         Item {
-            height: modelChooserButton.height + urlLabel.height
+            height: modelChooserButton.height + urlLabel.height + 4
             anchors { left: parent.left; right: parent.right;}
-            Text { id: urlLabel; color: hifi.colors.lightGrayText; text: "Model URL:"; width: 80;  anchors.top: parent.top;}
+            HifiControls.Label { id: urlLabel; color: hifi.colors.lightGrayText; text: "Model URL"; anchors.top: parent.top;}
             HifiControls.TextField {
                 id: modelUrl;
                 height:  jointChooser.height;
@@ -60,12 +57,12 @@ Item {
                 colorScheme: hifi.colorSchemes.dark
                 anchors { right: parent.right; verticalCenter: modelUrl.verticalCenter }
                 Component {
-                    id: modelBrowserBuiler;
+                    id: modelBrowserBuilder;
                     ModelBrowserDialog {}
                 }
 
                 onClicked: {
-                    var browser = modelBrowserBuiler.createObject(desktop);
+                    var browser = modelBrowserBuilder.createObject(desktop);
                     browser.selected.connect(function(newModelUrl){
                         modelUrl.text = newModelUrl;
                     })
@@ -74,12 +71,11 @@ Item {
         }
 
         Item {
-            height: jointChooser.height + jointLabel.height
+            height: jointChooser.height + jointLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
-            Text {
+            HifiControls.Label {
                 id: jointLabel;
-                width: 80;
-                text: "Joint:";
+                text: "Joint";
                 color: hifi.colors.lightGrayText;
                 anchors.top: parent.top
             }
@@ -99,9 +95,9 @@ Item {
         }
 
         Item {
-            height: translation.height + translationLabel.height
+            height: translation.height + translationLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
-            Text { id: translationLabel; width: 80; color: hifi.colors.lightGrayText; text: "Translation:"; anchors.top: parent.top; }
+            HifiControls.Label { id: translationLabel; color: hifi.colors.lightGrayText; text: "Translation"; anchors.top: parent.top; }
             Translation {
                 id: translation;
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom}
@@ -116,9 +112,9 @@ Item {
         }
 
         Item {
-            height: rotation.height + rotationLabel.height
+            height: rotation.height + rotationLabel.height + 4
             anchors { left: parent.left; right: parent.right; }
-            Text { id: rotationLabel; width: 80; color: hifi.colors.lightGrayText; text: "Rotation:"; anchors.top: parent.top; }
+            HifiControls.Label { id: rotationLabel; color: hifi.colors.lightGrayText; text: "Rotation"; anchors.top: parent.top; }
             Rotation {
                 id: rotation;
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom; }
@@ -133,45 +129,58 @@ Item {
         }
 
         Item {
-            height: scaleSpinner.height + scaleLabel.height
+            height: scaleItem.height
             anchors { left: parent.left; right: parent.right; }
-            Text { id: scaleLabel; width: 80; color: hifi.colors.lightGrayText; text: "Scale:"; anchors.top: parent.top; }
-            HifiControls.SpinBox {
-                id: scaleSpinner;
-                anchors { left: parent.left; right: parent.right; bottom: parent.bottom; }
-                decimals: 1;
-                minimumValue: 0.1
-                maximumValue: 10
-                stepSize: 0.1;
-                value: attachment ? attachment.scale : 1.0
-                colorScheme: hifi.colorSchemes.dark
-                onValueChanged: {
-                    if (completed && attachment && attachment.scale !== value) {
-                        attachment.scale = value;
-                        updateAttachment();
+
+            Item {
+                id: scaleItem
+                height: scaleSpinner.height + scaleLabel.height + 4
+                width: parent.width / 3 - 8
+                anchors { right: parent.right; }
+                HifiControls.Label { id: scaleLabel; color: hifi.colors.lightGrayText; text: "Scale"; anchors.top: parent.top; }
+                HifiControls.SpinBox {
+                    id: scaleSpinner;
+                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom; }
+                    decimals: 1;
+                    minimumValue: 0.1
+                    maximumValue: 10
+                    stepSize: 0.1;
+                    value: attachment ? attachment.scale : 1.0
+                    colorScheme: hifi.colorSchemes.dark
+                    onValueChanged: {
+                        if (completed && attachment && attachment.scale !== value) {
+                            attachment.scale = value;
+                            updateAttachment();
+                        }
+                    }
+                }
+            }
+
+            Item {
+                id: isSoftItem
+                height: scaleSpinner.height
+                anchors {
+                    left: parent.left
+                    bottom: parent.bottom
+                }
+                HifiControls.CheckBox {
+                    id: soft
+                    text: "Is soft"
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                    }
+                    checked: attachment ? attachment.soft : false
+                    colorScheme: hifi.colorSchemes.dark
+                    onCheckedChanged: {
+                        if (completed && attachment && attachment.soft !== checked) {
+                            attachment.soft = checked;
+                            updateAttachment();
+                        }
                     }
                 }
             }
         }
-
-        Item {
-            height: soft.height
-            anchors { left: parent.left; right: parent.right; }
-            Text { id: softLabel; width: 80; color: hifi.colors.lightGrayText; text: "Is soft"; anchors.left: soft.right; anchors.leftMargin: 8; }
-            HifiControls.CheckBox {
-                id: soft;
-                anchors { left: parent.left; bottom: parent.bottom;}
-                checked: attachment ? attachment.soft : false
-                colorScheme: hifi.colorSchemes.dark
-                onCheckedChanged: {
-                    if (completed && attachment && attachment.soft !== checked) {
-                        attachment.soft = checked;
-                        updateAttachment();
-                    }
-                }
-            }
-        }
-
         HifiControls.Button {
             color: hifi.buttons.black
             colorScheme: hifi.colorSchemes.dark

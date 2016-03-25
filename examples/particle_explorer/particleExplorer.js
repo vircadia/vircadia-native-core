@@ -198,6 +198,16 @@ function createColorPicker(key) {
     settings[key] = colorArray;
     var controller = gui.addColor(settings, key);
     controller.onChange(function(value) {
+        // Handle hex colors
+        if(_.isString(value) && value[0] === '#') {
+            const BASE_HEX = 16;
+            var colorRegExResult = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(value);
+            value = [
+                parseInt(colorRegExResult[1], BASE_HEX),
+                parseInt(colorRegExResult[2], BASE_HEX),
+                parseInt(colorRegExResult[3], BASE_HEX)
+            ];
+        }
         var obj = {};
         obj[key] = convertColorArrayToObject(value);
         writeVec3ToInterface(obj);

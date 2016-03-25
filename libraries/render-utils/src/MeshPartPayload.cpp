@@ -81,7 +81,7 @@ ItemKey MeshPartPayload::getKey() const {
 
     if (_drawMaterial) {
         auto matKey = _drawMaterial->getKey();
-        if (matKey.isTranslucentFactor() || matKey.isTranslucentMap()) {
+        if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
     }

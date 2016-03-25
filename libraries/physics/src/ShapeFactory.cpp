@@ -120,3 +120,21 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     }
     return shape;
 }
+
+void ShapeFactory::deleteShape(btCollisionShape* shape) {
+    assert(shape);
+    if (shape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
+        btCompoundShape* compoundShape = static_cast<btCompoundShape*>(shape);
+        const int numChildShapes = compoundShape->getNumChildShapes();
+        for (int i = 0; i < numChildShapes; i ++) {
+            btCollisionShape* childShape = compoundShape->getChildShape(i);
+            if (childShape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
+                // recurse
+                ShapeFactory::deleteShape(childShape);
+            } else {
+                delete childShape;
+            }
+        }
+    }
+    delete shape;
+}

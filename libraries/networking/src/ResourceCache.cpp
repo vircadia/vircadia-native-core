@@ -216,17 +216,13 @@ Resource* ResourceCacheSharedItems::getHighestPendingRequest() {
 bool ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
 
-    // Disable request limiting for ATP
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        if (_requestsActive >= _requestLimit) {
-            // wait until a slot becomes available
-            sharedItems->appendPendingRequest(resource);
-            return false;
-        }
-
-        ++_requestsActive;
+    if (_requestsActive >= _requestLimit) {
+        // wait until a slot becomes available
+        sharedItems->appendPendingRequest(resource);
+        return false;
     }
-
+    
+    ++_requestsActive;
     sharedItems->appendActiveRequest(resource);
     resource->makeRequest();
     return true;
@@ -235,9 +231,7 @@ bool ResourceCache::attemptRequest(Resource* resource) {
 void ResourceCache::requestCompleted(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->removeRequest(resource);
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        --_requestsActive;
-    }
+    --_requestsActive;
 
     attemptHighestPriorityRequest();
 }
@@ -429,12 +423,12 @@ void Resource::handleReplyFinished() {
     
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
-        _data = _request->getData();
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
-        emit loaded(_data);
-        downloadFinished(_data);
+        auto data = _request->getData();
+        emit loaded(data);
+        downloadFinished(data);
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {

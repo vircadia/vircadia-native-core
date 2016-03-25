@@ -33,7 +33,7 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
     // verity we can compute the inertia tensor of a box in two different ways:
     // (a) as one box
     // (b) as a combination of two partial boxes.
-    
+
     btScalar bigBoxX = 7.0f;
     btScalar bigBoxY = 9.0f;
     btScalar bigBoxZ = 11.0f;
@@ -62,9 +62,9 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
 }
 
 void MeshMassPropertiesTests::testTetrahedron(){
-    // given the four vertices of a tetrahedron verify the analytic formula for inertia 
+    // given the four vertices of a tetrahedron verify the analytic formula for inertia
     // agrees with expected results
-    
+
     // these numbers from the Tonon paper:
     btVector3 points[4];
     points[0] = btVector3(8.33220f, -11.86875f, 0.93355f);
@@ -102,14 +102,14 @@ void MeshMassPropertiesTests::testTetrahedron(){
     }
     btMatrix3x3 inertia;
     computeTetrahedronInertia(volume, points, inertia);
-    
+
     QCOMPARE_WITH_ABS_ERROR(volume, expectedVolume, acceptableRelativeError * volume);
-    
+
     QCOMPARE_WITH_RELATIVE_ERROR(inertia, expectedInertia, acceptableRelativeError);
 }
 
 void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
-    // given the simplest possible mesh (open, with one triangle) 
+    // given the simplest possible mesh (open, with one triangle)
     // verify MeshMassProperties computes the right nubers
 
     // these numbers from the Tonon paper:
@@ -155,7 +155,7 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
 void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
     // given a tetrahedron as a closed mesh of four tiangles
     // verify MeshMassProperties computes the right nubers
-    
+
     // these numbers from the Tonon paper:
     VectorOfPoints points;
     points.push_back(btVector3(8.33220f, -11.86875f, 0.93355f));
@@ -186,7 +186,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
     // compute mass properties
     MeshMassProperties mesh(points, triangles);
-    
+
     // verify
     QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
     QCOMPARE_WITH_ABS_ERROR(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
@@ -210,7 +210,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
 void MeshMassPropertiesTests::testBoxAsMesh() {
     // verify that a mesh box produces the same mass properties as the analytic box.
-    
+
     // build a box:
     //                            /
     //                           y
@@ -265,7 +265,7 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
     MeshMassProperties mesh(points, triangles);
 
     // verify
-    
+
     QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
     QCOMPARE_WITH_ABS_ERROR(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
 
