@@ -354,6 +354,7 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
+         _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
          _model->getScaleToFitDimensions() != getDimensions() ||
          _model->getRotation() != getRotation() ||
@@ -371,6 +372,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         }
 
         _needsInitialSimulation = false;
+        _needsJointSimulation = false;
     }
 }
 
@@ -772,6 +774,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
             result = true;
         }
+        _needsJointSimulation = true;
     });
     return result;
 }

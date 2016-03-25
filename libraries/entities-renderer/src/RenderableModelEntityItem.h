@@ -97,6 +97,8 @@ private:
     bool _showCollisionHull = false;
 
     bool getAnimationFrame();
+
+    bool _needsJointSimulation { false };
 };
 
 #endif // hifi_RenderableModelEntityItem_h
