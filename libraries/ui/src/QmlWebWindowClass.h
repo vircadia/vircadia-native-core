@@ -11,10 +11,13 @@
 
 #include "QmlWindowClass.h"
 
+class QWebChannel;
+
 // FIXME refactor this class to be a QQuickItem derived type and eliminate the needless wrapping 
 class QmlWebWindowClass : public QmlWindowClass {
     Q_OBJECT
     Q_PROPERTY(QString url READ getURL CONSTANT)
+    Q_PROPERTY(QString uid READ getUid CONSTANT)
 
 public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
@@ -23,12 +26,18 @@ public:
 public slots:
     QString getURL() const;
     void setURL(const QString& url);
+    const QString& getUid() const { return _uid; }
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
 
 signals:
     void urlChanged();
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
 
-private slots:
-    void handleNavigation(const QString& url);
+private:
+    QString _uid;
+    QWebChannel* _webchannel { nullptr };
 };
 
 #endif
