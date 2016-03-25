@@ -348,7 +348,7 @@ const QString& NetworkMaterial::getTextureName(MapChannel channel) {
 
 QUrl NetworkMaterial::getTextureUrl(const QUrl& url, const FBXTexture& texture) {
     // If content is inline, cache it under the fbx file, not its url
-    const auto baseUrl = texture.content.isEmpty() ? url: QUrl(url.url() + "/");
+    const auto baseUrl = texture.content.isEmpty() ? url : QUrl(url.url() + "/");
     return baseUrl.resolved(QUrl(texture.filename));
 }
 
@@ -446,43 +446,50 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
     const auto& emissiveName = getTextureName(MapChannel::EMISSIVE_MAP);
     const auto& lightmapName = getTextureName(MapChannel::LIGHTMAP_MAP);
 
-    if (!albedoName.isEmpty() && textureMap.contains(albedoName)) {
-        auto map = fetchTextureMap(textureMap[albedoName].toUrl(), DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
+    if (!albedoName.isEmpty()) {
+        auto url = textureMap.contains(albedoName) ? textureMap[albedoName].toUrl() : QUrl();
+        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
         map->setTextureTransform(_albedoTransform);
         // when reassigning the albedo texture we also check for the alpha channel used as opacity
         map->setUseAlphaChannel(true);
         setTextureMap(MapChannel::ALBEDO_MAP, map);
     }
 
-    if (!normalName.isEmpty() && textureMap.contains(normalName)) {
-        auto map = fetchTextureMap(textureMap[normalName].toUrl(), DEFAULT_TEXTURE, MapChannel::NORMAL_MAP);
+    if (!normalName.isEmpty()) {
+        auto url = textureMap.contains(normalName) ? textureMap[normalName].toUrl() : QUrl();
+        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::NORMAL_MAP);
         setTextureMap(MapChannel::NORMAL_MAP, map);
     }
 
-    if (!roughnessName.isEmpty() && textureMap.contains(roughnessName)) {
+    if (!roughnessName.isEmpty()) {
+        auto url = textureMap.contains(roughnessName) ? textureMap[roughnessName].toUrl() : QUrl();
         // FIXME: If passing a gloss map instead of a roughmap how do we know?
-        auto map = fetchTextureMap(textureMap[roughnessName].toUrl(), ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
+        auto map = fetchTextureMap(url, ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
         setTextureMap(MapChannel::ROUGHNESS_MAP, map);
     }
 
-    if (!metallicName.isEmpty() && textureMap.contains(metallicName)) {
+    if (!metallicName.isEmpty()) {
+        auto url = textureMap.contains(metallicName) ? textureMap[metallicName].toUrl() : QUrl();
         // FIXME: If passing a specular map instead of a metallic how do we know?
-        auto map = fetchTextureMap(textureMap[metallicName].toUrl(), METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
+        auto map = fetchTextureMap(url, METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
         setTextureMap(MapChannel::METALLIC_MAP, map);
     }
 
-    if (!occlusionName.isEmpty() && textureMap.contains(occlusionName)) {
-        auto map = fetchTextureMap(textureMap[occlusionName].toUrl(), OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
+    if (!occlusionName.isEmpty()) {
+        auto url = textureMap.contains(occlusionName) ? textureMap[occlusionName].toUrl() : QUrl();
+        auto map = fetchTextureMap(url, OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
         setTextureMap(MapChannel::OCCLUSION_MAP, map);
     }
 
-    if (!emissiveName.isEmpty() && textureMap.contains(emissiveName)) {
-        auto map = fetchTextureMap(textureMap[emissiveName].toUrl(), EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
+    if (!emissiveName.isEmpty()) {
+        auto url = textureMap.contains(emissiveName) ? textureMap[emissiveName].toUrl() : QUrl();
+        auto map = fetchTextureMap(url, EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
         setTextureMap(MapChannel::EMISSIVE_MAP, map);
     }
 
-    if (!lightmapName.isEmpty() && textureMap.contains(lightmapName)) {
-        auto map = fetchTextureMap(textureMap[lightmapName].toUrl(), LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
+    if (!lightmapName.isEmpty()) {
+        auto url = textureMap.contains(lightmapName) ? textureMap[lightmapName].toUrl() : QUrl();
+        auto map = fetchTextureMap(url, LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
         map->setTextureTransform(_lightmapTransform);
         map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
         setTextureMap(MapChannel::LIGHTMAP_MAP, map);
