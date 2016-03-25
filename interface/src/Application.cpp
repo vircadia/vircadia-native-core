@@ -306,7 +306,10 @@ public:
 
 #ifdef NDEBUG
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
-                qDebug() << "DEADLOCK DETECTED -- lastHeartbeatAge:" << lastHeartbeatAge 
+                qDebug() << "DEADLOCK DETECTED -- "
+                         << "lastHeartbeatAge:" << lastHeartbeatAge
+                         << "[ _heartbeat:" << _heartbeat
+                         << "now:" << now << " ]"
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
