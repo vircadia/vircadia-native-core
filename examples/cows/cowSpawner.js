@@ -1,3 +1,16 @@
+  //
+//  cowSpawner.js
+//  examples/cows
+//
+//  Created by Eric Levin on 3/25/16
+//  Copyright 2016 High Fidelity, Inc.
+//
+// This spawns a cow which will untip itself
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
   var orientation = MyAvatar.orientation;
   orientation = Quat.safeEulerAngles(orientation);
   orientation.x = 0;

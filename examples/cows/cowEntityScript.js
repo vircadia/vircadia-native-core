@@ -1,3 +1,18 @@
+  //
+//  cowEntityScript.js
+//  examples/cows
+//
+//  Created by Eric Levin on 3/25/16
+//  Copyright 2016 High Fidelity, Inc.
+//
+// This entity script handles the logic for untipping a cow after it collides with something
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
 (function() {
     Script.include("../libraries/utils.js");
 
@@ -15,7 +30,6 @@
     }
 
     this.collisionWithEntity = function(myID, otherID, collisionInfo) {
-        print("EBL COLLISION WITH ENTITY!");
         if(_this.shouldUntipCow) {
           Script.setTimeout(function() {
              _this.untipCow();  
@@ -28,7 +42,6 @@
     }
 
     this.untipCow = function() {
-        print("EBL UNTIP COW");
         // keep yaw but reset pitch and roll
         var cowProps = Entities.getEntityProperties(_this.entityID, ["rotation", "position"]);
         var eulerRotation = Quat.safeEulerAngles(cowProps.rotation);
