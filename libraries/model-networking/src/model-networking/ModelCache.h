@@ -58,10 +58,10 @@ public:
 
     // Immutable over lifetime
     using NetworkMeshes = std::vector<std::shared_ptr<const NetworkMesh>>;
-    using NetworkShapes = std::vector<NetworkShape>;
+    using NetworkShapes = std::vector<std::shared_ptr<const NetworkShape>>;
 
     // Mutable, but must retain structure of vector
-    using NetworkMaterials = std::vector<std::shared_ptr<const NetworkMaterial>>;
+    using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
 
     const FBXGeometry& getGeometry() const { return *_geometry; }
     const NetworkMeshes& getMeshes() const { return *_meshes; }
@@ -156,12 +156,18 @@ protected:
     static const QString NO_TEXTURE;
     const QString& getTextureName(MapChannel channel);
 
+    void setTextures(const QVariantMap& textureMap);
+
+    const bool& isOriginal() const { return _isOriginal; }
+
 private:
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
     model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
         TextureType type, MapChannel channel);
     model::TextureMapPointer fetchTextureMap(const QUrl& url, TextureType type, MapChannel channel);
+
+    bool _isOriginal;
 };
 
 class NetworkShape {

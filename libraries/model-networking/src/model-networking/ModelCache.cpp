@@ -193,7 +193,7 @@ void GeometryDefinitionResource::setGeometryDefinition(void* fbxGeometry) {
         int partID = 0;
         for (const FBXMeshPart& part : mesh.parts) {
             // Construct local shapes
-            shapes->emplace_back(meshID, partID, (int)materialIDAtlas[part.materialID]);
+            shapes->push_back(std::make_shared<NetworkShape>(meshID, partID, (int)materialIDAtlas[part.materialID]));
             partID++;
         }
         meshID++;
@@ -249,7 +249,13 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
                 [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.texture && textureMap.contains(it.name); })) { 
 
-                material = std::make_shared<NetworkMaterial>(*material, textureMap);
+                if (material->isOriginal()) {
+                    // On first mutation, copy the material to avoid altering the cache
+                    material = std::make_shared<NetworkMaterial>(*material, textureMap);
+                } else {
+                    // On later mutations, we can mutate in-place
+                    material->setTextures(textureMap);
+                }
                 _areTexturesLoaded = false;
             }
         }
@@ -286,7 +292,7 @@ bool Geometry::areTexturesLoaded() const {
 
 const std::shared_ptr<const NetworkMaterial> Geometry::getShapeMaterial(int shapeID) const {
     if ((shapeID >= 0) && (shapeID < (int)_shapes->size())) {
-        int materialID = _shapes->at(shapeID).materialID;
+        int materialID = _shapes->at(shapeID)->materialID;
         if ((materialID >= 0) && (materialID < (int)_materials.size())) {
             return _materials[materialID];
         }
@@ -348,7 +354,15 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, Textu
     return map;
 }
 
-NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) {
+NetworkMaterial::NetworkMaterial(const NetworkMaterial& material, const QVariantMap& textureMap) :
+    _textures(material._textures), _isOriginal(false)
+{
+    setTextures(textureMap);
+}
+
+NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) :
+    model::Material(*material._material), _isOriginal(true)
+{
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
@@ -406,9 +420,7 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
     }
 }
 
-NetworkMaterial::NetworkMaterial(const NetworkMaterial& material, const QVariantMap& textureMap) : NetworkMaterial(material) {
-    _textures = material._textures;
-
+void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
     const auto& albedoName = getTextureName(MapChannel::ALBEDO_MAP);
     const auto& normalName = getTextureName(MapChannel::NORMAL_MAP);
     const auto& roughnessName = getTextureName(MapChannel::ROUGHNESS_MAP);
