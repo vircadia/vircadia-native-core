@@ -103,6 +103,7 @@ SendQueue& Connection::getSendQueue() {
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
         QObject::connect(_sendQueue.get(), &SendQueue::timeout, this, &Connection::queueTimeout);
+        QObject::connect(_sendQueue.get(), &SendQueue::shortCircuitLoss, this, &Connection::queueShortCircuitLoss);
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
@@ -137,6 +138,12 @@ void Connection::queueInactive() {
 void Connection::queueTimeout() {
     updateCongestionControlAndSendQueue([this]{
         _congestionControl->onTimeout();
+    });
+}
+
+void Connection::queueShortCircuitLoss(quint32 sequenceNumber) {
+    updateCongestionControlAndSendQueue([this, sequenceNumber]{
+        _congestionControl->onLoss(SequenceNumber { sequenceNumber }, SequenceNumber { sequenceNumber });
     });
 }
 

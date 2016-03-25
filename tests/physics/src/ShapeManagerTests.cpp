@@ -21,7 +21,7 @@ void ShapeManagerTests::testShapeAccounting() {
     ShapeManager shapeManager;
     ShapeInfo info;
     info.setBox(glm::vec3(1.0f, 1.0f, 1.0f));
-    
+
     int numReferences = shapeManager.getNumReferences(info);
     QCOMPARE(numReferences, 0);
 
@@ -42,10 +42,10 @@ void ShapeManagerTests::testShapeAccounting() {
     QCOMPARE(numReferences, expectedNumReferences);
 
     // release all references
-    bool released = shapeManager.releaseShape(info);
+    bool released = shapeManager.releaseShape(shape);
     numReferences--;
     while (numReferences > 0) {
-        released = shapeManager.releaseShape(info) && released;
+        released = shapeManager.releaseShape(shape) && released;
         numReferences--;
     }
     QCOMPARE(released, true);
@@ -69,7 +69,7 @@ void ShapeManagerTests::testShapeAccounting() {
     QCOMPARE(numReferences, 1);
 
     // release reference and verify that it is collected as garbage
-    released = shapeManager.releaseShape(info);
+    released = shapeManager.releaseShape(shape);
     shapeManager.collectGarbage();
     QCOMPARE(shapeManager.getNumShapes(), 0);
     QCOMPARE(shapeManager.hasShape(shape), false);
@@ -182,4 +182,59 @@ void ShapeManagerTests::addCapsuleShape() {
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     QCOMPARE(shape, otherShape);
     */
+}
+
+void ShapeManagerTests::addCompoundShape() {
+    // initialize some points for generating tetrahedral convex hulls
+    QVector<glm::vec3> tetrahedron;
+    tetrahedron.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+    tetrahedron.push_back(glm::vec3(1.0f, -1.0f, -1.0f));
+    tetrahedron.push_back(glm::vec3(-1.0f, 1.0f, -1.0f));
+    tetrahedron.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
+    int numHullPoints = tetrahedron.size();
+
+    // compute the points of the hulls
+    QVector< QVector<glm::vec3> > hulls;
+    int numHulls = 5;
+    glm::vec3 offsetNormal(1.0f, 0.0f, 0.0f);
+    for (int i = 0; i < numHulls; ++i) {
+        glm::vec3 offset = (float)(i - numHulls/2) * offsetNormal;
+        QVector<glm::vec3> hull;
+        float radius = (float)(i + 1);
+        for (int j = 0; j < numHullPoints; ++j) {
+            glm::vec3 point = radius * tetrahedron[j] + offset;
+            hull.push_back(point);
+        }
+        hulls.push_back(hull);
+    }
+
+    // create the ShapeInfo
+    ShapeInfo info;
+    info.setConvexHulls(hulls);
+
+    // create the shape
+    ShapeManager shapeManager;
+    btCollisionShape* shape = shapeManager.getShape(info);
+    QVERIFY(shape != nullptr);
+
+    // verify the shape is correct type
+    QCOMPARE(shape->getShapeType(), (int)COMPOUND_SHAPE_PROXYTYPE);
+
+    // verify the shape has correct number of children
+    btCompoundShape* compoundShape = static_cast<btCompoundShape*>(shape);
+    QCOMPARE(compoundShape->getNumChildShapes(), numHulls);
+
+    // verify manager has only one shape
+    QCOMPARE(shapeManager.getNumShapes(), 1);
+    QCOMPARE(shapeManager.getNumReferences(info), 1);
+
+    // release the shape
+    shapeManager.releaseShape(shape);
+    QCOMPARE(shapeManager.getNumShapes(), 1);
+    QCOMPARE(shapeManager.getNumReferences(info), 0);
+
+    // collect garbage
+    shapeManager.collectGarbage();
+    QCOMPARE(shapeManager.getNumShapes(), 0);
+    QCOMPARE(shapeManager.getNumReferences(info), 0);
 }

@@ -35,6 +35,7 @@ protected:
 
     void hmdPresent() override;
     bool isHmdMounted() const override;
+    void postPreview() override;
 
 private:
     vr::IVRSystem* _system { nullptr };

@@ -38,12 +38,6 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    virtual void somethingChangedNotification() override {
-        // FIX ME: this is overly aggressive. We only really need to simulate() if something about
-        // the world space transform has changed and/or if some animation is occurring.
-        _needsInitialSimulation = true;
-    }
-
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;

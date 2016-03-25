@@ -59,7 +59,7 @@ float fetchOcclusionMap(vec2 uv) {
 
 <@func fetchMaterialTextures(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, occlusion)@>
 <@if albedo@>
-    vec4 <$albedo$> = (((<$matKey$> & ALBEDO_MAP_BIT) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
+    vec4 <$albedo$> = (((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
 <@endif@>
 <@if roughness@>
     float <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? fetchRoughnessMap(<$texcoord0$>) : 1.0);
@@ -108,6 +108,23 @@ vec3 fetchLightmapMap(vec2 uv) {
 
     if (((<$matKey$> & ALBEDO_MAP_BIT) != 0)) {
         <$albedo$>.xyz *= <$fetchedAlbedo$>.xyz;
+    }
+}
+<@endfunc@>
+
+<@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
+{
+    const float OPACITY_MASK_THRESHOLD = 0.5;
+    <$opacity$> = (((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0) ?
+                     (((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0) ? step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>) : <$fetchedOpacity$>) :
+                     1.0) * <$materialOpacity$>;
+}
+<@endfunc@>
+
+<@func $discardTransparent(opacity)@>
+{
+    if (<$opacity$> < 1.0) {
+        discard;
     }
 }
 <@endfunc@>

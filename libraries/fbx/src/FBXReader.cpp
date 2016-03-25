@@ -1102,8 +1102,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_color_map")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
-                            // THis is how Maya assign a texture that affect diffuse color AND transparency ?
+                        } else if (type.contains("transparentcolor")) { // Maya way of passing TransparentMap
+                            transparentTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("transparencyfactor")) { // Blender way of passing TransparentMap
                             transparentTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));

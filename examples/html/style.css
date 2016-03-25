@@ -134,8 +134,18 @@ textarea {
     resize: vertical;
 }
 
+.update-url-version{
+    width:17px;
+    height:17px;
+    float:right;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAQAAACRZI9xAAABAUlEQVQoz33RvyvEARjH8SdlUX6UbhFJfgwmE3aTxWEiitxqN/gH7IxCKTcymLiJFIOJsihiUKcrCYnuXoZv+F45n2d4lvfz6fPpCSFs6BO1JllvLmXk5F37dC0vJ5NGmlBxoFp7Rn6RDpRRtG5KtynrijhLoBBGQcllKkFWAXsyCbKEFxeGqmJmFZFLkE639vX+12hCSVft0nUR8RbLcRN/aSHGIqL2tVYPconL32qLtaiL88Rl0qtXc+pTDv1OPGMlidtgS8Wp2RR05FEFM98/GlRQ9mTHvB7jVt2rKGPAT9xh2z6qfnToHV1SjZpN23Tl051di1oco9W/pdttaBRfEhFXOZV7vEsAAAAASUVORK5CYII=);
+    padding:0 !important;
+    margin:0 2px 0 0 !important;
+}
+
 input.url {
-    width: 100%;
+    width:85%;
+    padding-right: 20px;
 }
 
 input.coord {

@@ -418,7 +418,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
-// best called at end of main loop, just before rendering.
+// best called at end of main loop, after physics.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
@@ -1087,24 +1087,32 @@ static controller::Pose applyLowVelocityFilter(const controller::Pose& oldPose, 
     return finalPose;
 }
 
-void MyAvatar::setHandControllerPosesInWorldFrame(const controller::Pose& left, const controller::Pose& right) {
+void MyAvatar::setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
     if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldLeftPose = getLeftHandControllerPoseInWorldFrame();
-        auto oldRightPose = getRightHandControllerPoseInWorldFrame();
-        _leftHandControllerPoseInWorldFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
-        _rightHandControllerPoseInWorldFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
+        auto oldLeftPose = getLeftHandControllerPoseInSensorFrame();
+        auto oldRightPose = getRightHandControllerPoseInSensorFrame();
+        _leftHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
+        _rightHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
     } else {
-        _leftHandControllerPoseInWorldFrameCache.set(left);
-        _rightHandControllerPoseInWorldFrameCache.set(right);
+        _leftHandControllerPoseInSensorFrameCache.set(left);
+        _rightHandControllerPoseInSensorFrameCache.set(right);
     }
 }
 
+controller::Pose MyAvatar::getLeftHandControllerPoseInSensorFrame() const {
+    return _leftHandControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getRightHandControllerPoseInSensorFrame() const {
+    return _rightHandControllerPoseInSensorFrameCache.get();
+}
+
 controller::Pose MyAvatar::getLeftHandControllerPoseInWorldFrame() const {
-    return _leftHandControllerPoseInWorldFrameCache.get();
+    return _leftHandControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
 }
 
 controller::Pose MyAvatar::getRightHandControllerPoseInWorldFrame() const {
-    return _rightHandControllerPoseInWorldFrameCache.get();
+    return _rightHandControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
 }
 
 controller::Pose MyAvatar::getLeftHandControllerPoseInAvatarFrame() const {
