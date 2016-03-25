@@ -242,7 +242,7 @@ public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_REPORT_INTERVAL_USECS = 5 * USECS_PER_SECOND;
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
-    static const uint64_t WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
+    static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
     
     // Set the heartbeat on launch
@@ -319,7 +319,7 @@ public:
 
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _lastReport;
-    static std::atomic<int> _maxElapsed;
+    static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
     bool _quit { false };
     ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
@@ -327,7 +327,7 @@ public:
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
-std::atomic<int> DeadlockWatchdogThread::_maxElapsed;
+std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 
 #ifdef Q_OS_WIN
