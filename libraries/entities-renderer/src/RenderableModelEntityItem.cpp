@@ -773,8 +773,8 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
-        _needsJointSimulation = true;
     });
     return result;
 }
@@ -789,6 +789,7 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
