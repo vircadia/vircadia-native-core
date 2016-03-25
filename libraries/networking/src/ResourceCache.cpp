@@ -423,12 +423,12 @@ void Resource::handleReplyFinished() {
     
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
+        _data = _request->getData();
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
-        auto data = _request->getData();
-        emit loaded(data);
-        downloadFinished(data);
+        emit loaded(_data);
+        downloadFinished(_data);
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {
