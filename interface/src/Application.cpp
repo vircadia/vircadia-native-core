@@ -271,8 +271,10 @@ public:
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
             auto now = usecTimestampNow();
-            auto lastHeartbeatAge = now - _heartbeat;
-            auto sinceLastReport = now - _lastReport;
+
+            // in the unlikely event that now is less than _heartbeat, don't rollover and confuse ourselves
+            auto lastHeartbeatAge = (now > _heartbeat) ? now - _heartbeat : 0; 
+            auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
