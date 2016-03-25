@@ -8,14 +8,26 @@ webWindow.eventBridge.webEventReceived.connect(function(data) {
     print("JS Side event received: " + data);
 });
 
+var titles = ["A", "B", "C"];
+var titleIndex = 0;
+
 Script.setInterval(function() {
-    var message = [ Math.random(), Math.random() ];
-    print("JS Side sending: " + message); 
-    webWindow.emitScriptEvent(message);
-}, 5 * 1000);
+    webWindow.eventBridge.emitScriptEvent("JS Event sent");
+    var size = webWindow.size;
+    var position = webWindow.position;
+    print("Window url: " + webWindow.url)
+    print("Window visible: " + webWindow.visible)
+    print("Window size:  " + size.x + "x" + size.y)
+    print("Window pos:   " + position.x + "x" + position.y)
+    webWindow.setVisible(!webWindow.visible);
+    webWindow.setTitle(titles[titleIndex]);
+    webWindow.setSize(320 + Math.random() * 100, 240 + Math.random() * 100);
+    titleIndex += 1;
+    titleIndex %= titles.length;
+}, 2 * 1000);
 
-Script.scriptEnding.connect(function(){
+Script.setTimeout(function() {
+    print("Closing script");
     webWindow.close();
-    webWindow.deleteLater();
-});
-
+    Script.stop();
+}, 15 * 1000)
