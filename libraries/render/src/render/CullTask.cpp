@@ -193,7 +193,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
 
     if (_skipCulling) {
-        // inside & fit items: easy, just filter
+        // inside & fit items: filter only, culling is disabled
         {
             PerformanceTimer perfTimer("insideFitItems");
             for (auto id : inSelection.insideItems) {
@@ -205,7 +205,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             }
         }
 
-        // inside & subcell items: filter & distance cull
+        // inside & subcell items: filter only, culling is disabled
         {
             PerformanceTimer perfTimer("insideSmallItems");
             for (auto id : inSelection.insideSubcellItems) {
@@ -217,7 +217,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             }
         }
 
-        // partial & fit items: filter & frustum cull
+        // partial & fit items: filter only, culling is disabled
         {
             PerformanceTimer perfTimer("partialFitItems");
             for (auto id : inSelection.partialItems) {
@@ -229,7 +229,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             }
         }
 
-        // partial & subcell items:: filter & frutum cull & solidangle cull
+        // partial & subcell items: filter only, culling is disabled
         {
             PerformanceTimer perfTimer("partialSmallItems");
             for (auto id : inSelection.partialSubcellItems) {
