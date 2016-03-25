@@ -795,6 +795,27 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     return result;
 }
 
+void RenderableModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    ModelEntityItem::setJointRotations(rotations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    ModelEntityItem::setJointRotationsSet(rotationsSet);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    ModelEntityItem::setJointTranslations(translations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    ModelEntityItem::setJointTranslationsSet(translationsSet);
+    _needsJointSimulation = true;
+}
+
+
 void RenderableModelEntityItem::locationChanged() {
     EntityItem::locationChanged();
     if (_model && _model->isActive()) {
