@@ -223,6 +223,7 @@ void AccountManager::sendRequest(const QString& path,
                                   Q_ARG(const QByteArray&, dataByteArray),
                                   Q_ARG(QHttpMultiPart*, dataMultiPart),
                                   Q_ARG(QVariantMap, propertyMap));
+        return;
     }
     
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
