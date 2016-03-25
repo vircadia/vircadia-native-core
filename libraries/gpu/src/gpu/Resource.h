@@ -16,6 +16,7 @@
 #include "Format.h"
 
 #include <vector>
+#include <atomic>
 
 #include <memory>
 #ifdef _DEBUG
@@ -109,7 +110,21 @@ protected:
 };
 
 class Buffer : public Resource {
+    static std::atomic<int> _numBuffers;
+    static std::atomic<Size> _bufferSystemMemoryUsage;
 public:
+    static std::atomic<int> _numGPUBuffers;
+    static std::atomic<Size> _bufferVideoMemoryUsage;
+private:
+    static void addSystemMemoryUsage(Size memorySize);
+    static void subSystemMemoryUsage(Size memorySize);
+    static void updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
+public:
+    static int getCurrentNumBuffers();
+    static Size getCurrentSystemMemoryUsage();
+    static int getCurrentNumGPUBuffers();
+    static Size getCurrentVideoMemoryUsage();
 
     Buffer();
     Buffer(Size size, const Byte* bytes);

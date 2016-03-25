@@ -13,20 +13,39 @@ import QtQuick.Controls 1.4
 
 
 Column {
+    id: statsUI
+    width: 300 
     spacing: 8
     Column {
-        spacing: 4
+        spacing: 8
 
-        id: stats
         property var config: Render.getConfig("Stats")
+        id: stats
 
         PlotPerf {
+            title: "Num Buffers"
+            width:statsUI.width
             config: stats.config
-            parameters: "1::0:num Textures-numTextures-blue:num GPU Textures-numGPUTextures-green"
+            parameters: "1::0:CPU-numBuffers-#00B4EF:GPU-numGPUBuffers-#1AC567"
         }
         PlotPerf {
+            title: "Memory Usage"
+            width:statsUI.width       
             config: stats.config
-            parameters: "1048576:Mb:1:Sysmem-textureSysmemUsage-blue:Vidmem-textureVidmemUsage-green"
+            parameters: "1048576:Mb:1:CPU-bufferSysmemUsage-#00B4EF:GPU-bufferVidmemUsage-#1AC567"
+        }
+
+        PlotPerf {
+            title: "Num Textures"
+            width:statsUI.width
+            config: stats.config
+            parameters: "1::0:CPU-numTextures-#00B4EF:GPU-numGPUTextures-#1AC567:Frame-numFrameTextures-#E2334D"
+        }
+        PlotPerf {
+            title: "Memory Usage"
+            width:statsUI.width       
+            config: stats.config
+            parameters: "1048576:Mb:1:CPU-textureSysmemUsage-#00B4EF:GPU-textureVidmemUsage-#1AC567"
         }
     }
 }

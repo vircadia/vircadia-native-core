@@ -67,6 +67,8 @@ public:
 
         GLBuffer();
         ~GLBuffer();
+
+        void setSize(GLuint size);
     };
     static GLBuffer* syncGPUObject(const Buffer& buffer);
     static GLuint getBufferID(const Buffer& buffer);
@@ -234,25 +236,10 @@ public:
     void do_setStateBlend(State::BlendFunction blendFunction);
 
     void do_setStateColorWriteMask(uint32 mask);
-
-    // Repporting stats of the context
-    class Stats {
-    public:
-        int _ISNumFormatChanges = 0;
-        int _ISNumInputBufferChanges = 0;
-        int _ISNumIndexBufferChanges = 0;
-
-        Stats() {}
-        Stats(const Stats& stats) = default;
-    };
-
-    void getStats(Stats& stats) const { stats = _stats; }
-
+    
 protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
-
-    Stats _stats;
 
     // Draw Stage
     void do_draw(Batch& batch, size_t paramOffset);

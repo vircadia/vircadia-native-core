@@ -15,7 +15,6 @@
 
 #include <algorithm> //min max and more
 #include <bitset>
-#include <atomic>
 
 #include <QUrl>
 
@@ -148,9 +147,6 @@ private:
     static void addSystemMemoryUsage(Size memorySize);
     static void subSystemMemoryUsage(Size memorySize);
     static void updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize);
-
-    static void addVideoMemoryUsage(Size memorySize);
-    static void subVideoMemoryUsage(Size memorySize);
 
 public:
 

@@ -13,8 +13,8 @@ import QtQuick.Controls 1.4
 
 Item {
     id: root
-    width: 400
     height: 100
+    property string title
     property var config
     property string parameters
 
@@ -24,14 +24,15 @@ Item {
     property var valueScale: +inputs[0]
     property var valueUnit: inputs[1]
     property var valueNumDigits: inputs[2]
+    property var input_VALUE_OFFSET: 3
     property var valueMax : 1
 
     property var _values : new Array()
     property var tick : 0
 
     function createValues() {
-        if (inputs.length > 3) {
-                for (var i = 3; i < inputs.length; i++) {
+        if (inputs.length > input_VALUE_OFFSET) {
+                for (var i = input_VALUE_OFFSET; i < inputs.length; i++) {
                     var varProps = inputs[i].split("-")
                     _values.push( {
                         value: varProps[1],
@@ -83,25 +84,26 @@ Item {
         }
     }
     onTriggerChanged: pullFreshValues() 
-    
+
     Canvas {
         id: mycanvas
-        width: 300
-        height: 100
+        anchors.fill:parent
         onPaint: {
+            var lineHeight = 12;
+
             function displayValue(val) {
                  return (val / root.valueScale).toFixed(root.valueNumDigits) + " " + root.valueUnit
             }
 
             function pixelFromVal(val) {
-                return height * (1 - (0.9) * val / valueMax);
+                return lineHeight + (height - lineHeight) * (1 - (0.9) * val / valueMax);
             }
             function plotValueHistory(ctx, valHistory, color) {
                 var widthStep= width / (valHistory.length - 1);
 
                 ctx.beginPath();
                 ctx.strokeStyle= color; // Green path
-                ctx.lineWidth="4";
+                ctx.lineWidth="2";
                 ctx.moveTo(0, pixelFromVal(valHistory[i])); 
                    
                 for (var i = 1; i < valHistory.length; i++) { 
@@ -110,21 +112,38 @@ Item {
 
                 ctx.stroke();
             }
-            function plotValueLegend(ctx, val, num) {
-                var lineHeight = 12;
-                ctx.font="14px Verdana";
-                ctx.fillStyle = val.color;              
-                ctx.fillText(displayValue(val.valueHistory[val.valueHistory.length -1]), 0, height - num * lineHeight);
+            function displayValueLegend(ctx, val, num) {
+                ctx.fillStyle = val.color;
+                var bestValue = val.valueHistory[val.valueHistory.length -1];             
+                ctx.textAlign = "right";
+                ctx.fillText(displayValue(bestValue), width, height - num * lineHeight);
+                ctx.textAlign = "left";
+                ctx.fillText(val.label, 0, height - num * lineHeight);
             }
+
+            function displayTitle(ctx, text, maxVal) {
+                ctx.fillStyle = "grey";
+                ctx.textAlign = "right";
+                ctx.fillText(displayValue(maxVal), width, lineHeight);
+                
+                ctx.fillStyle = "white";
+                ctx.textAlign = "left";
+                ctx.fillText(text, 0, lineHeight);
+            }
+            
             var ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
             ctx.fillStyle = Qt.rgba(0, 0, 0, 0.4);
             ctx.fillRect(0, 0, width, height);
 
+            ctx.font="12px Verdana";
+                
             for (var i = 0; i < _values.length; i++) {
                 plotValueHistory(ctx, _values[i].valueHistory, _values[i].color)
-                plotValueLegend(ctx, _values[i], i)
+                displayValueLegend(ctx, _values[i], i)
             }
+
+            displayTitle(ctx, title, valueMax)
         }
     }
 }

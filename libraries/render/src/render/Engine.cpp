@@ -67,10 +67,22 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     // Update the stats
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
+    config->numBuffers = gpu::Buffer::getCurrentNumBuffers();
+    config->numGPUBuffers = gpu::Buffer::getCurrentNumGPUBuffers();
+    config->bufferSysmemUsage = gpu::Buffer::getCurrentSystemMemoryUsage();
+    config->bufferVidmemUsage = gpu::Buffer::getCurrentVideoMemoryUsage();
+
     config->numTextures = gpu::Texture::getCurrentNumTextures();
-    config->textureSysmemUsage = gpu::Texture::getCurrentSystemMemoryUsage();
     config->numGPUTextures = gpu::Texture::getCurrentNumGPUTextures();
+    config->textureSysmemUsage = gpu::Texture::getCurrentSystemMemoryUsage();
     config->textureVidmemUsage = gpu::Texture::getCurrentVideoMemoryUsage();
+
+    gpu::ContextStats gpuStats(_gpuStats);
+    renderContext->args->_context->getStats(_gpuStats);
+
+    config->numFrameTextures = _gpuStats._RSNumTextureBounded - gpuStats._RSNumTextureBounded;
+
+    config->numFrameTriangles = _gpuStats._DSNumTriangles - gpuStats._DSNumTriangles;
 
     config->emitDirty();
 }

@@ -27,6 +27,21 @@ class QImage;
 
 namespace gpu {
 
+struct ContextStats {
+public:
+    int _ISNumFormatChanges = 0;
+    int _ISNumInputBufferChanges = 0;
+    int _ISNumIndexBufferChanges = 0;
+
+    int _RSNumTextureBounded = 0;
+
+    int _DSNumDrawcalls = 0;
+    int _DSNumTriangles = 0;
+
+    ContextStats() {}
+    ContextStats(const ContextStats& stats) = default;
+};
+
 struct StereoState {
     bool _enable{ false };
     bool _skybox{ false };
@@ -100,9 +115,11 @@ public:
         return reinterpret_cast<T*>(object.gpuObject.getGPUObject());
     }
 
+    void getStats(ContextStats& stats) const { stats = _stats; }
 
 protected:
     StereoState  _stereo;
+    ContextStats _stats;
 };
 
 class Context {
@@ -125,6 +142,7 @@ public:
     ~Context();
 
     void render(Batch& batch);
+
     void enableStereo(bool enable = true);
     bool isStereo();
     void setStereoProjections(const mat4 eyeProjections[2]);
@@ -136,6 +154,9 @@ public:
     // Downloading the Framebuffer is a synchronous action that is not efficient.
     // It s here for convenience to easily capture a snapshot
     void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
+
+     // Repporting stats of the context
+    void getStats(ContextStats& stats) const;
 
 protected:
     Context(const Context& context);

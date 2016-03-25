@@ -74,6 +74,11 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
+
+void Context::getStats(ContextStats& stats) const {
+    _backend->getStats(stats);
+}
+
 const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
     _projectionInverse = glm::inverse(_projection);
 

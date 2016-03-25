@@ -232,19 +232,66 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
     return 0;
 }
 
+std::atomic<int> Buffer::_numBuffers{ 0 };
+std::atomic<int> Buffer::_numGPUBuffers{ 0 };
+std::atomic<unsigned long long> Buffer::_bufferSystemMemoryUsage{ 0 };
+std::atomic<unsigned long long> Buffer::_bufferVideoMemoryUsage{ 0 };
+
+
+int Buffer::getCurrentNumBuffers() {
+    return _numBuffers.load();
+}
+
+Buffer::Size Buffer::getCurrentSystemMemoryUsage() {
+    return _bufferSystemMemoryUsage.load();
+}
+
+int Buffer::getCurrentNumGPUBuffers() {
+    return _numGPUBuffers.load();
+}
+
+Buffer::Size Buffer::getCurrentVideoMemoryUsage() {
+    return _bufferVideoMemoryUsage.load();
+}
+
+void Buffer::addSystemMemoryUsage(Size memorySize) {
+    _bufferSystemMemoryUsage.fetch_add(memorySize);
+}
+void Buffer::subSystemMemoryUsage(Size memorySize) {
+    _bufferSystemMemoryUsage.fetch_sub(memorySize);
+}
+
+void Buffer::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (prevObjectSize > newObjectSize) {
+        subSystemMemoryUsage(prevObjectSize - newObjectSize);
+    } else {
+        addSystemMemoryUsage(newObjectSize - prevObjectSize);
+    }
+}
+
+
 Buffer::Buffer() :
     Resource(),
     _sysmem(new Sysmem()) {
+    _numBuffers++;
+
 }
 
 Buffer::Buffer(Size size, const Byte* bytes) :
     Resource(),
     _sysmem(new Sysmem(size, bytes)) {
+    _numBuffers++;
+    Buffer::updateSystemMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer::Buffer(const Buffer& buf) :
     Resource(),
     _sysmem(new Sysmem(buf.getSysmem())) {
+    _numBuffers++;
+    Buffer::updateSystemMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
@@ -253,18 +300,27 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 }
 
 Buffer::~Buffer() {
+    _numBuffers--;
+
     if (_sysmem) {
+        Buffer::updateSystemMemoryUsage(_sysmem->getSize(), 0);
         delete _sysmem;
         _sysmem = NULL;
     }
 }
 
 Buffer::Size Buffer::resize(Size size) {
-    return editSysmem().resize(size);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().resize(size);
+    Buffer::updateSystemMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 
 Buffer::Size Buffer::setData(Size size, const Byte* data) {
-    return editSysmem().setData(size, data);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().setData(size, data);
+    Buffer::updateSystemMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 
 Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
@@ -272,6 +328,9 @@ Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
 }
 
 Buffer::Size Buffer::append(Size size, const Byte* data) {
-    return editSysmem().append( size, data);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().append( size, data);
+    Buffer::updateSystemMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 

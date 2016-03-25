@@ -57,13 +57,6 @@ void Texture::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     }
 }
 
-void Texture::addVideoMemoryUsage(Size memorySize) {
-    _textureVideoMemoryUsage.fetch_add(memorySize);
-}
-void Texture::subVideoMemoryUsage(Size memorySize) {
-    _textureVideoMemoryUsage.fetch_sub(memorySize);
-}
-
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
