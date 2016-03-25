@@ -10,4 +10,8 @@
 
 #include "CPUID.h"
 
+#ifdef Q_OS_WIN
+
 const CPUID::CPUID_Internal CPUID::CPU_Rep;
+
+#endif
