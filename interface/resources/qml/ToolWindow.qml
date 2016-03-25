@@ -37,33 +37,14 @@ Windows.Window {
         Repeater {
             model: 4
             Tab {
-                // Force loading of the content even if the tab is not visible
-                // (required for letting the C++ code access the webview)
                 active: true
-                enabled: false
+                enabled: false;
+                // we need to store the original url here for future identification
                 property string originalUrl: "";
-
+                onEnabledChanged: toolWindow.updateVisiblity();
                 Controls.WebView {
                     id: webView;
-                    // we need to store the original url here for future identification
-                    // A unique identifier to let the HTML JS find the event bridge 
-                    // object (our C++ wrapper)
-                    property string uid;
                     anchors.fill: parent
-                    enabled: false
-
-                    // This is for JS/QML communication, which is unused in a WebWindow,
-                    // but not having this here results in spurious warnings about a 
-                    // missing signal
-                    signal sendToScript(var message);
-                    
-                    onUrlChanged: webView.runJavaScript("EventBridgeUid = \"" + uid + "\";");
-                    onEnabledChanged: toolWindow.updateVisiblity();
-                    onLoadingChanged: {
-                        if (loadRequest.status == WebEngineView.LoadSucceededStatus) {
-                            webView.runJavaScript("EventBridgeUid = \"" + uid + "\";");
-                        }
-                    }
                 }
             }
         }
@@ -132,23 +113,20 @@ Windows.Window {
 
         var tab = tabView.getTab(index);
         tab.title = "";
-        tab.enabled = false;
         tab.originalUrl = "";
-        tab.item.url = "about:blank";
-        tab.item.enabled = false;
+        tab.enabled = false;
     }
 
     function addWebTab(properties) {
         if (!properties.source) {
-            console.warn("Attempted to open Web Tool Pane without URL");
+            console.warn("Attempted to open Web Tool Pane without URL")
             return;
         }
 
         var existingTabIndex = findIndexForUrl(properties.source);
         if (existingTabIndex >= 0) {
-            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source);
-            var tab = tabView.getTab(existingTabIndex);
-            return tab.item;
+            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source)
+            return tabView.getTab(existingTabIndex);
         }
 
         var freeTabIndex = findFreeTab();
@@ -157,22 +135,25 @@ Windows.Window {
             return;
         }
 
+        var newTab = tabView.getTab(freeTabIndex);
+        newTab.title = properties.title || "Unknown";
+        newTab.originalUrl = properties.source;
+        newTab.item.url = properties.source;
+        newTab.active = true;
+
         if (properties.width) {
-            tabView.width = Math.min(Math.max(tabView.width, properties.width), toolWindow.maxSize.x);
+            tabView.width = Math.min(Math.max(tabView.width, properties.width),
+                                        toolWindow.maxSize.x);
         }
 
         if (properties.height) {
-            tabView.height = Math.min(Math.max(tabView.height, properties.height), toolWindow.maxSize.y);
+            tabView.height = Math.min(Math.max(tabView.height, properties.height),
+                                        toolWindow.maxSize.y);
         }
 
-        var tab = tabView.getTab(freeTabIndex);
-        tab.title = properties.title || "Unknown";
-        tab.enabled = true;
-        tab.originalUrl = properties.source;
-
-        var result = tab.item;
-        result.enabled = true;
-        result.url = properties.source;
-        return result;
+        console.log("Updating visibility based on child tab added");
+        newTab.enabledChanged.connect(updateVisiblity)
+        updateVisiblity();
+        return newTab
     }
 }
