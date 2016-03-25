@@ -14,6 +14,8 @@
 
 #include <QtQml/QQmlContext>
 
+#include <QtWebChannel/QWebChannel>
+
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
 
@@ -31,19 +33,39 @@ static const char* const URL_PROPERTY = "source";
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     return QmlWindowClass::internalConstructor("QmlWebWindow.qml", context, engine,
-        [&](QObject* object) { return new QmlWebWindowClass(object); });
+        [&](QObject* object) {  return new QmlWebWindowClass(object);  });
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
+    _uid = QUuid::createUuid().toString();
+    asQuickItem()->setProperty("uid", _uid);
+    auto webchannelVar = qmlWindow->property("webChannel");
+    _webchannel = qvariant_cast<QWebChannel*>(webchannelVar);
+    Q_ASSERT(_webchannel);
+    _webchannel->registerObject(_uid, this);
 }
 
+void QmlWebWindowClass::emitScriptEvent(const QVariant& scriptMessage) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, scriptMessage));
+    } else {
+        emit scriptEventReceived(scriptMessage);
+    }
+}
 
-// FIXME remove.
-void QmlWebWindowClass::handleNavigation(const QString& url) {
+void QmlWebWindowClass::emitWebEvent(const QVariant& webMessage) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, webMessage));
+    } else {
+        emit webEventReceived(webMessage);
+    }
 }
 
 QString QmlWebWindowClass::getURL() const {
     QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
+        if (_qmlWindow.isNull()) {
+            return QVariant();
+        }
         return _qmlWindow->property(URL_PROPERTY);
     });
     return result.toString();
@@ -54,6 +76,8 @@ extern QString fixupHifiUrl(const QString& urlString);
 
 void QmlWebWindowClass::setURL(const QString& urlString) {
     DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-        _qmlWindow->setProperty(URL_PROPERTY, fixupHifiUrl(urlString));
+        if (!_qmlWindow.isNull()) {
+            _qmlWindow->setProperty(URL_PROPERTY, fixupHifiUrl(urlString));
+        }
     });
 }
