@@ -84,6 +84,7 @@ Plant = function(spawnPosition, spawnRotation) {
       z: 0.4115
     },
     position: waterCanPosition,
+    collisionSoundURL: "atp:/sounds/watering_can_drop.L.wav",
     angularDamping: 1,
     dynamic: true,
     gravity: {

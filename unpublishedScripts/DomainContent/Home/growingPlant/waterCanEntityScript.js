@@ -18,7 +18,7 @@
 
     function WaterSpout() {
         _this = this;
-        _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
+        _this.waterSound = SoundCache.getSound("atp:/sounds/watering_can_pour.L.wav");
         _this.POUR_ANGLE_THRESHOLD = 0;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "hifi-water-spout";
