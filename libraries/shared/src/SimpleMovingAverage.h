@@ -69,41 +69,39 @@ template <class T, int MAX_NUM_SAMPLES> class ThreadSafeMovingAverage {
 public:
     void clear() {
         std::unique_lock<std::mutex> lock(_lock);
-        numSamples = 0;
+        _samples = 0;
     }
 
     bool isAverageValid() const { 
         std::unique_lock<std::mutex> lock(_lock);
-        return (numSamples > 0);
+        return (_samples > 0);
     }
 
     void addSample(T sample) {
         std::unique_lock<std::mutex> lock(_lock);
-        if (numSamples > 0) {
-            T lastAverage = average;
-            average = (sample * WEIGHTING) + (lastAverage * ONE_MINUS_WEIGHTING);
+        if (_samples > 0) {
+            _average = (sample * WEIGHTING) + (_average * ONE_MINUS_WEIGHTING);
+        } else {
+            _average = sample;
         }
-        else {
-            average = sample;
-        }
-        numSamples++;
+        _samples++;
     }
 
     T getAverage() const { 
         std::unique_lock<std::mutex> lock(_lock);
-        return average;
+        return _average;
     }
 
-    T getNumSamples() const { 
+    size_t getSamples() const {
         std::unique_lock<std::mutex> lock(_lock);
-        return numSamples;
+        return _samples;
     }
 
 private:
     const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
     const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
-    int numSamples { 0 };
-    T average;
+    size_t _samples { 0 };
+    T _average;
     mutable std::mutex _lock;
 };
 

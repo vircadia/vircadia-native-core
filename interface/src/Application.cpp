@@ -282,7 +282,7 @@ public:
                     << "maxElapsed:" << _maxElapsed
                     << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
                     << "NEW maxElapsedAverage:" << elapsedMovingAverage
-                    << "numSamples:" << _movingAverage.getNumSamples();
+                    << "samples:" << _movingAverage.getSamples();
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
@@ -292,7 +292,7 @@ public:
                     << "PREVIOUS maxElapsed:" << _maxElapsed
                     << "NEW maxElapsed:" << lastHeartbeatAge
                     << "maxElapsedAverage:" << _maxElapsedAverage
-                    << "numSamples:" << _movingAverage.getNumSamples();
+                    << "samples:" << _movingAverage.getSamples();
                 _maxElapsed = lastHeartbeatAge;
             }
             if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
@@ -300,7 +300,7 @@ public:
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "numSamples:" << _movingAverage.getNumSamples();
+                         << "samples:" << _movingAverage.getSamples();
                 _lastReport = now;
             }
 
@@ -310,7 +310,7 @@ public:
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "numSamples:" << _movingAverage.getNumSamples();
+                         << "samples:" << _movingAverage.getSamples();
                 deadlockDetectionCrash();
             }
 #endif
