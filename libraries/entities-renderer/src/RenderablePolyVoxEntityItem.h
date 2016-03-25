@@ -129,7 +129,7 @@ public:
     uint8_t getVoxelInternal(int x, int y, int z);
     bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
 
-    void setVolDataDirty() { _volDataDirty = true; }
+    void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; }); }
 
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions

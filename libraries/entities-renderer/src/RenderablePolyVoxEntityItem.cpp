@@ -554,12 +554,20 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::PolyVox);
     Q_ASSERT(args->_batch);
 
-    if (_voxelDataDirty) {
-        _voxelDataDirty = false;
+    bool voxelDataDirty;
+    bool volDataDirty;
+    withWriteLock([&] {
+        voxelDataDirty = _voxelDataDirty;
+        volDataDirty = _volDataDirty;
+        if (_voxelDataDirty) {
+            _voxelDataDirty = false;
+        } else if (_volDataDirty) {
+            _volDataDirty = false;
+        }
+    });
+    if (voxelDataDirty) {
         decompressVolumeData();
-    }
-    if (_volDataDirty && !_voxelDataDirty) {
-        _volDataDirty = false;
+    } else if (volDataDirty) {
         getMesh();
     }
 
