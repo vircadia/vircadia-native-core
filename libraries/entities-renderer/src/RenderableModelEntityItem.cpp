@@ -113,16 +113,18 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
         return _originalTextures;
     }
 
-    // TODO: Remove this line and enforce passing a texturemap as stringified JSON
-    QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    // Legacy: a ,\n-delimited list of filename:"texturepath"
+    if (*textures.cbegin() != '{') {
+        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    }
+
     QJsonParseError error;
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(jsonTextures.toUtf8(), &error);
+    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
         return _originalTextures;
     }
-    QJsonObject texturesAsJsonObject = texturesAsJson.object();
-    return texturesAsJsonObject.toVariantMap();
+    return texturesJson.object().toVariantMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {

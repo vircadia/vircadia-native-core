@@ -51,7 +51,7 @@ vr::IVRSystem* acquireOpenVrSystem() {
         if (!activeHmd) {
             qCDebug(displayplugins) << "openvr: No vr::IVRSystem instance active, building";
             vr::EVRInitError eError = vr::VRInitError_None;
-            activeHmd = vr::VR_Init(&eError);
+            activeHmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
             qCDebug(displayplugins) << "openvr display: HMD is " << activeHmd << " error is " << eError;
         }
         if (activeHmd) {

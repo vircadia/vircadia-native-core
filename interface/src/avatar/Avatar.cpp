@@ -187,7 +187,7 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inView = qApp->getViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool inView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
 
     if (_shouldAnimate && !_shouldSkipRender && inView) {
         {

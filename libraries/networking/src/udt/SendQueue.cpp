@@ -128,13 +128,13 @@ void SendQueue::stop() {
     _emptyCondition.notify_one();
 }
     
-void SendQueue::sendPacket(const Packet& packet) {
-    _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
+int SendQueue::sendPacket(const Packet& packet) {
+    return _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
 }
     
 void SendQueue::ack(SequenceNumber ack) {
     // this is a response from the client, re-set our timeout expiry and our last response time
-    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
     
     if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
@@ -164,7 +164,7 @@ void SendQueue::ack(SequenceNumber ack) {
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
     
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
@@ -177,8 +177,8 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = uint64_t(QDateTime::currentMSecsSinceEpoch());
-    
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.clear();
@@ -232,15 +232,16 @@ SequenceNumber SendQueue::getNextSequenceNumber() {
     return _currentSequenceNumber;
 }
 
-void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber) {
+bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber) {
     // write the sequence number and send the packet
     newPacket->writeSequenceNumber(sequenceNumber);
-    sendPacket(*newPacket);
-    
+
     // Save packet/payload size before we move it
     auto packetSize = newPacket->getDataSize();
     auto payloadSize = newPacket->getPayloadSize();
     
+    auto bytesWritten = sendPacket(*newPacket);
+
     {
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
@@ -249,8 +250,24 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
         entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
-    
+
     emit packetSent(packetSize, payloadSize);
+
+    if (bytesWritten < 0) {
+        // this is a short-circuit loss - we failed to put this packet on the wire
+        // so immediately add it to the loss list
+
+        {
+            std::lock_guard<std::mutex> nakLocker(_naksLock);
+            _naks.append(sequenceNumber);
+        }
+
+        emit shortCircuitLoss(quint32(sequenceNumber));
+
+        return false;
+    } else {
+        return true;
+    }
 }
 
 void SendQueue::run() {
@@ -285,12 +302,14 @@ void SendQueue::run() {
     auto nextPacketTimestamp = p_high_resolution_clock::now();
 
     while (_state == State::Running) {
-        bool sentAPacket = maybeResendPacket();
+        bool attemptedToSendPacket = maybeResendPacket();
         
         // if we didn't find a packet to re-send AND we think we can fit a new packet on the wire
         // (this is according to the current flow window size) then we send out a new packet
-        if (!sentAPacket) {
-            sentAPacket = maybeSendNewPacket();
+        auto newPacketCount = 0;
+        if (!attemptedToSendPacket) {
+            newPacketCount = maybeSendNewPacket();
+            attemptedToSendPacket = (newPacketCount > 0);
         }
         
         // since we're a while loop, give the thread a chance to process events
@@ -300,12 +319,13 @@ void SendQueue::run() {
         // If the send queue has been innactive, skip the sleep for
         // Either _isRunning will have been set to false and we'll break
         // Or something happened and we'll keep going
-        if (_state != State::Running || isInactive(sentAPacket)) {
+        if (_state != State::Running || isInactive(attemptedToSendPacket)) {
             return;
         }
 
         // push the next packet timestamp forwards by the current packet send period
-        nextPacketTimestamp += std::chrono::microseconds(_packetSendPeriod);
+        auto nextPacketDelta = (newPacketCount == 2 ? 2 : 1) * _packetSendPeriod;
+        nextPacketTimestamp += std::chrono::microseconds(nextPacketDelta);
 
         // sleep as long as we need until next packet send, if we can
         const auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - p_high_resolution_clock::now());
@@ -314,7 +334,7 @@ void SendQueue::run() {
     }
 }
 
-bool SendQueue::maybeSendNewPacket() {
+int SendQueue::maybeSendNewPacket() {
     if (!isFlowWindowFull()) {
         // we didn't re-send a packet, so time to send a new one
         
@@ -324,38 +344,43 @@ bool SendQueue::maybeSendNewPacket() {
             // grab the first packet we will send
             std::unique_ptr<Packet> firstPacket = _packets.takePacket();
             Q_ASSERT(firstPacket);
-            
-            std::unique_ptr<Packet> secondPacket;
-            bool shouldSendPairTail = false;
-            
-            if (((uint32_t) nextNumber & 0xF) == 0) {
-                // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
-                // pull off a second packet if we can before we unlock
-                shouldSendPairTail = true;
-                
-                secondPacket = _packets.takePacket();
+
+
+            // attempt to send the first packet
+            if (sendNewPacketAndAddToSentList(move(firstPacket), nextNumber)) {
+                std::unique_ptr<Packet> secondPacket;
+                bool shouldSendPairTail = false;
+
+                if (((uint32_t) nextNumber & 0xF) == 0) {
+                    // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
+                    // pull off a second packet if we can before we unlock
+                    shouldSendPairTail = true;
+
+                    secondPacket = _packets.takePacket();
+                }
+
+                // do we have a second in a pair to send as well?
+                if (secondPacket) {
+                    sendNewPacketAndAddToSentList(move(secondPacket), getNextSequenceNumber());
+                } else if (shouldSendPairTail) {
+                    // we didn't get a second packet to send in the probe pair
+                    // send a control packet of type ProbePairTail so the receiver can still do
+                    // proper bandwidth estimation
+                    static auto pairTailPacket = ControlPacket::create(ControlPacket::ProbeTail);
+                    _socket->writeBasePacket(*pairTailPacket, _destination);
+                }
+
+                // we attempted to send two packets, return 2
+                return 2;
+            } else {
+                // we attempted to send a single packet, return 1
+                return 1;
             }
-            
-            // definitely send the first packet
-            sendNewPacketAndAddToSentList(move(firstPacket), nextNumber);
-            
-            // do we have a second in a pair to send as well?
-            if (secondPacket) {
-                sendNewPacketAndAddToSentList(move(secondPacket), getNextSequenceNumber());
-            } else if (shouldSendPairTail) {
-                // we didn't get a second packet to send in the probe pair
-                // send a control packet of type ProbePairTail so the receiver can still do
-                // proper bandwidth estimation
-                static auto pairTailPacket = ControlPacket::create(ControlPacket::ProbeTail);
-                _socket->writeBasePacket(*pairTailPacket, _destination);
-            }
-            
-            // We sent our packet(s), return here
-            return true;
         }
     }
+    
     // No packets were sent
-    return false;
+    return 0;
 }
 
 bool SendQueue::maybeResendPacket() {
@@ -375,8 +400,9 @@ bool SendQueue::maybeResendPacket() {
             
             // see if we can find the packet to re-send
             auto it = _sentPackets.find(resendNumber);
-            
+
             if (it != _sentPackets.end()) {
+
                 auto& entry = it->second;
                 // we found the packet - grab it
                 auto& resendPacket = *(entry.second);
@@ -437,7 +463,7 @@ bool SendQueue::maybeResendPacket() {
     return false;
 }
 
-bool SendQueue::isInactive(bool sentAPacket) {
+bool SendQueue::isInactive(bool attemptedToSendPacket) {
     // check for connection timeout first
 
     // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
@@ -447,7 +473,8 @@ bool SendQueue::isInactive(bool sentAPacket) {
 
     auto sinceLastResponse = (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse);
 
-    if (sinceLastResponse >= quint64(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
+    if (sinceLastResponse > 0 &&
+        sinceLastResponse >= int64_t(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
         _lastReceiverResponse > 0 &&
         sinceLastResponse > MIN_MS_BEFORE_INACTIVE) {
         // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
@@ -462,7 +489,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
         return true;
     }
 
-    if (!sentAPacket) {
+    if (!attemptedToSendPacket) {
         // During our processing above we didn't send any packets
         
         // If that is still the case we should use a condition_variable_any to sleep until we have data to handle.

@@ -87,6 +87,7 @@ private slots:
     void recordRetransmission();
     void queueInactive();
     void queueTimeout();
+    void queueShortCircuitLoss(quint32 sequenceNumber);
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);
