@@ -58,8 +58,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
-        params.jsonCallbackReceiver = this;
-        params.jsonCallbackMethod = "requestFinished";
         params.errorCallbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
@@ -68,10 +66,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
                                AccountManagerAuth::Required,
                                QNetworkAccessManager::PostOperation,
                                params, NULL, multipart);
-}
-
-void UserActivityLogger::requestFinished(QNetworkReply& requestReply) {
-    // qCDebug(networking) << object;
 }
 
 void UserActivityLogger::requestError(QNetworkReply& errorReply) {
