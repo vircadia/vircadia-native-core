@@ -23,6 +23,11 @@
 #include <windows.h>
 #endif
 
+#ifdef Q_OS_WIN
+#include "CPUID.h"
+#endif
+
+
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -30,6 +35,8 @@
 #include <QtCore/QDebug>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QProcess>
+#include <QSysInfo>
 #include <QThread>
 
 #include "NumericalConstants.h"
@@ -692,3 +699,128 @@ void disableQtBearerPoll() {
     qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 }
 
+void printSystemInformation() {
+    // Write system information to log
+    qDebug() << "Build Information";
+    qDebug().noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
+    qDebug().noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
+
+    qDebug().noquote() << "System Information";
+    qDebug().noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
+    qDebug().noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
+    qDebug().noquote() << "\tKernel Type: " << QSysInfo::kernelType();
+    qDebug().noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
+
+    auto macVersion = QSysInfo::macVersion();
+    if (macVersion != QSysInfo::MV_None) {
+        qDebug() << "\tMac Version: " << macVersion;
+    }
+
+    auto windowsVersion = QSysInfo::windowsVersion();
+    if (windowsVersion != QSysInfo::WV_None) {
+        qDebug() << "\tWindows Version: " << windowsVersion;
+    }
+
+#ifdef Q_OS_WIN
+    SYSTEM_INFO si;
+    GetNativeSystemInfo(&si);
+
+    qDebug() << "SYSTEM_INFO";
+    qDebug().noquote() << "\tOEM ID: " << si.dwOemId;
+    qDebug().noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
+    qDebug().noquote() << "\tProcessor Type: " << si.dwProcessorType;
+    qDebug().noquote() << "\tProcessor Level: " << si.wProcessorLevel;
+    qDebug().noquote() << "\tProcessor Revision: "
+                       << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
+    qDebug().noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
+    qDebug().noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
+    qDebug().noquote() << "\tMin Application Address: "
+                       << QString("0x%1").arg(qulonglong(si.lpMinimumApplicationAddress), 16, 16, QChar('0'));
+    qDebug().noquote() << "\tMax Application Address: "
+                       << QString("0x%1").arg(qulonglong(si.lpMaximumApplicationAddress), 16, 16, QChar('0'));
+
+    const double BYTES_TO_MEGABYTE = 1.0 / (1024 * 1024);
+
+    qDebug() << "MEMORYSTATUSEX";
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        qDebug().noquote() << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
+        qDebug().noquote() << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qDebug().noquote() << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qDebug().noquote() << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qDebug().noquote() << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qDebug().noquote() << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qDebug().noquote() << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+    } else {
+        qDebug() << "\tFailed to retrieve memory status: " << GetLastError();
+    }
+
+    qDebug() << "CPUID";
+
+    auto printSupported = [](QString isaFeatureName, bool isSupported) {
+        qDebug().nospace().noquote() << "\t[" << (isSupported ? "x" : " ") << "] " << isaFeatureName;
+    };
+
+    qDebug() << "\tCPU Vendor: " << CPUID::Vendor().c_str();
+    qDebug() << "\tCPU Brand:  " << CPUID::Brand().c_str();
+
+    printSupported("3DNOW", CPUID::_3DNOW());
+    printSupported("3DNOWEXT", CPUID::_3DNOWEXT());
+    printSupported("ABM", CPUID::ABM());
+    printSupported("ADX", CPUID::ADX());
+    printSupported("AES", CPUID::AES());
+    printSupported("AVX", CPUID::AVX());
+    printSupported("AVX2", CPUID::AVX2());
+    printSupported("AVX512CD", CPUID::AVX512CD());
+    printSupported("AVX512ER", CPUID::AVX512ER());
+    printSupported("AVX512F", CPUID::AVX512F());
+    printSupported("AVX512PF", CPUID::AVX512PF());
+    printSupported("BMI1", CPUID::BMI1());
+    printSupported("BMI2", CPUID::BMI2());
+    printSupported("CLFSH", CPUID::CLFSH());
+    printSupported("CMPXCHG16B", CPUID::CMPXCHG16B());
+    printSupported("CX8", CPUID::CX8());
+    printSupported("ERMS", CPUID::ERMS());
+    printSupported("F16C", CPUID::F16C());
+    printSupported("FMA", CPUID::FMA());
+    printSupported("FSGSBASE", CPUID::FSGSBASE());
+    printSupported("FXSR", CPUID::FXSR());
+    printSupported("HLE", CPUID::HLE());
+    printSupported("INVPCID", CPUID::INVPCID());
+    printSupported("LAHF", CPUID::LAHF());
+    printSupported("LZCNT", CPUID::LZCNT());
+    printSupported("MMX", CPUID::MMX());
+    printSupported("MMXEXT", CPUID::MMXEXT());
+    printSupported("MONITOR", CPUID::MONITOR());
+    printSupported("MOVBE", CPUID::MOVBE());
+    printSupported("MSR", CPUID::MSR());
+    printSupported("OSXSAVE", CPUID::OSXSAVE());
+    printSupported("PCLMULQDQ", CPUID::PCLMULQDQ());
+    printSupported("POPCNT", CPUID::POPCNT());
+    printSupported("PREFETCHWT1", CPUID::PREFETCHWT1());
+    printSupported("RDRAND", CPUID::RDRAND());
+    printSupported("RDSEED", CPUID::RDSEED());
+    printSupported("RDTSCP", CPUID::RDTSCP());
+    printSupported("RTM", CPUID::RTM());
+    printSupported("SEP", CPUID::SEP());
+    printSupported("SHA", CPUID::SHA());
+    printSupported("SSE", CPUID::SSE());
+    printSupported("SSE2", CPUID::SSE2());
+    printSupported("SSE3", CPUID::SSE3());
+    printSupported("SSE4.1", CPUID::SSE41());
+    printSupported("SSE4.2", CPUID::SSE42());
+    printSupported("SSE4a", CPUID::SSE4a());
+    printSupported("SSSE3", CPUID::SSSE3());
+    printSupported("SYSCALL", CPUID::SYSCALL());
+    printSupported("TBM", CPUID::TBM());
+    printSupported("XOP", CPUID::XOP());
+    printSupported("XSAVE", CPUID::XSAVE());
+#endif
+
+    qDebug() << "Environment Variables";
+    auto envVariables = QProcessEnvironment::systemEnvironment().toStringList();
+    for (auto& env : envVariables) {
+        qDebug().noquote().nospace() << "\t" << env;
+    }
+}
