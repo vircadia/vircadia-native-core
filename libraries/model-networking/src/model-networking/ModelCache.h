@@ -56,6 +56,9 @@ class Geometry {
 public:
     using Pointer = std::shared_ptr<Geometry>;
 
+    Geometry() = default;
+    Geometry(const Geometry& geometry);
+
     // Immutable over lifetime
     using NetworkMeshes = std::vector<std::shared_ptr<const NetworkMesh>>;
     using NetworkShapes = std::vector<std::shared_ptr<const NetworkShape>>;

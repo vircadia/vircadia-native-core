@@ -242,6 +242,18 @@ const QVariantMap Geometry::getTextures() const {
     return textures;
 }
 
+// FIXME: The materials should only be copied when modified, but the Model currently caches the original
+Geometry::Geometry(const Geometry& geometry) {
+    _geometry = geometry._geometry;
+    _meshes = geometry._meshes;
+    _shapes = geometry._shapes;
+
+    _materials.reserve(geometry._materials.size());
+    for (const auto& material : geometry._materials) {
+        _materials.push_back(std::make_shared<NetworkMaterial>(*material));
+    }
+}
+
 void Geometry::setTextures(const QVariantMap& textureMap) {
     if (_meshes->size() > 0) {
         for (auto& material : _materials) {
@@ -249,10 +261,12 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
                 [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.texture && textureMap.contains(it.name); })) { 
 
-                if (material->isOriginal()) {
-                    // Copy the material to avoid mutating the cached version
-                    material = std::make_shared<NetworkMaterial>(*material);
-                }
+                // FIXME: The Model currently caches the materials (waste of space!)
+                //        so they must be copied in the Geometry copy-ctor
+                // if (material->isOriginal()) {
+                //    // Copy the material to avoid mutating the cached version
+                //    material = std::make_shared<NetworkMaterial>(*material);
+                //}
 
                 material->setTextures(textureMap);
                 _areTexturesLoaded = false;
