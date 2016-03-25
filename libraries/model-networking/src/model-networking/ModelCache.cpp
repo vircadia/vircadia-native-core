@@ -309,6 +309,10 @@ NetworkGeometry::NetworkGeometry(const GeometryResource::Pointer& networkGeometr
 }
 
 void NetworkGeometry::resourceFinished(bool success) {
+    // FIXME: Model is not set up to handle a refresh
+    if (_instance) {
+        return;
+    }
     if (success) {
         _instance = std::make_shared<Geometry>(*_resource);
     }
@@ -316,7 +320,8 @@ void NetworkGeometry::resourceFinished(bool success) {
 }
 
 void NetworkGeometry::resourceRefreshed() {
-    _instance.reset();
+    // FIXME: Model is not set up to handle a refresh
+    // _instance.reset();
 }
 
 const QString NetworkMaterial::NO_TEXTURE = QString();
