@@ -9,8 +9,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
+var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random());
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v1" + Math.random());
 Plant = function(spawnPosition, spawnRotation) {
   var orientation;
   if (spawnRotation !== undefined) {
@@ -20,7 +20,7 @@ Plant = function(spawnPosition, spawnRotation) {
   }
   print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
-  var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
+  var BOWL_MODEL_URL = "atp:/models/Flowers-Bowl.fbx";
   var bowlDimensions = {
     x: 0.518,
     y: 0.1938,
@@ -40,7 +40,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var PLANT_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Moss-Rock.fbx";
+  var PLANT_MODEL_URL = "atp:/models/Flowers-Rock.fbx";
 
   var plantDimensions = {
     x: 0.52,
@@ -68,7 +68,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx";
+  var WATER_CAN_MODEL_URL = "atp:/models/waterCan.fbx";
 
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
