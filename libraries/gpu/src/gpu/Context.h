@@ -37,7 +37,7 @@ public:
 
     int _DSNumDrawcalls = 0;
     int _DSNumTriangles = 0;
-
+ 
     ContextStats() {}
     ContextStats(const ContextStats& stats) = default;
 };

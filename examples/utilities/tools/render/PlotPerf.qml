@@ -13,6 +13,7 @@ import QtQuick.Controls 1.4
 
 Item {
     id: root
+    width: parent.width
     height: 100
     property string title
     property var config
@@ -34,12 +35,15 @@ Item {
         if (inputs.length > input_VALUE_OFFSET) {
                 for (var i = input_VALUE_OFFSET; i < inputs.length; i++) {
                     var varProps = inputs[i].split("-")
-                    _values.push( {
+                    _values.push( {                      
                         value: varProps[1],
                         valueMax: 1,
+                        numSamplesConstantMax: 0,
                         valueHistory: new Array(),
                         label: varProps[0],
-                        color: varProps[2]
+                        color: varProps[2],
+                        scale: (varProps.length > 3 ? varProps[3] : 1),
+                        unit: (varProps.length > 4 ? varProps[4] : valueUnit)
                     })
                 }
         } 
@@ -59,25 +63,40 @@ Item {
         var UPDATE_CANVAS_RATE = 20;
         tick++;
         
-        valueMax = 0
+
+        var currentValueMax = 0
         for (var i = 0; i < _values.length; i++) {
-            var currentVal = stats.config[_values[i].value];
-            if (_values[i].valueMax < currentVal) {
-                _values[i].valueMax = currentVal;
-            }                    
+
+            var currentVal = stats.config[_values[i].value] * _values[i].scale;
             _values[i].valueHistory.push(currentVal)
+            _values[i].numSamplesConstantMax++;
+
             if (_values[i].valueHistory.length > VALUE_HISTORY_SIZE) {
                 var lostValue = _values[i].valueHistory.shift();
                 if (lostValue >= _values[i].valueMax) {
                     _values[i].valueMax *= 0.99
+                    _values[i].numSamplesConstantMax = 0
                 }
             }
 
-            if (valueMax < _values[i].valueMax) {
-                valueMax = _values[i].valueMax
+            if (_values[i].valueMax < currentVal) {
+                _values[i].valueMax = currentVal;
+                _values[i].numSamplesConstantMax = 0 
+            }                    
+
+            if (_values[i].numSamplesConstantMax > VALUE_HISTORY_SIZE) {
+                _values[i].numSamplesConstantMax = 0     
+                _values[i].valueMax *= 0.95 // lower slowly the current max if no new above max since a while                      
+            }
+ 
+            if (currentValueMax < _values[i].valueMax) {
+                currentValueMax = _values[i].valueMax
             }
         }
 
+        if ((valueMax < currentValueMax) || (tick % VALUE_HISTORY_SIZE == 0)) {
+            valueMax = currentValueMax;
+        }
 
         if (tick % UPDATE_CANVAS_RATE == 0) {
             mycanvas.requestPaint()
@@ -91,12 +110,15 @@ Item {
         onPaint: {
             var lineHeight = 12;
 
-            function displayValue(val) {
-                 return (val / root.valueScale).toFixed(root.valueNumDigits) + " " + root.valueUnit
+            function displayValue(val, unit) {
+                 return (val / root.valueScale).toFixed(root.valueNumDigits) + " " + unit
             }
 
-            function pixelFromVal(val) {
+            function pixelFromVal(val, valScale) {
                 return lineHeight + (height - lineHeight) * (1 - (0.9) * val / valueMax);
+            }
+            function valueFromPixel(pixY) {
+                return ((pixY - lineHeight) / (height - lineHeight) - 1) * valueMax / (-0.9);
             }
             function plotValueHistory(ctx, valHistory, color) {
                 var widthStep= width / (valHistory.length - 1);
@@ -104,7 +126,7 @@ Item {
                 ctx.beginPath();
                 ctx.strokeStyle= color; // Green path
                 ctx.lineWidth="2";
-                ctx.moveTo(0, pixelFromVal(valHistory[i])); 
+                ctx.moveTo(0, pixelFromVal(valHistory[0])); 
                    
                 for (var i = 1; i < valHistory.length; i++) { 
                     ctx.lineTo(i * widthStep, pixelFromVal(valHistory[i])); 
@@ -116,27 +138,40 @@ Item {
                 ctx.fillStyle = val.color;
                 var bestValue = val.valueHistory[val.valueHistory.length -1];             
                 ctx.textAlign = "right";
-                ctx.fillText(displayValue(bestValue), width, height - num * lineHeight);
+                ctx.fillText(displayValue(bestValue, val.unit), width, (num + 2) * lineHeight * 1.5);
                 ctx.textAlign = "left";
-                ctx.fillText(val.label, 0, height - num * lineHeight);
+                ctx.fillText(val.label, 0, (num + 2) * lineHeight * 1.5);
             }
 
             function displayTitle(ctx, text, maxVal) {
                 ctx.fillStyle = "grey";
                 ctx.textAlign = "right";
-                ctx.fillText(displayValue(maxVal), width, lineHeight);
+                ctx.fillText(displayValue(valueFromPixel(lineHeight), root.valueUnit), width, lineHeight);
                 
                 ctx.fillStyle = "white";
                 ctx.textAlign = "left";
                 ctx.fillText(text, 0, lineHeight);
             }
+            function displayBackground(ctx) {
+                ctx.fillStyle = Qt.rgba(0, 0, 0, 0.6);
+                ctx.fillRect(0, 0, width, height);
+                
+                ctx.strokeStyle= "grey";
+                ctx.lineWidth="2";
+
+                ctx.beginPath();
+                ctx.moveTo(0, lineHeight + 1); 
+                ctx.lineTo(width, lineHeight + 1); 
+                ctx.moveTo(0, height); 
+                ctx.lineTo(width, height); 
+                ctx.stroke();
+            }
             
             var ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
-            ctx.fillStyle = Qt.rgba(0, 0, 0, 0.4);
-            ctx.fillRect(0, 0, width, height);
-
             ctx.font="12px Verdana";
+
+            displayBackground(ctx);
                 
             for (var i = 0; i < _values.length; i++) {
                 plotValueHistory(ctx, _values[i].valueHistory, _values[i].color)
