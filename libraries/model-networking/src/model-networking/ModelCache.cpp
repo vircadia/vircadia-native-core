@@ -157,7 +157,7 @@ class GeometryDefinitionResource : public GeometryResource {
     Q_OBJECT
 public:
     GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
-        GeometryResource(url), _mapping(mapping), _textureBaseUrl(textureBaseUrl) {}
+        GeometryResource(url), _mapping(mapping), _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url) {}
 
     virtual void downloadFinished(const QByteArray& data) override;
 
@@ -497,4 +497,3 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 }
 
 #include "ModelCache.moc"
-
