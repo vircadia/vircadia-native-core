@@ -22,8 +22,9 @@ OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
 {
 }
 
-bool OpenGLVersionChecker::isValidVersion() {
-    bool valid = true;
+QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
+    valid = true;
+    override = false;
 
     GLWidget* glWidget = new GLWidget();
     valid = glWidget->isValid();
@@ -37,7 +38,7 @@ bool OpenGLVersionChecker::isValidVersion() {
         messageBox.setStandardButtons(QMessageBox::Ok);
         messageBox.setDefaultButton(QMessageBox::Ok);
         messageBox.exec();
-        return false;
+        return QString();
     }
     
     // Retrieve OpenGL version
@@ -68,8 +69,8 @@ bool OpenGLVersionChecker::isValidVersion() {
         messageBox.setInformativeText("Press OK to exit; Ignore to continue.");
         messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Ignore);
         messageBox.setDefaultButton(QMessageBox::Ok);
-        valid = messageBox.exec() == QMessageBox::Ignore;
+        override = messageBox.exec() == QMessageBox::Ignore;
     }
 
-    return valid;
+    return glVersion;
 }
