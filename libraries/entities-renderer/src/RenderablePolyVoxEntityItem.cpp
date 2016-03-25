@@ -55,6 +55,54 @@
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
+
+/*
+  A PolyVoxEntity has several interdependent parts:
+
+  _voxelData -- compressed QByteArray representation of which voxels have which values
+  _volData -- datastructure from the PolyVox library which holds which voxels have which values
+  _mesh -- renderable representation of the voxels
+  _shape -- used for bullet collisions
+
+  Each one depends on the one before it, except that _voxelData is set from _volData if a script edits the voxels.
+
+  There are booleans to indicate that something has been updated and the dependents now need to be updated.
+
+  _voxelDataDirty
+  _volDataDirty
+  _meshDirty
+
+  In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
+  decompressVolumeData() is called to decompress _voxelData into _volData.  getMesh() is called to invoke the
+  polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
+  is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
+  the surface style.
+
+  When a script changes _volData, compressVolumeDataAndSendEditPacket is called to update _voxelData and to
+  send a packet to the entity-server.
+
+  decompressVolumeData, getMesh, computeShapeInfoWorker, and compressVolumeDataAndSendEditPacket are too expensive
+  to run on a thread that has other things to do.  These use QtConcurrent::run to spawn a thread.  As each thread
+  finishes, it adjusts the dirty flags so that the next call to render() will kick off the next step.
+
+  polyvoxes are designed to seemlessly fit up against neighbors.  If voxels go right up to the edge of polyvox,
+  the resulting mesh wont be closed -- the library assumes you'll have another polyvox next to it to continue the
+  mesh.
+
+  If a polyvox entity is "edged", the voxel space is wrapped in an extra layer of zero-valued voxels.  This avoids the
+  previously mentioned gaps along the edges.
+
+  Non-edged polyvox entities can be told about their neighbors in all 6 cardinal directions.  On the positive
+  edges of the polyvox, the values are set from the (negative edge of) relevant neighbor so that their meshes
+  knit together.  This is handled by bonkNeighbors and copyUpperEdgesFromNeighbors.  In these functions, variable
+  names have XP for x-positive, XN x-negative, etc.
+
+ */
+
+
+
+
+
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderablePolyVoxEntityItem(entityID) };
     entity->setProperties(properties);
@@ -96,6 +144,7 @@ bool isEdged(PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle) {
 }
 
 void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
+    // compressed voxel information from the entity-server
     withWriteLock([&] {
         if (_voxelData != voxelData) {
             _voxelData = voxelData;
@@ -105,6 +154,8 @@ void RenderablePolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
 }
 
 void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
+    // this controls whether the polyvox surface extractor does marching-cubes or makes a cubic mesh.  It
+    // also determines if the extra "edged" layer is used.
     bool volSizeChanged = false;
 
     withWriteLock([&] {
@@ -132,10 +183,10 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
     });
 
     if (volSizeChanged) {
+        // setVoxelVolumeSize will re-alloc _volData with the right size
         setVoxelVolumeSize(_voxelVolumeSize);
     }
 }
-
 
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 result;
@@ -148,7 +199,6 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     });
     return result;
 }
-
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 voxelVolumeSize;
@@ -184,7 +234,6 @@ glm::mat4 RenderablePolyVoxEntityItem::worldToVoxelMatrix() const {
     return worldToModelMatrix;
 }
 
-
 bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
     if (_locked) {
         return false;
@@ -203,6 +252,7 @@ bool RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
 
 void RenderablePolyVoxEntityItem::forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
                                                     std::function<void(int, int, int, uint8_t)> thunk) {
+    // a thread-safe way for code outside this class to iterate over a range of voxels
     withReadLock([&] {
         for (int z = 0; z < voxelZSize; z++) {
             for (int y = 0; y < voxelYSize; y++) {
@@ -418,7 +468,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     float voxelDistance;
 
-    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel), voxelDistance, face, surfaceNormal);
+    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel),
+                                            voxelDistance, face, surfaceNormal);
 
     glm::vec4 voxelIntersectionPoint = glm::vec4(glm::vec3(originInVoxel) + glm::vec3(directionInVoxel) * voxelDistance, 1.0);
     glm::vec4 intersectionPoint = vtwMatrix * voxelIntersectionPoint;
@@ -459,6 +510,9 @@ void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value
 }
 
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
+    // we determine if we are ready to compute the physics shape by actually doing so.
+    // if _voxelDataDirty or _volDataDirty is set, don't do this yet -- wait for their
+    // threads to finish before creating the collision shape.
     if (_meshDirty && !_voxelDataDirty && !_volDataDirty) {
         _meshDirty = false;
         computeShapeInfoWorker();
@@ -468,6 +522,7 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
+    // the shape was actually computed in isReadyToComputeShape.  Just hand it off, here.
     withWriteLock([&] {
         info = _shapeInfo;
     });
@@ -659,6 +714,10 @@ glm::vec3 RenderablePolyVoxEntityItem::localCoordsToVoxelCoords(glm::vec3& local
 
 
 void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
+    // This controls how many individual voxels are in the entity.  This is unrelated to
+    // the dimentions of the entity -- it defines the size of the arrays that hold voxel values.
+    // In addition to setting the number of voxels, this is used in a few places for its
+    // side-effect of allocating _volData to be the correct size.
     withWriteLock([&] {
         if (_volData && _voxelVolumeSize == voxelVolumeSize) {
             return;
@@ -674,7 +733,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
 
         if (isEdged(_voxelSurfaceStyle)) {
             // with _EDGED_ we maintain an extra box of voxels around those that the user asked for.  This
-            // changes how the surface extractor acts -- mainly it becomes impossible to have holes in the
+            // changes how the surface extractor acts -- it becomes impossible to have holes in the
             // generated mesh.  The non _EDGED_ modes will leave holes in the mesh at the edges of the
             // voxel space.
             PolyVox::Vector3DInt32 lowCorner(0, 0, 0);
@@ -719,9 +778,6 @@ bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol,
 
 
 uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
-    // if (!_volData) {
-    //     return 0;
-    // }
     uint8_t result;
     withReadLock([&] {
         result = getVoxelInternal(x, y, z);
@@ -746,7 +802,8 @@ uint8_t RenderablePolyVoxEntityItem::getVoxelInternal(int x, int y, int z) {
 
 
 bool RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t toValue) {
-    // set a voxel without recompressing the voxel data
+    // set a voxel without recompressing the voxel data.  This assumes that the caller has
+    // write-locked the entity.
     bool result = false;
     if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return result;
@@ -838,6 +895,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
 
 void RenderablePolyVoxEntityItem::setVoxelsFromData(QByteArray uncompressedData,
                                                     quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) {
+    // this accepts the payload from decompressVolumeData
     withWriteLock([&] {
         for (int z = 0; z < voxelZSize; z++) {
             for (int y = 0; y < voxelYSize; y++) {
@@ -851,10 +909,9 @@ void RenderablePolyVoxEntityItem::setVoxelsFromData(QByteArray uncompressedData,
     });
 }
 
-
 void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
     // compress the data in _volData and save the results.  The compressed form is used during
-    // saves to disk and for transmission over the wire
+    // saves to disk and for transmission over the wire to the entity-server
 
     EntityItemPointer entity = getThisPointer();
 
@@ -948,6 +1005,7 @@ EntityItemPointer lookUpNeighbor(EntityTreePointer tree, EntityItemID neighborID
 }
 
 void RenderablePolyVoxEntityItem::cacheNeighbors() {
+    // this attempts to turn neighbor entityIDs into neighbor weak-pointers
     EntityTreeElementPointer element = getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
     if (!tree) {
@@ -962,6 +1020,7 @@ void RenderablePolyVoxEntityItem::cacheNeighbors() {
 }
 
 void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
+    // fill in our upper edges with a copy of our neighbors lower edges so that the meshes knit together
     if (_voxelSurfaceStyle != PolyVoxEntityItem::SURFACE_MARCHING_CUBES) {
         return;
     }
@@ -1014,6 +1073,7 @@ void RenderablePolyVoxEntityItem::copyUpperEdgesFromNeighbors() {
 }
 
 void RenderablePolyVoxEntityItem::getMesh() {
+    // use _volData to make a renderable mesh
     PolyVoxSurfaceStyle voxelSurfaceStyle;
     withReadLock([&] {
         voxelSurfaceStyle = _voxelSurfaceStyle;
@@ -1092,46 +1152,24 @@ void RenderablePolyVoxEntityItem::getMesh() {
 }
 
 void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
+    // this catches the payload from getMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-            _mesh = mesh;
-            _meshDirty = true;
-            _meshInitialized = true;
-            neighborsNeedUpdate = _neighborsNeedUpdate;
-            _neighborsNeedUpdate = false;
-        });
+        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        _mesh = mesh;
+        _meshDirty = true;
+        _meshInitialized = true;
+        neighborsNeedUpdate = _neighborsNeedUpdate;
+        _neighborsNeedUpdate = false;
+    });
     if (neighborsNeedUpdate) {
         bonkNeighbors();
     }
 }
 
-
-void RenderablePolyVoxEntityItem::setCollisionPoints(const QVector<QVector<glm::vec3>> points, AABox box) {
-    if (points.isEmpty()) {
-        EntityItem::computeShapeInfo(_shapeInfo);
-        return;
-    }
-
-    glm::vec3 collisionModelDimensions = box.getDimensions();
-    // include the registrationPoint in the shape key, because the offset is already
-    // included in the points and the shapeManager wont know that the shape has changed.
-    withWriteLock([&] {
-        QString shapeKey = QString(_voxelData.toBase64()) + "," +
-            QString::number(_registrationPoint.x) + "," +
-            QString::number(_registrationPoint.y) + "," +
-            QString::number(_registrationPoint.z);
-        _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
-        _shapeInfo.setConvexHulls(points);
-        _meshDirty = false;
-    });
-}
-
 void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
-
-    // if (!_volData) {
-    //     return;
-    // }
+    // this creates a collision-shape for the physics engine.  The shape comes from
+    // _volData for cubic extractors and from _mesh for marching-cube extractors
     if (!_meshInitialized) {
         return;
     }
@@ -1261,6 +1299,26 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
     });
 }
 
+void RenderablePolyVoxEntityItem::setCollisionPoints(const QVector<QVector<glm::vec3>> points, AABox box) {
+    // this catches the payload from computeShapeInfoWorker
+    if (points.isEmpty()) {
+        EntityItem::computeShapeInfo(_shapeInfo);
+        return;
+    }
+
+    glm::vec3 collisionModelDimensions = box.getDimensions();
+    // include the registrationPoint in the shape key, because the offset is already
+    // included in the points and the shapeManager wont know that the shape has changed.
+    withWriteLock([&] {
+            QString shapeKey = QString(_voxelData.toBase64()) + "," +
+                QString::number(_registrationPoint.x) + "," +
+                QString::number(_registrationPoint.y) + "," +
+                QString::number(_registrationPoint.z);
+            _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
+            _shapeInfo.setConvexHulls(points);
+            _meshDirty = false;
+        });
+}
 
 void RenderablePolyVoxEntityItem::setXNNeighborID(const EntityItemID& xNNeighborID) {
     if (xNNeighborID == _id) { // TODO loops are still possible
@@ -1327,6 +1385,7 @@ void RenderablePolyVoxEntityItem::setZPNeighborID(const EntityItemID& zPNeighbor
 
 
 void RenderablePolyVoxEntityItem::bonkNeighbors() {
+    // flag neighbors to the negative of this entity as needing to rebake their meshes.
     cacheNeighbors();
 
     EntityItemPointer currentXNNeighbor = _xNNeighbor.lock();
