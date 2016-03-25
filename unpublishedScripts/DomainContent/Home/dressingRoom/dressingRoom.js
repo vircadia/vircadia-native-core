@@ -2,7 +2,7 @@
 
     var utilsPath = Script.resolvePath("../utils.js");
     Script.include(utilsPath);
-    var avatarModelURL ='https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
+    var avatarModelURL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
 
     DressingRoom = function() {
         return this
@@ -20,11 +20,15 @@
             makeDoppelgangerForMyAvatar();
             subscribeToWearableMessages();
             // subscribeToFreezeMessages();
+            createWearable();
             this.setOccupied();
             var doppelProps = Entities.getEntityProperties(this.entityID);
-            // Entities.editEntity(doppelgangers[0], {
-            //     dimensions: doppelProps.naturalDimensions,
-            // });
+            Script.setTimeout(function() {
+                Entities.editEntity(doppelgangers[0], {
+                    dimensions: doppelProps.naturalDimensions,
+                });
+            }, 1000)
+
         },
         leaveEntity: function() {
             print('EXIT DRESSING ROOM!');
@@ -688,7 +692,44 @@
         }
     }
 
+    var wearable;
 
+    function createWearable() {
+        var WEARABLE_POSITION = {
+            x: 1107.5726,
+            y: 460.4974,
+            z: -77.0471
+        }
+        var properties = {
+            type: 'Model',
+            modelURL: 'https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx',
+            name: 'Hifi-Wearable',
+            dimensions: {
+                x: 0.25,
+                y: 0.25,
+                z: 0.25
+            },
+            color: {
+                red: 0,
+                green: 255,
+                blue: 0
+            },
+            position: WEARABLE_POSITION,
+            userData: JSON.stringify({
+                "grabbableKey": {
+                    "invertSolidWhileHeld": false
+                },
+                "wearable": {
+                    "joints": ["head", "Head", "hair", "neck"]
+                },
+                handControllerKey: {
+                    disableReleaseVelocity: true,
+                    disableMoveWithHead: true,
+                }
+            })
+        }
+        wearable = Entities.addEntity(properties);
+    }
 
     function cleanup() {
 
@@ -700,6 +741,9 @@
         });
 
         doppelgangers = [];
+
+        //temporarily
+        Entities.deleteEntity(wearable);
     }
 
     return new DressingRoom();
