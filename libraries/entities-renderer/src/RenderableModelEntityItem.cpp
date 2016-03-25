@@ -355,6 +355,7 @@ void RenderableModelEntityItem::updateModelBounds() {
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
          _model->getTranslation() != getPosition() ||
+         _model->getScaleToFitDimensions() != getDimensions() ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
