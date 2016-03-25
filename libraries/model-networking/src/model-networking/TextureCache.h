@@ -136,7 +136,7 @@ protected:
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
-    Q_INVOKABLE void setImage(const QImage& image, void* texture, int originalWidth, int originalHeight);
+    Q_INVOKABLE void setImage(void* texture, int originalWidth, int originalHeight);
 
 
 private:

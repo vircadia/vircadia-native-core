@@ -240,25 +240,26 @@ class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 15 * USECS_PER_SECOND;
-
+    static const unsigned long HEARTBEAT_REPORT_INTERVAL_USECS = 5 * USECS_PER_SECOND;
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
+    static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
+    static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
+    
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
         setObjectName("Deadlock Watchdog");
-        QTimer* heartbeatTimer = new QTimer();
         // Give the heartbeat an initial value
-        updateHeartbeat();
-        connect(heartbeatTimer, &QTimer::timeout, [this] {
-            updateHeartbeat();
-        });
-        heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
+        _heartbeat = usecTimestampNow();
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
     }
 
     void updateHeartbeat() {
-        _heartbeat = usecTimestampNow();
+        auto now = usecTimestampNow();
+        auto elapsed = now - _heartbeat;
+        _movingAverage.addSample(elapsed);
+        _heartbeat = now;
     }
 
     void deadlockDetectionCrash() {
@@ -269,10 +270,52 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-#ifdef NDEBUG
             auto now = usecTimestampNow();
-            auto lastHeartbeatAge = now - _heartbeat;
+
+            // in the unlikely event that now is less than _heartbeat, don't rollover and confuse ourselves
+            auto lastHeartbeatAge = (now > _heartbeat) ? now - _heartbeat : 0; 
+            auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
+            auto elapsedMovingAverage = _movingAverage.getAverage();
+
+            if (elapsedMovingAverage > _maxElapsedAverage) {
+                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "maxElapsed:" << _maxElapsed
+                    << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
+                    << "NEW maxElapsedAverage:" << elapsedMovingAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _maxElapsedAverage = elapsedMovingAverage;
+            }
+            if (lastHeartbeatAge > _maxElapsed) {
+                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsed:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "PREVIOUS maxElapsed:" << _maxElapsed
+                    << "NEW maxElapsed:" << lastHeartbeatAge
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _maxElapsed = lastHeartbeatAge;
+            }
+            if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
+                qDebug() << "DEADLOCK WATCHDOG STATUS -- lastHeartbeatAge:" << lastHeartbeatAge
+                         << "elapsedMovingAverage:" << elapsedMovingAverage
+                         << "maxElapsed:" << _maxElapsed
+                         << "maxElapsedAverage:" << _maxElapsedAverage
+                         << "samples:" << _movingAverage.getSamples();
+                _lastReport = now;
+            }
+
+#ifdef NDEBUG
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
+                qDebug() << "DEADLOCK DETECTED -- "
+                         << "lastHeartbeatAge:" << lastHeartbeatAge
+                         << "[ _heartbeat:" << _heartbeat
+                         << "now:" << now << " ]"
+                         << "elapsedMovingAverage:" << elapsedMovingAverage
+                         << "maxElapsed:" << _maxElapsed
+                         << "maxElapsedAverage:" << _maxElapsedAverage
+                         << "samples:" << _movingAverage.getSamples();
                 deadlockDetectionCrash();
             }
 #endif
@@ -280,10 +323,19 @@ public:
     }
 
     static std::atomic<uint64_t> _heartbeat;
+    static std::atomic<uint64_t> _lastReport;
+    static std::atomic<uint64_t> _maxElapsed;
+    static std::atomic<int> _maxElapsedAverage;
+    static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
+
     bool _quit { false };
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
+std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
+std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
+std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
+ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -1381,6 +1433,8 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
 
+    updateHeartbeat();
+
     // Some plugins process message events, potentially leading to
     // re-entering a paint event.  don't allow further processing if this
     // happens
@@ -1415,7 +1469,7 @@ void Application::paintGL() {
         _lastFramesPerSecondUpdate = now;
     }
 
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -2502,6 +2556,8 @@ static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
 
+    updateHeartbeat();
+
     if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
     }
@@ -2554,11 +2610,12 @@ void Application::idle(uint64_t now) {
         return;
     }
 
+    PROFILE_RANGE(__FUNCTION__);
+
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
 
     {
-        PROFILE_RANGE(__FUNCTION__);
         static uint64_t lastIdleStart{ now };
         uint64_t idleStartToStartDuration = now - lastIdleStart;
         if (idleStartToStartDuration != 0) {
@@ -3146,6 +3203,9 @@ void Application::updateDialogs(float deltaTime) {
 }
 
 void Application::update(float deltaTime) {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
+
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
@@ -3246,9 +3306,13 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     if (_physicsEnabled) {
+        PROFILE_RANGE_EX("Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+
         PerformanceTimer perfTimer("physics");
 
         {
+            PROFILE_RANGE_EX("UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+
             PerformanceTimer perfTimer("updateStates)");
             static VectorOfMotionStates motionStates;
             _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
@@ -3281,12 +3345,14 @@ void Application::update(float deltaTime) {
             });
         }
         {
+            PROFILE_RANGE_EX("StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("stepSimulation");
             getEntities()->getTree()->withWriteLock([&] {
                 _physicsEngine->stepSimulation();
             });
         }
         {
+            PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("havestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
@@ -3321,17 +3387,24 @@ void Application::update(float deltaTime) {
 
         qApp->setAvatarSimrateSample(1.0f / deltaTime);
 
-        avatarManager->updateOtherAvatars(deltaTime);
+        {
+            PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            avatarManager->updateOtherAvatars(deltaTime);
+        }
 
         qApp->updateMyAvatarLookAtPosition();
 
         // update sensorToWorldMatrix for camera and hand controllers
         myAvatar->updateSensorToWorldMatrix();
 
-        avatarManager->updateMyAvatar(deltaTime);
+        {
+            PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            avatarManager->updateMyAvatar(deltaTime);
+        }
     }
 
     {
+        PROFILE_RANGE_EX("Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
@@ -3351,6 +3424,7 @@ void Application::update(float deltaTime) {
 
     // Update my voxel servers with my current voxel query...
     {
+        PROFILE_RANGE_EX("QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;

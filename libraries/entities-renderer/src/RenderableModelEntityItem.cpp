@@ -113,14 +113,18 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
         return _originalTexturesMap;
     }
 
-    QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    // Legacy: a ,\n-delimited list of filename:"texturepath"
+    if (*textures.cbegin() != '{') {
+        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    }
+
     QJsonParseError error;
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(jsonTextures.toUtf8(), &error);
+    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+        return _originalTexturesMap;
     }
-    QJsonObject texturesAsJsonObject = texturesAsJson.object();
-    return texturesAsJsonObject.toVariantMap();
+    return texturesJson.object().toVariantMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
@@ -350,7 +354,9 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
+         _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
+         _model->getScaleToFitDimensions() != getDimensions() ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
@@ -366,6 +372,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         }
 
         _needsInitialSimulation = false;
+        _needsJointSimulation = false;
     }
 }
 
@@ -766,6 +773,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
@@ -781,10 +789,32 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
 }
+
+void RenderableModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    ModelEntityItem::setJointRotations(rotations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    ModelEntityItem::setJointRotationsSet(rotationsSet);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    ModelEntityItem::setJointTranslations(translations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    ModelEntityItem::setJointTranslationsSet(translationsSet);
+    _needsJointSimulation = true;
+}
+
 
 void RenderableModelEntityItem::locationChanged() {
     EntityItem::locationChanged();
