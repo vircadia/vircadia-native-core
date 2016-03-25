@@ -18,7 +18,7 @@
   var center = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(2, Quat.getFront(orientation)));
 
 
-  var SCRIPT_URL = Script.resolvePath("cowEntityScript.js?v1" + Math.random());
+  var SCRIPT_URL = Script.resolvePath("cowEntityScript.js?");
   var cow = Entities.addEntity({
       type: "Model",
       modelURL: "http://hifi-content.s3.amazonaws.com/DomainContent/production/cow/newMooCow.fbx",
