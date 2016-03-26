@@ -276,7 +276,7 @@ hexToRgb = function(hex) {
     return result ? {
         red: parseInt(result[1], 16),
         green: parseInt(result[2], 16),
-        blue: parseInt(resulta[3], 16)
+        blue: parseInt(result[3], 16)
     } : null;
 }
 
