@@ -44,6 +44,7 @@ namespace render {
     typedef unsigned int ItemID;
 }
 class MeshPartPayload;
+class ModelMeshPartPayload;
 class ModelRenderLocations;
 
 inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
@@ -222,6 +223,9 @@ public:
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
+    // bounding box used for mesh that is influnced by multiple animated bones.
+    void setSkinnedMeshBound(const AABox& skinnedMeshBound) { _skinnedMeshBound = skinnedMeshBound; }
+
 protected:
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
@@ -371,8 +375,12 @@ protected:
     bool _renderCollisionHull;
 
 
-    QSet<std::shared_ptr<MeshPartPayload>> _renderItemsSet;
-    QMap<render::ItemID, render::PayloadPointer> _renderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _collisionRenderItemsSet;
+    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItems;
+
+    QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
+
     bool _readyWhenAdded { false };
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
@@ -382,6 +390,9 @@ protected:
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
+
+    // 2 meter^3 box
+    AABox _skinnedMeshBound { glm::vec3(-1.0, -1.0, -1.0), glm::vec3(2.0f) };
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

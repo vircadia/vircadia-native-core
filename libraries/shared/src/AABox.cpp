@@ -17,6 +17,8 @@
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"
 
+const glm::vec3 INFINITY_VECTOR(std::numeric_limits<float>::infinity());
+
 AABox::AABox(const AACube& other) :
     _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
 }
@@ -34,7 +36,7 @@ AABox::AABox(const glm::vec3& corner, const glm::vec3& dimensions) :
     _corner(corner), _scale(dimensions) {
 };
 
-AABox::AABox() : _corner(std::numeric_limits<float>::infinity()), _scale(0.0f) {
+AABox::AABox() : _corner(INFINITY_VECTOR), _scale(0.0f) {
 };
 
 glm::vec3 AABox::calcCenter() const {
@@ -475,8 +477,15 @@ AABox AABox::clamp(float min, float max) const {
 }
 
 AABox& AABox::operator += (const glm::vec3& point) {
-    _corner = glm::min(_corner, point);
-    _scale = glm::max(_scale, point - _corner);
+
+    if (_corner == INFINITY_VECTOR) {
+        _corner = glm::min(_corner, point);
+    } else {
+        glm::vec3 maximum(_corner + _scale);
+        _corner = glm::min(_corner, point);
+        maximum = glm::max(maximum, point);
+        _scale = maximum - _corner;
+    }
 
     return (*this);
 }
@@ -489,11 +498,25 @@ AABox& AABox::operator += (const AABox& box) {
     return (*this);
 }
 
-void AABox::scale(const glm::vec3& scale) {
+void AABox::embiggen(float scale) {
+    _corner += scale * (-0.5f * _scale);
+    _scale *= scale;
+}
+
+void AABox::embiggen(const glm::vec3& scale) {
+    _corner += scale * (-0.5f * _scale);
+    _scale *= scale;
+}
+
+void AABox::scale(float scale) {
     _corner *= scale;
     _scale *= scale;
 }
 
+void AABox::scale(const glm::vec3& scale) {
+    _corner *= scale;
+    _scale *= scale;
+}
 
 void AABox::rotate(const glm::quat& rotation) {
     auto minimum = _corner;

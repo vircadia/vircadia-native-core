@@ -102,6 +102,7 @@ void Model::setRotation(const glm::quat& rotation) {
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
+
     // if anyone sets scale manually, then we are no longer scaled to fit
     _scaleToFit = false;
     _scaledToFit = false;
@@ -130,20 +131,44 @@ void Model::setOffset(const glm::vec3& offset) {
 void Model::enqueueLocationChange() {
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-    Transform transform;
-    transform.setTranslation(_translation);
-    transform.setRotation(_rotation);
+    Transform modelTransform;
+    modelTransform.setScale(_scale);
+    modelTransform.setTranslation(_translation);
+    modelTransform.setRotation(_rotation);
 
     Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
+    if (_geometry && _geometry->isLoaded()) {
+        offset = Transform(_rig->getGeometryToRigTransform());
+    } else {
+        offset.postTranslate(_offset);
+    }
 
     render::PendingChanges pendingChanges;
-    foreach (auto itemID, _renderItems.keys()) {
-        pendingChanges.updateItem<MeshPartPayload>(itemID, [transform, offset](MeshPartPayload& data) {
-            data.updateTransform(transform, offset);
+    foreach (auto itemID, _modelMeshRenderItems.keys()) {
+        pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, offset](ModelMeshPartPayload& data) {
+            //data._model->updateClusterMatrices(data._transform.getTranslation(), data._transform.getRotation());
+            const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+            if (state.clusterBuffer) {
+                data.updateTransform(modelTransform, offset);
+            } else {
+                // HACK: check for bugs...
+                AnimPose clusterMat(state.clusterMatrices[0]);
+
+                Transform xform;
+                xform.setScale(clusterMat.scale);
+                xform.setRotation(clusterMat.rot);
+                xform.setTranslation(clusterMat.trans);
+                data.updateTransformForRigidlyBoundMesh(modelTransform, xform, offset);
+            }
             data.notifyLocationChanged();
         });
+    }
+
+    foreach (auto itemID, _collisionRenderItems.keys()) {
+        pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, offset](MeshPartPayload& data) {
+            data.updateTransform(modelTransform, offset);
+            data.notifyLocationChanged();
+       });
     }
 
     scene->enqueuePendingChanges(pendingChanges);
@@ -497,8 +522,11 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
         _isVisible = newValue;
 
         render::PendingChanges pendingChanges;
-        foreach (auto item, _renderItems.keys()) {
-            pendingChanges.resetItem(item, _renderItems[item]);
+        foreach (auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+        }
+        foreach (auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }
@@ -514,14 +542,25 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _renderItemsSet) {
+    foreach (auto renderItem, _modelMeshRenderItemsSet) {
+        auto item = scene->allocateID();
+        auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+        pendingChanges.resetItem(item, renderPayload);
+        pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
+            data.notifyLocationChanged();
+        });
+        _modelMeshRenderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+
+    foreach (auto renderItem, _collisionRenderItemsSet) {
         auto item = scene->allocateID();
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
             data.notifyLocationChanged();
         });
-        _renderItems.insert(item, renderPayload);
+        _collisionRenderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
 
@@ -541,7 +580,19 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _renderItemsSet) {
+    foreach (auto renderItem, _modelMeshRenderItemsSet) {
+        auto item = scene->allocateID();
+        auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+        renderPayload->addStatusGetters(statusGetters);
+        pendingChanges.resetItem(item, renderPayload);
+        pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
+            data.notifyLocationChanged();
+        });
+        _modelMeshRenderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+
+    foreach (auto renderItem, _collisionRenderItemsSet) {
         auto item = scene->allocateID();
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         renderPayload->addStatusGetters(statusGetters);
@@ -549,7 +600,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
         pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
             data.notifyLocationChanged();
         });
-        _renderItems.insert(item, renderPayload);
+        _collisionRenderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
 
@@ -559,11 +610,16 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 }
 
 void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    foreach (auto item, _renderItems.keys()) {
+    foreach (auto item, _modelMeshRenderItems.keys()) {
         pendingChanges.removeItem(item);
     }
-    _renderItems.clear();
-    _renderItemsSet.clear();
+    _modelMeshRenderItems.clear();
+    _modelMeshRenderItemsSet.clear();
+    foreach (auto item, _collisionRenderItems.keys()) {
+        pendingChanges.removeItem(item);
+    }
+    _collisionRenderItems.clear();
+    _collisionRenderItemsSet.clear();
     _meshGroupsKnown = false;
     _readyWhenAdded = false;
 }
@@ -1191,10 +1247,14 @@ void Model::segregateMeshGroups() {
         return;
     }
 
-    Q_ASSERT(_renderItems.isEmpty()); // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_renderItemsSet.isEmpty()); // We should not have any existing renderItemsSet if we enter this section of code
+    // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_modelMeshRenderItems.isEmpty());
+    Q_ASSERT(_modelMeshRenderItemsSet.isEmpty());
+    Q_ASSERT(_collisionRenderItems.isEmpty());
+    Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
-    _renderItemsSet.clear();
+    _modelMeshRenderItemsSet.clear();
+    _collisionRenderItemsSet.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1220,9 +1280,14 @@ void Model::segregateMeshGroups() {
                     _collisionHullMaterial->setMetallic(0.02f);
                     _collisionHullMaterial->setRoughness(0.5f);
                 }
-                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, _collisionHullMaterial, transform, offset);
+                _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, _collisionHullMaterial, transform, offset);
             } else {
-                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+                AABox geometrySkinnedMeshBound = _skinnedMeshBound;
+
+                // transform bound from model into geometry space.
+                geometrySkinnedMeshBound.transform(Transform(glm::inverse(_rig->getGeometryToRigTransform())));
+
+                _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset, geometrySkinnedMeshBound);
             }
 
             shapeID++;
@@ -1245,13 +1310,21 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         offset.setScale(_scale);
         offset.postTranslate(_offset);
 
-        foreach (auto renderItem, _renderItemsSet) {
+        foreach (auto renderItem, _modelMeshRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            _modelMeshRenderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<ModelMeshPartPayload>(item, [transform, offset](MeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+        }
+        foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-            _renderItems.insert(item, renderPayload);
+            _collisionRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [transform,offset](MeshPartPayload& data) {
-                data.updateTransform(transform, offset);
+            pendingChanges.updateItem<MeshPartPayload>(item, [transform, offset](MeshPartPayload& data) {
                 data.notifyLocationChanged();
             });
         }

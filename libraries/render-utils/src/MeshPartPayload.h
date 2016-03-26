@@ -64,6 +64,7 @@ public:
     bool _hasColorAttrib = false;
 };
 
+
 namespace render {
     template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload);
@@ -73,16 +74,18 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
-    
+    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform,
+                         const Transform& offsetTransform, const AABox& skinnedMeshBound);
+
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    void notifyLocationChanged() override;
+    virtual void updateMeshPart(model::MeshPointer drawMesh, int partIndex) override;
+    virtual void notifyLocationChanged() override;
+    void updateTransformForRigidlyBoundMesh(const Transform& transform, const Transform& jointTransform, const Transform& offsetTransform);
 
     // Render Item interface
     render::ItemKey getKey() const override;
-    render::Item::Bound getBound() const override;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) const override;
 
@@ -99,6 +102,15 @@ public:
 
     bool _isSkinned{ false };
     bool _isBlendShaped{ false };
+
+    AABox _skinnedMeshBound;
 };
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
+    template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
+    template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
+}
 
 #endif // hifi_MeshPartPayload_h

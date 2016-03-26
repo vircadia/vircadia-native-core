@@ -58,7 +58,6 @@ public:
     const glm::vec3& getMinimumPoint() const { return _corner; }
     glm::vec3 getMaximumPoint() const { return calcTopFarLeft(); }
 
-
     bool contains(const glm::vec3& point) const;
     bool contains(const AABox& otherBox) const;
     bool touches(const AABox& otherBox) const;
@@ -92,6 +91,10 @@ public:
     /// Scale the AABox
     void scale(float scale);
     void scale(const glm::vec3& scale);
+
+    /// make the AABox bigger (scale about it's center)
+    void embiggen(float scale);
+    void embiggen(const glm::vec3& scale);
 
     // Transform the extents with transform
     void transform(const Transform& transform);

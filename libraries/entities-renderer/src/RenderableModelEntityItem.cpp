@@ -54,6 +54,8 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
         // Here we reset those guards. This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
         _model->setScaleToFit(false, getDimensions());
         _model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+        AABox skinnedMeshBound(getPosition() - getDimensions() * getRegistrationPoint(), getDimensions());
+        _model->setSkinnedMeshBound(skinnedMeshBound);
     }
     ModelEntityItem::setModelURL(url);
 
@@ -76,6 +78,8 @@ void RenderableModelEntityItem::loader() {
     if (_model) {
         _model->setURL(getParsedModelURL());
         _model->setCollisionModelURL(QUrl(getCompoundShapeURL()));
+        AABox skinnedMeshBound(getPosition() - getDimensions() * getRegistrationPoint(), getDimensions());
+        _model->setSkinnedMeshBound(skinnedMeshBound);
     }
 }
 

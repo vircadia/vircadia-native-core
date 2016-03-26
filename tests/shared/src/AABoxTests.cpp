@@ -151,3 +151,15 @@ void AABoxTests::testTouchesSphere() {
     }
 }
 
+void AABoxTests::testScale() {
+    AABox box(glm::vec3(2.0f), glm::vec3(1.0f));
+    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
+    box.scale(glm::vec3(10.0f));
+    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
+    QCOMPARE(box.contains(glm::vec3(2.0f * 10.0f)), true);
+
+    AABox box(glm::vec3(2.0f), glm::vec3(1.0f));
+    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
+    box.embiggen(glm::vec3(10.0f));
+    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
+}
