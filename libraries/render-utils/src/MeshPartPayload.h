@@ -64,7 +64,6 @@ public:
     bool _hasColorAttrib = false;
 };
 
-
 namespace render {
     template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload);
@@ -74,13 +73,12 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform,
-                         const Transform& offsetTransform);
+    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void notifyLocationChanged() override;
+    void notifyLocationChanged() override;
     void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const glm::mat4* clusterMatrices, size_t numClusterMatrices);
 
     // Render Item interface

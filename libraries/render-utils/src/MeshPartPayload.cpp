@@ -52,14 +52,6 @@ MeshPartPayload::MeshPartPayload(model::MeshPointer mesh, int partIndex, model::
     updateTransform(transform, offsetTransform);
 }
 
-void MeshPartPayload::updateTransform(const Transform& transform, const Transform& offsetTransform) {
-    _transform = transform;
-    _offsetTransform = offsetTransform;
-    Transform::mult(_drawTransform, _transform, _offsetTransform);
-    _worldBound = _localBound;
-    _worldBound.transform(_drawTransform);
-}
-
 void MeshPartPayload::updateMeshPart(model::MeshPointer drawMesh, int partIndex) {
     _drawMesh = drawMesh;
     if (_drawMesh) {
@@ -68,6 +60,14 @@ void MeshPartPayload::updateMeshPart(model::MeshPointer drawMesh, int partIndex)
         _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
         _localBound = _drawMesh->evalPartBound(partIndex);
     }
+}
+
+void MeshPartPayload::updateTransform(const Transform& transform, const Transform& offsetTransform) {
+    _transform = transform;
+    _offsetTransform = offsetTransform;
+    Transform::mult(_drawTransform, _transform, _offsetTransform);
+    _worldBound = _localBound;
+    _worldBound.transform(_drawTransform);
 }
 
 void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
@@ -315,12 +315,10 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 }
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform,
-                                           const Transform& offsetTransform) :
+ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
     _model(model),
     _meshIndex(_meshIndex),
     _shapeID(shapeIndex) {
-
     auto& modelMesh = _model->_geometry->getMeshes().at(_meshIndex)->_mesh;
     updateMeshPart(modelMesh, partIndex);
 

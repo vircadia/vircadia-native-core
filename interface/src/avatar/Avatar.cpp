@@ -56,8 +56,6 @@ const float DISPLAYNAME_ALPHA = 1.0f;
 const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
-const AABox DEFAULT_AVATAR_SKINNED_MESH_BOUND(glm::vec3(-1.0, -1.0, -1.0), glm::vec3(2.0f));
-
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
         return ItemKey::Builder::opaqueShape();

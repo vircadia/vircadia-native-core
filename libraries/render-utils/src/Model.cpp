@@ -102,7 +102,6 @@ void Model::setRotation(const glm::quat& rotation) {
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
-
     // if anyone sets scale manually, then we are no longer scaled to fit
     _scaleToFit = false;
     _scaledToFit = false;
