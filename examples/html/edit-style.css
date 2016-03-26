@@ -191,10 +191,6 @@ input.search {
     border-radius: 14px;
 }
 
-input.url {
-    width: 100%;
-}
-
 input.coord {
     width: 7em;
     display: block;
@@ -229,6 +225,10 @@ input:focus {
 
 input::selection {
     background-color: #00b4ef;
+}
+
+input[type="text"] {
+    width: 100%;
 }
 
 /* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
@@ -395,8 +395,7 @@ input[type=checkbox]:checked + label:hover {
 .physical-section[collapsed="true"] ~ .physical-section,
 .behavior-section[collapsed="true"] ~ .behavior-section,
 .model-section[collapsed="true"] ~ .model-section,
-.light-section[collapsed="true"] ~ .light-section
- {
+.light-section[collapsed="true"] ~ .light-section {
     display: none;
 }
 
@@ -426,7 +425,7 @@ input[type=checkbox]:checked + label:hover {
     margin-left: 12px;
 }
 
-.number label {
+.text label, .url label, .number label {
     float: left;
     margin-bottom: 4px;
 }

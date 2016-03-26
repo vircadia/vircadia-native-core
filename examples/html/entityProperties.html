@@ -1125,11 +1125,9 @@
                 <span id="property-id" class="selectable"></span>
             </div>
         </div>
-        <div class="property">
-            <span class="label" style="float: left; margin-right: 6px">Name</span>
-            <div class="value" style="overflow: hidden;">
-                <input type="text" id="property-name">
-            </div>
+        <div class="property text">
+            <label for="property-name">Name</label>
+            <input type="text" id="property-name">
         </div>
 
         <div class="property checkbox">
@@ -1153,12 +1151,9 @@
         <div id="text-section" class="section-header text-section">
             <label>Text</label><span>M</span>
         </div>
-
-        <div class="text-section property">
-            <div class="label">Text Content</div>
-            <div class="value">
-                <input type="text" id="property-text-text">
-            </div>
+        <div class="text-section property text">
+            <label for="property-text-text">Text content</label>
+            <input type="text" id="property-text-text">
         </div>
         <div class="text-section property">
             <div class="label">Line Height</div>
@@ -1233,12 +1228,10 @@
             </div>
         </div>
         
-        <div class="zone-section keyLight-section property">
-            <div class="label">Ambient URL</div>
-            <div class="value">
-                <input type="text" id="property-zone-key-ambient-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="zone-section keyLight-section property url">
+            <label for="property-zone-key-ambient-url">Ambient URL</label>
+            <input type="text" id="property-zone-key-ambient-url">
+            <div class="update-url-version"></div>
         </div>
 
 
@@ -1313,12 +1306,10 @@
             </div>
         </div>
 
-        <div class="zone-section skybox-section property">
-            <div class="label">Skybox URL</div>
-            <div class="value">
-                <input type="text" id="property-zone-skybox-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="zone-section skybox-section property url">
+            <label for="property-zone-skybox-url">Skybox URL</label>
+            <input type="text" id="property-zone-skybox-url">
+            <div class="update-url-version"></div>
         </div>
 
 
@@ -1326,13 +1317,10 @@
             <label>Web</label><span>M</span>
         </div>
 
-        <div class="web-section property">
-            <div class="label">Source URL</div>
-            <div class="value">
-                <input type="text" id="property-web-source-url" class="url">
-                <div class="update-url-version"></div>
-
-            </div>
+        <div class="web-section property url">
+            <label for="property-web-source-url">Source URL</label>
+            <input type="text" id="property-web-source-url">
+            <div class="update-url-version"></div>
         </div>
 
 
@@ -1340,19 +1328,13 @@
             <label>Hyperlink</label><span>M</span>
         </div>
 
-        <div class="hyperlink-section property">
-            <div class="label">Href - Hifi://address</div>
-            <div class="value">
-                <input id="property-hyperlink-href" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="hyperlink-section property url">
+            <label for="property-hyperlink-href">Href - hifi://address</label>
+            <input type="text" id="property-hyperlink-href">
         </div>
-        <div class="hyperlink-section property">
-            <div class="label">Description</div>
-            <div class="value">
-                <input id="property-hyperlink-description" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="hyperlink-section property text">
+            <label for="property-hyperlink-description">Description</label>
+            <input type="text" id="property-hyperlink-description">
         </div>
 
 
@@ -1374,17 +1356,13 @@
             </div>
         </div>
 
-        <div class="spatial-section property">
-            <span class="label" style="float: left; margin-right: 6px">ParentID</span>
-            <div class="value" style="overflow: hidden;">
-                <input type="text" id="property-parent-id">
-            </div>
+        <div class="spatial-section property text">
+            <label for="property-parent-id">Parent ID</label>
+            <input type="text" id="property-parent-id">
         </div>
-        <div class="spatial-section property">
-            <span class="label" style="float: left; margin-right: 6px">ParentJointIndex</span>
-            <div class="value" style="overflow: hidden;">
-                <input type="text" id="property-parent-joint-index">
-            </div>
+        <div class="spatial-section property text">
+            <label for="property-parent-joint-index">Parent joint index</label>
+            <input type="text" id="property-parent-joint-index">
         </div>
 
         <div class="spatial-section property">
@@ -1432,22 +1410,22 @@
               </select>
             </div>
 
-            <div class="label">X-axis Texture URL</div>
-            <div class="value">
-              <input type="text" id="property-x-texture-url" class="url">
-              <div class="update-url-version"></div>
+            <div class="property url">
+                <label for="property-x-texture-url">X-axis texture URL</label>
+                <input type="text" id="property-x-texture-url">
+                <div class="update-url-version"></div>
             </div>
 
-            <div class="label">Y-axis Texture URL</div>
-            <div class="value">
-              <input type="text" id="property-y-texture-url" class="url">
-              <div class="update-url-version"></div>
+            <div class="property url">
+                <label for="property-y-texture-url">Y-axis texture URL</label>
+                <input type="text" id="property-y-texture-url">
+                <div class="update-url-version"></div>
             </div>
 
-            <div class="label">Z-axis Texture URL</div>
-            <div class="value">
-              <input type="text" id="property-z-texture-url" class="url">
-              <div class="update-url-version"></div>
+            <div class="property url">
+                <label for="property-z-texture-url">Z-axis texture URL</label>
+                <input type="text" id="property-z-texture-url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1608,12 +1586,10 @@
             </div>
         </div>
 
-        <div class="behavior-section property">
-            <div class="label">Collision Sound URL</div>
-            <div class="value">
-                <input id="property-collision-sound-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="behavior-section property url">
+            <label for="property-collision-sound-url">Collision sound URL</label>
+            <input type="text" id="property-collision-sound-url">
+            <div class="update-url-version"></div>
         </div>
 
         <div class="behavior-section property">
@@ -1623,15 +1599,12 @@
             </div>
         </div>
 
-        <div class="behavior-section property">
-            <div class="label">Script URL
-                <input type="hidden" id="property-script-timestamp" class="value">
-                <input type="button" id="reload-script-button" value="Reload">
-            </div>
-            <div class="value">
-                <input id="property-script-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="behavior-section property url">
+            <input type="hidden" id="property-script-timestamp" class="value">
+            <input type="button" id="reload-script-button" value="Reload">
+            <label for="property-script-url">Script URL</label>
+            <input type="text" id="property-script-url">
+            <div class="update-url-version"></div>
         </div>
 
 
@@ -1639,12 +1612,10 @@
             <label>Model</label><span>M</span>
         </div>
 
-        <div class="model-section property">
-            <div class="label">Model URL</div>
-            <div class="value">
-                <input type="text" id="property-model-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="model-section property url">
+            <label for="property-model-url">Model URL</label>
+            <input type="text" id="property-model-url">
+            <div class="update-url-version"></div>
         </div>
 
         <div class="model-section zone-section property">
@@ -1658,19 +1629,15 @@
                 </select>
             </div>
         </div>
-        <div class="model-section zone-section property">
-            <div class="label">Compound Shape URL</div>
-            <div class="value">
-                <input type="text" id="property-compound-shape-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="model-section zone-section property url">
+            <label for="property-compound-shape-url">Compound shape URL</label>
+            <input type="text" id="property-compound-shape-url">
+            <div class="update-url-version"></div>
         </div>
-        <div class="model-section property">
-            <div class="label">Animation URL</div>
-            <div class="value">
-                <input type="text" id="property-model-animation-url" class="url">
-                <div class="update-url-version"></div>
-            </div>
+        <div class="model-section property url">
+            <label for="property-model-animation-url">Animation URL</label>
+            <input type="text" id="property-model-animation-url">
+            <div class="update-url-version"></div>
         </div>
         <div class="model-section property checkbox">
             <input type="checkbox" id="property-model-animation-playing">
