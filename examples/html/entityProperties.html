@@ -1132,18 +1132,14 @@
             </div>
         </div>
 
-        <div class="property">
-            <span class="label">Locked</span>
-            <span class="value">
-                <input type='checkbox' id="property-locked">
-            </span>
+        <div class="property checkbox">
+            <input type="checkbox" id="property-locked">
+            <label for="property-locked">Locked</label>
         </div>
 
-        <div class="property">
-            <span class="label">Visible</span>
-            <span class="value">
-                <input type='checkbox' id="property-visible">
-            </span>
+        <div class="property checkbox">
+            <input type="checkbox" id="property-visible">
+            <label for="property-visible">Visible</label>
         </div>
 
         <div class="property">
@@ -1153,7 +1149,8 @@
             </div>
         </div>
 
-        <div id="text-section" class="section-header text-section collapsible">
+
+        <div id="text-section" class="section-header text-section">
             <label>Text</label><span>M</span>
         </div>
 
@@ -1189,16 +1186,16 @@
             </div>
         </div>
         
+
         <div class="section-header zone-section">
             <label>Zone</label><span>M</span>
         </div>
 
-        <div class="zone-section property">
-            <span class="label">Stage Sun Model Enabled</span>
-            <span class="value">
-                <input type='checkbox' id="property-zone-stage-sun-model-enabled">
-            </span>
+        <div class="zone-section property checkbox">
+            <input type="checkbox" id="property-zone-stage-sun-model-enabled">
+            <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
         </div>
+
 
         <div class="sub-section-header zone-section keyLight-section">
             <label>KeyLight</label>
@@ -1235,7 +1232,6 @@
                 <input class="coord" type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
-
         
         <div class="zone-section keyLight-section property">
             <div class="label">Ambient URL</div>
@@ -1244,6 +1240,7 @@
                 <div class="update-url-version"></div>
             </div>
         </div>
+
 
         <div class="sub-section-header zone-section stage-section">
             <label>Stage</label>
@@ -1268,11 +1265,9 @@
             </div>
         </div>
 
-        <div class="zone-section stage-section property">
-            <span class="label">Automatically calculate stage hour and day from location and clock.</span>
-            <span class="value">
-                <input type='checkbox' id="property-zone-stage-automatic-hour-day">
-            </span>
+        <div class="zone-section stage-section property checkbox">
+            <input type="checkbox" id="property-zone-stage-automatic-hour-day">
+            <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
         </div>
 
         <div class="zone-section stage-section property">
@@ -1288,6 +1283,7 @@
             </div>
         </div>
 
+
         <div class="sub-section-header zone-section background-section">
             <label>Background</label>
         </div>
@@ -1301,6 +1297,7 @@
                 </select> 
             </div>
         </div>
+
 
         <div class="sub-section-header zone-section skybox-section">
             <label>Skybox</label>
@@ -1323,6 +1320,7 @@
                 <div class="update-url-version"></div>
             </div>
         </div>
+
 
         <div class="section-header web-section">
             <label>Web</label><span>M</span>
@@ -1548,88 +1546,67 @@
             <label>Behavior</label><span>M</span>
         </div>
 
-        <div class="behavior-section property">
-            <span class="label">Collisionless</span>
-            <span class="value">
-                <input type='checkbox' id="property-collisionless">
-            </span>
+        <div class="behavior-section property checkbox">
+            <input type="checkbox" id="property-collisionless">
+            <label for="property-collisionless">Collisionless</label>
         </div>
 
-        <div class="behavior-section property">
-            <span class="label">Dynamic</span>
-            <span class="value">
-                <input type='checkbox' id="property-dynamic">
-            </span>
+        <div class="behavior-section property checkbox">
+            <input type="checkbox" id="property-dynamic">
+            <label for="property-dynamic">Dynamic</label>
         </div>
 
         
-            <div class = "sub-section-header behavior-section">
-                <span>Collides With</span>
-            </div>
-            <div class = "sub-props-checkbox-group behavior-section">
-                <div class="property">
-                    <span class="label"> static</span>
-                    <span class="value">
-                        <input type='checkbox' id="property-collide-static">
-                    </span>
-                </div>
-
-                <div class="property">
-                    <span class="label"> dynamic</span>
-                    <span class="value">
-                        <input type='checkbox' id="property-collide-dynamic">
-                    </span>
-                </div>
-
-                <div class="property">
-                    <span class="label"> kinematic</span>
-                    <span class="value">
-                        <input type='checkbox' id="property-collide-kinematic">
-                    </span>
-                </div>
-
-                <div class="property">
-                    <span class="label"> myAvatar</span>
-                    <span class="value">
-                        <input type='checkbox' id="property-collide-myAvatar">
-                    </span>
-                </div>
-
-                <div class="property">
-                    <span class="label"> otherAvatar</span>
-                    <span class="value">
-                        <input type='checkbox' id="property-collide-otherAvatar">
-                    </span>
-                </div>
+        <div class="sub-section-header behavior-section">
+            <span>Collides With</span>
+        </div>
+        <div class="sub-props-checkbox-group behavior-section">
+            <div class="property checkbox">
+                <input type="checkbox" id="property-collide-static">
+                <label for="property-collide-static">Static entities</label>
             </div>
 
-
-            <div class = "sub-section-header behavior-section">
-                <span>Grabbable</span>
-            </div>
-            <div class = "sub-props-checkbox-group behavior-section">
-              <div class="property">
-                <span class="label">grabbable</span>
-                <span class="value">
-                  <input type='checkbox' id="property-grabbable">
-                </span>
-              </div>
-
-              <div class="property">
-                <span class="label">triggerable</span>
-                <span class="value">
-                  <input type='checkbox' id="property-wants-trigger">
-                </span>
-              </div>
-
-              <div class="property">
-                <span class="label">ignore inverse-kinematics</span>
-                <span class="value">
-                  <input type='checkbox' id="property-ignore-ik">
-                </span>
-              </div>
+            <div class="property checkbox">
+                <input type="checkbox" id="property-collide-dynamic">
+                <label for="property-collide-dynamic">Dynamic entities</label>
             </div>
 
+            <div class="property checkbox">
+                <input type="checkbox" id="property-collide-kinematic">
+                <label for="property-collide-kinematic">Kinematic entities</label>
+            </div>
+
+            <div class="property checkbox">
+                <input type="checkbox" id="property-collide-myAvatar">
+                <label for="property-collide-myAvatar">My avatar</label>
+            </div>
+
+            <div class="property checkbox">
+                <input type="checkbox" id="property-collide-otherAvatar">
+                <label for="property-collide-otherAvatar">Other avatars</label>
+            </div>
+        </div>
+
+
+        <div class = "sub-section-header behavior-section">
+            <span>Grabbing</span>
+        </div>
+        <div class="sub-props-checkbox-group behavior-section">
+            <div class="property checkbox">
+                <input type="checkbox" id="property-grabbable">
+                <label for="property-grabbable">Grabbable</label>
+            </div>
+
+            <div class="property checkbox">
+                <input type="checkbox" id="property-wants-trigger">
+                <label for="property-wants-trigger">Triggerable</label>
+            </div>
+
+            <div class="property checkbox">
+                <input type="checkbox" id="property-ignore-ik">
+                <label for="property-ignore-ik">Ignore inverse kinematics</label>
+            </div>
+        </div>
 
         <div class="behavior-section property">
             <div class="label">Collision Sound URL</div>
@@ -1695,11 +1672,9 @@
                 <div class="update-url-version"></div>
             </div>
         </div>
-        <div class="model-section property">
-            <span class="label">Animation Playing</span>
-            <span class="value">
-                <input type='checkbox' id="property-model-animation-playing">
-            </span>
+        <div class="model-section property checkbox">
+            <input type="checkbox" id="property-model-animation-playing">
+            <label for="property-model-animation-playing">Animation playing</label>
         </div>
         <div class="model-section property">
             <div class="label">Animation FPS</div>
@@ -1725,17 +1700,13 @@
                 <input class="coord" type="number" id="property-model-animation-last-frame">
             </div>
         </div>
-        <div class="model-section property">
-            <span class="label">Animation Loop</span>
-            <span class="value">
-                <input type='checkbox' id="property-model-animation-loop">
-            </span>
+        <div class="model-section property checkbox">
+            <input type="checkbox" id="property-model-animation-loop">
+            <label for="property-model-animation-loop">Animation loop</label>
         </div>
-        <div class="model-section property">
-            <span class="label">Animation Hold</span>
-            <span class="value">
-                <input type='checkbox' id="property-model-animation-hold">
-            </span>
+        <div class="model-section property checkbox">
+            <input type="checkbox" id="property-model-animation-hold">
+            <label for="property-model-animation-hold">Animation hold</label>
         </div>
         <div class="model-section property">
             <div class="label">Textures</div>
@@ -1749,6 +1720,7 @@
                 <textarea id="property-model-original-textures" readonly value=''></textarea>
             </div>
         </div>
+
 
         <div class="section-header light-section">
             <label>Light</label><span>M</span>
@@ -1775,11 +1747,9 @@
                 <input class="coord" type="number" id="property-light-falloff-radius" min="0" step="0.1">
             </div>
         </div>
-        <div class="light-section property">
-            <span class="label">Spot Light</span>
-            <span class="value">
-                <input type='checkbox' id="property-light-spot-light">
-            </span>
+        <div class="light-section property checkbox">
+            <input type="checkbox" id="property-light-spot-light">
+            <label for="property-light-spot-light">Spot light</label>
         </div>
         <div class="light-section property">
             <div class="label">Spot Light Exponent</div>
