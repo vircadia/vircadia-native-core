@@ -346,11 +346,58 @@ input[type=checkbox]:checked + label:hover {
     border: 1.5pt solid black;
 }
 
+
 .section-header, .sub-section-header {
-    padding: 0 0 0 0;
+    position: relative;
+    margin: 22px -12px 0 -12px;
+    padding: 14px 12px 0 12px;
     font-size: 12px;
     color: #afafaf;
+    height: 28px;
+    text-transform: uppercase;
 }
+
+.section-header {
+    background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAqCAIAAAAbNW1vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAmSURBVChTY1BFAgzhSIDBAQmMcoYHRwIJMCgjAQZ9JMBgBQdWVgBh5XmBV5A2FQAAAABJRU5ErkJggg==) repeat-x top left;
+}
+
+.sub-section-header, .no-collapse {
+    background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
+}
+
+.section-header:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    background: none;
+    height: auto;
+}
+
+.sub-section-header {
+    margin-bottom: 6px;
+}
+
+.section-header span {
+    font-family: HiFi-Glyphs;
+    float: right;
+    font-size: 20px;
+    position: absolute;
+    top: 9px;
+    right: 12px;
+}
+
+.text-section[collapsed="true"] ~ .text-section,
+.zone-section[collapsed="true"] ~ .zone-section,
+.web-section[collapsed="true"] ~ .web-section,
+.hyperlink-section[collapsed="true"] ~ .hyperlink-section,
+.spatial-section[collapsed="true"] ~ .spatial-section,
+.physical-section[collapsed="true"] ~ .physical-section,
+.behavior-section[collapsed="true"] ~ .behavior-section,
+.model-section[collapsed="true"] ~ .model-section,
+.light-section[collapsed="true"] ~ .light-section
+ {
+    display: none;
+}
+
 
 .property {
     display: table;
@@ -547,17 +594,15 @@ input[type=checkbox]:checked + label:hover {
 }
 
 
+#properties-list .property:first-child {
+    margin-top: 0;
+}
+
+
+/*
 div.input-area {
     display: inline-block;
     font-size: 9pt;
-}
-
-#type, #id {
-    font-size: 9.0pt;
-}
-
-#type label, #id label {
-    color: rgb(150, 150, 150);
 }
 
 #properties-list input[type=checkbox] {
@@ -585,19 +630,6 @@ div.input-area {
     min-height: 12pt;
 }
 
-
-table#properties-list {
-    border: none;
-    border-collapse: collapse;
-    width: 100%;
-    background-color: #efefef;
-    font-family: Arial;
-    table-layout: fixed;
-}
-
-#properties-list {
-    border-bottom: 0.75pt solid #e5e5e5;
-}
 
 .sub-props-checkbox-group {
     margin-left: 20px;
@@ -638,3 +670,4 @@ div.inner {
     position: absolute;
     width: 100%;
 }
+*/
