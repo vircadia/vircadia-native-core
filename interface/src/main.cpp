@@ -23,6 +23,7 @@
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
+#include "UserActivityLogger.h"
 #include "MainWindow.h"
 
 #ifdef HAS_BUGSPLAT
@@ -102,11 +103,19 @@ int main(int argc, const char* argv[]) {
     // Check OpenGL version.
     // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
     // not made more complicated than it already is.
+    bool override = false;
+    QString glVersion;
     {
         OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
-        if (!openGLVersionChecker.isValidVersion()) {
-            qCDebug(interfaceapp, "Early exit due to OpenGL version.");
-            return 0;
+        bool valid = true;
+        glVersion = openGLVersionChecker.checkVersion(valid, override);
+        if (!valid) {
+            if (override) {
+                qCDebug(interfaceapp, "Running on insufficient OpenGL version: %s.", glVersion.toStdString().c_str());
+            } else {
+                qCDebug(interfaceapp, "Early exit due to OpenGL version.");
+                return 0;
+            }
         }
     }
 
@@ -133,6 +142,22 @@ int main(int argc, const char* argv[]) {
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
+
+        // If we failed the OpenGLVersion check, log it.
+        if (override) {
+            auto& accountManager = AccountManager::getInstance();
+            if (accountManager.isLoggedIn()) {
+                UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+            } else {
+                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glVersion](){
+                    static bool loggedInsufficientGL = false;
+                    if (!loggedInsufficientGL) {
+                        UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+                        loggedInsufficientGL = true;
+                    }
+                });
+            }
+        }
 
         // Setup local server
         QLocalServer server { &app };

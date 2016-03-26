@@ -14,6 +14,7 @@
 #ifndef hifi_SimpleMovingAverage_h
 #define hifi_SimpleMovingAverage_h
 
+#include <mutex>
 #include <stdint.h>
 
 class SimpleMovingAverage {
@@ -63,5 +64,46 @@ public:
         numSamples++;
     }
 };
+
+template <class T, int MAX_NUM_SAMPLES> class ThreadSafeMovingAverage {
+public:
+    void clear() {
+        std::unique_lock<std::mutex> lock(_lock);
+        _samples = 0;
+    }
+
+    bool isAverageValid() const { 
+        std::unique_lock<std::mutex> lock(_lock);
+        return (_samples > 0);
+    }
+
+    void addSample(T sample) {
+        std::unique_lock<std::mutex> lock(_lock);
+        if (_samples > 0) {
+            _average = (sample * WEIGHTING) + (_average * ONE_MINUS_WEIGHTING);
+        } else {
+            _average = sample;
+        }
+        _samples++;
+    }
+
+    T getAverage() const { 
+        std::unique_lock<std::mutex> lock(_lock);
+        return _average;
+    }
+
+    size_t getSamples() const {
+        std::unique_lock<std::mutex> lock(_lock);
+        return _samples;
+    }
+
+private:
+    const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
+    const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
+    size_t _samples { 0 };
+    T _average;
+    mutable std::mutex _lock;
+};
+
 
 #endif // hifi_SimpleMovingAverage_h

@@ -85,6 +85,15 @@ void UserActivityLogger::launch(QString applicationVersion, bool previousSession
     logAction(ACTION_NAME, actionDetails);
 }
 
+void UserActivityLogger::insufficientGLVersion(QString glVersion) {
+    const QString ACTION_NAME = "insufficient_gl";
+    QJsonObject actionDetails;
+    QString GL_VERSION = "glVersion";
+    actionDetails.insert(GL_VERSION, glVersion);
+
+    logAction(ACTION_NAME, actionDetails);
+}
+
 void UserActivityLogger::changedDisplayName(QString displayName) {
     const QString ACTION_NAME = "changed_display_name";
     QJsonObject actionDetails;

@@ -45,18 +45,23 @@ protected:
     }
 
     virtual bool process() {
+        lock();
         if (!_items.size()) {
+            unlock();
             _hasItemsMutex.lock();
             _hasItems.wait(&_hasItemsMutex, getMaxWait());
             _hasItemsMutex.unlock();
+        } else {
+            unlock();
         }
 
+        lock();
         if (!_items.size()) {
+            unlock();
             return isStillRunning();
         }
 
         Queue processItems;
-        lock();
         processItems.swap(_items);
         unlock();
         return processQueueItems(processItems);
