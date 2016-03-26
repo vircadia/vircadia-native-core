@@ -110,21 +110,19 @@ protected:
 };
 
 class Buffer : public Resource {
-    static std::atomic<int> _numBuffers;
-    static std::atomic<Size> _bufferSystemMemoryUsage;
-public:
-    static std::atomic<int> _numGPUBuffers;
-    static std::atomic<Size> _bufferVideoMemoryUsage;
-private:
-    static void addSystemMemoryUsage(Size memorySize);
-    static void subSystemMemoryUsage(Size memorySize);
-    static void updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static std::atomic<uint32_t> _bufferCPUCount;
+    static std::atomic<Size> _bufferCPUMemoryUsage;
+    static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
-    static int getCurrentNumBuffers();
-    static Size getCurrentSystemMemoryUsage();
-    static int getCurrentNumGPUBuffers();
-    static Size getCurrentVideoMemoryUsage();
+    static std::atomic<uint32_t> _bufferGPUCount;
+    static std::atomic<Size> _bufferGPUMemoryUsage;
+
+public:
+    static uint32_t getBufferCPUCount();
+    static Size getBufferCPUMemoryUsage();
+    static uint32_t getBufferGPUCount();
+    static Size getBufferGPUMemoryUsage();
 
     Buffer();
     Buffer(Size size, const Byte* bytes);

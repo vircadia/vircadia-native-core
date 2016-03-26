@@ -24,15 +24,21 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     // Update the stats
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
-    config->numBuffers = gpu::Buffer::getCurrentNumBuffers();
-    config->numGPUBuffers = gpu::Buffer::getCurrentNumGPUBuffers();
-    config->bufferSysmemUsage = gpu::Buffer::getCurrentSystemMemoryUsage();
-    config->bufferVidmemUsage = gpu::Buffer::getCurrentVideoMemoryUsage();
+    quint32 textureCPUCount{ 0 };
+    quint32 textureGPUCount{ 0 };
+    qint64 textureCPUMemoryUsage{ 0 };
+    qint64 textureGPUMemoryUsage{ 0 };
 
-    config->numTextures = gpu::Texture::getCurrentNumTextures();
-    config->numGPUTextures = gpu::Texture::getCurrentNumGPUTextures();
-    config->textureSysmemUsage = gpu::Texture::getCurrentSystemMemoryUsage();
-    config->textureVidmemUsage = gpu::Texture::getCurrentVideoMemoryUsage();
+
+    config->bufferCPUCount = gpu::Buffer::getBufferCPUCount();
+    config->bufferGPUCount = gpu::Buffer::getBufferGPUCount();
+    config->bufferCPUMemoryUsage = gpu::Buffer::getBufferCPUMemoryUsage();
+    config->bufferGPUMemoryUsage = gpu::Buffer::getBufferGPUMemoryUsage();
+
+    config->textureCPUCount = gpu::Texture::getTextureCPUCount();
+    config->textureGPUCount = gpu::Texture::getTextureGPUCount();
+    config->textureCPUMemoryUsage = gpu::Texture::getTextureCPUMemoryUsage();
+    config->textureGPUMemoryUsage = gpu::Texture::getTextureGPUMemoryUsage();
 
     gpu::ContextStats gpuStats(_gpuStats);
     renderContext->args->_context->getStats(_gpuStats);

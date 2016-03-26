@@ -24,47 +24,47 @@ namespace render {
     class EngineStatsConfig : public Job::Config{
         Q_OBJECT
 
-        Q_PROPERTY(int numBuffers MEMBER numBuffers NOTIFY dirty)
-        Q_PROPERTY(int numGPUBuffers MEMBER numGPUBuffers NOTIFY dirty)
-        Q_PROPERTY(qint64 bufferSysmemUsage MEMBER bufferSysmemUsage NOTIFY dirty)
-        Q_PROPERTY(qint64 bufferVidmemUsage MEMBER bufferVidmemUsage NOTIFY dirty)
+        Q_PROPERTY(quint32 bufferCPUCount MEMBER bufferCPUCount NOTIFY dirty)
+        Q_PROPERTY(quint32 bufferGPUCount MEMBER bufferGPUCount NOTIFY dirty)
+        Q_PROPERTY(qint64 bufferCPUMemoryUsage MEMBER bufferCPUMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(qint64 bufferGPUMemoryUsage MEMBER bufferGPUMemoryUsage NOTIFY dirty)
 
-        Q_PROPERTY(int numTextures MEMBER numTextures NOTIFY dirty)
-        Q_PROPERTY(int numGPUTextures MEMBER numGPUTextures NOTIFY dirty)
-        Q_PROPERTY(qint64 textureSysmemUsage MEMBER textureSysmemUsage NOTIFY dirty)
-        Q_PROPERTY(qint64 textureVidmemUsage MEMBER textureVidmemUsage NOTIFY dirty)
+        Q_PROPERTY(quint32 textureCPUCount MEMBER textureCPUCount NOTIFY dirty)
+        Q_PROPERTY(quint32 textureGPUCount MEMBER textureGPUCount NOTIFY dirty)
+        Q_PROPERTY(qint64 textureCPUMemoryUsage MEMBER textureCPUMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(qint64 textureGPUMemoryUsage MEMBER textureGPUMemoryUsage NOTIFY dirty)
 
-        Q_PROPERTY(int frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
-        Q_PROPERTY(int frameDrawcallRate MEMBER frameDrawcallRate NOTIFY dirty)
+        Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
+        Q_PROPERTY(quint32 frameDrawcallRate MEMBER frameDrawcallRate NOTIFY dirty)
 
-        Q_PROPERTY(int frameTriangleCount MEMBER frameTriangleCount NOTIFY dirty)
-        Q_PROPERTY(int frameTriangleRate MEMBER frameTriangleRate NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTriangleCount MEMBER frameTriangleCount NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTriangleRate MEMBER frameTriangleRate NOTIFY dirty)
 
-        Q_PROPERTY(int frameTextureCount MEMBER frameTextureCount NOTIFY dirty)
-        Q_PROPERTY(int frameTextureRate MEMBER frameTextureRate NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTextureCount MEMBER frameTextureCount NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTextureRate MEMBER frameTextureRate NOTIFY dirty)
 
 
     public:
         EngineStatsConfig() : Job::Config(true) {}
 
-        int numBuffers{ 0 };
-        int numGPUBuffers{ 0 };
-        qint64 bufferSysmemUsage{ 0 };
-        qint64 bufferVidmemUsage{ 0 };
+        quint32 bufferCPUCount{ 0 };
+        quint32 bufferGPUCount{ 0 };
+        qint64 bufferCPUMemoryUsage{ 0 };
+        qint64 bufferGPUMemoryUsage{ 0 };
 
-        int numTextures{ 0 };
-        int numGPUTextures{ 0 };
-        qint64 textureSysmemUsage{ 0 };
-        qint64 textureVidmemUsage{ 0 };
+        quint32 textureCPUCount{ 0 };
+        quint32 textureGPUCount{ 0 };
+        qint64 textureCPUMemoryUsage{ 0 };
+        qint64 textureGPUMemoryUsage{ 0 };
 
-        int frameDrawcallCount{ 0 };
-        int frameDrawcallRate{ 0 };
+        quint32 frameDrawcallCount{ 0 };
+        quint32 frameDrawcallRate{ 0 };
 
-        int frameTriangleCount{ 0 };
-        int frameTriangleRate{ 0 };
+        quint32 frameTriangleCount{ 0 };
+        quint32 frameTriangleRate{ 0 };
 
-        int frameTextureCount{ 0 };
-        int frameTextureRate{ 0 };
+        quint32 frameTextureCount{ 0 };
+        quint32 frameTextureRate{ 0 };
 
         void emitDirty() { emit dirty(); }
 

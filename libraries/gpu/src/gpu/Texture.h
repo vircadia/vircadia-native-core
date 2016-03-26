@@ -138,22 +138,19 @@ protected:
 };
 
 class Texture : public Resource {
-    static std::atomic<int> _numTextures;
-    static std::atomic<Size> _textureSystemMemoryUsage;
-public:
-    static std::atomic<int> _numGPUTextures;
-    static std::atomic<Size> _textureVideoMemoryUsage;
-private:
-    static void addSystemMemoryUsage(Size memorySize);
-    static void subSystemMemoryUsage(Size memorySize);
-    static void updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static std::atomic<uint32_t> _textureCPUCount;
+    static std::atomic<Size> _textureCPUMemoryUsage;
+    static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
+    static std::atomic<uint32_t> _textureGPUCount;
+    static std::atomic<Size> _textureGPUMemoryUsage;
 
-    static int getCurrentNumTextures();
-    static Size getCurrentSystemMemoryUsage();
-    static int getCurrentNumGPUTextures();
-    static Size getCurrentVideoMemoryUsage();
+public:
+    static uint32_t getTextureCPUCount();
+    static Size getTextureCPUMemoryUsage();
+    static uint32_t getTextureGPUCount();
+    static Size getTextureGPUMemoryUsage();
 
     class Usage {
     public:
@@ -475,7 +472,7 @@ typedef std::shared_ptr<Texture> TexturePointer;
 typedef std::vector< TexturePointer > Textures;
 
 
- // TODO: For now TextureView works with Buffer as a place holder for the Texture.
+ // TODO: For now TextureView works with Texture as a place holder for the Texture.
  // The overall logic should be about the same except that the Texture will be a real GL Texture under the hood
 class TextureView {
 public:

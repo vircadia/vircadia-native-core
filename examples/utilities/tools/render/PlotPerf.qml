@@ -19,7 +19,9 @@ Item {
     property var config
     property string parameters
 
-    property var trigger: config["numTextures"]
+    // THis is my hack to get the name of the first property and assign it to a trigger var in order to get
+    // a signal called whenever the value changed
+    property var trigger: config[parameters.split(":")[3].split("-")[0]]
 
     property var inputs: parameters.split(":")
     property var valueScale: +inputs[0]
@@ -36,11 +38,11 @@ Item {
                 for (var i = input_VALUE_OFFSET; i < inputs.length; i++) {
                     var varProps = inputs[i].split("-")
                     _values.push( {                      
-                        value: varProps[1],
+                        value: varProps[0],
                         valueMax: 1,
                         numSamplesConstantMax: 0,
                         valueHistory: new Array(),
-                        label: varProps[0],
+                        label: varProps[1],
                         color: varProps[2],
                         scale: (varProps.length > 3 ? varProps[3] : 1),
                         unit: (varProps.length > 4 ? varProps[4] : valueUnit)
@@ -67,7 +69,7 @@ Item {
         var currentValueMax = 0
         for (var i = 0; i < _values.length; i++) {
 
-            var currentVal = stats.config[_values[i].value] * _values[i].scale;
+            var currentVal = config[_values[i].value] * _values[i].scale;
             _values[i].valueHistory.push(currentVal)
             _values[i].numSamplesConstantMax++;
 

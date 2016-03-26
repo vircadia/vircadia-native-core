@@ -232,43 +232,35 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
     return 0;
 }
 
-std::atomic<int> Buffer::_numBuffers{ 0 };
-std::atomic<int> Buffer::_numGPUBuffers{ 0 };
-std::atomic<unsigned long long> Buffer::_bufferSystemMemoryUsage{ 0 };
-std::atomic<unsigned long long> Buffer::_bufferVideoMemoryUsage{ 0 };
+std::atomic<uint32_t> Buffer::_bufferCPUCount{ 0 };
+std::atomic<uint32_t> Buffer::_bufferGPUCount{ 0 };
+std::atomic<Buffer::Size> Buffer::_bufferCPUMemoryUsage{ 0 };
+std::atomic<Buffer::Size> Buffer::_bufferGPUMemoryUsage{ 0 };
 
-
-int Buffer::getCurrentNumBuffers() {
-    return _numBuffers.load();
+uint32_t Buffer::getBufferCPUCount() {
+    return _bufferCPUCount.load();
 }
 
-Buffer::Size Buffer::getCurrentSystemMemoryUsage() {
-    return _bufferSystemMemoryUsage.load();
+Buffer::Size Buffer::getBufferCPUMemoryUsage() {
+    return _bufferCPUMemoryUsage.load();
 }
 
-int Buffer::getCurrentNumGPUBuffers() {
-    return _numGPUBuffers.load();
+uint32_t Buffer::getBufferGPUCount() {
+    return _bufferGPUCount.load();
 }
 
-Buffer::Size Buffer::getCurrentVideoMemoryUsage() {
-    return _bufferVideoMemoryUsage.load();
+Buffer::Size Buffer::getBufferGPUMemoryUsage() {
+    return _bufferGPUMemoryUsage.load();
 }
 
-void Buffer::addSystemMemoryUsage(Size memorySize) {
-    _bufferSystemMemoryUsage.fetch_add(memorySize);
-}
-void Buffer::subSystemMemoryUsage(Size memorySize) {
-    _bufferSystemMemoryUsage.fetch_sub(memorySize);
-}
-
-void Buffer::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
         return;
     }
     if (prevObjectSize > newObjectSize) {
-        subSystemMemoryUsage(prevObjectSize - newObjectSize);
+        _bufferCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
     } else {
-        addSystemMemoryUsage(newObjectSize - prevObjectSize);
+        _bufferCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
     }
 }
 
@@ -276,22 +268,22 @@ void Buffer::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
 Buffer::Buffer() :
     Resource(),
     _sysmem(new Sysmem()) {
-    _numBuffers++;
+    _bufferCPUCount++;
 
 }
 
 Buffer::Buffer(Size size, const Byte* bytes) :
     Resource(),
     _sysmem(new Sysmem(size, bytes)) {
-    _numBuffers++;
-    Buffer::updateSystemMemoryUsage(0, _sysmem->getSize());
+    _bufferCPUCount++;
+    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer::Buffer(const Buffer& buf) :
     Resource(),
     _sysmem(new Sysmem(buf.getSysmem())) {
-    _numBuffers++;
-    Buffer::updateSystemMemoryUsage(0, _sysmem->getSize());
+    _bufferCPUCount++;
+    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
@@ -300,10 +292,10 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 }
 
 Buffer::~Buffer() {
-    _numBuffers--;
+    _bufferCPUCount--;
 
     if (_sysmem) {
-        Buffer::updateSystemMemoryUsage(_sysmem->getSize(), 0);
+        Buffer::updateBufferCPUMemoryUsage(_sysmem->getSize(), 0);
         delete _sysmem;
         _sysmem = NULL;
     }
@@ -312,14 +304,14 @@ Buffer::~Buffer() {
 Buffer::Size Buffer::resize(Size size) {
     auto prevSize = editSysmem().getSize();
     auto newSize = editSysmem().resize(size);
-    Buffer::updateSystemMemoryUsage(prevSize, newSize);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
     return newSize;
 }
 
 Buffer::Size Buffer::setData(Size size, const Byte* data) {
     auto prevSize = editSysmem().getSize();
     auto newSize = editSysmem().setData(size, data);
-    Buffer::updateSystemMemoryUsage(prevSize, newSize);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
     return newSize;
 }
 
@@ -330,7 +322,7 @@ Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
 Buffer::Size Buffer::append(Size size, const Byte* data) {
     auto prevSize = editSysmem().getSize();
     auto newSize = editSysmem().append( size, data);
-    Buffer::updateSystemMemoryUsage(prevSize, newSize);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
     return newSize;
 }
 

@@ -32,38 +32,38 @@ Item {
             title: "Num Buffers"
             config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1::0:CPU-numBuffers-#00B4EF:GPU-numGPUBuffers-#1AC567"
+            parameters: "1::0:bufferCPUCount-CPU-#00B4EF:bufferGPUCount-GPU-#1AC567"
         }
         PlotPerf {
             title: "gpu::Buffer Memory"
-            config: stats.config
+            config: stats.config          
             height: parent.evalEvenHeight()
-            parameters: "1048576:Mb:1:CPU-bufferSysmemUsage-#00B4EF:GPU-bufferVidmemUsage-#1AC567"
+            parameters: "1048576:Mb:1:bufferCPUMemoryUsage-CPU-#00B4EF:bufferGPUMemoryUsage-GPU-#1AC567"
         }
 
         PlotPerf {
             title: "Num Textures"
             config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1::0:CPU-numTextures-#00B4EF:GPU-numGPUTextures-#1AC567:Frame-frameTextureCount-#E2334D"
+            parameters: "1::0:textureCPUCount-CPU-#00B4EF:textureGPUCount-GPU-#1AC567:frameTextureCount-Frame-#E2334D"
         }
         PlotPerf {
             title: "gpu::Texture Memory"
             config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1048576:Mb:1:CPU-textureSysmemUsage-#00B4EF:GPU-textureVidmemUsage-#1AC567"
+            parameters: "1048576:Mb:1:textureCPUMemoryUsage-CPU-#00B4EF:textureGPUMemoryUsage-GPU-#1AC567"
         }
         PlotPerf {
             title: "Drawcalls"
             config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1::0:frame-frameDrawcallCount-#E2334D:rate-frameDrawcallRate-#1AC567-0.001-K/s"
+            parameters: "1::0:frameDrawcallCount-frame-#E2334D:frameDrawcallRate-rate-#1AC567-0.001-K/s"
         }
         PlotPerf {
             title: "Triangles"
             config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1000:K:0:frame-frameTriangleCount-#E2334D:rate-frameTriangleRate-#1AC567-0.001-MT/s"
+            parameters: "1000:K:0:frameTriangleCount-frame-#E2334D:frameTriangleRate-rate-#1AC567-0.001-MT/s"
         }
     }
 }

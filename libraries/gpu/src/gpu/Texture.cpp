@@ -17,45 +17,39 @@
 
 using namespace gpu;
 
-std::atomic<int> Texture::_numTextures{ 0 };
-std::atomic<int> Texture::_numGPUTextures{ 0 };
-std::atomic<unsigned long long> Texture::_textureSystemMemoryUsage{ 0 };
-std::atomic<unsigned long long> Texture::_textureVideoMemoryUsage{ 0 };
 
+std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
+std::atomic<uint32_t> Texture::_textureGPUCount{ 0 };
+std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
+std::atomic<Texture::Size> Texture::_textureGPUMemoryUsage{ 0 };
 
-int Texture::getCurrentNumTextures() {
-    return _numTextures.load();
+uint32_t Texture::getTextureCPUCount() {
+    return _textureCPUCount.load();
 }
 
-Texture::Size Texture::getCurrentSystemMemoryUsage() {
-    return _textureSystemMemoryUsage.load();
+Texture::Size Texture::getTextureCPUMemoryUsage() {
+    return _textureCPUMemoryUsage.load();
 }
 
-int Texture::getCurrentNumGPUTextures() {
-    return _numGPUTextures.load();
+uint32_t Texture::getTextureGPUCount() {
+    return _textureGPUCount.load();
 }
 
-Texture::Size Texture::getCurrentVideoMemoryUsage() {
-    return _textureVideoMemoryUsage.load();
+Texture::Size Texture::getTextureGPUMemoryUsage() {
+    return _textureGPUMemoryUsage.load();
 }
 
-void Texture::addSystemMemoryUsage(Size memorySize) {
-    _textureSystemMemoryUsage.fetch_add(memorySize);
-}
-void Texture::subSystemMemoryUsage(Size memorySize) {
-    _textureSystemMemoryUsage.fetch_sub(memorySize);
-}
-
-void Texture::updateSystemMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
         return;
     }
     if (prevObjectSize > newObjectSize) {
-        subSystemMemoryUsage(prevObjectSize - newObjectSize);
+        _textureCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
     } else {
-        addSystemMemoryUsage(newObjectSize - prevObjectSize);
+        _textureCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
     }
 }
+
 
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
 
@@ -63,17 +57,17 @@ Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _format(format),
     _sysmem(size, bytes),
     _isGPULoaded(false) {
-    Texture::updateSystemMemoryUsage(0, _sysmem.getSize());
+    Texture::updateTextureCPUMemoryUsage(0, _sysmem.getSize());
 }
 
 Texture::Pixels::~Pixels() {
-    Texture::updateSystemMemoryUsage(_sysmem.getSize(), 0);
+    Texture::updateTextureCPUMemoryUsage(_sysmem.getSize(), 0);
 }
 
 Texture::Size Texture::Pixels::resize(Size pSize) {
     auto prevSize = _sysmem.getSize();
     auto newSize = _sysmem.resize(pSize);
-    Texture::updateSystemMemoryUsage(prevSize, newSize);
+    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
     return newSize;
 }
 
@@ -81,7 +75,7 @@ Texture::Size Texture::Pixels::setData(const Element& format, Size size, const B
     _format = format;
     auto prevSize = _sysmem.getSize();
     auto newSize = _sysmem.setData(size, bytes);
-    Texture::updateSystemMemoryUsage(prevSize, newSize);
+    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
     _isGPULoaded = false;
     return newSize;
 }
@@ -90,7 +84,7 @@ void Texture::Pixels::notifyGPULoaded() {
     _isGPULoaded = true;
     auto prevSize = _sysmem.getSize();
     auto newSize = _sysmem.resize(0);
-    Texture::updateSystemMemoryUsage(prevSize, newSize);
+    Texture::updateTextureCPUMemoryUsage(prevSize, newSize);
 }
 
 void Texture::Storage::assignTexture(Texture* texture) {
@@ -232,12 +226,12 @@ Texture* Texture::createFromStorage(Storage* storage) {
 Texture::Texture():
     Resource()
 {
-    _numTextures++;
+    _textureCPUCount++;
 }
 
 Texture::~Texture()
 {
-    _numTextures--;
+    _textureCPUCount--;
 }
 
 Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices) {
@@ -355,7 +349,7 @@ bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, co
         }
     }
 
-    // THen check that the mem buffer passed make sense with its format
+    // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipData(level, format, size, bytes);
@@ -386,7 +380,7 @@ bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size
         }
     }
 
-    // THen check that the mem buffer passed make sense with its format
+    // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipFaceSize(level, format);
     if (size == expectedSize) {
         _storage->assignMipFaceData(level, format, size, bytes, face);
