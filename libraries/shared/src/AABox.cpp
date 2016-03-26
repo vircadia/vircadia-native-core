@@ -17,7 +17,7 @@
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"
 
-const glm::vec3 INFINITY_VECTOR(std::numeric_limits<float>::infinity());
+const glm::vec3 AABox::INFINITY_VECTOR(std::numeric_limits<float>::infinity());
 
 AABox::AABox(const AACube& other) :
     _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
@@ -478,7 +478,7 @@ AABox AABox::clamp(float min, float max) const {
 
 AABox& AABox::operator += (const glm::vec3& point) {
 
-    if (_corner == INFINITY_VECTOR) {
+    if (isInvalid()) {
         _corner = glm::min(_corner, point);
     } else {
         glm::vec3 maximum(_corner + _scale);
@@ -493,7 +493,7 @@ AABox& AABox::operator += (const glm::vec3& point) {
 AABox& AABox::operator += (const AABox& box) {
     if (!box.isInvalid()) {
         (*this) += box._corner;
-       _scale = glm::max(_scale, box.calcTopFarLeft() - _corner);
+        (*this) += box.calcTopFarLeft();
     }
     return (*this);
 }
@@ -566,4 +566,48 @@ void AABox::transform(const Transform& transform) {
     scale(transform.getScale());
     rotate(transform.getRotation());
     translate(transform.getTranslation());
+}
+
+void AABox::transform(const glm::mat4& matrix) {
+    auto minimum = _corner;
+    auto maximum = _corner + _scale;
+
+    glm::vec3 bottomLeftNear(minimum.x, minimum.y, minimum.z);
+    glm::vec3 bottomRightNear(maximum.x, minimum.y, minimum.z);
+    glm::vec3 bottomLeftFar(minimum.x, minimum.y, maximum.z);
+    glm::vec3 bottomRightFar(maximum.x, minimum.y, maximum.z);
+    glm::vec3 topLeftNear(minimum.x, maximum.y, minimum.z);
+    glm::vec3 topRightNear(maximum.x, maximum.y, minimum.z);
+    glm::vec3 topLeftFar(minimum.x, maximum.y, maximum.z);
+    glm::vec3 topRightFar(maximum.x, maximum.y, maximum.z);
+
+    glm::vec3 bottomLeftNearTransformed = transformPoint(matrix, bottomLeftNear);
+    glm::vec3 bottomRightNearTransformed = transformPoint(matrix, bottomRightNear);
+    glm::vec3 bottomLeftFarTransformed = transformPoint(matrix, bottomLeftFar);
+    glm::vec3 bottomRightFarTransformed = transformPoint(matrix, bottomRightFar);
+    glm::vec3 topLeftNearTransformed = transformPoint(matrix, topLeftNear);
+    glm::vec3 topRightNearTransformed = transformPoint(matrix, topRightNear);
+    glm::vec3 topLeftFarTransformed = transformPoint(matrix, topLeftFar);
+    glm::vec3 topRightFarTransformed = transformPoint(matrix, topRightFar);
+
+    minimum = glm::min(bottomLeftNearTransformed,
+        glm::min(bottomRightNearTransformed,
+        glm::min(bottomLeftFarTransformed,
+        glm::min(bottomRightFarTransformed,
+        glm::min(topLeftNearTransformed,
+        glm::min(topRightNearTransformed,
+        glm::min(topLeftFarTransformed,
+        topRightFarTransformed)))))));
+
+    maximum = glm::max(bottomLeftNearTransformed,
+        glm::max(bottomRightNearTransformed,
+        glm::max(bottomLeftFarTransformed,
+        glm::max(bottomRightFarTransformed,
+        glm::max(topLeftNearTransformed,
+        glm::max(topRightNearTransformed,
+        glm::max(topLeftFarTransformed,
+        topRightFarTransformed)))))));
+
+    _corner = minimum;
+    _scale = maximum - minimum;
 }

@@ -99,7 +99,12 @@ public:
     // Transform the extents with transform
     void transform(const Transform& transform);
 
-    bool isInvalid() const { return _corner == glm::vec3(std::numeric_limits<float>::infinity()); }
+    // Transform the extents with matrix
+    void transform(const glm::mat4& matrix);
+
+    static const glm::vec3 INFINITY_VECTOR;
+
+    bool isInvalid() const { return _corner == INFINITY_VECTOR; }
 
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;

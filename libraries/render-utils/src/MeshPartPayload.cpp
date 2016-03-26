@@ -316,11 +316,10 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 }
 
 ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform,
-                                           const Transform& offsetTransform, const AABox& skinnedMeshBound) :
+                                           const Transform& offsetTransform) :
     _model(model),
     _meshIndex(_meshIndex),
-    _shapeID(shapeIndex),
-    _skinnedMeshBound(skinnedMeshBound) {
+    _shapeID(shapeIndex) {
 
     auto& modelMesh = _model->_geometry->getMeshes().at(_meshIndex)->_mesh;
     updateMeshPart(modelMesh, partIndex);
@@ -353,33 +352,20 @@ void ModelMeshPartPayload::notifyLocationChanged() {
     _model->_needsUpdateClusterMatrices = true;
 }
 
-void ModelMeshPartPayload::updateTransformForRigidlyBoundMesh(const Transform& transform, const Transform& clusterTransform, const Transform& offsetTransform) {
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const glm::mat4* clusterMatrices, size_t numClusterMatrices) {
     ModelMeshPartPayload::updateTransform(transform, offsetTransform);
 
-    // clusterMatrix has world rotation but not world translation.
-    Transform worldTranslation, geomToWorld;
-    worldTranslation.setTranslation(transform.getTranslation());
-    Transform::mult(geomToWorld, worldTranslation, clusterTransform);
+    if (numClusterMatrices > 0) {
 
-    // transform the localBound into world space
-    _worldBound = _localBound;
-    _worldBound.transform(geomToWorld);
-}
-
-void ModelMeshPartPayload::updateMeshPart(model::MeshPointer drawMesh, int partIndex) {
-    _drawMesh = drawMesh;
-    if (_drawMesh) {
-        auto vertexFormat = _drawMesh->getVertexFormat();
-        _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
-        _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
-
-        // this is a skinned mesh..
-        if (vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX)) {
-            // use the specified skinned bounding box.
-            _localBound = _skinnedMeshBound;
-        } else {
-            _localBound = _drawMesh->evalPartBound(partIndex);
+        _worldBound = AABox();
+        for (size_t i = 0; i < numClusterMatrices; i++) {
+            AABox clusterBound = _localBound;
+            clusterBound.transform(clusterMatrices[i]);
+            _worldBound += clusterBound;
         }
+
+        // clusterMatrix has world rotation but not world translation.
+        _worldBound.translate(transform.getTranslation());
     }
 }
 

@@ -146,20 +146,12 @@ void Model::enqueueLocationChange() {
     render::PendingChanges pendingChanges;
     foreach (auto itemID, _modelMeshRenderItems.keys()) {
         pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, offset](ModelMeshPartPayload& data) {
-            //data._model->updateClusterMatrices(data._transform.getTranslation(), data._transform.getRotation());
-            const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-            if (state.clusterBuffer) {
-                data.updateTransform(modelTransform, offset);
-            } else {
-                // HACK: check for bugs...
-                AnimPose clusterMat(state.clusterMatrices[0]);
 
-                Transform xform;
-                xform.setScale(clusterMat.scale);
-                xform.setRotation(clusterMat.rot);
-                xform.setTranslation(clusterMat.trans);
-                data.updateTransformForRigidlyBoundMesh(modelTransform, xform, offset);
-            }
+            data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+            const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+            size_t numClusterMatrices = data._model->getGeometry()->getFBXGeometry().meshes.at(data._meshIndex).clusters.size();
+
+            data.updateTransformForSkinnedMesh(modelTransform, offset, &state.clusterMatrices[0], numClusterMatrices);
             data.notifyLocationChanged();
         });
     }
@@ -1282,12 +1274,7 @@ void Model::segregateMeshGroups() {
                 }
                 _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, _collisionHullMaterial, transform, offset);
             } else {
-                AABox geometrySkinnedMeshBound = _skinnedMeshBound;
-
-                // transform bound from model into geometry space.
-                geometrySkinnedMeshBound.transform(Transform(glm::inverse(_rig->getGeometryToRigTransform())));
-
-                _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset, geometrySkinnedMeshBound);
+                _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
             }
 
             shapeID++;

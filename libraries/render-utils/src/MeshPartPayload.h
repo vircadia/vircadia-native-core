@@ -75,14 +75,13 @@ namespace render {
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
     ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform,
-                         const Transform& offsetTransform, const AABox& skinnedMeshBound);
+                         const Transform& offsetTransform);
 
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateMeshPart(model::MeshPointer drawMesh, int partIndex) override;
     virtual void notifyLocationChanged() override;
-    void updateTransformForRigidlyBoundMesh(const Transform& transform, const Transform& jointTransform, const Transform& offsetTransform);
+    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const glm::mat4* clusterMatrices, size_t numClusterMatrices);
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -102,8 +101,6 @@ public:
 
     bool _isSkinned{ false };
     bool _isBlendShaped{ false };
-
-    AABox _skinnedMeshBound;
 };
 
 namespace render {

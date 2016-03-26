@@ -103,7 +103,6 @@ Avatar::Avatar(RigPointer rig) :
     _headData = static_cast<HeadData*>(new Head(this));
 
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr, rig);
-    _skeletonModel->setSkinnedMeshBound(DEFAULT_AVATAR_SKINNED_MESH_BOUND);
 }
 
 Avatar::~Avatar() {

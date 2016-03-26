@@ -223,9 +223,6 @@ public:
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
 
-    // bounding box used for mesh that is influnced by multiple animated bones.
-    void setSkinnedMeshBound(const AABox& skinnedMeshBound) { _skinnedMeshBound = skinnedMeshBound; }
-
 protected:
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }
@@ -390,9 +387,6 @@ protected:
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
-
-    // 2 meter^3 box
-    AABox _skinnedMeshBound { glm::vec3(-1.0, -1.0, -1.0), glm::vec3(2.0f) };
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
