@@ -502,10 +502,10 @@
                     element.getElementsByTagName("span")[0].textContent = collapsed ? "L" : "M";
                 };
 
-                var elCollapsible = document.getElementsByClassName("collapsible");
+                var elCollapsible = document.getElementsByClassName("section-header");
                 for (var i = 0, length = elCollapsible.length; i < length; i++) {
                     var element = elCollapsible[i];
-                    addEventListener("click", toggleCollapsedEvent);
+                    element.addEventListener("click", toggleCollapsedEvent, true);
                 };
 
                 if (window.EventBridge !== undefined) {
@@ -1107,7 +1107,6 @@
                 }
             });
         }
-
     </script>
 </head>
 

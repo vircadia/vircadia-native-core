@@ -256,6 +256,7 @@ input[type="number"]::-webkit-inner-spin-button:active {
 input[type=button] {
     font-family: Raleway-Bold;
     font-size: 13px;
+    text-transform: uppercase;
     vertical-align: top;
     height: 28px;
     min-width: 120px;
@@ -272,6 +273,7 @@ input[type=button] {
 input[type=button].glyph {
     font-family: HiFi-Glyphs;
     font-size: 20px;
+    text-transform: none;
     min-width: 34px;
     padding: 0;
 }
