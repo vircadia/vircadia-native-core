@@ -270,10 +270,10 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-            auto now = usecTimestampNow();
 
-            // in the unlikely event that now is less than _heartbeat, don't rollover and confuse ourselves
-            auto lastHeartbeatAge = (now > _heartbeat) ? now - _heartbeat : 0; 
+            uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
+            uint64_t now = usecTimestampNow();
+            auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
             auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
@@ -310,7 +310,7 @@ public:
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qDebug() << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
-                         << "[ _heartbeat:" << _heartbeat
+                         << "[ lastHeartbeat :" << lastHeartbeat
                          << "now:" << now << " ]"
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
