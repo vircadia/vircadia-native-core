@@ -152,14 +152,20 @@ void AABoxTests::testTouchesSphere() {
 }
 
 void AABoxTests::testScale() {
-    AABox box(glm::vec3(2.0f), glm::vec3(1.0f));
-    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
-    box.scale(glm::vec3(10.0f));
-    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
-    QCOMPARE(box.contains(glm::vec3(2.0f * 10.0f)), true);
+    AABox box1(glm::vec3(2.0f), glm::vec3(1.0f));
+    QCOMPARE(box1.contains(glm::vec3(0.0f)), false);
+    box1.scale(glm::vec3(10.0f));
+    QCOMPARE(box1.contains(glm::vec3(0.0f)), false);
+    QCOMPARE(box1.contains(glm::vec3(2.0f * 10.0f)), true);
 
-    AABox box(glm::vec3(2.0f), glm::vec3(1.0f));
-    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
-    box.embiggen(glm::vec3(10.0f));
-    QCOMPARE(box.contains(glm::vec3(0.0f)), false);
+    AABox box2(glm::vec3(2.0f), glm::vec3(1.0f));
+    QCOMPARE(box2.contains(glm::vec3(0.0f)), false);
+    box2.embiggen(glm::vec3(10.0f));
+    QCOMPARE(box2.contains(glm::vec3(0.0f)), true);
+
+    AABox box3;
+    box3 += glm::vec3(0.0f, 0.0f, 0.0f);
+    box3 += glm::vec3(1.0f, 1.0f, 1.0f);
+    box3 += glm::vec3(-1.0f, -1.0f, -1.0f);
+    QCOMPARE(box3.contains(glm::vec3(0.5f, 0.5f, 0.5f)), true);
 }
