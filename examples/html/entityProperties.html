@@ -287,6 +287,10 @@
             );
         };
 
+        function setTextareaScrolling(element) {
+            var isScrolling = element.scrollHeight > element.offsetHeight;
+            element.setAttribute("scrolling", isScrolling ? "true" : "false");
+        }
 
         function loaded() { 
             openEventBridge(function() {
@@ -492,22 +496,6 @@
                     urlUpdater.addEventListener("click", refreshEvent);
                 }
 
-                var toggleCollapsedEvent = function (event) {
-                    var element = event.target;
-                    if (element.nodeName !== "DIV") {
-                        element = element.parentNode;
-                    }
-                    var collapsed = element.getAttribute("collapsed") !== "true";
-                    element.setAttribute("collapsed", collapsed ? "true" : "false");
-                    element.getElementsByTagName("span")[0].textContent = collapsed ? "L" : "M";
-                };
-
-                var elCollapsible = document.getElementsByClassName("section-header");
-                for (var i = 0, length = elCollapsible.length; i < length; i++) {
-                    var element = elCollapsible[i];
-                    element.addEventListener("click", toggleCollapsedEvent, true);
-                };
-
                 if (window.EventBridge !== undefined) {
                     var properties;
                     EventBridge.scriptEventReceived.connect(function(data) {
@@ -645,6 +633,7 @@
                                 elScriptURL.value = properties.script;
                                 elScriptTimestamp.value = properties.scriptTimestamp;
                                 elUserData.value = properties.userData;
+                                setTextareaScrolling(elUserData);
     
                                 elHyperlinkHref.value = properties.href;
                                 elHyperlinkDescription.value = properties.description;
@@ -686,7 +675,9 @@
                                     elModelAnimationLoop.checked = properties.animation.loop;
                                     elModelAnimationHold.checked = properties.animation.hold;
                                     elModelTextures.value = properties.textures;
+                                    setTextareaScrolling(elModelTextures);
                                     elModelOriginalTextures.value = properties.originalTextures;
+                                    setTextAreaScrolling(elModelOriginalTextures);
                                 } else if (properties.type == "Web") {
                                     for (var i = 0; i < elWebSections.length; i++) {
                                         elWebSections[i].style.display = 'block';
@@ -1106,6 +1097,39 @@
                     };
                 }
             });
+
+            var elCollapsible = document.getElementsByClassName("section-header");
+
+            var toggleCollapsedEvent = function (event) {
+                var element = event.target;
+                if (element.nodeName !== "DIV") {
+                    element = element.parentNode;
+                }
+                var isCollapsed = element.getAttribute("collapsed") !== "true";
+                element.setAttribute("collapsed", isCollapsed ? "true" : "false");
+                element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
+            };
+
+            for (var i = 0, length = elCollapsible.length; i < length; i++) {
+                var element = elCollapsible[i];
+                element.addEventListener("click", toggleCollapsedEvent, true);
+            };
+
+            var elTextareas = document.getElementsByTagName("TEXTAREA");
+
+            var textareaOnChangeEvent = function (event) {
+                setTextareaScrolling(event.target);
+            }
+
+            for (var i = 0, length = elTextareas.length; i < length; i++) {
+                var element = elTextareas[i];
+                setTextareaScrolling(element);
+                element.addEventListener("input", textareaOnChangeEvent, false);
+                element.addEventListener("change", textareaOnChangeEvent, false);
+                /* FIXME: Detect and update textarea scrolling attribute on resize. Unfortunately textarea doesn't have a resize
+                event; mouseup is a partial stand-in but doesn't handle resizing if mouse moves outside textarea rectangle. */
+                element.addEventListener("mouseup", textareaOnChangeEvent, false);
+            };
         }
     </script>
 </head>
@@ -1140,11 +1164,9 @@
             <label for="property-visible">Visible</label>
         </div>
 
-        <div class="property">
-            <div class="label">User Data</div>
-            <div class="value">
-                <textarea id="property-user-data"></textarea>
-            </div>
+        <div class="property textarea">
+            <label for="property-user-data">User data</label>
+            <textarea id="property-user-data"></textarea>
         </div>
 
 
@@ -1675,17 +1697,13 @@
             <input type="checkbox" id="property-model-animation-hold">
             <label for="property-model-animation-hold">Animation hold</label>
         </div>
-        <div class="model-section property">
-            <div class="label">Textures</div>
-            <div class="value">
-                <textarea id="property-model-textures" value=''></textarea>
-            </div>
+        <div class="model-section property textarea">
+            <label for="property-model-textures">Textures</label>
+            <textarea id="property-model-textures"></textarea>
         </div>
-        <div class="model-section property">
-            <div class="label">Original Textures</div>
-            <div class="value">
-                <textarea id="property-model-original-textures" readonly value=''></textarea>
-            </div>
+        <div class="model-section property textarea">
+            <label for="property-model-original-textures">Original textures</label>
+            <textarea id="property-model-original-textures" readonly></textarea>
         </div>
 
 

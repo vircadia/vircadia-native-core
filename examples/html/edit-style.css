@@ -178,7 +178,9 @@ input[type="text"], input[type="number"], textarea {
 }
 
 textarea {
-    min-height: 28px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    min-height: 64px;
     width: 100%;
     resize: vertical;
 }
@@ -425,7 +427,7 @@ input[type=checkbox]:checked + label:hover {
     margin-left: 12px;
 }
 
-.text label, .url label, .number label {
+.text label, .url label, .number label, .textarea label {
     float: left;
     margin-bottom: 4px;
 }
@@ -482,6 +484,17 @@ input[type=checkbox]:checked + label:hover {
     background-color: #696969;
     border: 2px solid #2e2e2e;
     border-radius: 8px;
+}
+
+/* FIXME: Revisit textarea resizer/corner when move to Qt 5.6 or later: see if can get resizer/corner to always be visible and
+have correct background color with and without scrollbars. */
+::-webkit-resizer, textarea {
+    background-size: 10px 10px;
+    background: #252525 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAXSURBVChTY1RVVWXADZigNA4wMqUZGACS3gCD5UUtKAAAAABJRU5ErkJggg==) no-repeat bottom right;
+}
+textarea[scrolling="true"]::-webkit-resizer {
+    background-size: 10px 10px;
+    background: #2e2e2e url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACKSURBVChTjdAxDsMgDAXQT4UYuQIzCwsSKxsSJ4YDoByDY7AwUOG2aZMQqX+xhd9gzIwxA3/k8a7LCCFgraX+Fk4UY4RSCoyxNfwgzjlyzhhjXOEvSimhtUbvB3hGUkp472m2wxUKIaD3TnOCd6jWim3bvlBrfdjJOUeolEJoZj/4PMH83bl/BXgCWSs2Z09IjgoAAAAASUVORK5CYII=) no-repeat bottom right;
 }
 
 
