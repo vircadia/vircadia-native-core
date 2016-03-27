@@ -48,11 +48,11 @@
     Script.include(pingPongGunPath);
     Script.include(transformerPath);
 
-    var TRANSFORMER_URL_ARTEMIS = '';
-    var TRANSFORMER_URL_ALBERT = '';
-    var TRANSFORMER_URL_BEING_OF_LIGHT = '';
-    var TRANSFORMER_URL_KATE = '';
-    var TRANSFORMER_URL_WILL = '';
+    var TRANSFORMER_URL_ARTEMIS = 'http://hifi-public.s3.amazonaws.com/ryan/DefaultAvatarFemale2/0314HiFiFemAviHeightChange.fbx';
+    var TRANSFORMER_URL_ALBERT = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
+    var TRANSFORMER_URL_BEING_OF_LIGHT = 'http://hifi-public.s3.amazonaws.com/ryan/0318HiFiBoL/0318HiFiBoL.fbx';
+    var TRANSFORMER_URL_KATE = 'https://hifi-public.s3.amazonaws.com/ozan/avatars/kate/kate/kate.fbx';
+    var TRANSFORMER_URL_WILL = 'https://s3.amazonaws.com/hifi-public/models/skeletons/Will/Will.fbx';
 
     Reset.prototype = {
         tidying: false,
@@ -269,14 +269,14 @@
 
         createTransformers: function() {
             var firstDollPosition: {
-                x: 0,
-                y: 0,
-                z: 0
+                x: 1108.2123,
+                y: 460.7516,
+                z: -80.9387
             }
 
             var dollRotation = {
                 x: 0,
-                y: 0,
+                y: 28,
                 z: 0,
             }
 
@@ -325,8 +325,9 @@
             })
             print('JBP after deleting home entities')
         },
+        
         unload: function() {
-            this.findAndDeleteHomeEntities();
+            // this.findAndDeleteHomeEntities();
         }
 
     }

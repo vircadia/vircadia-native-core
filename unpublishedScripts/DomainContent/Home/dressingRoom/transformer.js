@@ -72,7 +72,7 @@
                 type: 'Model',
                 parentID: this.rotatorBlock,
                 modelURL: smallProps.modelURL,
-                position: this.putTransformerOnRotatorBlock(),
+                position: this.putTransformerOnRotatorBlock(rotatorProps.position),
                 rotation: rotatorProps.rotation,
                 userData: JSON.stringify({
                     'grabbableKey': {
@@ -88,8 +88,16 @@
             this.putNewVersionOnShelf();
         },
 
-        putTransformerOnRotatorBlock: function() {
+        putTransformerOnRotatorBlock: function(blockPosition) {
+            var myProps = Entities.getEntityProperties(this.entityID);
+            var halfHeight = myProps.dimensions.y / 2;
+            var newPosition = {
+                x: blockPosition.x,
+                y: blockPosition.x + halfHeight,
+                z: blockPosition.z
+            }
 
+            return newPosition
         },
 
         putNewVersionOnShelf: function() {
