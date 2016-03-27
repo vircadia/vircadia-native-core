@@ -268,7 +268,7 @@
         },
 
         createTransformers: function() {
-            var firstDollPosition: {
+            var firstDollPosition= {
                 x: 1108.2123,
                 y: 460.7516,
                 z: -80.9387
