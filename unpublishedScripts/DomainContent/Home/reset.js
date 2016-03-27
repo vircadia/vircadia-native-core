@@ -20,6 +20,8 @@
 
     var utilsPath = Script.resolvePath('utils.js');
 
+    var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+
     var fishTankPath = Script.resolvePath('fishTank/wrapper.js?' + Math.random());
 
     var tiltMazePath = Script.resolvePath("tiltMaze/wrapper.js?" + Math.random())
@@ -30,27 +32,27 @@
 
     var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
 
-
     var pingPongGunPath = Script.resolvePath("pingPongGun/wrapper.js?" + Math.random());
 
-    var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+    var transformerPath = Script.resolvePath("dressingRoom/wrapper.js?" + Math.random());
+
+    Script.include(utilsPath);
 
     Script.include(kineticPath);
 
-    Script.include(utilsPath);
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
     Script.include(plantPath);
     Script.include(cuckooClockPath);
-
     Script.include(pingPongGunPath);
+    Script.include(transformerPath);
 
-    var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-        x: 0,
-        y: 0.5,
-        z: 0
-    }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
+    var TRANSFORMER_URL_ARTEMIS = 'http://hifi-public.s3.amazonaws.com/ryan/DefaultAvatarFemale2/0314HiFiFemAviHeightChange.fbx';
+    var TRANSFORMER_URL_ALBERT = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
+    var TRANSFORMER_URL_BEING_OF_LIGHT = 'http://hifi-public.s3.amazonaws.com/ryan/0318HiFiBoL/0318HiFiBoL.fbx';
+    var TRANSFORMER_URL_KATE = 'https://hifi-public.s3.amazonaws.com/ozan/avatars/kate/kate/kate.fbx';
+    var TRANSFORMER_URL_WILL = 'https://s3.amazonaws.com/hifi-public/models/skeletons/Will/Will.fbx';
 
     Reset.prototype = {
         tidying: false,
@@ -98,6 +100,7 @@
                 Script.setTimeout(function() {
                     _this.createKineticEntities();
                     _this.createDynamicEntities();
+                    _this.createTransformers();
                 }, 750)
 
 
@@ -156,7 +159,7 @@
                 z: 0
             });
 
-            var pingPongGun = new _PingPongGun({
+            var pingPongGun = new HomePingPongGun({
                 x: 1101.2123,
                 y: 460.2328,
                 z: -65.8513
@@ -244,15 +247,15 @@
             });
 
             var cellPoster = new PosterCell({
-                x:1103.78,
-                y:461,
-                z:-70.3
+                x: 1103.78,
+                y: 461,
+                z: -70.3
             });
 
             var playaPoster = new PosterPlaya({
-                x:1101.8,
-                y:461,
-                z:-73.3
+                x: 1101.8,
+                y: 461,
+                z: -73.3
             });
 
 
@@ -261,6 +264,39 @@
             Script.setTimeout(function() {
                 attachChildToParent(livingRoomLampTriggerBoxName, livingRoomLampModelName, MyAvatar.position, 20);
             }, 1000);
+
+        },
+
+        createTransformers: function() {
+            var firstDollPosition: {
+                x: 1108.2123,
+                y: 460.7516,
+                z: -80.9387
+            }
+
+            var dollRotation = {
+                x: 0,
+                y: 28,
+                z: 0,
+            }
+
+            var dolls = [
+                TRANSFORMER_URL_ARTEMIS,
+                TRANSFORMER_URL_ALBERT,
+                TRANSFORMER_URL_BEING_OF_LIGHT,
+                TRANSFORMER_URL_KATE,
+                TRANSFORMER_URL_WILL
+            ];
+
+            var dollLateralSeparation = 0.5;
+            dolls.forEach(function(doll, index) {
+                var separation = index * dollLateralSeparation;
+                var right = Quat.getRight(dollRotation);
+                var left = Vec3.multiply(-1, right);
+                var howFarLeft = Vec3.multiply(separation, left);
+                var distanceToLeft = Vec3.sum(firstDollPosition, howFarLeft);
+                var transformer = new TransformerDoll(doll, distanceToLeft, dollRotation);
+            });
 
         },
 
@@ -289,8 +325,9 @@
             })
             print('JBP after deleting home entities')
         },
+        
         unload: function() {
-            this.findAndDeleteHomeEntities();
+            // this.findAndDeleteHomeEntities();
         }
 
     }

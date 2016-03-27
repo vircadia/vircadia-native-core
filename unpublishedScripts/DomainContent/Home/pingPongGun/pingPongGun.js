@@ -114,7 +114,7 @@
                 dynamic: true,
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
-                gravity:PING_PONG_GUN_GRAVITY,
+                gravity: PING_PONG_GUN_GRAVITY,
                 velocity: forwardVec,
                 lifetime: 10,
                 userData: JSON.stringify({
