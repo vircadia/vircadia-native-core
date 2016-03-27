@@ -469,8 +469,8 @@
                 var PARAM_REGEXP = /(?:\?)(\S+)/; // Check if this has any parameters.
                 var TIMESTAMP_REGEXP = /(&?HFTime=\d+)/;
 
-                var refreshEvent = function(event){
-                    var urlElement = event.target.parentElement.getElementsByClassName("url")[0];
+                var refreshEvent = function (event) {
+                    var urlElement = event.target.parentElement.getElementsByTagName("INPUT")[0];
                     var content = urlElement.value;
                     var date = new Date();
                     var timeStamp = date.getTime();
@@ -493,7 +493,7 @@
 
                 for(var index = 0; index < urlUpdaters.length; index++){
                     var urlUpdater = urlUpdaters[index];
-                    urlUpdater.addEventListener("click", refreshEvent);
+                    urlUpdater.addEventListener("click", refreshEvent, true);
                 }
 
                 if (window.EventBridge !== undefined) {
@@ -873,7 +873,10 @@
     
                 elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
                 elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
+                /*
+                FIXME: See FIXME for property-script-url.
                 elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
+                */
                 elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
     
                 var colorChangeFunction = createEmitColorPropertyUpdateFunction(
@@ -1051,12 +1054,15 @@
                         percentage: parseInt(elRescaleDimensionsPct.value),
                     }));
                 });
+                /*
+                FIXME: See FIXME for property-script-url.
                 elReloadScriptButton.addEventListener("click", function() {
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "action",
                         action: "reloadScript"
                     }));
                 });
+                */
                 elPreviewCameraButton.addEventListener("click", function() {
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "action",
@@ -1250,10 +1256,10 @@
             </div>
         </div>
         
-        <div class="zone-section keyLight-section property url">
+        <div class="zone-section keyLight-section property url refresh">
             <label for="property-zone-key-ambient-url">Ambient URL</label>
             <input type="text" id="property-zone-key-ambient-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
@@ -1328,10 +1334,10 @@
             </div>
         </div>
 
-        <div class="zone-section skybox-section property url">
+        <div class="zone-section skybox-section property url refresh">
             <label for="property-zone-skybox-url">Skybox URL</label>
             <input type="text" id="property-zone-skybox-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
@@ -1339,10 +1345,10 @@
             <label>Web</label><span>M</span>
         </div>
 
-        <div class="web-section property url">
+        <div class="web-section property url refresh">
             <label for="property-web-source-url">Source URL</label>
             <input type="text" id="property-web-source-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
@@ -1432,22 +1438,22 @@
               </select>
             </div>
 
-            <div class="property url">
+            <div class="property url refresh">
                 <label for="property-x-texture-url">X-axis texture URL</label>
                 <input type="text" id="property-x-texture-url">
-                <div class="update-url-version"></div>
+                <input type="button" class="update-url-version glyph" value="F" />
             </div>
 
-            <div class="property url">
+            <div class="property url refresh">
                 <label for="property-y-texture-url">Y-axis texture URL</label>
                 <input type="text" id="property-y-texture-url">
-                <div class="update-url-version"></div>
+                <input type="button" class="update-url-version glyph" value="F" />
             </div>
 
-            <div class="property url">
+            <div class="property url refresh">
                 <label for="property-z-texture-url">Z-axis texture URL</label>
                 <input type="text" id="property-z-texture-url">
-                <div class="update-url-version"></div>
+                <input type="button" class="update-url-version glyph" value="F" />
             </div>
         </div>
 
@@ -1608,10 +1614,10 @@
             </div>
         </div>
 
-        <div class="behavior-section property url">
+        <div class="behavior-section property url refresh">
             <label for="property-collision-sound-url">Collision sound URL</label>
             <input type="text" id="property-collision-sound-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
         <div class="behavior-section property">
@@ -1621,12 +1627,16 @@
             </div>
         </div>
 
-        <div class="behavior-section property url">
+        <div class="behavior-section property url refresh">
+            <!--
+            FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated 
+            code should be removed.
             <input type="hidden" id="property-script-timestamp" class="value">
             <input type="button" id="reload-script-button" value="Reload">
+            -->
             <label for="property-script-url">Script URL</label>
             <input type="text" id="property-script-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
@@ -1634,10 +1644,10 @@
             <label>Model</label><span>M</span>
         </div>
 
-        <div class="model-section property url">
+        <div class="model-section property url refresh">
             <label for="property-model-url">Model URL</label>
             <input type="text" id="property-model-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
         <div class="model-section zone-section property">
@@ -1651,15 +1661,15 @@
                 </select>
             </div>
         </div>
-        <div class="model-section zone-section property url">
+        <div class="model-section zone-section property url refresh">
             <label for="property-compound-shape-url">Compound shape URL</label>
             <input type="text" id="property-compound-shape-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
-        <div class="model-section property url">
+        <div class="model-section property url refresh">
             <label for="property-model-animation-url">Animation URL</label>
             <input type="text" id="property-model-animation-url">
-            <div class="update-url-version"></div>
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
         <div class="model-section property checkbox">
             <input type="checkbox" id="property-model-animation-playing">

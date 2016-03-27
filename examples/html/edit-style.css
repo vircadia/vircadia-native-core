@@ -211,13 +211,15 @@ input:disabled, textarea:disabled {
     color: rgb(160, 160, 160);
 }
 
-input[type="text"], input[type="number"] {
+input[type="text"] {
     height: 28px;
-    width: 120px;
+    width: 100%;
 }
 
 input[type="number"] {
     position: relative;
+    height: 28px;
+    width: 120px;
 }
 
 input:focus {
@@ -227,10 +229,6 @@ input:focus {
 
 input::selection {
     background-color: #00b4ef;
-}
-
-input[type="text"] {
-    width: 100%;
 }
 
 /* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
@@ -276,7 +274,7 @@ input[type=button].glyph {
     font-family: HiFi-Glyphs;
     font-size: 20px;
     text-transform: none;
-    min-width: 34px;
+    min-width: 32px;
     padding: 0;
 }
 
@@ -434,6 +432,15 @@ input[type=checkbox]:checked + label:hover {
 .number span {
     clear: both;
     float: left;
+}
+
+div.refresh {
+    box-sizing: border-box;
+    padding-right: 44px;
+}
+div.refresh input[type="button"] {
+    float: right;
+    margin-right: -44px;
 }
 
 .color span, .color label {
