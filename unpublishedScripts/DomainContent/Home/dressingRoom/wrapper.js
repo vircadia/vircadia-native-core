@@ -6,7 +6,7 @@
          type: 'Model',
          shapeType: 'box',
          position: spawnPosition,
-         rotation: spawnRotation,
+         rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z),
          modelURL: modelURL,
          dynamic: true,
          gravity: {
