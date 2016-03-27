@@ -1,12 +1,12 @@
  var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
- print('TRANSFORMER SCRIPT ++ '+ TRANSFORMER_SCRIPT)
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation) {
+    print('SCRIPT REF AT TRANSFORMER CREATE::' + TRANSFORMER_SCRIPT);
      var transformerProps = {
          name: 'hifi-home-dressing-room-little-transformer',
          type: 'Model',
          shapeType: 'box',
          position: spawnPosition,
-         rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x,spawnRotation.y,spawnRotation.z),
+         rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
          modelURL: modelURL,
          dynamic: true,
          gravity: {
@@ -25,16 +25,16 @@
                  'reset': true
              }
          }),
-         script: TRANSFORMER_SCRIPT
+         // script: TRANSFORMER_SCRIPT
      }
      var transformer = Entities.addEntity(transformerProps);
-     Script.setTimeout(function() {
-         var actualProps = Entities.getEntityProperties(transformer);
-         var quarterSize = Vec3.multiply(0.25, actualProps.naturalDimensions);
-         Entities.editEntity(transformer, {
-             dimensions: quarterSize
-         });
-     }, 1500)
+     // Script.setTimeout(function() {
+     //     var actualProps = Entities.getEntityProperties(transformer);
+     //     var quarterSize = Vec3.multiply(0.25, actualProps.naturalDimensions);
+     //     Entities.editEntity(transformer, {
+     //         dimensions: quarterSize
+     //     });
+     // }, 1500)
 
      print('CREATED TRANSFORMER' + transformer);
      print('at location: ' + JSON.stirngify(transformerProps.position))

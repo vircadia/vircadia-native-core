@@ -120,7 +120,7 @@
         },
 
         createDynamicEntities: function() {
-
+            return;
             print("EBL CREATE DYNAMIC ENTITIES");
 
             var fishTank = new FishTank({
@@ -186,6 +186,7 @@
 
 
         createKineticEntities: function() {
+            return;
             var blocks = new Blocks({
                 x: 1097.1383,
                 y: 460.3790,
@@ -291,13 +292,17 @@
 
             var dollLateralSeparation = 0.5;
             dolls.forEach(function(doll, index) {
+                print('CREATE TRANSFORMER:: ' + doll)
                 var separation = index * dollLateralSeparation;
                 var right = Quat.getRight(dollRotation);
                 var left = Vec3.multiply(-1, right);
                 var howFarLeft = Vec3.multiply(separation, left);
                 var distanceToLeft = Vec3.sum(firstDollPosition, howFarLeft);
+                print('PARAMS AT CREATE')
+                print('distanceToLeft : ' + JSON.stringify(distanceToLeft))
+                print('dollRotation : ' + JSON.stringify(dollRotation))
                 var transformer = new TransformerDoll(doll, distanceToLeft, dollRotation);
-                print('CREATE TRANSFORMER:: ' + doll)
+                
             });
 
         },
