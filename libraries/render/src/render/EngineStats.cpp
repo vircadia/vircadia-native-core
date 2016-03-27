@@ -20,15 +20,8 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     quint64 msecsElapsed = _frameTimer.restart();
     double frequency = 1000.0 / msecsElapsed;
 
-
     // Update the stats
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
-    quint32 textureCPUCount{ 0 };
-    quint32 textureGPUCount{ 0 };
-    qint64 textureCPUMemoryUsage{ 0 };
-    qint64 textureGPUMemoryUsage{ 0 };
-
 
     config->bufferCPUCount = gpu::Buffer::getBufferCPUCount();
     config->bufferGPUCount = gpu::Buffer::getBufferGPUCount();

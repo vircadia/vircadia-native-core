@@ -74,19 +74,20 @@ public:
     static GLuint getBufferID(const Buffer& buffer);
 
     class GLTexture : public GPUObject {
-        GLuint _size;
     public:
         Stamp _storageStamp;
         Stamp _contentStamp;
         GLuint _texture;
         GLenum _target;
 
+        GLTexture();
+        ~GLTexture();
 
         void setSize(GLuint size);
         GLuint size() const { return _size; }
 
-        GLTexture();
-        ~GLTexture();
+    private:
+        GLuint _size;
     };
     static GLTexture* syncGPUObject(const Texture& texture);
     static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
