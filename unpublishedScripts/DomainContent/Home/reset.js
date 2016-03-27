@@ -269,7 +269,7 @@
 
         createTransformers: function() {
             print('CREATING TRANSFORMERS!')
-            var firstDollPosition= {
+            var firstDollPosition = {
                 x: 1108.2123,
                 y: 460.7516,
                 z: -80.9387
@@ -297,7 +297,7 @@
                 var howFarLeft = Vec3.multiply(separation, left);
                 var distanceToLeft = Vec3.sum(firstDollPosition, howFarLeft);
                 var transformer = new TransformerDoll(doll, distanceToLeft, dollRotation);
-                print('CREATE TRANSFORMER:: '+ doll)
+                print('CREATE TRANSFORMER:: ' + doll)
             });
 
         },
@@ -309,16 +309,17 @@
             var found = [];
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                var userData = null;
-                if(userData===""){
+
+                if (userData === "") {
                     print('no userdata -- its blank')
                     return;
                 }
+                var userData = null;
                 try {
                     userData = JSON.parse(properties.userData);
                 } catch (err) {
-                     print('error parsing json in resetscript for: ' + properties.name);
-                     print('properties are:' + properties.userData);
+                    print('error parsing json in resetscript for: ' + properties.name);
+                    print('properties are:' + properties.userData);
                     return;
                 }
                 if (userData.hasOwnProperty('hifiHomeKey')) {
@@ -331,7 +332,7 @@
             })
             print('JBP after deleting home entities')
         },
-        
+
         unload: function() {
             // this.findAndDeleteHomeEntities();
         }
