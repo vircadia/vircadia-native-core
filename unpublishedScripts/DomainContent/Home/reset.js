@@ -310,6 +310,10 @@
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
                 var userData = null;
+                if(userData===""){
+                    print('no userdata -- its blank')
+                    return;
+                }
                 try {
                     userData = JSON.parse(properties.userData);
                 } catch (err) {
