@@ -76,7 +76,7 @@
                 rotation: rotatorProps.rotation,
                 userData: JSON.stringify({
                     'grabbableKey': {
-                        'grabbable:', false
+                        'grabbable': false
                     },
                     'hifiHomeKey': {
                         'reset': true

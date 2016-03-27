@@ -431,7 +431,6 @@
             var data = {
                 fishLoaded: true,
                 innerContainer: _this.userData['hifi-home-fishtank'].innerContainer,
-
             }
             setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, data);
             _this.userData['hifi-home-fishtank'].fishLoaded = true;
@@ -519,7 +518,7 @@
                     y: properties.position.y,
                     z: properties.position.z
                 };
-   
+
 
                 var othersCounted = 0;
                 for (var j = 0; j < fish.length; j++) {
@@ -588,8 +587,8 @@
                 var primePosition = tankXForm.xFormPoint(position);
                 var primeVelocity = tankXForm.xFormVector(velocity);
 
-                                //  Orient in direction of velocity 
-                                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, primeVelocity);
+                //  Orient in direction of velocity 
+                var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, primeVelocity);
 
 
                 var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
@@ -626,7 +625,7 @@
                 Entities.editEntity(fish[i], {
                     position: primePosition,
                     velocity: primeVelocity,
-                     rotation: finalQuat
+                    rotation: finalQuat
                 });
             }
         }
