@@ -429,7 +429,6 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     var data = {
         fishLoaded: false,
-        bubbleSystem: bubbleSystem,
         innerContainer: innerContainer,
     }
 

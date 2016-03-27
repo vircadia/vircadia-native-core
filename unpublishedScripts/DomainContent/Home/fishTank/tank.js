@@ -430,7 +430,6 @@
             loadFish(NUM_FISH);
             var data = {
                 fishLoaded: true,
-                bubbleSystem: _this.userData['hifi-home-fishtank'].bubbleSystem,
                 innerContainer: _this.userData['hifi-home-fishtank'].innerContainer,
 
             }
