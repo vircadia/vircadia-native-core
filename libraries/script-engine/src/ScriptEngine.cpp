@@ -673,11 +673,14 @@ void ScriptEngine::run() {
         }
 
         qint64 now = usecTimestampNow();
-        float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (!_isFinished) {
-            if (_wantSignals) {
-                emit update(deltaTime);
+        // we check for 'now' in the past in case people set their clock back
+        if (lastUpdate < now) {
+            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
             }
         }
         lastUpdate = now;
