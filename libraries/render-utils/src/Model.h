@@ -379,7 +379,7 @@ protected:
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
     mutable bool _needsUpdateTransparentTextures { true };
-    bool _hasTransparentTextures { false };
+    mutable bool _hasTransparentTextures { false };
     bool _showCollisionHull { false };
 
     friend class ModelMeshPartPayload;

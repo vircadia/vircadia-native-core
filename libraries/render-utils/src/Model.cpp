@@ -79,7 +79,9 @@ bool Model::needsFixupInScene() const {
         // Once textures are loaded, fixup if they are now transparent
         if (_needsUpdateTransparentTextures && _geometry->getGeometry()->areTexturesLoaded()) {
             _needsUpdateTransparentTextures = false;
-            if (_hasTransparentTextures != _geometry->getGeometry()->hasTransparentTextures()) {
+            bool hasTransparentTextures = _geometry->getGeometry()->hasTransparentTextures();
+            if (_hasTransparentTextures != hasTransparentTextures) {
+                _hasTransparentTextures = hasTransparentTextures;
                 return true;
             }
         }
