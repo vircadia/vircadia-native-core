@@ -1208,7 +1208,7 @@
                 <input class="coord" type="number" id="property-text-line-height" min="0" step="0.005">
             </div>
         </div>
-        <div class="text-section property color">
+        <div class="text-section property rgb">
             <div class="color-picker" id="property-text-text-color"></div>
             <label>Text color</label>
             <div class="tuple">
@@ -1217,7 +1217,7 @@
                 <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
             </div>
         </div>
-        <div class="text-section property color">
+        <div class="text-section property rgb">
             <div class="color-picker" id="property-text-background-color"></div>
             <label>Background color</label>
             <div class="tuple">
@@ -1242,7 +1242,7 @@
             <label>Key Light</label>
         </div>
 
-        <div class="zone-section keylight-section property color">
+        <div class="zone-section keylight-section property rgb">
             <div class="color-picker" id="property-zone-key-light-color"></div>
             <label>Key light color</label>
             <div class="tuple">
@@ -1342,7 +1342,7 @@
             <label>Skybox</label>
         </div>
 
-        <div class="zone-section skybox-section property color">
+        <div class="zone-section skybox-section property rgb">
             <div class="color-picker" id="property-zone-skybox-color"></div>
             <label>Skybox color</label>
             <div class="tuple">
@@ -1475,12 +1475,12 @@
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
-        <div class="spatial-section property">
-            <div class="label">Rotation</div>
-            <div class="value">
-                <div class="input-area">Pitch <input class="coord" type="number" id="property-rot-x" step="0.1"></div>
-                <div class="input-area">Yaw <input class="coord" type="number" id="property-rot-y" step="0.1"></div>
-                <div class="input-area">Roll <input class="coord" type="number" id="property-rot-z"step="0.1"></div>
+        <div class="spatial-section property pyr">
+            <label>Rotation</label>
+            <div class="tuple">
+                <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
+                <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
+                <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
             </div>
         </div>
 
@@ -1503,12 +1503,12 @@
                 <input class="coord" type="number" id="property-ldamping">
             </div>
         </div>
-        <div class="physical-section property">
-            <div class="label">Angular Velocity</div>
-            <div class="value">
-                <div class="input-area">Pitch <input class="coord" type="number" id="property-avel-x"></div>
-                <div class="input-area">Yaw <input class="coord" type="number" id="property-avel-y"></div>
-                <div class="input-area">Roll <input class="coord" type="number" id="property-avel-z"></div>
+        <div class="physical-section property pyr">
+            <label>Angular Velocity</label>
+            <div class="tuple">
+                <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
+                <div><input type="number" class="yaw" id="property-avel-y"><label for="property-avel-y">Yaw:</label></div>
+                <div><input type="number" class="roll" id="property-avel-z"><label for="property-avel-z">Roll:</label></div>
             </div>
         </div>
         <div class="physical-section property">
@@ -1555,7 +1555,7 @@
             </div>
         </div>
 
-        <div id="color-section" class="physical-section property color">
+        <div id="color-section" class="physical-section property rgb">
             <div id="property-color" class="color-picker"></div>
             <label>Entity color</label>
             <div class="tuple">
@@ -1739,7 +1739,7 @@
             <label>Light</label><span>M</span>
         </div>
         
-        <div class="light-section property color">
+        <div class="light-section property rgb">
             <div class="color-picker" id="property-light-color"></div>
             <label>Light color</label>
             <div class="tuple">

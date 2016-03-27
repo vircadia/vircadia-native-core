@@ -425,7 +425,7 @@ input[type=checkbox]:checked + label:hover {
     margin-left: 12px;
 }
 
-.text label, .url label, .number label, .textarea label, .xyz label {
+.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label {
     float: left;
     margin-bottom: 4px;
 }
@@ -433,7 +433,7 @@ input[type=checkbox]:checked + label:hover {
     clear: both;
     float: left;
 }
-.xyz > div {
+.xyz > div, .pyr > div {
     clear: both;
 }
 
@@ -463,12 +463,12 @@ div.refresh input[type="button"] {
     background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABDSURBVChTjcoLCkAhCETRNq0tf97Y5xGZ1gVJ45TH6njThIO+xk2UwhWFcEdH6JCqOuiQiMDi/hcii3crRRb/7ggAPvIMVihQwvSXAAAAAElFTkSuQmCC);
 }
 
-.color label {
+.rgb label {
     float: left;
     margin-top: 10px;
     margin-left: 12px;
 }
-.color label + * {
+.rgb label + * {
     clear: both;
 }
 
@@ -489,11 +489,14 @@ div.refresh input[type="button"] {
     float: right;
 }
 
+.rgb .tuple input {
+    padding-left: 65px;
+}
 .xyz .tuple input {
     padding-left: 30px;
 }
-.color .tuple input {
-    padding-left: 65px;
+.pyr .tuple input {
+    padding-left: 45px;
 }
 .tuple div label {
     display: inline !important;
@@ -505,23 +508,23 @@ div.refresh input[type="button"] {
     font-family: FiraSans-SemiBold;
     font-size: 12px;
 }
-.tuple .x + label, .tuple .red + label {
+.tuple .red + label, .tuple .x + label, .tuple .pitch + label {
     color: #e2334d;
 }
-.tuple .y + label, .tuple .green + label {
+.tuple .green + label, .tuple .y + label, .tuple .yaw + label {
     color: #1ac567;
 }
-.tuple .z + label, .tuple .blue + label {
+.tuple .blue + label, .tuple .z + label, .tuple .roll + label {
     color: #1080b8;
 }
 
-.tuple .x:focus, .tuple .red:focus {
+.tuple .red:focus, .tuple .x:focus, .tuple .pitch:focus {
     outline-color: #e2334d;
 }
-.tuple .y:focus, .tuple .green:focus {
+.tuple .green:focus, .tuple .y:focus, .tuple .yaw:focus {
     outline-color: #1ac567;
 }
-.tuple .z:focus.tuple, .blue:focus {
+tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     outline-color: #1080b8;
 }
 
