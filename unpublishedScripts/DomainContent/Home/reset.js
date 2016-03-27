@@ -310,16 +310,17 @@
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
 
-                if (userData === "") {
-                    print('no userdata -- its blank')
+                if (properties.userData === "" || properties.userData === undefined) {
+                    print('no userdata -- its blank or undefined')
                     return;
                 }
+
                 var userData = null;
                 try {
                     userData = JSON.parse(properties.userData);
                 } catch (err) {
                     print('error parsing json in resetscript for: ' + properties.name);
-                    print('properties are:' + properties.userData);
+                    //print('properties are:' + properties.userData);
                     return;
                 }
                 if (userData.hasOwnProperty('hifiHomeKey')) {
