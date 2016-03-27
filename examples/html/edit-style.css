@@ -425,13 +425,16 @@ input[type=checkbox]:checked + label:hover {
     margin-left: 12px;
 }
 
-.text label, .url label, .number label, .textarea label {
+.text label, .url label, .number label, .textarea label, .xyz label {
     float: left;
     margin-bottom: 4px;
 }
 .number span {
     clear: both;
     float: left;
+}
+.xyz > div {
+    clear: both;
 }
 
 div.refresh {
@@ -486,54 +489,48 @@ div.refresh input[type="button"] {
     float: right;
 }
 
+.xyz .tuple input {
+    padding-left: 30px;
+}
 .color .tuple input {
     padding-left: 65px;
 }
-
-.tuple label {
+.tuple div label {
     display: inline !important;
     float: none !important;
     position: absolute;
-    left: -6px;
-    top: -4px;
+    margin-top: 8px;
+    margin-left: 6px;
+    left: 0;
+    font-family: FiraSans-SemiBold;
+    font-size: 12px;
 }
-.tuple .red + label {
+.tuple .x + label, .tuple .red + label {
     color: #e2334d;
 }
-.tuple .green + label {
+.tuple .y + label, .tuple .green + label {
     color: #1ac567;
 }
-.tuple .blue + label {
+.tuple .z + label, .tuple .blue + label {
     color: #1080b8;
 }
 
-.tuple .red:focus {
+.tuple .x:focus, .tuple .red:focus {
     outline-color: #e2334d;
 }
-.tuple .green:focus {
+.tuple .y:focus, .tuple .green:focus {
     outline-color: #1ac567;
 }
-.tuple .blue:focus {
+.tuple .z:focus.tuple, .blue:focus {
     outline-color: #1080b8;
 }
 
-
-.prop-x {
-    color:red !important;
-    background: rgba(255, 0, 0, .9);
-    height:2px !important;
+.xyz .buttons input {
+    margin-top: 12px;
 }
-
-.prop-y {
-    color:green !important;
-    background: rgba(0, 255, 0, .9);
-    height:2px !important;
-}
-
-.prop-z{
-    color:blue !important;
-    background: rgba(0, 0, 255, .9);
-    height:2px !important;
+.xyz .buttons span {
+    word-wrap: nowrap;
+    white-space: nowrap;
 }
 
 
