@@ -1,6 +1,8 @@
  var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
+ print('TRANSFORMER SCRIPT ++ '+ TRANSFORMER_SCRIPT)
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation) {
-
+ var TRANSFORMER_SCRIPT2 = Script.resolvePath('transformer.js?' + Math.random());
+ print('TRANSFORMER SCRIPT ++ '+ TRANSFORMER_SCRIPT2)
      var transformerProps = {
          name: 'hifi-home-dressing-room-little-transformer',
          type: 'Model',
