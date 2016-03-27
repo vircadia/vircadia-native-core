@@ -888,7 +888,10 @@
                     colorScheme:'dark',
                     layout:'hex',
                     color:'000000',
-                    onSubmit: function(hsb, hex, rgb, el) {
+                    onShow: function (colpick) {
+                        $('#property-color').attr('active', 'true');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
                         emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
@@ -906,7 +909,10 @@
                     colorScheme:'dark',
                     layout:'hex',
                     color:'000000',
-                    onSubmit: function(hsb, hex, rgb, el) {
+                    onShow: function (colpick) {
+                        $('#property-light-color').attr('active', 'true');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
                         emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
@@ -946,10 +952,14 @@
                 $('#property-text-text-color').colpick({
                     colorScheme:'dark',
                     layout:'hex',
-                    color:'000000',
+                    color: '000000',
+                    onShow: function (colpick) {
+                        $('#property-text-text-color').attr('active', 'true');
+                    },
                     onSubmit: function(hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
+                        $(el).attr('active', 'false');
                         emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
                     }
                 });
@@ -963,7 +973,10 @@
                     colorScheme:'dark',
                     layout:'hex',
                     color:'000000',
-                    onSubmit: function(hsb, hex, rgb, el) {
+                    onShow: function (colpick) {
+                        $('#property-text-background-color').attr('active', 'true');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
                         emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
@@ -975,7 +988,10 @@
                     colorScheme:'dark',
                     layout:'hex',
                     color:'000000',
-                    onSubmit: function(hsb, hex, rgb, el) {
+                    onShow: function (colpick) {
+                        $('#property-zone-key-light-color').attr('active', 'true');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
                         emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
@@ -1010,7 +1026,10 @@
                     colorScheme:'dark',
                     layout:'hex',
                     color:'000000',
-                    onSubmit: function(hsb, hex, rgb, el) {
+                    onShow: function (colpick) {
+                        $('#property-zone-skybox-color').attr('active', 'true');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
                         emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
@@ -1189,24 +1208,19 @@
                 <input class="coord" type="number" id="property-text-line-height" min="0" step="0.005">
             </div>
         </div>
-        <div class="text-section property">
-            <div class="label">Text Color</div>
-            <div class="value">
-                <div class='color-picker' id="property-text-text-color"></div>
-                <div class="input-area">R <input class="coord" type="number" id="property-text-text-color-red"></div>
-                <div class="input-area">G <input class="coord" type="number" id="property-text-text-color-green"></div>
-                <div class="input-area">B <input class="coord" type="number" id="property-text-text-color-blue"></div>
-            </div>
+        <div class="text-section property color">
+            <div class="color-picker" id="property-text-text-color"></div>
+            <label>Text color</label>
+            <div class="input-area">R <input class="coord" type="number" id="property-text-text-color-red"></div>
+            <div class="input-area">G <input class="coord" type="number" id="property-text-text-color-green"></div>
+            <div class="input-area">B <input class="coord" type="number" id="property-text-text-color-blue"></div>
         </div>
-        <div class="text-section property">
-            <div class="label">Background Color</div>
-            <div class="value">
-                <div class='color-picker' id="property-text-background-color"></div>
-                <div class="input-area">R <input class="coord" type="number" id="property-text-background-color-red"></div>
-                <div class="input-area">G <input class="coord" type="number" id="property-text-background-color-green"></div>
-                <div class="input-area">B <input class="coord" type="number" id="property-text-background-color-blue"></div>
-
-            </div>
+        <div class="text-section property color">
+            <div class="color-picker" id="property-text-background-color"></div>
+            <label>Background color</label>
+            <div class="input-area">R <input class="coord" type="number" id="property-text-background-color-red"></div>
+            <div class="input-area">G <input class="coord" type="number" id="property-text-background-color-green"></div>
+            <div class="input-area">B <input class="coord" type="number" id="property-text-background-color-blue"></div>
         </div>
         
 
@@ -1221,17 +1235,15 @@
 
 
         <div class="sub-section-header zone-section keyLight-section">
-            <label>KeyLight</label>
+            <label>Key Light</label>
         </div>
 
-        <div class="zone-section keyLight-section property">
-            <div class="label">Light Color</div>
-            <div class="value">
-                <div class='color-picker' id="property-zone-key-light-color"></div>
-                <div class="input-area">R <input class="coord" type="number" id="property-zone-key-light-color-red" min="0" max="255" step="1"></div>
-                <div class="input-area">G <input class="coord" type="number" id="property-zone-key-light-color-green" min="0" max="255" step="1"></div>
-                <div class="input-area">B <input class="coord" type="number" id="property-zone-key-light-color-blue" min="0" max="255" step="1"></div>
-            </div>
+        <div class="zone-section keyLight-section property color">
+            <div class="color-picker" id="property-zone-key-light-color"></div>
+            <label>Key light color</label>
+            <div class="input-area">R <input class="coord" type="number" id="property-zone-key-light-color-red" min="0" max="255" step="1"></div>
+            <div class="input-area">G <input class="coord" type="number" id="property-zone-key-light-color-green" min="0" max="255" step="1"></div>
+            <div class="input-area">B <input class="coord" type="number" id="property-zone-key-light-color-blue" min="0" max="255" step="1"></div>
         </div>
 
         <div class="zone-section keyLight-section property">
@@ -1324,14 +1336,12 @@
             <label>Skybox</label>
         </div>
 
-        <div class="zone-section skybox-section property">
-            <div class="label">Skybox Color</div>
-            <div class="value">
-                <div class='color-picker' id="property-zone-skybox-color"></div>
-                <div class="input-area">R <input class="coord" type="number" id="property-zone-skybox-color-red"></div>
-                <div class="input-area">G <input class="coord" type="number" id="property-zone-skybox-color-green"></div>
-                <div class="input-area">B <input class="coord" type="number" id="property-zone-skybox-color-blue"></div>
-            </div>
+        <div class="zone-section skybox-section property color">
+            <div class="color-picker" id="property-zone-skybox-color"></div>
+            <label>Skybox color</label>
+            <div class="input-area">R <input class="coord" type="number" id="property-zone-skybox-color-red"></div>
+            <div class="input-area">G <input class="coord" type="number" id="property-zone-skybox-color-green"></div>
+            <div class="input-area">B <input class="coord" type="number" id="property-zone-skybox-color-blue"></div>
         </div>
 
         <div class="zone-section skybox-section property url refresh">
@@ -1537,14 +1547,12 @@
             </div>
         </div>
 
-        <div id="color-section" class="physical-section property">
-            <div class="label">Color</div>
-            <div class="value">
-                <div id="property-color" class='color-picker'></div>
-                <div class="input-area">R <input class="coord" type="number" id="property-color-red"></div>
-                <div class="input-area">G <input class="coord" type="number" id="property-color-green"></div>
-                <div class="input-area">B <input class="coord" type="number" id="property-color-blue"></div>
-            </div>
+        <div id="color-section" class="physical-section property color">
+            <div id="property-color" class="color-picker"></div>
+            <label>Entity color</label>
+            <div class="input-area">R <input class="coord" type="number" id="property-color-red"></div>
+            <div class="input-area">G <input class="coord" type="number" id="property-color-green"></div>
+            <div class="input-area">B <input class="coord" type="number" id="property-color-blue"></div>
         </div>
 
 
@@ -1721,14 +1729,12 @@
             <label>Light</label><span>M</span>
         </div>
         
-        <div class="light-section property">
-            <div class="label">Color</div>
-            <div class="value">
-                <div class='color-picker' id="property-light-color"></div>
-                <div class="input-area">R <input class="coord" type="number" id="property-light-color-red"></div>
-                <div class="input-area">G <input class="coord" type="number" id="property-light-color-green"></div>
-                <div class="input-area">B <input class="coord" type="number" id="property-light-color-blue"></div>
-            </div>
+        <div class="light-section property color">
+            <div class="color-picker" id="property-light-color"></div>
+            <label>Light color</label>
+            <div class="input-area">R <input class="coord" type="number" id="property-light-color-red"></div>
+            <div class="input-area">G <input class="coord" type="number" id="property-light-color-green"></div>
+            <div class="input-area">B <input class="coord" type="number" id="property-light-color-blue"></div>
         </div>
         <div class="light-section property">
             <div class="label">Intensity</div>
