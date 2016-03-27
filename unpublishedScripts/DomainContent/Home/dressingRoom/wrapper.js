@@ -1,10 +1,10 @@
+ var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation) {
 
-     var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
      var transformerProps = {
          name: 'hifi-home-dressing-room-little-transformer',
          type: 'Model',
-         shapeType:'box',
+         shapeType: 'box',
          position: spawnPosition,
          rotation: spawnRotation,
          modelURL: modelURL,
@@ -37,7 +37,7 @@
      }, 1500)
 
      print('CREATED TRANSFORMER' + transformer);
-     print('at location: '  + JSON.stirngify(transformerProps.position))
+     print('at location: ' + JSON.stirngify(transformerProps.position))
 
      return this;
  }
