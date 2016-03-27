@@ -43,7 +43,7 @@
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
-    Script.include(plantPath);
+    // Script.include(plantPath);
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
     Script.include(transformerPath);
@@ -149,15 +149,15 @@
                 z: 0
             });
 
-            var myPlant = new Plant({
-                x: 1099.8785,
-                y: 460.3115,
-                z: -84.7736
-            }, {
-                x: 0,
-                y: 0,
-                z: 0
-            });
+            // var myPlant = new Plant({
+            //     x: 1099.8785,
+            //     y: 460.3115,
+            //     z: -84.7736
+            // }, {
+            //     x: 0,
+            //     y: 0,
+            //     z: 0
+            // });
 
             var pingPongGun = new HomePingPongGun({
                 x: 1101.2123,
@@ -268,6 +268,7 @@
         },
 
         createTransformers: function() {
+            print('CREATING TRANSFORMERS!')
             var firstDollPosition= {
                 x: 1108.2123,
                 y: 460.7516,
@@ -296,6 +297,7 @@
                 var howFarLeft = Vec3.multiply(separation, left);
                 var distanceToLeft = Vec3.sum(firstDollPosition, howFarLeft);
                 var transformer = new TransformerDoll(doll, distanceToLeft, dollRotation);
+                print('CREATE TRANSFORMER:: '+ doll)
             });
 
         },
