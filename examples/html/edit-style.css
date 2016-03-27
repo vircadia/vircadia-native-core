@@ -329,7 +329,6 @@ input[type=checkbox]:checked + label:hover {
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
-
     cursor: text;
 }
 
@@ -412,6 +411,20 @@ input[type=checkbox]:checked + label:hover {
     vertical-align: middle;
     font-family: Raleway-SemiBold;
     font-size: 14px;
+}
+
+.value {
+    display: block;
+    min-height: 18px;
+}
+.value label {
+    display: inline-block;
+    vertical-align: top;
+    width: 48px;
+}
+.value span {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
 }
 
 .checkbox + .checkbox {
