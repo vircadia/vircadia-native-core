@@ -3,7 +3,8 @@
      var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
      var transformerProps = {
          name: 'hifi-home-dressing-room-little-transformer',
-         type: 'model',
+         type: 'Model',
+         shapeType:'box',
          position: spawnPosition,
          rotation: spawnRotation,
          modelURL: modelURL,
