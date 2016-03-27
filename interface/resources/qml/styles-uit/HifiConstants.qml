@@ -58,6 +58,7 @@ Item {
         readonly property color lightGrayText: "#afafaf"
         readonly property color faintGray: "#e3e3e3"
         readonly property color primaryHighlight: "#00b4ef"
+        readonly property color blueHighlight: "#00b4ef"
         readonly property color blueAccent: "#1080b8"
         readonly property color redHighlight: "#e2334d"
         readonly property color redAccent: "#b70a37"

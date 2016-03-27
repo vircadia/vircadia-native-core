@@ -1211,16 +1211,20 @@
         <div class="text-section property color">
             <div class="color-picker" id="property-text-text-color"></div>
             <label>Text color</label>
-            <div class="input-area">R <input class="coord" type="number" id="property-text-text-color-red"></div>
-            <div class="input-area">G <input class="coord" type="number" id="property-text-text-color-green"></div>
-            <div class="input-area">B <input class="coord" type="number" id="property-text-text-color-blue"></div>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-text-text-color-red"><label for="property-text-text-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-text-text-color-green"><label for="property-text-text-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
+            </div>
         </div>
         <div class="text-section property color">
             <div class="color-picker" id="property-text-background-color"></div>
             <label>Background color</label>
-            <div class="input-area">R <input class="coord" type="number" id="property-text-background-color-red"></div>
-            <div class="input-area">G <input class="coord" type="number" id="property-text-background-color-green"></div>
-            <div class="input-area">B <input class="coord" type="number" id="property-text-background-color-blue"></div>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-text-background-color-red"><label for="roperty-text-background-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-text-background-color-green"><label for="property-text-background-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-text-background-color-blue"><label for="property-text-background-color-blue">Blue:</label></div>
+            </div>
         </div>
         
 
@@ -1234,26 +1238,28 @@
         </div>
 
 
-        <div class="sub-section-header zone-section keyLight-section">
+        <div class="sub-section-header zone-section keylight-section">
             <label>Key Light</label>
         </div>
 
-        <div class="zone-section keyLight-section property color">
+        <div class="zone-section keylight-section property color">
             <div class="color-picker" id="property-zone-key-light-color"></div>
             <label>Key light color</label>
-            <div class="input-area">R <input class="coord" type="number" id="property-zone-key-light-color-red" min="0" max="255" step="1"></div>
-            <div class="input-area">G <input class="coord" type="number" id="property-zone-key-light-color-green" min="0" max="255" step="1"></div>
-            <div class="input-area">B <input class="coord" type="number" id="property-zone-key-light-color-blue" min="0" max="255" step="1"></div>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
+            </div>
         </div>
 
-        <div class="zone-section keyLight-section property">
+        <div class="zone-section keylight-section property">
             <div class="label">Light Intensity</div>
             <div class="value">
                 <input class="coord" type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
         
-        <div class="zone-section keyLight-section property">
+        <div class="zone-section keylight-section property">
             <div class="label">Light Direction</div>
             <div class="value">
                 <div class="input-area">Altitude <input class="coord" type="number" id="property-zone-key-light-direction-x"></div>
@@ -1261,14 +1267,14 @@
             </div>
         </div>
 
-        <div class="zone-section keyLight-section property">
+        <div class="zone-section keylight-section property">
             <div class="label">Ambient Intensity</div>
             <div class="value">
                 <input class="coord" type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
         
-        <div class="zone-section keyLight-section property url refresh">
+        <div class="zone-section keylight-section property url refresh">
             <label for="property-zone-key-ambient-url">Ambient URL</label>
             <input type="text" id="property-zone-key-ambient-url">
             <input type="button" class="update-url-version glyph" value="F" />
@@ -1339,9 +1345,11 @@
         <div class="zone-section skybox-section property color">
             <div class="color-picker" id="property-zone-skybox-color"></div>
             <label>Skybox color</label>
-            <div class="input-area">R <input class="coord" type="number" id="property-zone-skybox-color-red"></div>
-            <div class="input-area">G <input class="coord" type="number" id="property-zone-skybox-color-green"></div>
-            <div class="input-area">B <input class="coord" type="number" id="property-zone-skybox-color-blue"></div>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
+            </div>
         </div>
 
         <div class="zone-section skybox-section property url refresh">
@@ -1550,9 +1558,11 @@
         <div id="color-section" class="physical-section property color">
             <div id="property-color" class="color-picker"></div>
             <label>Entity color</label>
-            <div class="input-area">R <input class="coord" type="number" id="property-color-red"></div>
-            <div class="input-area">G <input class="coord" type="number" id="property-color-green"></div>
-            <div class="input-area">B <input class="coord" type="number" id="property-color-blue"></div>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
+            </div>
         </div>
 
 
@@ -1732,9 +1742,11 @@
         <div class="light-section property color">
             <div class="color-picker" id="property-light-color"></div>
             <label>Light color</label>
-            <div class="input-area">R <input class="coord" type="number" id="property-light-color-red"></div>
-            <div class="input-area">G <input class="coord" type="number" id="property-light-color-green"></div>
-            <div class="input-area">B <input class="coord" type="number" id="property-light-color-blue"></div>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-light-color-red"><label for="property-light-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-light-color-green"><label for="property-light-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
+            </div>
         </div>
         <div class="light-section property">
             <div class="label">Intensity</div>
