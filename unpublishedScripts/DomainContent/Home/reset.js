@@ -313,8 +313,8 @@
                 try {
                     userData = JSON.parse(properties.userData);
                 } catch (err) {
-                    // print('error parsing json');
-                    // print('properties are:' + properties.userData);
+                     print('error parsing json');
+                     print('properties are:' + properties.userData);
                     return;
                 }
                 if (userData.hasOwnProperty('hifiHomeKey')) {

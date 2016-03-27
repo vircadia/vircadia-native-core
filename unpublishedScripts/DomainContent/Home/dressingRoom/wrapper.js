@@ -35,5 +35,7 @@
          });
      }, 1500)
 
+     print('CREATED TRANSFORMER AT:: ' + doll + "at :: "JSON.stringify(transformerProps.position));
+
      return this;
  }
