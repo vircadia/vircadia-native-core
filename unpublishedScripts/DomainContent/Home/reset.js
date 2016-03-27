@@ -313,7 +313,7 @@
                 try {
                     userData = JSON.parse(properties.userData);
                 } catch (err) {
-                     print('error parsing json');
+                     print('error parsing json in resetscript for: ' + properties.name);
                      print('properties are:' + properties.userData);
                     return;
                 }

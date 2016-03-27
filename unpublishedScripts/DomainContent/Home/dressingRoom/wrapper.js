@@ -35,7 +35,8 @@
          });
      }, 1500)
 
-     print('CREATED TRANSFORMER AT:: ' + transformer + "at :: " + JSON.stringify(transformerProps.position));
+     print('CREATED TRANSFORMER' + transformer);
+     print('at location: '  + JSON.stirngify(transformerProps.position))
 
      return this;
  }
