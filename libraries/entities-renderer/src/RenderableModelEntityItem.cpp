@@ -133,10 +133,8 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if the model has not yet loaded
     }
 
-    auto& geometry = _model->getGeometry()->getGeometry();
-
     if (!_originalTexturesRead) {
-        _originalTextures = geometry->getTextures();
+        _originalTextures = _model->getTextures();
         _originalTexturesRead = true;
 
         // Default to _originalTextures to avoid remapping immediately and lagging on load
@@ -152,7 +150,7 @@ void RenderableModelEntityItem::remapTextures() {
     auto newTextures = parseTexturesToMap(textures);
 
     if (newTextures != _currentTextures) {
-        geometry->setTextures(newTextures);
+        _model->setTextures(newTextures);
         _currentTextures = newTextures;
     }
 }

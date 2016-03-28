@@ -74,9 +74,6 @@ public:
     void setTextures(const QVariantMap& textureMap);
 
     virtual bool areTexturesLoaded() const;
-    // Returns true if any albedo texture has a non-masking alpha channel.
-    // This can only be known after areTexturesLoaded().
-    bool hasTransparentTextures() const { return _hasTransparentTextures; }
 
 protected:
     friend class GeometryMappingResource;
@@ -91,7 +88,6 @@ protected:
 
 private:
     mutable bool _areTexturesLoaded { false };
-    mutable bool _hasTransparentTextures { false };
 };
 
 /// A geometry loaded from the network.

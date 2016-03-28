@@ -76,14 +76,9 @@ AbstractViewStateInterface* Model::_viewState = NULL;
 
 bool Model::needsFixupInScene() const {
     if (readyToAddToScene()) {
-        // Once textures are loaded, fixup if they are now transparent
-        if (_needsUpdateTransparentTextures && _geometry->getGeometry()->areTexturesLoaded()) {
-            _needsUpdateTransparentTextures = false;
-            bool hasTransparentTextures = _geometry->getGeometry()->hasTransparentTextures();
-            if (_hasTransparentTextures != hasTransparentTextures) {
-                _hasTransparentTextures = hasTransparentTextures;
-                return true;
-            }
+        if (_needsUpdateTextures && _geometry->getGeometry()->areTexturesLoaded()) {
+            _needsUpdateTextures = false;
+            return true;
         }
         if (!_readyWhenAdded) {
             return true;
@@ -791,6 +786,13 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
 }
 
+void Model::setTextures(const QVariantMap& textures) {
+    if (isLoaded()) {
+        _needsUpdateTextures = true;
+        _geometry->getGeometry()->setTextures(textures);
+    }
+}
+
 void Model::setURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
     if (_url == url && _geometry && _geometry->getURL() == url) {
@@ -807,8 +809,7 @@ void Model::setURL(const QUrl& url) {
     }
 
     _needsReload = true;
-    _needsUpdateTransparentTextures = true;
-    _hasTransparentTextures = false;
+    _needsUpdateTextures = true;
     _meshGroupsKnown = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
