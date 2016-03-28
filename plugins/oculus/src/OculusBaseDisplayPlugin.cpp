@@ -65,7 +65,7 @@ void OculusBaseDisplayPlugin::internalActivate() {
 
     if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qWarning() << "Could not attach to sensor device";
+        logWarning("Failed to attach to sensor device");
     }
 
     // Parent class relies on our _session intialization, so it must come after that.

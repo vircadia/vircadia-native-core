@@ -67,7 +67,7 @@ void OculusDisplayPlugin::hmdPresent() {
         ovrLayerHeader* layers = &_sceneLayer.Header;
         ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
-            qDebug() << result;
+            logWarning("Failed to present");
         }
     }
     _sceneFbo->Increment();
