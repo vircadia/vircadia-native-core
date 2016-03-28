@@ -9,7 +9,9 @@
 #include "OculusHelpers.h"
 
 #include <atomic>
+
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QFile>
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
@@ -38,9 +40,21 @@ void logFatal(const char* what) {
     qFatal(error.c_str());
 }
 
+static const QString GOOD_OCULUS_RUNTIME_FILE { "C:\\Program Files(x86)\\Oculus\\Support\\oculus - runtime\\LibOVRRT64_1.dll" };
+
 bool oculusAvailable() {
     ovrDetectResult detect = ovr_Detect(0);
-    return (detect.IsOculusServiceRunning && detect.IsOculusHMDConnected);
+    if (!detect.IsOculusServiceRunning || !detect.IsOculusHMDConnected) {
+        return false;
+    }
+
+    // HACK Explicitly check for the presence of the 1.0 runtime DLL, and fail if it 
+    // doesn't exist
+    if (!QFile(GOOD_OCULUS_RUNTIME_FILE).exists()) {
+        return false;
+    }
+
+    return true;
 }
 
 ovrSession acquireOculusSession() {

@@ -28,7 +28,7 @@ protected:
     void internalDeactivate() override;
 
 protected:
-    ovrSession _session;
+    ovrSession _session { nullptr };
     ovrGraphicsLuid _luid;
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrFovPort _eyeFovs[2];

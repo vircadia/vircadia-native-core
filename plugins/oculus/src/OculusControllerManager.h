@@ -42,7 +42,6 @@ private:
         friend class OculusControllerManager;
     };
 
-    // Waiting on touch API
     class RemoteDevice : public OculusInputDevice {
     public:
         using Pointer = std::shared_ptr<RemoteDevice>;
