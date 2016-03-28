@@ -27,7 +27,7 @@ public:
     bool isJointController() const override { return true; }
     const QString& getName() const override { return NAME; }
 
-    void activate() override;
+    bool activate() override;
     void deactivate() override;
 
     void pluginFocusOutEvent() override;

@@ -35,7 +35,7 @@ bool OculusControllerManager::isSupported() const {
     return oculusAvailable();
 }
 
-void OculusControllerManager::activate() {
+bool OculusControllerManager::activate() {
     InputPlugin::activate();
     if (!_session) {
         _session = acquireOculusSession();
@@ -50,6 +50,7 @@ void OculusControllerManager::activate() {
     if (_touch) {
         userInputMapper->registerDevice(_touch);
     }
+    return true;
 }
 
 void OculusControllerManager::deactivate() {

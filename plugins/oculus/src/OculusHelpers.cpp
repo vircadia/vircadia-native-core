@@ -12,6 +12,7 @@
 
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QFile>
+#include <QtCore/QDir>
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
@@ -40,7 +41,8 @@ void logFatal(const char* what) {
     qFatal(error.c_str());
 }
 
-static const QString GOOD_OCULUS_RUNTIME_FILE { "C:\\Program Files(x86)\\Oculus\\Support\\oculus - runtime\\LibOVRRT64_1.dll" };
+static const QString OCULUS_RUNTIME_PATH { "C:\\Program Files (x86)\\Oculus\\Support\\oculus-runtime" };
+static const QString GOOD_OCULUS_RUNTIME_FILE { OCULUS_RUNTIME_PATH + "\\LibOVRRT64_1.dll" };
 
 bool oculusAvailable() {
     ovrDetectResult detect = ovr_Detect(0);
