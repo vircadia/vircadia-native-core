@@ -178,17 +178,23 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
+static bool replyOK(QNetworkReply* netReply, QUrl url) { // This will be reworked when we make things asynchronous
+    return (netReply && netReply->isFinished() &&
+            (url.toString().startsWith("file", Qt::CaseInsensitive) ? // file urls don't have http status codes
+             netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString().isEmpty() :
+             (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)));
+}
+
 bool OBJReader::isValidTexture(const QByteArray &filename) {
     if (_url.isEmpty()) {
         return false;
     }
     QUrl candidateUrl = _url.resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
-    if (!netReply) {
-        return false;
+    bool isValid = replyOK(netReply, candidateUrl);
+    if (netReply) {
+        netReply->deleteLater();
     }
-    bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
-    netReply->deleteLater();
     return isValid;
 }
 
@@ -244,16 +250,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 #endif
                 break;
             }
-            if (isValidTexture(filename)) {
-                if (token == "map_Kd") {
-                    currentMaterial.diffuseTextureFilename = filename;
-                } else {
-                    currentMaterial.specularTextureFilename = filename;
-                }
+            if (token == "map_Kd") {
+                currentMaterial.diffuseTextureFilename = filename;
             } else {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << _url << " ignoring missing texture " << filename;
-                #endif
+                currentMaterial.specularTextureFilename = filename;
             }
         }
     }
@@ -263,20 +263,20 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
+    bool aboutToQuit{ false };
+    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
+        aboutToQuit = true;
+    });
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
-    if (!qApp) {
-        return netReply;
+    if (!qApp || aboutToQuit) {
+        netReply->deleteLater();
+        return nullptr;
     }
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
-
-    bool aboutToQuit { false };
-    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
-        aboutToQuit = true;
-    });
     static const int WAIT_TIMEOUT_MS = 500;
     while (qApp && !aboutToQuit && !netReply->isReadable()) {
         netReply->waitForReadyRead(WAIT_TIMEOUT_MS); // so we might as well block this thread waiting for the response, rather than
@@ -337,33 +337,19 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break;
             }
             QByteArray libraryName = tokenizer.getDatum();
-            if (librariesSeen.contains(libraryName)) {
-                break; // Some files use mtllib over and over again for the same libraryName
-            }
             librariesSeen[libraryName] = true;
-            // Throw away any path part of libraryName, and merge against original url.
-            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
-            #endif
-            QNetworkReply* netReply = request(libraryUrl, false);
-            if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
-                parseMaterialLibrary(netReply);
-            } else {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got "
-                                     << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
-                #endif
-            }
-            netReply->deleteLater();
+            // We'll read it later only if we actually need it.
         } else if (token == "usemtl") {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
-            currentMaterialName = tokenizer.getDatum();
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
-            #endif
+            QString nextName = tokenizer.getDatum();
+            if (nextName != currentMaterialName) {
+                currentMaterialName = nextName;
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
+                #endif
+            }
         } else if (token == "v") {
             vertices.append(tokenizer.getVec3());
         } else if (token == "vn") {
@@ -427,6 +413,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 
+    bool needsMaterialLibrary = false;
+
     _url = url;
     geometry.meshExtents.reset();
     geometry.meshes.append(FBXMesh());
@@ -459,55 +447,10 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                                               0, 0, 0, 1);
         mesh.clusters.append(cluster);
 
-        // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
-        // a texture with the same basename as the .obj file.
-        if (!url.isEmpty()) {
-            QString filename = url.fileName();
-            int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
-            QString basename = filename.remove(extIndex + 1, sizeof("obj"));
-            OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
-            preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
-            QVector<QByteArray> extensions = {"jpg", "jpeg", "png", "tga"};
-            QByteArray base = basename.toUtf8(), textName = "";
-            for (int i = 0; i < extensions.count(); i++) {
-                QByteArray candidateString = base + extensions[i];
-                if (isValidTexture(candidateString)) {
-                    textName = candidateString;
-                    break;
-                }
-            }
-
-            if (!textName.isEmpty()) {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader found a default texture: " << textName;
-                #endif
-                preDefinedMaterial.diffuseTextureFilename = textName;
-            }
-            materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
-        }
-
         for (int i = 0, meshPartCount = 0; i < mesh.parts.count(); i++, meshPartCount++) {
             FBXMeshPart& meshPart = mesh.parts[i];
             FaceGroup faceGroup = faceGroups[meshPartCount];
-            OBJFace leadFace = faceGroup[0]; // All the faces in the same group will have the same name and material.
-            QString groupMaterialName = leadFace.materialName;
-            if (groupMaterialName.isEmpty() && (leadFace.textureUVIndices.count() > 0)) {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
-                                     << " needs a texture that isn't specified. Using default mechanism.";
-                #endif
-                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
-            } else if (!groupMaterialName.isEmpty() && !materials.contains(groupMaterialName)) {
-                #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
-                                     << " specifies a material " << groupMaterialName
-                                     << " that is not defined. Using default mechanism.";
-                #endif
-                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
-            }
-            if  (!groupMaterialName.isEmpty()) {
-                meshPart.materialID = groupMaterialName;
-            }
+            bool specifiesUV = false;
             foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
                 glm::vec3 v1 = vertices[face.vertexIndices[1]];
@@ -529,6 +472,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 }
                 mesh.normals << n0 << n1 << n2;
                 if (face.textureUVIndices.count()) {
+                    specifiesUV = true;
                     mesh.texCoords
                     << textureUVs[face.textureUVIndices[0]]
                     << textureUVs[face.textureUVIndices[1]]
@@ -538,6 +482,30 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                     mesh.texCoords << corner << corner << corner;
                 }
             }
+            // All the faces in the same group will have the same name and material.
+            OBJFace leadFace = faceGroup[0];
+            QString groupMaterialName = leadFace.materialName;
+            if (groupMaterialName.isEmpty() && specifiesUV) {
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader WARNING: " << url
+                    << " needs a texture that isn't specified. Using default mechanism.";
+                #endif
+                groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
+            }
+            if (!groupMaterialName.isEmpty()) {
+                OBJMaterial& material = materials[groupMaterialName];
+                if (specifiesUV) {
+                    material.userSpecifiesUV = true; // Note might not be true in a later usage.
+                }
+                if (specifiesUV || (0 != groupMaterialName.compare("none", Qt::CaseInsensitive))) {
+                    // Blender has a convention that a material named "None" isn't really used (or defined).
+                    material.used = true;
+                    needsMaterialLibrary = groupMaterialName != SMART_DEFAULT_MATERIAL_NAME;
+                }
+                materials[groupMaterialName] = material;
+                meshPart.materialID = groupMaterialName;
+            }
+
         }
 
         // if we got a hint about units, scale all the points
@@ -559,8 +527,61 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
+    QString queryPart = _url.query();
+    bool suppressMaterialsHack = queryPart.contains("hifiusemat"); // If this appears in query string, don't fetch mtl even if used.
+    OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
+    if (suppressMaterialsHack) {
+        needsMaterialLibrary = preDefinedMaterial.userSpecifiesUV = false; // I said it was a hack...
+    }
+    // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
+    // a texture with the same basename as the .obj file.
+    if (preDefinedMaterial.userSpecifiesUV && !url.isEmpty()) {
+        QString filename = url.fileName();
+        int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
+        QString basename = filename.remove(extIndex + 1, sizeof("obj"));
+        preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
+        QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
+        QByteArray base = basename.toUtf8(), textName = "";
+        qCDebug(modelformat) << "OBJ Reader looking for default texture of" << url;
+        for (int i = 0; i < extensions.count(); i++) {
+            QByteArray candidateString = base + extensions[i];
+            if (isValidTexture(candidateString)) {
+                textName = candidateString;
+                break;
+            }
+        }
+
+        if (!textName.isEmpty()) {
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader found a default texture: " << textName;
+            #endif
+            preDefinedMaterial.diffuseTextureFilename = textName;
+        }
+        materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
+    }
+    if (needsMaterialLibrary) {
+        foreach (QString libraryName, librariesSeen.keys()) {
+            // Throw away any path part of libraryName, and merge against original url.
+            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
+            qCDebug(modelformat) << "OBJ Reader material library" << libraryName << "used in" << _url;
+            QNetworkReply* netReply = request(libraryUrl, false);
+            if (replyOK(netReply, libraryUrl)) {
+                parseMaterialLibrary(netReply);
+            } else {
+                qCDebug(modelformat) << "OBJ Reader WARNING:" << libraryName << "did not answer. Got"
+                    << (!netReply ? "aborted" : netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString());
+            }
+            if (netReply) {
+                netReply->deleteLater();
+            }
+        }
+    }
+
     foreach (QString materialID, materials.keys()) {
-        OBJMaterial& objMaterial = materials[materialID];
+       OBJMaterial& objMaterial = materials[materialID];
+       if (!objMaterial.used) {
+            continue;
+        }
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      glm::vec3(0.0f),
@@ -589,7 +610,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
     return geometryPtr;
 }
-
 
 
 void fbxDebugDump(const FBXGeometry& fbxgeo) {

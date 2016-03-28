@@ -62,20 +62,17 @@ Head::Head(Avatar* owningAvatar) :
     _isLookingAtMe(false),
     _lookingAtMeStarted(0),
     _wasLastLookingAtMe(0),
-    _faceModel(this, std::make_shared<Rig>()),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
 {
 }
 
 void Head::init() {
-    _faceModel.init();
 }
 
 void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
     _leanForward = _leanSideways = 0.0f;
-    _faceModel.reset();
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
@@ -233,13 +230,14 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     
     _leftEyePosition = _rightEyePosition = getPosition();
-    if (!billboard) {
-        _faceModel.simulate(deltaTime);
-        if (!_faceModel.getEyePositions(_leftEyePosition, _rightEyePosition)) {
-            static_cast<Avatar*>(_owningAvatar)->getSkeletonModel().getEyePositions(_leftEyePosition, _rightEyePosition);
+    _eyePosition = calculateAverageEyePosition();
+
+    if (!billboard && _owningAvatar) {
+        auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
+        if (skeletonModel) {
+            skeletonModel->getEyePositions(_leftEyePosition, _rightEyePosition);
         }
     }
-    _eyePosition = calculateAverageEyePosition();
 }
 
 void Head::calculateMouthShapes() {
@@ -391,7 +389,7 @@ glm::quat Head::getCameraOrientation() const {
     // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    if (qApp->getAvatarUpdater()->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
         if (myAvatar) {
             return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
@@ -411,7 +409,7 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
 }
 
 glm::vec3 Head::getScalePivot() const {
-    return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
+    return _position;
 }
 
 void Head::setFinalPitch(float finalPitch) {

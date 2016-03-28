@@ -58,7 +58,6 @@ var toolBar = (function() {
         browseMarketplaceButton;
 
     function initialize() {
-        ToolBar.SPACING = 16;
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.marketplace.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,
@@ -66,11 +65,18 @@ var toolBar = (function() {
             };
         });
         browseMarketplaceButton = toolBar.addTool({
-            imageURL: toolIconUrl + "marketplace.svg",
+            imageURL: toolIconUrl + "market-01.svg",
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
             visible: true,
+            showButtonDown: true
         });
 
         toolBar.showTool(browseMarketplaceButton, true);

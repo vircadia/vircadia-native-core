@@ -76,7 +76,7 @@ QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
 }
 
 void ResourceManager::init() {
-    _thread.setObjectName("Ressource Manager Thread");
+    _thread.setObjectName("Resource Manager Thread");
 
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_thread);

@@ -82,11 +82,27 @@ protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 };
 
+class DrawBackgroundDeferredConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(double gpuTime READ getGpuTime)
+public:
+    double getGpuTime() { return gpuTime; }
+
+protected:
+    friend class DrawBackgroundDeferred;
+    double gpuTime;
+};
+
 class DrawBackgroundDeferred {
 public:
+    using Config = DrawBackgroundDeferredConfig;
+    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, render::ItemBounds, Config>;
+
+    void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
 
-    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, render::ItemBounds>;
+protected:
+    gpu::RangeTimer _gpuTimer;
 };
 
 class DrawOverlay3DConfig : public render::Job::Config {

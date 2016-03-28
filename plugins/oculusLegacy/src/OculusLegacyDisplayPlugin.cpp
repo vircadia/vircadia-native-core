@@ -35,14 +35,10 @@ void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
 
-glm::mat4 OculusLegacyDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    static uint32_t lastFrameSeen = 0;
-    if (frameIndex > lastFrameSeen) {
-        Lock lock(_mutex);
-        _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
-        lastFrameSeen = frameIndex;
-    }
-    return toGlm(_trackingState.HeadPose.ThePose);
+void OculusLegacyDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
+    Lock lock(_mutex);
+    _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
+    _headPoseCache.set(toGlm(_trackingState.HeadPose.ThePose));
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
@@ -72,8 +68,8 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
     return result;
 }
 
-void OculusLegacyDisplayPlugin::activate() {
-    HmdDisplayPlugin::activate();
+void OculusLegacyDisplayPlugin::internalActivate() {
+    Parent::internalActivate();
     
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
@@ -113,8 +109,8 @@ void OculusLegacyDisplayPlugin::activate() {
     }
 }
 
-void OculusLegacyDisplayPlugin::deactivate() {
-    HmdDisplayPlugin::deactivate();
+void OculusLegacyDisplayPlugin::internalDeactivate() {
+	Parent::internalDeactivate();
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
@@ -128,7 +124,7 @@ void OculusLegacyDisplayPlugin::customizeContext() {
         glewInit();
         glGetError();
     });
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 #if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;

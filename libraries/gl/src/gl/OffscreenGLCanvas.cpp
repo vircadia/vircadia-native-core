@@ -32,17 +32,19 @@ OffscreenGLCanvas::~OffscreenGLCanvas() {
     _context->doneCurrent();
 }
 
-void OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
+bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     if (nullptr != sharedContext) {
         sharedContext->doneCurrent();
         _context->setShareContext(sharedContext);
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
-    _context->create();
+    if (_context->create()) {
+        _offscreenSurface->setFormat(_context->format());
+        _offscreenSurface->create();
+        return true;
+    }
 
-    _offscreenSurface->setFormat(_context->format());
-    _offscreenSurface->create();
-
+    return false;
 }
 
 bool OffscreenGLCanvas::makeCurrent() {

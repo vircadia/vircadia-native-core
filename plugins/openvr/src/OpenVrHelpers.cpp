@@ -14,6 +14,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QLoggingCategory>
 
+#include <Windows.h>
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
@@ -27,6 +28,22 @@ static vr::IVRSystem* activeHmd { nullptr };
 
 static const uint32_t RELEASE_OPENVR_HMD_DELAY_MS = 5000;
 
+bool isOculusPresent() {
+    bool result = false;
+#if defined(Q_OS_WIN32) 
+    HANDLE oculusServiceEvent = ::OpenEventW(SYNCHRONIZE, FALSE, L"OculusHMDConnected");
+    // The existence of the service indicates a running Oculus runtime
+    if (oculusServiceEvent) {
+        // A signaled event indicates a connected HMD
+        if (WAIT_OBJECT_0 == ::WaitForSingleObject(oculusServiceEvent, 0)) {
+            result = true;
+        }
+        ::CloseHandle(oculusServiceEvent);
+    }
+#endif 
+    return result;
+}
+
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
     if (hmdPresent) {
@@ -34,7 +51,7 @@ vr::IVRSystem* acquireOpenVrSystem() {
         if (!activeHmd) {
             qCDebug(displayplugins) << "openvr: No vr::IVRSystem instance active, building";
             vr::EVRInitError eError = vr::VRInitError_None;
-            activeHmd = vr::VR_Init(&eError);
+            activeHmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
             qCDebug(displayplugins) << "openvr display: HMD is " << activeHmd << " error is " << eError;
         }
         if (activeHmd) {
@@ -55,6 +72,7 @@ void releaseOpenVrSystem() {
         if (0 == refCount) {
             qCDebug(displayplugins) << "openvr: zero refcount, deallocate VR system";
             vr::VR_Shutdown();
+            activeHmd = nullptr;
         }
     }
 }

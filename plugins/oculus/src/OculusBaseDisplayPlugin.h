@@ -14,21 +14,18 @@
 #include <OVR_CAPI_GL.h>
 
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
+    using Parent = HmdDisplayPlugin;
 public:
     virtual bool isSupported() const override;
 
-    virtual void init() override final;
-    virtual void deinit() override final;
-
-    virtual void activate() override;
-    virtual void deactivate() override;
-
     // Stereo specific methods
     virtual void resetSensors() override final;
-    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
+    virtual void updateHeadPose(uint32_t frameIndex) override;
 
 protected:
-    virtual void customizeContext() override;
+    void customizeContext() override;
+    void internalActivate() override;
+    void internalDeactivate() override;
 
 protected:
     ovrSession _session;

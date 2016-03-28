@@ -29,6 +29,9 @@ class Model;
 class ScriptEngine;
 class ZoneEntityItem;
 
+class Model;
+using ModelPointer = std::shared_ptr<Model>;
+using ModelWeakPointer = std::weak_ptr<Model>;
 
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
@@ -53,7 +56,7 @@ public:
     virtual void init();
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
-    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
+    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem);
     virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem);
     
     /// clears the tree
@@ -63,13 +66,13 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE Model* allocateModel(const QString& url, const QString& collisionUrl);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl);
     
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
-    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl, const QString& collisionUrl);
+    Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
 
     /// if a renderable entity item is done with a model, it should return it to us
-    void releaseModel(Model* model);
+    void releaseModel(ModelPointer model);
     
     void deleteReleasedModels();
     
@@ -129,7 +132,7 @@ private:
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
-    QList<Model*> _releasedModels;
+    QList<ModelPointer> _releasedModels;
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                 bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
                                                                 const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>());

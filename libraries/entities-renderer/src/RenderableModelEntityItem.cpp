@@ -48,6 +48,13 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
 
 void RenderableModelEntityItem::setModelURL(const QString& url) {
     auto& currentURL = getParsedModelURL();
+    if (_model && (currentURL != url)) {
+        // The machinery for updateModelBounds will give existing models the opportunity to fix their translation/rotation/scale/registration.
+        // The first two are straightforward, but the latter two have guards to make sure they don't happen after they've already been set.
+        // Here we reset those guards. This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
+        _model->setScaleToFit(false, getDimensions());
+        _model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+    }
     ModelEntityItem::setModelURL(url);
 
     if (currentURL != getParsedModelURL() || !_model) {
@@ -106,14 +113,18 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
         return _originalTexturesMap;
     }
 
-    QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    // Legacy: a ,\n-delimited list of filename:"texturepath"
+    if (*textures.cbegin() != '{') {
+        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    }
+
     QJsonParseError error;
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(jsonTextures.toUtf8(), &error);
+    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+        return _originalTexturesMap;
     }
-    QJsonObject texturesAsJsonObject = texturesAsJson.object();
-    return texturesAsJsonObject.toVariantMap();
+    return texturesJson.object().toVariantMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
@@ -343,7 +354,9 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
+         _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
+         _model->getScaleToFitDimensions() != getDimensions() ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
@@ -359,6 +372,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         }
 
         _needsInitialSimulation = false;
+        _needsJointSimulation = false;
     }
 }
 
@@ -456,8 +470,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 }
 
-Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
-    Model* result = NULL;
+ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
+    ModelPointer result = nullptr;
 
     if (!renderer) {
         return result;
@@ -499,7 +513,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 
         // release interest
         _myRenderer->releaseModel(_model);
-        result = _model = NULL;
+        result = _model = nullptr;
         _needsInitialSimulation = true;
     }
 
@@ -759,6 +773,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
@@ -774,10 +789,32 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
 }
+
+void RenderableModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    ModelEntityItem::setJointRotations(rotations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    ModelEntityItem::setJointRotationsSet(rotationsSet);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    ModelEntityItem::setJointTranslations(translations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    ModelEntityItem::setJointTranslationsSet(translationsSet);
+    _needsJointSimulation = true;
+}
+
 
 void RenderableModelEntityItem::locationChanged() {
     EntityItem::locationChanged();

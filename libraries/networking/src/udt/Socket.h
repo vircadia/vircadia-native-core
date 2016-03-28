@@ -72,6 +72,7 @@ public:
         { _unfilteredHandlers[senderSockAddr] = handler; }
     
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
+    void setConnectionMaxBandwidth(int maxBandwidth);
 
     void messageReceived(std::unique_ptr<Packet> packet);
     void messageFailed(Connection* connection, Packet::MessageNumber messageNumber);
@@ -109,8 +110,10 @@ private:
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
     
-    int _synInterval = 10; // 10ms
-    QTimer* _synTimer;
+    int _synInterval { 10 }; // 10ms
+    QTimer* _synTimer { nullptr };
+
+    int _maxBandwidth { -1 };
     
     std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
     

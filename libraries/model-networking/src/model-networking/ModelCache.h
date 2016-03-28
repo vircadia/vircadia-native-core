@@ -75,6 +75,10 @@ public:
     // true when the requested geometry and its textures are loaded.
     bool isLoadedWithTextures() const;
 
+    // true if the albedo texture has a non-masking alpha channel.
+    // This can only be known after isLoadedWithTextures().
+    bool hasTransparentTextures() const { return _hasTransparentTextures; }
+
     // WARNING: only valid when isLoaded returns true.
     const FBXGeometry& getFBXGeometry() const { return *_geometry; }
     const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
@@ -109,10 +113,10 @@ public slots:
     void textureLoaded(const QWeakPointer<NetworkTexture>& networkTexture);
 
 protected slots:
-    void mappingRequestDone(const QByteArray& data);
+    void mappingRequestDone(const QByteArray data);
     void mappingRequestError(QNetworkReply::NetworkError error);
 
-    void modelRequestDone(const QByteArray& data);
+    void modelRequestDone(const QByteArray data);
     void modelRequestError(QNetworkReply::NetworkError error);
 
     void modelParseSuccess(FBXGeometry* geometry);
@@ -151,6 +155,7 @@ protected:
 
     // cache for isLoadedWithTextures()
     mutable bool _isLoadedWithTextures = false;
+    mutable bool _hasTransparentTextures = false;
 };
 
 /// Reads geometry in a worker thread.
@@ -194,7 +199,6 @@ public:
     QSharedPointer<NetworkTexture> occlusionTexture;
     QString lightmapTextureName;
     QSharedPointer<NetworkTexture> lightmapTexture;
-
 };
 
 

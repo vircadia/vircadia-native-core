@@ -107,6 +107,15 @@ QByteArray ReceivedMessage::readAll() {
     return read(getBytesLeftToRead());
 }
 
+QString ReceivedMessage::readString() {
+    uint32_t size;
+    readPrimitive(&size);
+    //Q_ASSERT(size <= _size - _position);
+    auto string = QString::fromUtf8(_data.constData() + _position, size);
+    _position += size;
+    return string;
+}
+
 QByteArray ReceivedMessage::readWithoutCopy(qint64 size) {
     QByteArray data { QByteArray::fromRawData(_data.constData() + _position, size) };
     _position += size;

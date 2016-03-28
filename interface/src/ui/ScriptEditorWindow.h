@@ -28,6 +28,9 @@ public:
     void terminateCurrentTab();
     bool autoReloadScripts();
 
+    bool inModalDialog { false };
+    bool ignoreCloseForModal(QCloseEvent* event);
+
 signals:
     void windowActivated();
 

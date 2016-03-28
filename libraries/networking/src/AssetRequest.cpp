@@ -20,10 +20,8 @@
 #include "NodeList.h"
 #include "ResourceCache.h"
 
-AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
-    QObject(),
-    _hash(hash),
-    _extension(extension)
+AssetRequest::AssetRequest(const QString& hash) :
+    _hash(hash)
 {
 }
 
@@ -35,6 +33,15 @@ void AssetRequest::start() {
 
     if (_state != NotStarted) {
         qCWarning(asset_client) << "AssetRequest already started.";
+        return;
+    }
+
+    // in case we haven't parsed a valid hash, return an error now
+    if (!isValidHash(_hash)) {
+        _error = InvalidHash;
+        _state = Finished;
+
+        emit finished(this);
         return;
     }
     
@@ -53,9 +60,9 @@ void AssetRequest::start() {
     _state = WaitingForInfo;
     
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAssetInfo(_hash, _extension, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+    assetClient->getAssetInfo(_hash, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
         _info = info;
-        
+
         if (!responseReceived) {
             _error = NetworkError;
         } else if (serverError != AssetServerError::NoError) {
@@ -85,7 +92,7 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
+        assetClient->getAsset(_hash, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
                                                                                 const QByteArray& data) {
             if (!responseReceived) {
                 _error = NetworkError;

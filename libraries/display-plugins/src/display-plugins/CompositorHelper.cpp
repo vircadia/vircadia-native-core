@@ -21,7 +21,6 @@
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
 #include <plugins/PluginManager.h>
-#include <plugins/PluginContainer.h>
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
 
@@ -188,16 +187,15 @@ void CompositorHelper::handleLeaveEvent() {
     if (shouldCaptureMouse()) {
         
         //QWidget* mainWidget = (QWidget*)qApp->getWindow();
-        static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
         static QWidget* mainWidget = nullptr;
-        if (mainWidget == nullptr) {
-            mainWidget = renderingWidget->parentWidget();
+        if (mainWidget == nullptr && _renderingWidget != nullptr) {
+            mainWidget = _renderingWidget->parentWidget();
         }
         QRect mainWidgetFrame;
         {
-            mainWidgetFrame = renderingWidget->geometry();
+            mainWidgetFrame = _renderingWidget->geometry();
             auto topLeft = mainWidgetFrame.topLeft();
-            auto topLeftScreen = renderingWidget->mapToGlobal(topLeft);
+            auto topLeftScreen = _renderingWidget->mapToGlobal(topLeft);
             mainWidgetFrame.moveTopLeft(topLeftScreen);
         }
         QRect uncoveredRect = mainWidgetFrame;
@@ -293,16 +291,17 @@ void CompositorHelper::sendFakeMouseEvent() {
         return;
     }
 
+    if (_renderingWidget) {
         // in HMD mode we need to fake our mouse moves...
-    QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
-    auto button = Qt::NoButton;
-    auto buttons = QApplication::mouseButtons();
-    auto modifiers = QApplication::keyboardModifiers();
-    static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
-    QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
-    _fakeMouseEvent = true;
-    qApp->sendEvent(renderingWidget, &event);
-    _fakeMouseEvent = false;
+        QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+        auto button = Qt::NoButton;
+        auto buttons = QApplication::mouseButtons();
+        auto modifiers = QApplication::keyboardModifiers();
+        QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
+        _fakeMouseEvent = true;
+        qApp->sendEvent(_renderingWidget, &event);
+        _fakeMouseEvent = false;
+    }
 }
 
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
@@ -343,7 +342,7 @@ void CompositorHelper::computeHmdPickRay(const glm::vec2& cursorPos, glm::vec3& 
 }
 
 glm::mat4 CompositorHelper::getUiTransform() const {
-    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose(_currentFrame));
+    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose());
 }
 
 //Finds the collision point of a world space ray
@@ -496,9 +495,8 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         result = glm::scale(pointerTransform, reticleScale);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;
-        static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
-        const auto canvasSize = vec2(toGlm(renderingWidget->size()));;
-        vec2 mousePosition = toGlm(renderingWidget->mapFromGlobal(QCursor::pos()));
+        const auto canvasSize = vec2(toGlm(_renderingWidget->size()));;
+        vec2 mousePosition = toGlm(_renderingWidget->mapFromGlobal(QCursor::pos()));
         mousePosition /= canvasSize;
         mousePosition *= 2.0;
         mousePosition -= 1.0;

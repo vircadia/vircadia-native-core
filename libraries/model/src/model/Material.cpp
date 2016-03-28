@@ -51,7 +51,7 @@ void Material::setEmissive(const Color&  emissive, bool isSRGB) {
 }
 
 void Material::setOpacity(float opacity) {
-    _key.setTransparent((opacity < 1.0f));
+    _key.setTranslucentFactor((opacity < 1.0f));
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
@@ -80,18 +80,52 @@ void Material::setMetallic(float metallic) {
     _schemaBuffer.edit<Schema>()._metallic = metallic;
 }
 
-
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));
-        _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+ 
+        if (channel == MaterialKey::ALBEDO_MAP) {
+            // clear the previous flags whatever they were:
+            _key.setOpacityMaskMap(false);
+            _key.setTranslucentMap(false);
+
+            if (textureMap->useAlphaChannel() && textureMap->isDefined() && textureMap->getTextureView().isValid()) {
+                auto usage = textureMap->getTextureView()._texture->getUsage();
+                if (usage.isAlpha()) {
+                    // Texture has alpha, is not just a mask or a true transparent channel
+                    if (usage.isAlphaMask()) {
+                        _key.setOpacityMaskMap(true);
+                        _key.setTranslucentMap(false);
+                    } else {
+                        _key.setOpacityMaskMap(false);
+                        _key.setTranslucentMap(true);
+                    }
+                }
+            }
+        }
+
         _textureMaps[channel] = textureMap;
     } else {
         _key.setMapChannel(channel, (false));
-        _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+
+        if (channel == MaterialKey::ALBEDO_MAP) {
+            _key.setOpacityMaskMap(false);
+            _key.setTranslucentMap(false);
+        }
+
         _textureMaps.erase(channel);
     }
+
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+
 }
 
 
-
+const TextureMapPointer Material::getTextureMap(MapChannel channel) const {
+    auto result = _textureMaps.find(channel);
+    if (result != _textureMaps.end()) {
+        return (result->second);
+    } else {
+        return TextureMapPointer();
+    }
+}

@@ -19,12 +19,8 @@
 
 #include "ResourceManager.h"
 
-QUrl getATPUrl(const QString& hash, const QString& extension) {
-    if (!extension.isEmpty()) {
-        return QUrl(QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, extension));
-    } else {
-        return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
-    }
+QUrl getATPUrl(const QString& hash) {
+    return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
 }
 
 QByteArray hashData(const QByteArray& data) {
@@ -66,4 +62,14 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
         qCWarning(asset_client) << "No disk cache to save assets to.";
     }
     return false;
+}
+
+bool isValidPath(const AssetPath& path) {
+    QRegExp pathRegex { ASSET_PATH_REGEX_STRING };
+    return pathRegex.exactMatch(path);
+}
+
+bool isValidHash(const AssetHash& hash) {
+    QRegExp hashRegex { ASSET_HASH_REGEX_STRING };
+    return hashRegex.exactMatch(hash);
 }

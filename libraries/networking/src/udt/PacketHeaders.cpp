@@ -53,6 +53,11 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
+        case PacketType::AssetGetInfo:
+        case PacketType::AssetGet:
+        case PacketType::AssetUpload:
+            // Removal of extension from Asset requests
+            return 18;
         default:
             return 17;
     }

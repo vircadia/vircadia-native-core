@@ -40,6 +40,7 @@ public slots:
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    void copyToClipboard(const QString& text);
 
 signals:
     void domainChanged(const QString& domainHostname);

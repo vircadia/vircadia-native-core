@@ -23,6 +23,7 @@
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
+#include "UserActivityLogger.h"
 #include "MainWindow.h"
 
 #ifdef HAS_BUGSPLAT
@@ -39,7 +40,7 @@ int main(int argc, const char* argv[]) {
     static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
     static const char* BUG_SPLAT_DATABASE = "interface_alpha";
     static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
-    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION.toLatin1().constData(),
+    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, qPrintable(BuildInfo::VERSION),
                              nullptr, BUG_SPLAT_FLAGS };
 #endif
     
@@ -102,11 +103,19 @@ int main(int argc, const char* argv[]) {
     // Check OpenGL version.
     // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
     // not made more complicated than it already is.
+    bool override = false;
+    QString glVersion;
     {
         OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
-        if (!openGLVersionChecker.isValidVersion()) {
-            qCDebug(interfaceapp, "Early exit due to OpenGL version.");
-            return 0;
+        bool valid = true;
+        glVersion = openGLVersionChecker.checkVersion(valid, override);
+        if (!valid) {
+            if (override) {
+                qCDebug(interfaceapp, "Running on insufficient OpenGL version: %s.", glVersion.toStdString().c_str());
+            } else {
+                qCDebug(interfaceapp, "Early exit due to OpenGL version.");
+                return 0;
+            }
         }
     }
 
@@ -134,6 +143,22 @@ int main(int argc, const char* argv[]) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
 
+        // If we failed the OpenGLVersion check, log it.
+        if (override) {
+            auto& accountManager = AccountManager::getInstance();
+            if (accountManager.isLoggedIn()) {
+                UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+            } else {
+                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glVersion](){
+                    static bool loggedInsufficientGL = false;
+                    if (!loggedInsufficientGL) {
+                        UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+                        loggedInsufficientGL = true;
+                    }
+                });
+            }
+        }
+
         // Setup local server
         QLocalServer server { &app };
 
@@ -142,6 +167,18 @@ int main(int argc, const char* argv[]) {
         server.listen(applicationName);
 
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
+
+#ifdef HAS_BUGSPLAT
+        AccountManager& accountManager = AccountManager::getInstance();
+        mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
+        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
+            mpSender.setDefaultUserName(qPrintable(newUsername));
+        });
+
+        // BugSplat WILL NOT work with file paths that do not use OS native separators.
+        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        mpSender.sendAdditionalFile(qPrintable(logPath));
+#endif
 
         QTranslator translator;
         translator.load("i18n/interface_en");
@@ -155,5 +192,9 @@ int main(int argc, const char* argv[]) {
     Application::shutdownPlugins();
 
     qCDebug(interfaceapp, "Normal exit.");
+#ifndef DEBUG
+    // HACK: exit immediately (don't handle shutdown callbacks) for Release build
+    _exit(exitCode);
+#endif
     return exitCode;
 }

@@ -76,6 +76,8 @@ public:
 
     HifiSockAddr getDestination() const { return _destination; }
 
+    void setMaxBandwidth(int maxBandwidth);
+
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);
@@ -84,6 +86,8 @@ private slots:
     void recordSentPackets(int payload, int total);
     void recordRetransmission();
     void queueInactive();
+    void queueTimeout();
+    void queueShortCircuitLoss(quint32 sequenceNumber);
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);

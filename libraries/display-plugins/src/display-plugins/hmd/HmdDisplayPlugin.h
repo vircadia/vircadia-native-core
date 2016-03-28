@@ -7,12 +7,14 @@
 //
 #pragma once
 
+#include <ThreadSafeValueCache.h>
+
 #include <QtGlobal>
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include "../OpenGLDisplayPlugin.h"
 
-class HmdDisplayPlugin : public WindowOpenGLDisplayPlugin {
-    using Parent = WindowOpenGLDisplayPlugin;
+class HmdDisplayPlugin : public OpenGLDisplayPlugin {
+    using Parent = OpenGLDisplayPlugin;
 public:
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
@@ -24,14 +26,14 @@ public:
     void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
-
-    void activate() override;
-    void deactivate() override;
+    virtual glm::mat4 getHeadPose() const override;
 
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
+    virtual void postPreview() {};
 
+    void internalActivate() override;
     void compositeOverlay() override;
     void compositePointer() override;
     void internalPresent() override;
@@ -47,6 +49,7 @@ protected:
     using EyePoses = std::array<glm::mat4, 2>;
     QMap<uint32_t, EyePoses> _renderEyePoses;
     EyePoses _currentRenderEyePoses;
+    ThreadSafeValueCache<glm::mat4> _headPoseCache { glm::mat4() };
 
 private:
     bool _enablePreview { false };

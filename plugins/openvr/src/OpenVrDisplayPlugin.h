@@ -16,24 +16,26 @@
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
 class OpenVrDisplayPlugin : public HmdDisplayPlugin {
+    using Parent = HmdDisplayPlugin;
 public:
     virtual bool isSupported() const override;
     virtual const QString& getName() const override { return NAME; }
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_OpenVr; }
 
-    virtual void activate() override;
-    virtual void deactivate() override;
-
     virtual void customizeContext() override;
 
     // Stereo specific methods
     virtual void resetSensors() override;
-    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
+    virtual void updateHeadPose(uint32_t frameIndex) override;
 
 protected:
+    void internalActivate() override;
+    void internalDeactivate() override;
+
     void hmdPresent() override;
     bool isHmdMounted() const override;
+    void postPreview() override;
 
 private:
     vr::IVRSystem* _system { nullptr };

@@ -40,7 +40,6 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 
-#include "avatar/AvatarUpdate.h"
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -215,7 +214,6 @@ public:
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
     float getAvatarSimrate();
     void setAvatarSimrateSample(float sample);
 
@@ -231,6 +229,8 @@ signals:
     void beforeAboutToQuit();
     void activeDisplayPluginChanged();
 
+    void uploadRequest(QString path);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
@@ -242,6 +242,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
+    void toggleAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
@@ -249,11 +250,6 @@ public slots:
     void packageModel();
 
     void openUrl(const QUrl& url);
-
-    void setAvatarUpdateThreading();
-    void setAvatarUpdateThreading(bool isThreaded);
-    void setRawAvatarUpdateThreading();
-    void setRawAvatarUpdateThreading(bool isThreaded);
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
@@ -274,6 +270,8 @@ public slots:
     void setOverlaysVisible(bool visible);
 
     void reloadResourceCaches();
+
+    void updateHeartbeat();
 
     void crashApplication();
     void deadlockApplication();
@@ -303,8 +301,6 @@ private slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
-    bool askToUploadAsset(const QString& asset);
-    void modelUploadFinished(AssetUpload* upload, const QString& hash);
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
@@ -380,16 +376,18 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event);
 
-    bool _dependencyManagerIsSetup;
+    MainWindow* _window;
+    QElapsedTimer& _sessionRunTimer;
+
+    bool _previousSessionCrashed;
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
+    std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
     QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
-
-    MainWindow* _window;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -418,7 +416,6 @@ private:
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
@@ -511,6 +508,8 @@ private:
     mutable QMutex _changeCursorLock { QMutex::Recursive };
     QCursor _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
+
+    QThread* _deadlockWatchdogThread;
 };
 
 #endif // hifi_Application_h

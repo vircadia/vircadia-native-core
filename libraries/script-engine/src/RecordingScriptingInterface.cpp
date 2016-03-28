@@ -198,13 +198,13 @@ bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUr
         return false;
     }
 
-    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip), HFR_EXTENSION)) {
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip))) {
         QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
             QString clip_atp_url = "";
 
             if (upload->getError() == AssetUpload::NoError) {
 
-                clip_atp_url = QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, upload->getExtension());
+                clip_atp_url = QString("%1:%2").arg(URL_SCHEME_ATP, hash);
                 upload->deleteLater();
             } else {
                 qCWarning(scriptengine) << "Error during the Asset upload.";
