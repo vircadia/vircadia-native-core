@@ -34,14 +34,16 @@ ModalWindow {
     property var items;
     property string label
     property var result;
-    // FIXME not current honored
-    property var current;
+    property alias current: textResult.text
 
     // For text boxes
     property alias placeholderText: textResult.placeholderText
 
     // For combo boxes
     property bool editable: true;
+
+    property int titleWidth: 0
+    onTitleWidthChanged: d.resize();
 
     function updateIcon() {
         if (!root) {
@@ -64,7 +66,7 @@ ModalWindow {
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = pane.width
+                var targetWidth = Math.max(titleWidth, pane.width)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
                 root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)

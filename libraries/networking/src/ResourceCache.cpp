@@ -159,44 +159,45 @@ void ResourceCache::clearUnusedResource() {
     }
 }
 
-bool ResourceCache::attemptRequest(Resource* resource) {
-    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-
-    // Disable request limiting for ATP
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        if (_requestsActive >= _requestLimit) {
-            // wait until a slot becomes available
-            sharedItems->_pendingRequests.append(resource);
-            return false;
-        }
-
-        ++_requestsActive;
-    }	
-
-    sharedItems->_loadingRequests.append(resource);
-    resource->makeRequest();
-    return true;
+void ResourceCacheSharedItems::appendActiveRequest(Resource* resource) {
+    Lock lock(_mutex);
+    _loadingRequests.append(resource);
 }
 
-void ResourceCache::requestCompleted(Resource* resource) {
-    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-    sharedItems->_loadingRequests.removeOne(resource);
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        --_requestsActive;
-    }
-
-    attemptHighestPriorityRequest();
+void ResourceCacheSharedItems::appendPendingRequest(Resource* resource) {
+    Lock lock(_mutex);
+    _pendingRequests.append(resource);
 }
 
-bool ResourceCache::attemptHighestPriorityRequest() {
-    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+QList<QPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() const {
+    Lock lock(_mutex);
+    return _pendingRequests;
+}
+
+uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
+    Lock lock(_mutex);
+    return _pendingRequests.size();
+}
+
+QList<Resource*> ResourceCacheSharedItems::getLoadingRequests() const {
+    Lock lock(_mutex);
+    return _loadingRequests;
+}
+
+void ResourceCacheSharedItems::removeRequest(Resource* resource) {
+    Lock lock(_mutex);
+    _loadingRequests.removeOne(resource);
+}
+
+Resource* ResourceCacheSharedItems::getHighestPendingRequest() {
+    Lock lock(_mutex);
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
-    for (int i = 0; i < sharedItems->_pendingRequests.size(); ) {
-        Resource* resource = sharedItems->_pendingRequests.at(i).data();
+    for (int i = 0; i < _pendingRequests.size();) {
+        Resource* resource = _pendingRequests.at(i).data();
         if (!resource) {
-            sharedItems->_pendingRequests.removeAt(i);
+            _pendingRequests.removeAt(i);
             continue;
         }
         float priority = resource->getLoadPriority();
@@ -206,7 +207,39 @@ bool ResourceCache::attemptHighestPriorityRequest() {
         }
         i++;
     }
-    return (highestIndex >= 0) && attemptRequest(sharedItems->_pendingRequests.takeAt(highestIndex));
+    if (highestIndex >= 0) {
+        return _pendingRequests.takeAt(highestIndex);
+    }
+    return nullptr;
+}
+
+bool ResourceCache::attemptRequest(Resource* resource) {
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+
+    if (_requestsActive >= _requestLimit) {
+        // wait until a slot becomes available
+        sharedItems->appendPendingRequest(resource);
+        return false;
+    }
+    
+    ++_requestsActive;
+    sharedItems->appendActiveRequest(resource);
+    resource->makeRequest();
+    return true;
+}
+
+void ResourceCache::requestCompleted(Resource* resource) {
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    sharedItems->removeRequest(resource);
+    --_requestsActive;
+
+    attemptHighestPriorityRequest();
+}
+
+bool ResourceCache::attemptHighestPriorityRequest() {
+    auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    auto resource = sharedItems->getHighestPendingRequest();
+    return (resource && attemptRequest(resource));
 }
 
 const int DEFAULT_REQUEST_LIMIT = 10;
@@ -228,9 +261,10 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
 
 Resource::~Resource() {
     if (_request) {
-        ResourceCache::requestCompleted(this);
+        _request->disconnect(this);
         _request->deleteLater();
         _request = nullptr;
+        ResourceCache::requestCompleted(this);
     }
 }
 
@@ -340,6 +374,7 @@ void Resource::finishedLoading(bool success) {
         _failedToLoad = true;
     }
     _loadPriorities.clear();
+    emit finished(success);
 }
 
 void Resource::reinsert() {
@@ -375,18 +410,25 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    Q_ASSERT(_request);
+    Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
+
+    if (!_request || _request != sender()) {
+        // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
+        qWarning(networking) << "Received signal Resource::handleReplyFinished from ResourceRequest that is not the current"
+            << " request: " << sender() << ", " << _request;
+        return;
+    }
     
     ResourceCache::requestCompleted(this);
     
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
-        _data = _request->getData();
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
-        emit loaded(_data);
-        downloadFinished(_data);
+        auto data = _request->getData();
+        emit loaded(data);
+        downloadFinished(data);
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {

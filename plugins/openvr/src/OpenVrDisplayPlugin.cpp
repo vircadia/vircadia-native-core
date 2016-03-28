@@ -21,7 +21,7 @@
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
-
+#include <shared/NsightHelpers.h>
 #include "OpenVrHelpers.h"
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
@@ -38,10 +38,11 @@ static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return vr::VR_IsHmdPresent();
+    return !isOculusPresent() && vr::VR_IsHmdPresent();
 }
 
-void OpenVrDisplayPlugin::activate() {
+void OpenVrDisplayPlugin::internalActivate() {
+    Parent::internalActivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     if (!_system) {
@@ -67,7 +68,9 @@ void OpenVrDisplayPlugin::activate() {
 
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
-    HmdDisplayPlugin::activate();
+
+    // enable async time warp
+    // _compositor->ForceInterleavedReprojectionOn(true);
 
     // set up default sensor space such that the UI overlay will align with the front of the room.
     auto chaperone = vr::VRChaperone();
@@ -85,11 +88,8 @@ void OpenVrDisplayPlugin::activate() {
     }
 }
 
-void OpenVrDisplayPlugin::deactivate() {
-    // Base class deactivate must come before our local deactivate
-    // because the OpenGL base class handles the wait for the present 
-    // thread before continuing
-    HmdDisplayPlugin::deactivate();
+void OpenVrDisplayPlugin::internalDeactivate() {
+    Parent::internalDeactivate();
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         releaseOpenVrSystem();
@@ -104,9 +104,9 @@ void OpenVrDisplayPlugin::customizeContext() {
     std::call_once(once, []{
         glewExperimental = true;
         GLenum err = glewInit();
-        glGetError();
+        glGetError(); // clear the potential error from glewExperimental
     });
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
@@ -115,21 +115,18 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
+void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
 
     float displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     float frameDuration = 1.f / displayFrequency;
     float vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
 
 #if THREADED_PRESENT
-    // TODO: this seems awfuly long, 44ms total, but it produced the best results.
+    // 3 frames of prediction + vsyncToPhotons = 44ms total
     const float NUM_PREDICTION_FRAMES = 3.0f;
     float predictedSecondsFromNow = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
 #else
-    uint64_t frameCounter;
-    float timeSinceLastVsync;
-    _system->GetTimeSinceLastVsync(&timeSinceLastVsync, &frameCounter);
-    float predictedSecondsFromNow = 3.0f * frameDuration - timeSinceLastVsync + vsyncToPhotons;
+    float predictedSecondsFromNow = frameDuration + vsyncToPhotons;
 #endif
 
     vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
@@ -142,18 +139,26 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
         _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
         _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
-    return _trackedDevicePoseMat4[0];
+
+    _headPoseCache.set(_trackedDevicePoseMat4[0]);
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
+
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-    
+
     vr::Texture_t texture { (void*)oglplus::GetName(_compositeFramebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
 
     _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
+}
+
+void OpenVrDisplayPlugin::postPreview() {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
 
     vr::TrackedDevicePose_t currentTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
     _compositor->WaitGetPoses(currentTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);

@@ -78,6 +78,9 @@ signals:
     void packetRetransmitted();
     
     void queueInactive();
+
+    void shortCircuitLoss(quint32 sequenceNumber);
+    void timeout();
     
 private slots:
     void run();
@@ -89,14 +92,16 @@ private:
     
     void sendHandshake();
     
-    void sendPacket(const Packet& packet);
-    void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
+    int sendPacket(const Packet& packet);
+    bool sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
-    bool maybeSendNewPacket(); // Figures out what packet to send next
+    int maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
-    bool isInactive(bool sentAPacket);
+    bool isInactive(bool attemptedToSendPacket);
     void deactivate(); // makes the queue inactive and cleans it up
+
+    bool isFlowWindowFull() const;
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
@@ -118,8 +123,7 @@ private:
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
     std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
-    std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
-    std::atomic<uint64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
+    std::atomic<int64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     

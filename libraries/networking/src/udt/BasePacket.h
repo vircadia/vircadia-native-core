@@ -77,7 +77,10 @@ public:
     using QIODevice::read; // Bring QIODevice::read methods to scope, otherwise they are hidden by folling method
     QByteArray read(qint64 maxSize);
     QByteArray readWithoutCopy(qint64 maxSize); // this can only be used if packet will stay in scope
-    
+
+    qint64 writeString(const QString& string);
+    QString readString();
+   
     template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);

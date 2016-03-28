@@ -91,7 +91,9 @@ public:
         MessagesData,
         MessagesSubscribe,
         MessagesUnsubscribe,
-        ICEServerHeartbeatDenied
+        ICEServerHeartbeatDenied,
+        AssetMappingOperation,
+        AssetMappingOperationReply
     };
 };
 

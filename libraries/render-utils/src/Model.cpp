@@ -29,7 +29,7 @@
 
 using namespace std;
 
-static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
+static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
@@ -74,6 +74,21 @@ Model::~Model() {
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+bool Model::needsFixupInScene() {
+    if (readyToAddToScene()) {
+        // Once textures are loaded, fixup if they are now transparent
+        if (!_needsReload && _needsUpdateTransparentTextures && _geometry->isLoadedWithTextures()) {
+            _needsUpdateTransparentTextures = false;
+            if (_hasTransparentTextures != _geometry->hasTransparentTextures()) {
+                return true;
+            }
+        }
+        if (!_readyWhenAdded) {
+            return true;
+        }
+    }
+    return false;
+}
 
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
@@ -237,25 +252,18 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
-
-        if (!_calculatedMeshBoxesValid) {
+        if (!_calculatedMeshBoxesValid || (pickAgainstTriangles && !_calculatedMeshTrianglesValid)) {
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
+        for (const auto& subMeshBox : _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
-                        if (!_calculatedMeshTrianglesValid) {
-                            recalculateMeshBoxes(pickAgainstTriangles);
-                        }
                         // check our triangles here....
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
-                        int t = 0;
-                        foreach (const Triangle& triangle, meshTriangles) {
-                            t++;
-
+                        for(const auto& triangle : meshTriangles) {
                             float thisTriangleDistance;
                             if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
                                 if (thisTriangleDistance < bestDistance) {
@@ -556,6 +564,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _renderItemsSet.clear();
+    _meshGroupsKnown = false;
     _readyWhenAdded = false;
 }
 
@@ -728,6 +737,8 @@ void Model::setURL(const QUrl& url) {
     }
 
     _needsReload = true;
+    _needsUpdateTransparentTextures = true;
+    _hasTransparentTextures = false;
     _meshGroupsKnown = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
@@ -810,21 +821,21 @@ QStringList Model::getJointNames() const {
 class Blender : public QRunnable {
 public:
 
-    Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+    Blender(ModelPointer model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
 
     virtual void run();
 
 private:
 
-    QPointer<Model> _model;
+    ModelPointer _model;
     int _blendNumber;
     QWeakPointer<NetworkGeometry> _geometry;
     QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+Blender::Blender(ModelPointer model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
     _model(model),
     _blendNumber(blendNumber),
@@ -836,7 +847,7 @@ Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeomet
 void Blender::run() {
     PROFILE_RANGE(__FUNCTION__);
     QVector<glm::vec3> vertices, normals;
-    if (!_model.isNull()) {
+    if (_model) {
         int offset = 0;
         foreach (const FBXMesh& mesh, _meshes) {
             if (mesh.blendshapes.isEmpty()) {
@@ -866,7 +877,7 @@ void Blender::run() {
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
+        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
 }
@@ -1051,7 +1062,7 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
     }
 }
 
@@ -1077,7 +1088,7 @@ float Model::getLimbLength(int jointIndex) const {
 bool Model::maybeStartBlender() {
     const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
     if (fbxGeometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(this, ++_blendNumber, _geometry,
+        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _geometry,
             fbxGeometry.meshes, _blendshapeCoefficients));
         return true;
     }
@@ -1259,29 +1270,36 @@ ModelBlender::ModelBlender() :
 ModelBlender::~ModelBlender() {
 }
 
-void ModelBlender::noteRequiresBlend(Model* model) {
+void ModelBlender::noteRequiresBlend(ModelPointer model) {
     if (_pendingBlenders < QThread::idealThreadCount()) {
         if (model->maybeStartBlender()) {
             _pendingBlenders++;
         }
         return;
     }
-    if (!_modelsRequiringBlends.contains(model)) {
-        _modelsRequiringBlends.append(model);
+
+    {
+        Lock lock(_mutex);
+        _modelsRequiringBlends.insert(model);
     }
 }
 
-void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber,
         const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (!model.isNull()) {
+    if (model) {
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }
     _pendingBlenders--;
-    while (!_modelsRequiringBlends.isEmpty()) {
-        Model* nextModel = _modelsRequiringBlends.takeFirst();
-        if (nextModel && nextModel->maybeStartBlender()) {
-            _pendingBlenders++;
-            return;
+    {
+        Lock lock(_mutex);
+        for (auto i = _modelsRequiringBlends.begin(); i != _modelsRequiringBlends.end();) {
+            auto weakPtr = *i;
+            _modelsRequiringBlends.erase(i++); // remove front of the set
+            ModelPointer nextModel = weakPtr.lock();
+            if (nextModel && nextModel->maybeStartBlender()) {
+                _pendingBlenders++;
+                return;
+            }
         }
     }
 }

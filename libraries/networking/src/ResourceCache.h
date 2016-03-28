@@ -12,6 +12,7 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
+#include <mutex>
 #include <QtCore/QHash>
 #include <QtCore/QList>
 #include <QtCore/QObject>
@@ -53,12 +54,25 @@ static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 // object instead
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
 public:
-    QList<QPointer<Resource>> _pendingRequests;
-    QList<Resource*> _loadingRequests;
+    void appendPendingRequest(Resource* newRequest);
+    void appendActiveRequest(Resource* newRequest);
+    void removeRequest(Resource* doneRequest);
+    QList<QPointer<Resource>> getPendingRequests() const;
+    uint32_t getPendingRequestsCount() const;
+    QList<Resource*> getLoadingRequests() const;
+    Resource* getHighestPendingRequest();
+
 private:
     ResourceCacheSharedItems() { }
     virtual ~ResourceCacheSharedItems() { }
+
+    mutable Mutex _mutex;
+    QList<QPointer<Resource>> _pendingRequests;
+    QList<Resource*> _loadingRequests;
 };
 
 
@@ -75,11 +89,11 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*>& getLoadingRequests() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->_loadingRequests; }
+    static const QList<Resource*> getLoadingRequests() 
+        { return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests(); }
 
     static int getPendingRequestCount() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->_pendingRequests.size(); }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount(); }
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
@@ -180,12 +194,14 @@ public:
     Q_INVOKABLE void allReferencesCleared();
     
     const QUrl& getURL() const { return _url; }
-    const QByteArray& getData() const { return _data; }
 
 signals:
     /// Fired when the resource has been downloaded.
     /// This can be used instead of downloadFinished to access data before it is processed.
-    void loaded(const QByteArray& request);
+    void loaded(const QByteArray request);
+
+    /// Fired when the resource has finished loading.
+    void finished(bool success);
 
     /// Fired when the resource failed to load.
     void failed(QNetworkReply::NetworkError error);
@@ -210,9 +226,6 @@ protected:
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
 
-    /// Reinserts this resource into the cache.
-    virtual void reinsert();
-
     QUrl _url;
     QUrl _activeUrl;
     bool _startedLoading = false;
@@ -221,7 +234,6 @@ protected:
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
-    QByteArray _data;
     
 private slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
@@ -232,6 +244,7 @@ private:
     
     void makeRequest();
     void retry();
+    void reinsert();
     
     friend class ResourceCache;
     

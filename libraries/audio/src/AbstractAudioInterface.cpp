@@ -26,14 +26,12 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     if (audioMixer && audioMixer->getActiveSocket()) {
         Locker lock(_mutex);
-        static std::unique_ptr<NLPacket> audioPacket = NLPacket::create(PacketType::Unknown);
+        auto audioPacket = NLPacket::create(packetType);
         quint8 isStereo = bytes == AudioConstants::NETWORK_FRAME_BYTES_STEREO ? 1 : 0;
-        audioPacket->setType(packetType);
-        // reset the audio packet so we can start writing
-        audioPacket->reset();
+
         // write sequence number
         audioPacket->writePrimitive(sequenceNumber++);
-        if (audioPacket->getType() == PacketType::SilentAudioFrame) {
+        if (packetType == PacketType::SilentAudioFrame) {
             // pack num silent samples
             quint16 numSilentSamples = isStereo ?
                 AudioConstants::NETWORK_FRAME_SAMPLES_STEREO :

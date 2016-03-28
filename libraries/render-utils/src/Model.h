@@ -50,8 +50,13 @@ inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
     return qHash(a.get(), seed);
 }
 
+class Model;
+using ModelPointer = std::shared_ptr<Model>;
+using ModelWeakPointer = std::weak_ptr<Model>;
+
+
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject {
+class Model : public QObject, public std::enable_shared_from_this<Model> {
     Q_OBJECT
 
 public:
@@ -63,6 +68,9 @@ public:
     Model(RigPointer rig, QObject* parent = nullptr);
     virtual ~Model();
 
+    inline ModelPointer getThisPointer() const {
+        return std::static_pointer_cast<Model>(std::const_pointer_cast<Model>(shared_from_this()));
+    }
 
     /// Sets the URL of the model to render.
     Q_INVOKABLE void setURL(const QUrl& url);
@@ -70,7 +78,7 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
-    bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
+    bool needsFixupInScene();
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) {
         return !_needsReload && isRenderable() && isActive() && isLoaded();
     }
@@ -365,16 +373,18 @@ protected:
 
     QSet<std::shared_ptr<MeshPartPayload>> _renderItemsSet;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
-    bool _readyWhenAdded = false;
-    bool _needsReload = true;
-    bool _needsUpdateClusterMatrices = true;
-    bool _showCollisionHull = false;
+    bool _readyWhenAdded { false };
+    bool _needsReload { true };
+    bool _needsUpdateClusterMatrices { true };
+    bool _needsUpdateTransparentTextures { true };
+    bool _hasTransparentTextures { false };
+    bool _showCollisionHull { false };
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
 };
 
-Q_DECLARE_METATYPE(QPointer<Model>)
+Q_DECLARE_METATYPE(ModelPointer)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 
 /// Handle management of pending models that need blending
@@ -385,18 +395,22 @@ class ModelBlender : public QObject, public Dependency {
 public:
 
     /// Adds the specified model to the list requiring vertex blends.
-    void noteRequiresBlend(Model* model);
+    void noteRequiresBlend(ModelPointer model);
 
 public slots:
-    void setBlendedVertices(const QPointer<Model>& model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+    void setBlendedVertices(ModelPointer model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
 private:
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+
     ModelBlender();
     virtual ~ModelBlender();
 
-    QList<QPointer<Model> > _modelsRequiringBlends;
+    std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
     int _pendingBlenders;
+    Mutex _mutex;
 };
 
 

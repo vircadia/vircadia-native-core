@@ -565,10 +565,10 @@ void AudioClient::updateReverbOptions() {
             _zoneReverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
             reverbChanged = true;
         }
-        //if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
-        //    _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-        //    reverbChanged = true;
-        //}
+        if (_zoneReverbOptions.getWetDryMix() != _receivedAudioStream.getWetLevel()) {
+            _zoneReverbOptions.setWetDryMix(_receivedAudioStream.getWetLevel());
+            reverbChanged = true;
+        }
 
         if (_reverbOptions != &_zoneReverbOptions) {
             _reverbOptions = &_zoneReverbOptions;

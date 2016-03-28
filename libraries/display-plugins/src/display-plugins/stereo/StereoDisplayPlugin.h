@@ -7,18 +7,15 @@
 //
 #pragma once
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include "../OpenGLDisplayPlugin.h"
 class QScreen;
 
-class StereoDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class StereoDisplayPlugin : public OpenGLDisplayPlugin {
     Q_OBJECT
-    using Parent = WindowOpenGLDisplayPlugin;
+    using Parent = OpenGLDisplayPlugin;
 public:
     virtual bool isStereo() const override final { return true; }
     virtual bool isSupported() const override final;
-
-    virtual void activate() override;
-    virtual void deactivate() override;
 
     virtual float getRecommendedAspectRatio() const override;
     virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
@@ -32,7 +29,10 @@ public:
     // virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
 
 protected:
+    virtual void internalActivate() override;
+    virtual void internalDeactivate() override;
     void updateScreen();
+
     float _ipd{ 0.064f };
     QScreen* _screen;
 };

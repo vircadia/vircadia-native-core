@@ -20,7 +20,8 @@
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-uniform sampler2D albedoMap;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 in vec2 _texCoord0;
 in vec4 _position;
@@ -31,16 +32,29 @@ in float _alpha;
 out vec4 _fragColor;
 
 void main(void) {
-    vec4 albedo = texture(albedoMap, _texCoord0);
-
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex, occlusionTex)$>
+
+    float opacity = getMaterialOpacity(mat) * _alpha;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)&>;
+    <$discardTransparent(opacity)$>;
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    float metallic = getMaterialMetallic(mat);
+
+    vec3 emissive = getMaterialEmissive(mat);
+    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+
+
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
-    vec3 fragAlbedo = getMaterialAlbedo(mat) * albedo.rgb * _color;
-    float fragMetallic = getMaterialMetallic(mat);
-    vec3 fragEmissive = getMaterialEmissive(mat);
-    float fragRoughness = getMaterialRoughness(mat);
-    float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
 
     TransformCamera cam = getTransformCamera();
 
@@ -50,9 +64,9 @@ void main(void) {
         1.0,
         fragPosition,
         fragNormal,
-        fragAlbedo,
-        fragMetallic,
-        fragEmissive,
-        fragRoughness),
-        fragOpacity);
+        albedo,
+        metallic,
+        emissive,
+        roughness),
+        opacity);
 }

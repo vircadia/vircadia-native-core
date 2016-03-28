@@ -151,7 +151,7 @@
                 data.properties[group][property] = {
                      x: elX.value,
                      y: elY.value,
-                     z: elZ.value,
+                     z: elZ ? elZ.value : 0,
                 };
                 EventBridge.emitWebEvent(JSON.stringify(data));
             }
@@ -451,6 +451,37 @@
 
                 var elPreviewCameraButton = document.getElementById("preview-camera-button");
     
+                var urlUpdaters = document.getElementsByClassName("update-url-version");
+                var PARAM_REGEXP = /(?:\?)(\S+)/; // Check if this has any parameters.
+                var TIMESTAMP_REGEXP = /(&?HFTime=\d+)/;
+
+                var refreshEvent = function(event){
+                    var urlElement = event.target.parentElement.getElementsByClassName("url")[0];
+                    var content = urlElement.value;
+                    var date = new Date();
+                    var timeStamp = date.getTime();
+
+                    if(content.length > 0){
+                        if(PARAM_REGEXP.test(content)){
+                        // Has params, so lets remove existing definition and append again.
+                            content = content.replace(TIMESTAMP_REGEXP,"") + "&";
+                        }else{
+                            content += "?";
+                        }
+                        content = content.replace("?&","?");
+                        urlElement.value = content + "HFTime=" + timeStamp;
+                    }
+
+                    var evt = document.createEvent("HTMLEvents");
+                    evt.initEvent("change", true, true );
+                    urlElement.dispatchEvent(evt);
+                };
+
+                for(var index = 0; index < urlUpdaters.length; index++){
+                    var urlUpdater = urlUpdaters[index];
+                    urlUpdater.addEventListener("click", refreshEvent);
+                }
+
                 if (window.EventBridge !== undefined) {
                     var properties;
                     EventBridge.scriptEventReceived.connect(function(data) {
@@ -683,7 +714,6 @@
                                     elZoneKeyLightAmbientIntensity.value = properties.keyLight.ambientIntensity.toFixed(2);
                                     elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                                     elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
-                                    elZoneKeyLightDirectionZ.value = properties.keyLight.direction.z.toFixed(2);
                                     elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
     
     
@@ -937,12 +967,11 @@
                 elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
                 elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','intensity'));
                 elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
-                var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
+                elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
+                var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
                 elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
                 elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-                elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-                elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
-    
+
                 elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
                 elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
                 elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','altitude'));
@@ -1170,9 +1199,8 @@
         <div class="zone-section keyLight-section property">
             <div class="label">Light Direction</div>
             <div class="value">
-                <div class="input-area">Pitch <input class="coord" type="number" id="property-zone-key-light-direction-x"></div>
-                <div class="input-area">Yaw <input class="coord" type="number" id="property-zone-key-light-direction-y"></div>
-                <div class="input-area">Roll <input class="coord" type="number" id="property-zone-key-light-direction-z"></div>
+                <div class="input-area">Altitude <input class="coord" type="number" id="property-zone-key-light-direction-x"></div>
+                <div class="input-area">Azimuth <input class="coord" type="number" id="property-zone-key-light-direction-y"></div>
             </div>
         </div>
 
@@ -1188,6 +1216,7 @@
             <div class="label">Ambient URL</div>
             <div class="value">
                 <input type="text" id="property-zone-key-ambient-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1265,6 +1294,7 @@
             <div class="label">Skybox URL</div>
             <div class="value">
                 <input type="text" id="property-zone-skybox-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1276,6 +1306,7 @@
             <div class="label">Source URL</div>
             <div class="value">
                 <input type="text" id="property-web-source-url" class="url">
+                <div class="update-url-version"></div>
 
             </div>
         </div>
@@ -1289,12 +1320,14 @@
             <div class="label">Href - Hifi://address</div>
             <div class="value">
                 <input id="property-hyperlink-href" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
         <div class="hyperlink-section property">
             <div class="label">Description</div>
             <div class="value">
                 <input id="property-hyperlink-description" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1378,16 +1411,19 @@
             <div class="label">X-axis Texture URL</div>
             <div class="value">
               <input type="text" id="property-x-texture-url" class="url">
+              <div class="update-url-version"></div>
             </div>
 
             <div class="label">Y-axis Texture URL</div>
             <div class="value">
               <input type="text" id="property-y-texture-url" class="url">
+              <div class="update-url-version"></div>
             </div>
 
             <div class="label">Z-axis Texture URL</div>
             <div class="value">
               <input type="text" id="property-z-texture-url" class="url">
+              <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1569,6 +1605,7 @@
             <div class="label">Collision Sound URL</div>
             <div class="value">
                 <input id="property-collision-sound-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1586,6 +1623,7 @@
             </div>
             <div class="value">
                 <input id="property-script-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1598,6 +1636,7 @@
             <div class="label">Model URL</div>
             <div class="value">
                 <input type="text" id="property-model-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
 
@@ -1616,12 +1655,14 @@
             <div class="label">Compound Shape URL</div>
             <div class="value">
                 <input type="text" id="property-compound-shape-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
         <div class="model-section property">
             <div class="label">Animation URL</div>
             <div class="value">
                 <input type="text" id="property-model-animation-url" class="url">
+                <div class="update-url-version"></div>
             </div>
         </div>
         <div class="model-section property">

@@ -22,6 +22,7 @@
 namespace ShapeFactory {
     btConvexHullShape* createConvexHull(const QVector<glm::vec3>& points);
     btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
+    void deleteShape(btCollisionShape* shape);
 };
 
 #endif // hifi_ShapeFactory_h

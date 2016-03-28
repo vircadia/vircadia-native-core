@@ -178,8 +178,6 @@ public:
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
     Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
     Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
-    Q_INVOKABLE int getFaceBlendCoefNum() const { return getHead()->getFaceModel().getBlendshapeCoefficientsNum(); }
-    Q_INVOKABLE float getFaceBlendCoef(int index) const { return getHead()->getFaceModel().getBlendshapeCoefficient(index); }
 
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
@@ -249,7 +247,9 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
-    void setHandControllerPosesInWorldFrame(const controller::Pose& left, const controller::Pose& right);
+    void setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
+    controller::Pose getLeftHandControllerPoseInSensorFrame() const;
+    controller::Pose getRightHandControllerPoseInSensorFrame() const;
     controller::Pose getLeftHandControllerPoseInWorldFrame() const;
     controller::Pose getRightHandControllerPoseInWorldFrame() const;
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
@@ -279,7 +279,7 @@ public slots:
     void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
-    bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
+    bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
@@ -328,7 +328,6 @@ private:
     bool cameraInsideHead() const;
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
-    virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
@@ -454,9 +453,9 @@ private:
     bool _hoverReferenceCameraFacingIsCaptured { false };
     glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
-    // These are stored in WORLD frame
-    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInWorldFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInWorldFrameCache { controller::Pose() };
+    // These are stored in SENSOR frame
+    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

@@ -72,11 +72,15 @@ void GeometryReader::run() {
                 const bool grabLightmaps = true;
                 const float lightmapLevel = 1.0f;
                 fbxgeo = readFBX(_data, _mapping, _url.path(), grabLightmaps, lightmapLevel);
+                if (fbxgeo->meshes.size() == 0 && fbxgeo->joints.size() == 0) {
+                    // empty fbx geometry, indicates error
+                    throw QString("empty geometry, possibly due to an unsupported FBX version");
+                }
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxgeo = OBJReader().readOBJ(_data, _mapping, _url);
             } else {
                 QString errorStr("unsupported format");
-                emit onError(NetworkGeometry::ModelParseError, errorStr);
+                throw errorStr;
             }
             emit onSuccess(fbxgeo);
         } else {
@@ -135,6 +139,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     }
 
     if (!_isLoadedWithTextures) {
+        _hasTransparentTextures = false;
+
         for (auto&& material : _materials) {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
                 (material->normalTexture && !material->normalTexture->isLoaded()) ||
@@ -145,7 +151,15 @@ bool NetworkGeometry::isLoadedWithTextures() const {
                 (material->lightmapTexture && !material->lightmapTexture->isLoaded())) {
                 return false;
             }
+            if (material->albedoTexture && material->albedoTexture->getGPUTexture()) {
+                // Reassign the texture to make sure that itsalbedo alpha channel material key is detected correctly
+                material->_material->setTextureMap(model::MaterialKey::ALBEDO_MAP, material->_material->getTextureMap(model::MaterialKey::ALBEDO_MAP));
+                const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
+                bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
+                _hasTransparentTextures |= isTransparentTexture;
+            }
         }
+
         _isLoadedWithTextures = true;
     }
     return true;
@@ -162,9 +176,9 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
                 auto albedoMap = model::TextureMapPointer(new model::TextureMap());
                 albedoMap->setTextureSource(material->albedoTexture->_textureSource);
-                albedoMap->setTextureTransform(
-                    oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
-
+                albedoMap->setTextureTransform(oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
+                // when reassigning the albedo texture we also check for the alpha channel used as opacity
+                albedoMap->setUseAlphaChannel(true); 
                 networkMaterial->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);
@@ -197,10 +211,10 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 
                 networkMaterial->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
             } else if (material->lightmapTextureName == name) {
-                material->emissiveTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
+                material->lightmapTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
 
                 auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
-                lightmapMap->setTextureSource(material->emissiveTexture->_textureSource);
+                lightmapMap->setTextureSource(material->lightmapTexture->_textureSource);
                 lightmapMap->setTextureTransform(
                     oldTextureMaps[model::MaterialKey::LIGHTMAP_MAP]->getTextureTransform());
                 glm::vec2 oldOffsetScale =
@@ -279,7 +293,7 @@ void NetworkGeometry::requestModel(const QUrl& url) {
     connect(_resource, &Resource::failed, this, &NetworkGeometry::modelRequestError);
 }
 
-void NetworkGeometry::mappingRequestDone(const QByteArray& data) {
+void NetworkGeometry::mappingRequestDone(const QByteArray data) {
     assert(_state == RequestMappingState);
 
     // parse the mapping file
@@ -311,7 +325,7 @@ void NetworkGeometry::mappingRequestError(QNetworkReply::NetworkError error) {
     emit onFailure(*this, MappingRequestError);
 }
 
-void NetworkGeometry::modelRequestDone(const QByteArray& data) {
+void NetworkGeometry::modelRequestDone(const QByteArray data) {
     assert(_state == RequestModelState);
 
     _state = ParsingModelState;
@@ -365,8 +379,19 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
         auto albedoMap = setupNetworkTextureMap(geometry, textureBaseUrl, material.albedoTexture, DEFAULT_TEXTURE,
             networkMaterial->albedoTexture, networkMaterial->albedoTextureName);
         albedoMap->setTextureTransform(material.albedoTexture.transform);
+
+        if (!material.opacityTexture.filename.isEmpty()) {
+            if (material.albedoTexture.filename == material.opacityTexture.filename) {
+                // Best case scenario, just indicating that the albedo map contains transparency
+                albedoMap->setUseAlphaChannel(true);
+            } else {
+                // Opacity Map is different from the Abledo map, not supported
+            }
+        }
+
         material._material->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
     }
+
 
     if (!material.normalTexture.filename.isEmpty()) {
         auto normalMap = setupNetworkTextureMap(geometry, textureBaseUrl, material.normalTexture,

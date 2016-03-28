@@ -82,7 +82,6 @@ void LogHandler::flushRepeatedMessages() {
 }
 
 QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& context, const QString& message) {
-
     if (message.isEmpty()) {
         return QString();
     }

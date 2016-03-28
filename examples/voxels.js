@@ -16,8 +16,8 @@ var deletingVoxels = false;
 var addingSpheres = false;
 var deletingSpheres = false;
 
-var offAlpha = 0.5;
-var onAlpha = 0.9;
+var offAlpha = 0.8;
+var onAlpha = 1.0;
 var editSphereRadius = 4;
 
 function floorVector(v) {
@@ -48,52 +48,47 @@ var toolBar = (function () {
             height: toolHeight,
             alpha: onAlpha,
             visible: true,
-        });
+        }, false);
 
         addVoxelButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-add.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         deleteVoxelButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-delete.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         addSphereButton = toolBar.addTool({
             imageURL: toolIconUrl + "sphere-add.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         deleteSphereButton = toolBar.addTool({
             imageURL: toolIconUrl + "sphere-delete.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: offAlpha,
             visible: false
-        });
+        }, false);
 
         addTerrainButton = toolBar.addTool({
             imageURL: toolIconUrl + "voxel-terrain.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: onAlpha,
             visible: false
-        });
+        }, false);
 
         that.setActive(false);
     }
@@ -193,7 +188,6 @@ var toolBar = (function () {
 
     that.cleanup = function () {
         toolBar.cleanup();
-        // Overlays.deleteOverlay(activeButton);
     };
 
 
@@ -237,7 +231,6 @@ function grabLowestJointY() {
 }
 
 
-
 function addTerrainBlock() {
     var baseLocation = getTerrainAlignedLocation(Vec3.sum(MyAvatar.position, {x:8, y:8, z:8}));
     if (baseLocation.y > MyAvatar.position.y) {
@@ -253,8 +246,24 @@ function addTerrainBlock() {
         baseLocation = getTerrainAlignedLocation(facingPosition);
         alreadyThere = lookupTerrainForLocation(baseLocation);
         if (alreadyThere) {
-            return;
+            return null;
         }
+    }
+
+    var polyVoxID = addTerrainBlockNearLocation(baseLocation);
+
+    if (polyVoxID) {
+        var AvatarPositionInVoxelCoords = Entities.worldCoordsToVoxelCoords(polyVoxID, MyAvatar.position);
+        // TODO -- how to find the avatar's feet?
+        var topY = Math.round(AvatarPositionInVoxelCoords.y) - 4;
+        Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:0, z:0}, {x:16, y:topY, z:16}, 255);
+    }
+}
+
+function addTerrainBlockNearLocation(baseLocation) {
+    var alreadyThere = lookupTerrainForLocation(baseLocation);
+    if (alreadyThere) {
+        return null;
     }
 
     var polyVoxID = Entities.addEntity({
@@ -268,12 +277,6 @@ function addTerrainBlock() {
         yTextureURL: "http://headache.hungry.com/~seth/hifi/grass.png",
         zTextureURL: "http://headache.hungry.com/~seth/hifi/dirt.jpeg"
     });
-
-    var AvatarPositionInVoxelCoords = Entities.worldCoordsToVoxelCoords(polyVoxID, MyAvatar.position);
-    // TODO -- how to find the avatar's feet?
-    var topY = Math.round(AvatarPositionInVoxelCoords.y) - 4;
-    Entities.setVoxelsInCuboid(polyVoxID, {x:0, y:0, z:0}, {x:16, y:topY, z:16}, 255);
-
 
     //////////
     // stitch together the terrain with x/y/z NeighorID properties
@@ -330,7 +333,7 @@ function addTerrainBlock() {
     properties.zPNeighborID = lookupTerrainForLocation(Vec3.sum(baseLocation, {x:0, y:0, z:16}));
     Entities.editEntity(polyVoxID, properties);
 
-    return true;
+    return polyVoxID;
 }
 
 
@@ -456,9 +459,6 @@ function keyReleaseEvent(event) {
 
 
 function cleanup() {
-    for (var i = 0; i < overlays.length; i++) {
-        Overlays.deleteOverlay(overlays[i]);
-    }
     toolBar.cleanup();
 }
 

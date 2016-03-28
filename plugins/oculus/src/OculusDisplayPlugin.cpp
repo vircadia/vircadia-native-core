@@ -6,16 +6,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusDisplayPlugin.h"
+#include <shared/NsightHelpers.h>
 #include "OculusHelpers.h"
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
 
-void OculusDisplayPlugin::activate() {
-    OculusBaseDisplayPlugin::activate();
-}
-
 void OculusDisplayPlugin::customizeContext() {
-    OculusBaseDisplayPlugin::customizeContext();
+    Parent::customizeContext();
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_session));
     _sceneFbo->Init(getRecommendedRenderSize());
 
@@ -34,7 +31,7 @@ void OculusDisplayPlugin::uncustomizeContext() {
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo.reset();
 #endif
-    OculusBaseDisplayPlugin::uncustomizeContext();
+    Parent::uncustomizeContext();
 }
 
 
@@ -58,6 +55,9 @@ void OculusDisplayPlugin::updateFrameData() {
 }
 
 void OculusDisplayPlugin::hmdPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
+
     if (!_currentSceneTexture) {
         return;
     }

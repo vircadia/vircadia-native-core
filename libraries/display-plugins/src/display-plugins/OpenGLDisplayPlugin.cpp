@@ -21,7 +21,7 @@
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
-
+#include <shared/NsightHelpers.h>
 #include <plugins/PluginContainer.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
@@ -54,6 +54,9 @@ public:
 
     void shutdown() {
         if (isRunning()) {
+            // First ensure that we turn off any current display plugin
+            setNewDisplayPlugin(nullptr);
+
             Lock lock(_mutex);
             _shutdown = true;
             _condition.wait(lock, [&] { return !_shutdown;  });
@@ -64,7 +67,10 @@ public:
 
     void setNewDisplayPlugin(OpenGLDisplayPlugin* plugin) {
         Lock lock(_mutex);
-        _newPlugin = plugin;
+        if (isRunning()) {
+            _newPluginQueue.push(plugin);
+            _condition.wait(lock, [=]()->bool { return _newPluginQueue.empty(); });
+        }
     }
 
     void setContext(QGLContext * context) {
@@ -98,51 +104,61 @@ public:
                 }
             }
 
-            // Check before lock
-            if (_newPlugin != nullptr) {
+            // Check for a new display plugin
+            {
                 Lock lock(_mutex);
                 _context->makeCurrent();
                 // Check if we have a new plugin to activate
-                if (_newPlugin != nullptr) {
-                    // Deactivate the old plugin
-                    if (currentPlugin != nullptr) {
-                        currentPlugin->uncustomizeContext();
-                        currentPlugin->enableDeactivate();
-                    }
+                while (!_newPluginQueue.empty()) {
+                    auto newPlugin = _newPluginQueue.front();
+                    if (newPlugin != currentPlugin) {
+                        // Deactivate the old plugin
+                        if (currentPlugin != nullptr) {
+                            try {
+                                currentPlugin->uncustomizeContext();
+                            } catch (const oglplus::Error& error) {
+                                qWarning() << "OpenGL error in uncustomizeContext: " << error.what();
+                            }
+                        }
 
-                    _newPlugin->customizeContext();
-                    currentPlugin = _newPlugin;
-                    _newPlugin = nullptr;
+                        if (newPlugin) {
+                            try {
+                                newPlugin->customizeContext();
+                            } catch (const oglplus::Error& error) {
+                                qWarning() << "OpenGL error in customizeContext: " << error.what();
+                            }
+                        }
+                        currentPlugin = newPlugin;
+                        _newPluginQueue.pop();
+                        _condition.notify_one();
+                    }
                 }
                 _context->doneCurrent();
-                lock.unlock();
             }
 
             // If there's no active plugin, just sleep
             if (currentPlugin == nullptr) {
-                QThread::usleep(100);
+                // Minimum sleep ends up being about 2 ms anyway
+                QThread::msleep(1);
                 continue;
             }
 
             // take the latest texture and present it
             _context->makeCurrent();
             if (isCurrentContext(_context->contextHandle())) {
-                currentPlugin->present();
+                try {
+                    currentPlugin->present();
+                } catch (const oglplus::Error& error) {
+                    qWarning() << "OpenGL error in presentation: " << error.what();
+                }
                 _context->doneCurrent();
             } else {
                 qWarning() << "Makecurrent failed";
             }
         }
 
-        _context->makeCurrent();
-        if (currentPlugin) {
-            currentPlugin->uncustomizeContext();
-            currentPlugin->enableDeactivate();
-        }
-        _context->doneCurrent();
-        _context->moveToThread(qApp->thread());
-
         Lock lock(_mutex);
+        _context->moveToThread(qApp->thread());
         _shutdown = false;
         _condition.notify_one();
     }
@@ -180,7 +196,7 @@ private:
     bool _pendingMainThreadOperation { false };
     bool _finishedMainThreadOperation { false };
     QThread* _mainThread { nullptr };
-    OpenGLDisplayPlugin* _newPlugin { nullptr };
+    std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
     QGLContext* _context { nullptr };
 };
 
@@ -219,6 +235,12 @@ void OpenGLDisplayPlugin::activate() {
     }
 
     _vsyncSupported = _container->getPrimaryWidget()->isVsyncSupported();
+
+    // Child classes may override this in order to do things like initialize 
+    // libraries, etc
+    internalActivate();
+
+
 #if THREADED_PRESENT
     // Start the present thread if necessary
     auto presentThread = DependencyManager::get<PresentThread>();
@@ -231,6 +253,9 @@ void OpenGLDisplayPlugin::activate() {
         // Start execution
         presentThread->start();
     }
+
+    // This should not return until the new context has been customized 
+    // and the old context (if any) has been uncustomized
     presentThread->setNewDisplayPlugin(this);
 #else
     static auto widget = _container->getPrimaryWidget();
@@ -241,28 +266,25 @@ void OpenGLDisplayPlugin::activate() {
     DisplayPlugin::activate();
 }
 
-void OpenGLDisplayPlugin::stop() {
-}
-
 void OpenGLDisplayPlugin::deactivate() {
+    
 #if THREADED_PRESENT
-    {
-        Lock lock(_mutex);
-        _deactivateWait.wait(lock, [&]{ return _uncustomized; });
-    }
+    auto presentThread = DependencyManager::get<PresentThread>();
+    // Does not return until the GL transition has completeed
+    presentThread->setNewDisplayPlugin(nullptr);
 #else
     static auto widget = _container->getPrimaryWidget();
     widget->makeCurrent();
     uncustomizeContext();
     _container->makeRenderingContextCurrent();
 #endif
+    internalDeactivate();
     DisplayPlugin::deactivate();
 }
 
 
 void OpenGLDisplayPlugin::customizeContext() {
 #if THREADED_PRESENT
-    _uncustomized = false;
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 #endif
@@ -381,20 +403,22 @@ void OpenGLDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overla
 }
 
 void OpenGLDisplayPlugin::updateTextures() {
-    auto oldSceneTexture = _currentSceneTexture;
-    _currentSceneTexture = _sceneTextureEscrow.fetchAndRelease(_currentSceneTexture);
-    if (oldSceneTexture != _currentSceneTexture) {
+    // FIXME intrduce a GPU wait instead of a CPU/GPU sync point?
+#if THREADED_PRESENT
+    if (_sceneTextureEscrow.fetchSignaledAndRelease(_currentSceneTexture)) {
+#else
+    if (_sceneTextureEscrow.fetchAndReleaseWithGpuWait(_currentSceneTexture)) {
+#endif
         updateFrameData();
     }
 
-    _currentOverlayTexture = _overlayTextureEscrow.fetchAndRelease(_currentOverlayTexture);
+    _overlayTextureEscrow.fetchSignaledAndRelease(_currentOverlayTexture);
 }
 
 void OpenGLDisplayPlugin::updateFrameData() {
     Lock lock(_mutex);
     _currentRenderFrameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
 }
-
 
 void OpenGLDisplayPlugin::updateFramerate() {
     uint64_t now = usecTimestampNow();
@@ -507,6 +531,9 @@ void OpenGLDisplayPlugin::internalPresent() {
 
 void OpenGLDisplayPlugin::present() {
     incrementPresentCount();
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
     updateTextures();
     if (_currentSceneTexture) {
         // Write all layers to a local framebuffer
@@ -581,14 +608,6 @@ QImage OpenGLDisplayPlugin::getScreenshot() const {
     return result;
 }
 
-#if THREADED_PRESENT
-void OpenGLDisplayPlugin::enableDeactivate() {
-    Lock lock(_mutex);
-    _uncustomized = true;
-    _deactivateWait.notify_one();
-}
-#endif
-
 uint32_t OpenGLDisplayPlugin::getSceneTextureId() const {
     if (!_currentSceneTexture) {
         return 0;
@@ -612,4 +631,27 @@ void OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
         vpPos.x = vpSize.x;
     }
     Context::Viewport(vpPos.x, vpPos.y, vpSize.x, vpSize.y);
+}
+
+glm::uvec2 OpenGLDisplayPlugin::getSurfacePixels() const {
+    uvec2 result;
+    auto window = _container->getPrimaryWidget();
+    if (window) {
+        result = toGlm(window->geometry().size() * window->devicePixelRatio());
+    }
+    return result;
+}
+
+glm::uvec2 OpenGLDisplayPlugin::getSurfaceSize() const {
+    uvec2 result;
+    auto window = _container->getPrimaryWidget();
+    if (window) {
+        result = toGlm(window->geometry().size());
+    }
+    return result;
+}
+
+bool OpenGLDisplayPlugin::hasFocus() const {
+    auto window = _container->getPrimaryWidget();
+    return window ? window->hasFocus() : false;
 }

@@ -70,14 +70,16 @@ namespace render {
         Q_OBJECT
         Q_PROPERTY(int numItems READ getNumItems)
         Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+        Q_PROPERTY(bool skipCulling MEMBER skipCulling WRITE setSkipCulling)
     public:
         int numItems{ 0 };
         int getNumItems() { return numItems; }
 
         bool freezeFrustum{ false };
+        bool skipCulling{ false };
     public slots:
         void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
-
+        void setSkipCulling(bool enabled) { skipCulling = enabled; emit dirty(); }
     signals:
         void dirty();
     };
@@ -85,6 +87,7 @@ namespace render {
     class CullSpatialSelection {
         bool _freezeFrustum{ false }; // initialized by Config
         bool _justFrozeFrustum{ false };
+        bool _skipCulling{ false };
         ViewFrustum _frozenFrutstum;
     public:
         using Config = CullSpatialSelectionConfig;
