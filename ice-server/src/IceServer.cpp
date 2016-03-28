@@ -67,7 +67,9 @@ bool IceServer::packetVersionMatch(const udt::Packet& packet) {
 }
 
 void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
-    
+
+    _lastPacketTimestamp = QDateTime::currentMSecsSinceEpoch();
+
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     
     // make sure that this packet at least looks like something we can read
@@ -303,7 +305,14 @@ bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, b
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/status") {
-            connection->respond(HTTPConnection::StatusCode200, QByteArray::number(_activePeers.size()));
+            // figure out if we respond with 0 (we're good) or 1 (we think we're in trouble)
+
+            const quint64 MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET = 10 * 1000;
+
+            int statusNumber = (QDateTime::currentMSecsSinceEpoch() - _lastPacketTimestamp > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET)
+                                ? 1 : 0;
+
+            connection->respond(HTTPConnection::StatusCode200, QByteArray::number(statusNumber));
         }
     }
     return true;
