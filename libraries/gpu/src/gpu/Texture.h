@@ -138,7 +138,14 @@ protected:
 };
 
 class Texture : public Resource {
+    static std::atomic<uint32_t> _textureCPUCount;
+    static std::atomic<Size> _textureCPUMemoryUsage;
+    static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 public:
+    static uint32_t getTextureCPUCount();
+    static Size getTextureCPUMemoryUsage();
+    static uint32_t getTextureGPUCount();
+    static Size getTextureGPUMemoryUsage();
 
     class Usage {
     public:
@@ -194,9 +201,21 @@ public:
         Pixels(const Element& format, Size size, const Byte* bytes);
         ~Pixels();
 
-        Sysmem _sysmem;
+        const Byte* readData() const { return _sysmem.readData(); }
+        Size getSize() const { return _sysmem.getSize(); }
+        Size resize(Size pSize);
+        Size setData(const Element& format, Size size, const Byte* bytes );
+        
+        const Element& getFormat() const { return _format; }
+        
+        void notifyGPULoaded();
+        
+    protected:
         Element _format;
+        Sysmem _sysmem;
         bool _isGPULoaded;
+        
+        friend class Texture;
     };
     typedef std::shared_ptr< Pixels > PixelsPointer;
 
@@ -448,7 +467,7 @@ typedef std::shared_ptr<Texture> TexturePointer;
 typedef std::vector< TexturePointer > Textures;
 
 
- // TODO: For now TextureView works with Buffer as a place holder for the Texture.
+ // TODO: For now TextureView works with Texture as a place holder for the Texture.
  // The overall logic should be about the same except that the Texture will be a real GL Texture under the hood
 class TextureView {
 public:
