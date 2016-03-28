@@ -90,7 +90,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
         _simulation->addEntity(entity);
     }
 
-    if (!entity->isParentIDValid()) {
+    if (!entity->isParentIDValid(this)) {
         _missingParent.append(entity);
     }
 
@@ -260,7 +260,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 _missingParent.append(childEntity);
                 continue;
             }
-            if (!childEntity->isParentIDValid()) {
+            if (!childEntity->isParentIDValid(this)) {
                 _missingParent.append(childEntity);
             }
 
@@ -1027,7 +1027,7 @@ void EntityTree::fixupMissingParents() {
             }
 
             bool doMove = false;
-            if (entity->isParentIDValid()) {
+            if (entity->isParentIDValid(this)) {
                 qCDebug(entities) << "HRS fixme valid parent" << entity->getEntityItemID() << queryAACubeSuccess;
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
                 doMove = true;
@@ -1367,7 +1367,7 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
         entityDescription["Entities"] = QVariantList();
     }
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents, this);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
