@@ -70,7 +70,7 @@ Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const 
     return result;
 }
 
-SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) const {
+SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success, SpatialParentTree* entityTree) const {
     SpatiallyNestablePointer parent = _parent.lock();
     QUuid parentID = getParentID(); // used for its locking
 
@@ -105,7 +105,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         success = false;
         return nullptr;
     }
-    _parent = parentFinder->find(parentID, success);
+    _parent = parentFinder->find(parentID, success, entityTree);
     if (!success) {
         return nullptr;
     }

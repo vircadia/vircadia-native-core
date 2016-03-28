@@ -270,7 +270,7 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-
+/* fixme
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
@@ -319,6 +319,7 @@ public:
                 deadlockDetectionCrash();
             }
 #endif
+ */
         }
     }
 
@@ -2790,43 +2791,78 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
+class EntityDatum { // For parent-first sorting and mapping.
+public:
+    EntityItemPointer item;
+    EntityItemProperties properties;
+    EntityItemID originalParentID;
+    EntityItemID mappedID;
+    EntityDatum() {};
+    EntityDatum(EntityItemPointer itemArg, EntityItemProperties propertiesArg, EntityItemID parentID) :
+    item(itemArg), properties(propertiesArg), originalParentID(parentID) {
+    };
+};
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItemPointer> entities;
+    QHash<EntityItemID, EntityDatum> entities;
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
 
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    for (auto entityID : entityIDs) {
+    for (auto entityID : entityIDs) { // Gather entities and properties.
         auto entityItem = entityTree->findEntityByEntityItemID(entityID);
         if (!entityItem) {
+            qCDebug(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
             continue;
         }
 
         auto properties = entityItem->getProperties();
-        auto position = properties.getPosition();
-
+        auto position = properties.getPosition(); // see setPosition, below.
         root.x = glm::min(root.x, position.x);
         root.y = glm::min(root.y, position.y);
         root.z = glm::min(root.z, position.z);
 
-        entities << entityItem;
+        qCDebug(interfaceapp) << "Exporting" << entityItem->getEntityItemID() << entityItem->getName();
+        entities[entityID] = EntityDatum(entityItem, properties, properties.getParentID());
     }
 
     if (entities.size() == 0) {
         return false;
     }
 
-    for (auto entityItem : entities) {
-        auto properties = entityItem->getProperties();
+    for (EntityDatum& entityDatum : entities) {
+        // Recursively add the parents of entities to the exportTree, mapping their new identifiers as we go.
+        std::function<EntityItemID(EntityDatum&)> getMapped = [&](EntityDatum& datum) {
+            auto originalID = datum.item->getEntityItemID();
+            if (!datum.mappedID.isInvalidID()) {
+                qCDebug(interfaceapp) << "already mapped" << datum.properties.getName() << originalID << "=>" << datum.mappedID;
+                return datum.mappedID;  // We are a parent that has already been added/mapped.
+            }
+            auto properties = datum.properties;
+            auto parentID = datum.originalParentID;
+            if (!datum.originalParentID.isInvalidID()) { // Recurse over ancestors, updating properties.
+                qCDebug(interfaceapp) << "FIXME recursing" << datum.originalParentID << "parent of" << datum.item->getEntityItemID();
+                // Warning: this is not a tail-call, so exporting a REALLY deep parent hierarchy will blow the call stack.
+                parentID = getMapped(entities[parentID]);
+                properties.setParentID(parentID);
+            }
+            // The so-called root offset (which isn't) is confusing and not what content developers want. And why would queryAACube not then be offset?
+            // But leaving it in for bug-compatibility right now. -HRS
+            properties.setPosition(properties.getPosition() - root);
+            datum.mappedID = originalID; //EntityItemID(QUuid::createUuid());
+            auto newEntity = exportTree->addEntity(datum.mappedID, properties);
+            qCDebug(interfaceapp) << "mapped" << properties.getName();
+            qCDebug(interfaceapp) << "      " << originalID  << "p:" << datum.originalParentID;
+            qCDebug(interfaceapp) << "    =>" << datum.mappedID << "p:" << parentID;
 
-        properties.setPosition(properties.getPosition() - root);
-        exportTree->addEntity(entityItem->getEntityItemID(), properties);
+            return datum.mappedID;
+        };
+
+        getMapped(entityDatum);
     }
-
     // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-    exportTree->remapIDs();
+    //exportTree->remapIDs();
 
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
@@ -2902,7 +2938,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
 
     bool success = _entityClipboard->readFromURL(url.toString());
     if (success) {
-        _entityClipboard->remapIDs();
+       // FIXME _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
     }
     return success;

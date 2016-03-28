@@ -1009,6 +1009,7 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 void EntityTree::fixupMissingParents() {
     MovingEntitiesOperator moveOperator(getThisPointer());
 
+    if (!_missingParent.empty()) qCDebug(entities) << "HRS fixme fixupMissingParents" << _missingParent.count() << "entities";
     QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
@@ -1027,6 +1028,7 @@ void EntityTree::fixupMissingParents() {
 
             bool doMove = false;
             if (entity->isParentIDValid()) {
+                qCDebug(entities) << "HRS fixme valid parent" << entity->getEntityItemID() << queryAACubeSuccess;
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
                 doMove = true;
             } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
@@ -1038,6 +1040,7 @@ void EntityTree::fixupMissingParents() {
                 _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
                 doMove = true;
             }
+            else qCDebug(entities) << "HRS fixme failed parent" << entity->getEntityItemID() << queryAACubeSuccess;
 
             if (queryAACubeSuccess && doMove) {
                 moveOperator.addEntityToMoveList(entity, newCube);
@@ -1328,19 +1331,22 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
 }
 
 bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extraData) {
+    qCDebug(entities) << "sendEntitiesOperation";
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        EntityItemID newID(QUuid::createUuid());
+        EntityItemID newID = entityItem->getEntityItemID(); // FIXME (QUuid::createUuid());
         args->newEntityIDs->append(newID);
         EntityItemProperties properties = entityItem->getProperties();
         properties.setPosition(properties.getPosition() + args->root);
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
+        qCDebug(entities) << "sending" << newID << properties.getName() << "parent:" << properties.getParentID();
 
         // queue the packet to send to the server
         args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
+        // [Sure looks like the global application's tree to me. See callers. -HRS]
         if (args->localTree) {
             args->localTree->withWriteLock([&] {
                 args->localTree->addEntity(newID, properties);
@@ -1389,11 +1395,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);
+        qCDebug(entities) << "HRS FIXME added" << entityItemID << properties.getName();
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }
     }
-
+    qCDebug(entities) << "HRS FIXME end of readFromMap";
     return true;
 }
 

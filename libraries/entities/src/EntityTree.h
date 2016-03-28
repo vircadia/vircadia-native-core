@@ -16,6 +16,7 @@
 #include <QVector>
 
 #include <Octree.h>
+#include <SpatialParentFinder.h>
 
 class EntityTree;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
@@ -52,7 +53,7 @@ public:
 };
 
 
-class EntityTree : public Octree {
+class EntityTree : public Octree, public SpatialParentTree {
     Q_OBJECT
 public:
     EntityTree(bool shouldReaverage = false);
@@ -125,6 +126,7 @@ public:
     EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
+    SpatiallyNestablePointer EntityTree::findByID(const QUuid& id) { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
