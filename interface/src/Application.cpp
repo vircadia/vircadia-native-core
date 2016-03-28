@@ -598,8 +598,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioThread->setObjectName("Audio Thread");
 
     auto audioIO = DependencyManager::get<AudioClient>();
-    audioIO->setPositionGetter([this]{ return getMyAvatar()->getPositionForAudio(); });
-    audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
+    audioIO->setPositionGetter([]{
+        auto audioIO = DependencyManager::get<AvatarManager>();
+        auto myAvatar = audioIO ? audioIO->getMyAvatar() : nullptr;
+        
+        return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
+    });
+    audioIO->setOrientationGetter([]{
+        auto audioIO = DependencyManager::get<AvatarManager>();
+        auto myAvatar = audioIO ? audioIO->getMyAvatar() : nullptr;
+
+        return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
+    });
 
     audioIO->moveToThread(audioThread);
     recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
