@@ -765,6 +765,10 @@ void printSystemInformation() {
     qDebug() << "\tCPU Vendor: " << CPUID::Vendor().c_str();
     qDebug() << "\tCPU Brand:  " << CPUID::Brand().c_str();
 
+    for (auto& feature : CPUID::getAllFeatures()) {
+        qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
+    }
+
     printSupported("3DNOW", CPUID::_3DNOW());
     printSupported("3DNOWEXT", CPUID::_3DNOWEXT());
     printSupported("ABM", CPUID::ABM());

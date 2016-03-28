@@ -35,7 +35,13 @@ class CPUID
     class CPUID_Internal;
 
 public:
-    // getters
+    struct Feature {
+        std::string name;
+        bool supported;
+    };
+
+    static std::vector<Feature> getAllFeatures();
+
     static std::string Vendor(void) { return CPU_Rep.vendor_; }
     static std::string Brand(void) { return CPU_Rep.brand_; }
 
@@ -198,6 +204,7 @@ private:
         std::vector<std::array<int, 4>> data_;
         std::vector<std::array<int, 4>> extdata_;
     };
+
 };
 
 #endif
