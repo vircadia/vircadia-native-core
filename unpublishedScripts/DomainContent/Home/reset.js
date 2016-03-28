@@ -43,7 +43,7 @@
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
-    // Script.include(plantPath);
+    Script.include(plantPath);
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
     Script.include(transformerPath);
@@ -120,9 +120,6 @@
         },
 
         createDynamicEntities: function() {
-            return;
-            print("EBL CREATE DYNAMIC ENTITIES");
-
             var fishTank = new FishTank({
                 x: 1098.9254,
                 y: 460.5814,
@@ -149,15 +146,15 @@
                 z: 0
             });
 
-            // var myPlant = new Plant({
-            //     x: 1099.8785,
-            //     y: 460.3115,
-            //     z: -84.7736
-            // }, {
-            //     x: 0,
-            //     y: 0,
-            //     z: 0
-            // });
+            var myPlant = new Plant({
+                x: 1099.8785,
+                y: 460.3115,
+                z: -84.7736
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
 
             var pingPongGun = new HomePingPongGun({
                 x: 1101.2123,
@@ -186,7 +183,7 @@
 
 
         createKineticEntities: function() {
-            return;
+
             var blocks = new Blocks({
                 x: 1097.1383,
                 y: 460.3790,
@@ -282,7 +279,7 @@
                 z: 0,
             }
 
-            var rotationAsQuat = Quat.fromPitchYawRollDegrees(dollRotation.x,dollRotation.y,dollRotation.z);
+            var rotationAsQuat = Quat.fromPitchYawRollDegrees(dollRotation.x, dollRotation.y, dollRotation.z);
 
             var dolls = [
                 TRANSFORMER_URL_ARTEMIS,
@@ -294,14 +291,14 @@
 
             var dollLateralSeparation = 1.0;
             dolls.forEach(function(doll, index) {
-                
+
                 var separation = index * dollLateralSeparation;
                 print('separation: ' + separation)
                 var left = Quat.getRight(rotationAsQuat);
-                var distanceToLeft = Vec3.multiply(separation,left);
-                var dollPosition = Vec3.sum(firstDollPosition,distanceToLeft)
+                var distanceToLeft = Vec3.multiply(separation, left);
+                var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft)
                 var transformer = new TransformerDoll(doll, dollPosition, dollRotation);
-                
+
             });
 
         },
