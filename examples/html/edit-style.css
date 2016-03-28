@@ -434,7 +434,7 @@ input[type=checkbox]:checked + label:hover {
 .property .number {
     float: left;
 }
-.number + .number {
+.property .number + .number {
     margin-left: 12px;
 }
 
@@ -442,7 +442,12 @@ input[type=checkbox]:checked + label:hover {
     float: left;
     margin-bottom: 4px;
 }
-.number span {
+
+.number > input {
+    clear: both;
+    float: left;
+}
+.number > span {
     clear: both;
     float: left;
 }
