@@ -16,12 +16,21 @@ GLBackend::GLBuffer::GLBuffer() :
     _stamp(0),
     _buffer(0),
     _size(0)
-{}
+{
+    Backend::incrementBufferGPUCount();
+}
 
 GLBackend::GLBuffer::~GLBuffer() {
     if (_buffer != 0) {
         glDeleteBuffers(1, &_buffer);
     }
+    Backend::updateBufferGPUMemoryUsage(_size, 0);
+    Backend::decrementBufferGPUCount();
+}
+
+void GLBackend::GLBuffer::setSize(GLuint size) {
+    Backend::updateBufferGPUMemoryUsage(_size, size);
+    _size = size;
 }
 
 GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
@@ -46,7 +55,7 @@ GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
     glBufferData(GL_ARRAY_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().readData(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     object->_stamp = buffer.getSysmem().getStamp();
-    object->_size = (GLuint)buffer.getSysmem().getSize();
+    object->setSize((GLuint)buffer.getSysmem().getSize());
     //}
     (void) CHECK_GL_ERROR();
 
