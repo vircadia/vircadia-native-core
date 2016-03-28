@@ -4886,6 +4886,7 @@ void Application::updateDisplayMode() {
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
+        auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
@@ -4893,12 +4894,27 @@ void Application::updateDisplayMode() {
         // FIXME probably excessive and useless context switching
         _offscreenContext->makeCurrent();
 
-        // If the new plugin fails to activate, fallback to first item on the list
-        if (!newDisplayPlugin->activate()) {
-            qWarning() << "Failed to activate plugin: " << newDisplayPlugin->getName();
-            newDisplayPlugin = displayPlugins.at(0);
-            qWarning() << "Activating fallback plugin: " << newDisplayPlugin->getName();
-            if (!newDisplayPlugin->activate()) {
+        bool active = newDisplayPlugin->activate();
+
+        if (!active) {
+            // If the new plugin fails to activate, fallback to last display
+            qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
+            newDisplayPlugin = oldDisplayPlugin;
+
+            if (newDisplayPlugin) {
+                qWarning() << "Falling back to last display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            // If there is no last display, or
+            // If the last display fails to activate, fallback to desktop
+            if (!active) {
+                newDisplayPlugin = displayPlugins.at(0);
+                qWarning() << "Falling back to display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            if (!active) {
                 qFatal("Failed to activate fallback plugin");
             }
         }
