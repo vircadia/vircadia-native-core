@@ -135,29 +135,33 @@ void Model::enqueueLocationChange() {
     modelTransform.setTranslation(_translation);
     modelTransform.setRotation(_rotation);
 
-    Transform offset;
+    Transform modelMeshOffset;
     if (_geometry && _geometry->isLoaded()) {
-        offset = Transform(_rig->getGeometryToRigTransform());
+        modelMeshOffset = Transform(_rig->getGeometryToRigTransform());
     } else {
-        offset.postTranslate(_offset);
+        modelMeshOffset.postTranslate(_offset);
     }
+
+    Transform collisionMeshOffset;
+    collisionMeshOffset.postTranslate(_offset);
+
 
     render::PendingChanges pendingChanges;
     foreach (auto itemID, _modelMeshRenderItems.keys()) {
-        pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, offset](ModelMeshPartPayload& data) {
+        pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset](ModelMeshPartPayload& data) {
 
             data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
             const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
             size_t numClusterMatrices = data._model->getGeometry()->getFBXGeometry().meshes.at(data._meshIndex).clusters.size();
 
-            data.updateTransformForSkinnedMesh(modelTransform, offset, &state.clusterMatrices[0], numClusterMatrices);
+            data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, &state.clusterMatrices[0], numClusterMatrices);
             data.notifyLocationChanged();
         });
     }
 
     foreach (auto itemID, _collisionRenderItems.keys()) {
-        pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, offset](MeshPartPayload& data) {
-            data.updateTransform(modelTransform, offset);
+        pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
+            data.updateTransform(modelTransform, collisionMeshOffset);
             data.notifyLocationChanged();
        });
     }
