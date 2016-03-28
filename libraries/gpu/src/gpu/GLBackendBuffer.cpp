@@ -17,27 +17,19 @@ GLBackend::GLBuffer::GLBuffer() :
     _buffer(0),
     _size(0)
 {
-    Buffer::_bufferGPUCount++;
+    Backend::incrementBufferGPUCount();
 }
 
 GLBackend::GLBuffer::~GLBuffer() {
     if (_buffer != 0) {
         glDeleteBuffers(1, &_buffer);
     }
-    Buffer::_bufferGPUMemoryUsage.fetch_sub(_size);
-    Buffer::_bufferGPUCount--;
+    Backend::updateBufferGPUMemoryUsage(_size, 0);
+    Backend::decrementBufferGPUCount();
 }
 
 void GLBackend::GLBuffer::setSize(GLuint size) {
-    if (_size == size) {
-        return;
-    }
-    if (size > _size) {
-        Buffer::_bufferGPUMemoryUsage.fetch_add(size - _size);
-    } else {
-        Buffer::_bufferGPUMemoryUsage.fetch_sub(_size - size);
-    }
-
+    Backend::updateBufferGPUMemoryUsage(_size, size);
     _size = size;
 }
 

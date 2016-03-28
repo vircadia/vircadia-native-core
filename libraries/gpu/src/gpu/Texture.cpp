@@ -13,31 +13,13 @@
 
 #include <glm/gtc/constants.hpp>
 #include "GPULogging.h"
-//#include <QDebug>
+#include "Context.h"
 
 using namespace gpu;
 
 
 std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
-std::atomic<uint32_t> Texture::_textureGPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
-std::atomic<Texture::Size> Texture::_textureGPUMemoryUsage{ 0 };
-
-uint32_t Texture::getTextureCPUCount() {
-    return _textureCPUCount.load();
-}
-
-Texture::Size Texture::getTextureCPUMemoryUsage() {
-    return _textureCPUMemoryUsage.load();
-}
-
-uint32_t Texture::getTextureGPUCount() {
-    return _textureGPUCount.load();
-}
-
-Texture::Size Texture::getTextureGPUMemoryUsage() {
-    return _textureGPUMemoryUsage.load();
-}
 
 void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -50,6 +32,22 @@ void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSiz
     }
 }
 
+uint32_t Texture::getTextureCPUCount() {
+    return _textureCPUCount.load();
+}
+
+Texture::Size Texture::getTextureCPUMemoryUsage() {
+    return _textureCPUMemoryUsage.load();
+}
+
+uint32_t Texture::getTextureGPUCount() {
+    return Context::getTextureGPUCount();
+}
+
+Texture::Size Texture::getTextureGPUMemoryUsage() {
+    return Context::getTextureGPUMemoryUsage();
+
+}
 
 uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
 
@@ -118,9 +116,9 @@ const Texture::PixelsPointer Texture::Storage::getMipFace(uint16 level, uint8 fa
 
 void Texture::Storage::notifyMipFaceGPULoaded(uint16 level, uint8 face) const {
     PixelsPointer mipFace = getMipFace(level, face);
-   // if (mipFace && (_type != TEX_CUBE)) {
-        if (mipFace) {
-            mipFace->notifyGPULoaded();
+    // Free the mips
+    if (mipFace) {
+        mipFace->notifyGPULoaded();
     }
 }
 

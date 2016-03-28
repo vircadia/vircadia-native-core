@@ -20,27 +20,19 @@ GLBackend::GLTexture::GLTexture() :
     _target(GL_TEXTURE_2D),
     _size(0)
 {
-    Texture::_textureGPUCount++;
+    Backend::incrementTextureGPUCount();
 }
 
 GLBackend::GLTexture::~GLTexture() {
     if (_texture != 0) {
         glDeleteTextures(1, &_texture);
     }
-    Texture::_textureGPUMemoryUsage.fetch_sub(_size);
-    Texture::_textureGPUCount--;
+    Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::decrementTextureGPUCount();
 }
 
 void GLBackend::GLTexture::setSize(GLuint size) {
-    if (_size == size) {
-        return;
-    }
-    if (size > _size) {
-        Texture::_textureGPUMemoryUsage.fetch_add(size - _size);
-    } else {
-        Texture::_textureGPUMemoryUsage.fetch_sub(_size - size);
-    }
-
+    Backend::updateTextureGPUMemoryUsage(_size, size);
     _size = size;
 }
 

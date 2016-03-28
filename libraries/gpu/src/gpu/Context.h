@@ -117,6 +117,17 @@ public:
 
     void getStats(ContextStats& stats) const { stats = _stats; }
 
+
+
+    // These should only be accessed by Backend implementation to repport the buffer and texture allocations,
+    // they are NOT public calls
+    static void incrementBufferGPUCount();
+    static void decrementBufferGPUCount();
+    static void updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+    static void incrementTextureGPUCount();
+    static void decrementTextureGPUCount();
+    static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+
 protected:
     StereoState  _stereo;
     ContextStats _stats;
@@ -124,6 +135,7 @@ protected:
 
 class Context {
 public:
+    using Size = Resource::Size;
     typedef Backend* (*CreateBackend)();
     typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
 
@@ -158,6 +170,13 @@ public:
      // Repporting stats of the context
     void getStats(ContextStats& stats) const;
 
+
+    static uint32_t getBufferGPUCount();
+    static Size getBufferGPUMemoryUsage();
+
+    static uint32_t getTextureGPUCount();
+    static Size getTextureGPUMemoryUsage();
+
 protected:
     Context(const Context& context);
 
@@ -174,6 +193,23 @@ protected:
     static std::once_flag _initialized;
 
     friend class Shader;
+
+    // These should only be accessed by the Backend, they are NOT public calls
+    static void incrementBufferGPUCount();
+    static void decrementBufferGPUCount();
+    static void updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void incrementTextureGPUCount();
+    static void decrementTextureGPUCount();
+    static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
+    // Buffer and Texture Counters
+    static std::atomic<uint32_t> _bufferGPUCount;
+    static std::atomic<Size> _bufferGPUMemoryUsage;
+
+    static std::atomic<uint32_t> _textureGPUCount;
+    static std::atomic<Size> _textureGPUMemoryUsage;
+
+    friend class Backend;
 };
 typedef std::shared_ptr<Context> ContextPointer;
 

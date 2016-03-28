@@ -16,6 +16,8 @@
 #include <NumericalConstants.h>
 #include <QDebug>
 
+#include "Context.h"
+
 using namespace gpu;
 
 class AllocationDebugger {
@@ -233,25 +235,7 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
 }
 
 std::atomic<uint32_t> Buffer::_bufferCPUCount{ 0 };
-std::atomic<uint32_t> Buffer::_bufferGPUCount{ 0 };
 std::atomic<Buffer::Size> Buffer::_bufferCPUMemoryUsage{ 0 };
-std::atomic<Buffer::Size> Buffer::_bufferGPUMemoryUsage{ 0 };
-
-uint32_t Buffer::getBufferCPUCount() {
-    return _bufferCPUCount.load();
-}
-
-Buffer::Size Buffer::getBufferCPUMemoryUsage() {
-    return _bufferCPUMemoryUsage.load();
-}
-
-uint32_t Buffer::getBufferGPUCount() {
-    return _bufferGPUCount.load();
-}
-
-Buffer::Size Buffer::getBufferGPUMemoryUsage() {
-    return _bufferGPUMemoryUsage.load();
-}
 
 void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -264,6 +248,21 @@ void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize)
     }
 }
 
+uint32_t Buffer::getBufferCPUCount() {
+    return _bufferCPUCount.load();
+}
+
+Buffer::Size Buffer::getBufferCPUMemoryUsage() {
+    return _bufferCPUMemoryUsage.load();
+}
+
+uint32_t Buffer::getBufferGPUCount() {
+    return Context::getBufferGPUCount();
+}
+
+Buffer::Size Buffer::getBufferGPUMemoryUsage() {
+    return Context::getBufferGPUMemoryUsage();
+}
 
 Buffer::Buffer() :
     Resource(),

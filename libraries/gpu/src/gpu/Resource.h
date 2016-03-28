@@ -115,10 +115,6 @@ class Buffer : public Resource {
     static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
-    static std::atomic<uint32_t> _bufferGPUCount;
-    static std::atomic<Size> _bufferGPUMemoryUsage;
-
-public:
     static uint32_t getBufferCPUCount();
     static Size getBufferCPUMemoryUsage();
     static uint32_t getBufferGPUCount();

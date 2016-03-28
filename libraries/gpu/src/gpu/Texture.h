@@ -141,11 +141,6 @@ class Texture : public Resource {
     static std::atomic<uint32_t> _textureCPUCount;
     static std::atomic<Size> _textureCPUMemoryUsage;
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
-
-public:
-    static std::atomic<uint32_t> _textureGPUCount;
-    static std::atomic<Size> _textureGPUMemoryUsage;
-
 public:
     static uint32_t getTextureCPUCount();
     static Size getTextureCPUMemoryUsage();
