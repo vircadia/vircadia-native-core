@@ -10,3 +10,7 @@
         y: 123,
         z: 0
     });
+
+    Script.scriptEnding.connect(function(){
+        fishtank.cleanup()
+    })

@@ -47,6 +47,10 @@
         blue: 0
     };
 
+    var THROTTLE = false;
+    var THROTTLE_RATE = 1000;
+    var sinceLastUpdate = 0;
+
     var _this;
 
     function Maze() {
@@ -213,6 +217,19 @@
             Audio.playSound(VICTORY_SOUND, audioProperties);
 
         },
+        update:function(){
+
+        if (THROTTLE === true) {
+            sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
+            if (sinceLastUpdate > THROTTLE_RATE) {
+                sinceLastUpdate = 0;
+            } else {
+                return;
+            }
+        }
+
+            this.testBallDistance()
+        }
     };
 
     return new Maze();

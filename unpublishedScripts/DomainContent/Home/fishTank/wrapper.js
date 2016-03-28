@@ -497,4 +497,6 @@ FishTank = function(spawnPosition, spawnRotation) {
             return defaultValue;
         }
     }
+
+    this.cleanup = cleanup;
 }

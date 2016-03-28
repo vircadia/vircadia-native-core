@@ -26,11 +26,10 @@
 
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var otherProps = Entities.getEntityProperties(otherID);
-           
-            if (otherProps.name = "hifi-home-dressing-room-transformer-collider" && _this.locked === false) {
+
+            if (otherProps.name === "hifi-home-dressing-room-transformer-collider" && _this.locked === false) {
                 var myProps = Entities.getEntityProperties(myID);
                 var distance = Vec3.distance(myProps.position, otherProps.position);
-                print('transformer DISTANCE ' + distance)
                 if (distance < TRIGGER_DISTANCE) {
                     print('transformer should do magic!!!')
                         // this.playTransformationSound(collisionInfo.contactPoint);
