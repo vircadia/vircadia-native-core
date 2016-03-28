@@ -15,6 +15,8 @@
 
 #include <LogHandler.h>
 
+#include "Socket.h"
+
 using namespace udt;
 
 static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
