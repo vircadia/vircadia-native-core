@@ -29,7 +29,7 @@ public:
     // virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
 
 protected:
-    virtual void internalActivate() override;
+    virtual bool internalActivate() override;
     virtual void internalDeactivate() override;
     void updateScreen();
 

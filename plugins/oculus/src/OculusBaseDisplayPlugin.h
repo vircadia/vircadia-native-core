@@ -24,7 +24,7 @@ public:
 
 protected:
     void customizeContext() override;
-    void internalActivate() override;
+    bool internalActivate() override;
     void internalDeactivate() override;
 
 protected:

@@ -34,8 +34,11 @@ void OculusBaseDisplayPlugin::customizeContext() {
     Parent::customizeContext();
 }
 
-void OculusBaseDisplayPlugin::internalActivate() {
+bool OculusBaseDisplayPlugin::internalActivate() {
     _session = acquireOculusSession();
+    if (!_session) {
+        return false;
+    }
 
     _hmdDesc = ovr_GetHmdDesc(_session);
 
@@ -81,7 +84,7 @@ void OculusBaseDisplayPlugin::internalActivate() {
     // This must come after the initialization, so that the values calculated 
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
-    Parent::internalActivate();
+    return Parent::internalActivate();
 }
 
 void OculusBaseDisplayPlugin::internalDeactivate() {
