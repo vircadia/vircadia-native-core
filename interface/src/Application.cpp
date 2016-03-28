@@ -4892,7 +4892,17 @@ void Application::updateDisplayMode() {
 
         // FIXME probably excessive and useless context switching
         _offscreenContext->makeCurrent();
-        newDisplayPlugin->activate();
+
+        // If the new plugin fails to activate, fallback to first item on the list
+        if (!newDisplayPlugin->activate()) {
+            qWarning() << "Failed to activate plugin: " << newDisplayPlugin->getName();
+            newDisplayPlugin = displayPlugins.at(0);
+            qWarning() << "Activating fallback plugin: " << newDisplayPlugin->getName();
+            if (!newDisplayPlugin->activate()) {
+                qFatal("Failed to activate fallback plugin");
+            }
+        }
+
         _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
         _offscreenContext->makeCurrent();
