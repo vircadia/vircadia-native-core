@@ -404,8 +404,8 @@ int SendQueue::maybeSendNewPacket() {
                     _socket->writeBasePacket(*pairTailPacket, _destination);
                 }
 
-                // we attempted to send two packets, return 2
-                return 2;
+                // return the number of attempted packet sends
+                return shouldSendPairTail ? 2 : 1;
             } else {
                 // we attempted to send a single packet, return 1
                 return 1;
