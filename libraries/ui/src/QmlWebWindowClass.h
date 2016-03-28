@@ -18,14 +18,21 @@ class QmlWebWindowClass : public QmlWindowClass {
 
 public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
-    QmlWebWindowClass(QObject* qmlWindow);
 
-public slots:
+    public slots:
     QString getURL() const;
     void setURL(const QString& url);
 
+    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitWebEvent(const QVariant& webMessage);
+
 signals:
     void urlChanged();
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
+
+protected:
+    QString qmlSource() const override { return "QmlWebWindow.qml"; }
 };
 
 #endif

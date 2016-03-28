@@ -26,7 +26,7 @@ ParticleExplorerTool = function() {
         });
 
         that.webView.setVisible(true);
-        that.webView.eventBridge.webEventReceived.connect(that.webEventReceived);        
+        that.webView.webEventReceived.connect(that.webEventReceived);        
     }
 
 
