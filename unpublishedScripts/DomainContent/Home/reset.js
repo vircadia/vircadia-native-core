@@ -271,16 +271,18 @@
         createTransformers: function() {
             print('CREATING TRANSFORMERS!')
             var firstDollPosition = {
-                x: 1108.2123,
-                y: 460.7516,
-                z: -80.9387
+                x: 1107.61,
+                y: 460.8,
+                z: -77.34
             }
 
             var dollRotation = {
                 x: 0,
-                y: 28,
+                y: -55.86,
                 z: 0,
             }
+
+            var rotationAsQuat = Quat.fromPitchYawRollDegrees(dollRotation.x,dollRotation.y,dollRotation.z);
 
             var dolls = [
                 TRANSFORMER_URL_ARTEMIS,
@@ -290,18 +292,15 @@
                 TRANSFORMER_URL_WILL
             ];
 
-            var dollLateralSeparation = 0.5;
+            var dollLateralSeparation = 1.0;
             dolls.forEach(function(doll, index) {
-                print('CREATE TRANSFORMER:: ' + doll)
+                
                 var separation = index * dollLateralSeparation;
-                var right = Quat.getRight(dollRotation);
-                var left = Vec3.multiply(-1, right);
-                var howFarLeft = Vec3.multiply(separation, left);
-                var distanceToLeft = Vec3.sum(firstDollPosition, howFarLeft);
-                print('PARAMS AT CREATE')
-                print('distanceToLeft : ' + JSON.stringify(distanceToLeft))
-                print('dollRotation : ' + JSON.stringify(dollRotation))
-                var transformer = new TransformerDoll(doll, distanceToLeft, dollRotation);
+                print('separation: ' + separation)
+                var left = Quat.getRight(rotationAsQuat);
+                var distanceToLeft = Vec3.multiply(separation,left);
+                var dollPosition = Vec3.sum(firstDollPosition,distanceToLeft)
+                var transformer = new TransformerDoll(doll, dollPosition, dollRotation);
                 
             });
 
