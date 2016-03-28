@@ -289,6 +289,32 @@
                 TRANSFORMER_URL_WILL
             ];
 
+            var dollDimensions = [{
+                //artemis
+                x: 0.8120,
+                y: 0.8824,
+                z: 0.1358
+            }, {
+                //albert
+                x: 0.9283,
+                y: 0.9178,
+                z: 0.2097
+            }, {
+                //being of light
+                x: 0.9419,
+                y: 0.8932,
+                z: 0.1383
+            }, {
+                //kate
+                x: 0.8387,
+                y: 0.9009,
+                z: 0.1731
+            }, {
+                //will
+                x: 0.8163,
+                y: 0.8382,
+                z: 0.1303
+            }];
             var dollLateralSeparation = 1.0;
             dolls.forEach(function(doll, index) {
 
@@ -297,7 +323,8 @@
                 var left = Quat.getRight(rotationAsQuat);
                 var distanceToLeft = Vec3.multiply(separation, left);
                 var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft)
-                var transformer = new TransformerDoll(doll, dollPosition, dollRotation);
+                var transformer = new TransformerDoll(doll, dollPosition, dollRotation,
+                    dollDimensions[index]);
 
             });
 
