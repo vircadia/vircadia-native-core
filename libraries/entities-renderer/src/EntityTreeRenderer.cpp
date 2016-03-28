@@ -421,8 +421,8 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         ModelPointer model = modelEntityItem->getModel(this);
-        if (model) {
-            result = &model->getGeometry()->getFBXGeometry();
+        if (model && model->isLoaded()) {
+            result = &model->getFBXGeometry();
         }
     }
     return result;
@@ -446,11 +446,8 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         if (modelEntityItem->hasCompoundShapeURL()) {
             ModelPointer model = modelEntityItem->getModel(this);
-            if (model) {
-                const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
-                    result = &collisionNetworkGeometry->getFBXGeometry();
-                }
+            if (model && model->isCollisionLoaded()) {
+                result = &model->getCollisionFBXGeometry();
             }
         }
     }
