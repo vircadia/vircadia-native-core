@@ -81,6 +81,8 @@ AccountManager::AccountManager() :
     
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
+    qRegisterMetaType<AccountManagerAuth::Type>();
+
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
 }
 
@@ -215,12 +217,13 @@ void AccountManager::sendRequest(const QString& path,
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendRequest",
                                   Q_ARG(const QString&, path),
-                                  Q_ARG(AccountManagerAuth::Type, AccountManagerAuth::Required),
+                                  Q_ARG(AccountManagerAuth::Type, authType),
                                   Q_ARG(QNetworkAccessManager::Operation, operation),
                                   Q_ARG(const JSONCallbackParameters&, callbackParams),
                                   Q_ARG(const QByteArray&, dataByteArray),
                                   Q_ARG(QHttpMultiPart*, dataMultiPart),
                                   Q_ARG(QVariantMap, propertyMap));
+        return;
     }
     
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();

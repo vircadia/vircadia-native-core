@@ -20,6 +20,7 @@ Windows.Window {
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     property var source;
+    property var eventBridge;
     property var component;
     property var dynamicContent;
     onSourceChanged: {

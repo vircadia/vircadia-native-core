@@ -333,7 +333,9 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
+         _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
+         _model->getScaleToFitDimensions() != getDimensions() ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
@@ -349,6 +351,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         }
 
         _needsInitialSimulation = false;
+        _needsJointSimulation = false;
     }
 }
 
@@ -738,6 +741,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
@@ -753,10 +757,32 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
 }
+
+void RenderableModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    ModelEntityItem::setJointRotations(rotations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    ModelEntityItem::setJointRotationsSet(rotationsSet);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    ModelEntityItem::setJointTranslations(translations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    ModelEntityItem::setJointTranslationsSet(translationsSet);
+    _needsJointSimulation = true;
+}
+
 
 void RenderableModelEntityItem::locationChanged() {
     EntityItem::locationChanged();

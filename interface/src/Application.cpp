@@ -240,25 +240,26 @@ class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 15 * USECS_PER_SECOND;
-
+    static const unsigned long HEARTBEAT_REPORT_INTERVAL_USECS = 5 * USECS_PER_SECOND;
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
+    static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
+    static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
+    
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
         setObjectName("Deadlock Watchdog");
-        QTimer* heartbeatTimer = new QTimer();
         // Give the heartbeat an initial value
-        updateHeartbeat();
-        connect(heartbeatTimer, &QTimer::timeout, [this] {
-            updateHeartbeat();
-        });
-        heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
+        _heartbeat = usecTimestampNow();
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
     }
 
     void updateHeartbeat() {
-        _heartbeat = usecTimestampNow();
+        auto now = usecTimestampNow();
+        auto elapsed = now - _heartbeat;
+        _movingAverage.addSample(elapsed);
+        _heartbeat = now;
     }
 
     void deadlockDetectionCrash() {
@@ -269,10 +270,52 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
+
+            uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
+            uint64_t now = usecTimestampNow();
+            auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
+            auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
+            auto elapsedMovingAverage = _movingAverage.getAverage();
+
+            if (elapsedMovingAverage > _maxElapsedAverage) {
+                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "maxElapsed:" << _maxElapsed
+                    << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
+                    << "NEW maxElapsedAverage:" << elapsedMovingAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _maxElapsedAverage = elapsedMovingAverage;
+            }
+            if (lastHeartbeatAge > _maxElapsed) {
+                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsed:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "PREVIOUS maxElapsed:" << _maxElapsed
+                    << "NEW maxElapsed:" << lastHeartbeatAge
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _maxElapsed = lastHeartbeatAge;
+            }
+            if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
+                qDebug() << "DEADLOCK WATCHDOG STATUS -- lastHeartbeatAge:" << lastHeartbeatAge
+                         << "elapsedMovingAverage:" << elapsedMovingAverage
+                         << "maxElapsed:" << _maxElapsed
+                         << "maxElapsedAverage:" << _maxElapsedAverage
+                         << "samples:" << _movingAverage.getSamples();
+                _lastReport = now;
+            }
+
 #ifdef NDEBUG
-            auto now = usecTimestampNow();
-            auto lastHeartbeatAge = now - _heartbeat;
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
+                qDebug() << "DEADLOCK DETECTED -- "
+                         << "lastHeartbeatAge:" << lastHeartbeatAge
+                         << "[ lastHeartbeat :" << lastHeartbeat
+                         << "now:" << now << " ]"
+                         << "elapsedMovingAverage:" << elapsedMovingAverage
+                         << "maxElapsed:" << _maxElapsed
+                         << "maxElapsedAverage:" << _maxElapsedAverage
+                         << "samples:" << _movingAverage.getSamples();
                 deadlockDetectionCrash();
             }
 #endif
@@ -280,10 +323,19 @@ public:
     }
 
     static std::atomic<uint64_t> _heartbeat;
+    static std::atomic<uint64_t> _lastReport;
+    static std::atomic<uint64_t> _maxElapsed;
+    static std::atomic<int> _maxElapsedAverage;
+    static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
+
     bool _quit { false };
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
+std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
+std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
+std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
+ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -1380,6 +1432,8 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+
+    updateHeartbeat();
 
     // Some plugins process message events, potentially leading to
     // re-entering a paint event.  don't allow further processing if this
@@ -2501,6 +2555,8 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
+
+    updateHeartbeat();
 
     if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
@@ -4830,13 +4886,39 @@ void Application::updateDisplayMode() {
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
+        auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
 
         // FIXME probably excessive and useless context switching
         _offscreenContext->makeCurrent();
-        newDisplayPlugin->activate();
+
+        bool active = newDisplayPlugin->activate();
+
+        if (!active) {
+            // If the new plugin fails to activate, fallback to last display
+            qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
+            newDisplayPlugin = oldDisplayPlugin;
+
+            if (newDisplayPlugin) {
+                qWarning() << "Falling back to last display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            // If there is no last display, or
+            // If the last display fails to activate, fallback to desktop
+            if (!active) {
+                newDisplayPlugin = displayPlugins.at(0);
+                qWarning() << "Falling back to display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            if (!active) {
+                qFatal("Failed to activate fallback plugin");
+            }
+        }
+
         _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
         _offscreenContext->makeCurrent();
