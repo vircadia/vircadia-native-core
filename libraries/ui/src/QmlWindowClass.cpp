@@ -32,6 +32,8 @@ static const char* const WIDTH_PROPERTY = "width";
 static const char* const HEIGHT_PROPERTY = "height";
 static const char* const VISIBILE_PROPERTY = "visible";
 static const char* const TOOLWINDOW_PROPERTY = "toolWindow";
+static const uvec2 MAX_QML_WINDOW_SIZE { 1280, 720 };
+static const uvec2 MIN_QML_WINDOW_SIZE { 120, 80 };
 
 QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
     const auto argumentCount = context->argumentCount();
@@ -110,13 +112,9 @@ void QmlWindowClass::initQml(QVariantMap properties) {
                 object->setProperty(TITLE_PROPERTY, properties[TITLE_PROPERTY].toString());
             }
             if (properties.contains(HEIGHT_PROPERTY) && properties.contains(WIDTH_PROPERTY)) {
-                auto height = properties[HEIGHT_PROPERTY].toInt();
-                auto width = properties[WIDTH_PROPERTY].toInt();
-                if (width != -1 && height != -1) {
-                    width = std::max(100, std::min(1280, width));
-                    height = std::max(100, std::min(720, height));
-                    asQuickItem()->setSize(QSize(width, height));
-                }
+                uvec2 requestedSize { properties[WIDTH_PROPERTY].toUInt(), properties[HEIGHT_PROPERTY].toUInt() };
+                requestedSize = glm::clamp(requestedSize, MIN_QML_WINDOW_SIZE, MAX_QML_WINDOW_SIZE);
+                asQuickItem()->setSize(QSize(requestedSize.x, requestedSize.y));
             }
 
             bool visible = !properties.contains(VISIBILE_PROPERTY) || properties[VISIBILE_PROPERTY].toBool();

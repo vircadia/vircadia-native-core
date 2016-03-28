@@ -22,7 +22,6 @@ class QScriptContext;
 // FIXME refactor this class to be a QQuickItem derived type and eliminate the needless wrapping 
 class QmlWindowClass : public QObject {
     Q_OBJECT
-//    Q_PROPERTY(QObject* eventBridge READ getEventBridge CONSTANT)
     Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition NOTIFY positionChanged)
     Q_PROPERTY(glm::vec2 size READ getSize WRITE setSize NOTIFY sizeChanged)
     Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibilityChanged)
