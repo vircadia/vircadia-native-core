@@ -599,14 +599,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     auto audioIO = DependencyManager::get<AudioClient>();
     audioIO->setPositionGetter([]{
-        auto audioIO = DependencyManager::get<AvatarManager>();
-        auto myAvatar = audioIO ? audioIO->getMyAvatar() : nullptr;
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         
         return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
     });
     audioIO->setOrientationGetter([]{
-        auto audioIO = DependencyManager::get<AvatarManager>();
-        auto myAvatar = audioIO ? audioIO->getMyAvatar() : nullptr;
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
 
         return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
     });
