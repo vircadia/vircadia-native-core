@@ -245,7 +245,7 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
                 RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, apiPublicKey.size());
 
                 if (rsaPublicKey) {
-                    _domainPublicKeys[domainID] = { rsaPublicKey, [](RSA* rsa) { RSA_free(rsa); }};
+                    _domainPublicKeys[domainID] = { rsaPublicKey, RSA_free };
                 } else {
                     qWarning() << "Could not convert in-memory public key for" << domainID << "to usable RSA public key.";
                     qWarning() << "Public key will be re-requested on next heartbeat.";
