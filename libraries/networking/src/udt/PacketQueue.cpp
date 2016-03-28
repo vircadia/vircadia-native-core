@@ -51,7 +51,7 @@ PacketQueue::PacketPointer PacketQueue::takePacket() {
         --_currentIndex;
     }
     
-    return std::move(packet);
+    return packet;
 }
 
 unsigned int PacketQueue::nextIndex() {
