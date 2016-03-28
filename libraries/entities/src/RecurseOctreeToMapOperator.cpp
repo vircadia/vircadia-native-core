@@ -51,7 +51,7 @@ bool RecurseOctreeToMapOperator::postRecursion(OctreeElementPointer element) {
     QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
 
     entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        if (_skipThoseWithBadParents && !entityItem->isParentIDValid(_entityTree)) {
+        if (_skipThoseWithBadParents && !entityItem->isParentIDValid()) {
             return;  // we weren't able to resolve a parent from _parentID, so don't save this entity.
         }
 

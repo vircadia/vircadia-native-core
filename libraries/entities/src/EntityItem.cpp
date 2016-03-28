@@ -1010,6 +1010,10 @@ EntityTreePointer EntityItem::getTree() const {
     return tree;
 }
 
+SpatialParentTree* EntityItem::getParentTree() const {
+    return getTree().get();
+}
+
 bool EntityItem::wantTerseEditLogging() const {
     EntityTreePointer tree = getTree();
     return tree ? tree->wantTerseEditLogging() : false;

@@ -139,14 +139,15 @@ public:
     void die() { _isDead = true; }
     bool isDead() const { return _isDead; }
 
-    bool isParentIDValid(SpatialParentTree* entityTree = nullptr) const { bool success = false; getParentPointer(success, entityTree); return success; }
+    bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
+    virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
-    SpatiallyNestablePointer getParentPointer(bool& success, SpatialParentTree* entityTree = nullptr) const;
+    SpatiallyNestablePointer getParentPointer(bool& success) const;
 
     mutable SpatiallyNestableWeakPointer _parent;
 

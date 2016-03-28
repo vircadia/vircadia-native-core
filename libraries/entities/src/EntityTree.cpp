@@ -90,7 +90,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
         _simulation->addEntity(entity);
     }
 
-    if (!entity->isParentIDValid(this)) {
+    if (!entity->isParentIDValid()) {
         _missingParent.append(entity);
     }
 
@@ -260,7 +260,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 _missingParent.append(childEntity);
                 continue;
             }
-            if (!childEntity->isParentIDValid(this)) {
+            if (!childEntity->isParentIDValid()) {
                 _missingParent.append(childEntity);
             }
 
@@ -1027,7 +1027,7 @@ void EntityTree::fixupMissingParents() {
             }
 
             bool doMove = false;
-            if (entity->isParentIDValid(this)) {
+            if (entity->isParentIDValid()) {
                 qCDebug(entities) << "HRS fixme valid parent" << entity->getEntityItemID() << queryAACubeSuccess;
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
                 doMove = true;
@@ -1040,7 +1040,7 @@ void EntityTree::fixupMissingParents() {
                 _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
                 doMove = true;
             }
-            else qCDebug(entities) << "HRS fixme failed parent" << entity->getEntityItemID() << queryAACubeSuccess;
+            else qCDebug(entities) << "HRS fixme failed parent" << entity->getEntityItemID() << queryAACubeSuccess << "parent:" << entity->getParentID() << !!findEntityByID(entity->getParentID());
 
             if (queryAACubeSuccess && doMove) {
                 moveOperator.addEntityToMoveList(entity, newCube);
