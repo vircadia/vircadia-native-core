@@ -146,7 +146,11 @@
             delete littleVersionProps.localRotation;
             delete littleVersionProps.naturalPosition;
             // delete littleVersionProps.script;
-
+            littleVersionProps.gravity = {
+                x: 0,
+                y: -5,
+                z: 0
+            };
             var userData = JSON.parse(littleVersionProps.userData);
             var basePosition = userData["hifiHomeTransformerKey"].basePosition;
             var baseRotation = userData["hifiHomeTransformerKey"].baseRotation;
