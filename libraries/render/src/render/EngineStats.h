@@ -73,18 +73,16 @@ namespace render {
     };
 
     class EngineStats {
+        gpu::ContextStats _gpuStats;
+        QElapsedTimer _frameTimer;
     public:
         using Config = EngineStatsConfig;
         using JobModel = Job::Model<EngineStats, Config>;
 
         EngineStats() { _frameTimer.start(); }
 
-        gpu::ContextStats _gpuStats;
-
         void configure(const Config& configuration) {}
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-        QElapsedTimer _frameTimer;
     };
 }
 
