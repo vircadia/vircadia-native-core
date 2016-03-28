@@ -451,10 +451,10 @@ bool NeuronPlugin::isSupported() const {
 #endif
 }
 
-void NeuronPlugin::activate() {
-#ifdef HAVE_NEURON
+bool NeuronPlugin::activate() {
     InputPlugin::activate();
 
+#ifdef HAVE_NEURON
     // register with userInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
@@ -473,11 +473,15 @@ void NeuronPlugin::activate() {
     if (!_socketRef) {
         // error
         qCCritical(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress.c_str() << ":" << _serverPort << ", error = " << BRGetLastErrorMessage();
+        return false;
     } else {
         qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
 
         BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
+        return true;
     }
+#else
+    return false;
 #endif
 }
 

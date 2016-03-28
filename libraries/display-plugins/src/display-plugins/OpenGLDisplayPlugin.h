@@ -32,7 +32,7 @@ public:
 
     // These must be final to ensure proper ordering of operations 
     // between the main thread and the presentation thread
-    void activate() override final;
+    bool activate() override final;
     void deactivate() override final;
 
     bool eventFilter(QObject* receiver, QEvent* event) override;
@@ -77,7 +77,8 @@ protected:
     virtual void customizeContext();
     virtual void uncustomizeContext();
 
-    virtual void internalActivate() {}
+    // Returns true on successful activation
+    virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
     virtual void cleanupForSceneTexture(const gpu::TexturePointer& sceneTexture);
     // Plugin specific functionality to send the composed scene to the output window or device
