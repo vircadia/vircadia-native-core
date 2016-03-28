@@ -20,6 +20,7 @@
          },
          visible: true,
          damping: 0.8,
+         angularDamping:0.8,
          userData: JSON.stringify({
              'grabbableKey': {
                  'grabbable': true
@@ -32,6 +33,7 @@
                  'reset': true
              }
          }),
+         density:5000,
          dimensions: dimensions,
          script: TRANSFORMER_SCRIPT
      }

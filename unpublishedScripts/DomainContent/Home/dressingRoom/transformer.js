@@ -28,16 +28,7 @@
             var otherProps = Entities.getEntityProperties(otherID);
 
             if (otherProps.name === "hifi-home-dressing-room-transformer-collider" && _this.locked === false) {
-                var myProps = Entities.getEntityProperties(myID);
-                var distance = Vec3.distance(myProps.position, otherProps.position);
-                if (distance < TRIGGER_DISTANCE) {
-                    print('transformer should do magic!!!')
-                        // this.playTransformationSound(collisionInfo.contactPoint);
-                        // this.createTransformationParticles();
-                    _this.findRotatorBlock();
-                } else {
-                    return;
-                }
+                _this.findRotatorBlock();
                 this.locked = true;
 
             } else {
@@ -75,11 +66,19 @@
 
         removeCurrentBigVersion: function(rotatorBlock) {
             print('transformer should remove big version')
+            var blacklistKey = 'Hifi-Hand-RayPick-Blacklist';
+
+
             var myProps = Entities.getEntityProperties(_this.entityID);
             var results = Entities.findEntities(myProps.position, 10);
             results.forEach(function(result) {
                 var resultProps = Entities.getEntityProperties(result);
                 if (resultProps.name === "hifi-home-dressing-room-big-transformer") {
+                    Messages.sendMessage(blacklistKey, JSON.stringify({
+                        action: 'remove',
+                        id: result
+                    }));
+
                     Entities.deleteEntity(result);
                 }
             });
@@ -89,6 +88,7 @@
         },
 
         createBigVersion: function(smallProps) {
+
             print('transformer should create big version!!')
             print('transformer has rotatorBlock??' + _this.rotatorBlock);
             var rotatorProps = Entities.getEntityProperties(_this.rotatorBlock);
@@ -110,12 +110,26 @@
             }
 
             var bigVersion = Entities.addEntity(bigVersionProps);
-            print('transformer created big version: ' + bigVersion)
+            print('transformer created big version: ' + bigVersion);
+
+            var blacklistKey = 'Hifi-Hand-RayPick-Blacklist';
+            Messages.sendMessage(blacklistKey, JSON.stringify({
+                action: 'add',
+                id: bigVersion
+            }));
+
             _this.putNewVersionOnShelf();
         },
 
         putTransformerOnRotatorBlock: function(blockPosition) {
             print('transformer should get set on rotator block')
+
+            blockPosition.y = blockPosition.y + 1;
+            // var newPosition = {
+            //     x:blockPosition.x,
+            //     y:blockPosition.y+1,
+            //     z:blockPosition
+            // };
             return blockPosition
         },
 

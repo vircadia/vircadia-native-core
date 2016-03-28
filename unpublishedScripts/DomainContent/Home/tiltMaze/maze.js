@@ -64,6 +64,7 @@
         preload: function(entityID) {
             this.entityID = entityID;
             VICTORY_SOUND = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/levelUp.wav");
+            Script.update.connect(this.update);
         },
         startNearGrab: function() {
             //check to make sure a ball is in range, otherwise create one
@@ -165,6 +166,7 @@
             var ballSpawnerPosition = Entities.getEntityProperties(data.tiltMaze.ballSpawner, 'position').position;
 
             var separation = Vec3.distance(ballPosition, ballSpawnerPosition);
+            print('ball separation: ' + separation)
             if (separation > BALL_DISTANCE_THRESHOLD) {
                 this.destroyBall();
                 this.createBall();
@@ -226,9 +228,13 @@
             } else {
                 return;
             }
-        }
+        }   
+            print('in update loop for maze, look for balls to clear')
 
-            this.testBallDistance()
+            _this.testBallDistance()
+        },
+        unload:function(){
+            Script.update.disconnect(this.update);
         }
     };
 
