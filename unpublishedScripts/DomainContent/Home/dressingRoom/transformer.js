@@ -26,6 +26,7 @@
 
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var otherProps = Entities.getEntityProperties(otherID);
+           
             if (otherProps.name = "hifi-home-dressing-room-transformer-collider" && _this.locked === false) {
                 var myProps = Entities.getEntityProperties(myID);
                 var distance = Vec3.distance(myProps.position, otherProps.position);
@@ -131,6 +132,7 @@
             delete littleVersionProps.localPosition;
             delete littleVersionProps.localRotation;
             delete littleVersionProps.naturalPosition;
+            // delete littleVersionProps.script;
 
             var userData = JSON.parse(littleVersionProps.userData);
             var basePosition = userData["hifiHomeTransformerKey"].basePosition;

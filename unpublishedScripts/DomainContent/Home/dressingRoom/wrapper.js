@@ -1,11 +1,14 @@
  var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
+
+ var AVATAR_COLLISION_HULL='http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Avatar-Hull.obj';
  // var SHRINK_AMOUNT = 1 / 2;
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation, dimensions) {
      print('SCRIPT REF AT TRANSFORMER CREATE::' + TRANSFORMER_SCRIPT);
      var transformerProps = {
          name: 'hifi-home-dressing-room-little-transformer',
          type: 'Model',
-         shapeType: 'box',
+         shapeType: 'compound',
+         compoundShapeURL:AVATAR_COLLISION_HULL,
          position: spawnPosition,
          rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
          modelURL: modelURL,
@@ -15,7 +18,7 @@
              y: -5,
              z: 0
          },
-         visible: false,
+         visible: true,
          damping: 0.8,
          userData: JSON.stringify({
              'grabbableKey': {
