@@ -53,3 +53,14 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
     }
     return newestFileName;
 }
+
+QString defaultScriptsFileName() {
+#ifdef Q_OS_WIN
+    return QCoreApplication::applicationDirPath() + "/scripts/";
+#elif defined(Q_OS_OSX)
+    return QCoreApplication::applicationDirPath() + "/../../scripts/";
+#else
+    static const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
+    return DEFAULT_SCRIPTS_JS_URL;
+#endif
+}

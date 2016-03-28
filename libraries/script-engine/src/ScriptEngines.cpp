@@ -13,13 +13,14 @@
 
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
+#include <PathUtils.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
 #define __STR2__(x) #x
 #define __STR1__(x) __STR2__(x)
-#define __LOC__ __FILE__ "("__STR1__(__LINE__)") : Warning Msg: "
+#define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
 #ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -213,10 +214,9 @@ QVariantList ScriptEngines::getRunning() {
 
 
 static const QString SETTINGS_KEY = "Settings";
-static const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
 void ScriptEngines::loadDefaultScripts() {
-    loadScript(DEFAULT_SCRIPTS_JS_URL);
+    loadScript(defaultScriptsFileName());
 }
 
 void ScriptEngines::loadOneScript(const QString& scriptFilename) {
