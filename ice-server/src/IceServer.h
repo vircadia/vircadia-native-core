@@ -16,6 +16,8 @@
 #include <QtCore/QSharedPointer>
 #include <QUdpSocket>
 
+#include <openssl/rsa.h>
+
 #include <UUIDHasher.h>
 
 #include <NetworkPeer.h>
@@ -52,7 +54,8 @@ private:
 
     HTTPManager _httpManager;
 
-    using DomainPublicKeyHash = std::unordered_map<QUuid, QByteArray>;
+    using RSAUniquePtr = std::unique_ptr<RSA, std::function<void(RSA*)>>;
+    using DomainPublicKeyHash = std::unordered_map<QUuid, RSAUniquePtr>;
     DomainPublicKeyHash _domainPublicKeys;
 };
 

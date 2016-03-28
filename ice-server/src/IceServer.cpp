@@ -11,7 +11,6 @@
 
 #include "IceServer.h"
 
-#include <openssl/rsa.h>
 #include <openssl/x509.h>
 
 #include <QtCore/QJsonDocument>
@@ -161,15 +160,12 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(NLPacket& packet) {
 }
 
 bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& plaintext, const QByteArray& signature) {
-    // check if we have a private key for this domain ID - if we do not then fire off the request for it
+    // check if we have a public key for this domain ID - if we do not then fire off the request for it
     auto it = _domainPublicKeys.find(domainID);
     if (it != _domainPublicKeys.end()) {
 
         // attempt to verify the signature for this heartbeat
-        const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(it->second.constData());
-
-        // first load up the public key into an RSA struct
-        RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, it->second.size());
+        const auto rsaPublicKey = it->second.get();
 
         if (rsaPublicKey) {
             auto hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
@@ -180,9 +176,6 @@ bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& pla
                                                 signature.size(),
                                                 rsaPublicKey);
 
-            // free up the public key and remove connection token before we return
-            RSA_free(rsaPublicKey);
-
             if (verificationResult == 1) {
                 // this is the only success case - we return true here to indicate that the heartbeat is verified
                 return true;
@@ -192,7 +185,7 @@ bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& pla
 
         } else {
             // we can't let this user in since we couldn't convert their public key to an RSA key we could use
-            qWarning() << "Could not convert in-memory public key for" << domainID << "to usable RSA public key.";
+            qWarning() << "Public key for" << domainID << "is not a usable RSA* public key.";
             qWarning() << "Re-requesting public key from API";
         }
     }
@@ -240,7 +233,22 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
         if (responseObject[STATUS_KEY].toString() == SUCCESS_VALUE) {
             auto dataObject = responseObject[DATA_KEY].toObject();
             if (dataObject.contains(PUBLIC_KEY_KEY)) {
-                _domainPublicKeys[domainID] = QByteArray::fromBase64(dataObject[PUBLIC_KEY_KEY].toString().toUtf8());
+
+                // grab the base 64 public key from the API response
+                auto apiPublicKey = QByteArray::fromBase64(dataObject[PUBLIC_KEY_KEY].toString().toUtf8());
+
+                // convert the downloaded public key to an RSA struct, if possible
+                const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(apiPublicKey.constData());
+
+                RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, apiPublicKey.size());
+
+                if (rsaPublicKey) {
+                    _domainPublicKeys[domainID] = { rsaPublicKey, [](RSA* rsa) { RSA_free(rsa); }};
+                } else {
+                    qWarning() << "Could not convert in-memory public key for" << domainID << "to usable RSA public key.";
+                    qWarning() << "Public key will be re-requested on next heartbeat.";
+                }
+
             } else {
                 qWarning() << "There was no public key present in response for domain with ID" << domainID;
             }
@@ -254,6 +262,8 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
 
         qWarning() << "Error retreiving public key for domain with ID" << domainID << "-" <<  reply->errorString();
     }
+
+    reply->deleteLater();
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
@@ -274,6 +284,11 @@ void IceServer::clearInactivePeers() {
 
         if ((usecTimestampNow() - peer->getLastHeardMicrostamp()) > (PEER_SILENCE_THRESHOLD_MSECS * 1000)) {
             qDebug() << "Removing peer from memory for inactivity -" << *peer;
+
+            // if we had a public key for this domain, remove it now
+            _domainPublicKeys.erase(peer->getUUID());
+
+            // remove the peer object
             peerItem = _activePeers.erase(peerItem);
         } else {
             // we didn't kill this peer, push the iterator forwards
