@@ -41,14 +41,18 @@ bool OpenVrDisplayPlugin::isSupported() const {
     return !isOculusPresent() && vr::VR_IsHmdPresent();
 }
 
-void OpenVrDisplayPlugin::internalActivate() {
+bool OpenVrDisplayPlugin::internalActivate() {
     Parent::internalActivate();
+
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     if (!_system) {
         _system = acquireOpenVrSystem();
     }
-    Q_ASSERT(_system);
+    if (!_system) {
+        qWarning() << "Failed to initialize OpenVR";
+        return false;
+    }
 
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
@@ -86,6 +90,8 @@ void OpenVrDisplayPlugin::internalActivate() {
     } else {
         qDebug() << "OpenVR: error could not get chaperone pointer";
     }
+
+    return true;
 }
 
 void OpenVrDisplayPlugin::internalDeactivate() {

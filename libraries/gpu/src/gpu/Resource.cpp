@@ -16,6 +16,8 @@
 #include <NumericalConstants.h>
 #include <QDebug>
 
+#include "Context.h"
+
 using namespace gpu;
 
 class AllocationDebugger {
@@ -232,19 +234,55 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
     return 0;
 }
 
+std::atomic<uint32_t> Buffer::_bufferCPUCount{ 0 };
+std::atomic<Buffer::Size> Buffer::_bufferCPUMemoryUsage{ 0 };
+
+void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (prevObjectSize > newObjectSize) {
+        _bufferCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    } else {
+        _bufferCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    }
+}
+
+uint32_t Buffer::getBufferCPUCount() {
+    return _bufferCPUCount.load();
+}
+
+Buffer::Size Buffer::getBufferCPUMemoryUsage() {
+    return _bufferCPUMemoryUsage.load();
+}
+
+uint32_t Buffer::getBufferGPUCount() {
+    return Context::getBufferGPUCount();
+}
+
+Buffer::Size Buffer::getBufferGPUMemoryUsage() {
+    return Context::getBufferGPUMemoryUsage();
+}
+
 Buffer::Buffer() :
     Resource(),
     _sysmem(new Sysmem()) {
+    _bufferCPUCount++;
+
 }
 
 Buffer::Buffer(Size size, const Byte* bytes) :
     Resource(),
     _sysmem(new Sysmem(size, bytes)) {
+    _bufferCPUCount++;
+    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer::Buffer(const Buffer& buf) :
     Resource(),
     _sysmem(new Sysmem(buf.getSysmem())) {
+    _bufferCPUCount++;
+    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
@@ -253,18 +291,27 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 }
 
 Buffer::~Buffer() {
+    _bufferCPUCount--;
+
     if (_sysmem) {
+        Buffer::updateBufferCPUMemoryUsage(_sysmem->getSize(), 0);
         delete _sysmem;
         _sysmem = NULL;
     }
 }
 
 Buffer::Size Buffer::resize(Size size) {
-    return editSysmem().resize(size);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().resize(size);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 
 Buffer::Size Buffer::setData(Size size, const Byte* data) {
-    return editSysmem().setData(size, data);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().setData(size, data);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 
 Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
@@ -272,6 +319,9 @@ Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
 }
 
 Buffer::Size Buffer::append(Size size, const Byte* data) {
-    return editSysmem().append( size, data);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().append( size, data);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 

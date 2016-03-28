@@ -38,8 +38,10 @@ public:
     virtual void deinit();
 
     /// Called when a plugin is being activated for use.  May be called multiple times.
-    virtual void activate() {
+    /// Returns true if plugin was successfully activated.
+    virtual bool activate() {
         _active = true;
+        return _active;
     }
 
     /// Called when a plugin is no longer being used.  May be called multiple times.

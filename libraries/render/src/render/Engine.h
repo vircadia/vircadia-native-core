@@ -16,37 +16,37 @@
 
 #include "Context.h"
 #include "Task.h"
-
 namespace render {
 
-// The render engine holds all render tasks, and is itself a render task.
-// State flows through tasks to jobs via the render and scene contexts -
-// the engine should not be known from its jobs.
-class Engine : public Task {
-public:
-    Engine();
-    ~Engine() = default;
+    // The render engine holds all render tasks, and is itself a render task.
+    // State flows through tasks to jobs via the render and scene contexts -
+    // the engine should not be known from its jobs.
+    class Engine : public Task {
+    public:
 
-    // Load any persisted settings, and set up the presets
-    // This should be run after adding all jobs, and before building ui
-    void load();
+        Engine();
+        ~Engine() = default;
 
-    // Register the scene
-    void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
+        // Load any persisted settings, and set up the presets
+        // This should be run after adding all jobs, and before building ui
+        void load();
 
-    // Push a RenderContext
-    void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
-    RenderContextPointer getRenderContext() const { return _renderContext; }
+        // Register the scene
+        void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
 
-    // Render a frame
-    // A frame must have a scene registered and a context set to render
-    void run();
+        // Push a RenderContext
+        void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
+        RenderContextPointer getRenderContext() const { return _renderContext; }
 
-protected:
-    SceneContextPointer _sceneContext;
-    RenderContextPointer _renderContext;
-};
-using EnginePointer = std::shared_ptr<Engine>;
+        // Render a frame
+        // A frame must have a scene registered and a context set to render
+        void run();
+
+    protected:
+        SceneContextPointer _sceneContext;
+        RenderContextPointer _renderContext;
+    };
+    using EnginePointer = std::shared_ptr<Engine>;
 
 }
 

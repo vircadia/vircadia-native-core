@@ -17,12 +17,14 @@
 
 #include <gpu/Context.h>
 
+#include "EngineStats.h"
 
 using namespace render;
 
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),
     _renderContext(std::make_shared<RenderContext>()) {
+    addJob<EngineStats>("Stats");
 }
 
 void Engine::load() {
@@ -57,4 +59,6 @@ void Engine::run() {
     for (auto job : _jobs) {
         job.run(_sceneContext, _renderContext);
     }
+
 }
+

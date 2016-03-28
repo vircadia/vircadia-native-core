@@ -251,6 +251,9 @@ void GLBackend::do_setResourceTexture(Batch& batch, size_t paramOffset) {
         return;
     }
 
+    // One more True texture bound
+    _stats._RSNumTextureBounded++;
+
     // Always make sure the GLObject is in sync
     GLTexture* object = GLBackend::syncGPUObject(*resourceTexture);
     if (object) {
