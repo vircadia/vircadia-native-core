@@ -259,7 +259,6 @@
                 z: -73.3
             });
 
-
             var livingRoomLampTriggerBoxName = "hifi-home-living-room-desk-lamp-trigger";
             var livingRoomLampModelName = "hifi-home-model-bulldog-base";
             Script.setTimeout(function() {
@@ -321,11 +320,11 @@
 
             var TRANSFORMER_SCALE = 0.5;
 
-            dollDimensions.forEach(function(vector,index){
-                var scaled = Vec3.multiply(vector,TRANSFORMER_SCALE);
+            dollDimensions.forEach(function(vector, index) {
+                var scaled = Vec3.multiply(vector, TRANSFORMER_SCALE);
                 dollDimensions[index] = scaled;
             })
-            
+
             var dollLateralSeparation = 1.0;
             dolls.forEach(function(doll, index) {
 
@@ -336,7 +335,6 @@
                 var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft)
                 var transformer = new TransformerDoll(doll, dollPosition, dollRotation,
                     dollDimensions[index]);
-
             });
 
         },
