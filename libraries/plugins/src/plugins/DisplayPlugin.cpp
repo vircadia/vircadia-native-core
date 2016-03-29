@@ -4,11 +4,11 @@
 
 #include "PluginContainer.h"
 
-void DisplayPlugin::activate() {
-    Parent::activate();
+bool DisplayPlugin::activate() {
     if (isHmd() && (getHmdScreen() >= 0)) {
         _container->showDisplayPluginsTools();
     }
+    return Parent::activate();
 }
 
 void DisplayPlugin::deactivate() {

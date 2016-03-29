@@ -35,7 +35,7 @@ public:
     virtual void deinit() override;
 
     /// Called when a plugin is being activated for use.  May be called multiple times.
-    virtual void activate() override;
+    virtual bool activate() override;
     /// Called when a plugin is no longer being used.  May be called multiple times.
     virtual void deactivate() override;
 
