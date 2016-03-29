@@ -507,7 +507,7 @@
                             if (data.selections.length == 0) {
                                 elType.innerHTML = "<i>No Selection</i>";
                                 elID.innerHTML = "";
-                                disableChildren(document.getElementById("properties-list"), 'input');
+                                disableChildren(document.getElementById("properties-list"), 'input, textarea, checkbox');
                             } else if (data.selections.length > 1) {
                                 var selections = data.selections;
     
@@ -530,7 +530,7 @@
                                 }
                                 elType.innerHTML = typeStrs.join(", ");
     
-                                disableChildren(document.getElementById("properties-list"), 'input');
+                                disableChildren(document.getElementById("properties-list"), 'input, textarea, checkbox');
                             } else {
                                 var activeElement = document.activeElement;
     
@@ -551,10 +551,10 @@
                                 elLocked.checked = properties.locked;
     
                                 if (properties.locked) {
-                                    disableChildren(document.getElementById("properties-list"), 'input');
+                                    disableChildren(document.getElementById("properties-list"), 'input, textarea, checkbox');
                                     elLocked.removeAttribute('disabled');
                                 } else {
-                                    enableChildren(document.getElementById("properties-list"), 'input');
+                                    enableChildren(document.getElementById("properties-list"), 'input, textarea, checkbox');
                                 }
 
     

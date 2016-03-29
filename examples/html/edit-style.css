@@ -213,8 +213,8 @@ input.no-spin::-webkit-inner-spin-button {
 }
 
 input:disabled, textarea:disabled {
-    background-color: rgb(63, 63, 63);
-    color: rgb(160, 160, 160);
+    background-color: #383838;
+    color: #afafaf;
 }
 
 input[type="text"] {
@@ -281,12 +281,12 @@ input[type=button].red {
     background: linear-gradient(#d42043 20%, #94132e 100%);
 }
 
-input[type=button]:hover {
+input[type=button]:enabled:hover {
     background: linear-gradient(#000, #000);
     border: none;
 }
 
-input[type=button].red:hover {
+input[type=button].red:enabled:hover {
     background: linear-gradient(#d42043, #d42043);
     border: none;
 }
@@ -298,6 +298,10 @@ input[type=button]:active {
 input[type=button].red:active {
     background: linear-gradient(#94132e, #94132e);
 }
+input[type=button]:disabled {
+    color: #252525;
+    background: linear-gradient(#575757 20%, #252525 100%);
+}
 
 input[type=checkbox] {
     display: none;
@@ -308,7 +312,7 @@ input[type=checkbox] + label {
     background-repeat: no-repeat;
     background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACpSURBVDhPY2xoaGD68+dPMSMjY9L////VgTQjAw4AlH8PxLOPHj1azWxjY1MBVNsBFBfBpwkEgNKcQGwtJyfHyATkF0KEiQdAzYlMQEIUyicFyDD9+/ePgRxMvsb///4zkIOZ/v0HmkAGHginYjGNGAzS+BpdkAj8mun/3//92DyPD//993cG88nTJ4+Zm5p/BSZeJYb/DEJADEzNOPF7hn8Mk69cvVIPAHN5pyfo70F5AAAAAElFTkSuQmCC);
 }
-input[type=checkbox] + label:hover {
+input[type=checkbox]:enabled + label:hover {
     background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAClSURBVDhPY2hoaGD6//9/6b9//64D8T8gGycASr/7+/dv5/79+1kYgIxKqDjRAKiniRFIv2JgYBAFYlLAE0aQ66AckgDjjx8/yNP44cMH8jS+fPmSPI0PHz4kT+PNmzfJ03jp0iXyNJ46dYo8jYcPHyYnAbxm+vnzZz8wLhlIwd+/f5/BrKSkdExCQuLrnz9/lIBpUAiIQekXF34PTGmTT548WQ8AokXg+rhVtPYAAAAASUVORK5CYII=);
 }
 input[type=checkbox]:checked + label {
@@ -650,7 +654,7 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
 
 /* FIXME: Revisit textarea resizer/corner when move to Qt 5.6 or later: see if can get resizer/corner to always be visible and
 have correct background color with and without scrollbars. */
-textarea::-webkit-resizer {
+textarea:enabled::-webkit-resizer {
     background-size: 10px 10px;
     background: #252525 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAXSURBVChTY1RVVWXADZigNA4wMqUZGACS3gCD5UUtKAAAAABJRU5ErkJggg==) no-repeat bottom right;
 }
@@ -658,7 +662,7 @@ textarea:focus::-webkit-resizer {
     background-size: 10px 10px;
     background: #000000 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACOSURBVChThdC5DQQhDAXQvyRI5LQxFdABARWQElAPogYkiqEWQhLYGe8xxzJaS5a/8AuQHwDG2n+Lvee0hBDQWlO+hRvy3mNZFjDG5vCDOOeIMaL3/guPKISAWiu9n+AVSSlhraXdF86Qcw6tNdoTvEOlFOScd6iUOv3JGEMopYQx9jNvaawnoHnNr8Z4AuRLPOq2gPgnAAAAAElFTkSuQmCC) no-repeat bottom right;
 }
-textarea[scrolling="true"]::-webkit-resizer {
+textarea:enabled[scrolling="true"]::-webkit-resizer {
     background-size: 10px 10px;
     background: #2e2e2e url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACKSURBVChTjdAxDsMgDAXQT4UYuQIzCwsSKxsSJ4YDoByDY7AwUOG2aZMQqX+xhd9gzIwxA3/k8a7LCCFgraX+Fk4UY4RSCoyxNfwgzjlyzhhjXOEvSimhtUbvB3hGUkp472m2wxUKIaD3TnOCd6jWim3bvlBrfdjJOUeolEJoZj/4PMH83bl/BXgCWSs2Z09IjgoAAAAASUVORK5CYII=) no-repeat bottom right;
 }
