@@ -2849,13 +2849,14 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
             }
             // The so-called root offset (which isn't) is confusing and not what content developers want. And why would queryAACube not then be offset?
             // But leaving it in for bug-compatibility right now. -HRS
-            properties.setPosition(properties.getPosition() - root);
+            // FIXME properties.setPosition(properties.getPosition() - root);
             datum.mappedID = originalID; //EntityItemID(QUuid::createUuid());
             auto newEntity = exportTree->addEntity(datum.mappedID, properties);
             qCDebug(interfaceapp) << "mapped" << properties.getName();
             qCDebug(interfaceapp) << "      " << originalID  << "p:" << datum.originalParentID;
             qCDebug(interfaceapp) << "    =>" << datum.mappedID << "p:" << parentID;
-
+            qCDebug(interfaceapp) << "     @" << properties.getPosition() << "/" << properties.getLocalPosition();
+ 
             return datum.mappedID;
         };
 

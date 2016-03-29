@@ -17,15 +17,13 @@ RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
                                                        OctreeElementPointer top,
                                                        QScriptEngine* engine,
                                                        bool skipDefaultValues,
-                                                       bool skipThoseWithBadParents,
-                                                       EntityTree* tree) :
+                                                       bool skipThoseWithBadParents) :
         RecurseOctreeOperator(),
         _map(map),
         _top(top),
         _engine(engine),
         _skipDefaultValues(skipDefaultValues),
-        _skipThoseWithBadParents(skipThoseWithBadParents),
-        _entityTree(tree)
+        _skipThoseWithBadParents(skipThoseWithBadParents)
 {
     // if some element "top" was given, only save information for that element and its children.
     if (_top) {

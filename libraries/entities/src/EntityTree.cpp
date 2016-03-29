@@ -1335,12 +1335,13 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        EntityItemID newID = entityItem->getEntityItemID(); // FIXME (QUuid::createUuid());
+        EntityItemID newID = /*entityItem->getEntityItemID(); // FIXME*/ (QUuid::createUuid());
+        // FIXME: add map to SendEntitiesOperationArgs, and recurse through parent using the map
         args->newEntityIDs->append(newID);
         EntityItemProperties properties = entityItem->getProperties();
-        properties.setPosition(properties.getPosition() + args->root);
+        //FIXME properties.setPosition(properties.getPosition() + args->root);
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-        qCDebug(entities) << "sending" << newID << properties.getName() << "parent:" << properties.getParentID();
+        qCDebug(entities) << "sending" << newID << properties.getName() << "parent:" << properties.getParentID() << "pos:" << properties.getPosition();
 
         // queue the packet to send to the server
         args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
@@ -1367,7 +1368,7 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
         entityDescription["Entities"] = QVariantList();
     }
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents, this);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
@@ -1395,7 +1396,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);
-        qCDebug(entities) << "HRS FIXME added" << entityItemID << properties.getName();
+        qCDebug(entities) << "HRS FIXME added" << entityItemID << properties.getName() << "@" << properties.getPosition();
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }

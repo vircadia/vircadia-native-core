@@ -14,7 +14,7 @@
 class RecurseOctreeToMapOperator : public RecurseOctreeOperator {
 public:
     RecurseOctreeToMapOperator(QVariantMap& map, OctreeElementPointer top, QScriptEngine* engine, bool skipDefaultValues,
-                               bool skipThoseWithBadParents, EntityTree* tree);
+                               bool skipThoseWithBadParents);
     bool preRecursion(OctreeElementPointer element);
     bool postRecursion(OctreeElementPointer element);
  private:
@@ -24,5 +24,4 @@ public:
     bool _withinTop;
     bool _skipDefaultValues;
     bool _skipThoseWithBadParents;
-    EntityTree* _entityTree;
 };
