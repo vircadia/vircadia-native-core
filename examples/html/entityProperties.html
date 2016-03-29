@@ -671,6 +671,7 @@
     
                                     elModelURL.value = properties.modelURL;
                                     elShapeType.value = properties.shapeType;
+                                    setDropdownText(elShapeType);
                                     elCompoundShapeURL.value = properties.compoundShapeURL;
                                     elModelAnimationURL.value = properties.animation.url;
                                     elModelAnimationPlaying.checked = properties.animation.running;
@@ -750,6 +751,7 @@
                                     elCompoundShapeURL.value = properties.compoundShapeURL;
     
                                     elZoneBackgroundMode.value = properties.backgroundMode;
+                                    setDropdownText(elZoneBackgroundMode);
     
                                     elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red  + "," + properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
                                     elZoneSkyboxColorRed.value = properties.skybox.color.red;
@@ -767,6 +769,7 @@
                                     elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
                                     elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
                                     elVoxelSurfaceStyle.value = properties.voxelSurfaceStyle;
+                                    setDropdownText(elVoxelSurfaceStyle);
                                     elXTextureURL.value = properties.xTextureURL;
                                     elYTextureURL.value = properties.yTextureURL;
                                     elZTextureURL.value = properties.zTextureURL;
@@ -1129,6 +1132,7 @@
                 }
             });
 
+            // Collapsible sections
             var elCollapsible = document.getElementsByClassName("section-header");
 
             var toggleCollapsedEvent = function (event) {
@@ -1146,6 +1150,8 @@
                 element.addEventListener("click", toggleCollapsedEvent, true);
             };
 
+
+            // Textarea scollbars
             var elTextareas = document.getElementsByTagName("TEXTAREA");
 
             var textareaOnChangeEvent = function (event) {
@@ -1161,6 +1167,104 @@
                 event; mouseup is a partial stand-in but doesn't handle resizing if mouse moves outside textarea rectangle. */
                 element.addEventListener("mouseup", textareaOnChangeEvent, false);
             };
+
+            // Dropdowns
+            // For each dropdown the following replacement is created in place of the oriringal dropdown...
+            // Structure created:
+            //  <dl dropped="true/false">
+            //      <dt name="?" id="?" value="?"><span>display text</span><span>carat</span></dt>
+            //      <dd>
+            //          <ul>
+            //              <li value="??>display text</li>
+            //              <li>...</li>
+            //          </ul>
+            //      </dd>
+            //  </dl>
+
+            function setDropdownText(dropdown) {
+                var lis = dropdown.parentNode.getElementsByTagName("li");
+                var text = "";
+                for (var i = 0; i < lis.length; i++) {
+                    if (lis[i].getAttribute("value") === dropdown.value) {
+                        text = lis[i].textContent;
+                    }
+                }
+                dropdown.firstChild.textContent = text;
+            }
+
+            function toggleDropdown(event) {
+                var element = event.target;
+                if (element.nodeName !== "DT") {
+                    element = element.parentNode;
+                }
+                element = element.parentNode;
+                var isDropped = element.getAttribute("dropped");
+                element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
+            }
+
+            function setDropdownValue(event) {
+                var dt = event.target.parentNode.parentNode.previousSibling;
+                dt.value = event.target.getAttribute("value");
+                dt.firstChild.textContent = event.target.textContent;
+
+                dt.parentNode.setAttribute("dropped", "false");
+
+                var evt = document.createEvent("HTMLEvents");
+                evt.initEvent("change", true, true);
+                dt.dispatchEvent(evt);
+            }
+
+            var elDropdowns = document.getElementsByTagName("select");
+            for (var i = 0; i < elDropdowns.length; i++) {
+                var options = elDropdowns[i].getElementsByTagName("option");
+                var selectedOption = 0;
+                for (var j = 0; j < options.length; j++) {
+                    if (options[i].getAttribute("selected") === "selected") {
+                        selectedOption = i;
+                    }
+                }
+                var div = elDropdowns[i].parentNode;
+
+                var dl = document.createElement("dl");
+                div.appendChild(dl);
+
+                var dt = document.createElement("dt");
+                dt.name = elDropdowns[i].name;
+                dt.id = elDropdowns[i].id;
+                dt.addEventListener("click", toggleDropdown, true);
+                dl.appendChild(dt);
+
+                var span = document.createElement("span");
+                span.setAttribute("value", options[selectedOption].value);
+                span.textContent = options[selectedOption].firstChild.textContent;
+                dt.appendChild(span);
+
+                var span = document.createElement("span");
+                span.textContent = "5";  // caratDn
+                dt.appendChild(span);
+
+                var dd = document.createElement("dd");
+                dl.appendChild(dd);
+
+                var ul = document.createElement("ul");
+                dd.appendChild(ul);
+
+                for (var j = 0; j < options.length; j++) {
+                    var li = document.createElement("li");
+                    li.setAttribute("value", options[j].value);
+                    li.textContent = options[j].firstChild.textContent;
+                    li.addEventListener("click", setDropdownValue);
+                    ul.appendChild(li);
+                }
+            }
+
+            elDropdowns = document.getElementsByTagName("select");
+            while (elDropdowns.length > 0) {
+                var el = elDropdowns[0];
+                el.parentNode.removeChild(el);
+                elDropdowns = document.getElementsByTagName("select");
+            }
+
         }
     </script>
 </head>
@@ -1317,14 +1421,12 @@
             <label>Background</label>
         </div>
 
-        <div class="zone-section background-section property">
-            <div class="label">Background Mode</div>
-            <div class="value">
-                <select name="SelectBackgroundMode" id="property-zone-background-mode">
-                    <option value='inherit'>Nothing</option>
-                    <option value='skybox'>Skybox</option>
-                </select> 
-            </div>
+        <div class="zone-section background-section property dropdown">
+            <label>Background mode</label>
+            <select name="SelectBackgroundMode" id="property-zone-background-mode">
+                <option value="inherit">Nothing</option>
+                <option value="skybox">Skybox</option>
+            </select>
         </div>
 
 
@@ -1435,16 +1537,14 @@
             </div>
         </div>
 
-        <div class="property">
-            <div class="label">Surface Extractor</div>
-            <div class="value">
-                <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
-                    <option value='0'>marching cubes</option>
-                    <option value='1'>cubic</option>
-                    <option value='2'>edged cubic</option>
-                    <option value='3'>edged marching cubes</option>
-                </select>
-            </div>
+        <div class="property dropdown">
+            <label>Surface extractor</label>
+            <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
+                <option value="0">Marching cubes</option>
+                <option value="1">Cubic</option>
+                <option value="2">Edged cubic</option>
+                <option value="3">Edged marching cubes</option>
+            </select>
         </div>
 
         <div class="property url refresh">
@@ -1646,16 +1746,14 @@
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
-        <div class="model-section zone-section property">
-            <div class="label">Collision Shape Type</div>
-            <div class="value">
-                <select name="SelectShapeType" id="property-shape-type">
-                    <option value='none'>none</option>
-                    <option value='box'>box</option>
-                    <option value='sphere'>sphere</option>
-                    <option value='compound'>compound</option>
-                </select>
-            </div>
+        <div class="model-section zone-section property dropdown">
+            <label>Collision shape type</label>
+            <select name="SelectShapeType" id="property-shape-type">
+                <option value="none">None</option>
+                <option value="box">Box</option>
+                <option value="sphere">Sphere</option>
+                <option value="compound">Compound</option>
+            </select>
         </div>
         <div class="model-section zone-section property url refresh">
             <label for="property-compound-shape-url">Compound shape URL</label>

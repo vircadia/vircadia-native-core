@@ -349,7 +349,6 @@ input[type=checkbox]:checked + label:hover {
 
 
 .section-header, .sub-section-header {
-    position: relative;
     margin: 22px -12px 0 -12px;
     padding: 14px 12px 0 12px;
     font-size: 12px;
@@ -359,6 +358,7 @@ input[type=checkbox]:checked + label:hover {
 }
 
 .section-header {
+    position: relative;
     background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAqCAIAAAAbNW1vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAmSURBVChTY1BFAgzhSIDBAQmMcoYHRwIJMCgjAQZ9JMBgBQdWVgBh5XmBV5A2FQAAAABJRU5ErkJggg==) repeat-x top left;
 }
 
@@ -438,7 +438,7 @@ input[type=checkbox]:checked + label:hover {
     margin-left: 12px;
 }
 
-.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label {
+.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label {
     float: left;
     margin-bottom: 4px;
 }
@@ -454,6 +454,89 @@ input[type=checkbox]:checked + label:hover {
 .xyz > div, .pyr > div {
     clear: both;
 }
+
+.dropdown {
+    position: relative;
+}
+
+.dropdown select {
+    clear: both;
+}
+
+.dropdown dl {
+    clear: both;
+}
+.dropdown dl {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    width: 172px;
+    height: 28px;
+    padding: 0 28px 0 12px;
+
+    color: #afafaf;
+    background: linear-gradient(#7d7d7d 20%, #686a68 100%);
+
+    position: relative;
+}
+.dropdown dl[dropped="true"] {
+    color: #404040;
+    background: linear-gradient(#afafaf, #afafaf);
+}
+
+.dropdown dt {
+    height: 100%;
+    box-sizing: border-box;
+    border-right: 1px solid #121212;
+    width: 100%;
+}
+.dropdown dt:hover {
+    color: #404040;
+}
+.dropdown dt span:first-child {
+    display: inline-block;
+    position: relative;
+    top: 5px;
+}
+.dropdown dt span:last-child {
+    font-family: HiFi-Glyphs;
+    font-size: 42px;
+    float: right;
+    margin-right: -48px;
+    position: relative;
+    left: -12px;
+    top: -11px;
+}
+
+.dropdown dd {
+    position: absolute;
+    top: 28px;
+    left: 3px;
+    display: none;
+}
+.dropdown dl[dropped="true"] dd {
+    display: block;
+}
+
+.dropdown li {
+    list-style-type: none;
+    padding: 3px 0 1px 12px;
+    width: 200px;
+    height: auto;
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    color: #404040;
+    background-color: #afafaf
+}
+.dropdown li:hover {
+    background-color: #00b4ef;
+}
+
+/*dd {
+    min-width: 100px;
+    min-height: 100px;
+    border: 1x dotted red;
+}*/
+
 
 div.refresh {
     box-sizing: border-box;
