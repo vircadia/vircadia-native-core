@@ -68,5 +68,7 @@ WebEngineView {
             request.openIn(newWindow.webView)
     }
 
-    profile: desktop.browserProfile
+    // This breaks the webchannel used for passing messages.  Fixed in Qt 5.6
+    // See https://bugreports.qt.io/browse/QTBUG-49521
+    //profile: desktop.browserProfile
 }
