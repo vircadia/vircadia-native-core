@@ -279,6 +279,11 @@
                 name: 'hifi-home-dressing-room-rotator-block',
                 type: 'Box',
                 visible: true,
+                color:{
+                    red:0,
+                    green:255,
+                    blue:0
+                },
                 collisionless: true,
                 angularDamping: 0,
                 angularVelocity: {
@@ -294,7 +299,7 @@
                 }),
                 position: {
                     x: 1107.0330,
-                    y: 459.4326,
+                    y: 460.4326,
                     z: -74.5704
                 }
             }
