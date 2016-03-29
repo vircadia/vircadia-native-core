@@ -270,10 +270,10 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-            auto now = usecTimestampNow();
 
-            // in the unlikely event that now is less than _heartbeat, don't rollover and confuse ourselves
-            auto lastHeartbeatAge = (now > _heartbeat) ? now - _heartbeat : 0; 
+            uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
+            uint64_t now = usecTimestampNow();
+            auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
             auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
@@ -310,7 +310,7 @@ public:
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qDebug() << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
-                         << "[ _heartbeat:" << _heartbeat
+                         << "[ lastHeartbeat :" << lastHeartbeat
                          << "now:" << now << " ]"
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
@@ -4901,13 +4901,39 @@ void Application::updateDisplayMode() {
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
+        auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
 
         // FIXME probably excessive and useless context switching
         _offscreenContext->makeCurrent();
-        newDisplayPlugin->activate();
+
+        bool active = newDisplayPlugin->activate();
+
+        if (!active) {
+            // If the new plugin fails to activate, fallback to last display
+            qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
+            newDisplayPlugin = oldDisplayPlugin;
+
+            if (newDisplayPlugin) {
+                qWarning() << "Falling back to last display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            // If there is no last display, or
+            // If the last display fails to activate, fallback to desktop
+            if (!active) {
+                newDisplayPlugin = displayPlugins.at(0);
+                qWarning() << "Falling back to display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            if (!active) {
+                qFatal("Failed to activate fallback plugin");
+            }
+        }
+
         _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
         _offscreenContext->makeCurrent();

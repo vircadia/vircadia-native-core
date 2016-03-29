@@ -32,7 +32,7 @@ glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
 
-void HmdDisplayPlugin::internalActivate() {
+bool HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
 
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -41,7 +41,8 @@ void HmdDisplayPlugin::internalActivate() {
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
-    Parent::internalActivate();
+
+    return Parent::internalActivate();
 }
 
 void HmdDisplayPlugin::customizeContext() {

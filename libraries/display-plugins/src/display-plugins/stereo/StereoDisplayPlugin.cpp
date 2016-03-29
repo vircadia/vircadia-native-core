@@ -58,7 +58,7 @@ glm::mat4 StereoDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& basePr
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 std::vector<QAction*> _screenActions;
-void StereoDisplayPlugin::internalActivate() {
+bool StereoDisplayPlugin::internalActivate() {
     auto screens = qApp->screens();
     _screenActions.resize(screens.size());
     for (int i = 0; i < screens.size(); ++i) {
@@ -77,7 +77,8 @@ void StereoDisplayPlugin::internalActivate() {
 
     _screen = qApp->primaryScreen();
     _container->setFullscreen(_screen);
-    Parent::internalActivate();
+
+    return Parent::internalActivate();
 }
 
 void StereoDisplayPlugin::updateScreen() {

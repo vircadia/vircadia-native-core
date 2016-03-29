@@ -39,12 +39,12 @@ SkeletonModel::~SkeletonModel() {
 }
 
 void SkeletonModel::initJointStates() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
     _rig->initJointStates(geometry, modelOffset);
 
     // Determine the default eye position for avatar scale = 1.0
-    int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
+    int headJointIndex = geometry.headJointIndex;
     if (0 > headJointIndex || headJointIndex >= _rig->getJointStateCount()) {
         qCWarning(interfaceapp) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig->getJointStateCount();
     }
@@ -52,7 +52,7 @@ void SkeletonModel::initJointStates() {
     getEyeModelPositions(leftEyePosition, rightEyePosition);
     glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.0f;
 
-    int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
+    int rootJointIndex = geometry.rootJointIndex;
     glm::vec3 rootModelPosition;
     getJointPosition(rootJointIndex, rootModelPosition);
 
@@ -87,10 +87,12 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    const FBXGeometry& geometry = getFBXGeometry();
+
     Head* head = _owningAvatar->getHead();
+
     if (_owningAvatar->isMyAvatar()) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         Rig::HeadParameters headParams;
         headParams.enableLean = qApp->isHMDMode();
@@ -183,7 +185,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // Thus this should really only be ... else if (_owningAvatar->getHead()->isLookingAtMe()) {...
         // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
         // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         // If the head is not positioned, updateEyeJoints won't get the math right
         glm::quat headOrientation;
@@ -329,22 +330,23 @@ float SkeletonModel::getRightArmLength() const {
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
-    return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().headJointIndex, headPosition);
+    return isActive() && getJointPositionInWorldFrame(getFBXGeometry().headJointIndex, headPosition);
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+    return isActive() && getJointPositionInWorldFrame(getFBXGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+    return isActive() && getJointPosition(getFBXGeometry().neckJointIndex, neckPosition);
 }
 
 bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
     }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
+
     if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
         return true;
@@ -386,11 +388,11 @@ float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
 void SkeletonModel::computeBoundingShape() {
-    if (_geometry == NULL || _rig->jointStatesEmpty()) {
+    if (!isLoaded() || _rig->jointStatesEmpty()) {
         return;
     }
 
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     if (geometry.joints.isEmpty() || geometry.rootJointIndex == -1) {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
@@ -429,7 +431,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float scale
 }
 
 bool SkeletonModel::hasSkeleton() {
-    return isActive() ? _geometry->getFBXGeometry().rootJointIndex != -1 : false;
+    return isActive() ? getFBXGeometry().rootJointIndex != -1 : false;
 }
 
 void SkeletonModel::onInvalidate() {
