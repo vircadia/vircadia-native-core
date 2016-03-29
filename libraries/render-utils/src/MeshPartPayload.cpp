@@ -347,7 +347,7 @@ void ModelMeshPartPayload::initCache() {
 
 
 void ModelMeshPartPayload::notifyLocationChanged() {
-    _model->_needsUpdateClusterMatrices = true;
+
 }
 
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const glm::mat4* clusterMatrices, size_t numClusterMatrices) {

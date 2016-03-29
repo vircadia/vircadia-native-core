@@ -2985,6 +2985,11 @@ void Application::updateLOD() {
     }
 }
 
+void Application::pushPreRenderLambda(void* key, std::function<void()> func) {
+    std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
+    _preRenderLambdas[key] = func;
+}
+
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
 // (Maybe this code should be moved there?)
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
@@ -3460,6 +3465,16 @@ void Application::update(float deltaTime) {
 
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
+    }
+
+    {
+        PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
+
+        std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
+        for (auto& iter : _preRenderLambdas) {
+            iter.second();
+        }
+        _preRenderLambdas.clear();
     }
 }
 

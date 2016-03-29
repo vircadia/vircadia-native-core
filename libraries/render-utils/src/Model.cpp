@@ -128,45 +128,61 @@ void Model::setOffset(const glm::vec3& offset) {
 }
 
 void Model::enqueueLocationChange() {
-    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-    Transform modelTransform;
-    modelTransform.setScale(_scale);
-    modelTransform.setTranslation(_translation);
-    modelTransform.setRotation(_rotation);
+    // queue up this work for later processing, at the end of update and just before rendering.
+    // the application will ensure only the last lambda is actually invoked.
+    void* key = (void*)this;
+    std::weak_ptr<Model> weakSelf = shared_from_this();
+    AbstractViewStateInterface::instance()->pushPreRenderLambda(key, [weakSelf]() {
 
-    Transform modelMeshOffset;
-    if (_geometry && _geometry->isLoaded()) {
-        modelMeshOffset = Transform(_rig->getGeometryToRigTransform());
-    } else {
-        modelMeshOffset.postTranslate(_offset);
-    }
+        // do nothing, if the model has already been destroyed.
+        auto self = weakSelf.lock();
+        if (!self) {
+            return;
+        }
 
-    Transform collisionMeshOffset;
-    collisionMeshOffset.postTranslate(_offset);
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
+        Transform modelTransform;
+        modelTransform.setScale(self->_scale);
+        modelTransform.setTranslation(self->_translation);
+        modelTransform.setRotation(self->_rotation);
 
-    render::PendingChanges pendingChanges;
-    foreach (auto itemID, _modelMeshRenderItems.keys()) {
-        pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset](ModelMeshPartPayload& data) {
+        Transform modelMeshOffset;
+        if (self->_geometry && self->_geometry->isLoaded()) {
+            // includes model offset and unitScale.
+            modelMeshOffset = Transform(self->_rig->getGeometryToRigTransform());
+        } else {
+            modelMeshOffset.postTranslate(self->_offset);
+        }
 
-            data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
-            const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-            size_t numClusterMatrices = data._model->getGeometry()->getFBXGeometry().meshes.at(data._meshIndex).clusters.size();
+        // only apply offset only, collision mesh does not share the same unit scale as the FBX file's mesh.
+        Transform collisionMeshOffset;
+        collisionMeshOffset.postTranslate(self->_offset);
 
-            data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, &state.clusterMatrices[0], numClusterMatrices);
-            data.notifyLocationChanged();
-        });
-    }
+        render::PendingChanges pendingChanges;
+        foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset](ModelMeshPartPayload& data) {
 
-    foreach (auto itemID, _collisionRenderItems.keys()) {
-        pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
-            data.updateTransform(modelTransform, collisionMeshOffset);
-            data.notifyLocationChanged();
-       });
-    }
+                // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
-    scene->enqueuePendingChanges(pendingChanges);
+                // update the model transform and bounding box for this render item.
+                const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                size_t numClusterMatrices = data._model->getGeometry()->getFBXGeometry().meshes.at(data._meshIndex).clusters.size();
+                data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, &state.clusterMatrices[0], numClusterMatrices);
+            });
+        }
+
+        foreach (auto itemID, self->_collisionRenderItems.keys()) {
+            pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
+                // update the model transform for this render item.
+                data.updateTransform(modelTransform, collisionMeshOffset);
+            });
+        }
+
+        scene->enqueuePendingChanges(pendingChanges);
+    });
 }
 
 void Model::initJointTransforms() {
