@@ -101,11 +101,14 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
                 prepareEntityForDelete(entity);
             } else {
                 if (expiry < _nextExpiry) {
-                    // remeber the smallest _nextExpiry so we know when to start the next search
+                    // remember the smallest _nextExpiry so we know when to start the next search
                     _nextExpiry = expiry;
                 }
                 ++itemItr;
             }
+        }
+        if (_mortalEntities.size() < 1) {
+            _nextExpiry = -1;
         }
     }
 }

@@ -1484,10 +1484,10 @@ PropertiesTool = function(opts) {
             selections.push(entity);
         }
         data.selections = selections;
-        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        webView.emitScriptEvent(JSON.stringify(data));
     });
 
-    webView.eventBridge.webEventReceived.connect(function(data) {
+    webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.type == "print") {
             if (data.message) {
@@ -1802,7 +1802,7 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 propertiesTool = PropertiesTool();
 var particleExplorerTool = ParticleExplorerTool();
 var selectedParticleEntity = 0;
-entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
+entityListTool.webView.webEventReceived.connect(function(data) {
     var data = JSON.parse(data);
     if (data.type == "selectionUpdate") {
         var ids = data.entityIds;
@@ -1823,10 +1823,10 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
                 selectedParticleEntity = ids[0];
                 particleExplorerTool.setActiveParticleEntity(ids[0]);
 
-                particleExplorerTool.webView.eventBridge.webEventReceived.connect(function(data) {
+                particleExplorerTool.webView.webEventReceived.connect(function(data) {
                     var data = JSON.parse(data);
                     if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(particleData));  
+                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));  
                     }
                 });
             } else {

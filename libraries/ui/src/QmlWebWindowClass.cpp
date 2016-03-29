@@ -8,23 +8,10 @@
 
 #include "QmlWebWindowClass.h"
 
-#include <QtCore/QUrl>
-#include <QtCore/QUrlQuery>
 #include <QtCore/QThread>
-
-#include <QtQml/QQmlContext>
-
-#include <QtWebChannel/QWebChannel>
 
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
-
-#include <QtQuick/QQuickItem>
-
-#include <AbstractUriHandler.h>
-#include <AccountManager.h>
-#include <AddressManager.h>
-#include <DependencyManager.h>
 
 #include "OffscreenUi.h"
 
@@ -32,17 +19,16 @@ static const char* const URL_PROPERTY = "source";
 
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
-    return QmlWindowClass::internalConstructor("QmlWebWindow.qml", context, engine,
-        [&](QObject* object) {  return new QmlWebWindowClass(object);  });
-}
-
-QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
-    _uid = QUuid::createUuid().toString();
-    asQuickItem()->setProperty("uid", _uid);
-    auto webchannelVar = qmlWindow->property("webChannel");
-    _webchannel = qvariant_cast<QWebChannel*>(webchannelVar);
-    Q_ASSERT(_webchannel);
-    _webchannel->registerObject(_uid, this);
+    auto properties = parseArguments(context);
+    QmlWebWindowClass* retVal { nullptr };
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([&] {
+        retVal = new QmlWebWindowClass();
+        retVal->initQml(properties);
+    }, true);
+    Q_ASSERT(retVal);
+    connect(engine, &QScriptEngine::destroyed, retVal, &QmlWindowClass::deleteLater);
+    return engine->newQObject(retVal);
 }
 
 void QmlWebWindowClass::emitScriptEvent(const QVariant& scriptMessage) {

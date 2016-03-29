@@ -17,6 +17,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
+#include <QtCore/QJsonObject>
 #include <QtCore/QThread>
 
 #include <LogHandler.h>
@@ -27,6 +28,7 @@
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "PacketList.h"
+#include "../UserActivityLogger.h"
 #include "Socket.h"
 
 using namespace udt;
@@ -328,7 +330,39 @@ void SendQueue::run() {
         nextPacketTimestamp += std::chrono::microseconds(nextPacketDelta);
 
         // sleep as long as we need until next packet send, if we can
-        const auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - p_high_resolution_clock::now());
+        auto now = p_high_resolution_clock::now();
+        auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - now);
+
+        // we're seeing SendQueues sleep for a long period of time here,
+        // which can lock the NodeList if it's attempting to clear connections
+        // for now we guard this by capping the time this thread and sleep for
+
+        const microseconds MAX_SEND_QUEUE_SLEEP_USECS { 2000000 };
+        if (timeToSleep > MAX_SEND_QUEUE_SLEEP_USECS) {
+            qWarning() << "udt::SendQueue wanted to sleep for" << timeToSleep.count() << "microseconds";
+            qWarning() << "Capping sleep to" << MAX_SEND_QUEUE_SLEEP_USECS.count();
+            qWarning() << "PSP:" << _packetSendPeriod << "NPD:" << nextPacketDelta
+                << "NPT:" << nextPacketTimestamp.time_since_epoch().count()
+                << "NOW:" << now.time_since_epoch().count();
+
+            // alright, we're in a weird state
+            // we want to know why this is happening so we can implement a better fix than this guard
+            // send some details up to the API (if the user allows us) that indicate how we could such a large timeToSleep
+            static const QString SEND_QUEUE_LONG_SLEEP_ACTION = "sendqueue-sleep";
+
+            // setup a json object with the details we want
+            QJsonObject longSleepObject;
+            longSleepObject["timeToSleep"] = qint64(timeToSleep.count());
+            longSleepObject["packetSendPeriod"] = _packetSendPeriod.load();
+            longSleepObject["nextPacketDelta"] = nextPacketDelta;
+            longSleepObject["nextPacketTimestamp"] = qint64(nextPacketTimestamp.time_since_epoch().count());
+            longSleepObject["then"] = qint64(now.time_since_epoch().count());
+
+            // hopefully send this event using the user activity logger
+            UserActivityLogger::getInstance().logAction(SEND_QUEUE_LONG_SLEEP_ACTION, longSleepObject);
+
+            timeToSleep = MAX_SEND_QUEUE_SLEEP_USECS;
+        }
 
         std::this_thread::sleep_for(timeToSleep);
     }
@@ -370,8 +404,8 @@ int SendQueue::maybeSendNewPacket() {
                     _socket->writeBasePacket(*pairTailPacket, _destination);
                 }
 
-                // we attempted to send two packets, return 2
-                return 2;
+                // return the number of attempted packet sends
+                return shouldSendPairTail ? 2 : 1;
             } else {
                 // we attempted to send a single packet, return 1
                 return 1;

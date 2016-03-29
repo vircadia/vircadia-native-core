@@ -99,15 +99,19 @@ void SDL2Manager::deinit() {
 #endif
 }
 
-void SDL2Manager::activate() {
+bool SDL2Manager::activate() {
+    InputPlugin::activate();
+
 #ifdef HAVE_SDL2
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->registerDevice(joystick);
         emit joystickAdded(joystick.get());
     }
+    return true;
+#else
+    return false;
 #endif
-    InputPlugin::activate();
 }
 
 void SDL2Manager::deactivate() {

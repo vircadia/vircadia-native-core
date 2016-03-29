@@ -9,12 +9,11 @@
 //
 
 var EventBridge;
+var WebChannel;
 
 openEventBridge = function(callback) {
-    new QWebChannel(qt.webChannelTransport, function(channel) {
-        console.log("uid " + EventBridgeUid);
-        EventBridge = channel.objects[EventBridgeUid];
+    WebChannel = new QWebChannel(qt.webChannelTransport, function (channel) {
+        EventBridge = WebChannel.objects.eventBridgeWrapper.eventBridge;
         callback(EventBridge);
     });
 }
-

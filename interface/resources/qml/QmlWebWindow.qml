@@ -16,10 +16,13 @@ Windows.Window {
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     property alias source: webview.url
-    property alias webChannel: webview.webChannel
-    // A unique identifier to let the HTML JS find the event bridge 
-    // object (our C++ wrapper)
-    property string uid;
+    property alias eventBridge: eventBridgeWrapper.eventBridge;
+
+    QtObject {
+        id: eventBridgeWrapper
+        WebChannel.id: "eventBridgeWrapper"
+        property var eventBridge;
+    }
 
     // This is for JS/QML communication, which is unused in a WebWindow,
     // but not having this here results in spurious warnings about a 
@@ -31,7 +34,6 @@ Windows.Window {
         url: "about:blank"
         anchors.fill: parent
         focus: true
-        onUrlChanged: webview.runJavaScript("EventBridgeUid = \"" + uid + "\";");
-        Component.onCompleted: webview.runJavaScript("EventBridgeUid = \"" + uid + "\";");
+        webChannel.registeredObjects: [eventBridgeWrapper]
     }
 } // dialog

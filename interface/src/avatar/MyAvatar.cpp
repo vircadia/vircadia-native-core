@@ -897,7 +897,9 @@ void MyAvatar::updateLookAtTargetAvatar() {
                     // Scale by proportional differences between avatar and human.
                     float humanEyeSeparationInModelSpace = glm::length(humanLeftEye - humanRightEye) * ipdScale;
                     float avatarEyeSeparation = glm::length(avatarLeftEye - avatarRightEye);
-                    gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
+                    if (avatarEyeSeparation > 0.0f) {
+                        gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
+                    }
                 }
 
                 // And now we can finally add that offset to the camera.
@@ -1270,8 +1272,8 @@ void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene
 
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
-    if (_skeletonModel->getGeometry()) {
-        neckJointIndex = _skeletonModel->getGeometry()->getFBXGeometry().neckJointIndex;
+    if (_skeletonModel->isLoaded()) {
+        neckJointIndex = _skeletonModel->getFBXGeometry().neckJointIndex;
     }
     if (neckJointIndex == -1) {
         return;

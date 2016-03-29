@@ -1,9 +1,9 @@
 //
 //  ModelCache.h
-//  libraries/model-networking/src/model-networking
+//  libraries/model-networking
 //
-//  Created by Sam Gateau on 9/21/15.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Zach Pomerantz on 3/15/16.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,200 +12,176 @@
 #ifndef hifi_ModelCache_h
 #define hifi_ModelCache_h
 
-#include <QMap>
-#include <QRunnable>
-
 #include <DependencyManager.h>
 #include <ResourceCache.h>
-
-#include "FBXReader.h"
-#include "OBJReader.h"
-
-#include <gpu/Batch.h>
-#include <gpu/Stream.h>
-
 
 #include <model/Material.h>
 #include <model/Asset.h>
 
-class NetworkGeometry;
-class NetworkMesh;
+#include "FBXReader.h"
+#include "TextureCache.h"
+
+// Alias instead of derive to avoid copying
+using NetworkMesh = model::Mesh;
+
 class NetworkTexture;
 class NetworkMaterial;
 class NetworkShape;
+class NetworkGeometry;
 
-/// Stores cached geometry.
+class GeometryMappingResource;
+
+/// Stores cached model geometries.
 class ModelCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    bool delayLoad, const void* extra);
+    /// Loads a model geometry from the specified URL.
+    std::shared_ptr<NetworkGeometry> getGeometry(const QUrl& url,
+        const QVariantHash& mapping = QVariantHash(), const QUrl& textureBaseUrl = QUrl());
 
-    /// Loads geometry from the specified URL.
-    /// \param fallback a fallback URL to load if the desired one is unavailable
-    /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
-    QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
+protected:
+    friend class GeometryMappingResource;
+
+    virtual QSharedPointer<Resource> createResource(const QUrl& url,
+        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
 
 private:
     ModelCache();
-    virtual ~ModelCache();
+    virtual ~ModelCache() = default;
+};
 
-    QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
+class Geometry {
+public:
+    using Pointer = std::shared_ptr<Geometry>;
+
+    Geometry() = default;
+    Geometry(const Geometry& geometry);
+
+    // Immutable over lifetime
+    using NetworkMeshes = std::vector<std::shared_ptr<const NetworkMesh>>;
+    using NetworkShapes = std::vector<std::shared_ptr<const NetworkShape>>;
+
+    // Mutable, but must retain structure of vector
+    using NetworkMaterials = std::vector<std::shared_ptr<NetworkMaterial>>;
+
+    const FBXGeometry& getGeometry() const { return *_geometry; }
+    const NetworkMeshes& getMeshes() const { return *_meshes; }
+    const std::shared_ptr<const NetworkMaterial> getShapeMaterial(int shapeID) const;
+
+    const QVariantMap getTextures() const;
+    void setTextures(const QVariantMap& textureMap);
+
+    virtual bool areTexturesLoaded() const;
+    // Returns true if any albedo texture has a non-masking alpha channel.
+    // This can only be known after areTexturesLoaded().
+    bool hasTransparentTextures() const { return _hasTransparentTextures; }
+
+protected:
+    friend class GeometryMappingResource;
+
+    // Shared across all geometries, constant throughout lifetime
+    std::shared_ptr<const FBXGeometry> _geometry;
+    std::shared_ptr<const NetworkMeshes> _meshes;
+    std::shared_ptr<const NetworkShapes> _shapes;
+
+    // Copied to each geometry, mutable throughout lifetime via setTextures
+    NetworkMaterials _materials;
+
+private:
+    mutable bool _areTexturesLoaded { false };
+    mutable bool _hasTransparentTextures { false };
+};
+
+/// A geometry loaded from the network.
+class GeometryResource : public Resource, public Geometry {
+public:
+    using Pointer = QSharedPointer<GeometryResource>;
+
+    GeometryResource(const QUrl& url) : Resource(url) {}
+
+    virtual bool areTexturesLoaded() const { return isLoaded() && Geometry::areTexturesLoaded(); }
+
+protected:
+    friend class GeometryMappingResource;
+
+    virtual bool isCacheable() const override { return _loaded && _isCacheable; }
+
+    bool _isCacheable { true };
 };
 
 class NetworkGeometry : public QObject {
     Q_OBJECT
-
 public:
-    // mapping is only used if url is a .fbx or .obj file, it is essentially the content of an fst file.
-    // if delayLoad is true, the url will not be immediately downloaded.
-    // use the attemptRequest method to initiate the download.
-    NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl = QUrl());
-    ~NetworkGeometry();
+    using Pointer = std::shared_ptr<NetworkGeometry>;
 
-    const QUrl& getURL() const { return _url; }
+    NetworkGeometry() = delete;
+    NetworkGeometry(const GeometryResource::Pointer& networkGeometry);
 
-    void attemptRequest();
+    const QUrl& getURL() { return _resource->getURL(); }
 
-    // true when the geometry is loaded (but maybe not it's associated textures)
-    bool isLoaded() const;
-
-    // true when the requested geometry and its textures are loaded.
-    bool isLoadedWithTextures() const;
-
-    // true if the albedo texture has a non-masking alpha channel.
-    // This can only be known after isLoadedWithTextures().
-    bool hasTransparentTextures() const { return _hasTransparentTextures; }
-
-    // WARNING: only valid when isLoaded returns true.
-    const FBXGeometry& getFBXGeometry() const { return *_geometry; }
-    const std::vector<std::unique_ptr<NetworkMesh>>& getMeshes() const { return _meshes; }
-  //  const model::AssetPointer getAsset() const { return _asset; }
-
-   // model::MeshPointer getShapeMesh(int shapeID);
-   // int getShapePart(int shapeID);
-
-    // This would be the final verison
-    // model::MaterialPointer getShapeMaterial(int shapeID);
-    const NetworkMaterial* getShapeMaterial(int shapeID);
-
-
-    void setTextureWithNameToURL(const QString& name, const QUrl& url);
-    QStringList getTextureNames() const;
-
-    enum Error {
-        MissingFilenameInMapping = 0,
-        MappingRequestError,
-        ModelRequestError,
-        ModelParseError
-    };
+    /// Returns the geometry, if it is loaded (must be checked!)
+    const Geometry::Pointer& getGeometry() { return _instance; }
 
 signals:
-    // Fired when everything has downloaded and parsed successfully.
-    void onSuccess(NetworkGeometry& networkGeometry, FBXGeometry& fbxGeometry);
+    /// Emitted when the NetworkGeometry loads (or fails to)
+    void finished(bool success);
 
-    // Fired when something went wrong.
-    void onFailure(NetworkGeometry& networkGeometry, Error error);
+private slots:
+    void resourceFinished(bool success);
+    void resourceRefreshed();
 
-public slots:
-    void textureLoaded(const QWeakPointer<NetworkTexture>& networkTexture);
+private:
+    GeometryResource::Pointer _resource;
+    Geometry::Pointer _instance { nullptr };
+};
 
-protected slots:
-    void mappingRequestDone(const QByteArray& data);
-    void mappingRequestError(QNetworkReply::NetworkError error);
+class NetworkMaterial : public model::Material {
+public:
+    using MapChannel = model::Material::MapChannel;
 
-    void modelRequestDone(const QByteArray& data);
-    void modelRequestError(QNetworkReply::NetworkError error);
-
-    void modelParseSuccess(FBXGeometry* geometry);
-    void modelParseError(int error, QString str);
-
+    NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
 
 protected:
-    void attemptRequestInternal();
-    void requestMapping(const QUrl& url);
-    void requestModel(const QUrl& url);
+    friend class Geometry;
 
-    enum State { DelayState,
-                 RequestMappingState,
-                 RequestModelState,
-                 ParsingModelState,
-                 SuccessState,
-                 ErrorState };
-    State _state;
+    class Texture {
+    public:
+        QString name;
+        QSharedPointer<NetworkTexture> texture;
+    };
+    using Textures = std::vector<Texture>;
 
-    QUrl _url;
-    QUrl _mappingUrl;
-    QUrl _modelUrl;
-    QVariantHash _mapping;
-    QUrl _textureBaseUrl;
-    int numTextureLoaded = 0;
+    Textures _textures;
 
-    Resource* _resource = nullptr;
-    std::unique_ptr<FBXGeometry> _geometry; // This should go away evenutally once we can put everything we need in the model::AssetPointer
-    std::vector<std::unique_ptr<NetworkMesh>> _meshes;
-    std::vector<std::unique_ptr<NetworkMaterial>> _materials;
-    std::vector<std::unique_ptr<NetworkShape>> _shapes;
+    static const QString NO_TEXTURE;
+    const QString& getTextureName(MapChannel channel);
 
+    void setTextures(const QVariantMap& textureMap);
 
-    // The model asset created from this NetworkGeometry
-    // model::AssetPointer _asset;
+    const bool& isOriginal() const { return _isOriginal; }
 
-    // cache for isLoadedWithTextures()
-    mutable bool _isLoadedWithTextures = false;
-    mutable bool _hasTransparentTextures = false;
-};
-
-/// Reads geometry in a worker thread.
-class GeometryReader : public QObject, public QRunnable {
-    Q_OBJECT
-public:
-    GeometryReader(const QUrl& url, const QByteArray& data, const QVariantHash& mapping);
-    virtual void run();
-signals:
-    void onSuccess(FBXGeometry* geometry);
-    void onError(int error, QString str);
 private:
-    QUrl _url;
-    QByteArray _data;
-    QVariantHash _mapping;
-};
+    // Helpers for the ctors
+    QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
+    model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
+        TextureType type, MapChannel channel);
+    model::TextureMapPointer fetchTextureMap(const QUrl& url, TextureType type, MapChannel channel);
 
+    Transform _albedoTransform;
+    Transform _lightmapTransform;
+    vec2 _lightmapParams;
+
+    bool _isOriginal { true };
+};
 
 class NetworkShape {
 public:
-    int _meshID{ -1 };
-    int _partID{ -1 };
-    int _materialID{ -1 };
+    NetworkShape(int mesh, int part, int material) : meshID { mesh }, partID { part }, materialID { material } {}
+    int meshID { -1 };
+    int partID { -1 };
+    int materialID { -1 };
 };
 
-class NetworkMaterial {
-public:
-
-    model::MaterialPointer _material;
-    QString emissiveTextureName;
-    QSharedPointer<NetworkTexture> emissiveTexture;
-    QString albedoTextureName;
-    QSharedPointer<NetworkTexture> albedoTexture;
-    QString normalTextureName;
-    QSharedPointer<NetworkTexture> normalTexture;
-    QString roughnessTextureName;
-    QSharedPointer<NetworkTexture> roughnessTexture;
-    QString metallicTextureName;
-    QSharedPointer<NetworkTexture> metallicTexture;
-    QString occlusionTextureName;
-    QSharedPointer<NetworkTexture> occlusionTexture;
-    QString lightmapTextureName;
-    QSharedPointer<NetworkTexture> lightmapTexture;
-};
-
-
-/// The state associated with a single mesh.
-class NetworkMesh {
-public:
-    model::MeshPointer _mesh;
-};
-
-#endif // hifi_GeometryCache_h
+#endif // hifi_ModelCache_h

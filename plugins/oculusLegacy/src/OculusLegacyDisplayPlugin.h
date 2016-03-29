@@ -31,7 +31,7 @@ public:
     virtual float getTargetFrameRate() override;
 
 protected:
-    virtual void internalActivate() override;
+    virtual bool internalActivate() override;
     virtual void internalDeactivate() override;
 
     virtual void customizeContext() override;

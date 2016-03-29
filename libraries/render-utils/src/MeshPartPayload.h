@@ -24,12 +24,12 @@ class Model;
 class MeshPartPayload {
 public:
     MeshPartPayload() {}
-    MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform);
+    MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform);
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateMeshPart(model::MeshPointer drawMesh, int partIndex);
+    virtual void updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
     virtual void updateTransform(const Transform& transform, const Transform& offsetTransform);
@@ -49,11 +49,11 @@ public:
     virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize = true) const;
 
     // Payload resource cached values
-    model::MeshPointer _drawMesh;
+    std::shared_ptr<const model::Mesh> _drawMesh;
     int _partIndex = 0;
     model::Mesh::Part _drawPart;
 
-    model::MaterialPointer _drawMaterial;
+    std::shared_ptr<const model::Material> _drawMaterial;
     
     model::Box _localBound;
     Transform _drawTransform;

@@ -1,7 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1
-
+import QtWebChannel 1.0
 import Qt.labs.settings 1.0
 
 import "windows" as Windows
@@ -45,25 +45,18 @@ Windows.Window {
 
                 Controls.WebView {
                     id: webView;
-                    // we need to store the original url here for future identification
-                    // A unique identifier to let the HTML JS find the event bridge 
-                    // object (our C++ wrapper)
-                    property string uid;
                     anchors.fill: parent
                     enabled: false
-
-                    // This is for JS/QML communication, which is unused in a WebWindow,
-                    // but not having this here results in spurious warnings about a 
-                    // missing signal
-                    signal sendToScript(var message);
+                    property alias eventBridgeWrapper: eventBridgeWrapper 
                     
-                    onUrlChanged: webView.runJavaScript("EventBridgeUid = \"" + uid + "\";");
-                    onEnabledChanged: toolWindow.updateVisiblity();
-                    onLoadingChanged: {
-                        if (loadRequest.status == WebEngineView.LoadSucceededStatus) {
-                            webView.runJavaScript("EventBridgeUid = \"" + uid + "\";");
-                        }
+                    QtObject {
+                        id: eventBridgeWrapper
+                        WebChannel.id: "eventBridgeWrapper"
+                        property var eventBridge;
                     }
+
+                    webChannel.registeredObjects: [eventBridgeWrapper]
+                    onEnabledChanged: toolWindow.updateVisiblity();
                 }
             }
         }
@@ -168,10 +161,16 @@ Windows.Window {
         var tab = tabView.getTab(freeTabIndex);
         tab.title = properties.title || "Unknown";
         tab.enabled = true;
+        console.log("New tab URL: " + properties.source)
         tab.originalUrl = properties.source;
+
+        var eventBridge = properties.eventBridge;
+        console.log("Event bridge: " + eventBridge);
 
         var result = tab.item;
         result.enabled = true;
+        console.log("Setting event bridge: " + eventBridge);
+        result.eventBridgeWrapper.eventBridge = eventBridge;
         result.url = properties.source;
         return result;
     }
