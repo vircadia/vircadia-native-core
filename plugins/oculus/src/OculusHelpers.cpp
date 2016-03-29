@@ -53,7 +53,7 @@ bool oculusAvailable() {
     // HACK Explicitly check for the presence of the 1.0 runtime DLL, and fail if it 
     // doesn't exist
     if (!QFile(GOOD_OCULUS_RUNTIME_FILE).exists()) {
-        qCWarning(oculus) << "Oculus Runtime detected, but no 1.x DLL present.";
+        qCWarning(oculus) << "Oculus Runtime detected, but no 1.x DLL present: \"" + GOOD_OCULUS_RUNTIME_FILE + "\"";
         return false;
     }
 
