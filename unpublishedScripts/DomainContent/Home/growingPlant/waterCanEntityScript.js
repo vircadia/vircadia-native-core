@@ -59,7 +59,7 @@
         releaseHold: function() {
             _this.stopPouring();
             Script.setTimeout(function() {
-               Entities.deleteEntity(_this.waterEffect);
+                Entities.deleteEntity(_this.waterEffect);
             }, 2000);
         },
 
@@ -224,9 +224,10 @@
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
             Script.setTimeout(function() {
-                var entities = Entities.findEntities(_this.position, 1);
+                var entities = Entities.findEntities(_this.position, 2);
                 entities.forEach(function(entity) {
                     var name = Entities.getEntityProperties(entity, "name").name;
+                    print('HOME FOUND AN ENTITY CALLED:: ' + name)
                     if (name === _this.WATER_SPOUT_NAME) {
                         _this.waterSpout = entity;
                     }
