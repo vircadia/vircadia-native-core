@@ -10,7 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random());
+var TANK_SCRIPT = Script.resolvePath('entityLocalFish.js?' + Math.random());
 
 FishTank = function(spawnPosition, spawnRotation) {
     var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, anemone, treasure, rocks;
@@ -121,7 +121,12 @@ FishTank = function(spawnPosition, spawnRotation) {
             color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
-            visible: true
+            visible: true,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         fishTank = Entities.addEntity(tankProperties);
@@ -195,7 +200,6 @@ FishTank = function(spawnPosition, spawnRotation) {
         bubbleProperties.position.x += -0.076;
         thirdBubbleSystem = Entities.addEntity(bubbleProperties)
 
-        // createBubbleSound(finalOffset);
     }
 
     function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
@@ -214,102 +218,6 @@ FishTank = function(spawnPosition, spawnRotation) {
         finalOffset = Vec3.sum(finalOffset, frontOffset);
         finalOffset = Vec3.sum(finalOffset, rightOffset);
         return finalOffset
-    }
-
-    function createBubbleSound(position) {
-        var audioProperties = {
-            volume: 0.05,
-            position: position,
-            loop: true
-        };
-
-        bubbleInjector = Audio.playSound(bubbleSound, audioProperties);
-
-    }
-
-    function createInnerContainer(position) {
-
-        var tankProperties = Entities.getEntityProperties(fishTank);
-
-        var containerProps = {
-            name: "hifi-home-fishtank-inner-container",
-            type: 'Box',
-            color: {
-                red: 0,
-                green: 0,
-                blue: 255
-            },
-            parentID: fishTank,
-            dimensions: INNER_TANK_DIMENSIONS,
-            position: tankProperties.position,
-            visible: false,
-            collisionless: true,
-            dynamic: false,
-            userData: JSON.stringify({
-                'hifiHomeKey': {
-                    'reset': true
-                }
-            }),
-        };
-
-        innerContainer = Entities.addEntity(containerProps);
-    }
-
-    function createEntitiesAtCorners() {
-
-        var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
-
-        var lowerProps = {
-            name: 'hifi-home-fishtank-lower-corner',
-            type: "Box",
-            parentID: fishTank,
-            dimensions: {
-                x: 0.2,
-                y: 0.2,
-                z: 0.2
-            },
-            color: {
-                red: 255,
-                green: 0,
-                blue: 0
-            },
-            collisionless: true,
-            position: getOffsetFromTankCenter(LOWER_CORNER_VERTICAL_OFFSET, LOWER_CORNER_FORWARD_OFFSET, LOWER_CORNER_LATERAL_OFFSET),
-            visible: false,
-            userData: JSON.stringify({
-                'hifiHomeKey': {
-                    'reset': true
-                }
-            }),
-        }
-
-        var upperProps = {
-            name: 'hifi-home-fishtank-upper-corner',
-            type: "Box",
-            parentID: fishTank,
-            dimensions: {
-                x: 0.2,
-                y: 0.2,
-                z: 0.2
-            },
-            color: {
-                red: 0,
-                green: 255,
-                blue: 0
-            },
-            collisionless: true,
-            position: getOffsetFromTankCenter(UPPER_CORNER_VERTICAL_OFFSET, UPPER_CORNER_FORWARD_OFFSET, UPPER_CORNER_LATERAL_OFFSET),
-            visible: false,
-            userData: JSON.stringify({
-                'hifiHomeKey': {
-                    'reset': true
-                }
-            }),
-        }
-
-        lowerCorner = Entities.addEntity(lowerProps);
-        upperCorner = Entities.addEntity(upperProps);
-
     }
 
     function createRocks() {
@@ -411,11 +319,7 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     createFishTank();
 
-    createInnerContainer();
-
     createBubbleSystems();
-
-    createEntitiesAtCorners();
 
     createAnenome();
 
@@ -425,77 +329,14 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     createTreasureChest();
 
-    var customKey = 'hifi-home-fishtank';
-
-    var data = {
-        fishLoaded: false,
-        innerContainer: innerContainer,
-    }
-
-    var resetKey = 'hifiHomeKey';
-    var resetData = {
-        'reset': true
-    };
-
-    Script.setTimeout(function() {
-        setEntityCustomData(customKey, fishTank, data);
-    }, 1500)
-    Script.setTimeout(function() {
-        setEntityCustomData(resetKey, fishTank, resetData);
-    }, 3000)
     function cleanup() {
         Entities.deleteEntity(fishTank);
         Entities.deleteEntity(tankBase);
         Entities.deleteEntity(bubbleSystem);
         Entities.deleteEntity(secondBubbleSystem);
         Entities.deleteEntity(thirdBubbleSystem);
-        Entities.deleteEntity(innerContainer);
-        Entities.deleteEntity(lowerCorner);
-        Entities.deleteEntity(upperCorner);
         Entities.deleteEntity(anemone);
         Entities.deleteEntity(rocks);
-    }
-
-    function setEntityUserData(id, data) {
-        var json = JSON.stringify(data)
-        Entities.editEntity(id, {
-            userData: json
-        });
-    }
-
-    function getEntityUserData(id) {
-        var results = null;
-        var properties = Entities.getEntityProperties(id, "userData");
-        if (properties.userData) {
-            try {
-                results = JSON.parse(properties.userData);
-            } catch (err) {
-                //   print('error parsing json');
-                //   print('properties are:'+ properties.userData);
-            }
-        }
-        return results ? results : {};
-    }
-
-
-    // Non-destructively modify the user data of an entity.
-    function setEntityCustomData(customKey, id, data) {
-        var userData = getEntityUserData(id);
-        if (data == null) {
-            delete userData[customKey];
-        } else {
-            userData[customKey] = data;
-        }
-        setEntityUserData(id, userData);
-    }
-
-    function getEntityCustomData(customKey, id, defaultValue) {
-        var userData = getEntityUserData(id);
-        if (undefined != userData[customKey]) {
-            return userData[customKey];
-        } else {
-            return defaultValue;
-        }
     }
 
     this.cleanup = cleanup;

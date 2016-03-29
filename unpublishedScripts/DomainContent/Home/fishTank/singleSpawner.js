@@ -4,10 +4,10 @@
         x: 0,
         y: 0.5,
         z: 0
-    }), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+    }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
     var fishTank = new FishTank(center, {
         x: 0,
-        y: 123,
+        y: 0,
         z: 0
     });
 
