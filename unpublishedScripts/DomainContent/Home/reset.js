@@ -268,6 +268,7 @@
             },
 
             setupDressingRoom: function() {
+                print('HOME setup dressing room')
                 this.createRotatorBlock();
                 this.createTransformingDais();
                 this.createTransformers();
@@ -394,7 +395,7 @@
                             dollDimensions[index] = scaled;
                         })
 
-                        var dollLateralSeparation = 1.0;
+                        var dollLateralSeparation = 0.8;
 
                         dolls.forEach(function(doll, index) {
                             var separation = index * dollLateralSeparation;
@@ -436,7 +437,7 @@
 
 
                         })
-                        print('JBP after deleting home entities')
+                        print('HOME after deleting home entities')
                     },
 
                     unload: function() {
