@@ -15,6 +15,7 @@
 #include <QXmlStreamReader>
 
 #include <NetworkAccessManager.h>
+#include <PathUtils.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngines.h"
@@ -23,11 +24,7 @@
 #define __STR1__(x) __STR2__(x)
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
-
-static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
-static const QString PUBLIC_URL = "http://public.highfidelity.io";
 static const QString MODELS_LOCATION = "scripts/";
-
 static const QString PREFIX_PARAMETER_NAME = "prefix";
 static const QString MARKER_PARAMETER_NAME = "marker";
 static const QString IS_TRUNCATED_NAME = "IsTruncated";
@@ -63,7 +60,7 @@ ScriptsModel::ScriptsModel(QObject* parent) :
 
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
     reloadLocalFiles();
-    reloadRemoteFiles();
+    reloadDefaultFiles();
 }
 
 ScriptsModel::~ScriptsModel() {
@@ -140,24 +137,24 @@ void ScriptsModel::updateScriptsLocation(const QString& newPath) {
     reloadLocalFiles();
 }
 
-void ScriptsModel::reloadRemoteFiles() {
+void ScriptsModel::reloadDefaultFiles() {
     if (!_loadingScripts) {
         _loadingScripts = true;
         for (int i = _treeNodes.size() - 1; i >= 0; i--) {
             TreeNodeBase* node = _treeNodes.at(i);
             if (node->getType() == TREE_NODE_TYPE_SCRIPT &&
-                static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_REMOTE)
+                static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_DEFAULT)
             {
                 delete node;
                 _treeNodes.removeAt(i);
             }
         }
-        requestRemoteFiles();
+        requestDefaultFiles();
     }
 }
 
-void ScriptsModel::requestRemoteFiles(QString marker) {
-    QUrl url(S3_URL);
+void ScriptsModel::requestDefaultFiles(QString marker) {
+    QUrl url(defaultScriptsLocation());
     QUrlQuery query;
     query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
     if (!marker.isEmpty()) {
@@ -218,7 +215,9 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
                     xml.readNext();
                     lastKey = xml.text().toString();
                     if (jsRegex.exactMatch(xml.text().toString())) {
-                        _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()), S3_URL + "/" + lastKey, SCRIPT_ORIGIN_REMOTE));
+                        _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
+                                                             defaultScriptsLocation() + "/" + lastKey,
+                                                             SCRIPT_ORIGIN_DEFAULT));
                     }
                 }
                 xml.readNext();
@@ -236,7 +235,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
     }
 
     if (truncated) {
-        requestRemoteFiles(lastKey);
+        requestDefaultFiles(lastKey);
     }
 
     // If this request was not truncated, we are done.
