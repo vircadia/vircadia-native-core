@@ -47,9 +47,10 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
-    EntityTreePointer localTree;
+    EntityTree* ourTree;
+    EntityTreePointer otherTree;
     EntityEditPacketSender* packetSender;
-    QVector<EntityItemID>* newEntityIDs;
+    QHash<EntityItemID, EntityItemID>* map;
 };
 
 

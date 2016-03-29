@@ -2791,18 +2791,18 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-class EntityDatum { // For parent-first sorting and mapping.
-public:
-    EntityItemPointer item;
-    EntityItemProperties properties;
-    EntityItemID originalParentID;
-    EntityItemID mappedID;
-    EntityDatum() {};
-    EntityDatum(EntityItemPointer itemArg, EntityItemProperties propertiesArg, EntityItemID parentID) :
-    item(itemArg), properties(propertiesArg), originalParentID(parentID) {
-    };
-};
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
+    class EntityDatum { // For parent-first sorting and mapping.
+    public:
+        EntityItemPointer item;
+        EntityItemProperties properties;
+        EntityItemID originalParentID;
+        EntityItemID mappedID;
+        EntityDatum() {};
+        EntityDatum(EntityItemPointer itemArg, EntityItemProperties propertiesArg, EntityItemID parentID) :
+            item(itemArg), properties(propertiesArg), originalParentID(parentID) {
+        };
+    };
     QHash<EntityItemID, EntityDatum> entities;
 
     auto entityTree = getEntities()->getTree();
@@ -2818,13 +2818,15 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         }
 
         auto properties = entityItem->getProperties();
-        auto position = properties.getPosition(); // see setPosition, below.
-        root.x = glm::min(root.x, position.x);
-        root.y = glm::min(root.y, position.y);
-        root.z = glm::min(root.z, position.z);
-
+        EntityItemID parentID = properties.getParentID();
+        if (parentID.isInvalidID() || !entityIDs.contains(parentID)) {
+            auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+            root.x = glm::min(root.x, position.x);
+            root.y = glm::min(root.y, position.y);
+            root.z = glm::min(root.z, position.z);
+        }
         qCDebug(interfaceapp) << "Exporting" << entityItem->getEntityItemID() << entityItem->getName();
-        entities[entityID] = EntityDatum(entityItem, properties, properties.getParentID());
+        entities[entityID] = EntityDatum(entityItem, properties, parentID);
     }
 
     if (entities.size() == 0) {
@@ -2833,7 +2835,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
     for (EntityDatum& entityDatum : entities) {
         // Recursively add the parents of entities to the exportTree, mapping their new identifiers as we go.
-        std::function<EntityItemID(EntityDatum&)> getMapped = [&](EntityDatum& datum) {
+        std::function<EntityItemID(EntityDatum&)> getMapped = [&](EntityDatum& datum) { // FIXME: move definition outside the loop
             auto originalID = datum.item->getEntityItemID();
             if (!datum.mappedID.isInvalidID()) {
                 qCDebug(interfaceapp) << "already mapped" << datum.properties.getName() << originalID << "=>" << datum.mappedID;
@@ -2841,16 +2843,26 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
             }
             auto properties = datum.properties;
             auto parentID = datum.originalParentID;
-            if (!datum.originalParentID.isInvalidID()) { // Recurse over ancestors, updating properties.
+            if (parentID.isInvalidID() || !entityIDs.contains(parentID)) {
+                bool success;
+                auto globalPosition = datum.item->getPosition(success);
+                if (success) {
+                    properties.setPosition(globalPosition - root);
+                    if (!parentID.isInvalidID()) { // There's a parent that we won't output. Make the other data global.
+                        properties.setRotation(datum.item->getRotation());
+                        properties.setDimensions(datum.item->getDimensions());
+                        // Should we do velocities and accelerations, too?
+                    }
+                } else {
+                    properties.setPosition(datum.item->getQueryAACube().calcCenter() - root); // best we can do
+                }
+            } else {// Recurse over ancestors, updating properties.
                 qCDebug(interfaceapp) << "FIXME recursing" << datum.originalParentID << "parent of" << datum.item->getEntityItemID();
-                // Warning: this is not a tail-call, so exporting a REALLY deep parent hierarchy will blow the call stack.
+                // Warning: could blow the call stack if the parent hierarchy is VERY deep.
                 parentID = getMapped(entities[parentID]);
                 properties.setParentID(parentID);
             }
-            // The so-called root offset (which isn't) is confusing and not what content developers want. And why would queryAACube not then be offset?
-            // But leaving it in for bug-compatibility right now. -HRS
-            // FIXME properties.setPosition(properties.getPosition() - root);
-            datum.mappedID = originalID; //EntityItemID(QUuid::createUuid());
+            datum.mappedID = originalID;  // FIXME: simplify because we don't have to map ids.
             auto newEntity = exportTree->addEntity(datum.mappedID, properties);
             qCDebug(interfaceapp) << "mapped" << properties.getName();
             qCDebug(interfaceapp) << "      " << originalID  << "p:" << datum.originalParentID;
@@ -2862,8 +2874,6 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
         getMapped(entityDatum);
     }
-    // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-    //exportTree->remapIDs();
 
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
