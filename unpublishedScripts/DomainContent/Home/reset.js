@@ -318,6 +318,14 @@
                 y: 0.8382,
                 z: 0.1303
             }];
+
+            var TRANSFORMER_SCALE = 0.5;
+
+            dollDimensions.forEach(function(vector,index){
+                var scaled = Vec3.multiply(vector,TRANSFORMER_SCALE);
+                dollDimensions[index] = scaled;
+            })
+            
             var dollLateralSeparation = 1.0;
             dolls.forEach(function(doll, index) {
 
