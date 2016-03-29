@@ -361,7 +361,10 @@
 
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
+                /*
+                FIXME: See FIXME for property-script-url.
                 var elScriptTimestamp = document.getElementById("property-script-timestamp");
+                */
                 var elReloadScriptButton = document.getElementById("reload-script-button");
                 var elUserData = document.getElementById("property-user-data");
     
@@ -631,7 +634,10 @@
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
                                 elScriptURL.value = properties.script;
+                                /*
+                                FIXME: See FIXME for property-script-url.
                                 elScriptTimestamp.value = properties.scriptTimestamp;
+                                */
                                 elUserData.value = properties.userData;
                                 setTextareaScrolling(elUserData);
     
@@ -677,7 +683,7 @@
                                     elModelTextures.value = properties.textures;
                                     setTextareaScrolling(elModelTextures);
                                     elModelOriginalTextures.value = properties.originalTextures;
-                                    setTextAreaScrolling(elModelOriginalTextures);
+                                    setTextareaScrolling(elModelOriginalTextures);
                                 } else if (properties.type == "Web") {
                                     for (var i = 0; i < elWebSections.length; i++) {
                                         elWebSections[i].style.display = 'block';
