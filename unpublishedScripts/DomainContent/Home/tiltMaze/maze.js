@@ -13,7 +13,7 @@
 
 (function() {
 
-    Script.include('../../../../libraries/utils.js');
+    // Script.include('../utils.js');
 
     var SCALE = 0.5;
     var VICTORY_SOUND;
@@ -23,7 +23,6 @@
     var BALL_FORWARD_OFFSET = -0.2 * SCALE;
     var BALL_RIGHT_OFFSET = -0.4 * SCALE;
     var BALL_VERTICAL_OFFSET = 0.02 * SCALE;
-
 
     var BALL_FRICTION = 0.7;
     var BALL_RESTITUTION = 0.1;
@@ -48,6 +47,10 @@
         blue: 0
     };
 
+    var THROTTLE = true;
+    var THROTTLE_RATE = 1000;
+    var sinceLastUpdate = 0;
+
     var _this;
 
     function Maze() {
@@ -60,23 +63,29 @@
         ballLocked: false,
         preload: function(entityID) {
             this.entityID = entityID;
-            VICTORY_SOUND = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/levelUp.wav");
+            VICTORY_SOUND = SoundCache.getSound("atp:/tiltMaze/levelUp.wav");
+            Script.update.connect(this.update);
         },
+
         startNearGrab: function() {
             //check to make sure a ball is in range, otherwise create one
             this.testBallDistance();
         },
+
         continueNearGrab: function() {
             this.testWinDistance();
             this.testBallDistance();
         },
+
         continueDistantGrab: function() {
             this.testBallDistance();
             this.testWinDistance();
         },
+
         releaseGrab: function() {
             this.testBallDistance();
         },
+
         getBallStartLocation: function() {
             var mazeProps = Entities.getEntityProperties(this.entityID);
             var right = Quat.getRight(mazeProps.rotation);
@@ -92,11 +101,12 @@
             var location = Vec3.sum(mazeProps.position, finalOffset);
             return location;
         },
+
         createBall: function() {
             if (this.ballLocked === true) {
                 return;
             }
-            if(this.ball!==null){
+            if (this.ball !== null) {
                 Entities.deleteEntity(this.ball);
             }
 
@@ -113,11 +123,17 @@
                 gravity: BALL_GRAVITY,
                 density: BALL_DENSITY,
                 color: BALL_COLOR,
-                dimensions: BALL_DIMENSIONS
+                dimensions: BALL_DIMENSIONS,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             };
 
             this.ball = Entities.addEntity(properties);
         },
+
         destroyBall: function() {
             var results = Entities.findEntities(MyAvatar.position, 10);
             results.forEach(function(result) {
@@ -128,6 +144,7 @@
                 }
             })
         },
+
         testBallDistance: function() {
             if (this.ballLocked === true) {
                 return;
@@ -162,6 +179,7 @@
                 this.createBall();
             }
         },
+
         testWinDistance: function() {
             if (this.ballLocked === true) {
                 return;
@@ -197,8 +215,9 @@
                     _this.ballLocked = false;
                     _this.createBall();
                 }, 1500)
-            } 
+            }
         },
+
         playVictorySound: function() {
             var position = Entities.getEntityProperties(this.entityID, "position").position;
 
@@ -209,6 +228,23 @@
             Audio.playSound(VICTORY_SOUND, audioProperties);
 
         },
+
+        update: function(deltaTime) {
+            //anyone can clean up loose balls
+            if (THROTTLE === true) {
+                sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
+                if (sinceLastUpdate > THROTTLE_RATE) {
+                    sinceLastUpdate = 0;
+                } else {
+                    return;
+                }
+            }
+            _this.testBallDistance();
+        },
+
+        unload: function() {
+            Script.update.disconnect(_this.update);
+        }
     };
 
     return new Maze();

@@ -1,0 +1,36 @@
+{
+    "Entities": [{
+        "name": "hifi_home_model_desk_drawer_right",
+        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/desk-drawer-2.obj",
+        "created": "2016-03-15T21:26:11Z",
+        "dimensions": {
+            "x": 0.8697468638420105,
+            "y": 0.31825172901153564,
+            "z": 1.1220188140869141
+        },
+        "gravity": {
+            "x": 0,
+            "y": -1,
+            "z": 0
+        },
+        "dynamic": 1,
+        "id": "{ae1fa8dd-1167-40c1-8fa7-aeb12ee7b12c}",
+        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/desk-drawer-2.fbx",
+        "queryAACube": {
+            "scale": 1.4548780918121338,
+            "x": -0.72743904590606689,
+            "y": -0.72743904590606689,
+            "z": -0.72743904590606689
+        },
+        "rotation": {
+            "w": 0.9539787769317627,
+            "x": -7.62939453125e-05,
+            "y": 0.29982447624206543,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}

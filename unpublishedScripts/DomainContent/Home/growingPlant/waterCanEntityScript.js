@@ -12,12 +12,13 @@
 
 (function() {
 
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var _this;
-    WaterSpout = function() {
+
+    function WaterSpout() {
         _this = this;
-        _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
+        _this.waterSound = SoundCache.getSound("atp:/sounds/watering_can_pour.L.wav");
         _this.POUR_ANGLE_THRESHOLD = 0;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "hifi-water-spout";
@@ -36,6 +37,14 @@
         },
 
         startHold: function() {
+            if (_this.waterSpout) {
+                _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
+                _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
+                _this.createWaterEffect();
+            } else {
+                print("EBL NO WATER SPOUT FOUND RETURNING");
+                return;
+            }
             _this.findGrowableEntities();
         },
 
@@ -49,6 +58,9 @@
 
         releaseHold: function() {
             _this.stopPouring();
+            Script.setTimeout(function() {
+                Entities.deleteEntity(_this.waterEffect);
+            }, 2000);
         },
 
         stopPouring: function() {
@@ -58,7 +70,7 @@
             _this.waterPouring = false;
             //water no longer pouring...
             if (_this.waterInjector) {
-              _this.waterInjector.stop();  
+                _this.waterInjector.stop();
             }
             Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
         },
@@ -129,8 +141,6 @@
 
         },
 
-
-
         createWaterEffect: function() {
             var waterEffectPosition = Vec3.sum(_this.waterSpoutPosition, Vec3.multiply(Quat.getFront(_this.waterSpoutRotation), -0.04));
             _this.waterEffect = Entities.addEntity({
@@ -156,7 +166,7 @@
                 },
                 maxParticles: 20000,
                 lifespan: 2,
-                lifetime: 10000,
+                lifetime: 5000, //Doubtful anyone will hold water can longer than this
                 emitRate: 2000,
                 emitSpeed: .3,
                 speedSpread: 0.1,
@@ -187,7 +197,12 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
+                textures: "atp:/images/raindrop.png",
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             });
 
         },
@@ -209,21 +224,16 @@
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
             Script.setTimeout(function() {
-                var entities = Entities.findEntities(_this.position, 1);
+                var entities = Entities.findEntities(_this.position, 2);
                 entities.forEach(function(entity) {
                     var name = Entities.getEntityProperties(entity, "name").name;
+                    print('HOME FOUND AN ENTITY CALLED:: ' + name)
                     if (name === _this.WATER_SPOUT_NAME) {
                         _this.waterSpout = entity;
                     }
                 });
 
-                if (_this.waterSpout) {
-                    _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
-                    _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
-                    _this.createWaterEffect();
-                }
-
-            }, 3000);
+            }, 2000);
 
         },
 

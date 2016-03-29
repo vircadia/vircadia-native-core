@@ -12,10 +12,11 @@
 
 
 (function() {
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var _this;
-    GrowingPlant = function() {
+
+    function GrowingPlant() {
         _this = this;
         _this.flowers = [];
         // _this.STARTING_FLOWER_DIMENSIONS = {x: 0.1, y: 0.001, z: 0.1}
@@ -33,7 +34,8 @@
             max: 1000
         };
         _this.canCreateFlower = true;
-        _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
+        // _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
+        _this.SHADER_URL = "atp:/shaders/flower.fs";
         // _this.SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
 
         _this.flowerHSLColors = [{
@@ -49,8 +51,6 @@
     };
 
     GrowingPlant.prototype = {
-
-
         continueWatering: function(entityID, data) {
             // we're being watered- every now and then spawn a new flower to add to our growing list
             // If we don't have any flowers yet, immediately grow one
@@ -78,8 +78,12 @@
                 return;
             }
             var xzGrowthRate = randFloat(0.00006, 0.00016);
-            var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.003), z: xzGrowthRate};
-    
+            var growthRate = {
+                x: xzGrowthRate,
+                y: randFloat(0.001, 0.003),
+                z: xzGrowthRate
+            };
+
             var flower = {
                 dimensions: {
                     x: _this.STARTING_FLOWER_DIMENSIONS.x,
@@ -99,10 +103,14 @@
                 //     saturation: 0.92,
                 //     light: 0.41
                 // },
-                hslColor: Math.random() < 0.5 ? _this.flowerHSLColors[0] : _this.flowerHSLColors[1], 
+                hslColor: Math.random() < 0.5 ? _this.flowerHSLColors[0] : _this.flowerHSLColors[1],
                 growthRate: growthRate
             };
+
             flower.userData = {
+                'hifiHomeKey': {
+                    'reset': true
+                },
                 ProceduralEntity: {
                     shaderUrl: _this.SHADER_URL,
                     uniforms: {
