@@ -758,68 +758,12 @@ void printSystemInformation() {
 
     qDebug() << "CPUID";
 
-    auto printSupported = [](QString isaFeatureName, bool isSupported) {
-        qDebug().nospace().noquote() << "\t[" << (isSupported ? "x" : " ") << "] " << isaFeatureName;
-    };
-
     qDebug() << "\tCPU Vendor: " << CPUID::Vendor().c_str();
     qDebug() << "\tCPU Brand:  " << CPUID::Brand().c_str();
 
     for (auto& feature : CPUID::getAllFeatures()) {
         qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
     }
-
-    printSupported("3DNOW", CPUID::_3DNOW());
-    printSupported("3DNOWEXT", CPUID::_3DNOWEXT());
-    printSupported("ABM", CPUID::ABM());
-    printSupported("ADX", CPUID::ADX());
-    printSupported("AES", CPUID::AES());
-    printSupported("AVX", CPUID::AVX());
-    printSupported("AVX2", CPUID::AVX2());
-    printSupported("AVX512CD", CPUID::AVX512CD());
-    printSupported("AVX512ER", CPUID::AVX512ER());
-    printSupported("AVX512F", CPUID::AVX512F());
-    printSupported("AVX512PF", CPUID::AVX512PF());
-    printSupported("BMI1", CPUID::BMI1());
-    printSupported("BMI2", CPUID::BMI2());
-    printSupported("CLFSH", CPUID::CLFSH());
-    printSupported("CMPXCHG16B", CPUID::CMPXCHG16B());
-    printSupported("CX8", CPUID::CX8());
-    printSupported("ERMS", CPUID::ERMS());
-    printSupported("F16C", CPUID::F16C());
-    printSupported("FMA", CPUID::FMA());
-    printSupported("FSGSBASE", CPUID::FSGSBASE());
-    printSupported("FXSR", CPUID::FXSR());
-    printSupported("HLE", CPUID::HLE());
-    printSupported("INVPCID", CPUID::INVPCID());
-    printSupported("LAHF", CPUID::LAHF());
-    printSupported("LZCNT", CPUID::LZCNT());
-    printSupported("MMX", CPUID::MMX());
-    printSupported("MMXEXT", CPUID::MMXEXT());
-    printSupported("MONITOR", CPUID::MONITOR());
-    printSupported("MOVBE", CPUID::MOVBE());
-    printSupported("MSR", CPUID::MSR());
-    printSupported("OSXSAVE", CPUID::OSXSAVE());
-    printSupported("PCLMULQDQ", CPUID::PCLMULQDQ());
-    printSupported("POPCNT", CPUID::POPCNT());
-    printSupported("PREFETCHWT1", CPUID::PREFETCHWT1());
-    printSupported("RDRAND", CPUID::RDRAND());
-    printSupported("RDSEED", CPUID::RDSEED());
-    printSupported("RDTSCP", CPUID::RDTSCP());
-    printSupported("RTM", CPUID::RTM());
-    printSupported("SEP", CPUID::SEP());
-    printSupported("SHA", CPUID::SHA());
-    printSupported("SSE", CPUID::SSE());
-    printSupported("SSE2", CPUID::SSE2());
-    printSupported("SSE3", CPUID::SSE3());
-    printSupported("SSE4.1", CPUID::SSE41());
-    printSupported("SSE4.2", CPUID::SSE42());
-    printSupported("SSE4a", CPUID::SSE4a());
-    printSupported("SSSE3", CPUID::SSSE3());
-    printSupported("SYSCALL", CPUID::SYSCALL());
-    printSupported("TBM", CPUID::TBM());
-    printSupported("XOP", CPUID::XOP());
-    printSupported("XSAVE", CPUID::XSAVE());
 #endif
 
     qDebug() << "Environment Variables";
