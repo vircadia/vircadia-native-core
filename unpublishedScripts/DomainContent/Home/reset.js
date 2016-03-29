@@ -298,13 +298,19 @@
         },
 
         createTransformingDais: function() {
-            var DAIS_MODEL_URL = '';
-            var COLLISION_HULL_URL = '';
+            var DAIS_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Dressing-Dais.fbx';
+            var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Dressing-Dais.obj';
 
             var DAIS_DIMENSIONS = {
-                x: 1,
-                y: 1,
-                z: 1
+                x: 1.0654,
+                y: 0.4679,
+                z: 1.0654
+            };
+
+            var DAIS_POSITION = {
+                x:1107.0330,
+                y:459.4326,
+                z:-74.5704
             };
 
             var daisProperties = {
