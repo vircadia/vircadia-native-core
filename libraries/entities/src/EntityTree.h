@@ -203,8 +203,6 @@ public:
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
 
-    void remapIDs();
-
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;

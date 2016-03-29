@@ -1372,11 +1372,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
     return true;
 }
 
-void EntityTree::remapIDs() {
-    RemapIDOperator theOperator;
-    recurseTreeWithOperator(&theOperator);
-}
-
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) {
     if (! entityDescription.contains("Entities")) {
