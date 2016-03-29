@@ -163,6 +163,10 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
         while (it.hasNext()) {
             QString jsFullPath = it.next();
             QString jsPartialPath = jsFullPath.mid(localDir.length() + 1); // + 1 to skip a separator
+            #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
+            jsFullPath = jsFullPath.toLower();
+            jsPartialPath = jsPartialPath.toLower();
+            #endif
             _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath, SCRIPT_ORIGIN_DEFAULT));
         }
     } else {
@@ -274,7 +278,13 @@ void ScriptsModel::reloadLocalFiles() {
     const QFileInfoList localFiles = _localDirectory.entryInfoList();
     for (int i = 0; i < localFiles.size(); i++) {
         QFileInfo file = localFiles[i];
-        _treeNodes.append(new TreeNodeScript(file.fileName(), file.absoluteFilePath(), SCRIPT_ORIGIN_LOCAL));
+        QString fileName = file.fileName();
+        QString absPath = file.absoluteFilePath();
+        #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
+        fileName = fileName.toLower();
+        absPath = absPath.toLower();
+        #endif
+        _treeNodes.append(new TreeNodeScript(fileName, absPath, SCRIPT_ORIGIN_LOCAL));
     }
     rebuildTree();
     endResetModel();
