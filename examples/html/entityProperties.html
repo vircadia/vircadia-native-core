@@ -900,6 +900,9 @@
                     onShow: function (colpick) {
                         $('#property-color').attr('active', 'true');
                     },
+                    onHide: function (colpick) {
+                        $('#property-color').attr('active', 'false');
+                    },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
@@ -920,6 +923,9 @@
                     color:'000000',
                     onShow: function (colpick) {
                         $('#property-light-color').attr('active', 'true');
+                    },
+                    onHide: function (colpick) {
+                        $('#property-light-color').attr('active', 'false');
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
@@ -965,7 +971,10 @@
                     onShow: function (colpick) {
                         $('#property-text-text-color').attr('active', 'true');
                     },
-                    onSubmit: function(hsb, hex, rgb, el) {
+                    onHide: function (colpick) {
+                        $('#property-text-text-color').attr('active', 'false');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
                         $(el).attr('active', 'false');
@@ -985,6 +994,9 @@
                     onShow: function (colpick) {
                         $('#property-text-background-color').attr('active', 'true');
                     },
+                    onHide: function (colpick) {
+                        $('#property-text-background-color').attr('active', 'false');
+                    },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
                         $(el).colpickHide();
@@ -999,6 +1011,9 @@
                     color:'000000',
                     onShow: function (colpick) {
                         $('#property-zone-key-light-color').attr('active', 'true');
+                    },
+                    onHide: function (colpick) {
+                        $('#property-zone-key-light-color').attr('active', 'false');
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
@@ -1037,6 +1052,9 @@
                     color:'000000',
                     onShow: function (colpick) {
                         $('#property-zone-skybox-color').attr('active', 'true');
+                    },
+                    onHide: function (colpick) {
+                        $('#property-zone-skybox-color').attr('active', 'false');
                     },
                     onSubmit: function (hsb, hex, rgb, el) {
                         $(el).css('background-color', '#'+hex);
