@@ -15,6 +15,8 @@
 
 #include <LogHandler.h>
 
+#include "Socket.h"
+
 using namespace udt;
 
 static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
@@ -28,15 +30,10 @@ static const std::array<Key, 4> KEYS {{
 }};
 
 void xorHelper(char* start, int size, Key key) {
-    const auto end = start + size;
-
-    auto p = start;
-    for (; p + sizeof(Key) < end; p += sizeof(Key)) {
-        *reinterpret_cast<Key*>(p) ^= key;
-    }
-
-    for (int i = 0; p < end; ++p || ++i) {
-        *p ^= *(reinterpret_cast<const char*>(&key) + i);
+    auto current = start;
+    auto xorValue = reinterpret_cast<const char*>(&key);
+    for (int i = 0; i < size; ++i) {
+        *(current++) ^= *(xorValue + (i % sizeof(Key)));
     }
 }
 

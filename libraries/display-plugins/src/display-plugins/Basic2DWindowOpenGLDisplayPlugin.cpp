@@ -19,9 +19,7 @@ const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 
 static const QString FULLSCREEN = "Fullscreen";
 
-void Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
-    Parent::internalActivate();
-
+bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     _framerateActions.clear();
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), FULLSCREEN,
         [this](bool clicked) {
@@ -33,6 +31,8 @@ void Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
         }, true, false);
 
     updateFramerate();
+
+    return Parent::internalActivate();
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {

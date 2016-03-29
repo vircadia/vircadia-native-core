@@ -4,7 +4,7 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 include(ExternalProject)
 ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://iweb.dl.sourceforge.net/project/oglplus/oglplus-0.63.x/oglplus-0.63.0.zip
+    URL http://hifi-public.s3.amazonaws.com/dependencies/oglplus-0.63.0.zip
     URL_MD5 de984ab245b185b45c87415c0e052135
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""

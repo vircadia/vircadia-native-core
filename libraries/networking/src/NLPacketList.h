@@ -21,8 +21,6 @@ public:
     static std::unique_ptr<NLPacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
                                                 bool isReliable = false, bool isOrdered = false);
     
-    static std::unique_ptr<NLPacketList> fromPacketList(std::unique_ptr<udt::PacketList>);
-
     PacketVersion getVersion() const { return _packetVersion; }
     const QUuid& getSourceID() const { return _sourceID; }
     

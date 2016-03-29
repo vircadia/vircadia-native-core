@@ -231,6 +231,13 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     
     _leftEyePosition = _rightEyePosition = getPosition();
     _eyePosition = calculateAverageEyePosition();
+
+    if (!billboard && _owningAvatar) {
+        auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
+        if (skeletonModel) {
+            skeletonModel->getEyePositions(_leftEyePosition, _rightEyePosition);
+        }
+    }
 }
 
 void Head::calculateMouthShapes() {
@@ -382,7 +389,7 @@ glm::quat Head::getCameraOrientation() const {
     // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    if (qApp->getAvatarUpdater()->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
         if (myAvatar) {
             return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();

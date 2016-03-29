@@ -50,7 +50,9 @@ void GLWidget::initializeGL() {
     // TODO: write the proper code for linux
     makeCurrent();
 #if defined(Q_OS_WIN)
-    _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");;
+    if (isValid() && context() && context()->contextHandle()) {
+        _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");;
+    }
 #endif
 }
 

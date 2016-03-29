@@ -225,9 +225,6 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset(bool andReload) {
-    if (andReload) {
-        qApp->setRawAvatarUpdateThreading(false);
-    }
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
@@ -421,7 +418,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
-// best called at end of main loop, just before rendering.
+// best called at end of main loop, after physics.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
@@ -444,7 +441,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
-    bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
+    bool inHmd = qApp->isHMDMode();
     bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
     if (inHmd && playing) {
         return;
@@ -900,7 +897,9 @@ void MyAvatar::updateLookAtTargetAvatar() {
                     // Scale by proportional differences between avatar and human.
                     float humanEyeSeparationInModelSpace = glm::length(humanLeftEye - humanRightEye) * ipdScale;
                     float avatarEyeSeparation = glm::length(avatarLeftEye - avatarRightEye);
-                    gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
+                    if (avatarEyeSeparation > 0.0f) {
+                        gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
+                    }
                 }
 
                 // And now we can finally add that offset to the camera.
@@ -1041,9 +1040,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
     const QString& urlString = fullAvatarURL.toString();
     if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
-        qApp->setRawAvatarUpdateThreading(false);
         setSkeletonModelURL(fullAvatarURL);
-        qApp->setRawAvatarUpdateThreading();
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
     sendIdentityPacket();
@@ -1092,24 +1089,32 @@ static controller::Pose applyLowVelocityFilter(const controller::Pose& oldPose, 
     return finalPose;
 }
 
-void MyAvatar::setHandControllerPosesInWorldFrame(const controller::Pose& left, const controller::Pose& right) {
+void MyAvatar::setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
     if (controller::InputDevice::getLowVelocityFilter()) {
-        auto oldLeftPose = getLeftHandControllerPoseInWorldFrame();
-        auto oldRightPose = getRightHandControllerPoseInWorldFrame();
-        _leftHandControllerPoseInWorldFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
-        _rightHandControllerPoseInWorldFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
+        auto oldLeftPose = getLeftHandControllerPoseInSensorFrame();
+        auto oldRightPose = getRightHandControllerPoseInSensorFrame();
+        _leftHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldLeftPose, left));
+        _rightHandControllerPoseInSensorFrameCache.set(applyLowVelocityFilter(oldRightPose, right));
     } else {
-        _leftHandControllerPoseInWorldFrameCache.set(left);
-        _rightHandControllerPoseInWorldFrameCache.set(right);
+        _leftHandControllerPoseInSensorFrameCache.set(left);
+        _rightHandControllerPoseInSensorFrameCache.set(right);
     }
 }
 
+controller::Pose MyAvatar::getLeftHandControllerPoseInSensorFrame() const {
+    return _leftHandControllerPoseInSensorFrameCache.get();
+}
+
+controller::Pose MyAvatar::getRightHandControllerPoseInSensorFrame() const {
+    return _rightHandControllerPoseInSensorFrameCache.get();
+}
+
 controller::Pose MyAvatar::getLeftHandControllerPoseInWorldFrame() const {
-    return _leftHandControllerPoseInWorldFrameCache.get();
+    return _leftHandControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
 }
 
 controller::Pose MyAvatar::getRightHandControllerPoseInWorldFrame() const {
-    return _rightHandControllerPoseInWorldFrameCache.get();
+    return _rightHandControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
 }
 
 controller::Pose MyAvatar::getLeftHandControllerPoseInAvatarFrame() const {
@@ -1242,7 +1247,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
-        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose(qApp->getFrameCount());
+        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
         glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
         leftEyePose = leftEyePose * headPose;
         glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
@@ -1267,8 +1272,8 @@ void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene
 
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
-    if (_skeletonModel->getGeometry()) {
-        neckJointIndex = _skeletonModel->getGeometry()->getFBXGeometry().neckJointIndex;
+    if (_skeletonModel->isLoaded()) {
+        neckJointIndex = _skeletonModel->getFBXGeometry().neckJointIndex;
     }
     if (neckJointIndex == -1) {
         return;
@@ -1477,7 +1482,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
 
-    if (qApp->getAvatarUpdater()->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
         glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;

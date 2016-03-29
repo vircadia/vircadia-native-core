@@ -77,6 +77,18 @@ void AssetServer::completeSetup() {
 
     auto assetServerObject = settingsObject[ASSET_SERVER_SETTINGS_KEY].toObject();
 
+    static const QString MAX_BANDWIDTH_OPTION = "max_bandwidth";
+    auto maxBandwidthValue = assetServerObject[MAX_BANDWIDTH_OPTION];
+    auto maxBandwidthFloat = maxBandwidthValue.toDouble(-1);
+
+    if (maxBandwidthFloat > 0.0) {
+        const int BYTES_PER_MEGABITS = (1024 * 1024) / 8;
+        int maxBandwidth = maxBandwidthFloat * BYTES_PER_MEGABITS;
+        nodeList->setConnectionMaxBandwidth(maxBandwidth);
+        qInfo() << "Set maximum bandwith per connection to" << maxBandwidthFloat << "Mb/s."
+                    " (" << maxBandwidth << "bytes/sec)";
+    }
+
     // get the path to the asset folder from the domain server settings
     static const QString ASSETS_PATH_OPTION = "assets_path";
     auto assetsJSONValue = assetServerObject[ASSETS_PATH_OPTION];

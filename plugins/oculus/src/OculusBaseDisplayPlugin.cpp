@@ -15,14 +15,11 @@ void OculusBaseDisplayPlugin::resetSensors() {
     ovr_RecenterPose(_session);
 }
 
-glm::mat4 OculusBaseDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    static uint32_t lastFrameSeen = 0;
+void OculusBaseDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
     auto displayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, displayTime, frameIndex > lastFrameSeen);
-    if (frameIndex > lastFrameSeen) {
-        lastFrameSeen = frameIndex;
-    }
-    return toGlm(trackingState.HeadPose.ThePose);
+    auto trackingState = ovr_GetTrackingState(_session, displayTime, true);
+    mat4 headPose = toGlm(trackingState.HeadPose.ThePose);
+    _headPoseCache.set(headPose);
 }
 
 bool OculusBaseDisplayPlugin::isSupported() const {
@@ -33,12 +30,15 @@ bool OculusBaseDisplayPlugin::isSupported() const {
 void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
     GLenum err = glewInit();
-    glGetError();
+    glGetError(); // clear the potential error from glewExperimental
     Parent::customizeContext();
 }
 
-void OculusBaseDisplayPlugin::internalActivate() {
+bool OculusBaseDisplayPlugin::internalActivate() {
     _session = acquireOculusSession();
+    if (!_session) {
+        return false;
+    }
 
     _hmdDesc = ovr_GetHmdDesc(_session);
 
@@ -68,7 +68,7 @@ void OculusBaseDisplayPlugin::internalActivate() {
 
     if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        qWarning() << "Could not attach to sensor device";
+        logWarning("Failed to attach to sensor device");
     }
 
     // Parent class relies on our _session intialization, so it must come after that.
@@ -84,7 +84,7 @@ void OculusBaseDisplayPlugin::internalActivate() {
     // This must come after the initialization, so that the values calculated 
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
-    Parent::internalActivate();
+    return Parent::internalActivate();
 }
 
 void OculusBaseDisplayPlugin::internalDeactivate() {

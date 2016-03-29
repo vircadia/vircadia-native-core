@@ -37,7 +37,7 @@ public:
     virtual bool isJointController() const override { return true; }
     const QString& getName() const override { return NAME; }
 
-    virtual void activate() override;
+    virtual bool activate() override;
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
@@ -111,8 +111,6 @@ private:
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
     static const QString NAME;
-
-
 };
 
 #endif // hifi__ViveControllerManager

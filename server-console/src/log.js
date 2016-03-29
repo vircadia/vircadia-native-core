@@ -44,6 +44,14 @@ ready = function() {
     var domainServer = remote.getGlobal('domainServer');
     var acMonitor = remote.getGlobal('acMonitor');
 
+    var pendingLines = {
+        'ds': new Array(),
+        'ac': new Array()
+    };
+
+    var UPDATE_INTERVAL = 16; // Update log at ~60 fps
+    var interval = setInterval(flushPendingLines, UPDATE_INTERVAL);
+
     var logWatchers = {
         'ds': {
         },
@@ -83,7 +91,7 @@ ready = function() {
             var logTail = new Tail(cleanFilePath, '\n', { start: start, interval: 500 });
 
             logTail.on('line', function(msg) {
-                appendLogMessage(msg, stream);
+                pendingLines[stream].push(msg);
             });
 
             logTail.on('error', function(error) {
@@ -107,6 +115,7 @@ ready = function() {
     }
 
     window.onbeforeunload = function(e) {
+        clearInterval(interval);
         domainServer.removeListener('logs-updated', updateLogFiles);
         acMonitor.removeListener('logs-updated', updateLogFiles);
     };
@@ -164,14 +173,23 @@ ready = function() {
         return !filter || message.toLowerCase().indexOf(filter) >= 0;
     }
 
-    function appendLogMessage(msg, name) {
+    function appendLogMessages(name) {
+        var array = pendingLines[name];
+        if (array.length === 0) {
+            return;
+        }
+        if (array.length > maxLogLines) {
+            array = array.slice(-maxLogLines);
+        }
+
+        console.log(name, array.length);
+
         var id = name == "ds" ? "domain-server" : "assignment-client";
         var $pidLog = $('#' + id);
 
-        var size = ++tabStates[id].size;
+        var size = tabStates[id].size + array.length;
         if (size > maxLogLines) {
-            $pidLog.find('div.log-line:first').remove();
-            removed = true;
+            $pidLog.find('div.log-line:lt(' + (size - maxLogLines) + ')').remove();
         }
 
         var wasAtBottom = false;
@@ -179,17 +197,25 @@ ready = function() {
             wasAtBottom = $pidLog[0].scrollTop >= ($pidLog[0].scrollHeight - $pidLog.height());
         }
 
-        var $logLine = $('<div class="log-line">').text(msg);
-        if (!shouldDisplayLogMessage(msg)) {
-            $logLine.hide();
+        for (line in array) {
+            var $logLine = $('<div class="log-line">').text(array[line]);
+            if (!shouldDisplayLogMessage(array[line])) {
+                $logLine.hide();
+            }
+
+            $pidLog.append($logLine);
         }
 
-        $pidLog.append($logLine);
+        delete pendingLines[name];
+        pendingLines[name] = new Array();
 
         if (wasAtBottom) {
             $pidLog.scrollTop($pidLog[0].scrollHeight);
         }
-
+    }
+    function flushPendingLines() {
+        appendLogMessages('ds');
+        appendLogMessages('ac');
     }
 
     // handle filtering of table rows on input change

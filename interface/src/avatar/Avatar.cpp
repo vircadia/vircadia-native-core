@@ -187,7 +187,7 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inView = qApp->getViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool inView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
 
     if (_shouldAnimate && !_shouldSkipRender && inView) {
         {
@@ -393,7 +393,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (!frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
-        endRender();
         return;
     }
 
@@ -467,8 +466,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 * (1.0f - ((float)(now - getHead()->getLookingAtMeStarted()))
                 / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
             if (alpha > 0.0f) {
-                QSharedPointer<NetworkGeometry> geometry = _skeletonModel->getGeometry();
-                if (geometry && geometry->isLoaded()) {
+                if (_skeletonModel->isLoaded()) {
+                    const auto& geometry = _skeletonModel->getFBXGeometry();
                     const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
                     const float RADIUS_INCREMENT = 0.005f;
                     batch.setModelTransform(Transform());
@@ -476,7 +475,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                     glm::vec3 position = getHead()->getLeftEyePosition();
                     Transform transform;
                     transform.setTranslation(position);
-                    float eyeDiameter = geometry->getFBXGeometry().leftEyeSize;
+                    float eyeDiameter = geometry.leftEyeSize;
                     if (eyeDiameter == 0.0f) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
@@ -487,7 +486,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
                     position = getHead()->getRightEyePosition();
                     transform.setTranslation(position);
-                    eyeDiameter = geometry->getFBXGeometry().rightEyeSize;
+                    eyeDiameter = geometry.rightEyeSize;
                     if (eyeDiameter == 0.0f) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
@@ -512,7 +511,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
-    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -817,7 +815,7 @@ int Avatar::getJointIndex(const QString& name) const {
             Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
         return result;
     }
-    return _skeletonModel->isActive() ? _skeletonModel->getGeometry()->getFBXGeometry().getJointIndex(name) : -1;
+    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointIndex(name) : -1;
 }
 
 QStringList Avatar::getJointNames() const {
@@ -827,7 +825,7 @@ QStringList Avatar::getJointNames() const {
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
-    return _skeletonModel->isActive() ? _skeletonModel->getGeometry()->getFBXGeometry().getJointNames() : QStringList();
+    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointNames() : QStringList();
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
@@ -907,7 +905,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
-    startUpdate();
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -926,7 +923,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving || _hasNewJointRotations || _hasNewJointTranslations) {
         locationChanged();
     }
-    endUpdate();
 
     return bytesRead;
 }

@@ -19,6 +19,7 @@
 #include <gpu/GLBackend.h>
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
+#include <shared/NsightHelpers.h>
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
@@ -31,7 +32,7 @@ glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
 
-void HmdDisplayPlugin::internalActivate() {
+bool HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
 
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -40,7 +41,8 @@ void HmdDisplayPlugin::internalActivate() {
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
-    Parent::internalActivate();
+
+    return Parent::internalActivate();
 }
 
 void HmdDisplayPlugin::customizeContext() {
@@ -106,6 +108,9 @@ void HmdDisplayPlugin::compositePointer() {
 }
 
 void HmdDisplayPlugin::internalPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
     // Composite together the scene, overlay and mouse cursor
     hmdPresent();
 
@@ -149,6 +154,8 @@ void HmdDisplayPlugin::internalPresent() {
         });
         swapBuffers();
     }
+
+    postPreview();
 }
 
 void HmdDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
@@ -160,4 +167,8 @@ void HmdDisplayPlugin::updateFrameData() {
     Parent::updateFrameData();
     Lock lock(_mutex);
     _currentRenderEyePoses = _renderEyePoses[_currentRenderFrameIndex];
+}
+
+glm::mat4 HmdDisplayPlugin::getHeadPose() const {
+    return _headPoseCache.get();
 }

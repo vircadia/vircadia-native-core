@@ -110,17 +110,21 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     // If textures are unset, revert to original textures
     if (textures == "") {
-        return _originalTexturesMap;
+        return _originalTextures;
     }
 
-    QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    // Legacy: a ,\n-delimited list of filename:"texturepath"
+    if (*textures.cbegin() != '{') {
+        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    }
+
     QJsonParseError error;
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(jsonTextures.toUtf8(), &error);
+    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+        return _originalTextures;
     }
-    QJsonObject texturesAsJsonObject = texturesAsJson.object();
-    return texturesAsJsonObject.toVariantMap();
+    return texturesJson.object().toVariantMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
@@ -131,44 +135,23 @@ void RenderableModelEntityItem::remapTextures() {
     if (!_model->isLoaded()) {
         return; // nothing to do if the model has not yet loaded
     }
-    
+
+    auto& geometry = _model->getGeometry()->getGeometry();
+
     if (!_originalTexturesRead) {
-        const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
-        if (networkGeometry) {
-            _originalTextures = networkGeometry->getTextureNames();
-            _originalTexturesMap = parseTexturesToMap(_originalTextures.join(",\n"));
-            _originalTexturesRead = true;
-        }
-    }
-    
-    if (_currentTextures == _textures) {
-        return; // nothing to do if our recently mapped textures match our desired textures
-    }
-    
-    // since we're changing here, we need to run through our current texture map
-    // and any textures in the recently mapped texture, that is not in our desired
-    // textures, we need to "unset"
-    QVariantMap currentTextureMap = parseTexturesToMap(_currentTextures);
-    QVariantMap textureMap = parseTexturesToMap(_textures);
+        _originalTextures = geometry->getTextures();
+        _originalTexturesRead = true;
 
-    foreach(const QString& key, currentTextureMap.keys()) {
-        // if the desired texture map (what we're setting the textures to) doesn't
-        // contain this texture, then remove it by setting the URL to null
-        if (!textureMap.contains(key)) {
-            QUrl noURL;
-            qCDebug(entitiesrenderer) << "Removing texture named" << key << "by replacing it with no URL";
-            _model->setTextureWithNameToURL(key, noURL);
-        }
+        // Default to _originalTextures to avoid remapping immediately and lagging on load
+        _currentTextures = _originalTextures;
     }
 
-    // here's where we remap any textures if needed...
-    foreach(const QString& key, textureMap.keys()) {
-        QUrl newTextureURL = textureMap[key].toUrl();
-        qCDebug(entitiesrenderer) << "Updating texture named" << key << "to texture at URL" << newTextureURL;
-        _model->setTextureWithNameToURL(key, newTextureURL);
+    auto textures = parseTexturesToMap(_textures);
+
+    if (textures != _currentTextures) {
+        geometry->setTextures(textures);
+        _currentTextures = textures;
     }
-    
-    _currentTextures = _textures;
 }
 
 // TODO: we need a solution for changes to the postion/rotation/etc of a model...
@@ -350,7 +333,9 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
+         _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
+         _model->getScaleToFitDimensions() != getDimensions() ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
@@ -366,6 +351,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         }
 
         _needsInitialSimulation = false;
+        _needsJointSimulation = false;
     }
 }
 
@@ -519,8 +505,7 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 
 void RenderableModelEntityItem::update(const quint64& now) {
     if (!_dimensionsInitialized && _model && _model->isActive()) {
-        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-        if (renderNetworkGeometry && renderNetworkGeometry->isLoaded()) {
+        if (_model->isLoaded()) {
             EntityItemProperties properties;
             auto extents = _model->getMeshExtents();
             properties.setDimensions(extents.maximum - extents.minimum);
@@ -586,13 +571,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
             return false;
         }
 
-        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-
-        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
-            (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
+        if (_model->isLoaded() && _model->isCollisionLoaded()) {
             // we have both URLs AND both geometries AND they are both fully loaded.
-
             if (_needsInitialSimulation) {
                 // the _model's offset will be wrong until _needsInitialSimulation is false
                 PerformanceTimer perfTimer("_model->simulate");
@@ -617,15 +597,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         adjustShapeInfoByRegistration(info);
     } else {
         updateModelBounds();
-        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
 
         // should never fall in here when collision model not fully loaded
-        // hence we assert collisionNetworkGeometry is not NULL
-        assert(collisionNetworkGeometry);
-
-        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
-        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-        const FBXGeometry& renderGeometry = renderNetworkGeometry->getFBXGeometry();
+        // hence we assert that all geometries exist and are loaded
+        assert(_model->isLoaded() && _model->isCollisionLoaded());
+        const FBXGeometry& renderGeometry = _model->getFBXGeometry();
+        const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
         _points.clear();
         unsigned int i = 0;
@@ -727,10 +704,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
-    if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
-        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
-        return collisionGeometry.convexHullContains(worldToEntity(point));
+    if (EntityItem::contains(point) && _model && _model->isCollisionLoaded()) {
+        return _model->getCollisionFBXGeometry().convexHullContains(worldToEntity(point));
     }
 
     return false;
@@ -766,6 +741,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
@@ -781,10 +757,32 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
             result = true;
+            _needsJointSimulation = true;
         }
     });
     return result;
 }
+
+void RenderableModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    ModelEntityItem::setJointRotations(rotations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    ModelEntityItem::setJointRotationsSet(rotationsSet);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    ModelEntityItem::setJointTranslations(translations);
+    _needsJointSimulation = true;
+}
+
+void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    ModelEntityItem::setJointTranslationsSet(translationsSet);
+    _needsJointSimulation = true;
+}
+
 
 void RenderableModelEntityItem::locationChanged() {
     EntityItem::locationChanged();

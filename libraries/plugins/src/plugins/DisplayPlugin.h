@@ -59,7 +59,7 @@ class DisplayPlugin : public Plugin {
     Q_OBJECT
     using Parent = Plugin;
 public:
-    void activate() override;
+    bool activate() override;
     void deactivate() override;
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
@@ -121,8 +121,12 @@ public:
         static const glm::mat4 transform; return transform;
     }
 
-    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const {
-        static const glm::mat4 pose; return pose;
+    // will query the underlying hmd api to compute the most recent head pose
+    virtual void updateHeadPose(uint32_t frameIndex) {}
+
+    // returns a copy of the most recent head pose, computed via updateHeadPose
+    virtual glm::mat4 getHeadPose() const {
+        return glm::mat4();
     }
 
     // Needed for timewarp style features

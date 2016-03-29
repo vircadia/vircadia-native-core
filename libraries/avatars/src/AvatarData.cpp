@@ -86,7 +86,6 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
 
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
-    avatarLock.lock();
     bool success;
     Transform trans = getTransform(success);
     if (!success) {
@@ -99,33 +98,6 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     if (!success) {
         qDebug() << "Warning -- AvatarData::nextAttitude failed";
     }
-    avatarLock.unlock();
-    updateAttitude();
-}
-void AvatarData::startCapture() {
-    avatarLock.lock();
-}
-void AvatarData::endCapture() {
-    avatarLock.unlock();
-}
-void AvatarData::startUpdate() {
-    avatarLock.lock();
-}
-void AvatarData::endUpdate() {
-    avatarLock.unlock();
-}
-void AvatarData::startRenderRun() {
-    // I'd like to get rid of this and just (un)lock at (end-)startRender.
-    // But somehow that causes judder in rotations.
-    avatarLock.lock();
-}
-void AvatarData::endRenderRun() {
-    avatarLock.unlock();
-}
-void AvatarData::startRender() {
-    updateAttitude();
-}
-void AvatarData::endRender() {
     updateAttitude();
 }
 
@@ -996,9 +968,10 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
 
     bool hasIdentityChanged = false;
 
-    if (skeletonModelURL != _skeletonModelURL) {
+    if (_firstSkeletonCheck || (skeletonModelURL != _skeletonModelURL)) {
         setSkeletonModelURL(skeletonModelURL);
         hasIdentityChanged = true;
+        _firstSkeletonCheck = false;
     }
 
     if (displayName != _displayName) {
@@ -1153,7 +1126,7 @@ void AvatarData::setBillboardFromURL(const QString &billboardURL) {
 }
 
 void AvatarData::setBillboardFromNetworkReply() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
+    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
     setBillboard(networkReply->readAll());
     networkReply->deleteLater();
 }

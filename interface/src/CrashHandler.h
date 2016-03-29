@@ -17,7 +17,7 @@
 class CrashHandler {
 
 public:
-    static void checkForAndHandleCrash();
+    static bool checkForAndHandleCrash();
 
     static void writeRunningMarkerFiler();
     static void deleteRunningMarkerFile();

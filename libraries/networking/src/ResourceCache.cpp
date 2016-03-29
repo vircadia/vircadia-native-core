@@ -216,17 +216,13 @@ Resource* ResourceCacheSharedItems::getHighestPendingRequest() {
 bool ResourceCache::attemptRequest(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
 
-    // Disable request limiting for ATP
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        if (_requestsActive >= _requestLimit) {
-            // wait until a slot becomes available
-            sharedItems->appendPendingRequest(resource);
-            return false;
-        }
-
-        ++_requestsActive;
+    if (_requestsActive >= _requestLimit) {
+        // wait until a slot becomes available
+        sharedItems->appendPendingRequest(resource);
+        return false;
     }
-
+    
+    ++_requestsActive;
     sharedItems->appendActiveRequest(resource);
     resource->makeRequest();
     return true;
@@ -235,9 +231,7 @@ bool ResourceCache::attemptRequest(Resource* resource) {
 void ResourceCache::requestCompleted(Resource* resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->removeRequest(resource);
-    if (resource->getURL().scheme() != URL_SCHEME_ATP) {
-        --_requestsActive;
-    }
+    --_requestsActive;
 
     attemptHighestPriorityRequest();
 }
@@ -267,9 +261,10 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
 
 Resource::~Resource() {
     if (_request) {
-        ResourceCache::requestCompleted(this);
+        _request->disconnect(this);
         _request->deleteLater();
         _request = nullptr;
+        ResourceCache::requestCompleted(this);
     }
 }
 
@@ -379,6 +374,7 @@ void Resource::finishedLoading(bool success) {
         _failedToLoad = true;
     }
     _loadPriorities.clear();
+    emit finished(success);
 }
 
 void Resource::reinsert() {
@@ -414,18 +410,25 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    Q_ASSERT(_request);
+    Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
+
+    if (!_request || _request != sender()) {
+        // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
+        qWarning(networking) << "Received signal Resource::handleReplyFinished from ResourceRequest that is not the current"
+            << " request: " << sender() << ", " << _request;
+        return;
+    }
     
     ResourceCache::requestCompleted(this);
     
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
-        _data = _request->getData();
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
-        emit loaded(_data);
-        downloadFinished(_data);
+        auto data = _request->getData();
+        emit loaded(data);
+        downloadFinished(data);
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {

@@ -40,7 +40,6 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 
-#include "avatar/AvatarUpdate.h"
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -215,7 +214,6 @@ public:
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
     float getAvatarSimrate();
     void setAvatarSimrateSample(float sample);
 
@@ -253,11 +251,6 @@ public slots:
 
     void openUrl(const QUrl& url);
 
-    void setAvatarUpdateThreading();
-    void setAvatarUpdateThreading(bool isThreaded);
-    void setRawAvatarUpdateThreading();
-    void setRawAvatarUpdateThreading(bool isThreaded);
-
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
 
@@ -277,6 +270,8 @@ public slots:
     void setOverlaysVisible(bool visible);
 
     void reloadResourceCaches();
+
+    void updateHeartbeat();
 
     void crashApplication();
     void deadlockApplication();
@@ -382,12 +377,13 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event);
 
     MainWindow* _window;
+    QElapsedTimer& _sessionRunTimer;
 
-    bool _dependencyManagerIsSetup;
+    bool _previousSessionCrashed;
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
-    std::recursive_mutex _displayPluginLock;
+    std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
@@ -420,7 +416,6 @@ private:
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
@@ -513,6 +508,8 @@ private:
     mutable QMutex _changeCursorLock { QMutex::Recursive };
     QCursor _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
+
+    QThread* _deadlockWatchdogThread;
 };
 
 #endif // hifi_Application_h

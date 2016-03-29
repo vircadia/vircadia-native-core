@@ -194,12 +194,14 @@ public:
     Q_INVOKABLE void allReferencesCleared();
     
     const QUrl& getURL() const { return _url; }
-    const QByteArray& getData() const { return _data; }
 
 signals:
     /// Fired when the resource has been downloaded.
     /// This can be used instead of downloadFinished to access data before it is processed.
-    void loaded(const QByteArray& request);
+    void loaded(const QByteArray request);
+
+    /// Fired when the resource has finished loading.
+    void finished(bool success);
 
     /// Fired when the resource failed to load.
     void failed(QNetworkReply::NetworkError error);
@@ -224,9 +226,6 @@ protected:
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
 
-    /// Reinserts this resource into the cache.
-    virtual void reinsert();
-
     QUrl _url;
     QUrl _activeUrl;
     bool _startedLoading = false;
@@ -235,7 +234,6 @@ protected:
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
-    QByteArray _data;
     
 private slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
@@ -246,6 +244,7 @@ private:
     
     void makeRequest();
     void retry();
+    void reinsert();
     
     friend class ResourceCache;
     

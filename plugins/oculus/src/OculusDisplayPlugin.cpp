@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusDisplayPlugin.h"
+#include <shared/NsightHelpers.h>
 #include "OculusHelpers.h"
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
@@ -54,6 +55,9 @@ void OculusDisplayPlugin::updateFrameData() {
 }
 
 void OculusDisplayPlugin::hmdPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
+
     if (!_currentSceneTexture) {
         return;
     }
@@ -63,7 +67,7 @@ void OculusDisplayPlugin::hmdPresent() {
         ovrLayerHeader* layers = &_sceneLayer.Header;
         ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
-            qDebug() << result;
+            logWarning("Failed to present");
         }
     }
     _sceneFbo->Increment();

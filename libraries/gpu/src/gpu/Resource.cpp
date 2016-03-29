@@ -10,11 +10,76 @@
 //
 #include "Resource.h"
 
+#include <atomic>
+
+#include <SharedUtil.h>
+#include <NumericalConstants.h>
 #include <QDebug>
+
+#include "Context.h"
 
 using namespace gpu;
 
+class AllocationDebugger {
+public:
+    void operator+=(size_t size) {
+        _allocatedMemory += size;
+        maybeReport();
+    }
+
+    void operator-=(size_t size) {
+        _allocatedMemory -= size;
+        maybeReport();
+    }
+
+private:
+    QString formatSize(size_t size) {
+        float num = size;
+        QStringList list;
+        list << "KB" << "MB" << "GB" << "TB";
+
+        QStringListIterator i(list);
+        QString unit("bytes");
+
+        while (num >= K && i.hasNext()) {
+            unit = i.next();
+            num /= K;
+        }
+        return QString().setNum(num, 'f', 2) + " " + unit;
+    }
+
+    void maybeReport() {
+        auto now = usecTimestampNow();
+        if (now - _lastReportTime < MAX_REPORT_FREQUENCY) {
+            return;
+        }
+        size_t current = _allocatedMemory;
+        size_t last = _lastReportedMemory;
+        size_t delta = (current > last) ? (current - last) : (last - current);
+        if (delta > MIN_REPORT_DELTA) {
+            _lastReportTime = now;
+            _lastReportedMemory = current;
+            qDebug() << "Total allocation " << formatSize(current);
+        }
+    }
+
+    std::atomic<size_t> _allocatedMemory;
+    std::atomic<size_t> _lastReportedMemory;
+    std::atomic<uint64_t> _lastReportTime;
+
+    static const float K;
+    // Report changes of 5 megabytes
+    static const size_t MIN_REPORT_DELTA = 1024 * 1024 * 5;
+    // Report changes no more frequently than every 15 seconds
+    static const uint64_t MAX_REPORT_FREQUENCY = USECS_PER_SECOND * 15;
+};
+
+const float AllocationDebugger::K = 1024.0f;
+
+static AllocationDebugger allocationDebugger;
+
 Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
+    allocationDebugger += size;
     if ( !dataAllocated ) { 
         qWarning() << "Buffer::Sysmem::allocateMemory() : Must have a valid dataAllocated pointer.";
         return NOT_ALLOCATED;
@@ -38,6 +103,7 @@ Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size)
 }
 
 void Resource::Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
+    allocationDebugger -= size;
     if (dataAllocated) {
         delete[] dataAllocated;
     }
@@ -168,19 +234,55 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
     return 0;
 }
 
+std::atomic<uint32_t> Buffer::_bufferCPUCount{ 0 };
+std::atomic<Buffer::Size> Buffer::_bufferCPUMemoryUsage{ 0 };
+
+void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (prevObjectSize > newObjectSize) {
+        _bufferCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    } else {
+        _bufferCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    }
+}
+
+uint32_t Buffer::getBufferCPUCount() {
+    return _bufferCPUCount.load();
+}
+
+Buffer::Size Buffer::getBufferCPUMemoryUsage() {
+    return _bufferCPUMemoryUsage.load();
+}
+
+uint32_t Buffer::getBufferGPUCount() {
+    return Context::getBufferGPUCount();
+}
+
+Buffer::Size Buffer::getBufferGPUMemoryUsage() {
+    return Context::getBufferGPUMemoryUsage();
+}
+
 Buffer::Buffer() :
     Resource(),
     _sysmem(new Sysmem()) {
+    _bufferCPUCount++;
+
 }
 
 Buffer::Buffer(Size size, const Byte* bytes) :
     Resource(),
     _sysmem(new Sysmem(size, bytes)) {
+    _bufferCPUCount++;
+    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer::Buffer(const Buffer& buf) :
     Resource(),
     _sysmem(new Sysmem(buf.getSysmem())) {
+    _bufferCPUCount++;
+    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
@@ -189,18 +291,27 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 }
 
 Buffer::~Buffer() {
+    _bufferCPUCount--;
+
     if (_sysmem) {
+        Buffer::updateBufferCPUMemoryUsage(_sysmem->getSize(), 0);
         delete _sysmem;
         _sysmem = NULL;
     }
 }
 
 Buffer::Size Buffer::resize(Size size) {
-    return editSysmem().resize(size);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().resize(size);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 
 Buffer::Size Buffer::setData(Size size, const Byte* data) {
-    return editSysmem().setData(size, data);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().setData(size, data);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 
 Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
@@ -208,6 +319,9 @@ Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
 }
 
 Buffer::Size Buffer::append(Size size, const Byte* data) {
-    return editSysmem().append( size, data);
+    auto prevSize = editSysmem().getSize();
+    auto newSize = editSysmem().append( size, data);
+    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    return newSize;
 }
 

@@ -245,8 +245,8 @@ public:
     const glm::vec3& getNaturalPosition() const { return _naturalPosition; }
     void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
     
-    const QStringList& getTextureNames() const { return _textureNames; }
-    void setTextureNames(const QStringList& value) { _textureNames = value; }
+    const QVariantMap& getTextureNames() const { return _textureNames; }
+    void setTextureNames(const QVariantMap& value) { _textureNames = value; }
 
     QString getSimulatorIDAsString() const { return _simulationOwner.getID().toString().mid(1,36).toUpper(); }
 
@@ -297,7 +297,7 @@ private:
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
     QVector<SittingPoint> _sittingPoints;
-    QStringList _textureNames;
+    QVariantMap _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
 

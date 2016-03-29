@@ -22,7 +22,7 @@ public:
 
     virtual float getTargetFrameRate() override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 
-    virtual void internalActivate() override;
+    virtual bool internalActivate() override;
 
     virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
 

@@ -20,6 +20,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
+#include <shared/NsightHelpers.h>
 
 #include "AnimationLogging.h"
 #include "AnimClip.h"
@@ -851,6 +852,8 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff00ff, 0);
 
     setModelOffset(rootTransform);
 

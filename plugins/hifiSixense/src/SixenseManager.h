@@ -32,7 +32,7 @@ public:
     virtual const QString& getName() const override { return NAME; }
     virtual const QString& getID() const override { return HYDRA_ID_STRING; }
 
-    virtual void activate() override;
+    virtual bool activate() override;
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }

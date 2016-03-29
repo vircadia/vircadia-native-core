@@ -13,7 +13,7 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-bool AnimClip::usePreAndPostPoseFromAnim = false;
+bool AnimClip::usePreAndPostPoseFromAnim = true;
 
 AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
     AnimNode(AnimNode::Type::Clip, id),

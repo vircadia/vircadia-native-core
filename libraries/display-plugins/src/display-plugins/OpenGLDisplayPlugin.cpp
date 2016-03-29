@@ -21,7 +21,7 @@
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
-
+#include <shared/NsightHelpers.h>
 #include <plugins/PluginContainer.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
@@ -219,7 +219,7 @@ void OpenGLDisplayPlugin::cleanupForSceneTexture(const gpu::TexturePointer& scen
 }
 
 
-void OpenGLDisplayPlugin::activate() {
+bool OpenGLDisplayPlugin::activate() {
     if (!_cursorsData.size()) {
         auto& cursorManager = Cursor::Manager::instance();
         for (const auto iconId : cursorManager.registeredIcons()) {
@@ -238,7 +238,9 @@ void OpenGLDisplayPlugin::activate() {
 
     // Child classes may override this in order to do things like initialize 
     // libraries, etc
-    internalActivate();
+    if (!internalActivate()) {
+        return false;
+    }
 
 
 #if THREADED_PRESENT
@@ -263,7 +265,8 @@ void OpenGLDisplayPlugin::activate() {
     customizeContext();
     _container->makeRenderingContextCurrent();
 #endif
-    DisplayPlugin::activate();
+
+    return DisplayPlugin::activate();
 }
 
 void OpenGLDisplayPlugin::deactivate() {
@@ -404,7 +407,11 @@ void OpenGLDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overla
 
 void OpenGLDisplayPlugin::updateTextures() {
     // FIXME intrduce a GPU wait instead of a CPU/GPU sync point?
+#if THREADED_PRESENT
     if (_sceneTextureEscrow.fetchSignaledAndRelease(_currentSceneTexture)) {
+#else
+    if (_sceneTextureEscrow.fetchAndReleaseWithGpuWait(_currentSceneTexture)) {
+#endif
         updateFrameData();
     }
 
@@ -527,6 +534,9 @@ void OpenGLDisplayPlugin::internalPresent() {
 
 void OpenGLDisplayPlugin::present() {
     incrementPresentCount();
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
     updateTextures();
     if (_currentSceneTexture) {
         // Write all layers to a local framebuffer

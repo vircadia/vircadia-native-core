@@ -20,13 +20,19 @@ using namespace std::chrono;
 
 static const double USECS_PER_SECOND = 1000000.0;
 
+void CongestionControl::setMaxBandwidth(int maxBandwidth) {
+    _maxBandwidth = maxBandwidth;
+    setPacketSendPeriod(_packetSendPeriod);
+}
+
 void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
     Q_ASSERT_X(newSendPeriod >= 0, "CongestionControl::setPacketPeriod", "Can not set a negative packet send period");
-    
-    if (_maxBandwidth > 0) {
+
+    auto maxBandwidth = _maxBandwidth.load();
+    if (maxBandwidth > 0) {
         // anytime the packet send period is about to be increased, make sure it stays below the minimum period,
         // calculated based on the maximum desired bandwidth
-        double minPacketSendPeriod = USECS_PER_SECOND / (((double) _maxBandwidth) / _mss);
+        double minPacketSendPeriod = USECS_PER_SECOND / (((double) maxBandwidth) / _mss);
         _packetSendPeriod = std::max(newSendPeriod, minPacketSendPeriod);
     } else {
         _packetSendPeriod = newSendPeriod;
@@ -39,7 +45,7 @@ DefaultCC::DefaultCC() :
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
     
     _congestionWindowSize = 16.0;
-    _packetSendPeriod = 1.0;
+    setPacketSendPeriod(1.0);
 }
 
 void DefaultCC::onACK(SequenceNumber ackNum) {
@@ -62,10 +68,10 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
 
     if (_slowStart) {
         // we are in slow start phase - increase the congestion window size by the number of packets just ACKed
-        _congestionWindowSize += seqlen(_slowStartLastACK, ackNum);
+        _congestionWindowSize += seqlen(_lastACK, ackNum);
         
         // update the last ACK
-        _slowStartLastACK = ackNum;
+        _lastACK = ackNum;
 
         // check if we can get out of slow start (is our new congestion window size bigger than the max)
         if (_congestionWindowSize > _maxCongestionWindowSize) {
@@ -73,10 +79,10 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
             
             if (_receiveRate > 0) {
                 // if we have a valid receive rate we set the send period to whatever the receive rate dictates
-                _packetSendPeriod = USECS_PER_SECOND / _receiveRate;
+                setPacketSendPeriod(USECS_PER_SECOND / _receiveRate);
             } else {
                 // no valid receive rate, packet send period is dictated by estimated RTT and current congestion window size
-                _packetSendPeriod = (_rtt + synInterval()) / _congestionWindowSize;
+                setPacketSendPeriod((_rtt + synInterval()) / _congestionWindowSize);
             }
         }
     } else {
@@ -137,19 +143,20 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
             return;
         }
     }
-    
+
     _loss = true;
     
     static const double INTER_PACKET_ARRIVAL_INCREASE = 1.125;
     static const int MAX_DECREASES_PER_CONGESTION_EPOCH = 5;
-    
+
     // check if this NAK starts a new congestion period - this will be the case if the
     // NAK received occured for a packet sent after the last decrease
     if (rangeStart > _lastDecreaseMaxSeq) {
+
         _lastDecreasePeriod = _packetSendPeriod;
         
-        _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
-        
+        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+
         // use EWMA to update the average number of NAKs per congestion
         static const double NAK_EWMA_ALPHA = 0.125;
         _avgNAKNum = (int)ceil(_avgNAKNum * (1 - NAK_EWMA_ALPHA) + _nakCount * NAK_EWMA_ALPHA);
@@ -159,7 +166,7 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         _decreaseCount = 1;
         
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
-        
+
         if (_avgNAKNum < 1) {
             _randomDecreaseThreshold = 1;
         } else {
@@ -174,35 +181,38 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
         // decided we would decrease the packet send period
         
-        _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
+        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
     }
 }
 
-// Note: This isn't currently being called by anything since we, unlike UDT, don't have TTL on our packets
 void DefaultCC::onTimeout() {
     if (_slowStart) {
         stopSlowStart();
     } else {
         // UDT used to do the following on timeout if not in slow start - we should check if it could be helpful
-        // _lastDecreasePeriod = _packetSendPeriod;
-        // _packetSendPeriod = ceil(_packetSendPeriod * 2);
-        
+         _lastDecreasePeriod = _packetSendPeriod;
+         _packetSendPeriod = ceil(_packetSendPeriod * 2);
+
         // this seems odd - the last ack they were setting _lastDecreaseMaxSeq to only applies to slow start
-        // _lastDecreaseMaxSeq = _slowStartLastAck;
+         _lastDecreaseMaxSeq = _lastACK;
     }
 }
 
 void DefaultCC::stopSlowStart() {
     _slowStart = false;
-    
+
     if (_receiveRate > 0) {
         // Set the sending rate to the receiving rate.
-        _packetSendPeriod = USECS_PER_SECOND / _receiveRate;
+        setPacketSendPeriod(USECS_PER_SECOND / _receiveRate);
     } else {
         // If no receiving rate is observed, we have to compute the sending
         // rate according to the current window size, and decrease it
         // using the method below.
-        _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
+        setPacketSendPeriod(_congestionWindowSize / (_rtt + synInterval()));
     }
+}
+
+void DefaultCC::setInitialSendSequenceNumber(udt::SequenceNumber seqNum) {
+    _lastACK = _lastDecreaseMaxSeq = seqNum - 1;
 }

@@ -257,6 +257,29 @@ void AnimTests::testAccumulateTime() {
     endFrame = 15.0f;
     timeScale = 2.0f;
     testAccumulateTimeWithParameters(startFrame, endFrame, timeScale);
+
+    startFrame = 0.0f;
+    endFrame = 1.0f;
+    timeScale = 1.0f;
+    float dt = 1.0f;
+    QString id = "testNode";
+    AnimNode::Triggers triggers;
+    float loopFlag = true;
+    float resultFrame = accumulateTime(startFrame, endFrame, timeScale, startFrame, dt, loopFlag, id, triggers);
+    // a one frame looping animation should NOT trigger onLoop events
+    QVERIFY(triggers.empty());
+
+    const uint32_t MAX_TRIGGER_COUNT = 3;
+
+    startFrame = 0.0f;
+    endFrame = 1.1f;
+    timeScale = 10.0f;
+    dt = 10.0f;
+    triggers.clear();
+    loopFlag = true;
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, startFrame, dt, loopFlag, id, triggers);
+    // a short animation with a large dt & a large timescale, should only create a MAXIMUM of 3 loop events.
+    QVERIFY(triggers.size() <= MAX_TRIGGER_COUNT);
 }
 
 void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFrame, float timeScale) const {

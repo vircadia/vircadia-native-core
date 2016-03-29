@@ -1,7 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1
-
+import QtWebChannel 1.0
 import Qt.labs.settings 1.0
 
 import "windows" as Windows
@@ -17,7 +17,6 @@ Windows.Window {
     visible: false
     width: 384; height: 640;
     title: "Tools"
-    property string newTabSource
     property alias tabView: tabView
     onParentChanged: {
         if (parent) {
@@ -32,26 +31,33 @@ Windows.Window {
         property alias y: toolWindow.y
     }
 
-    property var webTabCreator: Component {
-        Controls.WebView {
-            id: webView
-            property string originalUrl;
-
-            // Both toolWindow.newTabSource and url can change, so we need
-            // to store the original url here, without creating any bindings
-            Component.onCompleted: {
-                originalUrl = toolWindow.newTabSource;
-                url = originalUrl;
-            }
-        }
-    }
-
     TabView {
         anchors.fill: parent
         id: tabView;
-        onCountChanged: {
-            if (0 == count) {
-                toolWindow.visible = false
+        Repeater {
+            model: 4
+            Tab {
+                // Force loading of the content even if the tab is not visible
+                // (required for letting the C++ code access the webview)
+                active: true
+                enabled: false
+                property string originalUrl: "";
+
+                Controls.WebView {
+                    id: webView;
+                    anchors.fill: parent
+                    enabled: false
+                    property alias eventBridgeWrapper: eventBridgeWrapper 
+                    
+                    QtObject {
+                        id: eventBridgeWrapper
+                        WebChannel.id: "eventBridgeWrapper"
+                        property var eventBridge;
+                    }
+
+                    webChannel.registeredObjects: [eventBridgeWrapper]
+                    onEnabledChanged: toolWindow.updateVisiblity();
+                }
             }
         }
     }
@@ -68,8 +74,7 @@ Windows.Window {
     function findIndexForUrl(source) {
         for (var i = 0; i < tabView.count; ++i) {
             var tab = tabView.getTab(i);
-            if (tab && tab.item && tab.item.originalUrl &&
-                tab.item.originalUrl === source) {
+            if (tab.originalUrl === source) {
                 return i;
             }
         }
@@ -101,49 +106,72 @@ Windows.Window {
         }
     }
 
+    function findFreeTab() {
+        for (var i = 0; i < tabView.count; ++i) {
+            var tab = tabView.getTab(i);
+            if (tab && (!tab.originalUrl || tab.originalUrl === "")) {
+                return i;
+            }
+        }
+        console.warn("Could not find free tab");
+        return -1;
+    }
+
     function removeTabForUrl(source) {
         var index = findIndexForUrl(source);
         if (index < 0) {
             return;
         }
+
         var tab = tabView.getTab(index);
-        tab.enabledChanged.disconnect(updateVisiblity);
-        tabView.removeTab(index);
-        console.log("Updating visibility based on child tab removed");
-        updateVisiblity();
+        tab.title = "";
+        tab.enabled = false;
+        tab.originalUrl = "";
+        tab.item.url = "about:blank";
+        tab.item.enabled = false;
     }
 
     function addWebTab(properties) {
         if (!properties.source) {
-            console.warn("Attempted to open Web Tool Pane without URl")
+            console.warn("Attempted to open Web Tool Pane without URL");
             return;
         }
 
         var existingTabIndex = findIndexForUrl(properties.source);
         if (existingTabIndex >= 0) {
-            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source)
-            return tabView.getTab(existingTabIndex);
+            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source);
+            var tab = tabView.getTab(existingTabIndex);
+            return tab.item;
         }
 
-        var title = properties.title || "Unknown";
-        newTabSource = properties.source;
-        var newTab = tabView.addTab(title, webTabCreator);
-        newTab.active = true;
-        newTab.enabled = false;
+        var freeTabIndex = findFreeTab();
+        if (freeTabIndex === -1) {
+            console.warn("Unable to add new tab");
+            return;
+        }
 
         if (properties.width) {
-            tabView.width = Math.min(Math.max(tabView.width, properties.width),
-                                        toolWindow.maxSize.x);
+            tabView.width = Math.min(Math.max(tabView.width, properties.width), toolWindow.maxSize.x);
         }
 
         if (properties.height) {
-            tabView.height = Math.min(Math.max(tabView.height, properties.height),
-                                        toolWindow.maxSize.y);
+            tabView.height = Math.min(Math.max(tabView.height, properties.height), toolWindow.maxSize.y);
         }
 
-        console.log("Updating visibility based on child tab added");
-        newTab.enabledChanged.connect(updateVisiblity)
-        updateVisiblity();
-        return newTab
+        var tab = tabView.getTab(freeTabIndex);
+        tab.title = properties.title || "Unknown";
+        tab.enabled = true;
+        console.log("New tab URL: " + properties.source)
+        tab.originalUrl = properties.source;
+
+        var eventBridge = properties.eventBridge;
+        console.log("Event bridge: " + eventBridge);
+
+        var result = tab.item;
+        result.enabled = true;
+        console.log("Setting event bridge: " + eventBridge);
+        result.eventBridgeWrapper.eventBridge = eventBridge;
+        result.url = properties.source;
+        return result;
     }
 }
