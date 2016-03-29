@@ -279,10 +279,15 @@
                 name: 'hifi-home-dressing-room-rotator-block',
                 type: 'Box',
                 visible: true,
-                color:{
-                    red:0,
-                    green:255,
-                    blue:0
+                color: {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                },
+                dimensions: {
+                    x: 0.5,
+                    y: 0.5,
+                    z: 0.5
                 },
                 collisionless: true,
                 angularDamping: 0,
@@ -346,7 +351,7 @@
         createTransformers: function() {
             var firstDollPosition = {
                 x: 1107.61,
-                y: 460.8,
+                y: 460.5,
                 z: -77.34
             }
 
