@@ -16,9 +16,8 @@ TiltMaze = function(spawnPosition, spawnRotation) {
 
     var ball, ballSpawningAnchor, ballDetector, tiltMaze, lightAtTheEnd;
 
-    var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_tex-4.fbx";
-    var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_tex-3.obj";
-
+    var MAZE_MODEL_URL = "atp:/tiltMaze/newmaze_tex-4.fbx";
+    var MAZE_COLLISION_HULL = "atp:/tiltMaze/newmaze_tex-3.obj";
 
     var SCALE = 0.5;
 
@@ -61,7 +60,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     var center = spawnPosition;
 
 
-    var CLEANUP = true;
+    var CLEANUP = false;
 
     var BALL_FORWARD_OFFSET = -0.2 * SCALE;
     var BALL_RIGHT_OFFSET = -0.4 * SCALE;

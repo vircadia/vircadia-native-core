@@ -5,7 +5,7 @@
     Script.include(utilitiesScript);
     Switch = function() {
         _this = this;
-        this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
+        this.switchSound = SoundCache.getSound("atp:/switches/lamp_switch_2.wav");
         _this.FAN_VOLUME = 0.1;
         _this.FAN_SOUND_ENTITY_NAME = "home_sfx _ceiling_fan";
     };
