@@ -34,6 +34,8 @@
 
     var pingPongGunPath = Script.resolvePath("pingPongGun/wrapper.js?" + Math.random());
 
+    var musicBoxPath = Script.resolvePath("musicBox/wrapper.js?" + Math.random());
+
     var transformerPath = Script.resolvePath("dressingRoom/wrapper.js?" + Math.random());
 
     Script.include(utilsPath);
@@ -46,6 +48,7 @@
     Script.include(plantPath);
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
+    // Script.include(musicBoxPath);
     Script.include(transformerPath);
 
     var TRANSFORMER_URL_ARTEMIS = 'http://hifi-public.s3.amazonaws.com/ryan/DefaultAvatarFemale2/0314HiFiFemAviHeightChange.fbx';

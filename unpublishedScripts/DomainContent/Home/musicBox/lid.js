@@ -27,8 +27,6 @@
             _this.openSoundInjector = {
                 isPlaying: false
             }
-
-
         },
         continueNearTrigger: function() {
             var properties = Entities.getEntityProperties(this.entityID);
