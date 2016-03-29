@@ -291,15 +291,17 @@ public:
     const TextureMaps& getTextureMaps() const { return _textureMaps; }
     const TextureMapPointer getTextureMap(MapChannel channel) const;
 
+    // Albedo maps cannot have opacity detected until they are loaded
+    // This method allows const changing of the key/schemaBuffer without touching the map
+    void resetOpacityMap() const;
+
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
 
-protected:
-
-    MaterialKey _key;
-    UniformBufferView _schemaBuffer;
+private:
+    mutable MaterialKey _key;
+    mutable UniformBufferView _schemaBuffer;
     TextureMaps _textureMaps;
-
 };
 typedef std::shared_ptr< Material > MaterialPointer;
 

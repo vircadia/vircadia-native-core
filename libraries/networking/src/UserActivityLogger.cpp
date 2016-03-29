@@ -58,8 +58,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
-        params.jsonCallbackReceiver = this;
-        params.jsonCallbackMethod = "requestFinished";
         params.errorCallbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
@@ -68,10 +66,6 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
                                AccountManagerAuth::Required,
                                QNetworkAccessManager::PostOperation,
                                params, NULL, multipart);
-}
-
-void UserActivityLogger::requestFinished(QNetworkReply& requestReply) {
-    // qCDebug(networking) << object;
 }
 
 void UserActivityLogger::requestError(QNetworkReply& errorReply) {
@@ -88,6 +82,15 @@ void UserActivityLogger::launch(QString applicationVersion, bool previousSession
     actionDetails.insert(CRASH_KEY, previousSessionCrashed);
     actionDetails.insert(RUNTIME_KEY, previousSessionRuntime);
     
+    logAction(ACTION_NAME, actionDetails);
+}
+
+void UserActivityLogger::insufficientGLVersion(QString glVersion) {
+    const QString ACTION_NAME = "insufficient_gl";
+    QJsonObject actionDetails;
+    QString GL_VERSION = "glVersion";
+    actionDetails.insert(GL_VERSION, glVersion);
+
     logAction(ACTION_NAME, actionDetails);
 }
 

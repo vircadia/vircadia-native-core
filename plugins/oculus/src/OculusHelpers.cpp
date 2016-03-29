@@ -10,15 +10,33 @@
 
 #include <atomic>
 #include <QtCore/QLoggingCategory>
+
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
-
 
 Q_DECLARE_LOGGING_CATEGORY(oculus)
 Q_LOGGING_CATEGORY(oculus, "hifi.plugins.oculus")
 
 static std::atomic<uint32_t> refCount { 0 };
 static ovrSession session { nullptr };
+
+inline ovrErrorInfo getError() {
+    ovrErrorInfo error;
+    ovr_GetLastErrorInfo(&error);
+    return error;
+}
+
+void logWarning(const char* what) {
+    qWarning(oculus) << what << ":" << getError().ErrorString;
+}
+
+void logFatal(const char* what) {
+    std::string error("[oculus] ");
+    error += what;
+    error += ": ";
+    error += getError().ErrorString;
+    qFatal(error.c_str());
+}
 
 bool oculusAvailable() {
     ovrDetectResult detect = ovr_Detect(0);
@@ -37,14 +55,14 @@ ovrSession acquireOculusSession() {
         init.ConnectionTimeoutMS = 0;
         init.LogCallback = nullptr;
         if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-            qCWarning(oculus) << "Failed to initialize Oculus SDK";
+            logWarning("Failed to initialize Oculus SDK");
             return session;
         }
 
         Q_ASSERT(0 == refCount);
         ovrGraphicsLuid luid;
         if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
-            qCWarning(oculus) << "Failed to acquire Oculus session";
+            logWarning("Failed to acquire Oculus session");
             return session;
         }
     }
@@ -105,7 +123,7 @@ void SwapFramebufferWrapper::initColor() {
     destroyColor();
 
     if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(_session, GL_SRGB8_ALPHA8, size.x, size.y, &color))) {
-        qFatal("Unable to create swap textures");
+        logFatal("Failed to create swap textures");
     }
 
     for (int i = 0; i < color->TextureCount; ++i) {

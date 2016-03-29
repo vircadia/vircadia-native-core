@@ -38,10 +38,10 @@ public:
     void updateAttitude();
 
     /// Returns the index of the left hand joint, or -1 if not found.
-    int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
+    int getLeftHandJointIndex() const { return isActive() ? getFBXGeometry().leftHandJointIndex : -1; }
 
     /// Returns the index of the right hand joint, or -1 if not found.
-    int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
+    int getRightHandJointIndex() const { return isActive() ? getFBXGeometry().rightHandJointIndex : -1; }
 
     bool getLeftGrabPosition(glm::vec3& position) const;
     bool getRightGrabPosition(glm::vec3& position) const;

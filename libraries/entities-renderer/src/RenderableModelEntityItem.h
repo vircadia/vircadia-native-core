@@ -69,6 +69,11 @@ public:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
 
+    virtual void setJointRotations(const QVector<glm::quat>& rotations) override;
+    virtual void setJointRotationsSet(const QVector<bool>& rotationsSet) override;
+    virtual void setJointTranslations(const QVector<glm::vec3>& translations) override;
+    virtual void setJointTranslationsSet(const QVector<bool>& translationsSet) override;
+
     virtual void loader() override;
     virtual void locationChanged() override;
 
@@ -85,9 +90,8 @@ private:
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
     EntityTreeRenderer* _myRenderer = nullptr;
-    QString _currentTextures;
-    QStringList _originalTextures;
-    QVariantMap _originalTexturesMap;
+    QVariantMap _currentTextures;
+    QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
@@ -97,6 +101,8 @@ private:
     bool _showCollisionHull = false;
 
     bool getAnimationFrame();
+
+    bool _needsJointSimulation { false };
 };
 
 #endif // hifi_RenderableModelEntityItem_h

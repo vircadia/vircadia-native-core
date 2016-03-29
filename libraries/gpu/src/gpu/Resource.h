@@ -16,6 +16,7 @@
 #include "Format.h"
 
 #include <vector>
+#include <atomic>
 
 #include <memory>
 #ifdef _DEBUG
@@ -109,7 +110,15 @@ protected:
 };
 
 class Buffer : public Resource {
+    static std::atomic<uint32_t> _bufferCPUCount;
+    static std::atomic<Size> _bufferCPUMemoryUsage;
+    static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
 public:
+    static uint32_t getBufferCPUCount();
+    static Size getBufferCPUMemoryUsage();
+    static uint32_t getBufferGPUCount();
+    static Size getBufferGPUMemoryUsage();
 
     Buffer();
     Buffer(Size size, const Byte* bytes);

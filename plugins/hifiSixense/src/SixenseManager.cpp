@@ -79,7 +79,7 @@ bool SixenseManager::isSupported() const {
 #endif
 }
 
-void SixenseManager::activate() {
+bool SixenseManager::activate() {
     InputPlugin::activate();
 
 #ifdef HAVE_SIXENSE
@@ -101,6 +101,9 @@ void SixenseManager::activate() {
 
     loadSettings();
     _sixenseLoaded = (sixenseInit() == SIXENSE_SUCCESS);
+    return _sixenseLoaded;
+#else
+    return false;
 #endif
 }
 
