@@ -378,23 +378,23 @@ void MyAvatar::simulate(float deltaTime) {
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             MovingEntitiesOperator moveOperator(entityTree);
             forEachDescendant([&](SpatiallyNestablePointer object) {
-                    // if the queryBox has changed, tell the entity-server
-                    if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                        bool success;
-                        AACube newCube = entity->getQueryAACube(success);
-                        if (success) {
-                            moveOperator.addEntityToMoveList(entity, newCube);
-                        }
-                        if (packetSender) {
-                            EntityItemProperties properties = entity->getProperties();
-                            properties.setQueryAACubeDirty();
-                            properties.setLastEdited(now);
-                            packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
-                            entity->setLastBroadcast(usecTimestampNow());
-                        }
+                // if the queryBox has changed, tell the entity-server
+                if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                    bool success;
+                    AACube newCube = entity->getQueryAACube(success);
+                    if (success) {
+                        moveOperator.addEntityToMoveList(entity, newCube);
                     }
-                });
+                    if (packetSender) {
+                        EntityItemProperties properties = entity->getProperties();
+                        properties.setQueryAACubeDirty();
+                        properties.setLastEdited(now);
+                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+                        entity->setLastBroadcast(usecTimestampNow());
+                    }
+                }
+            });
             // also update the position of children in our local octree
             if (moveOperator.hasMovingEntities()) {
                 PerformanceTimer perfTimer("recurseTreeWithOperator");
