@@ -11,6 +11,6 @@
         z: 0
     });
 
-    Script.scriptEnding.connect(function(){
+    Script.scriptEnding.connect(function() {
         fishtank.cleanup()
     })

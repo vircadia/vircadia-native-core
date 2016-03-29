@@ -22,7 +22,6 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: 2.1404
     };
 
-
     var INNER_TANK_SCALE = 0.7;
     var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
     INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
