@@ -79,7 +79,7 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const glm::mat4* clusterMatrices, size_t numClusterMatrices);
+    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
 
     // Render Item interface
     render::ItemKey getKey() const override;

@@ -151,7 +151,7 @@ void Model::enqueueLocationChange() {
         modelTransform.setRotation(self->_rotation);
 
         Transform modelMeshOffset;
-        if (self->_geometry && self->_geometry->isLoaded()) {
+        if (self->isLoaded()) {
             // includes model offset and unitScale.
             modelMeshOffset = Transform(self->_rig->getGeometryToRigTransform());
         } else {
@@ -171,8 +171,7 @@ void Model::enqueueLocationChange() {
 
                 // update the model transform and bounding box for this render item.
                 const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                size_t numClusterMatrices = data._model->getGeometry()->getFBXGeometry().meshes.at(data._meshIndex).clusters.size();
-                data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, &state.clusterMatrices[0], numClusterMatrices);
+                data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
             });
         }
 

@@ -354,15 +354,14 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const glm::mat4* clusterMatrices, size_t numClusterMatrices) {
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices) {
     ModelMeshPartPayload::updateTransform(transform, offsetTransform);
 
-    if (numClusterMatrices > 0) {
-
+    if (clusterMatrices.size() > 0) {
         _worldBound = AABox();
-        for (size_t i = 0; i < numClusterMatrices; i++) {
+        for (auto& clusterMatrix : clusterMatrices) {
             AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrices[i]);
+            clusterBound.transform(clusterMatrix);
             _worldBound += clusterBound;
         }
 
