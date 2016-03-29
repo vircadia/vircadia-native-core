@@ -2893,14 +2893,7 @@ void Application::saveSettings() {
 bool Application::importEntities(const QString& urlOrFilename) {
     _entityClipboard->eraseAllOctreeElements();
 
-    QUrl url(urlOrFilename);
-
-    // if the URL appears to be invalid or relative, then it is probably a local file
-    if (!url.isValid() || url.isRelative()) {
-        url = QUrl::fromLocalFile(urlOrFilename);
-    }
-
-    bool success = _entityClipboard->readFromURL(url.toString());
+    bool success = _entityClipboard->readFromURL(urlOrFilename);
     if (success) {
         _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
