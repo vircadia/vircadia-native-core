@@ -103,6 +103,7 @@
                 Script.setTimeout(function() {
                     _this.createKineticEntities();
                     _this.createDynamicEntities();
+                    _this.createTransformingDais();
                     _this.createTransformers();
                 }, 750)
 
@@ -267,8 +268,64 @@
 
         },
 
+        setupDressingRoom: function() {
+            this.createRotatorBlock();
+            this.createTransformingDais();
+            this.createTransformers();
+        },
+
+        createRotatorBlock: function() {
+            var rotatorBlockProps = {
+                name: 'hifi-home-dressing-room-rotator-block',
+                type: 'Box',
+                visible: false,
+                collisionless: true,
+                angularDamping: 0,
+                angularVelocity: {
+                    x: 0,
+                    y: 6,
+                    z: 0
+                },
+                dynamic: false,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
+            }
+
+            var rotatorBlock = Entities.addEntity()
+        },
+
+        createTransformingDais: function() {
+            var DAIS_MODEL_URL = '';
+            var COLLISION_HULL_URL = '';
+
+            var DAIS_DIMENSIONS = {
+                x: 1,
+                y: 1,
+                z: 1
+            };
+
+            var daisProperties = {
+                name: 'hifi-home-dressing-room-transformer-collider',
+                type: 'Model',
+                modelURL: DAIS_MODEL_URL,
+                dimensions: DAIS_DIMENSIONS,
+                compoundShapeURL: COLLISION_HULL_URL,
+                position: DAIS_POSITION,
+                dynamic: false,
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
+            };
+
+            var dais = Entities.addEntity(daisProperties);
+        },
+
         createTransformers: function() {
-            print('CREATING TRANSFORMERS!')
             var firstDollPosition = {
                 x: 1107.61,
                 y: 460.8,
@@ -326,10 +383,9 @@
             })
 
             var dollLateralSeparation = 1.0;
-            dolls.forEach(function(doll, index) {
 
+            dolls.forEach(function(doll, index) {
                 var separation = index * dollLateralSeparation;
-                print('separation: ' + separation)
                 var left = Quat.getRight(rotationAsQuat);
                 var distanceToLeft = Vec3.multiply(separation, left);
                 var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft)

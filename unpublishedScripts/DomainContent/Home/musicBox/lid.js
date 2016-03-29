@@ -28,10 +28,12 @@
                 isPlaying: false
             }
         },
+
         continueNearTrigger: function() {
             var properties = Entities.getEntityProperties(this.entityID);
 
         },
+
         playMusic: function() {
             if (this.musicIsPlaying !== true) {
 
@@ -119,9 +121,15 @@
 
         },
 
+        playBaseOpeningAnimation: function() {},
+        playHoldBaseOpenAnimation: function() {},
+        playBaseClosingAnimation: function() {},
+        stopBaseAnimation: function() {},
+        playKeyTurnAnimation: function() {},
+        stopKeyTurnAnimation: function() {},
+
         unload: function() {
             this.musicInjector.stop();
-
         },
     }
 

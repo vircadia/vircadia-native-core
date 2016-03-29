@@ -230,6 +230,7 @@
         },
 
         update: function(deltaTime) {
+            //anyone can clean up loose balls
             if (THROTTLE === true) {
                 sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
                 if (sinceLastUpdate > THROTTLE_RATE) {

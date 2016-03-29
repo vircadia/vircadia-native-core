@@ -1,6 +1,6 @@
 var HomeMusicBox = function() {
 
-    var SHOULD_CLEANUP = true;
+    var SHOULD_CLEANUP = false;
 
     var WHITE = {
         red: 255,
@@ -69,7 +69,12 @@ var HomeMusicBox = function() {
             type: 'Box',
             color: WHITE,
             position: BASE_POSITION,
-            dimensions: BASE_DIMENSIONS
+            dimensions: BASE_DIMENSIONS,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
         }
 
         base = Entities.addEntity(baseProperties);
@@ -91,6 +96,9 @@ var HomeMusicBox = function() {
             script: LID_SCRIPT_URL,
             collidesWith: 'myAvatar,otherAvatar',
             userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                },
                 grabConstraintsKey: {
                     callback: 'rotateLid',
                     positionLocked: true,
@@ -144,6 +152,6 @@ var HomeMusicBox = function() {
 
     createBase();
     createLid();
-    
+
     return this;
 }
