@@ -24,7 +24,7 @@
 
     var fishTankPath = Script.resolvePath('fishTank/wrapper.js?' + Math.random());
 
-    var tiltMazePath = Script.resolvePath("tiltMaze/wrapper.js?" + Math.random())
+    var tiltMazePath = Script.resolvePath("atp:/tiltMaze/wrapper.js")
 
     var whiteboardPath = Script.resolvePath("whiteboard/wrapper.js?" + Math.random());
 
