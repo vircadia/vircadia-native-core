@@ -1009,7 +1009,6 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 void EntityTree::fixupMissingParents() {
     MovingEntitiesOperator moveOperator(getThisPointer());
 
-    if (!_missingParent.empty()) qCDebug(entities) << "HRS fixme fixupMissingParents" << _missingParent.count() << "entities";
     QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
@@ -1028,7 +1027,6 @@ void EntityTree::fixupMissingParents() {
 
             bool doMove = false;
             if (entity->isParentIDValid()) {
-                qCDebug(entities) << "HRS fixme valid parent" << entity->getEntityItemID() << queryAACubeSuccess;
                 // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
                 doMove = true;
             } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
@@ -1040,7 +1038,6 @@ void EntityTree::fixupMissingParents() {
                 _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
                 doMove = true;
             }
-            else qCDebug(entities) << "HRS fixme failed parent" << entity->getEntityItemID() << queryAACubeSuccess << "parent:" << entity->getParentID() << !!findEntityByID(entity->getParentID());
 
             if (queryAACubeSuccess && doMove) {
                 moveOperator.addEntityToMoveList(entity, newCube);
@@ -1342,7 +1339,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             return args->map->value(oldID);
         }
         EntityItemID newID = QUuid::createUuid();
-        args->map->insert(oldID, newID);
         EntityItemProperties properties = item->getProperties();
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
@@ -1368,6 +1364,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 args->otherTree->addEntity(newID, properties);
             });
         }
+        args->map->insert(oldID, newID);
         return newID;
     };
 

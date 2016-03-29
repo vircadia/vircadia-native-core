@@ -2791,19 +2791,7 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-   /* class EntityDatum { // For parent-first sorting and mapping.
-    public:
-        EntityItemPointer item;
-        EntityItemProperties properties;
-        EntityItemID originalParentID;
-        EntityItemID mappedID;
-        EntityDatum() {};
-        EntityDatum(EntityItemPointer itemArg, EntityItemProperties propertiesArg, EntityItemID parentID) :
-            item(itemArg), properties(propertiesArg), originalParentID(parentID) {
-        };
-    };
-    QHash<EntityItemID, EntityDatum> entities;*/
+bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
     auto entityTree = getEntities()->getTree();
@@ -2818,21 +2806,25 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
             continue;
         }
 
-        EntityItemID parentID = entityItem->getParentID();
-        if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
-            auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
-            root.x = glm::min(root.x, position.x);
-            root.y = glm::min(root.y, position.y);
-            root.z = glm::min(root.z, position.z);
+        if (!givenOffset) {
+            EntityItemID parentID = entityItem->getParentID();
+            if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
+                auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                root.x = glm::min(root.x, position.x);
+                root.y = glm::min(root.y, position.y);
+                root.z = glm::min(root.z, position.z);
+            }
         }
-        entities[entityID] = entityItem; // EntityDatum(entityItem, entityItem->getProperties(), parentID);
+        entities[entityID] = entityItem;
     }
 
     if (entities.size() == 0) {
         return false;
     }
 
-    //for (EntityDatum& entityDatum : entities) {
+    if (givenOffset) {
+        root = *givenOffset;
+    }
     for (EntityItemPointer& entityDatum : entities) {
         auto properties = entityDatum->getProperties();
         EntityItemID parentID = properties.getParentID();
@@ -2852,33 +2844,14 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
+    glm::vec3 offset(x, y, z);
     QVector<EntityItemPointer> entities;
-    getEntities()->getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
-
-    if (entities.size() > 0) {
-        glm::vec3 root(x, y, z);
-        auto exportTree = std::make_shared<EntityTree>();
-        exportTree->createRootElement();
-
-        for (int i = 0; i < entities.size(); i++) {
-            EntityItemProperties properties = entities.at(i)->getProperties();
-            EntityItemID id = entities.at(i)->getEntityItemID();
-            properties.setPosition(properties.getPosition() - root);
-            exportTree->addEntity(id, properties);
-        }
-
-        // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-        exportTree->remapIDs();
-
-        exportTree->writeToSVOFile(filename.toLocal8Bit().constData());
-    } else {
-        qCDebug(interfaceapp) << "No models were selected";
-        return false;
+    QVector<EntityItemID> ids;
+    getEntities()->getTree()->findEntities(AACube(offset, scale), entities);
+    foreach(EntityItemPointer entity, entities) {
+        ids << entity->getEntityItemID();
     }
-
-    // restore the main window's active state
-    _window->activateWindow();
-    return true;
+    return exportEntities(filename, ids, &offset);
 }
 
 void Application::loadSettings() {
@@ -2911,7 +2884,6 @@ bool Application::importEntities(const QString& urlOrFilename) {
 
     bool success = _entityClipboard->readFromURL(urlOrFilename);
     if (success) {
-       // FIXME _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
     }
     return success;
