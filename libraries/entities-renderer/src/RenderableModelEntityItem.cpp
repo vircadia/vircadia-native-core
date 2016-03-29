@@ -124,7 +124,9 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
         return _originalTextures;
     }
-    return texturesJson.object().toVariantMap();
+
+    auto parsed = texturesJson.toVariant();
+    return parsed.toMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
