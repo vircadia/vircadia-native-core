@@ -280,24 +280,35 @@ input[type=button].red {
     background-color: #94132e;
     background: linear-gradient(#d42043 20%, #94132e 100%);
 }
+input[type=button].blue {
+    color: #fff;
+    background-color: #94132e;
+    background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+}
 
 input[type=button]:enabled:hover {
     background: linear-gradient(#000, #000);
     border: none;
 }
-
 input[type=button].red:enabled:hover {
     background: linear-gradient(#d42043, #d42043);
+    border: none;
+}
+input[type=button].blue:enabled:hover {
+    background: linear-gradient(#00b4ef, #00b4ef);
     border: none;
 }
 
 input[type=button]:active {
     background: linear-gradient(#343434, #343434);
 }
-
 input[type=button].red:active {
     background: linear-gradient(#94132e, #94132e);
 }
+input[type=button].blue:active {
+    background: linear-gradient(#1080b8, #1080b8);
+}
+
 input[type=button]:disabled {
     color: #252525;
     background: linear-gradient(#575757 20%, #252525 100%);
