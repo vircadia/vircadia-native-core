@@ -28,7 +28,7 @@
 
     var whiteboardPath = Script.resolvePath("whiteboard/wrapper.js?" + Math.random());
 
-    var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
+    var plantPath = Script.resolvePath("growingPlant/wrapper.js");
 
     var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
 

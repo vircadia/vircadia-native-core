@@ -11,7 +11,14 @@
     var SHUT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav';
     var OPEN_SOUND_URL = 'http://public.highfidelity.io/sounds/Switches%20and%20sliders/lamp_switch_2.wav'
 
+    var GO_UP_ANIMATION = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBox_ComesUp.fbx';
+    var GO_DOWN_ANIMATION = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBox_GoesDown.fbx';
+    var HOLD_ANIMATION = '';
+    var KEY_TURNING_ANIMATION = '';
+    var FULLY_CLOSED_ANIMATION = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxNoLidNoanimation.fbx';
+
     Lid.prototype = {
+        musicInjector: null,
         preload: function(entityID) {
             print('PRELOAD LID')
             _this.entityID = entityID;
@@ -129,7 +136,9 @@
         stopKeyTurnAnimation: function() {},
 
         unload: function() {
-            this.musicInjector.stop();
+            if (this.musicInjector !== null) {
+                this.musicInjector.stop();
+            }
         },
     }
 

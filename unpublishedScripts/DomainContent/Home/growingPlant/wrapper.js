@@ -9,8 +9,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var PLANT_SCRIPT_URL = Script.resolvePath("atp:/scripts/growingPlantEntityScript.js?v1" + Math.random());
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/scripts/waterCanEntityScript.js?v1" + Math.random());
+var PLANT_SCRIPT_URL = Script.resolvePath("atp:/scripts/growingPlantEntityScript.js" + Math.random());
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/scripts/waterCanEntityScript.js");
 Plant = function(spawnPosition, spawnRotation) {
   var orientation;
   if (spawnRotation !== undefined) {
