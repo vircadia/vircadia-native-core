@@ -1,6 +1,6 @@
  var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
 
- var AVATAR_COLLISION_HULL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Avatar-Hull-3.obj';
+ var AVATAR_COLLISION_HULL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Avatar-Hull-4.obj';
  // var SHRINK_AMOUNT = 1 / 2;
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation, dimensions) {
      print('SCRIPT REF AT TRANSFORMER CREATE::' + TRANSFORMER_SCRIPT);
