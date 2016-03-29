@@ -1334,7 +1334,6 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
 }
 
 bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extraData) {
-    qCDebug(entities) << "sendEntitiesOperation";
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     std::function<const EntityItemID(EntityItemPointer&)> getMapped = [&](EntityItemPointer& item) -> const EntityItemID {
@@ -1351,33 +1350,14 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         } else {
             EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
             if (parentEntity) { // map the parent
-                // Warning: could blow the call stack if the parent hierarchy is VERY deep.
+                // Warning: (non-tail) recursion of getMapped could blow the call stack if the parent hierarchy is VERY deep.
                 properties.setParentID(getMapped(parentEntity));
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
-                // Log what we can.
-                QString name = properties.getName();
-                if (name.isEmpty()) {
-                    name = EntityTypes::getEntityTypeName(properties.getType());
-                }
-                bool success;
-                glm::vec3 position = item->getPosition(success);
-                qCWarning(entities) << "Cannot find" << oldParentID << "parent of" << oldID << name << (success ? "" : "and unable to resolve geometry");
-                // Adjust geometry with absolute/global values.
-                if (success) {
-                    properties.setPosition(position + args->root);
-                    properties.setRotation(item->getRotation());
-                    properties.setDimensions(item->getDimensions());
-                    // Should we do velocities and accelerations, too?
-                } else {
-                    properties.setPosition(item->getQueryAACube().calcCenter() + args->root); // best we can do
-                }
-                QUuid empty;
-                properties.setParentID(empty);
+                item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
             }
         }
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-        qCDebug(entities) << "sending" << newID << properties.getName() << "parent:" << properties.getParentID() << "pos:" << properties.getPosition();
 
         // queue the packet to send to the server
         args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
@@ -1434,12 +1414,10 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);
-        qCDebug(entities) << "HRS FIXME added" << entityItemID << properties.getName() << "@" << properties.getPosition();
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }
     }
-    qCDebug(entities) << "HRS FIXME end of readFromMap";
     return true;
 }
 

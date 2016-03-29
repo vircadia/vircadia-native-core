@@ -1982,3 +1982,25 @@ void EntityItem::dimensionsChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::dimensionsChanged(); // Do what you have to do
 }
+
+void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
+    bool success;
+    auto globalPosition = getPosition(success);
+    if (success) {
+        properties.setPosition(globalPosition + offset);
+        properties.setRotation(getRotation());
+        properties.setDimensions(getDimensions());
+        // Should we do velocities and accelerations, too? This could end up being quite involved, which is why the method exists.
+    } else {
+        properties.setPosition(getQueryAACube().calcCenter() + offset); // best we can do
+    }
+    if (!messageTemplate.isEmpty()) {
+        QString name = properties.getName();
+        if (name.isEmpty()) {
+            name = EntityTypes::getEntityTypeName(properties.getType());
+        }
+        qCWarning(entities) << messageTemplate.arg(getEntityItemID().toString()).arg(name).arg(properties.getParentID().toString());
+    }
+    QUuid empty;
+    properties.setParentID(empty);
+}

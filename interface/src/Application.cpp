@@ -2792,7 +2792,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    class EntityDatum { // For parent-first sorting and mapping.
+   /* class EntityDatum { // For parent-first sorting and mapping.
     public:
         EntityItemPointer item;
         EntityItemProperties properties;
@@ -2803,7 +2803,8 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
             item(itemArg), properties(propertiesArg), originalParentID(parentID) {
         };
     };
-    QHash<EntityItemID, EntityDatum> entities;
+    QHash<EntityItemID, EntityDatum> entities;*/
+    QHash<EntityItemID, EntityItemPointer> entities;
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
@@ -2813,66 +2814,34 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
     for (auto entityID : entityIDs) { // Gather entities and properties.
         auto entityItem = entityTree->findEntityByEntityItemID(entityID);
         if (!entityItem) {
-            qCDebug(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
+            qCWarning(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
             continue;
         }
 
-        auto properties = entityItem->getProperties();
-        EntityItemID parentID = properties.getParentID();
-        if (parentID.isInvalidID() || !entityIDs.contains(parentID)) {
+        EntityItemID parentID = entityItem->getParentID();
+        if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
             auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
             root.x = glm::min(root.x, position.x);
             root.y = glm::min(root.y, position.y);
             root.z = glm::min(root.z, position.z);
         }
-        qCDebug(interfaceapp) << "Exporting" << entityItem->getEntityItemID() << entityItem->getName();
-        entities[entityID] = EntityDatum(entityItem, properties, parentID);
+        entities[entityID] = entityItem; // EntityDatum(entityItem, entityItem->getProperties(), parentID);
     }
 
     if (entities.size() == 0) {
         return false;
     }
 
-    for (EntityDatum& entityDatum : entities) {
-        // Recursively add the parents of entities to the exportTree, mapping their new identifiers as we go.
-        std::function<EntityItemID(EntityDatum&)> getMapped = [&](EntityDatum& datum) { // FIXME: move definition outside the loop
-            auto originalID = datum.item->getEntityItemID();
-            if (!datum.mappedID.isInvalidID()) {
-                qCDebug(interfaceapp) << "already mapped" << datum.properties.getName() << originalID << "=>" << datum.mappedID;
-                return datum.mappedID;  // We are a parent that has already been added/mapped.
-            }
-            auto properties = datum.properties;
-            auto parentID = datum.originalParentID;
-            if (parentID.isInvalidID() || !entityIDs.contains(parentID)) {
-                bool success;
-                auto globalPosition = datum.item->getPosition(success);
-                if (success) {
-                    properties.setPosition(globalPosition - root);
-                    if (!parentID.isInvalidID()) { // There's a parent that we won't output. Make the other data global.
-                        properties.setRotation(datum.item->getRotation());
-                        properties.setDimensions(datum.item->getDimensions());
-                        // Should we do velocities and accelerations, too?
-                    }
-                } else {
-                    properties.setPosition(datum.item->getQueryAACube().calcCenter() - root); // best we can do
-                }
-            } else {// Recurse over ancestors, updating properties.
-                qCDebug(interfaceapp) << "FIXME recursing" << datum.originalParentID << "parent of" << datum.item->getEntityItemID();
-                // Warning: could blow the call stack if the parent hierarchy is VERY deep.
-                parentID = getMapped(entities[parentID]);
-                properties.setParentID(parentID);
-            }
-            datum.mappedID = originalID;  // FIXME: simplify because we don't have to map ids.
-            auto newEntity = exportTree->addEntity(datum.mappedID, properties);
-            qCDebug(interfaceapp) << "mapped" << properties.getName();
-            qCDebug(interfaceapp) << "      " << originalID  << "p:" << datum.originalParentID;
-            qCDebug(interfaceapp) << "    =>" << datum.mappedID << "p:" << parentID;
-            qCDebug(interfaceapp) << "     @" << properties.getPosition() << "/" << properties.getLocalPosition();
- 
-            return datum.mappedID;
-        };
-
-        getMapped(entityDatum);
+    //for (EntityDatum& entityDatum : entities) {
+    for (EntityItemPointer& entityDatum : entities) {
+        auto properties = entityDatum->getProperties();
+        EntityItemID parentID = properties.getParentID();
+        if (parentID.isInvalidID()) {
+            properties.setPosition(properties.getPosition() - root);
+        } else if (!entities.contains(parentID)) {
+            entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+        } // else valid parent -- don't offset
+        exportTree->addEntity(entityDatum->getEntityItemID(), properties);
     }
 
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());

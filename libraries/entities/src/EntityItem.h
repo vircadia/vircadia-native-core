@@ -86,6 +86,8 @@ public:
 
     /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties);
+    // Update properties with empty parent id and globalized/absolute values (applying offset), and apply (non-empty) log template to args id, name-or-type, parent id.
+    void globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate = QString(), const glm::vec3& offset = glm::vec3(0.0f)) const;
 
     /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
