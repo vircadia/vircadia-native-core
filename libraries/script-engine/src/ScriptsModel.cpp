@@ -194,7 +194,7 @@ void ScriptsModel::downloadFinished() {
             qCDebug(scriptengine) << "Error: Received no data when loading default scripts";
         }
     } else {
-        qDebug() << "error is" << reply->error();
+        qDebug() << "Error: when loading default scripts --" << reply->error();
     }
 
     reply->deleteLater();
@@ -228,7 +228,6 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
                 if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == KEY_NAME) {
                     xml.readNext();
                     lastKey = xml.text().toString();
-                    qDebug() << "lastKey = " << lastKey;
                     if (jsRegex.exactMatch(xml.text().toString())) {
                         _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
                                                              defaultScriptsLocation() + "/" + lastKey,
