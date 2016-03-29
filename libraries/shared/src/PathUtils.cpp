@@ -56,11 +56,10 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
 
 QString defaultScriptsLocation() {
 #ifdef Q_OS_WIN
-    // return "file:///" + QCoreApplication::applicationDirPath() + "/scripts";
-    return "http://s3.amazonaws.com/hifi-public/scripts";
+    return "file:///" + QCoreApplication::applicationDirPath();
 #elif defined(Q_OS_OSX)
-    return "file:///" + QCoreApplication::applicationDirPath() + "/../../scripts";
+    return "file:///" + QCoreApplication::applicationDirPath() + "/../..";
 #else
-    return "http://s3.amazonaws.com/hifi-public/scripts";
+    return "http://s3.amazonaws.com/hifi-public";
 #endif
 }

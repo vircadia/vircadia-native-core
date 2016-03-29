@@ -158,13 +158,13 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
     QUrl url(defaultScriptsLocation());
 
     if (url.isLocalFile()) {
-        // QDirIterator it(url.toLocalFile(), QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
-        // while (it.hasNext()) {
-        //     QString jsFile = it.next();;
-        //     _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
-        //                                          defaultScriptsLocation() + "/" + jsFile,
-        //                                          SCRIPT_ORIGIN_DEFAULT));
-        // }
+        QString localDir = url.toLocalFile() + "/scripts";
+        QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QString jsFullPath = it.next();
+            QString jsPartialPath = jsFullPath.mid(localDir.length() + 1); // + 1 to skip a separator
+            _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath, SCRIPT_ORIGIN_DEFAULT));
+        }
     } else {
         QUrlQuery query;
         query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);

@@ -216,7 +216,7 @@ QVariantList ScriptEngines::getRunning() {
 static const QString SETTINGS_KEY = "Settings";
 
 void ScriptEngines::loadDefaultScripts() {
-    loadScript(defaultScriptsLocation() + "/defaultScripts.js");
+    loadScript(defaultScriptsLocation() + "/scripts/defaultScripts.js");
 }
 
 void ScriptEngines::loadOneScript(const QString& scriptFilename) {
