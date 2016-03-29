@@ -109,7 +109,7 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     // If textures are unset, revert to original textures
-    if (textures == "") {
+    if (textures.isEmpty()) {
         return _originalTextures;
     }
 
