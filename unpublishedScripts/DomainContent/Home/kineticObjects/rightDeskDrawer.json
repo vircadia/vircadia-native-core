@@ -1,5 +1,6 @@
 {
     "Entities": [{
+        "name": "hifi_home_model_desk_drawer_right",
         "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/desk-drawer-2.obj",
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
