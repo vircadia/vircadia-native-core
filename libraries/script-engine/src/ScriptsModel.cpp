@@ -13,6 +13,7 @@
 #include <QUrl>
 #include <QUrlQuery>
 #include <QXmlStreamReader>
+#include <QDirIterator>
 
 #include <NetworkAccessManager.h>
 #include <PathUtils.h>
@@ -155,18 +156,29 @@ void ScriptsModel::reloadDefaultFiles() {
 
 void ScriptsModel::requestDefaultFiles(QString marker) {
     QUrl url(defaultScriptsLocation());
-    QUrlQuery query;
-    query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
-    if (!marker.isEmpty()) {
-        query.addQueryItem(MARKER_PARAMETER_NAME, marker);
-    }
-    url.setQuery(query);
 
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(request);
-    connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+    if (url.isLocalFile()) {
+        // QDirIterator it(url.toLocalFile(), QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
+        // while (it.hasNext()) {
+        //     QString jsFile = it.next();;
+        //     _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
+        //                                          defaultScriptsLocation() + "/" + jsFile,
+        //                                          SCRIPT_ORIGIN_DEFAULT));
+        // }
+    } else {
+        QUrlQuery query;
+        query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
+        if (!marker.isEmpty()) {
+            query.addQueryItem(MARKER_PARAMETER_NAME, marker);
+        }
+        url.setQuery(query);
+
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest request(url);
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* reply = networkAccessManager.get(request);
+        connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+    }
 }
 
 void ScriptsModel::downloadFinished() {
@@ -179,8 +191,10 @@ void ScriptsModel::downloadFinished() {
         if (!data.isEmpty()) {
             finished = parseXML(data);
         } else {
-            qCDebug(scriptengine) << "Error: Received no data when loading remote scripts";
+            qCDebug(scriptengine) << "Error: Received no data when loading default scripts";
         }
+    } else {
+        qDebug() << "error is" << reply->error();
     }
 
     reply->deleteLater();
@@ -214,6 +228,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
                 if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == KEY_NAME) {
                     xml.readNext();
                     lastKey = xml.text().toString();
+                    qDebug() << "lastKey = " << lastKey;
                     if (jsRegex.exactMatch(xml.text().toString())) {
                         _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
                                                              defaultScriptsLocation() + "/" + lastKey,
@@ -230,7 +245,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
 
     // Error handling
     if (xml.hasError()) {
-        qCDebug(scriptengine) << "Error loading remote scripts: " << xml.errorString();
+        qCDebug(scriptengine) << "Error loading default scripts: " << xml.errorString();
         return true;
     }
 
