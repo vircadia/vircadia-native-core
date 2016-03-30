@@ -291,11 +291,7 @@
                 },
                 collisionless: true,
                 angularDamping: 0,
-                angularVelocity: {
-                    x: 0,
-                    y: 6,
-                    z: 0
-                },
+                angularVelocity: Quat.fromPitchYawRollDegrees(0,6,0),
                 dynamic: false,
                 userData: JSON.stringify({
                     'hifiHomeKey': {
@@ -314,8 +310,8 @@
         },
 
         createTransformingDais: function() {
-            var DAIS_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Dressing-Dais.fbx';
-            var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Dressing-Dais.obj';
+            var DAIS_MODEL_URL = 'atp:/dressingRoom/Dressing-Dais.fbx';
+            var COLLISION_HULL_URL = 'atp:/dressingRoom/Dressing-Dais.obj';
 
             var DAIS_DIMENSIONS = {
                 x: 1.0654,
@@ -351,7 +347,7 @@
         createTransformers: function() {
             var firstDollPosition = {
                 x: 1107.61,
-                y: 460.5,
+                y: 460.6,
                 z: -77.34
             }
 
