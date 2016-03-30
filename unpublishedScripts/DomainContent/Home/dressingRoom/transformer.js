@@ -123,13 +123,6 @@
 
         putTransformerOnRotatorBlock: function(blockPosition) {
             print('transformer should get set on rotator block')
-
-            blockPosition.y = blockPosition.y + 1;
-            // var newPosition = {
-            //     x:blockPosition.x,
-            //     y:blockPosition.y+1,
-            //     z:blockPosition
-            // };
             return blockPosition
         },
 

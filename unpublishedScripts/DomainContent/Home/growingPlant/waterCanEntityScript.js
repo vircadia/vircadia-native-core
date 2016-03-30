@@ -18,7 +18,7 @@
 
     function WaterSpout() {
         _this = this;
-        _this.waterSound = SoundCache.getSound("atp:/sounds/watering_can_pour.L.wav");
+        _this.waterSound = SoundCache.getSound("atp:/growingPlant/watering_can_pour.L.wav");
         _this.POUR_ANGLE_THRESHOLD = 0;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "hifi-water-spout";
@@ -37,17 +37,21 @@
         },
 
         startHold: function() {
-            if (_this.waterSpout) {
-                _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
-                _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
-                _this.createWaterEffect();
-            } else {
-                print("EBL NO WATER SPOUT FOUND RETURNING");
-                return;
-            }
+            var entities = Entities.findEntities(_this.position, 2);
+            print("EBL SEARCHING FOR SPOUT");
+            entities.forEach(function(entity) {
+                var name = Entities.getEntityProperties(entity, "name").name;
+                if (name === _this.WATER_SPOUT_NAME) {
+                    print("EBL FOUND SPOUT");
+                    _this.waterSpout = entity;
+                    _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
+                    _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
+                    _this.createWaterEffect();
+                }
+            });
+
             _this.findGrowableEntities();
         },
-
         releaseEquip: function() {
             _this.releaseHold();
         },
@@ -220,14 +224,17 @@
         },
 
         preload: function(entityID) {
+            print("EBL PRELOADING WATER CAN")
             _this.entityID = entityID;
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
             Script.setTimeout(function() {
                 var entities = Entities.findEntities(_this.position, 2);
+                print("EBL SEARCHING FOR SPOUT");
                 entities.forEach(function(entity) {
                     var name = Entities.getEntityProperties(entity, "name").name;
                     if (name === _this.WATER_SPOUT_NAME) {
+                        print("EBL FOUND SPOUT");
                         _this.waterSpout = entity;
                     }
                 });

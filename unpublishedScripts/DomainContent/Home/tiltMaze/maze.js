@@ -47,10 +47,6 @@
         blue: 0
     };
 
-    var THROTTLE = true;
-    var THROTTLE_RATE = 1000;
-    var sinceLastUpdate = 0;
-
     var _this;
 
     function Maze() {
@@ -69,6 +65,14 @@
 
         startNearGrab: function() {
             //check to make sure a ball is in range, otherwise create one
+            this.testBallDistance();
+        },
+
+        clickReleaseOnEntity: function() {
+            this.testBallDistance();
+        },
+
+        clickDownOnEntity: function() {
             this.testBallDistance();
         },
 
@@ -230,19 +234,6 @@
             };
             Audio.playSound(VICTORY_SOUND, audioProperties);
 
-        },
-
-        update: function(deltaTime) {
-            //anyone can clean up loose balls
-            if (THROTTLE === true) {
-                sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
-                if (sinceLastUpdate > THROTTLE_RATE) {
-                    sinceLastUpdate = 0;
-                } else {
-                    return;
-                }
-            }
-            _this.testBallDistance();
         },
 
         unload: function() {

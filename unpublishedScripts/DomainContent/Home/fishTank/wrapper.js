@@ -13,7 +13,7 @@
 var TANK_SCRIPT = Script.resolvePath('entityLocalFish.js');
 
 FishTank = function(spawnPosition, spawnRotation) {
-    var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, anemone, treasure, rocks;
+    var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, anemone, treasure, rocks;
     var CLEANUP = true;
 
     var TANK_DIMENSIONS = {
@@ -22,11 +22,11 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: 2.1404
     };
 
-    var INNER_TANK_SCALE = 0.7;
-    var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
-    INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
-    var TANK_WIDTH = TANK_DIMENSIONS.z;
-    var TANK_HEIGHT = TANK_DIMENSIONS.y;
+    // var INNER_TANK_SCALE = 0.7;
+    // var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
+    // INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
+    // var TANK_WIDTH = TANK_DIMENSIONS.z;
+    // var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
     var DEBUG_COLOR = {
         red: 255,
@@ -100,14 +100,6 @@ FishTank = function(spawnPosition, spawnRotation) {
         y: 0.1105,
         z: 0.1020
     }
-
-    var LOWER_CORNER_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.3;
-    var LOWER_CORNER_FORWARD_OFFSET = TANK_DIMENSIONS.x;
-    var LOWER_CORNER_LATERAL_OFFSET = -TANK_DIMENSIONS.z / 8;
-
-    var UPPER_CORNER_VERTICAL_OFFSET = (TANK_DIMENSIONS.y / 2) - 0.3;
-    var UPPER_CORNER_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
-    var UPPER_CORNER_LATERAL_OFFSET = TANK_DIMENSIONS.z / 8;
 
     function createFishTank() {
         var tankProperties = {
@@ -229,6 +221,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: ROCK_MODEL_URL,
             position: finalPosition,
             dimensions: ROCK_DIMENSIONS,
+            rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
@@ -258,7 +251,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: ANEMONE_MODEL_URL,
             position: finalPosition,
             shapeType: 'Sphere',
-            rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
+            rotation: Quat.fromPitchYawRollDegrees(0, 270, 0),
             dimensions: ANEMONE_DIMENSIONS,
             userData: JSON.stringify({
                 'hifiHomeKey': {
@@ -281,7 +274,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TREASURE_MODEL_URL,
             position: finalPosition,
             dimensions: TREASURE_DIMENSIONS,
-            rotation: Quat.fromPitchYawRollDegrees(10, -45, 10),
+            rotation: Quat.fromPitchYawRollDegrees(10, 135, 10),
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
@@ -305,6 +298,7 @@ FishTank = function(spawnPosition, spawnRotation) {
                 y: TANK_POSITION.y - BASE_VERTICAL_OFFSET,
                 z: TANK_POSITION.z
             },
+            rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
             dimensions: TANK_BASE_DIMENSIONS,
             userData: JSON.stringify({
                 'hifiHomeKey': {
