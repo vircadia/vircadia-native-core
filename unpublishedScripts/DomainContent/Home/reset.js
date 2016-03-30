@@ -66,7 +66,6 @@
 
         showTidyingButton: function() {
 
-
             Entities.editEntity(_this.entityID, {
                 textures: {
                     "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",

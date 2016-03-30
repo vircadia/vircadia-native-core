@@ -13,7 +13,7 @@
 var TANK_SCRIPT = Script.resolvePath('entityLocalFish.js');
 
 FishTank = function(spawnPosition, spawnRotation) {
-    var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, anemone, treasure, rocks;
+    var fishTank, innerTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, anemone, treasure, rocks;
     var CLEANUP = true;
 
     var TANK_DIMENSIONS = {
@@ -22,11 +22,11 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: 2.1404
     };
 
-    // var INNER_TANK_SCALE = 0.7;
-    // var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
-    // INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
-    // var TANK_WIDTH = TANK_DIMENSIONS.z;
-    // var TANK_HEIGHT = TANK_DIMENSIONS.y;
+    var INNER_TANK_SCALE = 0.7;
+    var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
+    INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
+    var TANK_WIDTH = TANK_DIMENSIONS.z;
+    var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
     var DEBUG_COLOR = {
         red: 255,
@@ -111,7 +111,6 @@ FishTank = function(spawnPosition, spawnRotation) {
             rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
             color: DEBUG_COLOR,
             collisionless: true,
-            script: TANK_SCRIPT,
             visible: true,
             userData: JSON.stringify({
                 'hifiHomeKey': {
@@ -308,6 +307,32 @@ FishTank = function(spawnPosition, spawnRotation) {
         }
 
         tankBase = Entities.addEntity(properties);
+    }
+
+    function createInnerTank() {
+        var properties = {
+            dimensions: INNER_TANK_DIMENSIONS,
+            name: 'hifi-home-fishtank-inner-tank',
+            type: 'Box',
+            visible: true,
+            color: {
+                red: 255,
+                green: 0,
+                blue: 255
+            },
+            position: TANK_POSITION,
+            rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
+            color: DEBUG_COLOR,
+            collisionless: true,
+            script: TANK_SCRIPT,
+            visible: true,
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            }),
+        }
+        innerTank = Entities.addEntity(innerTank);
     }
 
     createFishTank();
