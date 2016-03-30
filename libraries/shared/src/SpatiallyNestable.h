@@ -140,6 +140,7 @@ public:
     bool isDead() const { return _isDead; }
 
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
+    virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData

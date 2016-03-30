@@ -24,7 +24,6 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
-#include "RemapIDOperator.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
@@ -1317,42 +1316,59 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                                                float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
-    args.localTree = localTree;
+    args.ourTree = this;
+    args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
-    QVector<EntityItemID> newEntityIDs;
-    args.newEntityIDs = &newEntityIDs;
+    // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we use new identifiers.
+    // We need to keep a map so that we can map parent identifiers correctly.
+    QHash<EntityItemID, EntityItemID> map;
+    args.map = &map;
     recurseTreeWithOperation(sendEntitiesOperation, &args);
     packetSender->releaseQueuedMessages();
 
-    return newEntityIDs;
+    return map.values().toVector();
 }
 
 bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        EntityItemID newID(QUuid::createUuid());
-        args->newEntityIDs->append(newID);
-        EntityItemProperties properties = entityItem->getProperties();
-        properties.setPosition(properties.getPosition() + args->root);
+    std::function<const EntityItemID(EntityItemPointer&)> getMapped = [&](EntityItemPointer& item) -> const EntityItemID {
+        EntityItemID oldID = item->getEntityItemID();
+        if (args->map->contains(oldID)) { // Already been handled (e.g., as a parent of somebody that we've processed).
+            return args->map->value(oldID);
+        }
+        EntityItemID newID = QUuid::createUuid();
+        EntityItemProperties properties = item->getProperties();
+        EntityItemID oldParentID = properties.getParentID();
+        if (oldParentID.isInvalidID()) {  // no parent
+            properties.setPosition(properties.getPosition() + args->root);
+        } else {
+            EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
+            if (parentEntity) { // map the parent
+                // Warning: (non-tail) recursion of getMapped could blow the call stack if the parent hierarchy is VERY deep.
+                properties.setParentID(getMapped(parentEntity));
+                // But do not add root offset in this case.
+            } else { // Should not happen, but let's try to be helpful...
+                item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
+            }
+        }
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
         // queue the packet to send to the server
         args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
-        if (args->localTree) {
-            args->localTree->withWriteLock([&] {
-                args->localTree->addEntity(newID, properties);
+        if (args->otherTree) {
+            args->otherTree->withWriteLock([&] {
+                args->otherTree->addEntity(newID, properties);
             });
         }
-    });
-    return true;
-}
+        args->map->insert(oldID, newID);
+        return newID;
+    };
 
-void EntityTree::remapIDs() {
-    RemapIDOperator theOperator;
-    recurseTreeWithOperator(&theOperator);
+    entityTreeElement->forEachEntity(getMapped);
+    return true;
 }
 
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
@@ -1393,7 +1409,6 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }
     }
-
     return true;
 }
 

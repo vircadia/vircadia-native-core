@@ -2800,43 +2800,50 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItemPointer> entities;
+bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
+    QHash<EntityItemID, EntityItemPointer> entities;
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
 
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    for (auto entityID : entityIDs) {
+    for (auto entityID : entityIDs) { // Gather entities and properties.
         auto entityItem = entityTree->findEntityByEntityItemID(entityID);
         if (!entityItem) {
+            qCWarning(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
             continue;
         }
 
-        auto properties = entityItem->getProperties();
-        auto position = properties.getPosition();
-
-        root.x = glm::min(root.x, position.x);
-        root.y = glm::min(root.y, position.y);
-        root.z = glm::min(root.z, position.z);
-
-        entities << entityItem;
+        if (!givenOffset) {
+            EntityItemID parentID = entityItem->getParentID();
+            if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
+                auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                root.x = glm::min(root.x, position.x);
+                root.y = glm::min(root.y, position.y);
+                root.z = glm::min(root.z, position.z);
+            }
+        }
+        entities[entityID] = entityItem;
     }
 
     if (entities.size() == 0) {
         return false;
     }
 
-    for (auto entityItem : entities) {
-        auto properties = entityItem->getProperties();
-
-        properties.setPosition(properties.getPosition() - root);
-        exportTree->addEntity(entityItem->getEntityItemID(), properties);
+    if (givenOffset) {
+        root = *givenOffset;
     }
-
-    // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-    exportTree->remapIDs();
+    for (EntityItemPointer& entityDatum : entities) {
+        auto properties = entityDatum->getProperties();
+        EntityItemID parentID = properties.getParentID();
+        if (parentID.isInvalidID()) {
+            properties.setPosition(properties.getPosition() - root);
+        } else if (!entities.contains(parentID)) {
+            entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+        } // else valid parent -- don't offset
+        exportTree->addEntity(entityDatum->getEntityItemID(), properties);
+    }
 
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
@@ -2846,33 +2853,14 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
+    glm::vec3 offset(x, y, z);
     QVector<EntityItemPointer> entities;
-    getEntities()->getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
-
-    if (entities.size() > 0) {
-        glm::vec3 root(x, y, z);
-        auto exportTree = std::make_shared<EntityTree>();
-        exportTree->createRootElement();
-
-        for (int i = 0; i < entities.size(); i++) {
-            EntityItemProperties properties = entities.at(i)->getProperties();
-            EntityItemID id = entities.at(i)->getEntityItemID();
-            properties.setPosition(properties.getPosition() - root);
-            exportTree->addEntity(id, properties);
-        }
-
-        // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-        exportTree->remapIDs();
-
-        exportTree->writeToSVOFile(filename.toLocal8Bit().constData());
-    } else {
-        qCDebug(interfaceapp) << "No models were selected";
-        return false;
+    QVector<EntityItemID> ids;
+    getEntities()->getTree()->findEntities(AACube(offset, scale), entities);
+    foreach(EntityItemPointer entity, entities) {
+        ids << entity->getEntityItemID();
     }
-
-    // restore the main window's active state
-    _window->activateWindow();
-    return true;
+    return exportEntities(filename, ids, &offset);
 }
 
 void Application::loadSettings() {
@@ -2905,7 +2893,6 @@ bool Application::importEntities(const QString& urlOrFilename) {
 
     bool success = _entityClipboard->readFromURL(urlOrFilename);
     if (success) {
-        _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
     }
     return success;
