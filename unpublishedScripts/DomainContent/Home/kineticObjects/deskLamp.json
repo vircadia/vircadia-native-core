@@ -7,7 +7,7 @@
                 "z": 0.010236549191176891
             },
             "collisionsWillMove": 1,
-            "compoundShapeURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.objj",
+            "compoundShapeURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.obj",
             "created": "2016-03-22T22:55:11Z",
             "dimensions": {
                 "x": 0.35158795118331909,
