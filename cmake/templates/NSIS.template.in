@@ -387,7 +387,7 @@ Function PostInstallOptionsPage
   StrCpy $OffsetUnits u
 
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for High Fidelity @INTERFACE_SHORTCUT_NAME@"
     Pop $DesktopClientCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
 
