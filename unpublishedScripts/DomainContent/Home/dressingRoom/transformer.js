@@ -83,12 +83,12 @@
                 }
             });
 
-            _this.createBigVersion(myProps);
+            _this.createBigVersion();
 
         },
 
-        createBigVersion: function(smallProps) {
-
+        createBigVersion: function() {
+            var smallProps = Entities.getEntityProperties(_this.entityID);
             print('transformer should create big version!!')
             print('transformer has rotatorBlock??' + _this.rotatorBlock);
             var rotatorProps = Entities.getEntityProperties(_this.rotatorBlock);

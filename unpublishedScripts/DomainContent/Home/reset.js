@@ -65,33 +65,33 @@
         },
 
         showTidyingButton: function() {
-
+            var data = {
+                "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
+                "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange.png",
+                "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange-Emit.png",
+                "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
+                "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
+            }
             Entities.editEntity(_this.entityID, {
-                textures: {
-                    "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
-                    "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange.png",
-                    "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange-Emit.png",
-                    "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
-                    "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
-                    "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
-                    "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
-                }
+                textures: JSON.stringify(data)
             });
         },
 
         showTidyButton: function() {
-
+            var data = {
+                "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
+                "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png",
+                "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",
+                "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
+                "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
+            }
 
             Entities.editEntity(_this.entityID, {
-                textures: {
-                    "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
-                    "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png",
-                    "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",
-                    "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
-                    "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
-                    "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
-                    "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
-                }
+                textures: JSON.stringify(data);
 
             });
         },
