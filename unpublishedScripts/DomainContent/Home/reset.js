@@ -65,20 +65,35 @@
         },
 
         showTidyingButton: function() {
-            var textureString =
-                'Texture.001:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",\ntex.face.screen.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png",\ntex.face.sceen:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",\ntex.button.blanks:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",\ntex.button.blanks.normal:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",\nbutton.tidy.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidy-Up-Button-Orange-Emit.png",\nbutton.tidy:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidy-Up-Button-Orange.png"'
+
 
             Entities.editEntity(_this.entityID, {
-                textures: textureString
+                textures: {
+                    "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
+                    "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange.png",
+                    "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange-Emit.png",
+                    "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
+                    "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
+                    "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
+                    "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
+                }
             });
         },
 
         showTidyButton: function() {
-            var textureString =
-                'Texture.001:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",\ntex.face.screen.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png",\ntex.face.sceen:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",\ntex.button.blanks:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",\ntex.button.blanks.normal:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",\nbutton.tidy.emit:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",\nbutton.tidy:"http://hifi-content.s3.amazonaws.com/DomainContent/Home/tidyGuy/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png"'
+
 
             Entities.editEntity(_this.entityID, {
-                textures: textureString
+                textures: {
+                    "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
+                    "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png",
+                    "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",
+                    "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
+                    "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
+                    "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
+                    "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
+                }
+
             });
         },
 
@@ -291,7 +306,7 @@
                 },
                 collisionless: true,
                 angularDamping: 0,
-                angularVelocity: Quat.fromPitchYawRollDegrees(0,6,0),
+                angularVelocity: Quat.fromPitchYawRollDegrees(0, 6, 0),
                 dynamic: false,
                 userData: JSON.stringify({
                     'hifiHomeKey': {
