@@ -456,7 +456,7 @@ input[type=checkbox]:checked + label:hover {
     margin-left: 12px;
 }
 
-.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label {
+.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
     float: left;
     margin-bottom: 4px;
 }
@@ -469,7 +469,7 @@ input[type=checkbox]:checked + label:hover {
     clear: both;
     float: left;
 }
-.xyz > div, .pyr > div {
+.xyz > div, .pyr > div, .gen > div {
     clear: both;
 }
 
@@ -650,6 +650,14 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     white-space: nowrap;
 }
 
+.row input {
+    float: left;
+}
+.row input[type=button] {
+    margin-left: 8px;
+    margin-right: 0;
+}
+
 
 ::-webkit-scrollbar {
     width: 10px;
@@ -798,6 +806,12 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 
 #property-id::selection {
     background-color: #00b4ef;
+}
+
+
+input#dimension-rescale-button {
+    min-width: 50px;
+    margin-left: 6px;
 }
 
 
