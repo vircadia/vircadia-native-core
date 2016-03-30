@@ -53,7 +53,7 @@ Fadable {
     property bool resizable: false
 
     property vector2d minSize: Qt.vector2d(100, 100)
-    property vector2d maxSize: Qt.vector2d(1280, 720)
+    property vector2d maxSize: Qt.vector2d(1280, 800)
 
     // The content to place inside the window, determined by the client
     default property var content
