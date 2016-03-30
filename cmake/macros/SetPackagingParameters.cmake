@@ -90,6 +90,13 @@ macro(SET_PACKAGING_PARAMETERS)
       set(INTERFACE_SHORTCUT_NAME "Interface - ${BUILD_VERSION}")
       set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION}")
     endif ()
+
+    set(INTERFACE_HF_SHORTCUT_NAME "High Fidelity ${INTERFACE_SHORTCUT_NAME}")
+    set(CONSOLE_HF_SHORTCUT_NAME "High Fidelity ${CONSOLE_SHORTCUT_NAME}")
+
+    set(PRE_SANDBOX_INTERFACE_SHORTCUT_NAME "High Fidelity")
+    set(PRE_SANDBOX_CONSOLE_SHORTCUT_NAME "Server Console")
+
     # check if we need to find signtool
     if (PRODUCTION_BUILD OR PR_BUILD)
       find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
