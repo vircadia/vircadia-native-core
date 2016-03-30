@@ -27,4 +27,6 @@ public:
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);
 QString findMostRecentFileExtension(const QString& originalFileName, QVector<QString> possibleExtensions);
 
+QUrl defaultScriptsLocation();
+
 #endif // hifi_PathUtils_h
