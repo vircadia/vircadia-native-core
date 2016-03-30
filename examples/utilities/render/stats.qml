@@ -168,10 +168,10 @@ Item {
             title: "Items"
             height: parent.evalEvenHeight()
             object: parent.drawOpaqueConfig
-            trigger: Render.getConfig("DrawOpaqueDeferred")["numDrawn"]
+            trigger: parent.drawOpaqueConfig["numDrawn"]
             plots: [
                 {
-                    object: Render.getConfig("DrawOpaqueDeferred"),
+                    object: parent.drawOpaqueConfig,
                     prop: "numDrawn",
                     label: "Opaques",
                     color: "#1AC567"
@@ -186,7 +186,7 @@ Item {
                     object: Render.getConfig("DrawLight"),
                     prop: "numDrawn",
                     label: "Lights",
-                    color: "#E2334D"
+                    color: "#FED959"
                 }
             ]
         }     

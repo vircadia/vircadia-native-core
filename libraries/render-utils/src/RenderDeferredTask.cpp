@@ -12,6 +12,8 @@
 
 #include "RenderDeferredTask.h"
 
+#include <QElapsedTimer>
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <RenderArgs.h>
@@ -45,7 +47,13 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    QElapsedTimer cpuTimer;
+    cpuTimer.start();
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
+
+    config->setStats(cpuTimer.elapsed());
 }
 
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
@@ -175,6 +183,8 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
+    QElapsedTimer cpuTimer;
+    cpuTimer.start();
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
@@ -184,9 +194,6 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         args->_batch = &batch;
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-
-        config->setNumDrawn((int)inItems.size());
-        emit config->numDrawnChanged();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -199,6 +206,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
     });
+
+    config->setStats((int)inItems.size(), cpuTimer.elapsed());
 }
 
 DrawOverlay3D::DrawOverlay3D(bool opaque) :

@@ -22,6 +22,7 @@ public:
     using JobModel = render::Job::Model<SetupDeferred>;
 };
 
+
 class PrepareDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -29,32 +30,54 @@ public:
     using JobModel = render::Job::Model<PrepareDeferred>;
 };
 
+class RenderDeferredConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(quint64 cpuTime READ getCPUTime NOTIFY newStats)
+
+public:
+
+    quint64 getCPUTime() { return _cpuTime; }
+
+    void setStats(quint64 time) { _cpuTime = time;  emit newStats(); }
+
+signals:
+    void newStats();
+
+protected:
+    quint64 _cpuTime{ 0 };
+};
 
 class RenderDeferred {
 public:
-    using JobModel = render::Job::Model<RenderDeferred>;
+    using Config = RenderDeferredConfig;
+    using JobModel = render::Job::Model<RenderDeferred, Config>;
 
+    void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
 };
 
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
+    Q_PROPERTY(quint64 cpuTime READ getCPUTime NOTIFY newStats)
+
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
 
-    int getNumDrawn() { return numDrawn; }
-    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+    int getNumDrawn() { return _numDrawn; }
+    double getCPUTime() { return _cpuTime; }
+
+    void setStats(int numDrawn, quint64 time) { _numDrawn = numDrawn; _cpuTime = time;  emit newStats(); }
 
     int maxDrawn{ -1 };
 
 signals:
-    void numDrawnChanged();
+    void newStats();
     void dirty();
 
 protected:
-    int numDrawn{ 0 };
+    quint64 _cpuTime{ 0 };
+    int _numDrawn{ 0 };
 };
 
 class DrawDeferred {
