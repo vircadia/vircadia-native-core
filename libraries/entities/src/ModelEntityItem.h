@@ -110,8 +110,8 @@ public:
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
 
     static const QString DEFAULT_TEXTURES;
-    const QString& getTextures() const { return _textures; }
-    void setTextures(const QString& textures) { _textures = textures; }
+    const QString getTextures() const;
+    void setTextures(const QString& textures);
 
     virtual bool shouldBePhysical() const;
 
@@ -159,7 +159,9 @@ protected:
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
 
+    mutable QReadWriteLock _texturesLock;
     QString _textures;
+
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // used on client side
