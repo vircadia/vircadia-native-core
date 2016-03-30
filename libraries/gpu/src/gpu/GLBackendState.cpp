@@ -610,6 +610,8 @@ void GLBackend::do_setStateDepthBias(Vec2 bias) {
             glDisable(GL_POLYGON_OFFSET_LINE);
             glDisable(GL_POLYGON_OFFSET_POINT);
         }
+        (void) CHECK_GL_ERROR();
+
          _pipeline._stateCache.depthBias = bias.x;
          _pipeline._stateCache.depthBiasSlopeScale = bias.y;
     }
@@ -690,6 +692,7 @@ void GLBackend::do_setStateAlphaToCoverageEnable(bool enable) {
             glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
         }
         (void) CHECK_GL_ERROR();
+
         _pipeline._stateCache.alphaToCoverageEnable = enable;
     }
 }
@@ -703,6 +706,7 @@ void GLBackend::do_setStateSampleMask(uint32 mask) {
             glEnable(GL_SAMPLE_MASK);
             glSampleMaski(0, mask);
         }
+        (void) CHECK_GL_ERROR();
 #endif
         _pipeline._stateCache.sampleMask = mask;
     }
@@ -743,10 +747,10 @@ void GLBackend::do_setStateBlend(State::BlendFunction function) {
 
             glBlendFuncSeparate(BLEND_ARGS[function.getSourceColor()], BLEND_ARGS[function.getDestinationColor()],
                                 BLEND_ARGS[function.getSourceAlpha()], BLEND_ARGS[function.getDestinationAlpha()]);
-            (void) CHECK_GL_ERROR();
         } else {
             glDisable(GL_BLEND);
         }
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.blendFunction = function;
     }
@@ -758,6 +762,7 @@ void GLBackend::do_setStateColorWriteMask(uint32 mask) {
                 mask & State::ColorMask::WRITE_GREEN,
                 mask & State::ColorMask::WRITE_BLUE,
                 mask & State::ColorMask::WRITE_ALPHA );
+        (void) CHECK_GL_ERROR();
 
         _pipeline._stateCache.colorWriteMask = mask;
     }
@@ -765,7 +770,6 @@ void GLBackend::do_setStateColorWriteMask(uint32 mask) {
 
 
 void GLBackend::do_setStateBlendFactor(Batch& batch, size_t paramOffset) {
-    
     Vec4 factor(batch._params[paramOffset + 0]._float,
                 batch._params[paramOffset + 1]._float,
                 batch._params[paramOffset + 2]._float,
