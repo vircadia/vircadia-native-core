@@ -1237,8 +1237,8 @@
                 var options = elDropdowns[i].getElementsByTagName("option");
                 var selectedOption = 0;
                 for (var j = 0; j < options.length; j++) {
-                    if (options[i].getAttribute("selected") === "selected") {
-                        selectedOption = i;
+                    if (options[j].getAttribute("selected") === "selected") {
+                        selectedOption = j;
                     }
                 }
                 var div = elDropdowns[i].parentNode;
@@ -1739,7 +1739,7 @@
         <div class="sub-section-header zone-group zone-section background-section">
             <label>Background</label>
         </div>
-        <div class="zone-section zone-group background-section property dropdown">
+        <div class="zone-group zone-section background-section property dropdown">
             <label>Background mode</label>
             <select name="SelectBackgroundMode" id="property-zone-background-mode">
                 <option value="inherit">Nothing</option>
