@@ -55,8 +55,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
         qWarning() << "Too many concurrent web views to create new view";
         return false;
     }
-
     qDebug() << "Building web surface";
+
     ++_currentWebCount;
     // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();

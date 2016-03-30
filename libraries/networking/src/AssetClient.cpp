@@ -228,7 +228,8 @@ bool AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingRequests[assetServer][messageID] = { callback, progressCallback };
+        _pendingRequests[assetServer][messageID] = { QSharedPointer<ReceivedMessage>(), callback, progressCallback };
+
 
         return true;
     } else {
@@ -325,6 +326,9 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
             auto& callbacks = requestIt->second;
+
+            // Store message in case we need to disconnect from it later.
+            callbacks.message = message;
 
             if (message->isComplete()) {
                 callbacks.completeCallback(true, error, message->readAll());
@@ -550,6 +554,12 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingRequests.find(node);
         if (messageMapIt != _pendingRequests.end()) {
             for (const auto& value : messageMapIt->second) {
+                auto& message = value.second.message;
+                if (message) {
+                    // Disconnect from all signals emitting from the pending message
+                    disconnect(message.data(), nullptr, this, nullptr);
+                }
+
                 value.second.completeCallback(false, AssetServerError::NoError, QByteArray());
             }
             messageMapIt->second.clear();
