@@ -158,14 +158,21 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
     QUrl url(defaultScriptsLocation());
 
     if (url.isLocalFile()) {
-        QString localDir = url.toLocalFile() + "/scripts";
+        // if the url indicates a local directory, use QDirIterator
+        // QString localDir = url.toLocalFile() + "/scripts";
+        QString localDir = expandScriptUrl(url).toLocalFile() + "/scripts";
+        int localDirPartCount = localDir.split("/").size();
         QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
         while (it.hasNext()) {
-            QString jsFullPath = normalizeScriptUrl(it.next());
-            QString jsPartialPath = normalizeScriptUrl(jsFullPath.mid(localDir.length() + 1)); // + 1 to skip a separator
-            _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath, SCRIPT_ORIGIN_DEFAULT));
+            QUrl jsFullPath = QUrl::fromLocalFile(it.next());
+            // QString jsPartialPath = jsFullPath.path().mid(localDir.length() + 1); // + 1 to skip a separator
+            QString jsPartialPath = jsFullPath.path().split("/").mid(localDirPartCount).join("/");
+            jsFullPath = normalizeScriptURL(jsFullPath);
+            _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath.toString(), SCRIPT_ORIGIN_DEFAULT));
         }
+        _loadingScripts = false;
     } else {
+        // the url indicates http(s), use QNetworkRequest
         QUrlQuery query;
         query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
         if (!marker.isEmpty()) {
@@ -227,11 +234,13 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
             while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == CONTAINER_NAME)) {
                 if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == KEY_NAME) {
                     xml.readNext();
-                    lastKey = normalizeScriptUrl(xml.text().toString());
+                    lastKey = xml.text().toString();
                     if (jsRegex.exactMatch(xml.text().toString())) {
-                        _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
-                                                             defaultScriptsLocation() + "/" + lastKey,
-                                                             SCRIPT_ORIGIN_DEFAULT));
+                        QString localPath = lastKey.split("/").mid(1).join("/");
+                        QUrl fullPath = defaultScriptsLocation();
+                        fullPath.setPath(fullPath.path() + "/" + lastKey);
+                        const QString fullPathStr = normalizeScriptURL(fullPath).toString();
+                        _treeNodes.append(new TreeNodeScript(localPath, fullPathStr, SCRIPT_ORIGIN_DEFAULT));
                     }
                 }
                 xml.readNext();
@@ -274,9 +283,9 @@ void ScriptsModel::reloadLocalFiles() {
     const QFileInfoList localFiles = _localDirectory.entryInfoList();
     for (int i = 0; i < localFiles.size(); i++) {
         QFileInfo file = localFiles[i];
-        QString fileName = normalizeScriptUrl(file.fileName());
-        QString absPath = normalizeScriptUrl(file.absoluteFilePath());
-        _treeNodes.append(new TreeNodeScript(fileName, absPath, SCRIPT_ORIGIN_LOCAL));
+        QString fileName = file.fileName();
+        QUrl absPath = normalizeScriptURL(QUrl::fromLocalFile(file.absoluteFilePath()));
+        _treeNodes.append(new TreeNodeScript(fileName, absPath.toString(), SCRIPT_ORIGIN_LOCAL));
     }
     rebuildTree();
     endResetModel();
@@ -302,7 +311,7 @@ void ScriptsModel::rebuildTree() {
             for (pathIterator = pathList.constBegin(); pathIterator != pathList.constEnd(); ++pathIterator) {
                 hash.append(*pathIterator + "/");
                 if (!folders.contains(hash)) {
-                    folders[hash] = new TreeNodeFolder(normalizeScriptUrl(*pathIterator), parent);
+                    folders[hash] = new TreeNodeFolder(*pathIterator, parent);
                 }
                 parent = folders[hash];
             }

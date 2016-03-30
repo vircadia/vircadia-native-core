@@ -51,7 +51,7 @@ public:
     ScriptsModelFilter* scriptsModelFilter() { return &_scriptsModelFilter; };
 
     Q_INVOKABLE void loadOneScript(const QString& scriptFilename);
-    Q_INVOKABLE ScriptEngine* loadScript(const QString& scriptFilename = QString(),
+    Q_INVOKABLE ScriptEngine* loadScript(const QUrl& scriptFilename = QString(),
         bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
     Q_INVOKABLE bool stopScript(const QString& scriptHash, bool restart = false);
 
@@ -96,7 +96,7 @@ protected:
     ScriptsModelFilter _scriptsModelFilter;
 };
 
-QString normalizeScriptUrl(const QString& rawScriptUrl);
-QString expandScriptUrl(const QString& normalizedScriptURL);
+QUrl normalizeScriptURL(const QUrl& rawScriptURL);
+QUrl expandScriptUrl(const QUrl& normalizedScriptURL);
 
 #endif // hifi_ScriptEngine_h

@@ -15,6 +15,7 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QDir>
+#include <QUrl>
 #include "PathUtils.h"
 
 
@@ -54,12 +55,13 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
     return newestFileName;
 }
 
-QString defaultScriptsLocation() {
+QUrl defaultScriptsLocation() {
 #ifdef Q_OS_WIN
-    return QString("file:///" + QCoreApplication::applicationDirPath()).toLower();
+    return QUrl(("file://" + QCoreApplication::applicationDirPath()).toLower());
 #elif defined(Q_OS_OSX)
-    return QString("file:///" + QCoreApplication::applicationDirPath() + "/../..").toLower();
+    return QUrl(("file://" + QCoreApplication::applicationDirPath() + "/../..").toLower());
 #else
-    return "http://s3.amazonaws.com/hifi-public";
+    // return "http://s3.amazonaws.com/hifi-public";
+    return QUrl("file://" + QCoreApplication::applicationDirPath());
 #endif
 }

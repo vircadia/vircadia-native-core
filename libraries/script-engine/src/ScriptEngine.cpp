@@ -234,7 +234,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
     if (_wantSignals) {
-        emit scriptLoaded(_fileNameString);
+        emit scriptLoaded(url.toString());
     }
 }
 
