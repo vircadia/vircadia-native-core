@@ -111,8 +111,8 @@ function shutdown() {
             dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
-                title: 'Stopping Server Console',
-                message: 'Quitting will stop your Server Console and your Home domain will no longer be running.\nDo you wish to continue?'
+                title: 'Stopping High Fidelity Sandbox',
+                message: 'Quitting will stop your Sandbox and your Home domain will no longer be running.\nDo you wish to continue?'
             }, shutdownCallback);
         } else {
             shutdownCallback(0);
@@ -212,7 +212,7 @@ var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) 
 });
 
 if (shouldQuit) {
-    console.warn("Another instance of the Server Console is already running - this instance will quit.");
+    console.warn("Another instance of the Sandbox is already running - this instance will quit.");
     app.quit();
     return;
 }
@@ -237,7 +237,7 @@ function binaryMissingMessage(displayName, executableName, required) {
     var message = "The " + displayName + " executable was not found.\n";
 
     if (required) {
-        message += "It is required for the Server Console to run.\n\n";
+        message += "It is required for the High Fidelity Sandbox to run.\n\n";
     } else {
         message += "\n";
     }
@@ -250,7 +250,7 @@ function binaryMissingMessage(displayName, executableName, required) {
         message += paths.join("\n");
     } else {
         message += "It is expected to be found beside this executable.\n";
-        message += "You may need to re-install the Server Console.";
+        message += "You may need to re-install the High Fidelity Sandbox.";
     }
 
     return message;
@@ -770,7 +770,7 @@ app.on('ready', function() {
 
     // Create tray icon
     tray = new Tray(trayIcons[ProcessGroupStates.STOPPED]);
-    tray.setToolTip('High Fidelity Server Console');
+    tray.setToolTip('High Fidelity Sandbox');
 
     tray.on('click', function() {
         tray.popUpContextMenu(tray.menu);
