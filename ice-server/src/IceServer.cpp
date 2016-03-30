@@ -313,7 +313,10 @@ bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, b
                                 ? 1 : 0;
 
             connection->respond(HTTPConnection::StatusCode200, QByteArray::number(statusNumber));
+
+            return true;
         }
     }
-    return true;
+
+    return false;
 }
