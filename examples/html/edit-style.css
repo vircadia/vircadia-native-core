@@ -201,6 +201,7 @@ input:focus, textarea:focus {
 }
 
 input::selection, textarea::selection {
+    color: #000000;
     background-color: #00b4ef;
 }
 
@@ -810,6 +811,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #property-id::selection {
+    color: #000000;
     background-color: #00b4ef;
 }
 
