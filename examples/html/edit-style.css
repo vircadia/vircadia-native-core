@@ -360,12 +360,15 @@ input[type=checkbox]:checked + label:hover {
 
 
 .section-header, .sub-section-header {
+    display: table;
+    width: 100%;
     margin: 22px -12px 0 -12px;
     padding: 14px 12px 0 12px;
     font-size: 12px;
     color: #afafaf;
     height: 28px;
     text-transform: uppercase;
+    outline: none;
 }
 
 .section-header {
@@ -397,16 +400,16 @@ input[type=checkbox]:checked + label:hover {
     right: 12px;
 }
 
-.text-section[collapsed="true"] ~ .text-section,
-.zone-section[collapsed="true"] ~ .zone-section,
-.web-section[collapsed="true"] ~ .web-section,
-.hyperlink-section[collapsed="true"] ~ .hyperlink-section,
-.spatial-section[collapsed="true"] ~ .spatial-section,
-.physical-section[collapsed="true"] ~ .physical-section,
-.behavior-section[collapsed="true"] ~ .behavior-section,
-.model-section[collapsed="true"] ~ .model-section,
-.light-section[collapsed="true"] ~ .light-section {
-    display: none;
+.text-group[collapsed="true"] ~ .text-group,
+.zone-group[collapsed="true"] ~ .zone-group,
+.web-group[collapsed="true"] ~ .web-group,
+.hyperlink-group[collapsed="true"] ~ .hyperlink-group,
+.spatial-group[collapsed="true"] ~ .spatial-group,
+.physical-group[collapsed="true"] ~ .physical-group,
+.behavior-group[collapsed="true"] ~ .behavior-group,
+.model-group[collapsed="true"] ~ .model-group,
+.light-group[collapsed="true"] ~ .light-group {
+    display: none !important;
 }
 
 
@@ -442,7 +445,7 @@ input[type=checkbox]:checked + label:hover {
     margin-top: 0;
 }
 
-.sub-props-checkbox-group {
+.checkbox-sub-props {
     margin-top: 18px;
 }
 

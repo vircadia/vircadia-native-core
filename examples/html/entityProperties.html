@@ -46,7 +46,7 @@
 
         function showElements(els, show) {
             for (var i = 0; i < els.length; i++) {
-                els[i].style.display = (show) ? 'block' : 'none';
+                els[i].style.display = (show) ? 'table' : 'none';
             }
         }
 
@@ -651,11 +651,11 @@
                                 }                                    
 
                                 for (var i = 0; i < elHyperlinkSections.length; i++) {
-                                    elHyperlinkSections[i].style.display = 'block';
+                                    elHyperlinkSections[i].style.display = 'table';
                                 }
 
                                 if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
-                                    elColorSection.style.display = 'block';
+                                    elColorSection.style.display = 'table';
                                     elColorRed.value = properties.color.red;
                                     elColorGreen.value = properties.color.green;
                                     elColorBlue.value = properties.color.blue;
@@ -666,7 +666,7 @@
     
                                 if (properties.type == "Model") {
                                     for (var i = 0; i < elModelSections.length; i++) {
-                                        elModelSections[i].style.display = 'block';
+                                        elModelSections[i].style.display = 'table';
                                     }
     
                                     elModelURL.value = properties.modelURL;
@@ -687,7 +687,7 @@
                                     setTextareaScrolling(elModelOriginalTextures);
                                 } else if (properties.type == "Web") {
                                     for (var i = 0; i < elWebSections.length; i++) {
-                                        elWebSections[i].style.display = 'block';
+                                        elWebSections[i].style.display = 'table';
                                     }
                                     for (var i = 0; i < elHyperlinkSections.length; i++) {
                                         elHyperlinkSections[i].style.display = 'none';
@@ -696,7 +696,7 @@
                                     elWebSourceURL.value = properties.sourceUrl;
                                 } else if (properties.type == "Text") {
                                     for (var i = 0; i < elTextSections.length; i++) {
-                                        elTextSections[i].style.display = 'block';
+                                        elTextSections[i].style.display = 'table';
                                     }
     
                                     elTextText.value = properties.text;
@@ -710,7 +710,7 @@
                                     elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
                                 } else if (properties.type == "Light") {
                                     for (var i = 0; i < elLightSections.length; i++) {
-                                        elLightSections[i].style.display = 'block';
+                                        elLightSections[i].style.display = 'table';
                                     }
     
                                     elLightSpotLight.checked = properties.isSpotlight;
@@ -726,7 +726,7 @@
                                     elLightCutoff.value = properties.cutoff.toFixed(2);
                                 } else if (properties.type == "Zone") {
                                     for (var i = 0; i < elZoneSections.length; i++) {
-                                        elZoneSections[i].style.display = 'block';
+                                        elZoneSections[i].style.display = 'table';
                                     }
     
                                     elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
@@ -762,7 +762,7 @@
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                                 } else if (properties.type == "PolyVox") {
                                     for (var i = 0; i < elPolyVoxSections.length; i++) {
-                                        elPolyVoxSections[i].style.display = 'block';
+                                        elPolyVoxSections[i].style.display = 'table';
                                     }
     
                                     elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
@@ -1301,35 +1301,32 @@
             <label for="property-name">Name</label>
             <input type="text" id="property-name">
         </div>
-
         <div class="property checkbox">
             <input type="checkbox" id="property-locked">
             <label for="property-locked">Locked</label>
         </div>
-
         <div class="property checkbox">
             <input type="checkbox" id="property-visible">
             <label for="property-visible">Visible</label>
         </div>
-
         <div class="property textarea">
             <label for="property-user-data">User data</label>
             <textarea id="property-user-data"></textarea>
         </div>
 
 
-        <div class="section-header text-section">
+        <div class="section-header text-group text-section">
             <label>Text</label><span>M</span>
         </div>
-        <div class="text-section property text">
+        <div class="text-group text-section property text">
             <label for="property-text-text">Text content</label>
             <input type="text" id="property-text-text">
         </div>
-        <div class="text-section property number">
+        <div class="text-group text-section property number">
             <label>Line height</label>
             <input type="number" id="property-text-line-height" min="0" step="0.005">
         </div>
-        <div class="text-section property rgb">
+        <div class="text-group text-section property rgb">
             <div class="color-picker" id="property-text-text-color"></div>
             <label>Text color</label>
             <div class="tuple">
@@ -1338,7 +1335,7 @@
                 <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
             </div>
         </div>
-        <div class="text-section property rgb">
+        <div class="text-group text-section property rgb">
             <div class="color-picker" id="property-text-background-color"></div>
             <label>Background color</label>
             <div class="tuple">
@@ -1349,21 +1346,18 @@
         </div>
         
 
-        <div class="section-header zone-section">
+        <div class="section-header zone-group zone-section">
             <label>Zone</label><span>M</span>
         </div>
-
-        <div class="zone-section property checkbox">
+        <div class="zone-group zone-section property checkbox">
             <input type="checkbox" id="property-zone-stage-sun-model-enabled">
             <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
         </div>
 
-
-        <div class="sub-section-header zone-section keylight-section">
+        <div class="sub-section-header zone-group zone-section keylight-section">
             <label>Key Light</label>
         </div>
-
-        <div class="zone-section keylight-section property rgb">
+        <div class="zone-section keylight-section zone-group property rgb">
             <div class="color-picker" id="property-zone-key-light-color"></div>
             <label>Key light color</label>
             <div class="tuple">
@@ -1372,13 +1366,11 @@
                 <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
             </div>
         </div>
-
-        <div class="zone-section keylight-section property number">
+        <div class="zone-section keylight-section zone-group property number">
             <label>Light intensity</label>
             <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
         </div>
-        
-        <div class="zone-section keylight-section property">
+        <div class="zone-group zone-section keylight-section property">
             <div class="number">
                 <label>Light altitude</label>
                 <input type="number" id="property-zone-key-light-direction-x">
@@ -1388,58 +1380,48 @@
                 <input type="number" id="property-zone-key-light-direction-y">
             </div>
         </div>
-
-        <div class="zone-section keylight-section property number">
+        <div class="zone-group zone-section keylight-section property number">
             <label>Ambient intensity</label>
             <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
         </div>
-        
-        <div class="zone-section keylight-section property url refresh">
+        <div class="zone-group zone-section keylight-section property url refresh">
             <label for="property-zone-key-ambient-url">Ambient URL</label>
             <input type="text" id="property-zone-key-ambient-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
-
-        <div class="sub-section-header zone-section stage-section">
+        <div class="sub-section-header zone-group zone-section stage-section">
             <label>Stage</label>
         </div>
-
-        <div class="zone-section stage-section property number">
+        <div class="zone-group zone-section stage-section property number">
             <label>Stage latitude</label>
             <input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1">
         </div>
-
-        <div class="zone-section stage-section property number">
+        <div class="zone-group zone-section stage-section property number">
             <label>Stage longitude</label>
             <input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1">
         </div>
-
-        <div class="zone-section stage-section property number">
+        <div class="zone-group zone-section stage-section property number">
             <label>Stage altitude</label>
             <input type="number" id="property-zone-stage-altitude" step="1">
         </div>
-
-        <div class="zone-section stage-section property checkbox">
+        <div class="zone-group zone-section stage-section property checkbox">
             <input type="checkbox" id="property-zone-stage-automatic-hour-day">
             <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
         </div>
-
-        <div class="zone-section stage-section property number">
+        <div class="zone-group zone-section stage-section property number">
             <label>Stage day of year</label>
             <input type="number" id="property-zone-stage-day" min="0" max="365" step="1">
         </div>
-        <div class="zone-section stage-section property number">
+        <div class="zone-group zone-section stage-section property number">
             <label>Stage hour</label>
             <input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5">
         </div>
 
-
-        <div class="sub-section-header zone-section background-section">
+        <div class="sub-section-header zone-group zone-section background-section">
             <label>Background</label>
         </div>
-
-        <div class="zone-section background-section property dropdown">
+        <div class="zone-section zone-group background-section property dropdown">
             <label>Background mode</label>
             <select name="SelectBackgroundMode" id="property-zone-background-mode">
                 <option value="inherit">Nothing</option>
@@ -1447,12 +1429,10 @@
             </select>
         </div>
 
-
-        <div class="sub-section-header zone-section skybox-section">
+        <div class="sub-section-header zone-group zone-section skybox-section">
             <label>Skybox</label>
         </div>
-
-        <div class="zone-section skybox-section property rgb">
+        <div class="zone-group zone-section skybox-section property rgb">
             <div class="color-picker" id="property-zone-skybox-color"></div>
             <label>Skybox color</label>
             <div class="tuple">
@@ -1461,44 +1441,40 @@
                 <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
             </div>
         </div>
-
-        <div class="zone-section skybox-section property url refresh">
+        <div class="zone-group zone-section skybox-section property url refresh">
             <label for="property-zone-skybox-url">Skybox URL</label>
             <input type="text" id="property-zone-skybox-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
-        <div class="section-header web-section">
+        <div class="section-header web-group web-section">
             <label>Web</label><span>M</span>
         </div>
-
-        <div class="web-section property url refresh">
+        <div class="web-group web-section property url refresh">
             <label for="property-web-source-url">Source URL</label>
             <input type="text" id="property-web-source-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
-        <div class="section-header hyperlink-section">
+        <div class="section-header hyperlink-group hyperlink-section">
             <label>Hyperlink</label><span>M</span>
         </div>
-
-        <div class="hyperlink-section property url">
+        <div class="hyperlink-group hyperlink-section property url">
             <label for="property-hyperlink-href">Href - hifi://address</label>
             <input type="text" id="property-hyperlink-href">
         </div>
-        <div class="hyperlink-section property text">
+        <div class="hyperlink-group hyperlink-section property text">
             <label for="property-hyperlink-description">Description</label>
             <input type="text" id="property-hyperlink-description">
         </div>
 
 
-        <div class="section-header">
+        <div class="section-header spatial-group">
             <label>Spatial Properties</label><span>M</span>
         </div>
-
-        <div class="property xyz">
+        <div class="spatial-group property xyz">
             <label>Position</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
@@ -1511,17 +1487,15 @@
                 <input type="button" id="preview-camera-button" value="Preview Camera">
             </div>
         </div>
-
-        <div class="property text">
+        <div class="spatial-group property text">
             <label for="property-parent-id">Parent ID</label>
             <input type="text" id="property-parent-id">
         </div>
-        <div class="property text">
+        <div class="spatial-group property text">
             <label for="property-parent-joint-index">Parent joint index</label>
             <input type="text" id="property-parent-joint-index">
         </div>
-
-        <div class="property xyz">
+        <div class="spatial-group property xyz">
             <label>Registration</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-reg-x"><label for="property-reg-x">X:</label></div>
@@ -1529,8 +1503,7 @@
                 <div><input type="number" class="z" id="property-reg-z"><label for="property-reg-z">Z:</label></div>
             </div>
         </div>
-
-        <div class="property xyz">
+        <div class="spatial-group property xyz">
             <label>Dimensions</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
@@ -1545,8 +1518,7 @@
                 <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
             </div>
         </div>
-
-        <div class="poly-vox-section property XYZ">
+        <div class="spatial-group poly-vox-section property XYZ">
             <label>Voxel volume size</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
@@ -1554,8 +1526,7 @@
                 <div><input type="number" class="z" id="property-voxel-volume-size-z"><label for="property-voxel-volume-size-z">Z:</label></div>
             </div>
         </div>
-
-        <div class="poly-vox-section property dropdown">
+        <div class="spatial-group poly-vox-section property dropdown">
             <label>Surface extractor</label>
             <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
                 <option value="0">Marching cubes</option>
@@ -1564,26 +1535,22 @@
                 <option value="3">Edged marching cubes</option>
             </select>
         </div>
-
-        <div class="poly-vox-section property url refresh">
+        <div class="spatial-group poly-vox-section property url refresh">
             <label for="property-x-texture-url">X-axis texture URL</label>
             <input type="text" id="property-x-texture-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-
-        <div class="poly-vox-section property url refresh">
+        <div class="spatial-group poly-vox-section property url refresh">
             <label for="property-y-texture-url">Y-axis texture URL</label>
             <input type="text" id="property-y-texture-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-
-        <div class="poly-vox-section property url refresh">
+        <div class="spatial-group poly-vox-section property url refresh">
             <label for="property-z-texture-url">Z-axis texture URL</label>
             <input type="text" id="property-z-texture-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-
-        <div class="property pyr">
+        <div class="spatial-group property pyr">
             <label>Rotation</label>
             <div class="tuple">
                 <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
@@ -1593,11 +1560,10 @@
         </div>
 
 
-        <div class="section-header">
-            <label>Physical Properites</label><span>M</span>
+        <div class="section-header physical-group">
+            <label>Physical Properties</label><span>M</span>
         </div>
-
-        <div class="property xyz">
+        <div class="physical-group property xyz">
             <label>Linear velocity</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-lvel-x"><label for="property-lvel-x">X:</label></div>
@@ -1605,11 +1571,11 @@
                 <div><input type="number" class="z" id="property-lvel-z"><label for="property-lvel-z">Z:</label></div>
             </div>
         </div>
-        <div class="property number">
+        <div class="physical-group property number">
             <label>Linear damping</label>
             <input type="number" id="property-ldamping">
         </div>
-        <div class="property pyr">
+        <div class="physical-group property pyr">
             <label>Angular velocity</label>
             <div class="tuple">
                 <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
@@ -1617,20 +1583,20 @@
                 <div><input type="number" class="roll" id="property-avel-z"><label for="property-avel-z">Roll:</label></div>
             </div>
         </div>
-        <div class="property number">
+        <div class="physical-group property number">
             <label>Angular damping</label>
             <input type="number" id="property-adamping">
         </div>
-        <div class="property number">
+        <div class="physical-group property number">
             <label>Restitution</label>
             <input type="number" id="property-restitution">
         </div>
-        <div class="property number">
+        <div class="physical-group property number">
             <label>Friction</label>
             <input type="number" id="property-friction">
         </div>
 
-        <div class="property xyz">
+        <div class="physical-group property xyz">
             <label>Gravity</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-grav-x"><label for="property-grav-x">X:</label></div>
@@ -1638,8 +1604,7 @@
                 <div><input type="number" class="z" id="property-grav-z"><label for="property-grav-z">Z:</label></div>
             </div>
         </div>
-
-        <div class="property xyz">
+        <div class="physical-group property xyz">
             <label>Acceleration</label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-lacc-x"><label for="property-lacc-x">X:</label></div>
@@ -1647,13 +1612,11 @@
                 <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
             </div>
         </div>
-
-        <div class="property number">
+        <div class="physical-group property number">
             <label>Density</label>
             <input type="number" id="property-density">
         </div>
-
-        <div id="color-section" class="property rgb">
+        <div id="color-section" class="physical-group property rgb">
             <div id="property-color" class="color-picker"></div>
             <label>Entity color</label>
             <div class="tuple">
@@ -1664,25 +1627,22 @@
         </div>
 
 
-        <div class="section-header">
+        <div class="section-header behavior-group">
             <label>Behavior</label><span>M</span>
         </div>
-
-        <div class="property checkbox">
+        <div class="behavior-group property checkbox">
             <input type="checkbox" id="property-collisionless">
             <label for="property-collisionless">Collisionless</label>
         </div>
-
-        <div class="property checkbox">
+        <div class="behavior-group property checkbox">
             <input type="checkbox" id="property-dynamic">
             <label for="property-dynamic">Dynamic</label>
         </div>
-
         
-        <div class="sub-section-header">
+        <div class="behavior-group sub-section-header">
             <span>Collides With</span>
         </div>
-        <div class="sub-props-checkbox-group">
+        <div class="behavior-group checkbox-sub-props">
             <div class="property checkbox">
                 <input type="checkbox" id="property-collide-static">
                 <label for="property-collide-static">Static entities</label>
@@ -1709,11 +1669,10 @@
             </div>
         </div>
 
-
-        <div class = "sub-section-header">
+        <div class="behavior-group sub-section-header">
             <span>Grabbing</span>
         </div>
-        <div class="sub-props-checkbox-group">
+        <div class="behavior-group checkbox-sub-props">
             <div class="property checkbox">
                 <input type="checkbox" id="property-grabbable">
                 <label for="property-grabbable">Grabbable</label>
@@ -1730,18 +1689,16 @@
             </div>
         </div>
 
-        <div class="property url refresh">
+        <div class="behavior-group property url refresh">
             <label for="property-collision-sound-url">Collision sound URL</label>
             <input type="text" id="property-collision-sound-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-
-        <div class="property number">
+        <div class="behavior-group property number">
             <label>Lifetime</label>
             <input type="number" id="property-lifetime">
         </div>
-
-        <div class="property url refresh">
+        <div class="behavior-group property url refresh">
             <!--
             FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated 
             code should be removed.
@@ -1754,17 +1711,15 @@
         </div>
 
 
-        <div class="section-header model-section zone-section">
+        <div class="section-header model-group model-section zone-section">
             <label>Model</label><span>M</span>
         </div>
-
-        <div class="model-section property url refresh">
+        <div class="model-group model-section property url refresh">
             <label for="property-model-url">Model URL</label>
             <input type="text" id="property-model-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-
-        <div class="model-section zone-section property dropdown">
+        <div class="model-group model-section zone-section property dropdown">
             <label>Collision shape type</label>
             <select name="SelectShapeType" id="property-shape-type">
                 <option value="none">None</option>
@@ -1773,59 +1728,58 @@
                 <option value="compound">Compound</option>
             </select>
         </div>
-        <div class="model-section zone-section property url refresh">
+        <div class="model-group model-section zone-section property url refresh">
             <label for="property-compound-shape-url">Compound shape URL</label>
             <input type="text" id="property-compound-shape-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-        <div class="model-section property url refresh">
+        <div class="model-group model-section property url refresh">
             <label for="property-model-animation-url">Animation URL</label>
             <input type="text" id="property-model-animation-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-        <div class="model-section property checkbox">
+        <div class="model-group model-section property checkbox">
             <input type="checkbox" id="property-model-animation-playing">
             <label for="property-model-animation-playing">Animation playing</label>
         </div>
-        <div class="model-section property number">
+        <div class="model-group model-section property number">
             <label>Animation FPS</label>
             <input type="number" id="property-model-animation-fps">
         </div>
-        <div class="model-section property number">
+        <div class="model-group model-section property number">
             <label>Animation frame</label>
             <input type="number" id="property-model-animation-frame">
         </div>
-        <div class="model-section property number">
+        <div class="model-group model-section property number">
             <label>Animation first frame</label>
             <input type="number" id="property-model-animation-first-frame">
         </div>
-        <div class="model-section property number">
+        <div class="model-group model-section property number">
             <label>Animation last frame</label>
             <input type="number" id="property-model-animation-last-frame">
         </div>
-        <div class="model-section property checkbox">
+        <div class="model-group model-section property checkbox">
             <input type="checkbox" id="property-model-animation-loop">
             <label for="property-model-animation-loop">Animation loop</label>
         </div>
-        <div class="model-section property checkbox">
+        <div class="model-group model-section property checkbox">
             <input type="checkbox" id="property-model-animation-hold">
             <label for="property-model-animation-hold">Animation hold</label>
         </div>
-        <div class="model-section property textarea">
+        <div class="model-group model-section property textarea">
             <label for="property-model-textures">Textures</label>
             <textarea id="property-model-textures"></textarea>
         </div>
-        <div class="model-section property textarea">
+        <div class="model-group model-section property textarea">
             <label for="property-model-original-textures">Original textures</label>
             <textarea id="property-model-original-textures" readonly></textarea>
         </div>
 
 
-        <div class="section-header light-section">
+        <div class="section-header light-group light-section">
             <label>Light</label><span>M</span>
         </div>
-        
-        <div class="light-section property rgb">
+        <div class="light-group light-section property rgb">
             <div class="color-picker" id="property-light-color"></div>
             <label>Light color</label>
             <div class="tuple">
@@ -1834,23 +1788,23 @@
                 <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
             </div>
         </div>
-        <div class="light-section property number">
+        <div class="light-group light-section property number">
             <label>Intensity</label>
             <input type="number" id="property-light-intensity" min="0" step="0.1">
         </div>
-        <div class="light-section property number">
+        <div class="light-group light-section property number">
             <label>Fall-off radius</label>
             <input type="number" id="property-light-falloff-radius" min="0" step="0.1">
         </div>
-        <div class="light-section property checkbox">
+        <div class="light-group light-section property checkbox">
             <input type="checkbox" id="property-light-spot-light">
             <label for="property-light-spot-light">Spotlight</label>
         </div>
-        <div class="light-section property number">
+        <div class="light-group light-section property number">
             <label>Spotlight exponent</label>
             <input type="number" id="property-light-exponent" step="0.01">
         </div>
-        <div class="light-section property number">
+        <div class="light-group light-section property number">
             <label>Spotlight cut-off</label>
             <input type="number" id="property-light-cutoff" step="0.01">
         </div>
