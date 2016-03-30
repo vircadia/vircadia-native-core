@@ -51,7 +51,7 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
         #else
         // Force lowercase on file scripts because of drive letter weirdness.
         if (rawScriptURL.isLocalFile()) {
-            fullNormal.setPath(fullNormal.path.toLower());
+            fullNormal.setPath(fullNormal.path().toLower());
         }
         #endif
         // if this url is something "beneath" the default script url, replace the local path with ~

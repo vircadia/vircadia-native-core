@@ -162,10 +162,12 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
         // QString localDir = url.toLocalFile() + "/scripts";
         QString localDir = expandScriptUrl(url).toLocalFile() + "/scripts";
         int localDirPartCount = localDir.split("/").size();
+        #ifdef Q_OS_WIN
+        localDirPartCount++; // one for the drive letter
+        #endif
         QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
         while (it.hasNext()) {
             QUrl jsFullPath = QUrl::fromLocalFile(it.next());
-            // QString jsPartialPath = jsFullPath.path().mid(localDir.length() + 1); // + 1 to skip a separator
             QString jsPartialPath = jsFullPath.path().split("/").mid(localDirPartCount).join("/");
             jsFullPath = normalizeScriptURL(jsFullPath);
             _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath.toString(), SCRIPT_ORIGIN_DEFAULT));

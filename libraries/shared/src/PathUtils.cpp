@@ -57,7 +57,7 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
 
 QUrl defaultScriptsLocation() {
 #ifdef Q_OS_WIN
-    return QUrl(("file://" + QCoreApplication::applicationDirPath()).toLower());
+    return QUrl(("file:///" + QCoreApplication::applicationDirPath()).toLower());
 #elif defined(Q_OS_OSX)
     return QUrl(("file://" + QCoreApplication::applicationDirPath() + "/../..").toLower());
 #else
