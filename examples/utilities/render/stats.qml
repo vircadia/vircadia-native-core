@@ -30,51 +30,161 @@ Item {
 
         PlotPerf {
             title: "Num Buffers"
-            config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1::0:bufferCPUCount-CPU-#00B4EF:bufferGPUCount-GPU-#1AC567"
+            object: stats.config
+            trigger: stats.config["bufferCPUCount"]
+            plots: [
+                {
+                    prop: "bufferCPUCount",
+                    label: "CPU",
+                    color: "#00B4EF"
+                },
+                {
+                    prop: "bufferGPUCount",
+                    label: "GPU",
+                    color: "#1AC567"
+                }
+            ]
         }
         PlotPerf {
             title: "gpu::Buffer Memory"
-            config: stats.config          
             height: parent.evalEvenHeight()
-            parameters: "1048576:Mb:1:bufferCPUMemoryUsage-CPU-#00B4EF:bufferGPUMemoryUsage-GPU-#1AC567"
+            object: stats.config
+            trigger: stats.config["bufferCPUMemoryUsage"]
+            valueScale: 1048576
+            valueUnit: "Mb"
+            valueNumDigits: "1"
+            plots: [
+                {
+                    prop: "bufferCPUMemoryUsage",
+                    label: "CPU",
+                    color: "#00B4EF"
+                },
+                {
+                    prop: "bufferGPUMemoryUsage",
+                    label: "GPU",
+                    color: "#1AC567"
+                }
+            ]
         }
-
         PlotPerf {
             title: "Num Textures"
-            config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1::0:textureCPUCount-CPU-#00B4EF:textureGPUCount-GPU-#1AC567:frameTextureCount-Frame-#E2334D"
+            object: stats.config
+            trigger: stats.config["textureCPUCount"]
+            plots: [
+                {
+                    prop: "textureCPUCount",
+                    label: "CPU",
+                    color: "#00B4EF"
+                },
+                {
+                    prop: "textureGPUCount",
+                    label: "GPU",
+                    color: "#1AC567"
+                },
+                {
+                    prop: "frameTextureCount",
+                    label: "Frame",
+                    color: "#E2334D"
+                }
+            ]
         }
         PlotPerf {
             title: "gpu::Texture Memory"
-            config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1048576:Mb:1:textureCPUMemoryUsage-CPU-#00B4EF:textureGPUMemoryUsage-GPU-#1AC567"
+            object: stats.config
+            trigger: stats.config["textureCPUMemoryUsage"]
+            valueScale: 1048576
+            valueUnit: "Mb"
+            valueNumDigits: "1"
+            plots: [
+                {
+                    prop: "textureCPUMemoryUsage",
+                    label: "CPU",
+                    color: "#00B4EF"
+                },
+                {
+                    prop: "textureGPUMemoryUsage",
+                    label: "GPU",
+                    color: "#1AC567"
+                }
+            ]
+        }
+
+        PlotPerf {
+            title: "Triangles"
+            height: parent.evalEvenHeight()
+            object: stats.config
+            trigger: stats.config["frameTriangleCount"]
+            valueScale: 1000
+            valueUnit: "K"
+            plots: [
+                {
+                    prop: "frameTriangleCount",
+                    label: "Frame",
+                    color: "#E2334D"
+                },
+                {
+                    prop: "frameTriangleRate",
+                    label: "rate",
+                    color: "#1AC567",
+                    scale: 0.001,
+                    unit: "MT/s"
+                }
+            ]
         }
         PlotPerf {
             title: "Drawcalls"
-            config: stats.config
             height: parent.evalEvenHeight()
-            parameters: "1::0:frameDrawcallCount-frame-#E2334D:frameDrawcallRate-rate-#1AC567-0.001-K/s"
+            object: stats.config
+            trigger: stats.config["frameDrawcallCount"]
+            plots: [
+                {
+                    prop: "frameDrawcallCount",
+                    label: "Frame",
+                    color: "#E2334D"
+                },
+                {
+                    prop: "frameDrawcallRate",
+                    label: "rate",
+                    color: "#1AC567",
+                    scale: 0.001,
+                    unit: "K/s"
+                }
+            ]
         }
-        PlotPerf {
-            title: "Triangles"
-            config: stats.config
-            height: parent.evalEvenHeight()
-            parameters: "1000:K:0:frameTriangleCount-frame-#E2334D:frameTriangleRate-rate-#1AC567-0.001-MT/s"
-        }
-
-        property var deferredTaskConfig: Render.getConfig("RenderDeferredTask")
-        property var drawLightConfig: deferredTaskConfig.getConfig("DrawLight")
+ 
+        property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred")
+        property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred")
+        property var drawLightConfig: Render.getConfig("DrawLight")
 
         PlotPerf {
-            title: "Lights"
-            config: parent.drawLightConfig
+            title: "Items"
             height: parent.evalEvenHeight()
-            parameters: "1::0:numDrawn-frame-#E2334D"
-        }   
+            object: parent.drawOpaqueConfig
+            trigger: Render.getConfig("DrawOpaqueDeferred")["numDrawn"]
+            plots: [
+                {
+                    object: Render.getConfig("DrawOpaqueDeferred"),
+                    prop: "numDrawn",
+                    label: "Opaques",
+                    color: "#1AC567"
+                },
+                {
+                    object: Render.getConfig("DrawTransparentDeferred"),
+                    prop: "numDrawn",
+                    label: "Translucents",
+                    color: "#00B4EF"
+                },
+                {
+                    object: Render.getConfig("DrawLight"),
+                    prop: "numDrawn",
+                    label: "Lights",
+                    color: "#E2334D"
+                }
+            ]
+        }     
     }
 
 }

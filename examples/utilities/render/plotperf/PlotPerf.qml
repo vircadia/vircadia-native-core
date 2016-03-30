@@ -15,40 +15,64 @@ Item {
     id: root
     width: parent.width
     height: 100
+
+    // The title of the graph
     property string title
-    property var config
-    property string parameters
 
-    // THis is my hack to get the name of the first property and assign it to a trigger var in order to get
+    // THe object used as the default source object for the prop plots
+    property var object
+    
+    // THis is my hack to get a property and assign it to a trigger var in order to get
     // a signal called whenever the value changed
-    property var trigger: config[parameters.split(":")[3].split("-")[0]]
+    property var trigger
 
-    property var inputs: parameters.split(":")
-    property var valueScale: +inputs[0]
-    property var valueUnit: inputs[1]
-    property var valueNumDigits: inputs[2]
-    property var input_VALUE_OFFSET: 3
+    // Plots is an array of plot descriptor
+    // a default plot descriptor expects the following object:
+    //     prop: [ {
+    //                object: {}             // Optional: this is the object from which the prop will be fetched, 
+    //                                          if nothing than the object from root is used
+    //                prop:"bufferCPUCount", // Needed the name of the property from the object to feed the plot
+    //                label: "CPU",          // Optional: Label as displayed on the plot
+    //                color: "#00B4EF"       // Optional: Color of the curve
+    //                unit: "km/h"           // Optional: Unit added to the value displayed, if nothing then the default unit is used
+    //                scale: 1               // Optional: Extra scaling used to represent the value, this scale is combined with the global scale.
+    //            },
+    property var plots
+
+    // Default value scale used to define the max value of the chart
+    property var valueScale: 1
+
+    // Default value unit appended to the value displayed
+    property var valueUnit: ""
+
+    // Default number of digits displayed
+    property var valueNumDigits: 0
+    
+
     property var valueMax : 1
 
     property var _values : new Array()
     property var tick : 0
 
     function createValues() {
-        if (inputs.length > input_VALUE_OFFSET) {
-                for (var i = input_VALUE_OFFSET; i < inputs.length; i++) {
-                    var varProps = inputs[i].split("-")
-                    _values.push( {                      
-                        value: varProps[0],
-                        valueMax: 1,
-                        numSamplesConstantMax: 0,
-                        valueHistory: new Array(),
-                        label: varProps[1],
-                        color: varProps[2],
-                        scale: (varProps.length > 3 ? varProps[3] : 1),
-                        unit: (varProps.length > 4 ? varProps[4] : valueUnit)
-                    })
-                }
-        } 
+        print("trigger is: " + JSON.stringify(trigger))
+        if (Array.isArray(plots)) {
+            for (var i =0; i < plots.length; i++) {
+                var plot = plots[i];
+                print(" a pnew Plot:" + JSON.stringify(plot));
+                _values.push( {
+                    object: (plot["object"] !== undefined ? plot["object"] : root.object),                      
+                    value: plot["prop"],
+                    valueMax: 1,
+                    numSamplesConstantMax: 0,
+                    valueHistory: new Array(),
+                    label: (plot["label"] !== undefined ? plot["label"] : ""),
+                    color: (plot["color"] !== undefined ? plot["color"] : "white"),
+                    scale: (plot["scale"] !== undefined ? plot["scale"] : 1),
+                    unit: (plot["unit"] !== undefined ? plot["unit"] : valueUnit)
+                })
+            }
+        }
         print("in creator" + JSON.stringify(_values));
 
     }
@@ -69,7 +93,8 @@ Item {
         var currentValueMax = 0
         for (var i = 0; i < _values.length; i++) {
 
-            var currentVal = config[_values[i].value] * _values[i].scale;
+            var currentVal = _values[i].object[_values[i].value] * _values[i].scale;
+
             _values[i].valueHistory.push(currentVal)
             _values[i].numSamplesConstantMax++;
 
