@@ -21,7 +21,7 @@ class TreeNodeFolder;
 
 enum ScriptOrigin {
     SCRIPT_ORIGIN_LOCAL,
-    SCRIPT_ORIGIN_REMOTE
+    SCRIPT_ORIGIN_DEFAULT
 };
 
 enum TreeNodeType {
@@ -84,10 +84,10 @@ protected slots:
     void updateScriptsLocation(const QString& newPath);
     void downloadFinished();
     void reloadLocalFiles();
-    void reloadRemoteFiles();
+    void reloadDefaultFiles();
 
 protected:
-    void requestRemoteFiles(QString marker = QString());
+    void requestDefaultFiles(QString marker = QString());
     bool parseXML(QByteArray xmlFile);
     void rebuildTree();
 
