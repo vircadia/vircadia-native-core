@@ -859,7 +859,11 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setURL(_skeletonModelURL);
+    if (QThread::currentThread() == thread()) {
+        _skeletonModel->setURL(_skeletonModelURL);
+    } else {
+        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
+    }
 }
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
