@@ -165,13 +165,15 @@ void Model::enqueueLocationChange() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset](ModelMeshPartPayload& data) {
+                // Ensure the model geometry was not reset between frames
+                if (data._model->isLoaded()) {
+                    // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                    data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
-                // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
-
-                // update the model transform and bounding box for this render item.
-                const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                    // update the model transform and bounding box for this render item.
+                    const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                    data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                }
             });
         }
 
