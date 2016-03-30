@@ -299,13 +299,17 @@
                     blue: 0
                 },
                 dimensions: {
-                    x: 0.5,
-                    y: 0.5,
-                    z: 0.5
+                    x: 1.0000,
+                    y: 0.0367,
+                    z: 1.0000
                 },
                 collisionless: true,
                 angularDamping: 0,
-                angularVelocity: Quat.fromPitchYawRollDegrees(0, 6, 0),
+                angularVelocity: {
+                    x: 0,
+                    y: 6,
+                    z: 0
+                },
                 dynamic: false,
                 userData: JSON.stringify({
                     'hifiHomeKey': {
@@ -313,10 +317,15 @@
                     }
                 }),
                 position: {
-                    x: 1107.0330,
-                    y: 460.4326,
-                    z: -74.5704
-                }
+                    x: 1106.9778,
+                    y: 460.6075,
+                    z: -74.5842
+                },
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                })
             }
 
             var rotatorBlock = Entities.addEntity(rotatorBlockProps);
