@@ -9,8 +9,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var PLANT_SCRIPT_URL = Script.resolvePath("atp:/scripts/growingPlantEntityScript.js");
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/scripts/waterCanEntityScript.js");
+var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
 Plant = function(spawnPosition, spawnRotation) {
   var orientation;
   if (spawnRotation !== undefined) {
@@ -20,7 +20,7 @@ Plant = function(spawnPosition, spawnRotation) {
   }
   print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
-  var BOWL_MODEL_URL = "atp:/models/Flowers-Bowl.fbx";
+  var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
   var bowlDimensions = {
     x: 0.518,
     y: 0.1938,
@@ -40,7 +40,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var PLANT_MODEL_URL = "atp:/models/Flowers-Rock.fbx";
+  var PLANT_MODEL_URL = "atp:/growingPlant/Flowers-Rock.fbx";
 
   var plantDimensions = {
     x: 0.52,
@@ -68,7 +68,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var WATER_CAN_MODEL_URL = "atp:/models/waterCan.fbx";
+  var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
 
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
@@ -84,7 +84,7 @@ Plant = function(spawnPosition, spawnRotation) {
       z: 0.4115
     },
     position: waterCanPosition,
-    collisionSoundURL: "atp:/sounds/watering_can_drop.L.wav",
+    collisionSoundURL: "atp:/growingPlant/watering_can_drop.L.wav",
     angularDamping: 1,
     dynamic: true,
     gravity: {
