@@ -270,7 +270,7 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-/* fixme
+
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
@@ -319,7 +319,6 @@ public:
                 deadlockDetectionCrash();
             }
 #endif
- */
         }
     }
 
