@@ -1061,7 +1061,7 @@ void Model::simulateInternal(float deltaTime) {
 void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
-    if (!_needsUpdateClusterMatrices) {
+    if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
     _needsUpdateClusterMatrices = false;
