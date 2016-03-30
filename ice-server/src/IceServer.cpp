@@ -35,7 +35,7 @@ IceServer::IceServer(int argc, char* argv[]) :
     _serverSocket(),
     _activePeers(),
     _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this),
-	_lastInactiveCheckTimestamp(QDateTime::currentMSecsSinceEpoch())
+    _lastInactiveCheckTimestamp(QDateTime::currentMSecsSinceEpoch())
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
