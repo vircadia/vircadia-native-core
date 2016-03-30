@@ -139,6 +139,10 @@ tr:nth-child(even) {
     background-color: #1c1c1c;
 }
 
+tr:focus {
+    outline: none;
+}
+
 tr.selected {
     color: #000000;
     background-color: #00b4ef;
