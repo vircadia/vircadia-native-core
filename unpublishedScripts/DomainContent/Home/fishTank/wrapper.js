@@ -22,9 +22,9 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: 2.1404
     };
 
-    var INNER_TANK_SCALE = 0.7;
+    var INNER_TANK_SCALE = 0.85;
     var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
-    INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
+    INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.2;
     var TANK_WIDTH = TANK_DIMENSIONS.z;
     var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
@@ -64,10 +64,9 @@ FishTank = function(spawnPosition, spawnRotation) {
     var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
 
-    var ANEMONE_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.35;
-    var ANEMONE_LATERAL_OFFSET = -0.05;
+    var ANEMONE_FORWARD_OFFSET = -TANK_DIMENSIONS.x+0.1;
+    var ANEMONE_LATERAL_OFFSET = 0.2;
     var ANEMONE_VERTICAL_OFFSET = -0.12;
-
 
     var ANEMONE_MODEL_URL = 'atp:/fishTank/anemone.fbx';
     var ANEMONE_ANIMATION_URL = 'atp:/fishTank/anemone.fbx';
@@ -89,9 +88,9 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: 1.64
     }
 
-    var TREASURE_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
-    var TREASURE_LATERAL_OFFSET = -0.15;
-    var TREASURE_VERTICAL_OFFSET = -0.23;
+    var TREASURE_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.075;
+    var TREASURE_LATERAL_OFFSET = 0.15;
+    var TREASURE_VERTICAL_OFFSET = -0.26;
 
     var TREASURE_MODEL_URL = 'atp:/fishTank/Treasure-Chest2-SM.fbx';
 
@@ -273,7 +272,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TREASURE_MODEL_URL,
             position: finalPosition,
             dimensions: TREASURE_DIMENSIONS,
-            rotation: Quat.fromPitchYawRollDegrees(10, 135, 10),
+            rotation: Quat.fromPitchYawRollDegrees(10, 35, 10),
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
@@ -322,22 +321,24 @@ FishTank = function(spawnPosition, spawnRotation) {
             },
             position: TANK_POSITION,
             rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
-            color: DEBUG_COLOR,
             collisionless: true,
             script: TANK_SCRIPT,
-            visible: true,
+            visible: false,
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
                 }
             }),
         }
-        innerTank = Entities.addEntity(innerTank);
+        print('INNER TANK PROPS ' + properties)
+        innerTank = Entities.addEntity(properties);
     }
 
     createFishTank();
 
     createBubbleSystems();
+
+    createInnerTank();
 
     createAnenome();
 
@@ -355,6 +356,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         Entities.deleteEntity(thirdBubbleSystem);
         Entities.deleteEntity(anemone);
         Entities.deleteEntity(rocks);
+        Entities.deleteEntity(innerTank);
     }
 
     this.cleanup = cleanup;
