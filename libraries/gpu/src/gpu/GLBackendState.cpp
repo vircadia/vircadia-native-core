@@ -35,6 +35,7 @@ const GLBackend::GLState::Commands makeResetStateCommands();
 const GLBackend::GLState::Commands GLBackend::GLState::_resetStateCommands = makeResetStateCommands();
 
 
+// NOTE: This must stay in sync with the ordering of the State::Field enum
 const GLBackend::GLState::Commands makeResetStateCommands() {
     // Since State::DEFAULT is a static defined in another .cpp the initialisation order is random
     // and we have a 50/50 chance that State::DEFAULT is not yet initialized.
@@ -69,9 +70,9 @@ const GLBackend::GLState::Commands makeResetStateCommands() {
         CommandPointer(stencilCommand),
         CommandPointer(stencilCommand),
         
-        std::make_shared<Command1B>(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.alphaToCoverageEnable),
-        
         std::make_shared<Command1U>(&GLBackend::do_setStateSampleMask, DEFAULT.sampleMask),
+
+        std::make_shared<Command1B>(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.alphaToCoverageEnable),
         
         std::make_shared<CommandBlend>(&GLBackend::do_setStateBlend, DEFAULT.blendFunction),
         

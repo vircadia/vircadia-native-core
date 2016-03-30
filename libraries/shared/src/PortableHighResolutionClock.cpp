@@ -24,7 +24,7 @@ namespace {
 win_high_resolution_clock::time_point win_high_resolution_clock::now() {
     LARGE_INTEGER count;
     QueryPerformanceCounter(&count);
-    return time_point(duration(count.QuadPart * static_cast<rep>(period::den) / g_Frequency));
+    return time_point(duration(static_cast<rep>((double) count.QuadPart * (double) period::den / (double)g_Frequency)));
 }
 
 #endif
