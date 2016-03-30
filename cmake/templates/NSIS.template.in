@@ -593,6 +593,10 @@ Section "-Core installation"
   Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
 
+  ; Delete old startmenu shortcuts before rename
+  Delete "$SMPROGRAMS\$STARTMENU_FOLDER\High Fidelity.lnk"
+  Delete "$SMPROGRAMS\$STARTMENU_FOLDER\Server Console.lnk"
+
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
 
