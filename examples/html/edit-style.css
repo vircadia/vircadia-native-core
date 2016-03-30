@@ -196,7 +196,7 @@ input:focus, textarea:focus {
     outline-offset: -1px;
 }
 
-input::selection {
+input::selection, textarea::selection {
     background-color: #00b4ef;
 }
 
