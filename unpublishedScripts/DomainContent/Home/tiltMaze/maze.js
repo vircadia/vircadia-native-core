@@ -234,11 +234,8 @@
             };
             Audio.playSound(VICTORY_SOUND, audioProperties);
 
-        },
-
-        unload: function() {
-            Script.update.disconnect(_this.update);
         }
+
     };
 
     return new Maze();
