@@ -34,7 +34,7 @@
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Poster2.obj",
+        "compoundShapeURL": "atp:/kineticObjects/posters/Poster2.obj",
         "created": "2016-03-23T19:05:25Z",
         "dimensions": {
             "x": 0.057196967303752899,
@@ -48,7 +48,7 @@
             "z": 0
         },
         "id": "{9eec1faa-9e1a-4d76-abeb-a1b1175a44d5}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Cellscience-Poster-2.fbx",
+        "modelURL": "atp:/kineticObjects/posters/Cellscience-Poster-2.fbx",
         "name": "hifi-home-poster-cell",
         "queryAACube": {
             "scale": 1.4568163156509399,

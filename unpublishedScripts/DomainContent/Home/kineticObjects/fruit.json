@@ -2,7 +2,7 @@
     "Entities": [{
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Bowl.obj",
+        "compoundShapeURL": "atp:/kineticObjects/fruit/Fruit-Bowl.obj",
         "created": "2016-03-15T23:11:03Z",
         "dimensions": {
             "x": 0.35241550207138062,
@@ -16,7 +16,7 @@
             "z": 0
         },
         "id": "{fa981882-c38f-4413-88f2-255a06aacf08}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Bowl.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Bowl.fbx",
         "position": {
             "x": 0.1168212890625,
             "y": 0,
@@ -53,7 +53,7 @@
             "z": 0
         },
         "id": "{ed04b516-3c66-42d9-99af-c4425765df27}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Apple-2.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple-2.fbx",
         "position": {
             "x": 0.1728515625,
             "y": 0.040313720703125,
@@ -91,7 +91,7 @@
             "z": 0
         },
         "id": "{031f883a-6d7f-447a-96b1-c3ea75f938e1}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Apple.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple.fbx",
         "position": {
             "x": 0.146240234375,
             "y": 0.083740234375,
@@ -129,7 +129,7 @@
             "z": 0
         },
         "id": "{e3d77c1e-1fcf-4dc2-8799-001046934df8}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Apple-2.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple-2.fbx",
         "position": {
             "x": 0.08203125,
             "y": 0.042266845703125,
@@ -167,7 +167,7 @@
             "z": 0
         },
         "id": "{34c224cf-d5f5-4cf3-9bf6-55857bf08e43}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Apple.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple.fbx",
         "position": {
             "x": 0,
             "y": 0.082916259765625,
@@ -205,7 +205,7 @@
             "z": 0
         },
         "id": "{0eab5380-2358-4bcd-b53e-a071d50e1475}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Apple-2.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple-2.fbx",
         "position": {
             "x": 0.0596923828125,
             "y": 0.04351806640625,
@@ -243,7 +243,7 @@
             "z": 0
         },
         "id": "{c8140643-23fb-4827-b708-e87103f9e438}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Fruit-Apple.fbx",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple.fbx",
         "position": {
             "x": 0.1519775390625,
             "y": 0.046356201171875,

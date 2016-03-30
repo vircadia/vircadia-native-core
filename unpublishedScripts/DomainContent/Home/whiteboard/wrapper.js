@@ -10,9 +10,9 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js?" + Math.random());
+var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js" );
 
-var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?" + Math.random());
+var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js" );
 
 Whiteboard = function(spawnPosition, spawnRotation) {
 
@@ -25,8 +25,8 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     });
     var whiteboardPosition = spawnPosition;
     var whiteboardRotation = orientation;
-    var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-4.fbx";
-    var WHITEBOARD_COLLISION_HULL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/whiteboardCollisionHull.obj";
+    var WHITEBOARD_MODEL_URL = "atp:/whiteboard/Whiteboard-4.fbx";
+    var WHITEBOARD_COLLISION_HULL_URL = "atp:/whiteboard/whiteboardCollisionHull.obj";
     var whiteboard = Entities.addEntity({
         type: "Model",
         name: "whiteboard",
@@ -91,7 +91,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     var WHITEBOARD_RACK_DEPTH = 1.9;
 
-    var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser-2.fbx";
+    var ERASER_MODEL_URL = "atp:/whiteboard/eraser-2.fbx";
 
     var eraserPosition = Vec3.sum(spawnPosition, Vec3.multiply(Quat.getFront(whiteboardRotation), -0.1));
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
@@ -157,9 +157,9 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     function createMarkers() {
         var modelURLS = [
-            "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-blue.fbx",
-            "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-red.fbx",
-            "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-black.fbx",
+            "atp:/whiteboard/marker-blue.fbx",
+            "atp:/whiteboard/marker-red.fbx",
+            "atp:/whiteboard/marker-black.fbx",
         ];
         var markerPosition = Vec3.sum(spawnPosition, Vec3.multiply(Quat.getFront(whiteboardRotation), -0.1));
 

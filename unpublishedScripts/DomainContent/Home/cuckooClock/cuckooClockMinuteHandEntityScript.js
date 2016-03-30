@@ -1,6 +1,6 @@
 (function() {
     Script.include('../utils.js');
-    Script.include('../../../../examples/libraries/virtualBaton.js');
+    Script.include('../virtualBaton.js');
     var _this;
 
     var d = new Date();
@@ -11,7 +11,7 @@
     var baton;
     var iOwn = false;
     var connected = false;
-    var CUCKOO_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/cuckoo_clock/cuckoo%20mix.wav";
+    var CUCKOO_SOUND_URL = "atp:/cuckooClock/cuckoomix.wav";
     CuckooClockMinuteHand = function() {
         _this = this;
         _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;

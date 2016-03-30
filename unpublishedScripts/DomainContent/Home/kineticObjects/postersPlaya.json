@@ -1,7 +1,7 @@
 {
     "Entities": [{
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Poster2.obj",
+        "compoundShapeURL": "atp:/kineticObjects/posters/Poster2.obj",
         "created": "2016-03-23T17:16:12Z",
         "dimensions": {
             "x": 0.047816216945648193,
@@ -16,7 +16,7 @@
         },
         "name": "hifi-home-poster-playa",
         "id": "{2b5ca0a0-9115-4916-bee6-63f88d3909b1}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Playa-Poster.fbx",
+        "modelURL": "atp:/kineticObjects/posters/Playa-Poster.fbx",
         "queryAACube": {
             "scale": 1.5361770391464233,
             "x": 1101.1051025390625,
@@ -47,7 +47,7 @@
         },
         "id": "{7f060027-2927-4513-bd92-13a98e6fc06c}",
         "name": "Poster-Nail",
-        "position" : {
+        "position": {
             "x": -0.07,
             "y": 0.5,
             "z": 0.07

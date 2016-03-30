@@ -20,23 +20,23 @@
 
     var utilsPath = Script.resolvePath('utils.js');
 
-    var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+    var kineticPath = Script.resolvePath("atp:/kineticObjects/wrapper.js");
 
     var fishTankPath = Script.resolvePath('atp:/fishTank/wrapper.js');
 
     var tiltMazePath = Script.resolvePath("atp:/tiltMaze/wrapper.js")
 
-    var whiteboardPath = Script.resolvePath("whiteboard/wrapper.js?" + Math.random());
+    var whiteboardPath = Script.resolvePath("atp:/whiteboard/wrapper.js");
 
-    var plantPath = Script.resolvePath("growingPlant/wrapper.js");
+    var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
 
-    var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
+    var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
     var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
 
     var musicBoxPath = Script.resolvePath("musicBox/wrapper.js?" + Math.random());
 
-    var transformerPath = Script.resolvePath("dressingRoom/wrapper.js");
+    var transformerPath = Script.resolvePath("atp:/dressingRoom/wrapper.js");
 
     Script.include(utilsPath);
 
@@ -124,9 +124,9 @@
 
         createDynamicEntities: function() {
             var fishTank = new FishTank({
-                x: 1098.9254,
-                y: 460.5814,
-                z: -79.1103
+                x: 1099.2200,
+                y: 460.5460,
+                z: -78.2363
             }, {
                 x: 0,
                 y: 0,
