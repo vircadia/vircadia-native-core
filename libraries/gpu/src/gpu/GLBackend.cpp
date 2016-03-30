@@ -326,6 +326,7 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     glDrawArrays(mode, startVertex, numVertices);
     _stats._DSNumTriangles += numVertices / 3;
     _stats._DSNumDrawcalls++;
+    _stats._DSNumAPIDrawcalls++;
 
     (void)CHECK_GL_ERROR();
 }
@@ -344,6 +345,7 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
     _stats._DSNumTriangles += numIndices / 3;
     _stats._DSNumDrawcalls++;
+    _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
 }
@@ -358,6 +360,7 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
     _stats._DSNumTriangles += (numInstances * numVertices) / 3;
     _stats._DSNumDrawcalls += numInstances;
+    _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
 }
@@ -383,6 +386,7 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
 #endif
     _stats._DSNumTriangles += (numInstances * numIndices) / 3;
     _stats._DSNumDrawcalls += numInstances;
+    _stats._DSNumAPIDrawcalls++;
 
     (void)CHECK_GL_ERROR();
 }
@@ -395,6 +399,8 @@ void GLBackend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
 
     glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
     _stats._DSNumDrawcalls += commandCount;
+    _stats._DSNumAPIDrawcalls++;
+
 #else
     // FIXME implement the slow path
 #endif
@@ -410,7 +416,7 @@ void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
   
     glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
     _stats._DSNumDrawcalls += commandCount;
-
+    _stats._DSNumAPIDrawcalls++;
 #else
     // FIXME implement the slow path
 #endif

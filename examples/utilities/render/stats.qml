@@ -122,13 +122,13 @@ Item {
             plots: [
                 {
                     prop: "frameTriangleCount",
-                    label: "Frame",
-                    color: "#E2334D"
+                    label: "Triangles",
+                    color: "#1AC567"
                 },
                 {
                     prop: "frameTriangleRate",
                     label: "rate",
-                    color: "#1AC567",
+                    color: "#E2334D",
                     scale: 0.001,
                     unit: "MT/s"
                 }
@@ -141,14 +141,19 @@ Item {
             trigger: stats.config["frameDrawcallCount"]
             plots: [
                 {
+                    prop: "frameAPIDrawcallCount",
+                    label: "API Drawcalls",
+                    color: "#00B4EF"
+                },
+                {
                     prop: "frameDrawcallCount",
-                    label: "Frame",
-                    color: "#E2334D"
+                    label: "GPU Drawcalls",
+                    color: "#1AC567"
                 },
                 {
                     prop: "frameDrawcallRate",
                     label: "rate",
-                    color: "#1AC567",
+                    color: "#E2334D",
                     scale: 0.001,
                     unit: "K/s"
                 }
