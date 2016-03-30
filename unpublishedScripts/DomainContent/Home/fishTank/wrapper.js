@@ -229,6 +229,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: ROCK_MODEL_URL,
             position: finalPosition,
             dimensions: ROCK_DIMENSIONS,
+            rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
@@ -258,7 +259,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: ANEMONE_MODEL_URL,
             position: finalPosition,
             shapeType: 'Sphere',
-            rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
+            rotation: Quat.fromPitchYawRollDegrees(0, 270, 0),
             dimensions: ANEMONE_DIMENSIONS,
             userData: JSON.stringify({
                 'hifiHomeKey': {
@@ -281,7 +282,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             modelURL: TREASURE_MODEL_URL,
             position: finalPosition,
             dimensions: TREASURE_DIMENSIONS,
-            rotation: Quat.fromPitchYawRollDegrees(10, -45, 10),
+            rotation: Quat.fromPitchYawRollDegrees(10, 135, 10),
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
@@ -305,6 +306,7 @@ FishTank = function(spawnPosition, spawnRotation) {
                 y: TANK_POSITION.y - BASE_VERTICAL_OFFSET,
                 z: TANK_POSITION.z
             },
+            rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
             dimensions: TANK_BASE_DIMENSIONS,
             userData: JSON.stringify({
                 'hifiHomeKey': {
