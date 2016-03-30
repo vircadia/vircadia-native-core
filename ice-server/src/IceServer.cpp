@@ -69,8 +69,6 @@ bool IceServer::packetVersionMatch(const udt::Packet& packet) {
 
 void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
 
-    _lastPacketTimestamp = QDateTime::currentMSecsSinceEpoch();
-
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     
     // make sure that this packet at least looks like something we can read
@@ -282,6 +280,8 @@ void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSoc
 void IceServer::clearInactivePeers() {
     NetworkPeerHash::iterator peerItem = _activePeers.begin();
 
+    _lastInactiveCheckTimestamp = QDateTime::currentMSecsSinceEpoch();
+
     while (peerItem != _activePeers.end()) {
         SharedNetworkPeer peer = peerItem.value();
 
@@ -310,8 +310,8 @@ bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, b
 
             const quint64 MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET = 10 * 1000;
 
-            int statusNumber = (QDateTime::currentMSecsSinceEpoch() - _lastPacketTimestamp > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET)
-                                ? 1 : 0;
+            auto sinceLastInactiveCheck = QDateTime::currentMSecsSinceEpoch() - _lastInactiveCheckTimestamp;
+            int statusNumber = (sinceLastInactiveCheck > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET) ? 1 : 0;
 
             connection->respond(HTTPConnection::StatusCode200, QByteArray::number(statusNumber));
 
