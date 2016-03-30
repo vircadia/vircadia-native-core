@@ -221,7 +221,6 @@ QVariantList ScriptEngines::getLocal() {
 }
 
 QVariantList ScriptEngines::getRunning() {
-    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     QVariantList result;
     auto runningScripts = getRunningScripts();
     foreach(const QString& runningScript, runningScripts) {
