@@ -15,7 +15,7 @@
 #include <atomic>
 #include <memory>
 #include <vector>
-#include <memory>
+#include <random>
 
 #include <PortableHighResolutionClock.h>
 
@@ -81,8 +81,8 @@ private:
     bool _userDefinedRTO { false }; // if the RTO value is defined by users
     int _rto { -1 }; // RTO value, microseconds
 };
-    
-    
+
+
 class CongestionControlVirtualFactory {
 public:
     virtual ~CongestionControlVirtualFactory() {}
@@ -124,6 +124,12 @@ private:
     int _randomDecreaseThreshold { 1 }; // random threshold on decrease by number of loss events
     int _avgNAKNum { 0 }; // average number of NAKs per congestion
     int _decreaseCount { 0 }; // number of decreases in a congestion epoch
+
+
+    bool _delayedDecrease  { false };
+    std::random_device _rd;
+    std::mt19937 _generator;
+    std::uniform_int_distribution<> _distribution;
 };
     
 }

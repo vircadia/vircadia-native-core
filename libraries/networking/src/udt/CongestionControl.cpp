@@ -11,8 +11,6 @@
 
 #include "CongestionControl.h"
 
-#include <random>
-
 #include "Packet.h"
 
 using namespace udt;
@@ -40,7 +38,10 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
 }
 
 DefaultCC::DefaultCC() :
-    _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
+    _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX }),
+    _rd(),
+    _generator(_rd()),
+    _distribution(1, 1)
 {
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
     
@@ -152,15 +153,18 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
     // check if this NAK starts a new congestion period - this will be the case if the
     // NAK received occured for a packet sent after the last decrease
     if (rangeStart > _lastDecreaseMaxSeq) {
+        _delayedDecrease = (rangeStart == rangeEnd);
 
         _lastDecreasePeriod = _packetSendPeriod;
-        
-        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
 
         // use EWMA to update the average number of NAKs per congestion
         static const double NAK_EWMA_ALPHA = 0.125;
         _avgNAKNum = (int)ceil(_avgNAKNum * (1 - NAK_EWMA_ALPHA) + _nakCount * NAK_EWMA_ALPHA);
-        
+
+        if (!_delayedDecrease) {
+            setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+        }
+
         // update the count of NAKs and count of decreases in this interval
         _nakCount = 1;
         _decreaseCount = 1;
@@ -171,18 +175,24 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
             _randomDecreaseThreshold = 1;
         } else {
             // avoid synchronous rate decrease across connections using randomization
-            std::random_device rd;
-            std::mt19937 generator(rd());
-            std::uniform_int_distribution<> distribution(1, std::max(1, _avgNAKNum));
+            if (_distribution.b() != _avgNAKNum) {
+                _distribution = std::uniform_int_distribution<>(1, std::max(1, _avgNAKNum));
+            }
 
-            _randomDecreaseThreshold = distribution(generator);
+            _randomDecreaseThreshold = _distribution(_generator);
         }
-    } else if ((_decreaseCount++ < MAX_DECREASES_PER_CONGESTION_EPOCH) && ((++_nakCount % _randomDecreaseThreshold) == 0)) {
-        // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
-        // decided we would decrease the packet send period
-        
-        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
-        _lastDecreaseMaxSeq = _sendCurrSeqNum;
+    } else  {
+        ++_nakCount;
+
+        if (_delayedDecrease && _nakCount == 2) {
+            setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+        } else if ((_decreaseCount++ < MAX_DECREASES_PER_CONGESTION_EPOCH) && ((_nakCount % _randomDecreaseThreshold) == 0)) {
+            // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
+            // decided we would decrease the packet send period
+
+            setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+            _lastDecreaseMaxSeq = _sendCurrSeqNum;
+        }
     }
 }
 
