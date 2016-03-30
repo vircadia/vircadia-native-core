@@ -589,13 +589,16 @@ Section "-Core installation"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
 
-  ; Delete old desktop shortcuts before they were renamed
+  ; Delete old desktop shortcuts before they were renamed during Sandbox rename
   Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
 
-  ; Delete old startmenu shortcuts before rename
+  ; Delete old Start Menu shortcuts before Sandbox rename
   Delete "$SMPROGRAMS\$STARTMENU_FOLDER\High Fidelity.lnk"
   Delete "$SMPROGRAMS\$STARTMENU_FOLDER\Server Console.lnk"
+
+  ; Delete old startup item for Server Console before Sandbox rename
+  Delete "$SMSTARTUP\Server Console.lnk"
 
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
