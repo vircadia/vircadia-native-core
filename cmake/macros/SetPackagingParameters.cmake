@@ -77,7 +77,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INTERFACE_EXEC_PREFIX "interface")
     set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.ico")
 
-    set(CONSOLE_EXEC_NAME "sandbox.exe")
+    set(CONSOLE_EXEC_NAME "server-console.exe")
 
     set(DS_EXEC_NAME "domain-server.exe")
     set(AC_EXEC_NAME "assignment-client.exe")
