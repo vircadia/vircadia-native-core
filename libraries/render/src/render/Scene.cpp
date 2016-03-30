@@ -16,8 +16,13 @@
 using namespace render;
 
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
-    _resetItems.push_back(id);
-    _resetPayloads.push_back(payload);
+    if (payload) {
+        _resetItems.push_back(id);
+        _resetPayloads.push_back(payload);
+    } else {
+        qDebug() << "WARNING: PendingChanges::resetItem with a null payload!";
+        removeItem(id);
+    }
 }
 
 void PendingChanges::removeItem(ItemID id) {
