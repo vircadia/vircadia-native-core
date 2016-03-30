@@ -37,8 +37,6 @@ void main(void) {
     // Kill if in front of the light volume
     float depth = frag.depthVal;
     if (depth < gl_FragCoord.z) {
-        _fragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        return;
         discard;
     }
 
