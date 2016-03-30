@@ -131,6 +131,8 @@ void Model::setOffset(const glm::vec3& offset) {
 
 void Model::enqueueLocationChange() {
 
+    _needsUpdateClusterMatrices = true;
+
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
