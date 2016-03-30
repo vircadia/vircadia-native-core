@@ -143,11 +143,17 @@ void RenderableModelEntityItem::remapTextures() {
         _currentTextures = _originalTextures;
     }
 
-    auto textures = parseTexturesToMap(getTextures());
+    auto textures = getTextures();
+    if (textures == _lastTextures) {
+        return;
+    }
 
-    if (textures != _currentTextures) {
-        geometry->setTextures(textures);
-        _currentTextures = textures;
+    _lastTextures = textures;
+    auto newTextures = parseTexturesToMap(textures);
+
+    if (newTextures != _currentTextures) {
+        geometry->setTextures(newTextures);
+        _currentTextures = newTextures;
     }
 }
 
