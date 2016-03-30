@@ -18,22 +18,22 @@
 QString const ModelOverlay::TYPE = "model";
 
 ModelOverlay::ModelOverlay()
-    : _model(std::make_shared<Rig>()),
+    : _model(std::make_shared<Model>(std::make_shared<Rig>())),
       _modelTextures(QVariantMap()),
       _updateModel(false)
 {
-    _model.init();
+    _model->init();
     _isLoaded = false;
 }
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Volume3DOverlay(modelOverlay),
-    _model(std::make_shared<Rig>()),
+    _model(std::make_shared<Model>(std::make_shared<Rig>())),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false)
 {
-    _model.init();
+    _model->init();
     if (_url.isValid()) {
         _updateModel = true;
         _isLoaded = false;
@@ -44,27 +44,27 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         
-        _model.setSnapModelToCenter(true);
-        _model.setScale(getDimensions());
-        _model.setRotation(getRotation());
-        _model.setTranslation(getPosition());
-        _model.setURL(_url);
-        _model.simulate(deltatime, true);
+        _model->setSnapModelToCenter(true);
+        _model->setScale(getDimensions());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+        _model->setURL(_url);
+        _model->simulate(deltatime, true);
     } else {
-        _model.simulate(deltatime);
+        _model->simulate(deltatime);
     }
-    _isLoaded = _model.isActive();
+    _isLoaded = _model->isActive();
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     Volume3DOverlay::addToScene(overlay, scene, pendingChanges);
-    _model.addToScene(scene, pendingChanges);
+    _model->addToScene(scene, pendingChanges);
     return true;
 }
 
 void ModelOverlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     Volume3DOverlay::removeFromScene(overlay, scene, pendingChanges);
-    _model.removeFromScene(scene, pendingChanges);
+    _model->removeFromScene(scene, pendingChanges);
 }
 
 void ModelOverlay::render(RenderArgs* args) {
@@ -73,9 +73,9 @@ void ModelOverlay::render(RenderArgs* args) {
     // fix them up in the scene
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
-    if (_model.needsFixupInScene()) {
-        _model.removeFromScene(scene, pendingChanges);
-        _model.addToScene(scene, pendingChanges);
+    if (_model->needsFixupInScene()) {
+        _model->removeFromScene(scene, pendingChanges);
+        _model->addToScene(scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
 
@@ -100,7 +100,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         if (newScale.x <= 0 || newScale.y <= 0 || newScale.z <= 0) {
             setDimensions(scale);
         } else {
-            _model.setScaleToFit(true, getDimensions());
+            _model->setScaleToFit(true, getDimensions());
             _updateModel = true;
         }
     }
@@ -120,7 +120,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
             QUrl newTextureURL = textureMap[key].toUrl();
             qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
             
-            QMetaObject::invokeMethod(&_model, "setTextureWithNameToURL", Qt::AutoConnection,
+            QMetaObject::invokeMethod(_model.get(), "setTextureWithNameToURL", Qt::AutoConnection,
                                       Q_ARG(const QString&, key),
                                       Q_ARG(const QUrl&, newTextureURL));
 
@@ -134,7 +134,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
         return _url.toString();
     }
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec3toVariant(_model.getScaleToFitDimensions());
+        return vec3toVariant(_model->getScaleToFitDimensions());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
@@ -155,13 +155,13 @@ bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     
     QString subMeshNameTemp;
-    return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, subMeshNameTemp);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, subMeshNameTemp);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
     
-    return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
 }
 
 ModelOverlay* ModelOverlay::createClone() const {

@@ -41,7 +41,7 @@ public:
 
 private:
 
-    Model _model;
+    ModelPointer _model;
     QVariantMap _modelTextures;
     
     QUrl _url;

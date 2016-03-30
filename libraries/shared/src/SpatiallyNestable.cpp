@@ -105,7 +105,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         success = false;
         return nullptr;
     }
-    _parent = parentFinder->find(parentID, success);
+    _parent = parentFinder->find(parentID, success, getParentTree());
     if (!success) {
         return nullptr;
     }

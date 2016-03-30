@@ -111,7 +111,7 @@ Box Mesh::evalPartBound(int partNum) const {
     return box;
 }
 
-Box Mesh::evalPartBounds(int partStart, int partEnd, Boxes& bounds) const {
+Box Mesh::evalPartsBound(int partStart, int partEnd) const {
     Box totalBound;
     auto part = _partBuffer.cbegin<Part>() + partStart;
     auto partItEnd = _partBuffer.cbegin<Part>() + partEnd;
