@@ -21,6 +21,7 @@ Plant = function(spawnPosition, spawnRotation) {
   print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
   var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
+  var BOWL_COLLISION_HULL_URL = "atp:/growingPlant/bowl.obj";
   var bowlDimensions = {
     x: 0.518,
     y: 0.1938,
@@ -30,6 +31,8 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
+    shapeType: 'compound',
+    compundShapeURL: BOWL_COLLISION_HULL_URL,
     name: "plant bowl",
     position: bowlPosition,
     userData: JSON.stringify({
@@ -69,12 +72,13 @@ Plant = function(spawnPosition, spawnRotation) {
 
 
   var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
-
+  var WATER_CAN_COLLIISION_HULL_URL = "atp:/growingPlant/can.obj";
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
     type: "Model",
-    shapeType: 'box',
+    shapeType: 'compound',
+    compundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
     name: "hifi-water-can",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,
