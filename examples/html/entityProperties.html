@@ -1315,149 +1315,6 @@
         </div>
 
 
-        <div class="section-header text-group text-section">
-            <label>Text</label><span>M</span>
-        </div>
-        <div class="text-group text-section property text">
-            <label for="property-text-text">Text content</label>
-            <input type="text" id="property-text-text">
-        </div>
-        <div class="text-group text-section property number">
-            <label>Line height</label>
-            <input type="number" id="property-text-line-height" min="0" step="0.005">
-        </div>
-        <div class="text-group text-section property rgb">
-            <div class="color-picker" id="property-text-text-color"></div>
-            <label>Text color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-text-text-color-red"><label for="property-text-text-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-text-text-color-green"><label for="property-text-text-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        <div class="text-group text-section property rgb">
-            <div class="color-picker" id="property-text-background-color"></div>
-            <label>Background color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-text-background-color-red"><label for="roperty-text-background-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-text-background-color-green"><label for="property-text-background-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-text-background-color-blue"><label for="property-text-background-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        
-
-        <div class="section-header zone-group zone-section">
-            <label>Zone</label><span>M</span>
-        </div>
-        <div class="zone-group zone-section property checkbox">
-            <input type="checkbox" id="property-zone-stage-sun-model-enabled">
-            <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
-        </div>
-
-        <div class="sub-section-header zone-group zone-section keylight-section">
-            <label>Key Light</label>
-        </div>
-        <div class="zone-section keylight-section zone-group property rgb">
-            <div class="color-picker" id="property-zone-key-light-color"></div>
-            <label>Key light color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        <div class="zone-section keylight-section zone-group property number">
-            <label>Light intensity</label>
-            <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
-        </div>
-        <div class="zone-group zone-section keylight-section property">
-            <div class="number">
-                <label>Light altitude</label>
-                <input type="number" id="property-zone-key-light-direction-x">
-            </div>
-            <div class="number">
-                <label>Light azimuth</label>
-                <input type="number" id="property-zone-key-light-direction-y">
-            </div>
-        </div>
-        <div class="zone-group zone-section keylight-section property number">
-            <label>Ambient intensity</label>
-            <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
-        </div>
-        <div class="zone-group zone-section keylight-section property url refresh">
-            <label for="property-zone-key-ambient-url">Ambient URL</label>
-            <input type="text" id="property-zone-key-ambient-url">
-            <input type="button" class="update-url-version glyph" value="F" />
-        </div>
-
-        <div class="sub-section-header zone-group zone-section stage-section">
-            <label>Stage</label>
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage latitude</label>
-            <input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage longitude</label>
-            <input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage altitude</label>
-            <input type="number" id="property-zone-stage-altitude" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property checkbox">
-            <input type="checkbox" id="property-zone-stage-automatic-hour-day">
-            <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage day of year</label>
-            <input type="number" id="property-zone-stage-day" min="0" max="365" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage hour</label>
-            <input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5">
-        </div>
-
-        <div class="sub-section-header zone-group zone-section background-section">
-            <label>Background</label>
-        </div>
-        <div class="zone-section zone-group background-section property dropdown">
-            <label>Background mode</label>
-            <select name="SelectBackgroundMode" id="property-zone-background-mode">
-                <option value="inherit">Nothing</option>
-                <option value="skybox">Skybox</option>
-            </select>
-        </div>
-
-        <div class="sub-section-header zone-group zone-section skybox-section">
-            <label>Skybox</label>
-        </div>
-        <div class="zone-group zone-section skybox-section property rgb">
-            <div class="color-picker" id="property-zone-skybox-color"></div>
-            <label>Skybox color</label>
-            <div class="tuple">
-                <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
-                <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
-                <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
-            </div>
-        </div>
-        <div class="zone-group zone-section skybox-section property url refresh">
-            <label for="property-zone-skybox-url">Skybox URL</label>
-            <input type="text" id="property-zone-skybox-url">
-            <input type="button" class="update-url-version glyph" value="F" />
-        </div>
-
-
-        <div class="section-header web-group web-section">
-            <label>Web</label><span>M</span>
-        </div>
-        <div class="web-group web-section property url refresh">
-            <label for="property-web-source-url">Source URL</label>
-            <input type="text" id="property-web-source-url">
-            <input type="button" class="update-url-version glyph" value="F" />
-        </div>
-
-
         <div class="section-header hyperlink-group hyperlink-section">
             <label>Hyperlink</label><span>M</span>
         </div>
@@ -1595,7 +1452,6 @@
             <label>Friction</label>
             <input type="number" id="property-friction">
         </div>
-
         <div class="physical-group property xyz">
             <label>Gravity</label>
             <div class="tuple">
@@ -1638,7 +1494,7 @@
             <input type="checkbox" id="property-dynamic">
             <label for="property-dynamic">Dynamic</label>
         </div>
-        
+
         <div class="behavior-group sub-section-header">
             <span>Collides With</span>
         </div>
@@ -1700,7 +1556,7 @@
         </div>
         <div class="behavior-group property url refresh">
             <!--
-            FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated 
+            FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated
             code should be removed.
             <input type="hidden" id="property-script-timestamp" class="value">
             <input type="button" id="reload-script-button" value="Reload">
@@ -1773,6 +1629,149 @@
         <div class="model-group model-section property textarea">
             <label for="property-model-original-textures">Original textures</label>
             <textarea id="property-model-original-textures" readonly></textarea>
+        </div>
+
+
+        <div class="section-header text-group text-section">
+            <label>Text</label><span>M</span>
+        </div>
+        <div class="text-group text-section property text">
+            <label for="property-text-text">Text content</label>
+            <input type="text" id="property-text-text">
+        </div>
+        <div class="text-group text-section property number">
+            <label>Line height</label>
+            <input type="number" id="property-text-line-height" min="0" step="0.005">
+        </div>
+        <div class="text-group text-section property rgb">
+            <div class="color-picker" id="property-text-text-color"></div>
+            <label>Text color</label>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-text-text-color-red"><label for="property-text-text-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-text-text-color-green"><label for="property-text-text-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
+            </div>
+        </div>
+        <div class="text-group text-section property rgb">
+            <div class="color-picker" id="property-text-background-color"></div>
+            <label>Background color</label>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-text-background-color-red"><label for="roperty-text-background-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-text-background-color-green"><label for="property-text-background-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-text-background-color-blue"><label for="property-text-background-color-blue">Blue:</label></div>
+            </div>
+        </div>
+
+
+        <div class="section-header zone-group zone-section">
+            <label>Zone</label><span>M</span>
+        </div>
+        <div class="zone-group zone-section property checkbox">
+            <input type="checkbox" id="property-zone-stage-sun-model-enabled">
+            <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
+        </div>
+
+        <div class="sub-section-header zone-group zone-section keylight-section">
+            <label>Key Light</label>
+        </div>
+        <div class="zone-section keylight-section zone-group property rgb">
+            <div class="color-picker" id="property-zone-key-light-color"></div>
+            <label>Key light color</label>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
+            </div>
+        </div>
+        <div class="zone-section keylight-section zone-group property number">
+            <label>Light intensity</label>
+            <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
+        </div>
+        <div class="zone-group zone-section keylight-section property">
+            <div class="number">
+                <label>Light altitude</label>
+                <input type="number" id="property-zone-key-light-direction-x">
+            </div>
+            <div class="number">
+                <label>Light azimuth</label>
+                <input type="number" id="property-zone-key-light-direction-y">
+            </div>
+        </div>
+        <div class="zone-group zone-section keylight-section property number">
+            <label>Ambient intensity</label>
+            <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
+        </div>
+        <div class="zone-group zone-section keylight-section property url refresh">
+            <label for="property-zone-key-ambient-url">Ambient URL</label>
+            <input type="text" id="property-zone-key-ambient-url">
+            <input type="button" class="update-url-version glyph" value="F" />
+        </div>
+
+        <div class="sub-section-header zone-group zone-section stage-section">
+            <label>Stage</label>
+        </div>
+        <div class="zone-group zone-section stage-section property number">
+            <label>Stage latitude</label>
+            <input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1">
+        </div>
+        <div class="zone-group zone-section stage-section property number">
+            <label>Stage longitude</label>
+            <input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1">
+        </div>
+        <div class="zone-group zone-section stage-section property number">
+            <label>Stage altitude</label>
+            <input type="number" id="property-zone-stage-altitude" step="1">
+        </div>
+        <div class="zone-group zone-section stage-section property checkbox">
+            <input type="checkbox" id="property-zone-stage-automatic-hour-day">
+            <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
+        </div>
+        <div class="zone-group zone-section stage-section property number">
+            <label>Stage day of year</label>
+            <input type="number" id="property-zone-stage-day" min="0" max="365" step="1">
+        </div>
+        <div class="zone-group zone-section stage-section property number">
+            <label>Stage hour</label>
+            <input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5">
+        </div>
+
+        <div class="sub-section-header zone-group zone-section background-section">
+            <label>Background</label>
+        </div>
+        <div class="zone-section zone-group background-section property dropdown">
+            <label>Background mode</label>
+            <select name="SelectBackgroundMode" id="property-zone-background-mode">
+                <option value="inherit">Nothing</option>
+                <option value="skybox">Skybox</option>
+            </select>
+        </div>
+
+        <div class="sub-section-header zone-group zone-section skybox-section">
+            <label>Skybox</label>
+        </div>
+        <div class="zone-group zone-section skybox-section property rgb">
+            <div class="color-picker" id="property-zone-skybox-color"></div>
+            <label>Skybox color</label>
+            <div class="tuple">
+                <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
+            </div>
+        </div>
+        <div class="zone-group zone-section skybox-section property url refresh">
+            <label for="property-zone-skybox-url">Skybox URL</label>
+            <input type="text" id="property-zone-skybox-url">
+            <input type="button" class="update-url-version glyph" value="F" />
+        </div>
+
+
+        <div class="section-header web-group web-section">
+            <label>Web</label><span>M</span>
+        </div>
+        <div class="web-group web-section property url refresh">
+            <label for="property-web-source-url">Source URL</label>
+            <input type="text" id="property-web-source-url">
+            <input type="button" class="update-url-version glyph" value="F" />
         </div>
 
 
