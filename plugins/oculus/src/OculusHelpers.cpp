@@ -116,7 +116,8 @@ SwapFramebufferWrapper::~SwapFramebufferWrapper() {
 }
 
 void SwapFramebufferWrapper::Commit() {
-    ovr_CommitTextureSwapChain(_session, color);
+    auto result = ovr_CommitTextureSwapChain(_session, color);
+    Q_ASSERT(OVR_SUCCESS(result));
 }
 
 void SwapFramebufferWrapper::Resize(const uvec2 & size) {

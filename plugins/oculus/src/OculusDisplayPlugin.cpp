@@ -10,6 +10,23 @@
 #include "OculusHelpers.h"
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
+static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
+
+bool OculusDisplayPlugin::internalActivate() {
+    bool result = Parent::internalActivate();
+    currentDebugMode = ovrPerfHud_Off;
+    if (result && _session) {
+        ovr_SetInt(_session, OVR_PERF_HUD_MODE, currentDebugMode);
+    }
+    return result;
+}
+
+void OculusDisplayPlugin::cycleDebugOutput() {
+    if (_session) {
+        currentDebugMode = static_cast<ovrPerfHudMode>((currentDebugMode + 1) % ovrPerfHud_Count);
+        ovr_SetInt(_session, OVR_PERF_HUD_MODE, currentDebugMode);
+    }
+}
 
 void OculusDisplayPlugin::customizeContext() {
     Parent::customizeContext();
@@ -48,12 +65,6 @@ void blit(const SrcFbo& srcFbo, const DstFbo& dstFbo) {
     });
 }
 
-void OculusDisplayPlugin::updateFrameData() {
-    Parent::updateFrameData();
-    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentRenderEyePoses[Left]);
-    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentRenderEyePoses[Right]);
-}
-
 void OculusDisplayPlugin::hmdPresent() {
 
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
@@ -63,12 +74,15 @@ void OculusDisplayPlugin::hmdPresent() {
     }
 
     blit(_compositeFramebuffer, _sceneFbo);
+    _sceneFbo->Commit();
     {
+        _sceneLayer.SensorSampleTime = _currentPresentFrameInfo.sensorSampleTime;
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
         ovrLayerHeader* layers = &_sceneLayer.Header;
         ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }
     }
-    _sceneFbo->Commit();
 }
