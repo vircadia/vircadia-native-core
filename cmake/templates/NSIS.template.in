@@ -737,8 +737,8 @@ SectionEnd
 !macroend
 
 !macro CheckForRunningApplications action prompter
-  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "High Fidelity Interface" ${action} ${prompter}
-  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "High Fidelity Sandbox" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@INTERFACE_SHORTCUT_NAME@" ${action} ${prompter}
   !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "Domain Server" ${action} ${prompter}
   !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "Assignment Client" ${action} ${prompter}
 !macroend
