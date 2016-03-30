@@ -555,7 +555,7 @@ void AudioClient::configureReverb() {
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
-    p.lateGain -= 12.0f;    // quieter than listener reverb
+    p.lateGain += _reverbOptions->getWetDryMix() * (24.0f/100.0f) - 24.0f;  // -0dB to -24dB, based on wetDryMix
     p.lateMixLeft = 0.0f;
     p.lateMixRight = 0.0f;
 
