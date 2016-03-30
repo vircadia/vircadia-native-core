@@ -414,7 +414,7 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Server Console after install"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ after install"
   ${Else}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity after install"
   ${EndIf}
@@ -465,10 +465,10 @@ Function ReadPostInstallOptions
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    ; check if the user asked for a desktop shortcut to Server Console
+    ; check if the user asked for a desktop shortcut to Sandbox
     ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
 
-    ; check if the user asked to have Server Console launched every startup
+    ; check if the user asked to have Sandbox launched every startup
     ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
   ${EndIf}
 
@@ -494,7 +494,7 @@ Function HandlePostInstallOptions
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    ; check if the user asked for a desktop shortcut to Server Console
+    ; check if the user asked for a desktop shortcut to Sandbox
     ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
@@ -502,7 +502,7 @@ Function HandlePostInstallOptions
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
 
-    ; check if the user asked to have Server Console launched every startup
+    ; check if the user asked to have Sandbox launched every startup
     ${If} $ServerStartupState == ${BST_CHECKED}
       ; in case we added a shortcut in the global context, pull that now
       SetShellVarContext all
@@ -724,8 +724,8 @@ SectionEnd
 !macroend
 
 !macro CheckForRunningApplications action prompter
-  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "High Fidelity client" ${action} ${prompter}
-  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "Server Console" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "High Fidelity Interface" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "High Fidelity Sandbox" ${action} ${prompter}
   !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "Domain Server" ${action} ${prompter}
   !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "Assignment Client" ${action} ${prompter}
 !macroend
