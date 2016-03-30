@@ -161,12 +161,8 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
         QString localDir = url.toLocalFile() + "/scripts";
         QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
         while (it.hasNext()) {
-            QString jsFullPath = it.next();
-            QString jsPartialPath = jsFullPath.mid(localDir.length() + 1); // + 1 to skip a separator
-            #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
-            jsFullPath = jsFullPath.toLower();
-            jsPartialPath = jsPartialPath.toLower();
-            #endif
+            QString jsFullPath = normalizeScriptUrl(it.next());
+            QString jsPartialPath = normalizeScriptUrl(jsFullPath.mid(localDir.length() + 1)); // + 1 to skip a separator
             _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath, SCRIPT_ORIGIN_DEFAULT));
         }
     } else {
@@ -231,7 +227,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
             while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == CONTAINER_NAME)) {
                 if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == KEY_NAME) {
                     xml.readNext();
-                    lastKey = xml.text().toString();
+                    lastKey = normalizeScriptUrl(xml.text().toString());
                     if (jsRegex.exactMatch(xml.text().toString())) {
                         _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()),
                                                              defaultScriptsLocation() + "/" + lastKey,
@@ -278,12 +274,8 @@ void ScriptsModel::reloadLocalFiles() {
     const QFileInfoList localFiles = _localDirectory.entryInfoList();
     for (int i = 0; i < localFiles.size(); i++) {
         QFileInfo file = localFiles[i];
-        QString fileName = file.fileName();
-        QString absPath = file.absoluteFilePath();
-        #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
-        fileName = fileName.toLower();
-        absPath = absPath.toLower();
-        #endif
+        QString fileName = normalizeScriptUrl(file.fileName());
+        QString absPath = normalizeScriptUrl(file.absoluteFilePath());
         _treeNodes.append(new TreeNodeScript(fileName, absPath, SCRIPT_ORIGIN_LOCAL));
     }
     rebuildTree();
@@ -310,7 +302,7 @@ void ScriptsModel::rebuildTree() {
             for (pathIterator = pathList.constBegin(); pathIterator != pathList.constEnd(); ++pathIterator) {
                 hash.append(*pathIterator + "/");
                 if (!folders.contains(hash)) {
-                    folders[hash] = new TreeNodeFolder(*pathIterator, parent);
+                    folders[hash] = new TreeNodeFolder(normalizeScriptUrl(*pathIterator), parent);
                 }
                 parent = folders[hash];
             }

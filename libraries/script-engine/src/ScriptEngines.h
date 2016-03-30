@@ -96,4 +96,7 @@ protected:
     ScriptsModelFilter _scriptsModelFilter;
 };
 
+QString normalizeScriptUrl(const QString& rawScriptUrl);
+QString expandScriptUrl(const QString& normalizedScriptURL);
+
 #endif // hifi_ScriptEngine_h

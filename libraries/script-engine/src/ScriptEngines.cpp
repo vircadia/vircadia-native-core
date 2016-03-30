@@ -43,23 +43,54 @@ ScriptEngines::ScriptEngines()
 }
 
 QString normalizeScriptUrl(const QString& rawScriptUrl) {
-    if (!rawScriptUrl.startsWith("http:") && !rawScriptUrl.startsWith("https:") &&  !rawScriptUrl.startsWith("atp:")) {
+    if (!rawScriptUrl.startsWith("http:") && !rawScriptUrl.startsWith("https:") && !rawScriptUrl.startsWith("atp:")) {
 #ifdef Q_OS_LINUX
         if (rawScriptUrl.startsWith("file:")) {
             return rawScriptUrl;
         }
         return QUrl::fromLocalFile(rawScriptUrl).toString();
 #else
+        QString fullNormal;
         if (rawScriptUrl.startsWith("file:")) {
-            return rawScriptUrl.toLower();
+            fullNormal = rawScriptUrl.toLower();
+        } else {
+            // Force lowercase on file scripts because of drive letter weirdness.
+            fullNormal = QUrl::fromLocalFile(rawScriptUrl).toString().toLower();
         }
-        // Force lowercase on file scripts because of drive letter weirdness.
-        return QUrl::fromLocalFile(rawScriptUrl).toString().toLower();
+        QString defaultScriptLoc = defaultScriptsLocation();
+        if (fullNormal.startsWith(defaultScriptLoc)) {
+            return "~" + fullNormal.mid(defaultScriptLoc.size());
+        }
+        return fullNormal;
 #endif
 
     }
     return QUrl(rawScriptUrl).toString();
 }
+
+QString expandScriptUrl(const QString& normalizedScriptURL) {
+    if (normalizedScriptURL.startsWith("http:") ||
+        normalizedScriptURL.startsWith("https:") ||
+        normalizedScriptURL.startsWith("atp:")) {
+        return QUrl(normalizedScriptURL).toString();
+    }
+
+    QUrl url;
+    if (normalizedScriptURL.startsWith("file:")) {
+        url = QUrl(normalizedScriptURL);
+    } else {
+        url = QUrl::fromLocalFile(normalizedScriptURL);
+    }
+
+    QString path = url.path();
+    QStringList splitPath = path.split("/");
+    if (splitPath.size() > 0 && splitPath[0] == "~") {
+        QString defaultScriptLoc = defaultScriptsLocation();
+        url.setPath(defaultScriptLoc + splitPath.mid(1).join("/"));
+        return url.toString();
+    }
+}
+
 
 QObject* scriptsModel();
 
