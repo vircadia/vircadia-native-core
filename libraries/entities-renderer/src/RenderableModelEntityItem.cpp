@@ -105,7 +105,7 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     // If textures are unset, revert to original textures
-    if (textures == "") {
+    if (textures.isEmpty()) {
         return _originalTextures;
     }
 
@@ -120,7 +120,9 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
         return _originalTextures;
     }
-    return texturesJson.object().toVariantMap();
+
+    auto parsed = texturesJson.toVariant();
+    return parsed.toMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {

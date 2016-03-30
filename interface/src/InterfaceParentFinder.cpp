@@ -16,7 +16,7 @@
 
 #include "InterfaceParentFinder.h"
 
-SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& success) const {
+SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& success, SpatialParentTree* entityTree) const {
     SpatiallyNestableWeakPointer parent;
 
     if (parentID.isNull()) {
@@ -25,9 +25,13 @@ SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& s
     }
 
     // search entities
-    EntityTreeRenderer* treeRenderer = qApp->getEntities();
-    EntityTreePointer tree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    parent = tree ? tree->findEntityByEntityItemID(parentID) : nullptr;
+    if (entityTree) {
+        parent = entityTree->findByID(parentID);
+    } else {
+        EntityTreeRenderer* treeRenderer = qApp->getEntities();
+        EntityTreePointer tree = treeRenderer ? treeRenderer->getTree() : nullptr;
+        parent = tree ? tree->findEntityByEntityItemID(parentID) : nullptr;
+    }
     if (!parent.expired()) {
         success = true;
         return parent;

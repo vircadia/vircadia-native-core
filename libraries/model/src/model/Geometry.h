@@ -108,9 +108,9 @@ public:
 
     // evaluate the bounding box of A part
     Box evalPartBound(int partNum) const;
-    // evaluate the bounding boxes of the parts in the range [start, end[ and fill the bounds parameter
-    // the returned box is the bounding box of ALL the evaluated part bounds.
-    Box evalPartBounds(int partStart, int partEnd, Boxes& bounds) const;
+    // evaluate the bounding boxes of the parts in the range [start, end]
+    // the returned box is the bounding box of ALL the evaluated parts bound.
+    Box evalPartsBound(int partStart, int partEnd) const;
 
     static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
 

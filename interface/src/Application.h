@@ -211,6 +211,8 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+    virtual void pushPreRenderLambda(void* key, std::function<void()> func) override;
+
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
@@ -233,7 +235,7 @@ signals:
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
-    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url);
 
@@ -510,6 +512,9 @@ private:
     bool _cursorNeedsChanging { false };
 
     QThread* _deadlockWatchdogThread;
+
+    std::map<void*, std::function<void()>> _preRenderLambdas;
+    std::mutex _preRenderLambdasLock;
 };
 
 #endif // hifi_Application_h

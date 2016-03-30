@@ -58,7 +58,6 @@ void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& d
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
-
         _localBound = _drawMesh->evalPartBound(partIndex);
     }
 }
@@ -352,7 +351,23 @@ void ModelMeshPartPayload::initCache() {
 
 
 void ModelMeshPartPayload::notifyLocationChanged() {
-    _model->_needsUpdateClusterMatrices = true;
+
+}
+
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices) {
+    ModelMeshPartPayload::updateTransform(transform, offsetTransform);
+
+    if (clusterMatrices.size() > 0) {
+        _worldBound = AABox();
+        for (auto& clusterMatrix : clusterMatrices) {
+            AABox clusterBound = _localBound;
+            clusterBound.transform(clusterMatrix);
+            _worldBound += clusterBound;
+        }
+
+        // clusterMatrix has world rotation but not world translation.
+        _worldBound.translate(transform.getTranslation());
+    }
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {
@@ -375,12 +390,6 @@ ItemKey ModelMeshPartPayload::getKey() const {
     }
 
     return builder.build();
-}
-
-Item::Bound ModelMeshPartPayload::getBound() const {
-    // NOTE: we can't cache this bounds because we need to handle the case of a moving
-    // entity or mesh part.
-    return _model->getPartBounds(_meshIndex, _partIndex, _transform.getTranslation(), _transform.getRotation());
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {

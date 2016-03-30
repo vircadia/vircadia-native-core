@@ -86,14 +86,15 @@ private:
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
     bool uploadAsset(const QByteArray& data, UploadResultCallback callback);
 
-    struct GetAssetCallbacks {
+    struct GetAssetRequestData {
+        QSharedPointer<ReceivedMessage> message;
         ReceivedAssetCallback completeCallback;
         ProgressCallback progressCallback;
     };
 
     static MessageID _currentID;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, MappingOperationCallback>> _pendingMappingRequests;
-    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetCallbacks>> _pendingRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetRequestData>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
 

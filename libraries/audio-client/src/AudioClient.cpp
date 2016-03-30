@@ -50,6 +50,9 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
+static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
+static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
+
 Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
 Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
 Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
@@ -103,7 +106,9 @@ AudioClient::AudioClient() :
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream, this),
     _stats(&_receivedAudioStream),
-    _inputGate()
+    _inputGate(),
+    _positionGetter(DEFAULT_POSITION_GETTER),
+    _orientationGetter(DEFAULT_ORIENTATION_GETTER)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
