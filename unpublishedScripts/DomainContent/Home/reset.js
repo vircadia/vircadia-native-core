@@ -91,8 +91,7 @@
             }
 
             Entities.editEntity(_this.entityID, {
-                textures: JSON.stringify(data);
-
+                textures: JSON.stringify(data)
             });
         },
 
