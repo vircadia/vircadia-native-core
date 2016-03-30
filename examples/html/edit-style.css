@@ -368,6 +368,7 @@ input[type=checkbox]:checked + label:hover {
     width: 100%;
     margin: 22px -12px 0 -12px;
     padding: 14px 12px 0 12px;
+    font-family: Raleway-Regular;
     font-size: 12px;
     color: #afafaf;
     height: 28px;
@@ -397,8 +398,8 @@ input[type=checkbox]:checked + label:hover {
 
 .section-header span {
     font-family: HiFi-Glyphs;
-    float: right;
     font-size: 20px;
+    float: right;
     position: absolute;
     top: 9px;
     right: 12px;
