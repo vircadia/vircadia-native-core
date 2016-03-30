@@ -1,4 +1,4 @@
-var HomeMusicBox = function() {
+HomeMusicBox = function(spawnPosition, spawnRotation) {
 
     var SHOULD_CLEANUP = false;
 
@@ -33,41 +33,45 @@ var HomeMusicBox = function() {
     }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
     var BASE_DIMENSIONS = {
-        x: 0.5,
-        y: 0.5,
-        z: 0.5
+        x: 0.1661,
+        y: 0.1010,
+        z: 0.2256
     };
 
     var BASE_POSITION = center;
 
     var LID_DIMENSIONS = {
-        x: BASE_DIMENSIONS.x,
-        y: BASE_DIMENSIONS.y / 8,
-        z: BASE_DIMENSIONS.z
+        x: 0.1435,
+        y: 0.0246,
+        z: 0.1772
     };
 
     var LID_OFFSET = {
         x: 0,
-        y: BASE_DIMENSIONS.y / 2 + (LID_DIMENSIONS.y / 2),
-        z: 0.25
+        y: BASE_DIMENSIONS.y / 2,
+        // y: BASE_DIMENSIONS.y / 2 + (LID_DIMENSIONS.y / 2),
+        z: 0
     };
 
     var LID_REGISTRATION_POINT = {
-        x: 0.5,
+        x: 0,
         y: 0.5,
-        z: 1
+        z: 0.5
     }
 
     var LID_SCRIPT_URL = Script.resolvePath('lid.js?' + Math.random());
 
-    var base, lid;
+    var LID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxLid.fbx';
+    var BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxNoLidNoanimation.fbx';
 
+
+    var base, lid;
 
     function createBase() {
         var baseProperties = {
             name: 'hifi-home-music-box-base',
-            type: 'Box',
-            color: WHITE,
+            type: 'Model',
+            modelURL: BASE_MODEL_URL,
             position: BASE_POSITION,
             dimensions: BASE_DIMENSIONS,
             userData: JSON.stringify({
@@ -78,26 +82,36 @@ var HomeMusicBox = function() {
         }
 
         base = Entities.addEntity(baseProperties);
+        createLid(base);
     };
 
 
-    function createLid() {
+    function createLid(baseID) {
 
-        var lidPosition = Vec3.sum(BASE_POSITION, LID_OFFSET);
-        print('LID DIMENSIONS:' + JSON.stringify(lidPosition))
+        var baseProps = Entities.getEntityProperties(baseID);
+        var frontVector = Quat.getFront(baseProps.rotation);
+        var rightVector = Quat.getRight(baseProps.rotation);
+        var backVector = Vec3.multiply(-1, frontVector);
+        var backOffset = 0.0125;
+        var backPosition = baseProps.position;
+        var backPosition = Vec3.sum(baseProps.position, Vec3.multiply(backOffset, backVector));
+        backPosition.y = backPosition.y +=(BASE_DIMENSIONS.y / 2)
+        // backPosition = Vec3.sum(backPosition,LID_OFFSET)
+        print('backPosition' + JSON.stringify(backPosition));
         var lidProperties = {
             name: 'hifi-home-music-box-lid',
-            type: 'Box',
-            color: BLUE,
+            type: 'Model',
+            modelURL: LID_MODEL_URL,
             dimensions: LID_DIMENSIONS,
-            position: lidPosition,
-            registrationPoint: LID_REGISTRATION_POINT,
+            position: backPosition,
+             registrationPoint: LID_REGISTRATION_POINT,
             dynamic: false,
             script: LID_SCRIPT_URL,
             collidesWith: 'myAvatar,otherAvatar',
             userData: JSON.stringify({
                 'hifiHomeKey': {
-                    'reset': true
+                    'reset': true,
+                    'musicBoxBase': baseID
                 },
                 grabConstraintsKey: {
                     callback: 'rotateLid',
@@ -105,23 +119,20 @@ var HomeMusicBox = function() {
                     rotationLocked: false,
                     positionMod: false,
                     rotationMod: {
-                        pitch: {
+                        roll: {
                             min: 0,
                             max: 75,
                             startingAxis: 'y',
-                            startingPoint: lidPosition.y,
-                            distanceToMax: lidPosition.y + 0.35,
+                            startingPoint: backPosition.y,
+                            distanceToMax: backPosition.y + 0.35,
                         },
                         yaw: false,
-                        roll: false
+                        pitch: false
                     }
                 },
                 grabbableKey: {
                     wantsTrigger: true,
-                    disableReleaseVelocity: true,
-                    disableMoveWithHead: true,
-                    disableFarGrab: true,
-                    disableEquip: true
+                    disableReleaseVelocity: true
                 }
             })
         }
@@ -151,7 +162,7 @@ var HomeMusicBox = function() {
     this.cleanup = cleanup;
 
     createBase();
-    createLid();
+
 
     return this;
 }

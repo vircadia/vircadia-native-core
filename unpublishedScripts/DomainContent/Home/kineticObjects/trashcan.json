@@ -2,7 +2,7 @@
     "Entities": [
         {
             "collisionsWillMove": 1,
-            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trash-Can-4.obj",
+            "compoundShapeURL": "atp:/kineticObjects/trashcan/Trash-Can-4.obj",
             "created": "2016-03-15T23:06:41Z",
             "name": "hifi-home-model-trashcan",
             "dimensions": {
@@ -17,7 +17,7 @@
                 "z": 0
             },
             "id": "{e9693784-4264-4dd5-baa7-fd165b2645c8}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Trach-Can-3.fbx",
+            "modelURL": "atp:/kineticObjects/trashcan/Trach-Can-3.fbx",
             "queryAACube": {
                 "scale": 0.78652161359786987,
                 "x": -0.39326080679893494,

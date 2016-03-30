@@ -6,7 +6,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
             "x": 0.25794500112533569,
@@ -15,7 +15,7 @@
         },
         "dynamic": 1,
         "id": "{896373aa-9ed0-4be5-865b-a474448ea67b}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-SC-NS.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-SC-NS.fbx",
         "name": "home_model_book1",
         "position": {
             "x": 0,
@@ -43,7 +43,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
             "x": 0.25794500112533569,
@@ -52,7 +52,7 @@
         },
         "dynamic": 1,
         "id": "{e48fd6a5-ff0f-4ba6-92c7-fd972eba53c6}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-RPO-EC.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-RPO-EC.fbx",
         "name": "home_model_book_readyplayerone",
         "position": {
             "x": 0.031494140625,
@@ -87,7 +87,7 @@
             "z": 0.036211937665939331
         },
         "id": "{e0790afc-6c62-4891-a933-7904b6cbc7cc}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-DADOES-PD.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-DADOES-PD.fbx",
         "name": "home_model_book_DoAndroids",
         "position": {
             "x": 0.031005859375,
@@ -116,7 +116,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
             "x": 0.19239270687103271,
@@ -124,7 +124,7 @@
             "z": 0.042817402631044388
         },
         "id": "{5120bfbb-66bf-493c-8c1a-ed883f39c054}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-F1-IA.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-F1-IA.fbx",
         "name": "home_model_book_Foundation1",
         "position": {
             "x": 0.04150390625,
@@ -153,7 +153,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
             "x": 0.19239270687103271,
@@ -161,7 +161,7 @@
             "z": 0.037494994699954987
         },
         "id": "{f9af3a1e-dbd5-4fb3-ad38-dc818592e4c6}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-F2-IA.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-F2-IA.fbx",
         "position": {
             "x": 0.056884765625,
             "y": 0.00262451171875,
@@ -189,7 +189,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
             "x": 0.19239270687103271,
@@ -197,7 +197,7 @@
             "z": 0.04995863139629364
         },
         "id": "{6af6bf06-05c9-427c-8ff5-d10072ffc293}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-F3-IA.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-F3-IA.fbx",
         "name": "home_model_book_Foundation3",
         "position": {
             "x": 0.0919189453125,
@@ -226,7 +226,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
             "x": 0.20406116545200348,
@@ -234,7 +234,7 @@
             "z": 0.014823859557509422
         },
         "id": "{4982da58-d573-4582-b627-f08312cc0d07}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-LPP-ASE.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-LPP-ASE.fbx",
         "position": {
             "x": 0.1171875,
             "y": 0.01153564453125,
@@ -262,7 +262,7 @@
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
-        "collisionSoundURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav",
+        "collisionSoundURL": "atp:/kineticObjects/books/book_fall.L.wav",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
             "x": 0.23497477173805237,
@@ -270,7 +270,7 @@
             "z": 0.033324316143989563
         },
         "id": "{178b1cef-f76b-4cda-b834-42080208d502}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Book-N-WG.fbx",
+        "modelURL": "atp:/kineticObjects/books/Book-N-WG.fbx",
         "position": {
             "x": 0.1429443359375,
             "y": 0.00970458984375,

@@ -63,7 +63,7 @@
         ballLocked: false,
         preload: function(entityID) {
             this.entityID = entityID;
-            VICTORY_SOUND = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/levelUp.wav");
+            VICTORY_SOUND = SoundCache.getSound("atp:/tiltMaze/levelUp.wav");
             Script.update.connect(this.update);
         },
 
@@ -179,6 +179,9 @@
                 this.createBall();
             }
         },
+        // mouseDownOnEntity:function(){
+        //   _this.testBallDistance();
+        // }
 
         testWinDistance: function() {
             if (this.ballLocked === true) {

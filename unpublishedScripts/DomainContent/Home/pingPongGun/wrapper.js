@@ -11,9 +11,9 @@
 
 Script.include("../utils.js");
 var scriptURL = Script.resolvePath('pingPongGun.js');
-var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.fbx'
-var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.obj';
-var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
+var MODEL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.fbx'
+var COLLISION_HULL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.obj';
+var COLLISION_SOUND_URL = 'atp:/pingPongGun/plastic_impact.L.wav';
 
 HomePingPongGun = function(spawnPosition, spawnRotation) {
   var pingPongGun = Entities.addEntity({

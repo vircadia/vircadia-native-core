@@ -1,19 +1,19 @@
 print('KINETIC INCLUDING WRAPPER')
 
-var BOOKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/books.json' + "?" + Math.random();
-var UPPER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/upperBookShelf.json' + "?" + Math.random();
-var LOWER_BOOKSHELF_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/lowerBookShelf.json' + "?" + Math.random();
-var RIGHT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/rightDeskDrawer.json' + "?" + Math.random();
-var LEFT_DESK_DRAWER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/leftDeskDrawer.json' + "?" + Math.random();
+var BOOKS_URL = "atp:/kineticObjects/books.json"
+var UPPER_BOOKSHELF_URL = "atp:/kineticObjects/upperBookShelf.json"
+var LOWER_BOOKSHELF_URL = "atp:/kineticObjects/lowerBookShelf.json"
+var RIGHT_DESK_DRAWER_URL = "atp:/kineticObjects/rightDeskDrawer.json"
+var LEFT_DESK_DRAWER_URL = "atp:/kineticObjects/leftDeskDrawer.json"
 var CHAIR_URL = 'atp:/JSON/chair.json';
-var DESK_DRAWERS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskDrawers.json' + "?" + Math.random();
-var FRUIT_BOWL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/fruit.json' + "?" + Math.random()
-var LAB_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskLamp.json' + "?" + Math.random();
-var LIVING_ROOM_LAMP_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/deskLamp.json' + "?" + Math.random();
-var TRASHCAN_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/trashcan.json' + "?" + Math.random();
-var BLOCKS_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/blocks.json' + "?" + Math.random();
-var PLAYA_POSTER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/postersPlaya.json' + "?" + Math.random();
-var CELL_POSTER_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/kineticObjects/postersCell.json' + "?" + Math.random();
+
+var FRUIT_BOWL_URL = "atp:/kineticObjects/fruit.json"
+
+var LIVING_ROOM_LAMP_URL = "atp:/kineticObjects/deskLamp.json"
+var TRASHCAN_URL = "atp:/kineticObjects/trashcan.json"
+var BLOCKS_URL = "atp:/kineticObjects/blocks.json";
+var PLAYA_POSTER_URL = "atp:/kineticObjects/postersPlaya.json"
+var CELL_POSTER_URL = "atp:/kineticObjects/postersCell.json"
 
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
@@ -37,32 +37,6 @@ FruitBowl = function(spawnLocation, spawnRotation) {
 
     this.cleanup = cleanup;
 
-}
-
-LabLamp = function(spawnLocation, spawnRotation) {
-
-    print('CREATE LAB LAMP')
-
-
-    var created = [];
-
-    function create() {
-        var success = Clipboard.importEntities(LAB_LAMP_URL);
-        if (success === true) {
-            created = Clipboard.pasteEntities(spawnLocation)
-            print('created ' + created);
-        }
-    };
-
-    function cleanup() {
-        created.forEach(function(obj) {
-            Entities.deleteEntity(obj);
-        })
-    };
-
-    create();
-
-    this.cleanup = cleanup;
 }
 
 LivingRoomLamp = function(spawnLocation, spawnRotation) {

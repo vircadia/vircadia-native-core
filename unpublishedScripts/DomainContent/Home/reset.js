@@ -20,23 +20,23 @@
 
     var utilsPath = Script.resolvePath('utils.js');
 
-    var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+    var kineticPath = Script.resolvePath("atp:/kineticObjects/wrapper.js");
 
-    var fishTankPath = Script.resolvePath('fishTank/wrapper.js?' + Math.random());
+    var fishTankPath = Script.resolvePath('atp:/fishTank/wrapper.js');
 
-    var tiltMazePath = Script.resolvePath("tiltMaze/wrapper.js?" + Math.random())
+    var tiltMazePath = Script.resolvePath("atp:/tiltMaze/wrapper.js")
 
-    var whiteboardPath = Script.resolvePath("whiteboard/wrapper.js?" + Math.random());
+    var whiteboardPath = Script.resolvePath("atp:/whiteboard/wrapper.js");
 
-    var plantPath = Script.resolvePath("growingPlant/wrapper.js?" + Math.random());
+    var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
 
-    var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
+    var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
-    var pingPongGunPath = Script.resolvePath("pingPongGun/wrapper.js?" + Math.random());
+    var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
 
     var musicBoxPath = Script.resolvePath("musicBox/wrapper.js?" + Math.random());
 
-    var transformerPath = Script.resolvePath("dressingRoom/wrapper.js?" + Math.random());
+    var transformerPath = Script.resolvePath("atp:/dressingRoom/wrapper.js");
 
     Script.include(utilsPath);
 
@@ -51,11 +51,11 @@
     // Script.include(musicBoxPath);
     Script.include(transformerPath);
 
-    var TRANSFORMER_URL_ARTEMIS = 'http://hifi-public.s3.amazonaws.com/ryan/DefaultAvatarFemale2/0314HiFiFemAviHeightChange.fbx';
-    var TRANSFORMER_URL_ALBERT = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
-    var TRANSFORMER_URL_BEING_OF_LIGHT = 'http://hifi-public.s3.amazonaws.com/ryan/0318HiFiBoL/0318HiFiBoL.fbx';
-    var TRANSFORMER_URL_KATE = 'https://hifi-public.s3.amazonaws.com/ozan/avatars/kate/kate/kate.fbx';
-    var TRANSFORMER_URL_WILL = 'https://s3.amazonaws.com/hifi-public/models/skeletons/Will/Will.fbx';
+    var TRANSFORMER_URL_ARTEMIS = 'atp:/dressingRoom/0314HiFiFemAviHeightChange.fbx';
+    var TRANSFORMER_URL_ALBERT = 'atp:/dressingRoom/albert.fbx';
+    var TRANSFORMER_URL_BEING_OF_LIGHT = 'atp:/dressingRoom/0318HiFiBoL.fbx';
+    var TRANSFORMER_URL_KATE = 'atp:/dressingRoom/kate.fbx';
+    var TRANSFORMER_URL_WILL = 'atp:/dressingRoom/Will.fbx';
 
     Reset.prototype = {
         tidying: false,
@@ -103,8 +103,7 @@
                 Script.setTimeout(function() {
                     _this.createKineticEntities();
                     _this.createDynamicEntities();
-                    _this.createTransformingDais();
-                    _this.createTransformers();
+                    _this.setupDressingRoom();
                 }, 750)
 
 
@@ -125,9 +124,9 @@
 
         createDynamicEntities: function() {
             var fishTank = new FishTank({
-                x: 1098.9254,
-                y: 460.5814,
-                z: -79.1103
+                x: 1099.2200,
+                y: 460.5460,
+                z: -78.2363
             }, {
                 x: 0,
                 y: 0,
@@ -269,6 +268,7 @@
         },
 
         setupDressingRoom: function() {
+            print('HOME setup dressing room')
             this.createRotatorBlock();
             this.createTransformingDais();
             this.createTransformers();
@@ -278,7 +278,17 @@
             var rotatorBlockProps = {
                 name: 'hifi-home-dressing-room-rotator-block',
                 type: 'Box',
-                visible: false,
+                visible: true,
+                color: {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                },
+                dimensions: {
+                    x: 0.5,
+                    y: 0.5,
+                    z: 0.5
+                },
                 collisionless: true,
                 angularDamping: 0,
                 angularVelocity: {
@@ -292,19 +302,31 @@
                         'reset': true
                     }
                 }),
+                position: {
+                    x: 1107.0330,
+                    y: 460.4326,
+                    z: -74.5704
+                }
             }
 
-            var rotatorBlock = Entities.addEntity()
+            var rotatorBlock = Entities.addEntity(rotatorBlockProps);
+            print('HOME created rotator block')
         },
 
         createTransformingDais: function() {
-            var DAIS_MODEL_URL = '';
-            var COLLISION_HULL_URL = '';
+            var DAIS_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Dressing-Dais.fbx';
+            var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Dressing-Dais.obj';
 
             var DAIS_DIMENSIONS = {
-                x: 1,
-                y: 1,
-                z: 1
+                x: 1.0654,
+                y: 0.4679,
+                z: 1.0654
+            };
+
+            var DAIS_POSITION = {
+                x: 1107.0330,
+                y: 459.4326,
+                z: -74.5704
             };
 
             var daisProperties = {
@@ -323,12 +345,13 @@
             };
 
             var dais = Entities.addEntity(daisProperties);
+            print('HOME created dais : ' + dais)
         },
 
         createTransformers: function() {
             var firstDollPosition = {
                 x: 1107.61,
-                y: 460.8,
+                y: 460.5,
                 z: -77.34
             }
 
@@ -382,7 +405,7 @@
                 dollDimensions[index] = scaled;
             })
 
-            var dollLateralSeparation = 1.0;
+            var dollLateralSeparation = 0.8;
 
             dolls.forEach(function(doll, index) {
                 var separation = index * dollLateralSeparation;
@@ -396,7 +419,7 @@
         },
 
         findAndDeleteHomeEntities: function() {
-            print('JBP trying to find home entities to delete')
+            print('HOME trying to find home entities to delete')
             var resetProperties = Entities.getEntityProperties(_this.entityID);
             var results = Entities.findEntities(resetProperties.position, 1000);
             var found = [];
@@ -424,7 +447,7 @@
 
 
             })
-            print('JBP after deleting home entities')
+            print('HOME after deleting home entities')
         },
 
         unload: function() {

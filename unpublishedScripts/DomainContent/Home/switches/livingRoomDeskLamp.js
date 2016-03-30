@@ -1,16 +1,12 @@
 (function() {
     var SEARCH_RADIUS = 10;
 
-    var EMISSIVE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelitysign_white_emissive.png";
-
-    var DIFFUSE_TEXTURE_URL = "http://hifi-content.s3.amazonaws.com/highfidelity_diffusebaked.png";
-
     var _this;
-    var utilitiesScript = Script.resolvePath('../../../../libraries/utils.js');
+    var utilitiesScript = Script.resolvePath('../utils.js');
     Script.include(utilitiesScript);
     Switch = function() {
         _this = this;
-        this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
+        this.switchSound = SoundCache.getSound("atp:/switches/lamp_switch_2.wav");
     };
 
     Switch.prototype = {
@@ -28,13 +24,20 @@
 
         modelEmitOn: function(discModel) {
             Entities.editEntity(glowDisc, {
-
+                textures: {
+                    "Tex.Lamp-Bulldog": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/dog_statue.jpg",
+                    "Texture.001": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/Emissive-Map.png"
+                }
             })
+
         },
 
         modelEmitOff: function(discModel) {
             Entities.editEntity(glowDisc, {
-
+                textures: {
+                    "Tex.Lamp-Bulldog": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/dog_statue.jpg",
+                    "Texture.001": ""
+                }
             })
         },
 

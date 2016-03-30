@@ -24,7 +24,7 @@
     var SWIMMING_FORCE = 0.025;   
     var SWIMMING_SPEED = 0.5;  
     var VELOCITY_FOLLOW_RATE = 0.25;
-    var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/goodfish5.fbx";
+    var FISH_MODEL_URL = "atp:/fishTank/goodfish5.fbx";
 
     var fishLoaded = false; 
     var fish = [];

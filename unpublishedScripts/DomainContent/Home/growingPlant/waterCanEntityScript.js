@@ -59,7 +59,7 @@
         releaseHold: function() {
             _this.stopPouring();
             Script.setTimeout(function() {
-               Entities.deleteEntity(_this.waterEffect);
+                Entities.deleteEntity(_this.waterEffect);
             }, 2000);
         },
 
@@ -197,7 +197,7 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "atp:/images/raindrop.png",
+                textures: "atp:/growingPlant/raindrop.png",
                 userData: JSON.stringify({
                     'hifiHomeKey': {
                         'reset': true
@@ -224,7 +224,7 @@
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
             Script.setTimeout(function() {
-                var entities = Entities.findEntities(_this.position, 1);
+                var entities = Entities.findEntities(_this.position, 2);
                 entities.forEach(function(entity) {
                     var name = Entities.getEntityProperties(entity, "name").name;
                     if (name === _this.WATER_SPOUT_NAME) {

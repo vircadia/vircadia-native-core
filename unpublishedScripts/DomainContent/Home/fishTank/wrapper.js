@@ -10,7 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var TANK_SCRIPT = Script.resolvePath('entityLocalFish.js?' + Math.random());
+var TANK_SCRIPT = Script.resolvePath('entityLocalFish.js');
 
 FishTank = function(spawnPosition, spawnRotation) {
     var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, anemone, treasure, rocks;
@@ -36,11 +36,11 @@ FishTank = function(spawnPosition, spawnRotation) {
 
     var TANK_POSITION = spawnPosition;
 
-    var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumTank.fbx";
+    var TANK_MODEL_URL = "atp:/fishTank/aquariumTank.fbx";
 
-    var TANK_BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumBase.fbx';
+    var TANK_BASE_MODEL_URL = 'atp:/fishTank/aquariumBase.fbx';
 
-    var TANK_BASE_COLLISION_HULL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumBase.obj'
+    var TANK_BASE_COLLISION_HULL = 'atp:/fishTank/aquariumBase.obj'
 
     var TANK_BASE_DIMENSIONS = {
         x: 0.8599,
@@ -60,7 +60,7 @@ FishTank = function(spawnPosition, spawnRotation) {
         z: TANK_DIMENSIONS.z / 8
     }
 
-    var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
+    var BUBBLE_SOUND_URL = "atp:/fishTank/aquarium_small.L.wav";
     var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
 
@@ -69,8 +69,8 @@ FishTank = function(spawnPosition, spawnRotation) {
     var ANEMONE_VERTICAL_OFFSET = -0.12;
 
 
-    var ANEMONE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/anemone.fbx';
-    var ANEMONE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/anemone.fbx';
+    var ANEMONE_MODEL_URL = 'atp:/fishTank/anemone.fbx';
+    var ANEMONE_ANIMATION_URL = 'atp:/fishTank/anemone.fbx';
     var ANEMONE_DIMENSIONS = {
         x: 0.4,
         y: 0.4,
@@ -81,7 +81,7 @@ FishTank = function(spawnPosition, spawnRotation) {
     var ROCKS_LATERAL_OFFSET = 0.0;
     var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.25;
 
-    var ROCK_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Aquarium-Rocks-2.fbx';
+    var ROCK_MODEL_URL = 'atp:/fishTank/Aquarium-Rocks-2.fbx';
 
     var ROCK_DIMENSIONS = {
         x: 0.707,
@@ -93,7 +93,7 @@ FishTank = function(spawnPosition, spawnRotation) {
     var TREASURE_LATERAL_OFFSET = -0.15;
     var TREASURE_VERTICAL_OFFSET = -0.23;
 
-    var TREASURE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Treasure-Chest2-SM.fbx';
+    var TREASURE_MODEL_URL = 'atp:/fishTank/Treasure-Chest2-SM.fbx';
 
     var TREASURE_DIMENSIONS = {
         x: 0.1199,
@@ -176,7 +176,7 @@ FishTank = function(spawnPosition, spawnRotation) {
             "alphaStart": 0.3,
             "alphaFinish": 0,
             "emitterShouldTrail": 0,
-            "textures": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/bubble-white.png",
+            "textures": "atp:/fishTank/bubble-white.png",
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
