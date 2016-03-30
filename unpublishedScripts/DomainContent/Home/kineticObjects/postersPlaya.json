@@ -8,12 +8,7 @@
             "y": 1.2243480682373047,
             "z": 0.92656642198562622
         },
-        "dynamic": 1,
-        "gravity": {
-            "x": 0,
-            "y": -2,
-            "z": 0
-        },
+        "dynamic": 0,
         "name": "hifi-home-poster-playa",
         "id": "{2b5ca0a0-9115-4916-bee6-63f88d3909b1}",
         "modelURL": "atp:/kineticObjects/posters/Playa-Poster.fbx",
@@ -76,7 +71,7 @@
         "name": "home_sphere_playaPortkey",
         "href": "hifi://playa",
         "script": "atp:/switches/portkey.js",
-        "visible": true,
+        "visible": false,
         "dimensions": {
             "x": 0.111,
             "y": 0.111,

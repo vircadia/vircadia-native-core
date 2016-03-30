@@ -41,12 +41,7 @@
             "y": 1.1607639789581299,
             "z": 0.87844705581665039
         },
-        "dynamic": 1,
-        "gravity": {
-            "x": 0,
-            "y": -5,
-            "z": 0
-        },
+        "dynamic": 0,
         "id": "{9eec1faa-9e1a-4d76-abeb-a1b1175a44d5}",
         "modelURL": "atp:/kineticObjects/posters/Cellscience-Poster-2.fbx",
         "name": "hifi-home-poster-cell",
