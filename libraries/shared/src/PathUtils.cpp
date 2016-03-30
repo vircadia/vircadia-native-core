@@ -59,7 +59,7 @@ QUrl defaultScriptsLocation() {
 #ifdef Q_OS_WIN
     return QUrl(("file:///" + QCoreApplication::applicationDirPath()).toLower());
 #elif defined(Q_OS_OSX)
-    return QUrl(("file://" + QCoreApplication::applicationDirPath() + "/../..").toLower());
+    return QUrl(("file://" + QCoreApplication::applicationDirPath() + "/../Resources").toLower());
 #else
     // return "http://s3.amazonaws.com/hifi-public";
     return QUrl("file://" + QCoreApplication::applicationDirPath());
