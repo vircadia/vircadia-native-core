@@ -54,8 +54,6 @@ private:
 
     HTTPManager _httpManager;
 
-    QNetworkAccessManager _networkAccessManager;
-
     using RSAUniquePtr = std::unique_ptr<RSA, std::function<void(RSA*)>>;
     using DomainPublicKeyHash = std::unordered_map<QUuid, RSAUniquePtr>;
     DomainPublicKeyHash _domainPublicKeys;

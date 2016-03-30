@@ -19,6 +19,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <LimitedNodeList.h>
+#include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
@@ -33,8 +34,7 @@ IceServer::IceServer(int argc, char* argv[]) :
     _id(QUuid::createUuid()),
     _serverSocket(),
     _activePeers(),
-    _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _networkAccessManager(this)
+    _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
@@ -202,8 +202,8 @@ bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& pla
 
 void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     // send a request to the metaverse API for the public key for this domain
-    
-    connect(&_networkAccessManager, &QNetworkAccessManager::finished, this, &IceServer::publicKeyReplyFinished);
+    auto& networkAccessManager = NetworkAccessManager::getInstance();
+    connect(&networkAccessManager, &QNetworkAccessManager::finished, this, &IceServer::publicKeyReplyFinished);
 
     QUrl publicKeyURL { NetworkingConstants::METAVERSE_SERVER_URL };
     QString publicKeyPath = QString("/api/v1/domains/%1/public_key").arg(uuidStringWithoutCurlyBraces(domainID));
@@ -214,7 +214,7 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
 
     qDebug() << "Requesting public key for domain with ID" << domainID;
 
-    _networkAccessManager.get(publicKeyRequest);
+    networkAccessManager.get(publicKeyRequest);
 }
 
 void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
