@@ -74,6 +74,11 @@ void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, cons
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
 
+
+void Context::getStats(ContextStats& stats) const {
+    _backend->getStats(stats);
+}
+
 const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& xformView) const {
     _projectionInverse = glm::inverse(_projection);
 
@@ -102,3 +107,68 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
  
     return result;
 }
+
+// Counters for Buffer and Texture usage in GPU/Context
+std::atomic<uint32_t> Context::_bufferGPUCount{ 0 };
+std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage{ 0 };
+
+std::atomic<uint32_t> Context::_textureGPUCount{ 0 };
+std::atomic<Texture::Size> Context::_textureGPUMemoryUsage{ 0 };
+
+void Context::incrementBufferGPUCount() {
+    _bufferGPUCount++;
+}
+void Context::decrementBufferGPUCount() { 
+    _bufferGPUCount--;
+}
+void Context::updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (newObjectSize > prevObjectSize) {
+        _bufferGPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    } else {
+        _bufferGPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    }
+}
+
+void Context::incrementTextureGPUCount() {
+    _textureGPUCount++;
+}
+void Context::decrementTextureGPUCount() {
+    _textureGPUCount--;
+}
+void Context::updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
+    if (prevObjectSize == newObjectSize) {
+        return;
+    }
+    if (newObjectSize > prevObjectSize) {
+        _textureGPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
+    } else {
+        _textureGPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
+    }
+}
+
+uint32_t Context::getBufferGPUCount() {
+    return _bufferGPUCount.load();
+}
+
+Context::Size Context::getBufferGPUMemoryUsage() {
+    return _bufferGPUMemoryUsage.load();
+}
+
+uint32_t Context::getTextureGPUCount() {
+    return _textureGPUCount.load();
+}
+
+Context::Size Context::getTextureGPUMemoryUsage() {
+    return _textureGPUMemoryUsage.load();
+}
+
+void Backend::incrementBufferGPUCount() { Context::incrementBufferGPUCount(); }
+void Backend::decrementBufferGPUCount() { Context::decrementBufferGPUCount(); }
+void Backend::updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateBufferGPUMemoryUsage(prevObjectSize, newObjectSize); }
+void Backend::incrementTextureGPUCount() { Context::incrementTextureGPUCount(); }
+void Backend::decrementTextureGPUCount() { Context::decrementTextureGPUCount(); }
+void Backend::updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUMemoryUsage(prevObjectSize, newObjectSize); }
+

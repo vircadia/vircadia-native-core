@@ -224,7 +224,6 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
 #endif
 
-const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
@@ -270,10 +269,10 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-            auto now = usecTimestampNow();
 
-            // in the unlikely event that now is less than _heartbeat, don't rollover and confuse ourselves
-            auto lastHeartbeatAge = (now > _heartbeat) ? now - _heartbeat : 0; 
+            uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
+            uint64_t now = usecTimestampNow();
+            auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
             auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
@@ -310,7 +309,7 @@ public:
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qDebug() << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
-                         << "[ _heartbeat:" << _heartbeat
+                         << "[ lastHeartbeat :" << lastHeartbeat
                          << "now:" << now << " ]"
                          << "elapsedMovingAverage:" << elapsedMovingAverage
                          << "maxElapsed:" << _maxElapsed
@@ -598,8 +597,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioThread->setObjectName("Audio Thread");
 
     auto audioIO = DependencyManager::get<AudioClient>();
-    audioIO->setPositionGetter([this]{ return getMyAvatar()->getPositionForAudio(); });
-    audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
+    audioIO->setPositionGetter([]{
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        
+        return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
+    });
+    audioIO->setOrientationGetter([]{
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+
+        return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
+    });
 
     audioIO->moveToThread(audioThread);
     recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
@@ -2790,43 +2799,50 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
-    QVector<EntityItemPointer> entities;
+bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
+    QHash<EntityItemID, EntityItemPointer> entities;
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
 
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    for (auto entityID : entityIDs) {
+    for (auto entityID : entityIDs) { // Gather entities and properties.
         auto entityItem = entityTree->findEntityByEntityItemID(entityID);
         if (!entityItem) {
+            qCWarning(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
             continue;
         }
 
-        auto properties = entityItem->getProperties();
-        auto position = properties.getPosition();
-
-        root.x = glm::min(root.x, position.x);
-        root.y = glm::min(root.y, position.y);
-        root.z = glm::min(root.z, position.z);
-
-        entities << entityItem;
+        if (!givenOffset) {
+            EntityItemID parentID = entityItem->getParentID();
+            if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
+                auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                root.x = glm::min(root.x, position.x);
+                root.y = glm::min(root.y, position.y);
+                root.z = glm::min(root.z, position.z);
+            }
+        }
+        entities[entityID] = entityItem;
     }
 
     if (entities.size() == 0) {
         return false;
     }
 
-    for (auto entityItem : entities) {
-        auto properties = entityItem->getProperties();
-
-        properties.setPosition(properties.getPosition() - root);
-        exportTree->addEntity(entityItem->getEntityItemID(), properties);
+    if (givenOffset) {
+        root = *givenOffset;
     }
-
-    // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-    exportTree->remapIDs();
+    for (EntityItemPointer& entityDatum : entities) {
+        auto properties = entityDatum->getProperties();
+        EntityItemID parentID = properties.getParentID();
+        if (parentID.isInvalidID()) {
+            properties.setPosition(properties.getPosition() - root);
+        } else if (!entities.contains(parentID)) {
+            entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+        } // else valid parent -- don't offset
+        exportTree->addEntity(entityDatum->getEntityItemID(), properties);
+    }
 
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
@@ -2836,33 +2852,14 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
+    glm::vec3 offset(x, y, z);
     QVector<EntityItemPointer> entities;
-    getEntities()->getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
-
-    if (entities.size() > 0) {
-        glm::vec3 root(x, y, z);
-        auto exportTree = std::make_shared<EntityTree>();
-        exportTree->createRootElement();
-
-        for (int i = 0; i < entities.size(); i++) {
-            EntityItemProperties properties = entities.at(i)->getProperties();
-            EntityItemID id = entities.at(i)->getEntityItemID();
-            properties.setPosition(properties.getPosition() - root);
-            exportTree->addEntity(id, properties);
-        }
-
-        // remap IDs on export so that we aren't publishing the IDs of entities in our domain
-        exportTree->remapIDs();
-
-        exportTree->writeToSVOFile(filename.toLocal8Bit().constData());
-    } else {
-        qCDebug(interfaceapp) << "No models were selected";
-        return false;
+    QVector<EntityItemID> ids;
+    getEntities()->getTree()->findEntities(AACube(offset, scale), entities);
+    foreach(EntityItemPointer entity, entities) {
+        ids << entity->getEntityItemID();
     }
-
-    // restore the main window's active state
-    _window->activateWindow();
-    return true;
+    return exportEntities(filename, ids, &offset);
 }
 
 void Application::loadSettings() {
@@ -2893,16 +2890,8 @@ void Application::saveSettings() {
 bool Application::importEntities(const QString& urlOrFilename) {
     _entityClipboard->eraseAllOctreeElements();
 
-    QUrl url(urlOrFilename);
-
-    // if the URL appears to be invalid or relative, then it is probably a local file
-    if (!url.isValid() || url.isRelative()) {
-        url = QUrl::fromLocalFile(urlOrFilename);
-    }
-
-    bool success = _entityClipboard->readFromURL(url.toString());
+    bool success = _entityClipboard->readFromURL(urlOrFilename);
     if (success) {
-        _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
     }
     return success;
@@ -2983,6 +2972,11 @@ void Application::updateLOD() {
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
+}
+
+void Application::pushPreRenderLambda(void* key, std::function<void()> func) {
+    std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
+    _preRenderLambdas[key] = func;
 }
 
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
@@ -3460,6 +3454,16 @@ void Application::update(float deltaTime) {
 
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
+    }
+
+    {
+        PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
+
+        std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
+        for (auto& iter : _preRenderLambdas) {
+            iter.second();
+        }
+        _preRenderLambdas.clear();
     }
 }
 
@@ -4886,13 +4890,39 @@ void Application::updateDisplayMode() {
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
+        auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
             _displayPlugin->deactivate();
         }
 
         // FIXME probably excessive and useless context switching
         _offscreenContext->makeCurrent();
-        newDisplayPlugin->activate();
+
+        bool active = newDisplayPlugin->activate();
+
+        if (!active) {
+            // If the new plugin fails to activate, fallback to last display
+            qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
+            newDisplayPlugin = oldDisplayPlugin;
+
+            if (newDisplayPlugin) {
+                qWarning() << "Falling back to last display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            // If there is no last display, or
+            // If the last display fails to activate, fallback to desktop
+            if (!active) {
+                newDisplayPlugin = displayPlugins.at(0);
+                qWarning() << "Falling back to display: " << newDisplayPlugin->getName();
+                active = newDisplayPlugin->activate();
+            }
+
+            if (!active) {
+                qFatal("Failed to activate fallback plugin");
+            }
+        }
+
         _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
         _offscreenContext->makeCurrent();

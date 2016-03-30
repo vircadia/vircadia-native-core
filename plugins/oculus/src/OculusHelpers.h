@@ -14,6 +14,8 @@
 
 #include <gl/OglplusHelpers.h>
 
+void logWarning(const char* what);
+void logFatal(const char* what);
 bool oculusAvailable();
 ovrSession acquireOculusSession();
 void releaseOculusSession();

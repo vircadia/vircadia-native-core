@@ -69,13 +69,9 @@ void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
     EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
     assert(renderer);
-    if (!_model || _needsModelReload) {
+    {
         PerformanceTimer perfTimer("getModel");
         getModel(renderer);
-    }
-    if (_model) {
-        _model->setURL(getParsedModelURL());
-        _model->setCollisionModelURL(QUrl(getCompoundShapeURL()));
     }
 }
 
@@ -109,8 +105,8 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     // If textures are unset, revert to original textures
-    if (textures == "") {
-        return _originalTexturesMap;
+    if (textures.isEmpty()) {
+        return _originalTextures;
     }
 
     // Legacy: a ,\n-delimited list of filename:"texturepath"
@@ -121,10 +117,11 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     QJsonParseError error;
     QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
-        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
-        return _originalTexturesMap;
+        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << textures;
+        return _originalTextures;
     }
-    return texturesJson.object().toVariantMap();
+
+    return texturesJson.toVariant().toMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
@@ -135,44 +132,29 @@ void RenderableModelEntityItem::remapTextures() {
     if (!_model->isLoaded()) {
         return; // nothing to do if the model has not yet loaded
     }
-    
+
+    auto& geometry = _model->getGeometry()->getGeometry();
+
     if (!_originalTexturesRead) {
-        const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
-        if (networkGeometry) {
-            _originalTextures = networkGeometry->getTextureNames();
-            _originalTexturesMap = parseTexturesToMap(_originalTextures.join(",\n"));
-            _originalTexturesRead = true;
-        }
-    }
-    
-    if (_currentTextures == _textures) {
-        return; // nothing to do if our recently mapped textures match our desired textures
-    }
-    
-    // since we're changing here, we need to run through our current texture map
-    // and any textures in the recently mapped texture, that is not in our desired
-    // textures, we need to "unset"
-    QVariantMap currentTextureMap = parseTexturesToMap(_currentTextures);
-    QVariantMap textureMap = parseTexturesToMap(_textures);
+        _originalTextures = geometry->getTextures();
+        _originalTexturesRead = true;
 
-    foreach(const QString& key, currentTextureMap.keys()) {
-        // if the desired texture map (what we're setting the textures to) doesn't
-        // contain this texture, then remove it by setting the URL to null
-        if (!textureMap.contains(key)) {
-            QUrl noURL;
-            qCDebug(entitiesrenderer) << "Removing texture named" << key << "by replacing it with no URL";
-            _model->setTextureWithNameToURL(key, noURL);
-        }
+        // Default to _originalTextures to avoid remapping immediately and lagging on load
+        _currentTextures = _originalTextures;
     }
 
-    // here's where we remap any textures if needed...
-    foreach(const QString& key, textureMap.keys()) {
-        QUrl newTextureURL = textureMap[key].toUrl();
-        qCDebug(entitiesrenderer) << "Updating texture named" << key << "to texture at URL" << newTextureURL;
-        _model->setTextureWithNameToURL(key, newTextureURL);
+    auto textures = getTextures();
+    if (textures == _lastTextures) {
+        return;
     }
-    
-    _currentTextures = _textures;
+
+    _lastTextures = textures;
+    auto newTextures = parseTexturesToMap(textures);
+
+    if (newTextures != _currentTextures) {
+        geometry->setTextures(newTextures);
+        _currentTextures = newTextures;
+    }
 }
 
 // TODO: we need a solution for changes to the postion/rotation/etc of a model...
@@ -385,13 +367,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
-            // check if the URL has changed
-            auto& currentURL = getParsedModelURL();
-            if (currentURL != _model->getURL()) {
-                qCDebug(entitiesrenderer).noquote() << "Updating model URL: " << currentURL.toDisplayString();
-                _model->setURL(currentURL);
-            }
-
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -456,6 +431,15 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
                 updateModelBounds();
+
+                // Check if the URL has changed
+                // Do this last as the getModel is queued for the next frame,
+                // and we need to keep state directing the model to reinitialize
+                auto& currentURL = getParsedModelURL();
+                if (currentURL != _model->getURL()) {
+                    // Defer setting the url to the render thread
+                    getModel(_myRenderer);
+                }
             }
         }
     } else {
@@ -471,10 +455,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 }
 
 ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
-    ModelPointer result = nullptr;
-
     if (!renderer) {
-        return result;
+        return nullptr;
     }
 
     // make sure our renderer is setup
@@ -489,21 +471,22 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     
     _needsModelReload = false; // this is the reload
 
-    // if we have a URL, then we will want to end up returning a model...
+    // If we have a URL, then we will want to end up returning a model...
     if (!getModelURL().isEmpty()) {
-    
-        // if we have a previously allocated model, but its URL doesn't match
-        // then we need to let our renderer update our model for us.
-        if (_model && (QUrl(getModelURL()) != _model->getURL() ||
-                       QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
-            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
+        // If we don't have a model, allocate one *immediately*
+        if (!_model) {
+            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
-        } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
-            result = _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
+        // If we need to change URLs, update it *after rendering* (to avoid access violations)
+        } else if ((QUrl(getModelURL()) != _model->getURL() || QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
+            QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
+                Q_ARG(ModelPointer, _model),
+                Q_ARG(const QString&, getModelURL()),
+                Q_ARG(const QString&, getCompoundShapeURL()));
             _needsInitialSimulation = true;
-        } else { // we already have the model we want...
-            result = _model;
         }
+        // Else we can just return the _model
+    // If we have no URL, then we can delete any model we do have...
     } else if (_model) {
         // remove from scene
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
@@ -513,11 +496,11 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 
         // release interest
         _myRenderer->releaseModel(_model);
-        result = _model = nullptr;
+        _model = nullptr;
         _needsInitialSimulation = true;
     }
 
-    return result;
+    return _model;
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {
@@ -526,8 +509,7 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 
 void RenderableModelEntityItem::update(const quint64& now) {
     if (!_dimensionsInitialized && _model && _model->isActive()) {
-        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-        if (renderNetworkGeometry && renderNetworkGeometry->isLoaded()) {
+        if (_model->isLoaded()) {
             EntityItemProperties properties;
             auto extents = _model->getMeshExtents();
             properties.setDimensions(extents.maximum - extents.minimum);
@@ -593,13 +575,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
             return false;
         }
 
-        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-
-        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
-            (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
+        if (_model->isLoaded() && _model->isCollisionLoaded()) {
             // we have both URLs AND both geometries AND they are both fully loaded.
-
             if (_needsInitialSimulation) {
                 // the _model's offset will be wrong until _needsInitialSimulation is false
                 PerformanceTimer perfTimer("_model->simulate");
@@ -624,15 +601,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         adjustShapeInfoByRegistration(info);
     } else {
         updateModelBounds();
-        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
 
         // should never fall in here when collision model not fully loaded
-        // hence we assert collisionNetworkGeometry is not NULL
-        assert(collisionNetworkGeometry);
-
-        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
-        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-        const FBXGeometry& renderGeometry = renderNetworkGeometry->getFBXGeometry();
+        // hence we assert that all geometries exist and are loaded
+        assert(_model->isLoaded() && _model->isCollisionLoaded());
+        const FBXGeometry& renderGeometry = _model->getFBXGeometry();
+        const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
         _points.clear();
         unsigned int i = 0;
@@ -734,10 +708,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
-    if (EntityItem::contains(point) && _model && _model->getCollisionGeometry()) {
-        const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
-        const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
-        return collisionGeometry.convexHullContains(worldToEntity(point));
+    if (EntityItem::contains(point) && _model && _model->isCollisionLoaded()) {
+        return _model->getCollisionFBXGeometry().convexHullContains(worldToEntity(point));
     }
 
     return false;

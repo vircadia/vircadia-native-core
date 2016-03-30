@@ -4,21 +4,17 @@
 <script type="text/javascript" src="jquery-2.1.4.min.js"></script>
 <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script type="text/javascript" src="eventBridgeLoader.js"></script>
-
 <script>
-    var myBridge;
-
     window.onload = function() { 
-        openEventBridge(function(eventBridge) {
-            myBridge = eventBridge;
-            myBridge.scriptEventReceived.connect(function(message) {
+        openEventBridge(function() {
+            EventBridge.scriptEventReceived.connect(function(message) {
                 console.log("HTML side received message: " + message); 
             });
         });
     }
 
     testClick = function() {
-        myBridge.emitWebEvent("HTML side sending message - button click");
+        EventBridge.emitWebEvent(["Foo", "Bar", { "baz": 1} ]);
     }
 </script>
 </head>

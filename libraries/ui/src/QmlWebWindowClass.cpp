@@ -8,21 +8,10 @@
 
 #include "QmlWebWindowClass.h"
 
-#include <QtCore/QUrl>
-#include <QtCore/QUrlQuery>
 #include <QtCore/QThread>
-
-#include <QtQml/QQmlContext>
 
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
-
-#include <QtQuick/QQuickItem>
-
-#include <AbstractUriHandler.h>
-#include <AccountManager.h>
-#include <AddressManager.h>
-#include <DependencyManager.h>
 
 #include "OffscreenUi.h"
 
@@ -30,13 +19,33 @@ static const char* const URL_PROPERTY = "source";
 
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
-    return QmlWindowClass::internalConstructor("QmlWebWindow.qml", context, engine,
-        [&](QObject* object) {  return new QmlWebWindowClass(object);  });
+    auto properties = parseArguments(context);
+    QmlWebWindowClass* retVal { nullptr };
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->executeOnUiThread([&] {
+        retVal = new QmlWebWindowClass();
+        retVal->initQml(properties);
+    }, true);
+    Q_ASSERT(retVal);
+    connect(engine, &QScriptEngine::destroyed, retVal, &QmlWindowClass::deleteLater);
+    return engine->newQObject(retVal);
 }
 
-QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
+void QmlWebWindowClass::emitScriptEvent(const QVariant& scriptMessage) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, scriptMessage));
+    } else {
+        emit scriptEventReceived(scriptMessage);
+    }
 }
 
+void QmlWebWindowClass::emitWebEvent(const QVariant& webMessage) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, webMessage));
+    } else {
+        emit webEventReceived(webMessage);
+    }
+}
 
 QString QmlWebWindowClass::getURL() const {
     QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {

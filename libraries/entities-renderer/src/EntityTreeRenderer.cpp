@@ -421,8 +421,8 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         ModelPointer model = modelEntityItem->getModel(this);
-        if (model) {
-            result = &model->getGeometry()->getFBXGeometry();
+        if (model && model->isLoaded()) {
+            result = &model->getFBXGeometry();
         }
     }
     return result;
@@ -446,11 +446,8 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         if (modelEntityItem->hasCompoundShapeURL()) {
             ModelPointer model = modelEntityItem->getModel(this);
-            if (model) {
-                const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
-                    result = &collisionNetworkGeometry->getFBXGeometry();
-                }
+            if (model && model->isCollisionLoaded()) {
+                result = &model->getCollisionFBXGeometry();
             }
         }
     }
@@ -463,14 +460,17 @@ void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const Sha
 
 ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
     ModelPointer model = nullptr;
-    // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
+
+    // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(ModelPointer, model),
-                Q_ARG(const QString&, url));
+                Q_ARG(const QString&, url),
+                Q_ARG(const QString&, collisionUrl));
 
         return model;
     }
+
     model = std::make_shared<Model>(std::make_shared<Rig>());
     model->init();
     model->setURL(QUrl(url));
@@ -478,37 +478,20 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, const QString
     return model;
 }
 
-ModelPointer EntityTreeRenderer::updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl) {
-    ModelPointer model = nullptr;
-
-    // The caller shouldn't call us if the URL doesn't need to change. But if they
-    // do, we just return their original back to them.
-    if (!original || (QUrl(newUrl) == original->getURL())) {
-        return original;
-    }
-
-    // Before we do any creating or deleting, make sure we're on our renderer thread
+ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& newUrl, const QString& collisionUrl) {
+    // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(ModelPointer, model),
-                Q_ARG(ModelPointer, original),
-                Q_ARG(const QString&, newUrl));
+                Q_ARG(ModelPointer, model),
+                Q_ARG(const QString&, newUrl),
+                Q_ARG(const QString&, collisionUrl));
 
         return model;
     }
 
-    // at this point we know we need to replace the model, and we know we're on the
-    // correct thread, so we can do all our work.
-    if (original) {
-        original.reset(); // delete the old model...
-    }
-
-    // create the model and correctly initialize it with the new url
-    model = std::make_shared<Model>(std::make_shared<Rig>());
-    model->init();
     model->setURL(QUrl(newUrl));
     model->setCollisionModelURL(QUrl(collisionUrl));
-        
     return model;
 }
 

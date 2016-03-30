@@ -221,6 +221,8 @@ public:
 
     void setEnableInverseKinematics(bool enable);
 
+    const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
+
  protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();

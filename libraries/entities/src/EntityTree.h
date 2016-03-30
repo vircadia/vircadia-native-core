@@ -16,6 +16,7 @@
 #include <QVector>
 
 #include <Octree.h>
+#include <SpatialParentFinder.h>
 
 class EntityTree;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
@@ -46,13 +47,14 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
-    EntityTreePointer localTree;
+    EntityTree* ourTree;
+    EntityTreePointer otherTree;
     EntityEditPacketSender* packetSender;
-    QVector<EntityItemID>* newEntityIDs;
+    QHash<EntityItemID, EntityItemID>* map;
 };
 
 
-class EntityTree : public Octree {
+class EntityTree : public Octree, public SpatialParentTree {
     Q_OBJECT
 public:
     EntityTree(bool shouldReaverage = false);
@@ -125,6 +127,7 @@ public:
     EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
@@ -199,8 +202,6 @@ public:
 
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
-
-    void remapIDs();
 
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) override;
