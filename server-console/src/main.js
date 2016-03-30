@@ -347,134 +347,6 @@ function goHomeClicked() {
     }
 }
 
-function stackManagerBasePath() {
-    var dataPath = 'High Fidelity/Stack Manager/resources';
-
-    if (process.platform == "win32") {
-        return path.resolve(osHomeDir(), 'AppData/Local', dataPath);
-    } else if (process.platform == "darwin") {
-        return path.resolve(osHomeDir(), 'Library/Application Support', dataPath);
-    } else {
-        return ""
-    }
-}
-
-function isStackManagerContentPresent() {
-    var modelsPath = path.resolve(stackManagerBasePath(), 'models.json.gz');
-
-    try {
-        var stats = fs.lstatSync(modelsPath);
-
-        if (stats.isFile()) {
-            console.log("Stack Manager entities file discovered at " + modelsPath)
-            // we found a content file
-            return true;
-        }
-    } catch (e) {
-        console.log("Stack Manager entities file not found at " + modelsPath);
-    }
-}
-
-function promptToMigrateContent() {
-    dialog.showMessageBox({
-        type: 'question',
-        buttons: ['Yes', 'No'],
-        title: 'Migrate Content',
-        message: 'Are you sure?\n\nThis will stop your home server and replace everything in your home with your content from Stack Manager.'
-    }, function(index) {
-        if (index == 0) {
-            if (homeServer.state != ProcessGroupStates.STOPPED) {
-                var stopThenMigrateCallback = function(processGroup) {
-                    if (isShuttingDown) {
-                        homeServer.removeListener('state-update', stopThenMigrateCallback);
-                    } else if (processGroup.state == ProcessGroupStates.STOPPED) {
-                        performContentMigration();
-
-                        homeServer.removeListener('state-update', stopThenMigrateCallback);
-                    }
-                };
-
-                homeServer.on('state-update', stopThenMigrateCallback);
-                homeServer.stop();
-
-            } else {
-                performContentMigration();
-            }
-        }
-    });
-}
-
-function performContentMigration() {
-    // check if there is a models file to migrate
-    var modelsPath = path.resolve(stackManagerBasePath(), 'models.json.gz');
-
-    try {
-        var stats = fs.lstatSync(modelsPath);
-    } catch (e) {
-        // no entities file
-        dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            title: 'Models File Not Found',
-            message: 'There is no models file at ' + modelsPath + '\n\nStack Manager content migration can not proceed.'
-        }, null);
-
-        return;
-    }
-
-    function showMigrationCompletionDialog(copyError) {
-        if (!copyError) {
-            // show message for successful migration
-            dialog.showMessageBox({
-                type: 'info',
-                buttons: ['OK'],
-                title: 'Migration Complete',
-                message: 'Your Stack Manager content has been migrated.\n\nYour home server will now be restarted.'
-            }, null);
-        } else {
-            // show error message for copy fail
-            dialog.showMessageBox({
-                type: 'info',
-                buttons: ['OK'],
-                title: 'Migration Failed',
-                message: 'There was an error copying your Stack Manager content: ' + copyError + '\n\nPlease try again.'
-            }, null);
-        }
-    }
-
-    // we have a models file, try and copy it
-    var newModelsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'entities/models.json.gz')
-    console.log("Copying Stack Manager entity file from " + modelsPath + " to " + newModelsPath);
-
-    try {
-        fs.copySync(modelsPath, newModelsPath);
-
-        // check if there are any assets to copy
-        var oldAssetsPath = path.resolve(stackManagerBasePath(), 'assets');
-
-        var assets = fs.readdirSync(oldAssetsPath);
-
-        if (assets.length > 0) {
-            // assume this means the directory is not empty
-            // and that we should copy it
-            var newAssetsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'assets');
-
-            console.log("Copying Stack Manager assets from " + oldAssetsPath + " to " + newAssetsPath);
-
-            // attempt to copy the assets folder
-            fs.copySync(oldAssetsPath, newAssetsPath, {
-                preserveTimestamps: true
-            });
-        }
-
-        showMigrationCompletionDialog(null);
-    } catch (error) {
-        showMigrationCompletionDialog(error);
-    }
-
-    homeServer.start();
-}
-
 var logWindow = null;
 
 var labels = {
@@ -530,12 +402,6 @@ var labels = {
             shell.openExternal('http://localhost:40100/settings/?action=share')
         }
     },
-    migrateContent: {
-        label: 'Migrate Stack Manager Content',
-        click: function() {
-            promptToMigrateContent();
-        }
-    },
     shuttingDown: {
         label: "Shutting down...",
         enabled: false
@@ -569,13 +435,6 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.share);
         menuArray.push(separator);
         menuArray.push(labels.quit);
-
-        var foundStackManagerContent = isStackManagerContentPresent();
-        if (foundStackManagerContent) {
-            // add a separator and the stack manager content migration option
-            menuArray.splice(menuArray.length - 1, 0, labels.migrateContent, separator);
-        }
-
     }
 
 
