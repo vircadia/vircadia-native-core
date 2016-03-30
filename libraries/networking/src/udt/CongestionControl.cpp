@@ -163,6 +163,8 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
 
         if (!_delayedDecrease) {
             setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+        } else {
+            _loss = false;
         }
 
         // update the count of NAKs and count of decreases in this interval
