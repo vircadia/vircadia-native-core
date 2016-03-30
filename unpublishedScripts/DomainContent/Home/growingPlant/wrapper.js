@@ -12,6 +12,7 @@
 var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
 Plant = function(spawnPosition, spawnRotation) {
+  print("EBL PLANT CONSTRUCTOR!")
   var orientation;
   if (spawnRotation !== undefined) {
     orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
@@ -31,6 +32,7 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
+    dynamic: true,
     shapeType: 'compound',
     compundShapeURL: BOWL_COLLISION_HULL_URL,
     name: "plant bowl",
@@ -41,6 +43,7 @@ Plant = function(spawnPosition, spawnRotation) {
       }
     }),
   });
+
 
 
   var PLANT_MODEL_URL = "atp:/growingPlant/Flowers-Rock.fbx";
