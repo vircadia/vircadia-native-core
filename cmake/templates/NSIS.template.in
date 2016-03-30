@@ -589,6 +589,10 @@ Section "-Core installation"
   Delete "$INSTDIR\version"
   Delete "$INSTDIR\xinput1_3.dll"
 
+  ; Delete old desktop shortcuts before they were renamed
+  Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
+
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
 
