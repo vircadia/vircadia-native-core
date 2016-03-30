@@ -179,6 +179,9 @@
                 this.createBall();
             }
         },
+        // mouseDownOnEntity:function(){
+        //   _this.testBallDistance();
+        // }
 
         testWinDistance: function() {
             if (this.ballLocked === true) {

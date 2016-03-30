@@ -1,4 +1,4 @@
-    var fishTankPath = Script.resolvePath('wrapper.js?' + Math.random());
+    var fishTankPath = Script.resolvePath('wrapper.js');
     Script.include(fishTankPath);
     var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
         x: 0,

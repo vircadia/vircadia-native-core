@@ -20,23 +20,23 @@
 
     var utilsPath = Script.resolvePath('utils.js');
 
-    var kineticPath = Script.resolvePath("kineticObjects/wrapper.js?" + Math.random());
+    var kineticPath = Script.resolvePath("atp:/kineticObjects/wrapper.js");
 
-    var fishTankPath = Script.resolvePath('fishTank/wrapper.js?' + Math.random());
+    var fishTankPath = Script.resolvePath('atp:/fishTank/wrapper.js');
 
     var tiltMazePath = Script.resolvePath("atp:/tiltMaze/wrapper.js")
 
-    var whiteboardPath = Script.resolvePath("whiteboard/wrapper.js?" + Math.random());
+    var whiteboardPath = Script.resolvePath("atp:/whiteboard/wrapper.js");
 
-    var plantPath = Script.resolvePath("growingPlant/wrapper.js");
+    var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
 
-    var cuckooClockPath = Script.resolvePath("cuckooClock/wrapper.js?" + Math.random());
+    var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
-    var pingPongGunPath = Script.resolvePath("pingPongGun/wrapper.js?" + Math.random());
+    var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
 
     var musicBoxPath = Script.resolvePath("musicBox/wrapper.js?" + Math.random());
 
-    var transformerPath = Script.resolvePath("dressingRoom/wrapper.js?" + Math.random());
+    var transformerPath = Script.resolvePath("atp:/dressingRoom/wrapper.js");
 
     Script.include(utilsPath);
 
@@ -51,11 +51,11 @@
     // Script.include(musicBoxPath);
     Script.include(transformerPath);
 
-    var TRANSFORMER_URL_ARTEMIS = 'http://hifi-public.s3.amazonaws.com/ryan/DefaultAvatarFemale2/0314HiFiFemAviHeightChange.fbx';
-    var TRANSFORMER_URL_ALBERT = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
-    var TRANSFORMER_URL_BEING_OF_LIGHT = 'http://hifi-public.s3.amazonaws.com/ryan/0318HiFiBoL/0318HiFiBoL.fbx';
-    var TRANSFORMER_URL_KATE = 'https://hifi-public.s3.amazonaws.com/ozan/avatars/kate/kate/kate.fbx';
-    var TRANSFORMER_URL_WILL = 'https://s3.amazonaws.com/hifi-public/models/skeletons/Will/Will.fbx';
+    var TRANSFORMER_URL_ARTEMIS = 'atp:/dressingRoom/0314HiFiFemAviHeightChange.fbx';
+    var TRANSFORMER_URL_ALBERT = 'atp:/dressingRoom/albert.fbx';
+    var TRANSFORMER_URL_BEING_OF_LIGHT = 'atp:/dressingRoom/0318HiFiBoL.fbx';
+    var TRANSFORMER_URL_KATE = 'atp:/dressingRoom/kate.fbx';
+    var TRANSFORMER_URL_WILL = 'atp:/dressingRoom/Will.fbx';
 
     Reset.prototype = {
         tidying: false,
@@ -124,9 +124,9 @@
 
         createDynamicEntities: function() {
             var fishTank = new FishTank({
-                x: 1098.9254,
-                y: 460.5814,
-                z: -79.1103
+                x: 1099.2200,
+                y: 460.5460,
+                z: -78.2363
             }, {
                 x: 0,
                 y: 0,

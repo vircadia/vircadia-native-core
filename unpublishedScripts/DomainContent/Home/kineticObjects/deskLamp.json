@@ -7,7 +7,7 @@
                 "z": 0.010236549191176891
             },
             "collisionsWillMove": 1,
-            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.obj",
+            "compoundShapeURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.obj",
             "created": "2016-03-22T22:55:11Z",
             "dimensions": {
                 "x": 0.35158795118331909,
@@ -21,7 +21,7 @@
                 "z": 0
             },
             "id": "{747a8714-3cc5-4336-bac3-de3c8ec1494d}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Shade.fbx",
+            "modelURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.fbx",
             "name": "hifi-home-model-bulldog-shade",
             "position": {
                 "x": 0.085205078125,
@@ -57,7 +57,7 @@
                 "z": -0.0033033043146133423
             },
             "collisionsWillMove": 1,
-            "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.obj",
+            "compoundShapeURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.obj",
             "created": "2016-03-22T22:50:49Z",
             "dimensions": {
                 "x": 0.26436957716941833,
@@ -71,7 +71,7 @@
                 "z": 0
             },
             "id": "{5dcc642f-34a6-44a7-8da8-275cbbbef9d6}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx",
+            "modelURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.fbx",
             "name": "hifi-home-model-bulldog-base",
             "position": {
                 "x": 0.08642578125,
@@ -170,7 +170,7 @@
                 "y": -1.52587890625e-05,
                 "z": -1.52587890625e-05
             },
-            "script": "https://rawgit.com/ericrius1/hifi/homereset/unpublishedScripts/DomainContent/Home/switches/livingRoomDeskLamp.js",
+            "script": "atp:/switches/livingRoomDeskLamp.js",
             "scriptTimestamp": 1458860464095,
             "type": "Box",
             "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"wantsTrigger\":true},\"home-switch\":{\"state\":\"on\"}}",

@@ -197,7 +197,7 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "atp:/images/raindrop.png",
+                textures: "atp:/growingPlant/raindrop.png",
                 userData: JSON.stringify({
                     'hifiHomeKey': {
                         'reset': true
@@ -227,7 +227,6 @@
                 var entities = Entities.findEntities(_this.position, 2);
                 entities.forEach(function(entity) {
                     var name = Entities.getEntityProperties(entity, "name").name;
-                    print('HOME FOUND AN ENTITY CALLED:: ' + name)
                     if (name === _this.WATER_SPOUT_NAME) {
                         _this.waterSpout = entity;
                     }

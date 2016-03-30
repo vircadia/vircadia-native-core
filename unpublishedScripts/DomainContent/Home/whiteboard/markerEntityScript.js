@@ -25,7 +25,7 @@
 
     MarkerTip = function() {
         _this = this;
-        _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
+        _this.MARKER_TEXTURE_URL = "atp:/whiteboard/markerStroke.png";
         _this.strokeForwardOffset = 0.0001;
         _this.STROKE_WIDTH_RANGE = {
             min: 0.002,

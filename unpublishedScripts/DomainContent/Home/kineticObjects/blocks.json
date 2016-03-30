@@ -1,7 +1,7 @@
 {
     "Entities": [
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -17,7 +17,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{5371218c-e05b-49da-ac70-81f1f76c55ea}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_natural.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.69732666015625,
@@ -41,7 +41,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -57,7 +57,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{ccc1198a-a501-48b8-959a-68297258aea7}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_natural.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.47344970703125,
@@ -81,7 +81,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -97,7 +97,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{3aaf5dd5-16d8-4852-880d-8256de68de19}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_red.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.2613525390625,
@@ -121,7 +121,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -137,7 +137,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{0474a29f-c45b-4d42-ae95-0c0bd1e6c501}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_yellow.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.30487060546875,
@@ -161,7 +161,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -177,7 +177,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{53e06851-8346-45ac-bdb5-0a74c99b5bd5}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_green.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.40277099609375,
@@ -201,7 +201,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -217,7 +217,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{38bcb70d-e384-4b60-878a-e34d4830f045}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_yellow.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.54962158203125,
@@ -241,7 +241,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -257,7 +257,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{fa8f8bbc-5bd0-4121-985d-75ce2f68eba1}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_red.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.52001953125,
@@ -281,7 +281,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -297,7 +297,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{d4b8582b-b707-453c-89c6-65e358da5cd7}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_yellow.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.66876220703125,
@@ -321,7 +321,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -337,7 +337,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{3b5b53fb-7ee5-44eb-9b81-8de8a525c433}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_red.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.83819580078125,
@@ -361,7 +361,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -377,7 +377,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{0d1f27e9-7e74-4263-9428-8c8f7aac94a6}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_green.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.61773681640625,
@@ -401,7 +401,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -417,7 +417,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{79ea518f-aac3-45ff-b22d-6d295b3c9e87}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_green.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.7188720703125,
@@ -441,7 +441,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -457,7 +457,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{ff470ff9-c889-4893-a25f-80895bff0e9a}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_blue.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_blue.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.74981689453125,
@@ -481,7 +481,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -497,7 +497,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{b5319f85-603d-436b-8bbe-fc9f798ca738}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_green.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.8824462890625,
@@ -521,7 +521,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -537,7 +537,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{944a4616-8dac-4d6a-a92b-49fa98514416}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_blue.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_blue.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.963623046875,
@@ -561,7 +561,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -577,7 +577,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{ea6a1038-7047-4a1e-bdbd-076d6e41508c}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_blue.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_blue.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.49188232421875,
@@ -601,7 +601,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -617,7 +617,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{ff65f5dd-2d53-4127-86da-05156a42946d}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_natural.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0,
@@ -641,7 +641,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -657,7 +657,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{3a9acd14-f754-4c70-b294-9f622c000785}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_red.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.88006591796875,
@@ -681,7 +681,7 @@
             "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         },
         {
-            "collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav",
+            "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "collisionsWillMove": 1,
             "created": "2016-03-23T21:29:36Z",
             "dimensions": {
@@ -697,7 +697,7 @@
             },
             "velocity": {"x": 0, "y": -0.1, "z": 0},
             "id": "{bb014301-247b-44d0-8b09-b830fea4439e}",
-            "modelURL": "http://s3.amazonaws.com/hifi-public/models/content/planky/planky_natural.fbx",
+            "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
             "name": "hifi-home-model-block",
             "position": {
                 "x": 0.80487060546875,

@@ -1,6 +1,6 @@
- var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js?' + Math.random());
+ var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js');
 
- var AVATAR_COLLISION_HULL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/dressingRoom/Avatar-Hull-4.obj';
+ var AVATAR_COLLISION_HULL = 'atp:/dressingRoom/Avatar-Hull-4.obj';
 
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation, dimensions) {
      print('SCRIPT REF AT TRANSFORMER CREATE::' + TRANSFORMER_SCRIPT);
@@ -20,7 +20,7 @@
          },
          visible: true,
          damping: 0.8,
-         angularDamping:0.8,
+         angularDamping: 0.8,
          userData: JSON.stringify({
              'grabbableKey': {
                  'grabbable': true
@@ -33,7 +33,7 @@
                  'reset': true
              }
          }),
-         density:5000,
+         density: 5000,
          dimensions: dimensions,
          script: TRANSFORMER_SCRIPT
      }
