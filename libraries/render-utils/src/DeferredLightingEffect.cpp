@@ -437,6 +437,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                     // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
                     if ((eyeHalfPlaneDistance > -nearRadius) &&
                         (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+                        light->setShowContour(true);
                         coneParam.w = 0.0f;
                         batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
@@ -452,6 +453,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                         batch.setProjectionTransform( projMats[side]);
                         batch.setViewTransform(viewTransforms[side]);
                     } else {
+                        light->setShowContour(false);
                         coneParam.w = 1.0f;
                         batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 

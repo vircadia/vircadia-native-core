@@ -16,15 +16,37 @@
 
 namespace render {
 
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems);
+void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems = -1);
 void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1);
+
+
+
+class DrawLightConfig : public Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
+    int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+
+    int maxDrawn{ -1 };
+signals:
+    void numDrawnChanged();
+    void dirty();
+
+protected:
+    int numDrawn{ 0 };
+};
 
 class DrawLight {
 public:
-    using JobModel = Job::ModelI<DrawLight, ItemBounds>;
+    using Config = DrawLightConfig;
+    using JobModel = Job::ModelI<DrawLight, ItemBounds, Config>;
 
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights);
 protected:
+    int _maxDrawn; // initialized by Config
 };
 
 }

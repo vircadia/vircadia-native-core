@@ -1,6 +1,6 @@
 //
 //  PlotPerf.qml
-//  examples/utilities/tools/render
+//  examples/utilities/render/plotperf
 //
 //  Created by Sam Gateau on 3//2016
 //  Copyright 2016 High Fidelity, Inc.

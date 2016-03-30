@@ -1,6 +1,6 @@
 //
 //  stats.qml
-//  examples/utilities/tools/render
+//  examples/utilities/render
 //
 //  Created by Zach Pomerantz on 2/8/2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -22,7 +22,7 @@ Item {
         anchors.fill:parent
  
         property var config: Render.getConfig("Stats")
-
+ 
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
             return (height - spacing * (children.length - 1)) / children.length
@@ -65,5 +65,16 @@ Item {
             height: parent.evalEvenHeight()
             parameters: "1000:K:0:frameTriangleCount-frame-#E2334D:frameTriangleRate-rate-#1AC567-0.001-MT/s"
         }
+
+        property var deferredTaskConfig: Render.getConfig("RenderDeferredTask")
+        property var drawLightConfig: deferredTaskConfig.getConfig("DrawLight")
+
+        PlotPerf {
+            title: "Lights"
+            config: parent.drawLightConfig
+            height: parent.evalEvenHeight()
+            parameters: "1::0:numDrawn-frame-#E2334D"
+        }   
     }
+
 }

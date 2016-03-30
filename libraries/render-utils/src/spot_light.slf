@@ -25,6 +25,7 @@ in vec4 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
+
     DeferredTransform deferredTransform = getDeferredTransform();
 
     // Grab the fragment data from the uv
@@ -36,6 +37,8 @@ void main(void) {
     // Kill if in front of the light volume
     float depth = frag.depthVal;
     if (depth < gl_FragCoord.z) {
+        _fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        return;
         discard;
     }
 
