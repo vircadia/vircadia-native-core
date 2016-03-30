@@ -583,7 +583,7 @@ function maybeShowSplash() {
         var window = new BrowserWindow({
             icon: appIcon,
             width: 1600 * zoomFactor,
-            height: 737 * zoomFactor,
+            height: 650 * zoomFactor,
             center: true,
             frame: true,
             useContentSize: true,
