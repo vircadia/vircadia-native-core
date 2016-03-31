@@ -191,7 +191,7 @@ public:
 
     void setCache(ResourceCache* cache) { _cache = cache; }
 
-    Q_INVOKABLE void allReferencesCleared();
+    virtual void deleter() { allReferencesCleared(); }
     
     const QUrl& getURL() const { return _url; }
 
@@ -225,6 +225,8 @@ protected:
     /// Called when the download is finished and processed.
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
+
+    Q_INVOKABLE void allReferencesCleared();
 
     QUrl _url;
     QUrl _activeUrl;

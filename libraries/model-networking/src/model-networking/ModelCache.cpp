@@ -67,15 +67,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
         _geometryResource = modelCache->getResource(url, QUrl(), false, &extra).staticCast<GeometryResource>();
+        // Avoid caching nested resources - their references will be held by the parent
+        _geometryResource->_isCacheable = false;
 
         if (_geometryResource->isLoaded()) {
             onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
         } else {
             connect(_geometryResource.data(), &Resource::finished, this, &GeometryMappingResource::onGeometryMappingLoaded);
         }
-
-        // Avoid caching nested resources - their references will be held by the parent
-        _geometryResource->_isCacheable = false;
     }
 }
 
@@ -86,6 +85,10 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
     }
+
+    // Avoid holding onto extra references
+    _geometryResource.reset();
+
     finishedLoading(success);
 }
 
@@ -157,7 +160,7 @@ class GeometryDefinitionResource : public GeometryResource {
     Q_OBJECT
 public:
     GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
-        GeometryResource(url), _mapping(mapping), _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url) {}
+        GeometryResource(url, textureBaseUrl.isValid() ? textureBaseUrl : url), _mapping(mapping) {}
 
     virtual void downloadFinished(const QByteArray& data) override;
 
@@ -166,7 +169,6 @@ protected:
 
 private:
     QVariantHash _mapping;
-    QUrl _textureBaseUrl;
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
@@ -220,13 +222,20 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
         resource = new GeometryDefinitionResource(url, geometryExtra->mapping, geometryExtra->textureBaseUrl);
     }
 
-    return QSharedPointer<Resource>(resource, &Resource::allReferencesCleared);
+    return QSharedPointer<Resource>(resource, &Resource::deleter);
 }
 
 std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) {
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
     GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
-    return resource ? std::make_shared<NetworkGeometry>(resource) : NetworkGeometry::Pointer();
+    if (resource) {
+        if (resource->isLoaded() && !resource->hasTextures()) {
+            resource->setTextures();
+        }
+        return std::make_shared<NetworkGeometry>(resource);
+    } else {
+        return NetworkGeometry::Pointer();
+    }
 }
 
 const QVariantMap Geometry::getTextures() const {
@@ -311,6 +320,21 @@ const std::shared_ptr<const NetworkMaterial> Geometry::getShapeMaterial(int shap
         }
     }
     return nullptr;
+}
+
+void GeometryResource::deleter() {
+    resetTextures();
+    Resource::deleter();
+}
+
+void GeometryResource::setTextures() {
+    for (const FBXMaterial& material : _geometry->materials) {
+        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+    }
+}
+
+void GeometryResource::resetTextures() {
+    _materials.clear();
 }
 
 NetworkGeometry::NetworkGeometry(const GeometryResource::Pointer& networkGeometry) : _resource(networkGeometry) {

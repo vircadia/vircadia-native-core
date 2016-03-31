@@ -166,12 +166,11 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
     return texture;
 }
 
-
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
-        &Resource::allReferencesCleared);
+        &Resource::deleter);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :

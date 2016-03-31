@@ -36,6 +36,6 @@ NetworkClipLoaderPointer ClipCache::getClipLoader(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ClipCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new NetworkClipLoader(url, delayLoad), &Resource::allReferencesCleared);
+    return QSharedPointer<Resource>(new NetworkClipLoader(url, delayLoad), &Resource::deleter);
 }
 
