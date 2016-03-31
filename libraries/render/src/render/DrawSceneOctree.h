@@ -20,23 +20,26 @@ namespace render {
     class DrawSceneOctreeConfig : public Job::Config {
         Q_OBJECT
         Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
-        Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
-        Q_PROPERTY(bool showEmptyCells MEMBER showEmptyCells WRITE setShowEmptyCells)
+        Q_PROPERTY(bool showVisibleCells READ getShowVisibleCells WRITE setShowVisibleCells NOTIFY dirty())
+        Q_PROPERTY(bool showEmptyCells READ getShowEmptyCells WRITE setShowEmptyCells NOTIFY dirty())
         Q_PROPERTY(int numAllocatedCells READ getNumAllocatedCells)
         Q_PROPERTY(int numFreeCells READ getNumFreeCells)
 
     public:
 
         DrawSceneOctreeConfig() : Job::Config(false) {}
-        
-        bool showVisibleCells{ true };
-        bool showEmptyCells{ false };
 
         int numAllocatedCells{ 0 };
         int numFreeCells{ 0 };
 
         int getNumAllocatedCells() const { return numAllocatedCells; }
         int getNumFreeCells() const { return numFreeCells; }
+
+        bool showVisibleCells{ true };
+        bool showEmptyCells{ false };
+
+        bool getShowVisibleCells() { return showVisibleCells; }
+        bool getShowEmptyCells() { return showEmptyCells; }
 
     public slots:
         void setShowVisibleCells(bool show) { showVisibleCells = show; emit dirty(); }
@@ -79,10 +82,10 @@ namespace render {
     class DrawItemSelectionConfig : public Job::Config {
         Q_OBJECT
         Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
-        Q_PROPERTY(bool showInsideItems MEMBER showInsideItems WRITE setShowInsideItems)
-        Q_PROPERTY(bool showInsideSubcellItems MEMBER showInsideSubcellItems WRITE setShowInsideSubcellItems)
-        Q_PROPERTY(bool showPartialItems MEMBER showPartialItems WRITE setShowPartialItems)
-        Q_PROPERTY(bool showPartialSubcellItems MEMBER showPartialSubcellItems WRITE setShowPartialSubcellItems)
+        Q_PROPERTY(bool showInsideItems READ getShowInsideItems WRITE setShowInsideItems NOTIFY dirty())
+        Q_PROPERTY(bool showInsideSubcellItems READ getShowInsideSubcellItems WRITE setShowInsideSubcellItems NOTIFY dirty())
+        Q_PROPERTY(bool showPartialItems READ getShowPartialItems WRITE setShowPartialItems NOTIFY dirty())
+        Q_PROPERTY(bool showPartialSubcellItems READ getShowPartialSubcellItems WRITE setShowPartialSubcellItems NOTIFY dirty())
     public:
 
         DrawItemSelectionConfig() : Job::Config(false) {}
@@ -92,7 +95,12 @@ namespace render {
         bool showPartialItems{ true };
         bool showPartialSubcellItems{ true };
 
-        public slots:
+        bool getShowInsideItems() const { return showInsideItems; };
+        bool getShowInsideSubcellItems() const { return showInsideSubcellItems; };
+        bool getShowPartialItems() const { return showPartialItems; };
+        bool getShowPartialSubcellItems() const { return showPartialSubcellItems; };
+
+    public slots:
         void setShowInsideItems(bool show) { showInsideItems = show; emit dirty(); }
         void setShowInsideSubcellItems(bool show) { showInsideSubcellItems = show; emit dirty(); }
         void setShowPartialItems(bool show) { showPartialItems = show; emit dirty(); }

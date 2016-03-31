@@ -38,11 +38,13 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         _context->setShareContext(sharedContext);
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
+
     if (_context->create()) {
         _offscreenSurface->setFormat(_context->format());
         _offscreenSurface->create();
-        return true;
+        return _offscreenSurface->isValid();
     }
+    qWarning("Failed to create OffscreenGLCanvas context");
 
     return false;
 }

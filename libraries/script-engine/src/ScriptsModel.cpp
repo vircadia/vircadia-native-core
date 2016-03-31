@@ -13,21 +13,19 @@
 #include <QUrl>
 #include <QUrlQuery>
 #include <QXmlStreamReader>
+#include <QDirIterator>
 
 #include <NetworkAccessManager.h>
+#include <PathUtils.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngines.h"
 #include "ScriptEngineLogging.h"
 #define __STR2__(x) #x
 #define __STR1__(x) __STR2__(x)
-#define __LOC__ __FILE__ "("__STR1__(__LINE__)") : Warning Msg: "
+#define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
-
-static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
-static const QString PUBLIC_URL = "http://public.highfidelity.io";
 static const QString MODELS_LOCATION = "scripts/";
-
 static const QString PREFIX_PARAMETER_NAME = "prefix";
 static const QString MARKER_PARAMETER_NAME = "marker";
 static const QString IS_TRUNCATED_NAME = "IsTruncated";
@@ -63,7 +61,7 @@ ScriptsModel::ScriptsModel(QObject* parent) :
 
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
     reloadLocalFiles();
-    reloadRemoteFiles();
+    reloadDefaultFiles();
 }
 
 ScriptsModel::~ScriptsModel() {
@@ -140,36 +138,56 @@ void ScriptsModel::updateScriptsLocation(const QString& newPath) {
     reloadLocalFiles();
 }
 
-void ScriptsModel::reloadRemoteFiles() {
+void ScriptsModel::reloadDefaultFiles() {
     if (!_loadingScripts) {
         _loadingScripts = true;
         for (int i = _treeNodes.size() - 1; i >= 0; i--) {
             TreeNodeBase* node = _treeNodes.at(i);
             if (node->getType() == TREE_NODE_TYPE_SCRIPT &&
-                static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_REMOTE)
+                static_cast<TreeNodeScript*>(node)->getOrigin() == SCRIPT_ORIGIN_DEFAULT)
             {
                 delete node;
                 _treeNodes.removeAt(i);
             }
         }
-        requestRemoteFiles();
+        requestDefaultFiles();
     }
 }
 
-void ScriptsModel::requestRemoteFiles(QString marker) {
-    QUrl url(S3_URL);
-    QUrlQuery query;
-    query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
-    if (!marker.isEmpty()) {
-        query.addQueryItem(MARKER_PARAMETER_NAME, marker);
-    }
-    url.setQuery(query);
+void ScriptsModel::requestDefaultFiles(QString marker) {
+    QUrl url(defaultScriptsLocation());
 
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    QNetworkReply* reply = networkAccessManager.get(request);
-    connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+    if (url.isLocalFile()) {
+        // if the url indicates a local directory, use QDirIterator
+        // QString localDir = url.toLocalFile() + "/scripts";
+        QString localDir = expandScriptUrl(url).toLocalFile() + "/scripts";
+        int localDirPartCount = localDir.split("/").size();
+        #ifdef Q_OS_WIN
+        localDirPartCount++; // one for the drive letter
+        #endif
+        QDirIterator it(localDir, QStringList() << "*.js", QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QUrl jsFullPath = QUrl::fromLocalFile(it.next());
+            QString jsPartialPath = jsFullPath.path().split("/").mid(localDirPartCount).join("/");
+            jsFullPath = normalizeScriptURL(jsFullPath);
+            _treeNodes.append(new TreeNodeScript(jsPartialPath, jsFullPath.toString(), SCRIPT_ORIGIN_DEFAULT));
+        }
+        _loadingScripts = false;
+    } else {
+        // the url indicates http(s), use QNetworkRequest
+        QUrlQuery query;
+        query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
+        if (!marker.isEmpty()) {
+            query.addQueryItem(MARKER_PARAMETER_NAME, marker);
+        }
+        url.setQuery(query);
+
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest request(url);
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* reply = networkAccessManager.get(request);
+        connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
+    }
 }
 
 void ScriptsModel::downloadFinished() {
@@ -182,8 +200,10 @@ void ScriptsModel::downloadFinished() {
         if (!data.isEmpty()) {
             finished = parseXML(data);
         } else {
-            qCDebug(scriptengine) << "Error: Received no data when loading remote scripts";
+            qCDebug(scriptengine) << "Error: Received no data when loading default scripts";
         }
+    } else {
+        qDebug() << "Error: when loading default scripts --" << reply->error();
     }
 
     reply->deleteLater();
@@ -218,7 +238,11 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
                     xml.readNext();
                     lastKey = xml.text().toString();
                     if (jsRegex.exactMatch(xml.text().toString())) {
-                        _treeNodes.append(new TreeNodeScript(lastKey.mid(MODELS_LOCATION.length()), S3_URL + "/" + lastKey, SCRIPT_ORIGIN_REMOTE));
+                        QString localPath = lastKey.split("/").mid(1).join("/");
+                        QUrl fullPath = defaultScriptsLocation();
+                        fullPath.setPath(fullPath.path() + "/" + lastKey);
+                        const QString fullPathStr = normalizeScriptURL(fullPath).toString();
+                        _treeNodes.append(new TreeNodeScript(localPath, fullPathStr, SCRIPT_ORIGIN_DEFAULT));
                     }
                 }
                 xml.readNext();
@@ -231,12 +255,12 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
 
     // Error handling
     if (xml.hasError()) {
-        qCDebug(scriptengine) << "Error loading remote scripts: " << xml.errorString();
+        qCDebug(scriptengine) << "Error loading default scripts: " << xml.errorString();
         return true;
     }
 
     if (truncated) {
-        requestRemoteFiles(lastKey);
+        requestDefaultFiles(lastKey);
     }
 
     // If this request was not truncated, we are done.
@@ -261,7 +285,9 @@ void ScriptsModel::reloadLocalFiles() {
     const QFileInfoList localFiles = _localDirectory.entryInfoList();
     for (int i = 0; i < localFiles.size(); i++) {
         QFileInfo file = localFiles[i];
-        _treeNodes.append(new TreeNodeScript(file.fileName(), file.absoluteFilePath(), SCRIPT_ORIGIN_LOCAL));
+        QString fileName = file.fileName();
+        QUrl absPath = normalizeScriptURL(QUrl::fromLocalFile(file.absoluteFilePath()));
+        _treeNodes.append(new TreeNodeScript(fileName, absPath.toString(), SCRIPT_ORIGIN_LOCAL));
     }
     rebuildTree();
     endResetModel();

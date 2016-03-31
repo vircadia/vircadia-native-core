@@ -224,7 +224,6 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
 #endif
 
-const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
@@ -1490,10 +1489,14 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
-    displayPlugin->updateHeadPose(_frameCount);
+    displayPlugin->beginFrameRender(_frameCount);
 
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
+
+    // update sensorToWorldMatrix for camera and hand controllers
+    getMyAvatar()->updateSensorToWorldMatrix();
+
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -2004,6 +2007,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     offscreenUi->getRootContext()->engine()->clearComponentCache();
                     //OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
+                }
+                break;
+
+            case Qt::Key_Y:
+                if (isShifted && isMeta) {
+                    getActiveDisplayPlugin()->cycleDebugOutput();
                 }
                 break;
 
@@ -2572,11 +2581,6 @@ void Application::idle(uint64_t now) {
         return; // bail early, nothing to do here.
     }
 
-    checkChangeCursor();
-
-    Stats::getInstance()->updateStats();
-    AvatarInputs::getInstance()->update();
-
     // These tasks need to be done on our first idle, because we don't want the showing of
     // overlay subwindows to do a showDesktop() until after the first time through
     static bool firstIdle = true;
@@ -2624,6 +2628,11 @@ void Application::idle(uint64_t now) {
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
+
+    checkChangeCursor();
+
+    Stats::getInstance()->updateStats();
+    AvatarInputs::getInstance()->update();
 
     {
         static uint64_t lastIdleStart{ now };
@@ -3388,9 +3397,6 @@ void Application::update(float deltaTime) {
         }
 
         qApp->updateMyAvatarLookAtPosition();
-
-        // update sensorToWorldMatrix for camera and hand controllers
-        myAvatar->updateSensorToWorldMatrix();
 
         {
             PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());

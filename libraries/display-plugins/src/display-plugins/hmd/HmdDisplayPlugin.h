@@ -28,6 +28,16 @@ public:
 
     virtual glm::mat4 getHeadPose() const override;
 
+    using EyePoses = std::array<glm::mat4, 2>;
+
+    struct FrameInfo {
+        EyePoses eyePoses;
+        glm::mat4 headPose;
+        double sensorSampleTime { 0 };
+        double predictedDisplayTime { 0 };
+    };
+
+
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
@@ -46,10 +56,10 @@ protected:
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
     float _ipd { 0.064f };
-    using EyePoses = std::array<glm::mat4, 2>;
-    QMap<uint32_t, EyePoses> _renderEyePoses;
-    EyePoses _currentRenderEyePoses;
-    ThreadSafeValueCache<glm::mat4> _headPoseCache { glm::mat4() };
+
+    QMap<uint32_t, FrameInfo> _frameInfos;
+    FrameInfo _currentPresentFrameInfo;
+    ThreadSafeValueCache<FrameInfo> _currentRenderFrameInfo;
 
 private:
     bool _enablePreview { false };

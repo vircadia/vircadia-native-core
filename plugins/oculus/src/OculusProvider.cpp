@@ -18,6 +18,7 @@
 
 #include "OculusDisplayPlugin.h"
 #include "OculusDebugDisplayPlugin.h"
+#include "OculusControllerManager.h"
 
 class OculusProvider : public QObject, public DisplayProvider, InputProvider
 {
@@ -51,8 +52,6 @@ public:
     }
 
     virtual InputPluginList getInputPlugins() override {
-        // FIXME pending full oculus input API and hardware
-#if 0
         static std::once_flag once;
         std::call_once(once, [&] {
             InputPluginPointer plugin(new OculusControllerManager());
@@ -60,7 +59,6 @@ public:
                 _inputPlugins.push_back(plugin);
             }
         });
-#endif
         return _inputPlugins;
     }
 

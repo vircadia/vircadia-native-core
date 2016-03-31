@@ -34,6 +34,7 @@ namespace render {
         Q_PROPERTY(qint64 textureCPUMemoryUsage MEMBER textureCPUMemoryUsage NOTIFY dirty)
         Q_PROPERTY(qint64 textureGPUMemoryUsage MEMBER textureGPUMemoryUsage NOTIFY dirty)
 
+        Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallRate MEMBER frameDrawcallRate NOTIFY dirty)
 
@@ -57,6 +58,7 @@ namespace render {
         qint64 textureCPUMemoryUsage{ 0 };
         qint64 textureGPUMemoryUsage{ 0 };
 
+        quint32 frameAPIDrawcallCount{ 0 };
         quint32 frameDrawcallCount{ 0 };
         quint32 frameDrawcallRate{ 0 };
 
