@@ -39,6 +39,12 @@
 }
 
 @font-face {
+    font-family: AnonymousPro-Regular;
+    src: url(../../resources/fonts/AnonymousPro-Regular.ttf), 
+         url(../../interface/resources/fonts/AnonymousPro-Regular.ttf);
+}
+
+@font-face {
     font-family: HiFi-Glyphs;
     src: url(../../resources/fonts/hifi-glyphs.ttf), 
          url(../../interface/resources/fonts/hifi-glyphs.ttf);
@@ -182,6 +188,8 @@ input[type="text"], input[type="number"], textarea {
 }
 
 textarea {
+    font-family: AnonymousPro-Regular;
+    font-size: 16px;
     padding-top: 5px;
     padding-bottom: 5px;
     min-height: 64px;
