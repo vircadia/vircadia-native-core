@@ -429,7 +429,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
 
         // get the script engine object to load the script at the designated script URL
-        scriptEngine->loadURL(QUrl(expandScriptUrl(scriptUrl.toString())), reload);
+        scriptEngine->loadURL(scriptUrl, reload);
     }
 
     return scriptEngine;

@@ -309,6 +309,9 @@ void ScriptsModel::rebuildTree() {
             QString hash;
             QStringList pathList = script->getLocalPath().split(tr("/"));
             pathList.removeLast();
+            if (pathList.isEmpty()) {
+                continue;
+            }
             QStringList::const_iterator pathIterator;
             for (pathIterator = pathList.constBegin(); pathIterator != pathList.constEnd(); ++pathIterator) {
                 hash.append(*pathIterator + "/");

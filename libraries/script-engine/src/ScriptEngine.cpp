@@ -220,10 +220,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
         return;
     }
 
-    _fileNameString = scriptURL.toString();
+    QUrl url = expandScriptUrl(normalizeScriptURL(scriptURL));
+    _fileNameString = url.toString();
     _isReloading = reload;
-
-    QUrl url(scriptURL);
 
     bool isPending;
     auto scriptCache = DependencyManager::get<ScriptCache>();
