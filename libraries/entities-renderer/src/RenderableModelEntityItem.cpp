@@ -116,8 +116,15 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
 
     QJsonParseError error;
     QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
+    // If textures are invalid, revert to original textures
     if (error.error != QJsonParseError::NoError) {
         qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << textures;
+        return _originalTextures;
+    }
+
+    QVariantMap texturesMap = texturesJson.toVariant().toMap();
+    // If textures are unset, revert to original textures
+    if (texturesMap.isEmpty()) {
         return _originalTextures;
     }
 
