@@ -23,21 +23,24 @@
         },
 
         modelEmitOn: function(discModel) {
+            var data = {
+                "Tex.Lamp-Bulldog": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/dog_statue.jpg",
+                "Texture.001": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/Emissive-Map.png"
+            }
+
             Entities.editEntity(glowDisc, {
-                textures: {
-                    "Tex.Lamp-Bulldog": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/dog_statue.jpg",
-                    "Texture.001": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/Emissive-Map.png"
-                }
+                textures: JSON.stringify(data)
             })
 
         },
 
         modelEmitOff: function(discModel) {
+            var data = {
+                "Tex.Lamp-Bulldog": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/dog_statue.jpg",
+                "Texture.001": ""
+            };
             Entities.editEntity(glowDisc, {
-                textures: {
-                    "Tex.Lamp-Bulldog": "http://hifi-content.s3.amazonaws.com/alan/dev/Lamp-Bulldog-Base.fbx/Lamp-Bulldog-Base.fbm/dog_statue.jpg",
-                    "Texture.001": ""
-                }
+                textures: JSON.stringify(data)
             })
         },
 
