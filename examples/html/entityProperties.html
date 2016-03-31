@@ -1244,8 +1244,6 @@
                 var div = elDropdowns[i].parentNode;
 
                 var dl = document.createElement("dl");
-                // FIXME: Test with Qt 5.6 and remove li.style setting if no longer needed; style is set in CSS.
-                dl.style = "font-family:FiraSans-SemiBold;"  // For OSX
                 div.appendChild(dl);
 
                 var dt = document.createElement("dt");
@@ -1260,8 +1258,6 @@
                 dt.appendChild(span);
 
                 var span = document.createElement("span");
-                // FIXME: Test with Qt 5.6 and remove li.style setting if no longer needed; style is set in CSS.
-                span.style = "font-family:HiFi-Glyphs";  // For OSX
                 span.textContent = "5";  // caratDn
                 dt.appendChild(span);
 
@@ -1273,8 +1269,6 @@
 
                 for (var j = 0; j < options.length; j++) {
                     var li = document.createElement("li");
-                    li.style = "font-family:FiraSans-SemiBold;"  // For OSX
-                    // FIXME: Test with Qt 5.6 and remove li.style setting if no longer needed; style is set in CSS.
                     li.setAttribute("value", options[j].value);
                     li.textContent = options[j].firstChild.textContent;
                     li.addEventListener("click", setDropdownValue);
