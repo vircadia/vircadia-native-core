@@ -166,15 +166,15 @@
                 z: 0
             });
 
-            var myPlant = new Plant({
-                x: 1099.8785,
-                y: 460.3115,
-                z: -84.7736
-            }, {
-                x: 0,
-                y: 0,
-                z: 0
-            });
+            // var myPlant = new Plant({
+            //     x: 1099.8785,
+            //     y: 460.3115,
+            //     z: -84.7736
+            // }, {
+            //     x: 0,
+            //     y: 0,
+            //     z: 0
+            // });
 
             var pingPongGun = new HomePingPongGun({
                 x: 1101.2123,

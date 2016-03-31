@@ -102,7 +102,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             type: 'Model',
             modelURL: LID_MODEL_URL,
             dimensions: LID_DIMENSIONS,
-            position: backPosition,
+            position: baseProps.position,
             registrationPoint: LID_REGISTRATION_POINT,
             dynamic: false,
             script: LID_SCRIPT_URL,
