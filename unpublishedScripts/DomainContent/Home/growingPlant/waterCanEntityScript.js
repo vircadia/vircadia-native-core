@@ -86,12 +86,12 @@
             var forwardVec = Quat.getFront(rotation);
             if (forwardVec.y < _this.POUR_ANGLE_THRESHOLD) {
                 // Water is pouring
-                var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
+                _this.spoutProps= Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
                 _this.castRay();
                 if (!_this.waterPouring) {
                     _this.startPouring();
                 }
-                _this.waterSpoutRotation = spoutProps.rotation;
+                _this.waterSpoutRotation = _this.spoutProps.rotation;
                 var waterEmitOrientation = Quat.multiply(_this.waterSpoutRotation, Quat.fromPitchYawRollDegrees(0, 180, 0));
                 Entities.editEntity(_this.waterEffect, {
                     emitOrientation: waterEmitOrientation
@@ -125,7 +125,7 @@
             _this.waterPouring = true;
             if (!_this.waterInjector) {
                 _this.waterInjector = Audio.playSound(_this.waterSound, {
-                    position: spoutProps.position,
+                    position: _this.spoutProps.position,
                     loop: true
                 });
 
@@ -214,9 +214,7 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                // textures: "atp:/growingPlant/raindrop.png",
-                //EBL REMOVE ME
-                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
+                textures: "atp:/growingPlant/raindrop.png",
                 userData: JSON.stringify({
                     'hifiHomeKey': {
                         'reset': true

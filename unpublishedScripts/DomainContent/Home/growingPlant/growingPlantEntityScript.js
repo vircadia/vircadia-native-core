@@ -33,9 +33,7 @@
             max: 1000
         };
         _this.canCreateFlower = true;
-        // _this.SHADER_URL = "atp:/shaders/flower.fs";
-        // EBL REMOVE ME
-        _this.SHADER_URL = Script.resolvePath("flower.fs");
+        _this.SHADER_URL = "atp:/shaders/flower.fs";
 
         _this.flowerHSLColors = [{
             hue: 19 / 360,

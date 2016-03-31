@@ -11,12 +11,9 @@
 //
 
 //
-// var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
-// var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
+var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
 
-//EBL REMOVE ME
-var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js");
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js"); 
 Plant = function(spawnPosition, spawnRotation) {
   print("EBL PLANT CONSTRUCTOR!")
   var orientation;
@@ -27,11 +24,8 @@ Plant = function(spawnPosition, spawnRotation) {
   }
   print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
-  // var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
-  var BOWL_COLLISION_HULL_URL = "atp:/growingPlant/bowl.obj";
+  var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
 
-//EBL REMOVE ME
-  var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
   var bowlDimensions = {
     x: 0.518,
     y: 0.1938,
@@ -41,9 +35,9 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
-    // dynamic: true,
-    shapeType: 'box',
-    // compoundShapeURL: BOWL_COLLISION_HULL_URL,
+    dynamic: true,
+    shapeType: 'compound',
+    compoundShapeURL: BOWL_COLLISION_HULL_URL,
     name: "home_model_plantNowl",
     position: bowlPosition,
     userData: JSON.stringify({
@@ -55,9 +49,7 @@ Plant = function(spawnPosition, spawnRotation) {
 
 
 
-  //var PLANT_MODEL_URL = "atp:/growingPlant/Flowers-Rock.fbx";
-  //EBL REMOVE ME
-  var PLANT_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Moss-Rock.fbx";
+  var PLANT_MODEL_URL = "atp:/growingPlant/Flowers-Rock.fbx";
   var plantDimensions = {
     x: 0.52,
     y: 0.2600,
@@ -84,16 +76,14 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  // var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
-  // EBL REMOVE ME
-  var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx?v1" + Math.random();
+  var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
   var WATER_CAN_COLLIISION_HULL_URL = "atp:/growingPlant/can.obj";
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
     type: "Model",
-    shapeType: 'box',
-    // compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
+    shapeType: 'compound',
+    compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
     name: "home_model_waterCan",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,
