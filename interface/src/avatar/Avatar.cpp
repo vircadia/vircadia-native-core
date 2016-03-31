@@ -141,7 +141,7 @@ AABox Avatar::getBounds() const {
     if (!_skeletonModel->isRenderable()) {
         return AABox(getPosition(), getUniformScale()); // approximately 2m tall, scaled to user request.
     }
-    return _skeletonModel->getPartBounds(0, 0, getPosition(), getOrientation());
+    return _skeletonModel->getRenderableMeshBound();
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {

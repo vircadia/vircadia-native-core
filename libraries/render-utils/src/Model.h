@@ -99,7 +99,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     void updateRenderItems();
-    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation) const;
+    AABox getRenderableMeshBound() const;
 
     bool maybeStartBlender();
 
@@ -206,8 +206,6 @@ public:
 
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
-
-    void enqueueLocationChange();
 
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
