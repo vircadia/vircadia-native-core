@@ -11,26 +11,29 @@
 
 #include "CongestionControl.h"
 
+#include <random>
+
 #include "Packet.h"
 
 using namespace udt;
 using namespace std::chrono;
 
 static const double USECS_PER_SECOND = 1000000.0;
+static const int BITS_PER_BYTE = 8;
 
 void CongestionControl::setMaxBandwidth(int maxBandwidth) {
-    _maxBandwidth = maxBandwidth / 8;
+    _maxBandwidth = maxBandwidth;
     setPacketSendPeriod(_packetSendPeriod);
 }
 
 void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
     Q_ASSERT_X(newSendPeriod >= 0, "CongestionControl::setPacketPeriod", "Can not set a negative packet send period");
 
-    auto maxBandwidth = _maxBandwidth.load();
-    if (maxBandwidth > 0) {
+    auto packetsPerSecond = (double)_maxBandwidth / (BITS_PER_BYTE * _mss);
+    if (packetsPerSecond > 0.0) {
         // anytime the packet send period is about to be increased, make sure it stays below the minimum period,
         // calculated based on the maximum desired bandwidth
-        double minPacketSendPeriod = USECS_PER_SECOND / (((double) maxBandwidth) / _mss);
+        double minPacketSendPeriod = USECS_PER_SECOND / packetsPerSecond;
         _packetSendPeriod = std::max(newSendPeriod, minPacketSendPeriod);
     } else {
         _packetSendPeriod = newSendPeriod;
@@ -38,10 +41,7 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
 }
 
 DefaultCC::DefaultCC() :
-    _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX }),
-    _rd(),
-    _generator(_rd()),
-    _distribution(1, 1)
+    _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
 {
     _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
     
@@ -146,7 +146,8 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
     }
 
     _loss = true;
-    
+    ++_nakCount;
+
     static const double INTER_PACKET_ARRIVAL_INCREASE = 1.125;
     static const int MAX_DECREASES_PER_CONGESTION_EPOCH = 5;
 
@@ -157,16 +158,16 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
 
         _lastDecreasePeriod = _packetSendPeriod;
 
-        // use EWMA to update the average number of NAKs per congestion
-        static const double NAK_EWMA_ALPHA = 0.125;
-        _avgNAKNum = (int)ceil(_avgNAKNum * (1 - NAK_EWMA_ALPHA) + _nakCount * NAK_EWMA_ALPHA);
-
         if (!_delayedDecrease) {
             setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
         } else {
             _loss = false;
         }
 
+        // use EWMA to update the average number of NAKs per congestion
+        static const double NAK_EWMA_ALPHA = 0.125;
+        _avgNAKNum = (int)ceil(_avgNAKNum * (1 - NAK_EWMA_ALPHA) + _nakCount * NAK_EWMA_ALPHA);
+        
         // update the count of NAKs and count of decreases in this interval
         _nakCount = 1;
         _decreaseCount = 1;
@@ -177,24 +178,20 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
             _randomDecreaseThreshold = 1;
         } else {
             // avoid synchronous rate decrease across connections using randomization
-            if (_distribution.b() != _avgNAKNum) {
-                _distribution = std::uniform_int_distribution<>(1, std::max(1, _avgNAKNum));
-            }
+            std::random_device rd;
+            std::mt19937 generator(rd());
+            std::uniform_int_distribution<> distribution(1, std::max(1, _avgNAKNum));
 
-            _randomDecreaseThreshold = _distribution(_generator);
+            _randomDecreaseThreshold = distribution(generator);
         }
-    } else  {
-        ++_nakCount;
+    } else if (_delayedDecrease && _nakCount == 2) {
+        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+    } else if ((_decreaseCount++ < MAX_DECREASES_PER_CONGESTION_EPOCH) && ((_nakCount % _randomDecreaseThreshold) == 0)) {
+        // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
+        // decided we would decrease the packet send period
 
-        if (_delayedDecrease && _nakCount == 2) {
-            setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
-        } else if ((_decreaseCount++ < MAX_DECREASES_PER_CONGESTION_EPOCH) && ((_nakCount % _randomDecreaseThreshold) == 0)) {
-            // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
-            // decided we would decrease the packet send period
-
-            setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
-            _lastDecreaseMaxSeq = _sendCurrSeqNum;
-        }
+        setPacketSendPeriod(ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE));
+        _lastDecreaseMaxSeq = _sendCurrSeqNum;
     }
 }
 
