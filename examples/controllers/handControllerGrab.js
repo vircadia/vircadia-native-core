@@ -858,9 +858,13 @@ function MyController(hand) {
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
+        var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
+                                                           Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
+
         var distantPickRay = {
             origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
-            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : Vec3.mix(Quat.getUp(this.getHandRotation()),
+            direction: PICK_WITH_HAND_RAY ? Quat.getUp(controllerRotation) : Vec3.mix(Quat.getUp(controllerRotation),
                                                                                           Quat.getFront(Camera.orientation),
                                                                                           HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
@@ -1118,6 +1122,9 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.currentCameraOrientation = Camera.orientation;
 
+        this.grabRadius = Vec3.distance(this.currentObjectPosition, controllerPosition);
+        this.grabRadialVelocity = 0.0;
+
         // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
         this.radiusScalar = Math.log(Vec3.distance(this.currentObjectPosition, controllerPosition) + 1.0);
         if (this.radiusScalar < 1.0) {
@@ -1175,17 +1182,8 @@ function MyController(hand) {
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
 
-        // // switch from far grab to near equip
-        // if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
-        //     this.hasPresetOffsets()) {
-        //     var saveGrabbedID = this.grabbedEntity;
-        //     this.release();
-        //     this.setState(STATE_EQUIP);
-        //     this.grabbedEntity = saveGrabbedID;
-        //     return;
-        // }
-
         var now = Date.now();
+        var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
 
         // the action was set up on a previous call.  update the targets.
@@ -1206,7 +1204,7 @@ function MyController(hand) {
 
         // update the currentObject position and rotation.
         this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
-        this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
+        // this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         this.callEntityMethodOnGrabbed("continueDistantGrab");
 
@@ -1215,6 +1213,25 @@ function MyController(hand) {
         };
 
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
+
+        //  Update radialVelocity
+        var lastVelocity = Vec3.subtract(controllerPosition, this.previousControllerPosition);
+        lastVelocity = Vec3.multiply(lastVelocity, 1.0 / deltaTime);
+        var newRadialVelocity = Vec3.dot(lastVelocity,
+                                         Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
+
+        var VELOCITY_AVERAGING_TIME = 0.016;
+        this.grabRadialVelocity = (deltaTime / VELOCITY_AVERAGING_TIME) * newRadialVelocity +
+            (1.0 - (deltaTime / VELOCITY_AVERAGING_TIME)) * this.grabRadialVelocity;
+
+        var RADIAL_GRAB_AMPLIFIER = 10.0;
+        if (Math.abs(this.grabRadialVelocity) > 0.0) {
+            this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaTime * this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+        }
+
+        var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(controllerRotation));
+        newTargetPosition = Vec3.sum(newTargetPosition, controllerPosition);
+
 
         var objectToAvatar = Vec3.subtract(this.currentObjectPosition, MyAvatar.position);
         if (handControllerData.disableMoveWithHead !== true) {
@@ -1277,7 +1294,7 @@ function MyController(hand) {
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
-            targetPosition: targetPosition,
+            targetPosition: newTargetPosition,
             linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             targetRotation: this.currentObjectRotation,
             angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
