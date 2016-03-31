@@ -9,7 +9,10 @@
 #include "OculusHelpers.h"
 
 #include <atomic>
+
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
@@ -38,9 +41,23 @@ void logFatal(const char* what) {
     qFatal(error.c_str());
 }
 
+static const QString OCULUS_RUNTIME_PATH { "C:\\Program Files (x86)\\Oculus\\Support\\oculus-runtime" };
+static const QString GOOD_OCULUS_RUNTIME_FILE { OCULUS_RUNTIME_PATH + "\\LibOVRRT64_1.dll" };
+
 bool oculusAvailable() {
     ovrDetectResult detect = ovr_Detect(0);
-    return (detect.IsOculusServiceRunning && detect.IsOculusHMDConnected);
+    if (!detect.IsOculusServiceRunning || !detect.IsOculusHMDConnected) {
+        return false;
+    }
+
+    // HACK Explicitly check for the presence of the 1.0 runtime DLL, and fail if it 
+    // doesn't exist
+    if (!QFile(GOOD_OCULUS_RUNTIME_FILE).exists()) {
+        qCWarning(oculus) << "Oculus Runtime detected, but no 1.x DLL present: \"" + GOOD_OCULUS_RUNTIME_FILE + "\"";
+        return false;
+    }
+
+    return true;
 }
 
 ovrSession acquireOculusSession() {
@@ -98,9 +115,9 @@ SwapFramebufferWrapper::~SwapFramebufferWrapper() {
     destroyColor();
 }
 
-void SwapFramebufferWrapper::Increment() {
-    ++color->CurrentIndex;
-    color->CurrentIndex %= color->TextureCount;
+void SwapFramebufferWrapper::Commit() {
+    auto result = ovr_CommitTextureSwapChain(_session, color);
+    Q_ASSERT(OVR_SUCCESS(result));
 }
 
 void SwapFramebufferWrapper::Resize(const uvec2 & size) {
@@ -114,7 +131,7 @@ void SwapFramebufferWrapper::Resize(const uvec2 & size) {
 
 void SwapFramebufferWrapper::destroyColor() {
     if (color) {
-        ovr_DestroySwapTextureSet(_session, color);
+        ovr_DestroyTextureSwapChain(_session, color);
         color = nullptr;
     }
 }
@@ -122,13 +139,30 @@ void SwapFramebufferWrapper::destroyColor() {
 void SwapFramebufferWrapper::initColor() {
     destroyColor();
 
-    if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(_session, GL_SRGB8_ALPHA8, size.x, size.y, &color))) {
+    ovrTextureSwapChainDesc desc = {};
+    desc.Type = ovrTexture_2D;
+    desc.ArraySize = 1;
+    desc.Width = size.x;
+    desc.Height = size.y;
+    desc.MipLevels = 1;
+    desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+    desc.SampleCount = 1;
+    desc.StaticImage = ovrFalse;
+
+    ovrResult result = ovr_CreateTextureSwapChainGL(_session, &desc, &color);
+    if (!OVR_SUCCESS(result)) {
         logFatal("Failed to create swap textures");
     }
 
-    for (int i = 0; i < color->TextureCount; ++i) {
-        ovrGLTexture& ovrTex = (ovrGLTexture&)color->Textures[i];
-        glBindTexture(GL_TEXTURE_2D, ovrTex.OGL.TexId);
+    int length = 0;
+    result = ovr_GetTextureSwapChainLength(_session, color, &length);
+    if (!OVR_SUCCESS(result) || !length) {
+        qFatal("Unable to count swap chain textures");
+    }
+    for (int i = 0; i < length; ++i) {
+        GLuint chainTexId;
+        ovr_GetTextureSwapChainBufferGL(_session, color, i, &chainTexId);
+        glBindTexture(GL_TEXTURE_2D, chainTexId);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -141,8 +175,11 @@ void SwapFramebufferWrapper::initDone() {
 }
 
 void SwapFramebufferWrapper::onBind(oglplus::Framebuffer::Target target) {
-    ovrGLTexture& tex = (ovrGLTexture&)(color->Textures[color->CurrentIndex]);
-    glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.OGL.TexId, 0);
+    int curIndex;
+    ovr_GetTextureSwapChainCurrentIndex(_session, color, &curIndex);
+    GLuint curTexId;
+    ovr_GetTextureSwapChainBufferGL(_session, color, curIndex, &curTexId);
+    glFramebufferTexture2D(toEnum(target), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, curTexId, 0);
 }
 
 void SwapFramebufferWrapper::onUnbind(oglplus::Framebuffer::Target target) {

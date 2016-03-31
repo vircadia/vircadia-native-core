@@ -12,14 +12,19 @@
 #include "OculusHelpers.h"
 
 void OculusBaseDisplayPlugin::resetSensors() {
-    ovr_RecenterPose(_session);
+    ovr_RecenterTrackingOrigin(_session);
 }
 
-void OculusBaseDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
-    auto displayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, displayTime, true);
-    mat4 headPose = toGlm(trackingState.HeadPose.ThePose);
-    _headPoseCache.set(headPose);
+void OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    FrameInfo frame;
+    frame.sensorSampleTime = ovr_GetTimeInSeconds();;
+    frame.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
+    auto trackingState = ovr_GetTrackingState(_session, frame.predictedDisplayTime, ovrTrue);
+    frame.headPose = toGlm(trackingState.HeadPose.ThePose);
+
+    _currentRenderFrameInfo.set(frame);
+    Lock lock(_mutex);
+    _frameInfos[frameIndex] = frame;
 }
 
 bool OculusBaseDisplayPlugin::isSupported() const {
@@ -42,36 +47,30 @@ bool OculusBaseDisplayPlugin::internalActivate() {
 
     _hmdDesc = ovr_GetHmdDesc(_session);
 
-    _ipd = ovr_GetFloat(_session, OVR_KEY_IPD, _ipd);
-
     glm::uvec2 eyeSizes[2];
     _viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
 
+    _ipd = 0;
     ovr_for_each_eye([&](ovrEyeType eye) {
         _eyeFovs[eye] = _hmdDesc.DefaultEyeFov[eye];
         ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovr_GetRenderDesc(_session, eye, _eyeFovs[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
-            ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
+            ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_ClipRangeOpenGL);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-        _eyeOffsets[eye] = glm::translate(mat4(), toGlm(erd.HmdToEyeViewOffset));
+        _eyeOffsets[eye] = glm::translate(mat4(), toGlm(erd.HmdToEyeOffset));
         eyeSizes[eye] = toGlm(ovr_GetFovTextureSize(_session, eye, erd.Fov, 1.0f));
-        _viewScaleDesc.HmdToEyeViewOffset[eye] = erd.HmdToEyeViewOffset;
+        _viewScaleDesc.HmdToEyeOffset[eye] = erd.HmdToEyeOffset;
+        _ipd += glm::abs(glm::length(toGlm(erd.HmdToEyeOffset)));
     });
 
     auto combinedFov = _eyeFovs[0];
     combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
-    _cullingProjection = toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
+    _cullingProjection = toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_ClipRangeOpenGL));
 
     _renderTargetSize = uvec2(
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
 
-    if (!OVR_SUCCESS(ovr_ConfigureTracking(_session,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
-        logWarning("Failed to attach to sensor device");
-    }
-
-    // Parent class relies on our _session intialization, so it must come after that.
     memset(&_sceneLayer, 0, sizeof(ovrLayerEyeFov));
     _sceneLayer.Header.Type = ovrLayerType_EyeFov;
     _sceneLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
