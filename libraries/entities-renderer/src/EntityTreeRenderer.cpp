@@ -159,14 +159,15 @@ void EntityTreeRenderer::update() {
 }
 
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
-    PerformanceTimer perfTimer("findBestZone");
     bool didUpdate = false;
-    float radius = 1.0f; // for now, assume 1 meter radius
+    float radius = 0.01f; // for now, assume 0.01 meter radius, because we actually check the point inside later
     QVector<EntityItemPointer> foundEntities;
 
     // find the entities near us
     // don't let someone else change our tree while we search
     _tree->withReadLock([&] {
+
+        // FIXME - if EntityTree had a findEntitiesContainingPoint() this could theoretically be a little faster
         std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
         // Whenever you're in an intersection between zones, we will always choose the smallest zone.
@@ -175,36 +176,37 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3&
         _bestZoneVolume = std::numeric_limits<float>::max();
 
         // create a list of entities that actually contain the avatar's position
-        foreach(EntityItemPointer entity, foundEntities) {
-            if (entity->contains(avatarPosition)) {
-                if (entitiesContainingAvatar) {
-                    *entitiesContainingAvatar << entity->getEntityItemID();
-                }
+        for (auto& entity : foundEntities) {
+            auto isZone = entity->getType() == EntityTypes::Zone;
+            auto hasScript = !entity->getScript().isEmpty();
 
-                // if this entity is a zone, use this time to determine the bestZone
-                if (entity->getType() == EntityTypes::Zone) {
-                    if (!entity->getVisible()) {
-                        #ifdef WANT_DEBUG
-                        qCDebug(entitiesrenderer) << "not visible";
-                        #endif
-                    } else {
+            // only consider entities that are zones or have scripts, all other entities can
+            // be ignored because they can have events fired on them.
+            // FIXME - this could be optimized further by determining if the script is loaded
+            // and if it has either an enterEntity or leaveEntity method
+            if (isZone || hasScript) {
+                // now check to see if the point contains our entity, this can be expensive if
+                // the entity has a collision hull
+                if (entity->contains(avatarPosition)) {
+                    if (entitiesContainingAvatar) {
+                        *entitiesContainingAvatar << entity->getEntityItemID();
+                    }
+
+                    // if this entity is a zone and visible, determine if it is the bestZone
+                    if (isZone && entity->getVisible()) {
                         float entityVolumeEstimate = entity->getVolumeEstimate();
                         if (entityVolumeEstimate < _bestZoneVolume) {
                             _bestZoneVolume = entityVolumeEstimate;
                             _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                        }
-                        else if (entityVolumeEstimate == _bestZoneVolume) {
+                        } else if (entityVolumeEstimate == _bestZoneVolume) {
+                            // in the case of the volume being equal, we will use the
+                            // EntityItemID to deterministically pick one entity over the other
                             if (!_bestZone) {
                                 _bestZoneVolume = entityVolumeEstimate;
                                 _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                            }
-                            else {
-                                // in the case of the volume being equal, we will use the
-                                // EntityItemID to deterministically pick one entity over the other
-                                if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
-                                    _bestZoneVolume = entityVolumeEstimate;
-                                    _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                                }
+                            } else if (entity->getEntityItemID() < _bestZone->getEntityItemID()) {
+                                _bestZoneVolume = entityVolumeEstimate;
+                                _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
                             }
                         }
                     }
@@ -219,6 +221,7 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3&
     });
     return didUpdate;
 }
+
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
     PerformanceTimer perfTimer("checkEnterLeaveEntities");
     auto now = usecTimestampNow();
@@ -227,8 +230,15 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
-        // If we've moved "enough" check to see our enter/leave state
-        if (glm::distance(avatarPosition, _lastAvatarPosition) > ZONE_CHECK_DISTANCE) {
+        // we want to check our enter/leave state if we've moved a significant amount, or
+        // if some amount of time has elapsed since we last checked. We check the time
+        // elapsed because zones or entities might have been created "around us" while we've
+        // been stationary
+        auto movedEnough = glm::distance(avatarPosition, _lastAvatarPosition) > ZONE_CHECK_DISTANCE; 
+        auto enoughTimeElapsed = (now - _lastZoneCheck) > ZONE_CHECK_INTERVAL;
+        
+        if (movedEnough || enoughTimeElapsed) {
+            _lastZoneCheck = now;
             QVector<EntityItemID> entitiesContainingAvatar;
             didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, &entitiesContainingAvatar);
             
@@ -253,9 +263,6 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
-        } else if ((now - _lastZoneCheck) > ZONE_CHECK_INTERVAL) { // if it's been a while since checking zone state
-            _lastZoneCheck = now;
-            didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, nullptr);
         }
     }
     return didUpdate;
