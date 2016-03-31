@@ -181,6 +181,9 @@ public:
     /// For loading resources, returns the number of total bytes (<= zero if unknown).
     qint64 getBytesTotal() const { return _bytesTotal; }
 
+    /// For loaded resources, returns the number of actual bytes (defaults to total bytes if not explicitly set).
+    qint64 getBytes() const { return _bytes; }
+
     /// For loading resources, returns the load progress.
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
     
@@ -222,6 +225,9 @@ protected:
     /// This should be overridden by subclasses that need to process the data once it is downloaded.
     virtual void downloadFinished(const QByteArray& data) { finishedLoading(true); }
 
+    /// Called when the download is finished and processed, sets the number of actual bytes.
+    void setBytes(qint64 bytes) { _bytes = bytes; }
+
     /// Called when the download is finished and processed.
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
@@ -255,6 +261,7 @@ private:
     QTimer* _replyTimer = nullptr;
     qint64 _bytesReceived = 0;
     qint64 _bytesTotal = 0;
+    qint64 _bytes = 0;
     int _attempts = 0;
 };
 
