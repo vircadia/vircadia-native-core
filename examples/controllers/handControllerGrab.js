@@ -1008,7 +1008,7 @@ function MyController(hand) {
                 this.setState(near ? STATE_NEAR_TRIGGER : STATE_FAR_TRIGGER);
                 return;
             }
-            // near grab or equip with action
+            // near grab with action or equip
             var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
             var refCount = ("refCount" in grabData) ? grabData.refCount : 0;
             if (near && (refCount < 1 || entityHasActions(this.grabbedEntity))) {
@@ -1020,7 +1020,7 @@ function MyController(hand) {
                 }
                 return;
             }
-            // far grab or equip with action
+            // far grab
             if (isPhysical && !near) {
                 if (entityIsGrabbedByOther(this.grabbedEntity)) {
                     // don't distance grab something that is already grabbed.
@@ -1042,12 +1042,7 @@ function MyController(hand) {
                         intersectionPointToCenterDistance *
                         FAR_TO_NEAR_GRAB_PADDING_FACTOR);
                 }
-                // this.setState(this.state == STATE_SEARCHING ? STATE_DISTANCE_HOLDING : STATE_EQUIP);
-                if (this.state == STATE_SEARCHING) {
-                    this.setState(STATE_DISTANCE_HOLDING);
-                } else { // (this.state == STATE_HOLD_SEARCHING)
-                    this.setState(STATE_HOLD);
-                }
+                this.setState(STATE_DISTANCE_HOLDING);
 
                 this.searchSphereOff();
                 return;
