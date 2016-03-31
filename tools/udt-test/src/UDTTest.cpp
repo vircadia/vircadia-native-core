@@ -366,7 +366,7 @@ void UDTTest::sampleStats() {
     static const double USECS_PER_MSEC = 1000.0;
     static const double MEGABITS_PER_BYTE = 8.0 / 1000000.0;
     static const double MS_PER_SECOND = 1000.0;
-    static const double PPS_TO_MBPS = 1500.0 * 8.0 / 1000000.0;
+    static const double PPS_TO_MBPS = 1500.0 * MEGABITS_PER_BYTE;
 
 
     if (!_target.isNull()) {
