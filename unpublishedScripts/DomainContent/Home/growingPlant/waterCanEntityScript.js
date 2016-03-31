@@ -21,7 +21,7 @@
         _this.waterSound = SoundCache.getSound("atp:/growingPlant/watering_can_pour.L.wav");
         _this.POUR_ANGLE_THRESHOLD = 0;
         _this.waterPouring = false;
-        _this.WATER_SPOUT_NAME = "hifi-water-spout";
+        _this.WATER_SPOUT_NAME = "home_box_waterSpout";
         _this.GROWABLE_ENTITIES_SEARCH_RANGE = 100;
 
     };
@@ -229,20 +229,6 @@
             print("EBL PRELOADING WATER CAN")
             _this.entityID = entityID;
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-            // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
-            Script.setTimeout(function() {
-                var entities = Entities.findEntities(_this.position, 2);
-                print("EBL SEARCHING FOR SPOUT");
-                entities.forEach(function(entity) {
-                    var name = Entities.getEntityProperties(entity, "name").name;
-                    if (name === _this.WATER_SPOUT_NAME) {
-                        print("EBL FOUND SPOUT");
-                        _this.waterSpout = entity;
-                    }
-                });
-
-            }, 2000);
-
         },
 
 

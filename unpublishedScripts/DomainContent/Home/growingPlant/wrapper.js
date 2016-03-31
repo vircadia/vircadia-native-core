@@ -44,7 +44,7 @@ Plant = function(spawnPosition, spawnRotation) {
     // dynamic: true,
     shapeType: 'box',
     // compoundShapeURL: BOWL_COLLISION_HULL_URL,
-    name: "plant bowl",
+    name: "home_model_plantNowl",
     position: bowlPosition,
     userData: JSON.stringify({
       'hifiHomeKey': {
@@ -71,7 +71,7 @@ Plant = function(spawnPosition, spawnRotation) {
   var plant = Entities.addEntity({
     type: "Model",
     modelURL: PLANT_MODEL_URL,
-    name: "hifi-growable-plant",
+    name: "home_model_growablePlant",
     dimensions: plantDimensions,
     position: plantPosition,
     script: PLANT_SCRIPT_URL,
@@ -94,7 +94,7 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     shapeType: 'box',
     // compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
-    name: "hifi-water-can",
+    name: "home_model_waterCan",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,
     dimensions: {
@@ -151,9 +151,10 @@ Plant = function(spawnPosition, spawnRotation) {
 
   var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
   var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
+  var WATER_SPOUT_NAME = "home_box_waterSpout"; 
   var waterSpout = Entities.addEntity({
     type: "Box",
-    name: "hifi-water-spout",
+    name: WATER_SPOUT_NAME,
     dimensions: {
       x: 0.02,
       y: 0.02,
