@@ -55,11 +55,11 @@ Item {
     property var tick : 0
 
     function createValues() {
-        print("trigger is: " + JSON.stringify(trigger))
+       // print("trigger is: " + JSON.stringify(trigger))
         if (Array.isArray(plots)) {
             for (var i =0; i < plots.length; i++) {
                 var plot = plots[i];
-                print(" a pnew Plot:" + JSON.stringify(plot));
+               // print(" a pnew Plot:" + JSON.stringify(plot));
                 _values.push( {
                     object: (plot["object"] !== undefined ? plot["object"] : root.object),                      
                     value: plot["prop"],
@@ -73,13 +73,13 @@ Item {
                 })
             }
         }
-        print("in creator" + JSON.stringify(_values));
+       // print("in creator" + JSON.stringify(_values));
 
     }
 
     Component.onCompleted: {
         createValues();   
-        print(JSON.stringify(_values));
+        //print(JSON.stringify(_values));
                     
     }
 
