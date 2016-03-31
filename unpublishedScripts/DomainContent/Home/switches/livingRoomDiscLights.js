@@ -38,8 +38,8 @@
         modelEmitOff: function(glowDisc) {
             var data = {
                 "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
-                "Tex.CeilingLight.Emit": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",
-                "TexCeilingLight.Diffuse": ""
+                "Tex.CeilingLight.Emit": "",
+                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
             }
 
             Entities.editEntity(glowDisc, {
