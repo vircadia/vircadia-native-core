@@ -22,12 +22,13 @@ public:
     float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
 
 protected:
+    bool internalActivate() override;
     void hmdPresent() override;
     // FIXME update with Oculus API call once it's available in the SDK
     bool isHmdMounted() const override { return true; }
     void customizeContext() override;
     void uncustomizeContext() override;
-    void updateFrameData() override;
+    void cycleDebugOutput() override;
 
 private:
     static const QString NAME;

@@ -134,14 +134,13 @@ QEvent* OffscreenQmlRenderThread::Queue::take() {
 }
 
 OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
-    qDebug() << "Building QML Renderer: creating context";
+    qDebug() << "Building QML Renderer";
     if (!_canvas.create(shareContext)) {
-        static const char* error = "Failed to create OffscreenGLCanvas";
-        qWarning() << error;
-        throw error;
+        qWarning("Failed to create OffscreenGLCanvas");
+        _quit = true;
+        return;
     };
 
-    qDebug() << "Building QML Renderer: creating render control";
     _renderControl = new QMyQuickRenderControl();
     QQuickWindow::setDefaultAlphaBuffer(true);
     // Create a QQuickWindow that is associated with our render control.
@@ -149,18 +148,14 @@ OffscreenQmlRenderThread::OffscreenQmlRenderThread(OffscreenQmlSurface* surface,
     // NOTE: Must be created on the main thread so that OffscreenQmlSurface can send it events
     // NOTE: Must be created on the rendering thread or it will refuse to render,
     //       so we wait until after its ctor to move object/context to this thread.
-    qDebug() << "Building QML Renderer: creating window";
     _quickWindow = new QQuickWindow(_renderControl);
     _quickWindow->setColor(QColor(255, 255, 255, 0));
     _quickWindow->setFlags(_quickWindow->flags() | static_cast<Qt::WindowFlags>(Qt::WA_TranslucentBackground));
 
     // We can prepare, but we must wait to start() the thread until after the ctor
-    qDebug() << "Building QML Renderer: moving to own thread";
     _renderControl->prepareThread(this);
     _canvas.getContextObject()->moveToThread(this);
     moveToThread(this);
-
-    qDebug() << "Building QML Renderer: complete";
 
     _queue.add(INIT);
 }

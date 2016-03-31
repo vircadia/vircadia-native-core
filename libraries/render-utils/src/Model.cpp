@@ -131,6 +131,8 @@ void Model::setOffset(const glm::vec3& offset) {
 
 void Model::enqueueLocationChange() {
 
+    _needsUpdateClusterMatrices = true;
+
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
@@ -536,7 +538,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
             pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
         foreach (auto item, _collisionRenderItems.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }

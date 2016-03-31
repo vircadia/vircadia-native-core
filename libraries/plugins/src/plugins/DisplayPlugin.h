@@ -122,7 +122,7 @@ public:
     }
 
     // will query the underlying hmd api to compute the most recent head pose
-    virtual void updateHeadPose(uint32_t frameIndex) {}
+    virtual void beginFrameRender(uint32_t frameIndex) {}
 
     // returns a copy of the most recent head pose, computed via updateHeadPose
     virtual glm::mat4 getHeadPose() const {
@@ -141,6 +141,8 @@ public:
     virtual float devicePixelRatio() { return 1.0f; }
     virtual float presentRate() { return -1.0f; }
     uint32_t presentCount() const { return _presentedFrameIndex; }
+
+    virtual void cycleDebugOutput() {}
 
     static const QString& MENU_PATH();
 

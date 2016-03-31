@@ -435,8 +435,9 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                     float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
                     // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
                     // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
+                    const float OVER_CONSERVATIVE_SCALE = 1.1f;
                     if ((eyeHalfPlaneDistance > -nearRadius) &&
-                        (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+                        (glm::distance(eyePoint, glm::vec3(light->getPosition())) < (expandedRadius * OVER_CONSERVATIVE_SCALE) + nearRadius)) {
                         coneParam.w = 0.0f;
                         batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
@@ -452,6 +453,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                         batch.setProjectionTransform( projMats[side]);
                         batch.setViewTransform(viewTransforms[side]);
                     } else {
+                        light->setShowContour(false);
                         coneParam.w = 1.0f;
                         batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 

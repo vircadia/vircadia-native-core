@@ -12,19 +12,16 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 # 0.5 public
 #    URL http://static.oculus.com/sdk-downloads/ovr_sdk_win_0.5.0.1.zip
 #    URL_MD5 d3fc4c02db9be5ff08af4ef4c97b32f9
-# 0.6 public
-#    URL http://static.oculus.com/sdk-downloads/0.6.0.1/Public/1435190862/ovr_sdk_win_0.6.0.1.zip
-#    URL_MD5 4b3ef825f9a1d6d3035c9f6820687da9
-# 0.8 public
-#    URL http://static.oculus.com/sdk-downloads/0.8.0.0/Public/1445451746/ovr_sdk_win_0.8.0.0.zip
-#    URL_MD5 54944b03b95149d6010f84eb701b9647
+# 1.3 public 
+#    URL http://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.3.0_public.zip
+#    URL_MD5 4d26faba0c1f35ff80bf674c96ed9259
 
 if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://static.oculus.com/sdk-downloads/0.8.0.0/Public/1445451746/ovr_sdk_win_0.8.0.0.zip
-    URL_MD5 54944b03b95149d6010f84eb701b9647
+    URL http://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.3.0_public.zip
+    URL_MD5 a2dcf695e0f03a70fdd1ed7480585e82
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -33,14 +30,16 @@ if (WIN32)
 
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include CACHE TYPE INTERNAL)
+  set(LIBOVR_DIR ${SOURCE_DIR}/OculusSDK/LibOVR)
   if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Windows/x64/Release/VS2013/LibOVR.lib CACHE TYPE INTERNAL)
+    set(LIBOVR_LIB_DIR ${LIBOVR_DIR}/Lib/Windows/x64/Release/VS2013 CACHE TYPE INTERNAL)
   else()
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Windows/Win32/Release/VS2013/LibOVR.lib CACHE TYPE INTERNAL)
+    set(LIBOVR_LIB_DIR ${LIBOVR_DIR}/Lib/Windows/Win32/Release/VS2013 CACHE TYPE INTERNAL)
   endif()
 
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${LIBOVR_DIR}/Include CACHE TYPE INTERNAL)
+  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${LIBOVR_LIB_DIR}/LibOVR.lib CACHE TYPE INTERNAL)
+  
 elseif(APPLE)
   
   ExternalProject_Add(

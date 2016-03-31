@@ -121,22 +121,23 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
+void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
-    float displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-    float frameDuration = 1.f / displayFrequency;
-    float vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
+    double displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+    double frameDuration = 1.f / displayFrequency;
+    double vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
 
+    FrameInfo frame;
 #if THREADED_PRESENT
     // 3 frames of prediction + vsyncToPhotons = 44ms total
-    const float NUM_PREDICTION_FRAMES = 3.0f;
-    float predictedSecondsFromNow = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
+    const double NUM_PREDICTION_FRAMES = 3.0f;
+    frame.predictedDisplayTime = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
 #else
-    float predictedSecondsFromNow = frameDuration + vsyncToPhotons;
+    frame.predictedDisplayTime = frameDuration + vsyncToPhotons;
 #endif
 
     vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, predictedSecondsFromNow, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, frame.predictedDisplayTime, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
 
     // copy and process predictedTrackedDevicePoses
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
@@ -145,8 +146,11 @@ void OpenVrDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
         _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
         _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
+    frame.headPose = _trackedDevicePoseMat4[0];
+    _currentRenderFrameInfo.set(frame);
 
-    _headPoseCache.set(_trackedDevicePoseMat4[0]);
+    Lock lock(_mutex);
+    _frameInfos[frameIndex] = frame;
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {

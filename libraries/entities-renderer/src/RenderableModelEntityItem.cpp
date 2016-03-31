@@ -117,12 +117,11 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     QJsonParseError error;
     QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
-        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << textures;
         return _originalTextures;
     }
 
-    auto parsed = texturesJson.toVariant();
-    return parsed.toMap();
+    return texturesJson.toVariant().toMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
@@ -144,11 +143,17 @@ void RenderableModelEntityItem::remapTextures() {
         _currentTextures = _originalTextures;
     }
 
-    auto textures = parseTexturesToMap(_textures);
+    auto textures = getTextures();
+    if (textures == _lastTextures) {
+        return;
+    }
 
-    if (textures != _currentTextures) {
-        geometry->setTextures(textures);
-        _currentTextures = textures;
+    _lastTextures = textures;
+    auto newTextures = parseTexturesToMap(textures);
+
+    if (newTextures != _currentTextures) {
+        geometry->setTextures(newTextures);
+        _currentTextures = newTextures;
     }
 }
 
