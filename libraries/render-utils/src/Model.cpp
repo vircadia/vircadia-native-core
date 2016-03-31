@@ -538,7 +538,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
             pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
         foreach (auto item, _collisionRenderItems.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }

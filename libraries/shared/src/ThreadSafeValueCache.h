@@ -23,6 +23,7 @@
 template <typename T>
 class ThreadSafeValueCache {
 public:
+    ThreadSafeValueCache() {}
     ThreadSafeValueCache(const T& v) : _value { v } {}
 
     // returns atomic copy of the cached value.

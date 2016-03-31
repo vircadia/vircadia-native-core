@@ -35,10 +35,14 @@ void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
 
-void OculusLegacyDisplayPlugin::updateHeadPose(uint32_t frameIndex) {
+void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    FrameInfo frame;
+    frame.predictedDisplayTime = frame.sensorSampleTime = ovr_GetTimeInSeconds();
+    _trackingState = ovrHmd_GetTrackingState(_hmd, frame.predictedDisplayTime);
+    frame.headPose = toGlm(_trackingState.HeadPose.ThePose);
+    _currentRenderFrameInfo.set(frame);
     Lock lock(_mutex);
-    _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
-    _headPoseCache.set(toGlm(_trackingState.HeadPose.ThePose));
+    _frameInfos[frameIndex] = frame;
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
