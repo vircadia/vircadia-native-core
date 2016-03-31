@@ -285,7 +285,7 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
         }
 
         // Here the Texture has been fully defined from the gpu point of view (size and format)
-         _defined = true;
+        _defined = true;
     } else {
          _stamp++;
     }

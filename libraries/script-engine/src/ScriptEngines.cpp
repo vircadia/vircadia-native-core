@@ -397,7 +397,18 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
             Q_ARG(bool, reload));
         return result;
     }
-    QUrl scriptUrl = normalizeScriptURL(scriptFilename);
+    QUrl scriptUrl;
+    if (!scriptFilename.isValid() ||
+        (scriptFilename.scheme() != "http" &&
+         scriptFilename.scheme() != "https" &&
+         scriptFilename.scheme() != "atp" &&
+         scriptFilename.scheme() != "file")) {
+        // deal with a "url" like c:/something
+        scriptUrl = normalizeScriptURL(QUrl::fromLocalFile(scriptFilename.toString()));
+    } else {
+        scriptUrl = normalizeScriptURL(scriptFilename);
+    }
+
     auto scriptEngine = getScriptEngine(scriptUrl.toString());
     if (scriptEngine) {
         return scriptEngine;

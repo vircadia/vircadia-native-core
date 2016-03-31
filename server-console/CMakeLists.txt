@@ -23,7 +23,7 @@ add_dependencies(${TARGET_NAME} assignment-client domain-server)
 
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
-  set(PACKAGED_CONSOLE_FOLDER "Server\\ Console-darwin-x64/${CONSOLE_EXEC_NAME}")
+  set(PACKAGED_CONSOLE_FOLDER "Sandbox-darwin-x64/${CONSOLE_EXEC_NAME}")
 elseif (WIN32)
   set(PACKAGED_CONSOLE_FOLDER "server-console-win32-x64")
 elseif (UNIX)

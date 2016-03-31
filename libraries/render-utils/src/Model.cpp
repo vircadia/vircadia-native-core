@@ -131,6 +131,8 @@ void Model::setOffset(const glm::vec3& offset) {
 
 void Model::enqueueLocationChange() {
 
+    _needsUpdateClusterMatrices = true;
+
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
@@ -165,13 +167,15 @@ void Model::enqueueLocationChange() {
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
             pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset](ModelMeshPartPayload& data) {
+                // Ensure the model geometry was not reset between frames
+                if (data._model->isLoaded()) {
+                    // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                    data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
-                // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
-                data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
-
-                // update the model transform and bounding box for this render item.
-                const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
-                data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                    // update the model transform and bounding box for this render item.
+                    const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                    data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                }
             });
         }
 
@@ -536,7 +540,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
             pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
         }
         foreach (auto item, _collisionRenderItems.keys()) {
-            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }
@@ -1059,7 +1063,7 @@ void Model::simulateInternal(float deltaTime) {
 void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
-    if (!_needsUpdateClusterMatrices) {
+    if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
     _needsUpdateClusterMatrices = false;

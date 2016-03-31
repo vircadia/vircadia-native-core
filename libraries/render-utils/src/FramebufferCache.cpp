@@ -97,7 +97,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
 
     // FIXME: Decide on the proper one, let s stick to R11G11B10 for now
     //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, defaultSampler));
-    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::R11G11B10), width, height, defaultSampler));
+    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10), width, height, defaultSampler));
     //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
     _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);

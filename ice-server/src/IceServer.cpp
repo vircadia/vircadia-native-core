@@ -19,6 +19,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <LimitedNodeList.h>
+#include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
@@ -33,7 +34,8 @@ IceServer::IceServer(int argc, char* argv[]) :
     _id(QUuid::createUuid()),
     _serverSocket(),
     _activePeers(),
-    _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this)
+    _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _lastInactiveCheckTimestamp(QDateTime::currentMSecsSinceEpoch())
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
@@ -67,8 +69,6 @@ bool IceServer::packetVersionMatch(const udt::Packet& packet) {
 }
 
 void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
-
-    _lastPacketTimestamp = QDateTime::currentMSecsSinceEpoch();
 
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     
@@ -201,8 +201,8 @@ bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& pla
 
 void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     // send a request to the metaverse API for the public key for this domain
-    QNetworkAccessManager* manager = new QNetworkAccessManager { this };
-    connect(manager, &QNetworkAccessManager::finished, this, &IceServer::publicKeyReplyFinished);
+    auto& networkAccessManager = NetworkAccessManager::getInstance();
+    connect(&networkAccessManager, &QNetworkAccessManager::finished, this, &IceServer::publicKeyReplyFinished);
 
     QUrl publicKeyURL { NetworkingConstants::METAVERSE_SERVER_URL };
     QString publicKeyPath = QString("/api/v1/domains/%1/public_key").arg(uuidStringWithoutCurlyBraces(domainID));
@@ -213,7 +213,7 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
 
     qDebug() << "Requesting public key for domain with ID" << domainID;
 
-    manager->get(publicKeyRequest);
+    networkAccessManager.get(publicKeyRequest);
 }
 
 void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
@@ -281,6 +281,8 @@ void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSoc
 void IceServer::clearInactivePeers() {
     NetworkPeerHash::iterator peerItem = _activePeers.begin();
 
+    _lastInactiveCheckTimestamp = QDateTime::currentMSecsSinceEpoch();
+
     while (peerItem != _activePeers.end()) {
         SharedNetworkPeer peer = peerItem.value();
 
@@ -309,11 +311,14 @@ bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, b
 
             const quint64 MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET = 10 * 1000;
 
-            int statusNumber = (QDateTime::currentMSecsSinceEpoch() - _lastPacketTimestamp > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET)
-                                ? 1 : 0;
+            auto sinceLastInactiveCheck = QDateTime::currentMSecsSinceEpoch() - _lastInactiveCheckTimestamp;
+            int statusNumber = (sinceLastInactiveCheck > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET) ? 1 : 0;
 
             connection->respond(HTTPConnection::StatusCode200, QByteArray::number(statusNumber));
+
+            return true;
         }
     }
-    return true;
+
+    return false;
 }
