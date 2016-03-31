@@ -25,6 +25,8 @@ private slots:
     // This test is fine
     void modelItemTests();
 
+    void elementAddChildTests();
+
     // TODO: Break these into separate test functions
 };
 
