@@ -3,8 +3,7 @@ print('KINETIC INCLUDING WRAPPER')
 var BOOKS_URL = "atp:/kineticObjects/books.json"
 var UPPER_BOOKSHELF_URL = "atp:/kineticObjects/upperBookShelf.json"
 var LOWER_BOOKSHELF_URL = "atp:/kineticObjects/lowerBookShelf.json"
-var RIGHT_DESK_DRAWER_URL = "atp:/kineticObjects/rightDeskDrawer.json"
-var LEFT_DESK_DRAWER_URL = "atp:/kineticObjects/leftDeskDrawer.json"
+
 var CHAIR_URL = 'atp:/JSON/chair.json';
 
 var FRUIT_BOWL_URL = "atp:/kineticObjects/fruit.json"
@@ -92,53 +91,6 @@ LowerBookShelf = function(spawnLocation, spawnRotation) {
 
     function create() {
         var success = Clipboard.importEntities(LOWER_BOOKSHELF_URL);
-        if (success === true) {
-            created = Clipboard.pasteEntities(spawnLocation)
-            print('created ' + created);
-        }
-    };
-
-    function cleanup() {
-        created.forEach(function(obj) {
-            Entities.deleteEntity(obj);
-        })
-    };
-
-    create();
-
-    this.cleanup = cleanup;
-}
-
-RightDeskDrawer = function(spawnLocation, spawnRotation) {
-    print('CREATE RIGHT DRAWER')
-
-    var created = [];
-
-    function create() {
-        var success = Clipboard.importEntities(RIGHT_DESK_DRAWER_URL);
-        if (success === true) {
-            created = Clipboard.pasteEntities(spawnLocation)
-            print('created ' + created);
-        }
-    };
-
-    function cleanup() {
-        created.forEach(function(obj) {
-            Entities.deleteEntity(obj);
-        })
-    };
-
-    create();
-
-    this.cleanup = cleanup;
-}
-
-LeftDeskDrawer = function(spawnLocation, spawnRotation) {
-    print('CREATE LEFT DRAWER')
-    var created = [];
-
-    function create() {
-        var success = Clipboard.importEntities(LEFT_DESK_DRAWER_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
