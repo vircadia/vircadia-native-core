@@ -521,6 +521,9 @@ input[type=checkbox]:checked + label:hover {
 .dropdown dt:hover {
     color: #404040;
 }
+.dropdown dt:focus {
+    outline: none;
+}
 .dropdown dt span:first-child {
     display: inline-block;
     position: relative;
@@ -581,6 +584,9 @@ div.refresh input[type="button"] {
     background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVChTjcxBDoAwCETRwTs33sFjwB6uaCE1Ggvav5qQF7CSqu40dllHjYiOT3gh3yV8Ii+Fb+RNMEP9hm3sKENmBhG5P1aImWMH/EMerSAAOAFgTC/R8ZXSXAAAAABJRU5ErkJggg==);
     background-position: bottom right;
     background-repeat: no-repeat;
+}
+.color-picker:focus {
+    outline: none;
 }
 .color-picker[active="true"] {
     border-color: #000;
@@ -778,6 +784,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 #entity-table thead tr, #entity-table thead tr th,
 #entity-table tfoot tr, #entity-table tfoot tr td {
     background: none;
+}
+
+#entity-table th:focus {
+    outline: none;
 }
 
 #col-type {
