@@ -136,6 +136,8 @@ void AssetServer::completeSetup() {
 
     performMappingMigration();
 
+    cleanupUnmappedFiles();
+
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
 
@@ -183,6 +185,34 @@ void AssetServer::performMappingMigration() {
                 } else {
                     qDebug() << "\tCould not add migration mapping for" << hash << "since a mapping for" << fakeFileName
                         << "already exists.";
+                }
+            }
+        }
+    }
+}
+
+void AssetServer::cleanupUnmappedFiles() {
+    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}" };
+
+    auto files = _filesDirectory.entryInfoList(QDir::Files);
+
+    // grab the currently mapped hashes
+    auto mappedHashes = _fileMappings.values();
+
+    qDebug() << "Performing unmapped asset cleanup.";
+
+    for (const auto& fileInfo : files) {
+        if (hashFileRegex.exactMatch(fileInfo.fileName())) {
+            if (mappedHashes.contains(fileInfo.fileName())) {
+                qDebug() << "\tLeaving" << fileInfo.fileName() << "in asset files directory since it is mapped";
+            } else {
+                // remove the unmapped file
+                QFile removeableFile { fileInfo.absoluteFilePath() };
+
+                if (removeableFile.remove()) {
+                    qDebug() << "\tDeleted" << fileInfo.fileName() << "from asset files directory since it is unmapped.";
+                } else {
+                    qDebug() << "\tAttempt to delete unmapped file" << fileInfo.fileName() << "failed";
                 }
             }
         }

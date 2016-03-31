@@ -62,6 +62,9 @@ private:
 
     void performMappingMigration();
 
+    // deletes any unmapped files from the local asset directory
+    void cleanupUnmappedFiles();
+
     Mappings _fileMappings;
 
     QDir _resourcesDirectory;
