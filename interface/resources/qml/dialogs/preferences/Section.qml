@@ -44,7 +44,7 @@ Preference {
 
     children: [ contentContainer ]
 
-    height: contentContainer.height + (root.isLast ? 2 * hifi.dimensions.contentSpacing.y : 0)
+    height: contentContainer.height + (contentContainer.isCollapsed ? 0 : hifi.dimensions.controlInterlineHeight)
 
     Component.onCompleted: d.buildPreferences();
 

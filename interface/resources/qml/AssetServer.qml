@@ -416,7 +416,6 @@ Window {
             anchors.top: assetDirectory.bottom
             anchors.bottom: uploadSection.top
             anchors.margins: 12
-            anchors.bottomMargin: 0
             anchors.left: parent.left
             anchors.right: parent.right
 
@@ -445,7 +444,7 @@ Window {
             name: "Upload A File"
             spacing: hifi.dimensions.contentSpacing.y
             anchors.bottom: parent.bottom
-            height: 130
+            height: 92
 
             Item {
                 height: parent.height

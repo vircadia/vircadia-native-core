@@ -406,6 +406,10 @@ input[type=checkbox]:checked + label:hover {
     right: 6px;
 }
 
+.section-header[collapsed="true"] {
+    margin-bottom: -22px;
+}
+
 .text-group[collapsed="true"] ~ .text-group,
 .zone-group[collapsed="true"] ~ .zone-group,
 .web-group[collapsed="true"] ~ .web-group,

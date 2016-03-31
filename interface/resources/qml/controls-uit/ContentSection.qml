@@ -46,7 +46,7 @@ Column {
         Item {
             id: leadingSpace
             width: 1
-            height: isFirst ? hifi.dimensions.contentSpacing.y : hifi.dimensions.controlInterlineHeight
+            height: isFirst ? hifi.dimensions.contentSpacing.y : 0
             anchors.top: parent.top
         }
 
