@@ -1489,10 +1489,14 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
-    displayPlugin->updateHeadPose(_frameCount);
+    displayPlugin->beginFrameRender(_frameCount);
 
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
+
+    // update sensorToWorldMatrix for camera and hand controllers
+    getMyAvatar()->updateSensorToWorldMatrix();
+
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -2003,6 +2007,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     offscreenUi->getRootContext()->engine()->clearComponentCache();
                     //OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
+                }
+                break;
+
+            case Qt::Key_Y:
+                if (isShifted && isMeta) {
+                    getActiveDisplayPlugin()->cycleDebugOutput();
                 }
                 break;
 
@@ -2571,11 +2581,6 @@ void Application::idle(uint64_t now) {
         return; // bail early, nothing to do here.
     }
 
-    checkChangeCursor();
-
-    Stats::getInstance()->updateStats();
-    AvatarInputs::getInstance()->update();
-
     // These tasks need to be done on our first idle, because we don't want the showing of
     // overlay subwindows to do a showDesktop() until after the first time through
     static bool firstIdle = true;
@@ -2623,6 +2628,11 @@ void Application::idle(uint64_t now) {
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
+
+    checkChangeCursor();
+
+    Stats::getInstance()->updateStats();
+    AvatarInputs::getInstance()->update();
 
     {
         static uint64_t lastIdleStart{ now };
@@ -3347,9 +3357,10 @@ void Application::update(float deltaTime) {
         }
         {
             PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
-            PerformanceTimer perfTimer("havestChanges");
+            PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
+                    PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
                     _entitySimulation.handleOutgoingChanges(outgoingChanges, Physics::getSessionUUID());
                     avatarManager->handleOutgoingChanges(outgoingChanges);
@@ -3365,6 +3376,7 @@ void Application::update(float deltaTime) {
                     // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                     // deadlock.)
                     _entitySimulation.handleCollisionEvents(collisionEvents);
+
                     // NOTE: the getEntities()->update() call below will wait for lock
                     // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                     getEntities()->update(); // update the models...
@@ -3387,9 +3399,6 @@ void Application::update(float deltaTime) {
         }
 
         qApp->updateMyAvatarLookAtPosition();
-
-        // update sensorToWorldMatrix for camera and hand controllers
-        myAvatar->updateSensorToWorldMatrix();
 
         {
             PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());

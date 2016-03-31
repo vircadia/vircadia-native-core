@@ -20,7 +20,8 @@ public:
 
     // Stereo specific methods
     virtual void resetSensors() override final;
-    virtual void updateHeadPose(uint32_t frameIndex) override;
+    virtual void beginFrameRender(uint32_t frameIndex) override;
+    
 
 protected:
     void customizeContext() override;
@@ -28,9 +29,8 @@ protected:
     void internalDeactivate() override;
 
 protected:
-    ovrSession _session;
+    ovrSession _session { nullptr };
     ovrGraphicsLuid _luid;
-    float _ipd{ OVR_DEFAULT_IPD };
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrFovPort _eyeFovs[2];
     ovrHmdDesc _hmdDesc;
