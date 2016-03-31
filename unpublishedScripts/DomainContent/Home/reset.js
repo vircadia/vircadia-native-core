@@ -240,6 +240,13 @@
                 z: -79.8097
             });
 
+             var comfyChair = new BlueChair({
+                x: 1100.4821,
+                y: 459.8161,
+                z:-75.9071
+            });
+
+
             var trashcan = new Trashcan({
                 x: 1103.9034,
                 y: 459.4355,

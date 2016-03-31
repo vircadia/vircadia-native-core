@@ -4,7 +4,8 @@ var BOOKS_URL = "atp:/kineticObjects/books.json"
 var UPPER_BOOKSHELF_URL = "atp:/kineticObjects/upperBookShelf.json"
 var LOWER_BOOKSHELF_URL = "atp:/kineticObjects/lowerBookShelf.json"
 
-var CHAIR_URL = 'atp:/kineticObjects/chair.json';
+var CHAIR_URL = 'atp:/kineticObjects/deskChair.json';
+var BLUE_CHAIR_URL = 'atp:/kineticObjects/blueChair.json';
 
 var FRUIT_BOWL_URL = "atp:/kineticObjects/fruit.json"
 
@@ -114,6 +115,29 @@ Chair = function(spawnLocation, spawnRotation) {
 
     function create() {
         var success = Clipboard.importEntities(CHAIR_URL);
+        if (success === true) {
+            created = Clipboard.pasteEntities(spawnLocation)
+            print('created ' + created);
+        }
+    };
+
+    function cleanup() {
+        created.forEach(function(obj) {
+            Entities.deleteEntity(obj);
+        })
+    };
+
+    create();
+
+    this.cleanup = cleanup;
+}
+
+BlueChair = function(spawnLocation, spawnRotation) {
+    print('CREATE BLUE CHAIR')
+    var created = [];
+
+    function create() {
+        var success = Clipboard.importEntities(BLUE_CHAIR_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);

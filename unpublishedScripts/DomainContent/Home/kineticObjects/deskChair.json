@@ -2,7 +2,7 @@
     "Entities": [{
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "name": "hifi-home-model-chair",
-        "compoundShapeURL": "atp:/collision-hulls/simple-chair2.obj",
+        "compoundShapeURL": "atp:/kineticObjects/deskChair/simple-chair2.obj",
         "created": "2016-03-07T21:07:29Z",
         "dimensions": {
             "x": 0.66077238321304321,
@@ -16,7 +16,7 @@
             "z": 0
         },
         "id": "{d97c8a4e-9b95-448c-a729-5da9e22b6adc}",
-        "modelURL": "atp:/models/simple-chair2.fbx",
+        "modelURL": "atp:/kineticObjects/deskChair/simple-chair2.fbx",
         "queryAACube": {
             "scale": 1.439794659614563,
             "x": -0.71989732980728149,
