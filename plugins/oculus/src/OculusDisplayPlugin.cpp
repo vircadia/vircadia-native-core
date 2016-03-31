@@ -6,7 +6,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusDisplayPlugin.h"
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <Mmsystem.h>
+#include <mmdeviceapi.h>
+#include <devicetopology.h>
+#include <Functiondiscoverykeys_devpkey.h>
+#include <VersionHelpers.h>
+#endif
+
+#include <OVR_CAPI_Audio.h>
+#include <QtCore/QThread>
+
 #include <shared/NsightHelpers.h>
+#include <AudioClient.h>
 #include "OculusHelpers.h"
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
@@ -18,7 +33,36 @@ bool OculusDisplayPlugin::internalActivate() {
     if (result && _session) {
         ovr_SetInt(_session, OVR_PERF_HUD_MODE, currentDebugMode);
     }
+
+    auto audioClient = DependencyManager::get<AudioClient>();
+    QString riftAudioIn = getPreferredAudioInDevice();
+    if (riftAudioIn != QString()) {
+        _savedAudioIn = audioClient->getDeviceName(QAudio::Mode::AudioInput);
+        QMetaObject::invokeMethod(audioClient.data(), "switchInputToAudioDevice", Q_ARG(const QString&, riftAudioIn));
+    } else {
+        _savedAudioIn.clear();
+    }
+
+    QString riftAudioOut = getPreferredAudioOutDevice();
+    if (riftAudioOut != QString()) {
+        _savedAudioOut = audioClient->getDeviceName(QAudio::Mode::AudioOutput);
+        QMetaObject::invokeMethod(audioClient.data(), "switchOutputToAudioDevice", Q_ARG(const QString&, riftAudioOut));
+    } else {
+        _savedAudioOut.clear();
+    }
+
     return result;
+}
+
+void OculusDisplayPlugin::internalDeactivate() {
+    auto audioClient = DependencyManager::get<AudioClient>();
+    if (_savedAudioIn != QString()) {
+        QMetaObject::invokeMethod(audioClient.data(), "switchInputToAudioDevice", Q_ARG(const QString&, _savedAudioIn));
+    }
+    if (_savedAudioOut != QString()) {
+        QMetaObject::invokeMethod(audioClient.data(), "switchOutputToAudioDevice", Q_ARG(const QString&, _savedAudioOut));
+    }
+    Parent::internalDeactivate();
 }
 
 void OculusDisplayPlugin::cycleDebugOutput() {
@@ -86,3 +130,64 @@ void OculusDisplayPlugin::hmdPresent() {
         }
     }
 }
+
+bool OculusDisplayPlugin::isHmdMounted() const {
+    ovrSessionStatus status;
+    return (OVR_SUCCESS(ovr_GetSessionStatus(_session, &status)) && 
+        (ovrFalse != status.HmdMounted));
+}
+
+static QString audioDeviceFriendlyName(LPCWSTR device) {
+    QString deviceName;
+
+    HRESULT hr = S_OK;
+    CoInitialize(NULL);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    IMMDevice* pEndpoint;
+    hr = pMMDeviceEnumerator->GetDevice(device, &pEndpoint);
+    if (hr == E_NOTFOUND) {
+        printf("Audio Error: device not found\n");
+        deviceName = QString("NONE");
+    } else {
+        IPropertyStore* pPropertyStore;
+        pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
+        pEndpoint->Release();
+        pEndpoint = NULL;
+        PROPVARIANT pv;
+        PropVariantInit(&pv);
+        hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
+        pPropertyStore->Release();
+        pPropertyStore = NULL;
+        deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
+        if (!IsWindows8OrGreater()) {
+            // Windows 7 provides only the 31 first characters of the device name.
+            const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
+            deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
+        }
+        qDebug() << " device:" << deviceName;
+        PropVariantClear(&pv);
+    }
+    pMMDeviceEnumerator->Release();
+    pMMDeviceEnumerator = NULL;
+    CoUninitialize();
+    return deviceName;
+}
+
+
+QString OculusDisplayPlugin::getPreferredAudioInDevice() const { 
+    WCHAR buffer[OVR_AUDIO_MAX_DEVICE_STR_SIZE];
+    if (!OVR_SUCCESS(ovr_GetAudioDeviceInGuidStr(buffer))) {
+        return QString();
+    }
+    return audioDeviceFriendlyName(buffer);
+}
+
+QString OculusDisplayPlugin::getPreferredAudioOutDevice() const { 
+    WCHAR buffer[OVR_AUDIO_MAX_DEVICE_STR_SIZE];
+    if (!OVR_SUCCESS(ovr_GetAudioDeviceOutGuidStr(buffer))) {
+        return QString();
+    }
+    return audioDeviceFriendlyName(buffer);
+}
+
