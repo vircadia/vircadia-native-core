@@ -85,8 +85,8 @@ macro(GENERATE_INSTALLERS)
 
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
-  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Client")
-  cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Server")
+  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface")
+  cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Sandbox")
 
   include(CPack)
 endmacro()

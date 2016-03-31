@@ -552,9 +552,9 @@ float OpenGLDisplayPlugin::presentRate() {
     {
         Lock lock(_mutex);
         result = _usecsPerFrame.getAverage();
-        result = 1.0f / result; 
-        result *= USECS_PER_SECOND;
     }
+    result = 1.0f / result; 
+    result *= USECS_PER_SECOND;
     return result;
 }
 

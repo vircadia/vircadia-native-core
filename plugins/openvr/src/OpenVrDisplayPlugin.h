@@ -27,7 +27,7 @@ public:
 
     // Stereo specific methods
     virtual void resetSensors() override;
-    virtual void updateHeadPose(uint32_t frameIndex) override;
+    virtual void beginFrameRender(uint32_t frameIndex) override;
 
 protected:
     bool internalActivate() override;
