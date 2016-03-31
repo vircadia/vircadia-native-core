@@ -217,14 +217,6 @@ input.search {
     border-radius: 14px;
 }
 
-input.no-spin::-webkit-outer-spin-button,
-input.no-spin::-webkit-inner-spin-button {
-    display: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
-}
-
 input:disabled, textarea:disabled {
     background-color: #383838;
     color: #afafaf;
@@ -241,26 +233,44 @@ input[type="number"] {
     width: 120px;
 }
 
-/* Spin Buttons modified  - credit for original implementation goes to http://jsfiddle.net/Volker_E/WwfW9/ */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
+input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
-    background: #FFF url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAKUlEQVQYlWNgwAT/sYhhKPiPT+F/LJgEsHv37v+EMGkmkuImoh2NoQAANlcun/q4OoYAAAAASUVORK5CYII=) no-repeat center center;
-    width: 0.9em;
-    height: 22px;
-    opacity: 0.5; /* shows Spin Buttons per default (Chrome >= 39) */
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
-    border-bottom-left-radius: 3px;
+    opacity: 1.0;
+    display: block;
+    position: relative;
+    left: 5px;
+    width: 10px;
+    overflow: hidden;
+    color: #afafaf;
+    cursor: pointer;
+    /*background-color: #000000;*/
+}
+input[type=number]::-webkit-inner-spin-button:before,
+input[type=number]::-webkit-inner-spin-button:after {
+    position:absolute;
+    left: -21px;
+    font-family:hifi-glyphs;
+    text-align: center;
+    font-size: 52px;
+    line-height: 8px;
+}
+input[type=number]::-webkit-inner-spin-button:before {
+    content: "6";
+    top: 6px;
+}
+input[type=number]::-webkit-inner-spin-button:after {
+    content: "5";
+    bottom: 6px;
+}
+input[type="number"]::-webkit-inner-spin-button:hover {
+    color: #ffffff;
 }
 
-input[type="number"]::-webkit-inner-spin-button:hover,
-input[type="number"]::-webkit-inner-spin-button:active {
-    opacity: .8;
+input.no-spin::-webkit-outer-spin-button,
+input.no-spin::-webkit-inner-spin-button {
+    display: none;
+    -webkit-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
 }
 
 input[type=button] {
