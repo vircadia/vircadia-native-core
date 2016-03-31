@@ -19,7 +19,7 @@ using namespace std::chrono;
 static const double USECS_PER_SECOND = 1000000.0;
 
 void CongestionControl::setMaxBandwidth(int maxBandwidth) {
-    _maxBandwidth = maxBandwidth;
+    _maxBandwidth = maxBandwidth / 8;
     setPacketSendPeriod(_packetSendPeriod);
 }
 
