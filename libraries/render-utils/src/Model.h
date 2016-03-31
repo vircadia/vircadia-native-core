@@ -87,7 +87,10 @@ public:
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    bool showCollisionHull = false);
+                    bool showCollisionHull = false) {
+        auto getters = render::Item::Status::Getters(0);
+        return addToScene(scene, pendingChanges, getters, showCollisionHull);
+    }
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
                     render::Item::Status::Getters& statusGetters,

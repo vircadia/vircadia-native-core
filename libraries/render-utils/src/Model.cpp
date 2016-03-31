@@ -541,43 +541,6 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
     }
 }
 
-
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, bool showCollisionHull) {
-
-    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
-        _showCollisionHull = showCollisionHull;
-        segregateMeshGroups();
-    }
-
-    bool somethingAdded = false;
-
-    foreach (auto renderItem, _modelMeshRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _modelMeshRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _collisionRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _collisionRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    _readyWhenAdded = readyToAddToScene();
-
-    return somethingAdded;
-}
-
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters,
@@ -589,28 +552,48 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _modelMeshRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _modelMeshRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
+    if (_modelMeshRenderItems.size()) {
+        for (auto item : _modelMeshRenderItems.keys()) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+        }
+    } else {
+        for (auto renderItem : _modelMeshRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            if (statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
+            }
+            pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+            _modelMeshRenderItems.insert(item, renderPayload);
+            somethingAdded = true;
+        }
     }
 
-    foreach (auto renderItem, _collisionRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _collisionRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
+    if (_collisionRenderItems.size()) {
+        for (auto item : _collisionRenderItems.keys()) {
+            pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+        }
+    } else {
+        for (auto renderItem : _collisionRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
+            if (statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
+            }
+            pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+            _collisionRenderItems.insert(item, renderPayload);
+            somethingAdded = true;
+        }
     }
 
     _readyWhenAdded = readyToAddToScene();
