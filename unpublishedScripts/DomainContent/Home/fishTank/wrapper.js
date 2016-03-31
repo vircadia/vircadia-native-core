@@ -64,9 +64,9 @@ FishTank = function(spawnPosition, spawnRotation) {
     var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
 
-    var ANEMONE_FORWARD_OFFSET = -TANK_DIMENSIONS.x+0.1;
+    var ANEMONE_FORWARD_OFFSET = -TANK_DIMENSIONS.x+0.06;
     var ANEMONE_LATERAL_OFFSET = 0.2;
-    var ANEMONE_VERTICAL_OFFSET = -0.12;
+    var ANEMONE_VERTICAL_OFFSET = -0.16;
 
     var ANEMONE_MODEL_URL = 'atp:/fishTank/anemone.fbx';
     var ANEMONE_ANIMATION_URL = 'atp:/fishTank/anemone.fbx';

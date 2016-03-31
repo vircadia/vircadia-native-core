@@ -49,7 +49,6 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
     var LID_OFFSET = {
         x: 0,
         y: BASE_DIMENSIONS.y / 2,
-        // y: BASE_DIMENSIONS.y / 2 + (LID_DIMENSIONS.y / 2),
         z: 0
     };
 
@@ -104,7 +103,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             modelURL: LID_MODEL_URL,
             dimensions: LID_DIMENSIONS,
             position: backPosition,
-             registrationPoint: LID_REGISTRATION_POINT,
+            registrationPoint: LID_REGISTRATION_POINT,
             dynamic: false,
             script: LID_SCRIPT_URL,
             collidesWith: 'myAvatar,otherAvatar',

@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js");
 Plant = function(spawnPosition, spawnRotation) {
   var orientation;
   if (spawnRotation !== undefined) {
@@ -21,6 +21,7 @@ Plant = function(spawnPosition, spawnRotation) {
   print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
   var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
+  var BOWL_COLLISION_HULL_URL = "atp:/growingPlant/bowl.obj";
   var bowlDimensions = {
     x: 0.518,
     y: 0.1938,
@@ -30,6 +31,8 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
+    shapeType: 'compound',
+    compoundShapeURL: BOWL_COLLISION_HULL_URL,
     name: "plant bowl",
     position: bowlPosition,
     userData: JSON.stringify({
@@ -52,6 +55,7 @@ Plant = function(spawnPosition, spawnRotation) {
     y: plantDimensions.y / 2,
     z: 0
   });
+  
   var plant = Entities.addEntity({
     type: "Model",
     modelURL: PLANT_MODEL_URL,
@@ -67,15 +71,14 @@ Plant = function(spawnPosition, spawnRotation) {
     }),
   });
 
-
   var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
+  var WATER_CAN_COLLIISION_HULL_URL = "atp:/growingPlant/can.obj";
 
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
     type: "Model",
-    shapeType: 'box',
-    name: "hifi-water-can",
+    name: "hifi-water-can-newest",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,
     dimensions: {
@@ -83,6 +86,8 @@ Plant = function(spawnPosition, spawnRotation) {
       y: 0.2762,
       z: 0.4115
     },
+    shapeType: 'compound',
+    compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
     position: waterCanPosition,
     collisionSoundURL: "atp:/growingPlant/watering_can_drop.L.wav",
     angularDamping: 1,

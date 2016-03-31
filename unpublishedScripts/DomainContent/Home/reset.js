@@ -59,7 +59,7 @@
 
     Reset.prototype = {
         tidying: false,
-
+ 
         preload: function(entityID) {
             _this.entityID = entityID;
         },
@@ -297,7 +297,7 @@
             var rotatorBlockProps = {
                 name: 'hifi-home-dressing-room-rotator-block',
                 type: 'Box',
-                visible: true,
+                visible: false,
                 color: {
                     red: 0,
                     green: 255,
@@ -312,7 +312,7 @@
                 angularDamping: 0,
                 angularVelocity: {
                     x: 0,
-                    y: 6,
+                    y: 0.10472,
                     z: 0
                 },
                 dynamic: false,
