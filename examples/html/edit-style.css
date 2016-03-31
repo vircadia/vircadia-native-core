@@ -233,12 +233,14 @@ input[type="number"] {
     width: 120px;
 }
 
+input[type=number] {
+    padding-right: 6px;
+}
 input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     opacity: 1.0;
     display: block;
     position: relative;
-    left: 5px;
     width: 10px;
     overflow: hidden;
     color: #afafaf;
@@ -251,12 +253,12 @@ input[type=number]::-webkit-inner-spin-button:after {
     left: -21px;
     font-family:hifi-glyphs;
     text-align: center;
-    font-size: 52px;
+    font-size: 50px;
     line-height: 8px;
 }
 input[type=number]::-webkit-inner-spin-button:before {
     content: "6";
-    top: 6px;
+    top: 5px;
 }
 input[type=number]::-webkit-inner-spin-button:after {
     content: "5";
@@ -271,6 +273,7 @@ input.no-spin::-webkit-inner-spin-button {
     display: none;
     -webkit-appearance: none;
     margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+    padding-right: 12px;
 }
 
 input[type=button] {
@@ -643,7 +646,7 @@ div.refresh input[type="button"] {
     padding-left: 65px;
 }
 .xyz .tuple input {
-    padding-left: 30px;
+    padding-left: 25px;
 }
 .pyr .tuple input {
     padding-left: 45px;
