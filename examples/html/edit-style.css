@@ -603,6 +603,8 @@ div.refresh input[type="button"] {
 .tuple div {
     display: inline-block;
     position: relative;
+    min-width: 120px;
+    min-height: 1px;
 }
 .tuple div:nth-child(1) {
     float: left;
@@ -622,7 +624,15 @@ div.refresh input[type="button"] {
 .pyr .tuple input {
     padding-left: 45px;
 }
-.tuple div label {
+
+.tuple div > label:first-child {
+    float: left;
+}
+.tuple div > label + input {
+    clear: both;
+    float: left;
+}
+.tuple div input + label {
     display: inline !important;
     float: none !important;
     position: absolute;

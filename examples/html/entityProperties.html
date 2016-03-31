@@ -1455,13 +1455,12 @@
             <label>Angular damping</label>
             <input type="number" id="property-adamping">
         </div>
-        <div class="physical-group property number">
-            <label>Restitution</label>
-            <input type="number" id="property-restitution">
-        </div>
-        <div class="physical-group property number">
-            <label>Friction</label>
-            <input type="number" id="property-friction">
+        <div class="physical-group property gen">
+            <div class="tuple">
+                <div><label>Restitution</label><input type="number" id="property-restitution"></div>
+                <div><label>Friction</label><input type="number" id="property-friction"></div>
+                <div><label>Density</label><input type="number" id="property-density"></div>
+            </div>
         </div>
         <div class="physical-group property xyz">
             <label>Gravity</label>
@@ -1478,10 +1477,6 @@
                 <div><input type="number" class="y" id="property-lacc-y"><label for="property-lacc-y">Y:</label></div>
                 <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
             </div>
-        </div>
-        <div class="physical-group property number">
-            <label>Density</label>
-            <input type="number" id="property-density">
         </div>
         <div id="color-section" class="physical-group property rgb">
             <div id="property-color" class="color-picker"></div>
@@ -1614,16 +1609,11 @@
             <input type="number" id="property-model-animation-fps">
         </div>
         <div class="model-group model-section property number">
-            <label>Animation frame</label>
-            <input type="number" id="property-model-animation-frame">
-        </div>
-        <div class="model-group model-section property number">
-            <label>Animation first frame</label>
-            <input type="number" id="property-model-animation-first-frame">
-        </div>
-        <div class="model-group model-section property number">
-            <label>Animation last frame</label>
-            <input type="number" id="property-model-animation-last-frame">
+            <div class="tuple">
+                <div><label>Animation frame</label><input type="number" id="property-model-animation-frame"></div>
+                <div><label>First frame</label><input type="number" id="property-model-animation-first-frame"></div>
+                <div><label>Last frame</label><input type="number" id="property-model-animation-last-frame"></div>
+            </div>
         </div>
         <div class="model-group model-section property checkbox">
             <input type="checkbox" id="property-model-animation-loop">
@@ -1698,14 +1688,11 @@
             <label>Light intensity</label>
             <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
         </div>
-        <div class="zone-group zone-section keylight-section property">
-            <div class="number">
-                <label>Light altitude</label>
-                <input type="number" id="property-zone-key-light-direction-x">
-            </div>
-            <div class="number">
-                <label>Light azimuth</label>
-                <input type="number" id="property-zone-key-light-direction-y">
+        <div class="zone-group zone-section keylight-section property gen">
+            <div class="tuple">
+                <div><label>Light altitude</label><input type="number" id="property-zone-key-light-direction-x"></div>
+                <div><label>Light azimuth</label><input type="number" id="property-zone-key-light-direction-y"></div>
+                <div></div>
             </div>
         </div>
         <div class="zone-group zone-section keylight-section property number">
@@ -1721,29 +1708,24 @@
         <div class="sub-section-header zone-group zone-section stage-section">
             <label>Stage</label>
         </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage latitude</label>
-            <input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage longitude</label>
-            <input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage altitude</label>
-            <input type="number" id="property-zone-stage-altitude" step="1">
+        <div class="zone-group zone-section stage-section property gen">
+            <div class="tuple">
+                <div><label>Stage latitude</label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
+                <div><label>Stage longitude</label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
+                <div><label>Stage altitude</label><input type="number" id="property-zone-stage-altitude" step="1"></div>
+            </div>
         </div>
         <div class="zone-group zone-section stage-section property checkbox">
             <input type="checkbox" id="property-zone-stage-automatic-hour-day">
             <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
         </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage day of year</label>
-            <input type="number" id="property-zone-stage-day" min="0" max="365" step="1">
-        </div>
-        <div class="zone-group zone-section stage-section property number">
-            <label>Stage hour</label>
-            <input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5">
+
+        <div class="zone-group zone-section stage-section property gen">
+            <div class="tuple">
+                <div><label>Stage day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
+                <div><label>Stage hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
+                <div></div>
+            </div>
         </div>
 
         <div class="sub-section-header zone-group zone-section background-section">
@@ -1798,25 +1780,23 @@
                 <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
             </div>
         </div>
-        <div class="light-group light-section property number">
-            <label>Intensity</label>
-            <input type="number" id="property-light-intensity" min="0" step="0.1">
-        </div>
-        <div class="light-group light-section property number">
-            <label>Fall-off radius</label>
-            <input type="number" id="property-light-falloff-radius" min="0" step="0.1">
+        <div class="light-group light-section property gen">
+            <div class="tuple">
+                <div><label>Intensity</label><input type="number" id="property-light-intensity" min="0" step="0.1"></div>
+                <div><label>Fall-off radius</label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
+                <div></div>
+            </div>
         </div>
         <div class="light-group light-section property checkbox">
             <input type="checkbox" id="property-light-spot-light">
             <label for="property-light-spot-light">Spotlight</label>
         </div>
-        <div class="light-group light-section property number">
-            <label>Spotlight exponent</label>
-            <input type="number" id="property-light-exponent" step="0.01">
-        </div>
-        <div class="light-group light-section property number">
-            <label>Spotlight cut-off</label>
-            <input type="number" id="property-light-cutoff" step="0.01">
+        <div class="light-group light-section property gen">
+            <div class="tuple">
+                <div><label>Spotlight exponent</label><input type="number" id="property-light-exponent" step="0.01"></div>
+                <div><label>Spotlight cut-off</label><input type="number" id="property-light-cutoff" step="0.01"></div>
+                <div></div>
+            </div>
         </div>
     </div>
 </body>
