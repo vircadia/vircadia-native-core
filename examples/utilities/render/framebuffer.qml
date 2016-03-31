@@ -39,6 +39,7 @@ Column {
                 "Shadow",
                 "Pyramid Depth",
                 "Ambient Occlusion",
+                "Ambient Occlusion Blurred",
                 "Custom Shader"
             ]
            RadioButton {

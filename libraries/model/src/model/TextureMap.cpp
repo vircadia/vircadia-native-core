@@ -583,7 +583,7 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
             
             // If the 6 faces have been created go on and define the true Texture
             if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
-                theTexture = gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+                theTexture = gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR/*, gpu::Sampler::WRAP_CLAMP*/));
                 theTexture->autoGenerateMips(-1);
                 int f = 0;
                 for (auto& face : faces) {
