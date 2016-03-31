@@ -19,7 +19,7 @@
     function WaterSpout() {
         _this = this;
         _this.waterSound = SoundCache.getSound("atp:/growingPlant/watering_can_pour.L.wav");
-        _this.POUR_ANGLE_THRESHOLD = 0;
+        _this.POUR_ANGLE_THRESHOLD = -0.1;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "home_box_waterSpout";
         _this.GROWABLE_ENTITIES_SEARCH_RANGE = 100;
@@ -37,6 +37,7 @@
         },
 
         startHold: function() {
+            print("EBL START HOLD")
             var entities = Entities.findEntities(_this.position, 2);
             print("EBL SEARCHING FOR SPOUT");
             entities.forEach(function(entity) {
@@ -62,22 +63,12 @@
 
         releaseHold: function() {
             _this.stopPouring();
+            var waterEffectToDelete = _this.waterEffect;
             Script.setTimeout(function() {
-                Entities.deleteEntity(_this.waterEffect);
+                Entities.deleteEntity(waterEffectToDelete);
             }, 2000);
         },
 
-        stopPouring: function() {
-            Entities.editEntity(_this.waterEffect, {
-                isEmitting: false
-            });
-            _this.waterPouring = false;
-            //water no longer pouring...
-            if (_this.waterInjector) {
-                _this.waterInjector.stop();
-            }
-            Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
-        },
         continueEquip: function() {
             _this.continueHolding();
         },
@@ -92,34 +83,56 @@
             }
             // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
             var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
-            var pitch = Quat.safeEulerAngles(rotation).x;
-            if (pitch < _this.POUR_ANGLE_THRESHOLD) {
+            var forwardVec = Quat.getFront(rotation);
+            if (forwardVec.y < _this.POUR_ANGLE_THRESHOLD) {
                 // Water is pouring
                 var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
                 _this.castRay();
                 if (!_this.waterPouring) {
-                    Entities.editEntity(_this.waterEffect, {
-                        isEmitting: true
-                    });
-                    _this.waterPouring = true;
-                    if (!_this.waterInjector) {
-                        _this.waterInjector = Audio.playSound(_this.waterSound, {
-                            position: spoutProps.position,
-                            loop: true
-                        });
-
-                    } else {
-                        _this.waterInjector.restart();
-                    }
+                    _this.startPouring();
                 }
                 _this.waterSpoutRotation = spoutProps.rotation;
                 var waterEmitOrientation = Quat.multiply(_this.waterSpoutRotation, Quat.fromPitchYawRollDegrees(0, 180, 0));
                 Entities.editEntity(_this.waterEffect, {
                     emitOrientation: waterEmitOrientation
                 });
-            } else if (pitch > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
+            } else if (forwardVec.y > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
                 _this.stopPouring();
             }
+        },
+
+
+        stopPouring: function() {
+            print("EBL STOP POURING")
+            Entities.editEntity(_this.waterEffect, {
+                isEmitting: false
+            });
+            _this.waterPouring = false;
+            //water no longer pouring...
+            if (_this.waterInjector) {
+                _this.waterInjector.stop();
+            }
+            Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
+        },
+
+        startPouring: function() {
+            print("EBL START POURING")                
+            Script.setTimeout(function() {
+                Entities.editEntity(_this.waterEffect, {
+                    isEmitting: true
+                });
+            }, 100);
+            _this.waterPouring = true;
+            if (!_this.waterInjector) {
+                _this.waterInjector = Audio.playSound(_this.waterSound, {
+                    position: spoutProps.position,
+                    loop: true
+                });
+
+            } else {
+                _this.waterInjector.restart();
+            }
+
         },
 
         castRay: function() {

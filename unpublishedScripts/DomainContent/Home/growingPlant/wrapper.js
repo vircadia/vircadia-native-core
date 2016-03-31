@@ -149,7 +149,7 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
+  var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.21, Quat.getFront(orientation)))
   var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
   var WATER_SPOUT_NAME = "home_box_waterSpout"; 
   var waterSpout = Entities.addEntity({
