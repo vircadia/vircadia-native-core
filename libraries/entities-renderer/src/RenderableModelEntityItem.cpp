@@ -364,41 +364,16 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::Model);
 
     if (hasModel()) {
-        if (_model) {
-            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
-            // check to see if when we added our models to the scene they were ready, if they were not ready, then
-            // fix them up in the scene
-            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
-            if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
-                _showCollisionHull = shouldShowCollisionHull;
-                render::PendingChanges pendingChanges;
-
-                _model->removeFromScene(scene, pendingChanges);
-
-                render::Item::Status::Getters statusGetters;
-                makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-                _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
-
-                scene->enqueuePendingChanges(pendingChanges);
-            }
-
-            // FIXME: this seems like it could be optimized if we tracked our last known visible state in
-            //        the renderable item. As it stands now the model checks it's visible/invisible state
-            //        so most of the time we don't do anything in this function.
-            _model->setVisibleInScene(getVisible(), scene);
-        }
-
-
-        remapTextures();
+        // Prepare the current frame
         {
-            // float alpha = getLocalRenderAlpha();
-
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
                 PerformanceTimer perfTimer("getModel");
                 EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
                 getModel(renderer);
+
+                // Remap textures immediately after loading to avoid flicker
+                remapTextures();
             }
 
             if (_model) {
@@ -429,15 +404,42 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
                 updateModelBounds();
+            }
+        }
 
-                // Check if the URL has changed
-                // Do this last as the getModel is queued for the next frame,
-                // and we need to keep state directing the model to reinitialize
-                auto& currentURL = getParsedModelURL();
-                if (currentURL != _model->getURL()) {
-                    // Defer setting the url to the render thread
-                    getModel(_myRenderer);
-                }
+        // Enqueue updates for the next frame
+        if (_model) {
+
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+            // FIXME: this seems like it could be optimized if we tracked our last known visible state in
+            //        the renderable item. As it stands now the model checks it's visible/invisible state
+            //        so most of the time we don't do anything in this function.
+            _model->setVisibleInScene(getVisible(), scene);
+
+            // Remap textures for the next frame to avoid flicker
+            remapTextures();
+
+            // check to see if when we added our models to the scene they were ready, if they were not ready, then
+            // fix them up in the scene
+            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
+            if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
+                _showCollisionHull = shouldShowCollisionHull;
+                render::PendingChanges pendingChanges;
+
+                _model->removeFromScene(scene, pendingChanges);
+
+                render::Item::Status::Getters statusGetters;
+                makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
+
+                scene->enqueuePendingChanges(pendingChanges);
+            }
+
+            auto& currentURL = getParsedModelURL();
+            if (currentURL != _model->getURL()) {
+                // Defer setting the url to the render thread
+                getModel(_myRenderer);
             }
         }
     } else {
