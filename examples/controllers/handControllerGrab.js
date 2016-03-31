@@ -856,6 +856,7 @@ function MyController(hand) {
 
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
+        var currentControllerPosition = Controller.getPoseValue(controllerHandInput).position;
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
         var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
@@ -871,7 +872,7 @@ function MyController(hand) {
         };
 
         var searchVisualizationPickRay = {
-            origin: handPosition,
+            origin: currentControllerPosition,
             direction: Quat.getUp(this.getHandRotation()),
             length: PICK_MAX_DISTANCE
         };
