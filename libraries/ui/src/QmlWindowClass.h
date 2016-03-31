@@ -63,6 +63,7 @@ signals:
 
 protected slots:
     void hasClosed();
+    void qmlToScript(const QVariant& message);
 
 protected:
     static QVariantMap parseArguments(QScriptContext* context);
