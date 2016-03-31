@@ -3347,9 +3347,10 @@ void Application::update(float deltaTime) {
         }
         {
             PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
-            PerformanceTimer perfTimer("havestChanges");
+            PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
+                    PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
                     _entitySimulation.handleOutgoingChanges(outgoingChanges, Physics::getSessionUUID());
                     avatarManager->handleOutgoingChanges(outgoingChanges);
@@ -3365,6 +3366,7 @@ void Application::update(float deltaTime) {
                     // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                     // deadlock.)
                     _entitySimulation.handleCollisionEvents(collisionEvents);
+
                     // NOTE: the getEntities()->update() call below will wait for lock
                     // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                     getEntities()->update(); // update the models...

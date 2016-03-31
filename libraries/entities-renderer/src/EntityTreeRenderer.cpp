@@ -130,6 +130,7 @@ void EntityTreeRenderer::setTree(OctreePointer newTree) {
 }
 
 void EntityTreeRenderer::update() {
+    PerformanceTimer perfTimer("ETRupdate");
     if (_tree && !_shuttingDown) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update();
@@ -158,6 +159,7 @@ void EntityTreeRenderer::update() {
 }
 
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar) {
+    PerformanceTimer perfTimer("findBestZone");
     bool didUpdate = false;
     float radius = 1.0f; // for now, assume 1 meter radius
     QVector<EntityItemPointer> foundEntities;
@@ -218,12 +220,15 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(const glm::vec3&
     return didUpdate;
 }
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
+    PerformanceTimer perfTimer("checkEnterLeaveEntities");
+    auto now = usecTimestampNow();
     bool didUpdate = false;
 
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
-        if (avatarPosition != _lastAvatarPosition) {
+        // If we've moved "enough" check to see our enter/leave state
+        if (glm::distance(avatarPosition, _lastAvatarPosition) > ZONE_CHECK_DISTANCE) {
             QVector<EntityItemID> entitiesContainingAvatar;
             didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, &entitiesContainingAvatar);
             
@@ -248,7 +253,8 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
-        } else {
+        } else if ((now - _lastZoneCheck) > ZONE_CHECK_INTERVAL) { // if it's been a while since checking zone state
+            _lastZoneCheck = now;
             didUpdate = findBestZoneAndMaybeContainingEntities(avatarPosition, nullptr);
         }
     }
