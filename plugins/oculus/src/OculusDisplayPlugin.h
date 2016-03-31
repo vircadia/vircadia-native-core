@@ -22,7 +22,6 @@ public:
 
 protected:
     bool internalActivate() override;
-    void internalDeactivate() override;
     void hmdPresent() override;
     bool isHmdMounted() const override;
     void customizeContext() override;
@@ -33,8 +32,6 @@ private:
     static const QString NAME;
     bool _enablePreview { false };
     bool _monoPreview { true };
-    QString _savedAudioIn;
-    QString _savedAudioOut;
 
     SwapFboPtr       _sceneFbo;
 };
