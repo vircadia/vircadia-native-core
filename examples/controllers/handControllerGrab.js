@@ -1130,7 +1130,7 @@ function MyController(hand) {
         this.grabRadialVelocity = 0.0;
 
         // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
-        this.radiusScalar = Math.log(grabRadius + 1.0);
+        this.radiusScalar = Math.log(this.grabRadius + 1.0);
         if (this.radiusScalar < 1.0) {
             this.radiusScalar = 1.0;
         }
