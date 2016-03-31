@@ -91,12 +91,12 @@
                 return;
             }
             // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
-            _this.castRay();
             var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
             var pitch = Quat.safeEulerAngles(rotation).x;
             if (pitch < _this.POUR_ANGLE_THRESHOLD) {
                 // Water is pouring
                 var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
+                _this.castRay();
                 if (!_this.waterPouring) {
                     Entities.editEntity(_this.waterEffect, {
                         isEmitting: true
@@ -201,7 +201,9 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "atp:/growingPlant/raindrop.png",
+                // textures: "atp:/growingPlant/raindrop.png",
+                //EBL REMOVE ME
+                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
                 userData: JSON.stringify({
                     'hifiHomeKey': {
                         'reset': true

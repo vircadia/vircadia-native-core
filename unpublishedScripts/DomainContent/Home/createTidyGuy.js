@@ -32,5 +32,5 @@ function createTidyGuy() {
 var tidyGuy = createTidyGuy();
 
 Script.scriptEnding.connect(function() {
-    // Entities.deleteEntity(tidyGuy);
+    Entities.deleteEntity(tidyGuy);
 })
