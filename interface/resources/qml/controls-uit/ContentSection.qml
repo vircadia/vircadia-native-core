@@ -97,11 +97,11 @@ Column {
 
             HiFiGlyphs {
                 anchors {
-                    verticalCenter: title.verticalCenter
+                    top: title.top
+                    topMargin: -9
                     right: parent.right
                     rightMargin: -4
                 }
-                y: -2
                 size: hifi.fontSizes.disclosureButton
                 text: isCollapsed ? hifi.glyphs.disclosureButtonExpand : hifi.glyphs.disclosureButtonCollapse
                 color: hifi.colors.lightGrayText

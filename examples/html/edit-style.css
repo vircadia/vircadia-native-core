@@ -399,11 +399,11 @@ input[type=checkbox]:checked + label:hover {
 
 .section-header span {
     font-family: HiFi-Glyphs;
-    font-size: 20px;
+    font-size: 30px;
     float: right;
     position: absolute;
-    top: 9px;
-    right: 12px;
+    top: 4px;
+    right: 6px;
 }
 
 .text-group[collapsed="true"] ~ .text-group,

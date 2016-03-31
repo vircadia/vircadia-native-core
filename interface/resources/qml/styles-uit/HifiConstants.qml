@@ -168,7 +168,7 @@ Item {
         readonly property real menuItem: dimensions.largeScreen ? 15 : 11
         readonly property real shortcutText: dimensions.largeScreen ? 13 : 9
         readonly property real carat: dimensions.largeScreen ? 38 : 30
-        readonly property real disclosureButton: dimensions.largeScreen ? 20 : 15
+        readonly property real disclosureButton: dimensions.largeScreen ? 30 : 22
     }
 
     Item {
