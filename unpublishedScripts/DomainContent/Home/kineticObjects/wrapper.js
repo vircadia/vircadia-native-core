@@ -4,7 +4,7 @@ var BOOKS_URL = "atp:/kineticObjects/books.json"
 var UPPER_BOOKSHELF_URL = "atp:/kineticObjects/upperBookShelf.json"
 var LOWER_BOOKSHELF_URL = "atp:/kineticObjects/lowerBookShelf.json"
 
-var CHAIR_URL = 'atp:/JSON/chair.json';
+var CHAIR_URL = 'atp:/kineticObjects/chair.json';
 
 var FRUIT_BOWL_URL = "atp:/kineticObjects/fruit.json"
 

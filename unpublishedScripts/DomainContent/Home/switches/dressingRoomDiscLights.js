@@ -26,15 +26,24 @@
         },
 
         modelEmitOn: function(glowDisc) {
-              Entities.editEntity(glowDisc, {
-                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"http://hifi-content.s3.amazonaws.com/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
-            });
+
+            var data = {
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight.Emit": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",
+                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
+            };
+            Entities.editEntity(glowDisc, JSON.stringify(data));
         },
 
         modelEmitOff: function(glowDisc) {
-          Entities.editEntity(glowDisc, {
-                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
-            });
+
+            var data = {
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight.Emit": "",
+                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
+            }
+
+            Entities.editEntity(glowDisc, JSON.stringify(data));
         },
 
         masterLightOn: function(masterLight) {
@@ -100,7 +109,9 @@
 
         toggleLights: function() {
 
-            _this._switch = getEntityCustomData('home-switch', _this.entityID, {state: 'off'});
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {
+                state: 'off'
+            });
 
             var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();
