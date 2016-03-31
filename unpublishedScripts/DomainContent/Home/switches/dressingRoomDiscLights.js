@@ -28,22 +28,28 @@
         modelEmitOn: function(glowDisc) {
 
             var data = {
-                "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
-                "Tex.CeilingLight.Emit": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",
-                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
-            };
-            Entities.editEntity(glowDisc, JSON.stringify(data));
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight-Diffuse": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg",
+                "Tex.CeilingLight-Emit": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg"
+            }
+
+            Entities.editEntity(glowDisc, {
+                textures: JSON.stringify(data)
+            });
         },
 
         modelEmitOff: function(glowDisc) {
 
             var data = {
-                "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
-                "Tex.CeilingLight.Emit": "",
-                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight-Diffuse": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg",
+                "Tex.CeilingLight-Emit": ""
             }
 
-            Entities.editEntity(glowDisc, JSON.stringify(data));
+
+            Entities.editEntity(glowDisc, {
+                textures: JSON.stringify(data)
+            });
         },
 
         masterLightOn: function(masterLight) {

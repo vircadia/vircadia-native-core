@@ -86,8 +86,6 @@
             var data = {
                 "Texture.001": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Head-Housing-Texture.png",
                 "button.tidy": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Green.png",
-                "button.tidy-active": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange.png",
-                "button.tidy-active.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange-Emit.png",
                 "button.tidy.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Green-Emit.png",
                 "tex.button.blanks": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks.png",
                 "tex.button.blanks.normal": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks-Normal.png",
