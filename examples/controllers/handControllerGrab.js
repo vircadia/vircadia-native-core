@@ -123,7 +123,8 @@ var GRABBABLE_PROPERTIES = [
     "parentID",
     "parentJointIndex",
     "density",
-    "dimensions"
+    "dimensions",
+    "userData"
 ];
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
@@ -1108,10 +1109,12 @@ function MyController(hand) {
     this.distanceHolding = function() {
 
         // controller pose is in avatar frame
-        var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
+        var avatarControllerPose =
+            Controller.getPoseValue((this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
 
         // transform it into world frame
-        var controllerPosition = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+        var controllerPosition = Vec3.sum(MyAvatar.position,
+                                          Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
@@ -1127,7 +1130,7 @@ function MyController(hand) {
         this.grabRadialVelocity = 0.0;
 
         // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
-        this.radiusScalar = Math.log(Vec3.distance(this.currentObjectPosition, controllerPosition) + 1.0);
+        this.radiusScalar = Math.log(grabRadius + 1.0);
         if (this.radiusScalar < 1.0) {
             this.radiusScalar = 1.0;
         }
@@ -1187,7 +1190,7 @@ function MyController(hand) {
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
 
-        // the action was set up on a previous call.  update the targets.
+        // the action was set up when this.distanceHolding was called.  update the targets.
         var radius = Vec3.distance(this.currentObjectPosition, controllerPosition) *
             this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
         if (radius < 1.0) {
@@ -1395,13 +1398,13 @@ function MyController(hand) {
         this.overlayLineOff();
 
         if (this.entityActivated) {
-            print("HERE: release before grab " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
             var saveGrabbedID = this.grabbedEntity;
             this.release();
             this.grabbedEntity = saveGrabbedID;
         }
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
+        print("USERDATA FOR " + this.grabbedEntity + " IS " + grabbedProperties.userData);
         this.activateEntity(this.grabbedEntity, grabbedProperties, false);
         // if (grabbedProperties.dynamic && NEAR_GRABBING_KINEMATIC) {
         //    Entities.editEntity(this.grabbedEntity, {
@@ -1416,6 +1419,7 @@ function MyController(hand) {
 
         var hasPresetPosition = false;
         if ((this.state == STATE_EQUIP || this.state == STATE_HOLD) && this.hasPresetOffsets()) {
+            print("HAS PRESET");
             var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
@@ -1423,6 +1427,8 @@ function MyController(hand) {
             this.offsetRotation = this.getPresetRotation();
             hasPresetPosition = true;
         } else {
+            print("NO PRESET");
+
             this.ignoreIK = false;
 
             var objectRotation = grabbedProperties.rotation;
