@@ -21,6 +21,7 @@ public:
     // Stereo specific methods
     virtual void resetSensors() override final;
     virtual void beginFrameRender(uint32_t frameIndex) override;
+    float getTargetFrameRate() override { return _hmdDesc.DisplayRefreshRate; }
     
 
 protected:

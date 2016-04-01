@@ -74,6 +74,9 @@ public:
     /// whether the HMD is being worn
     virtual bool isDisplayVisible() const { return false; }
 
+    virtual QString getPreferredAudioInDevice() const { return QString(); }
+    virtual QString getPreferredAudioOutDevice() const { return QString(); }
+
     // Rendering support
 
     /**
