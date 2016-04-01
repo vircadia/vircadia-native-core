@@ -70,7 +70,9 @@ void AssetRequest::start() {
     _state = WaitingForInfo;
     
     auto assetClient = DependencyManager::get<AssetClient>();
-    _assetInfoRequestID = assetClient->getAssetInfo(_hash, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+    _assetInfoRequestID = assetClient->getAssetInfo(_hash,
+            [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+
         _assetInfoRequestID = AssetClient::INVALID_MESSAGE_ID;
 
         _info = info;
@@ -104,8 +106,9 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
-        _assetRequestID = assetClient->getAsset(_hash, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
-                                                                                const QByteArray& data) {
+        _assetRequestID = assetClient->getAsset(_hash, start, end,
+                [this, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+
             _assetRequestID = AssetClient::INVALID_MESSAGE_ID;
 
             if (!responseReceived) {
