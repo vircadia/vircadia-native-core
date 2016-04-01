@@ -241,11 +241,11 @@
                 z: -79.8097
             });
 
-            //  var blueChair = new BlueChair({
-            //     x: 1100.4821,
-            //     y: 459.8161,
-            //     z:-75.9071
-            // });
+             var blueChair = new BlueChair({
+                x: 1100.4821,
+                y: 459.8161,
+                z:-75.9071
+            });
 
             // var stuffOnShelf = new stuffOnShelf({});
 
