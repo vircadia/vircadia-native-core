@@ -44,20 +44,8 @@ ScriptEngines::ScriptEngines()
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
     if (rawScriptURL.scheme() == "file") {
-        qDebug() << "+";
-        qDebug() << "+";
-        qDebug() << "+";
-
         QUrl fullNormal = rawScriptURL;
         QUrl defaultScriptLoc = defaultScriptsLocation();
-
-        // #ifdef Q_OS_LINUX
-        // #else
-        // // Force lowercase on file scripts because of drive letter weirdness.
-        // if (rawScriptURL.isLocalFile()) {
-        //     fullNormal.setPath(fullNormal.path()); // .toLower());
-        // }
-        // #endif
 
         // if this url is something "beneath" the default script url, replace the local path with ~
         if (fullNormal.scheme() == defaultScriptLoc.scheme() &&
@@ -76,35 +64,20 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
 
 QUrl expandScriptUrl(const QUrl& rawScriptURL) {
     QUrl normalizedScriptURL = normalizeScriptURL(rawScriptURL);
-
-    qDebug() << "expandScriptUrl in = " << rawScriptURL;
-
     if (normalizedScriptURL.scheme() == "http" ||
         normalizedScriptURL.scheme() == "https" ||
         normalizedScriptURL.scheme() == "atp") {
-
-        qDebug() << "expandScriptUrl out(net) = " << normalizedScriptURL;
-
         return normalizedScriptURL;
     } else if (normalizedScriptURL.scheme() == "file") {
         if (normalizedScriptURL.path().startsWith("/~/")) {
             QUrl url = normalizedScriptURL;
-            qDebug() << "in expand, normalizedScriptURL = " << normalizedScriptURL;
             QStringList splitPath = url.path().split("/");
             QUrl defaultScriptsLoc = defaultScriptsLocation();
             url.setPath(defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/")); // 2 to skip the slashes in /~/
-
-            qDebug() << "expandScriptUrl out(file 0) = " << url;
-
             return url;
         }
-
-        qDebug() << "expandScriptUrl out(file 1) = " << normalizedScriptURL;
-
         return normalizedScriptURL;
     } else {
-        qDebug() << "expandScriptUrl out(bad scheme) = " << normalizedScriptURL;
-
         return QUrl("");
     }
 }

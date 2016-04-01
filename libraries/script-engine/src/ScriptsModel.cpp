@@ -40,7 +40,7 @@ TreeNodeBase::TreeNodeBase(TreeNodeFolder* parent, const QString& name, TreeNode
 TreeNodeScript::TreeNodeScript(const QString& localPath, const QString& fullPath, ScriptOrigin origin) :
     TreeNodeBase(NULL, localPath.split("/").last(), TREE_NODE_TYPE_SCRIPT),
     _localPath(localPath),
-    _fullPath(fullPath),
+    _fullPath(expandScriptUrl(QUrl(fullPath)).toString()),
     _origin(origin) {
 };
 
@@ -163,10 +163,6 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
         if (localDir.endsWith("/")) {
             localDirPartCount--;
         }
-        qDebug() << "|";
-        qDebug() << "|";
-        qDebug() << "|";
-        qDebug() << localDir;
         #ifdef Q_OS_WIN
         localDirPartCount++; // one for the drive letter
         #endif
