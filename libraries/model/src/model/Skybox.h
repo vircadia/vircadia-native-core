@@ -35,6 +35,8 @@ public:
     void setCubemap(const gpu::TexturePointer& cubemap);
     const gpu::TexturePointer& getCubemap() const { return _cubemap; }
 
+    virtual void clear() { setCubemap(nullptr); }
+
     void prepare(gpu::Batch& batch, int textureSlot = SKYBOX_SKYMAP_SLOT, int bufferSlot = SKYBOX_CONSTANTS_SLOT) const;
     virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
 

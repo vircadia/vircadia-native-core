@@ -24,6 +24,8 @@ public:
 
     void parse(const QString& userData) { _procedural.parse(userData); }
 
+    virtual void clear() override;
+
     virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);
 
