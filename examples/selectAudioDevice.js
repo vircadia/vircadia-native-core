@@ -148,11 +148,23 @@ Menu.menuItemEvent.connect(menuItemEvent);
 // Some HMDs (like Oculus CV1) have a built in audio device. If they
 // do, then this function will handle switching to that device automatically
 // when you goActive with the HMD active.
-var wasHmdMounted = HMD.mounted;
+var wasHmdMounted = false; // assume it's un-mounted to start
 var switchedAudioInputToHMD = false;
 var switchedAudioOutputToHMD = false;
 var previousSelectedInputAudioDevice = "";
 var previousSelectedOutputAudioDevice = "";
+
+function restoreAudio() {
+    if (switchedAudioInputToHMD) {
+        print("switching back from HMD preferred audio input to:" + previousSelectedInputAudioDevice);
+        menuItemEvent("Use " + previousSelectedInputAudioDevice + " for Input");
+    }
+    if (switchedAudioOutputToHMD) {
+        print("switching back from HMD preferred audio output to:" + previousSelectedOutputAudioDevice);
+        menuItemEvent("Use " + previousSelectedOutputAudioDevice + " for Output");
+    }
+}
+
 function checkHMDAudio() {
     // Mounted state is changing... handle switching
     if (HMD.mounted != wasHmdMounted) {
@@ -187,14 +199,7 @@ function checkHMDAudio() {
             }
         } else {
             print("HMD NOW un-mounted...");
-            if (switchedAudioInputToHMD) {
-                print("switching back from HMD preferred audio input to:" + previousSelectedInputAudioDevice);
-                menuItemEvent("Use " + previousSelectedInputAudioDevice + " for Input");
-            }
-            if (switchedAudioOutputToHMD) {
-                print("switching back from HMD preferred audio output to:" + previousSelectedOutputAudioDevice);
-                menuItemEvent("Use " + previousSelectedOutputAudioDevice + " for Output");
-            }
+            restoreAudio();
         }
     }
     wasHmdMounted = HMD.mounted;
@@ -203,6 +208,7 @@ function checkHMDAudio() {
 Script.update.connect(checkHMDAudio);
 
 Script.scriptEnding.connect(function () {
+    restoreAudio();
     Menu.menuItemEvent.disconnect(menuItemEvent);
     Script.update.disconnect(checkHMDAudio);
 });
