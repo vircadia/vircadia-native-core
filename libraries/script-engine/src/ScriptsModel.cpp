@@ -160,6 +160,13 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
         // if the url indicates a local directory, use QDirIterator
         QString localDir = expandScriptUrl(url).toLocalFile();
         int localDirPartCount = localDir.split("/").size();
+        if (localDir.endsWith("/")) {
+            localDirPartCount--;
+        }
+        qDebug() << "|";
+        qDebug() << "|";
+        qDebug() << "|";
+        qDebug() << localDir;
         #ifdef Q_OS_WIN
         localDirPartCount++; // one for the drive letter
         #endif
@@ -238,7 +245,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
                     if (jsRegex.exactMatch(xml.text().toString())) {
                         QString localPath = lastKey.split("/").mid(1).join("/");
                         QUrl fullPath = defaultScriptsLocation();
-                        fullPath.setPath(fullPath.path() + "/" + lastKey);
+                        fullPath.setPath(fullPath.path() + lastKey);
                         const QString fullPathStr = normalizeScriptURL(fullPath).toString();
                         _treeNodes.append(new TreeNodeScript(localPath, fullPathStr, SCRIPT_ORIGIN_DEFAULT));
                     }
