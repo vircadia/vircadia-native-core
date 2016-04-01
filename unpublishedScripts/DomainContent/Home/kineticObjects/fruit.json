@@ -1,9 +1,9 @@
 {
     "Entities": [{
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_fruitBowl",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/kineticObjects/fruit/Fruit-Bowl.obj",
-        "name": "home_model_apple",
         "created": "2016-03-15T23:11:03Z",
         "dimensions": {
             "x": 0.35241550207138062,
