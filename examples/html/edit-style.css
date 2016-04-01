@@ -243,6 +243,8 @@ input[type=number]::-webkit-inner-spin-button {
     position: relative;
     width: 10px;
     overflow: hidden;
+    font-family: hifi-glyphs;
+    font-size: 50px;
     color: #afafaf;
     cursor: pointer;
     /*background-color: #000000;*/
@@ -251,10 +253,8 @@ input[type=number]::-webkit-inner-spin-button:before,
 input[type=number]::-webkit-inner-spin-button:after {
     position:absolute;
     left: -21px;
-    font-family:hifi-glyphs;
-    text-align: center;
-    font-size: 50px;
     line-height: 8px;
+    text-align: center;
 }
 input[type=number]::-webkit-inner-spin-button:before {
     content: "6";

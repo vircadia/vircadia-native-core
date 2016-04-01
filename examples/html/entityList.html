@@ -185,6 +185,8 @@
                       elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
                   } else if (selectedEntities.length === 1) {
                       elFooter.firstChild.nodeValue = "1 entity selected";
+                  } else if (entityList.visibleItems.length === 1) {
+                      elFooter.firstChild.nodeValue = "1 entity found";
                   } else {
                       elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
                   }
