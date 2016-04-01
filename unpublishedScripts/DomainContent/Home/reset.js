@@ -250,14 +250,14 @@
 
             var stuffOnShelves = new StuffOnShelves({
                 x: 1105.9432,
-                y: 461.1020,
+                y: 461.095,
                 z: -80.7894
             });
 
             var junk = new HomeJunk({
-                x: 1102.8754,
-                y: 460.2932,
-                z: -69.0222
+                x: 1102.5861,
+                y: 460.1812,
+                z: -69.5005
             });
 
             var trashcan = new Trashcan({
@@ -323,7 +323,7 @@
                 }),
                 position: {
                     x: 1106.9778,
-                    y: 460.6075,
+                    y: 460.3075,
                     z: -74.5842
                 },
                 userData: JSON.stringify({
@@ -343,7 +343,7 @@
 
             var DAIS_DIMENSIONS = {
                 x: 1.0654,
-                y: 0.4679,
+                y: 0.1695,
                 z: 1.0654
             };
 

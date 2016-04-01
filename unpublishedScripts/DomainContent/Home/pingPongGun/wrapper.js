@@ -29,7 +29,7 @@ HomePingPongGun = function(spawnPosition, spawnRotation) {
     },
     gravity: {
       x: 0,
-      y: -3,
+      y: -10,
       z: 0
     },
     rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),

@@ -83,7 +83,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     var MAZE_ANGULAR_DAMPING = 0.6;
     var MAZE_GRAVITY = {
         x: 0,
-        y: -3,
+        y: -10,
         z: 0
     };
 
