@@ -47,6 +47,9 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
         in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
         position += compressedLength;
         QByteArray uncompressed = qUncompress(compressed);
+        if (uncompressed.isEmpty()) { // answers empty byte array if corrupt
+            throw QString("corrupt fbx file");
+        }
         QDataStream uncompressedIn(uncompressed);
         uncompressedIn.setByteOrder(QDataStream::LittleEndian);
         uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
