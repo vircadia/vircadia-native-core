@@ -220,10 +220,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
         return;
     }
 
-    _fileNameString = scriptURL.toString();
+    QUrl url = expandScriptUrl(normalizeScriptURL(scriptURL));
+    _fileNameString = url.toString();
     _isReloading = reload;
-
-    QUrl url(scriptURL);
 
     bool isPending;
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -848,7 +847,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     QUrl url(include);
     // first lets check to see if it's already a full URL
     if (!url.scheme().isEmpty()) {
-        return url;
+        return expandScriptUrl(normalizeScriptURL(url));
     }
 
     // we apparently weren't a fully qualified url, so, let's assume we're relative
@@ -865,7 +864,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     }
 
     // at this point we should have a legitimate fully qualified URL for our parent
-    url = parentURL.resolved(url);
+    url = expandScriptUrl(normalizeScriptURL(parentURL.resolved(url)));
     return url;
 }
 
