@@ -1496,6 +1496,10 @@ function MyController(hand) {
         this.currentHandControllerTipPosition =
             (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
         this.currentObjectTime = Date.now();
+
+        this.currentObjectPosition = grabbedProperties.position;
+        this.currentObjectRotation = grabbedProperties.rotation;
+        this.currentVelocity = ZERO_VEC;
     };
 
     this.continueNearGrabbing = function() {
@@ -1563,7 +1567,9 @@ function MyController(hand) {
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
 
         if (deltaTime > 0.0) {
-            this.currentVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
+            var worldDeltaPosition = Vec3.subtract(props.position, this.currentObjectPosition);
+            this.currentVelocity = Vec3.multiply(worldDeltaPosition, 1.0 / deltaTime);
+            this.currentObjectPosition = props.position;
         }
 
         this.currentHandControllerTipPosition = handControllerPosition;
@@ -1894,30 +1900,47 @@ function MyController(hand) {
                 var parentID = props.parentID;
                 var forceVelocity = false;
 
-                deactiveProps["velocity"] = props.velocity;
-                if (parentID != NULL_UUID) {
+                var doSetVelocity = false;
+                var setVelocityTo = ZERO_VEC;
+
+                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID) {
                     // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
                     // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
                     // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
                     // can be thrown.
-                    deactiveProps["velocity"] = this.currentVelocity;
+                    print("SETTING doSetVelocity");
+                    doSetVelocity = true;
+                    setVelocityTo = this.currentVelocity;;
                 }
 
                 if (!noVelocity &&
-                    vec3equal(deactiveProps.velocity, ZERO_VEC) &&
+                    !doSetVelocity &&
                     parentID == MyAvatar.sessionUUID &&
                     Vec3.length(data["gravity"]) > 0.0 &&
                     data["dynamic"] &&
                     data["parentID"] == NULL_UUID &&
                     !data["collisionless"]) {
                     deactiveProps["velocity"] = {x: 0.0, y: 0.1, z: 0.0};
+                    doSetVelocity = false;
                 }
                 if (noVelocity) {
                     deactiveProps["velocity"] = {x: 0.0, y: 0.0, z: 0.0};
                     deactiveProps["angularVelocity"] = {x: 0.0, y: 0.0, z: 0.0};
+                    doSetVelocity = false;
                 }
 
                 Entities.editEntity(entityID, deactiveProps);
+
+                print("doSetVelocity = " + doSetVelocity);
+                if (doSetVelocity) {
+                    // this is a continuation of the TODO above -- we shouldn't need to set this here.
+                    // do this after the parent has been reset.  setting this at the same time as
+                    // the parent causes it to go off in the wrong direction.  This is a bug that should
+                    // be fixed.
+                    print("SETTING VEL TO" + vec3toStr(setVelocityTo));
+                    Entities.editEntity(entityID, { "velocity": setVelocityTo });
+                }
+
                 data = null;
             } else if (this.doubleParentGrab) {
                 // we parent-grabbed this from another parent grab.  try to put it back where we found it.
