@@ -31,6 +31,7 @@
 #include <BugSplat.h>
 #endif
 
+
 int main(int argc, const char* argv[]) {
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
@@ -179,6 +180,8 @@ int main(int argc, const char* argv[]) {
         auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
         mpSender.sendAdditionalFile(qPrintable(logPath));
 #endif
+
+        printSystemInformation();
 
         QTranslator translator;
         translator.load("i18n/interface_en");

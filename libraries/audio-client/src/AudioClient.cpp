@@ -175,6 +175,50 @@ int numDestinationSamplesRequired(const QAudioFormat& sourceFormat, const QAudio
     return (numSourceSamples * ratio) + 0.5f;
 }
 
+#ifdef Q_OS_WIN
+QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
+    QString deviceName;
+    IPropertyStore* pPropertyStore;
+    pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
+    pEndpoint->Release();
+    pEndpoint = NULL;
+    PROPVARIANT pv;
+    PropVariantInit(&pv);
+    HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
+    pPropertyStore->Release();
+    pPropertyStore = NULL;
+    deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
+    if (!IsWindows8OrGreater()) {
+        // Windows 7 provides only the 31 first characters of the device name.
+        const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
+        deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
+    }
+    PropVariantClear(&pv);
+    return deviceName;
+}
+
+QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
+    QString deviceName;
+    HRESULT hr = S_OK;
+    CoInitialize(NULL);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    IMMDevice* pEndpoint;
+    hr = pMMDeviceEnumerator->GetDevice(guid, &pEndpoint);
+    if (hr == E_NOTFOUND) {
+        printf("Audio Error: device not found\n");
+        deviceName = QString("NONE");
+    } else {
+        deviceName = ::friendlyNameForAudioDevice(pEndpoint);
+    }
+    pMMDeviceEnumerator->Release();
+    pMMDeviceEnumerator = NULL;
+    CoUninitialize();
+    return deviceName;
+}
+
+#endif
+
 QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef __APPLE__
     if (QAudioDeviceInfo::availableDevices(mode).size() > 1) {
@@ -248,23 +292,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             printf("Audio Error: device not found\n");
             deviceName = QString("NONE");
         } else {
-            IPropertyStore* pPropertyStore;
-            pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
-            pEndpoint->Release();
-            pEndpoint = NULL;
-            PROPVARIANT pv;
-            PropVariantInit(&pv);
-            hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
-            pPropertyStore->Release();
-            pPropertyStore = NULL;
-            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
-            if (!IsWindows8OrGreater()) {
-                // Windows 7 provides only the 31 first characters of the device name.
-                const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
-                deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
-            }
-            qCDebug(audioclient) << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
-            PropVariantClear(&pv);
+            deviceName = friendlyNameForAudioDevice(pEndpoint);
         }
         pMMDeviceEnumerator->Release();
         pMMDeviceEnumerator = NULL;

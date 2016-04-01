@@ -87,7 +87,10 @@ public:
     bool initWhenReady(render::ScenePointer scene);
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    bool showCollisionHull = false);
+                    bool showCollisionHull = false) {
+        auto getters = render::Item::Status::Getters(0);
+        return addToScene(scene, pendingChanges, getters, showCollisionHull);
+    }
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
                     render::Item::Status::Getters& statusGetters,
@@ -128,6 +131,9 @@ public:
     const NetworkGeometry::Pointer& getGeometry() const { return _geometry; }
     /// Returns a reference to the shared collision geometry.
     const NetworkGeometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
+
+    const QVariantMap getTextures() const { assert(isLoaded()); return _geometry->getGeometry()->getTextures(); }
+    void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
@@ -383,9 +389,8 @@ protected:
     bool _readyWhenAdded { false };
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    mutable bool _needsUpdateTransparentTextures { true };
-    mutable bool _hasTransparentTextures { false };
     bool _showCollisionHull { false };
+    mutable bool _needsUpdateTextures { true };
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
