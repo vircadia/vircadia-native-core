@@ -204,7 +204,7 @@ Books = function(spawnLocation, spawnRotation) {
 }
 
 Blocks = function(spawnLocation, spawnRotation) {
-    print('CREATE BLOCKS')
+    print('EBL CREATE BLOCKS')
     var created = [];
 
     function create() {

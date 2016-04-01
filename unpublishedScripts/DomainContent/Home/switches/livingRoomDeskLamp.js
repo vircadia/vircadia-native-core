@@ -11,6 +11,7 @@
 
     Switch.prototype = {
         prefix: 'hifi-home-living-room-desk-lamp-',
+        lightName: 'home_light_livingRoomLight',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -63,9 +64,11 @@
             var results = Entities.findEntities(_this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "spotlight") {
-                    print("EBL FOUND THE SPOTLIGHT!");
+                if (properties.name === _this.lightName) {
+                    print("EBL FOUND THE LIGHT!");
                     found.push(result);
+                } else {
+                    print("EBL DID NOT FIND THE LIGHT!");
                 }
             });
             return found;
