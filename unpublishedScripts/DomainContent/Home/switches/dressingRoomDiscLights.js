@@ -26,14 +26,29 @@
         },
 
         modelEmitOn: function(glowDisc) {
-              Entities.editEntity(glowDisc, {
-                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"http://hifi-content.s3.amazonaws.com/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
+
+            var data = {
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight-Diffuse": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg",
+                "Tex.CeilingLight-Emit": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg"
+            }
+
+            Entities.editEntity(glowDisc, {
+                textures: JSON.stringify(data)
             });
         },
 
         modelEmitOff: function(glowDisc) {
-          Entities.editEntity(glowDisc, {
-                textures: 'Metal-brushed-light.jpg:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",\nTex.CeilingLight-Emit:"",\nTexCeilingLight.Diffuse:"https://s3-us-west-1.amazonaws.com/hifi-content/alan/dev/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg"'
+
+            var data = {
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight-Diffuse": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg",
+                "Tex.CeilingLight-Emit": ""
+            }
+
+
+            Entities.editEntity(glowDisc, {
+                textures: JSON.stringify(data)
             });
         },
 
@@ -100,7 +115,9 @@
 
         toggleLights: function() {
 
-            _this._switch = getEntityCustomData('home-switch', _this.entityID, {state: 'off'});
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {
+                state: 'off'
+            });
 
             var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();

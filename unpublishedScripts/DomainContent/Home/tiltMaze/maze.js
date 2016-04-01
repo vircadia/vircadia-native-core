@@ -60,7 +60,6 @@
         preload: function(entityID) {
             this.entityID = entityID;
             VICTORY_SOUND = SoundCache.getSound("atp:/tiltMaze/levelUp.wav");
-            Script.update.connect(this.update);
         },
 
         startNearGrab: function() {
@@ -234,11 +233,8 @@
             };
             Audio.playSound(VICTORY_SOUND, audioProperties);
 
-        },
-
-        unload: function() {
-            Script.update.disconnect(_this.update);
         }
+
     };
 
     return new Maze();

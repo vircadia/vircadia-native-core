@@ -38,22 +38,8 @@
          script: TRANSFORMER_SCRIPT
      }
      var transformer = Entities.addEntity(transformerProps);
-     // Script.setTimeout(function() {
-     //     var actualProps = Entities.getEntityProperties(transformer);
-     //     var quarterSize = Vec3.multiply(SHRINK_AMOUNT, actualProps.naturalDimensions);
-     //     Entities.editEntity(transformer, {
-     //         dimensions: quarterSize,
-     //         visible:true,
-     //         // velocity: {
-     //         //     x: 0,
-     //         //     y: -0.1,
-     //         //     z: 0
-     //         // }
-     //     });
-     // }, 1000)
 
      print('CREATED TRANSFORMER' + transformer);
-     // print('at location: ' + JSON.stringify(transformerProps.position))
 
      return this;
  }

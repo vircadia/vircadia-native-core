@@ -62,41 +62,43 @@
 
     Reset.prototype = {
         tidying: false,
-
+ 
         preload: function(entityID) {
             _this.entityID = entityID;
         },
 
         showTidyingButton: function() {
-
+            var data = {
+                "Texture.001": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Head-Housing-Texture.png",
+                "button.tidy": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange.png",
+                "button.tidy-active": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange.png",
+                "button.tidy-active.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange-Emit.png",
+                "button.tidy.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange-Emit.png",
+                "tex.button.blanks": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face.png",
+                "tex.face.screen.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face-Emit.png"
+            }
 
             Entities.editEntity(_this.entityID, {
-                textures: {
-                    "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
-                    "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange.png",
-                    "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Orange-Emit.png",
-                    "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
-                    "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
-                    "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
-                    "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
-                }
+                textures: JSON.stringify(data)
             });
         },
 
         showTidyButton: function() {
+            var data = {
+                "Texture.001": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Head-Housing-Texture.png",
+                "button.tidy": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Green.png",
+                "button.tidy.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Green-Emit.png",
+                "tex.button.blanks": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face.png",
+                "tex.face.screen.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face-Emit.png"
+            }
 
 
             Entities.editEntity(_this.entityID, {
-                textures: {
-                    "Texture.001": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Head-Housing-Texture.png",
-                    "button.tidy": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green.png",
-                    "button.tidy.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Tidy-Up-Button-Green-Emit.png",
-                    "tex.button.blanks": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks.png",
-                    "tex.button.blanks.normal": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/Button-Blanks-Normal.png",
-                    "tex.face.sceen": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face.png",
-                    "tex.face.screen.emit": "atp:/Tidyguy-6.fbx/Tidyguy-6.fbm/tidy-guy-face-Emit.png"
-                }
-
+                textures: JSON.stringify(data)
             });
         },
 
@@ -235,23 +237,18 @@
                 z: -80.2837
             });
 
-            var rightDeskDrawer = new RightDeskDrawer({
-                x: 1105.1735,
-                y: 460.0446,
-                z: -81.3612
-            });
-
-            var leftDeskDrawer = new LeftDeskDrawer({
-                x: 1104.6478,
-                y: 460.0463,
-                z: -82.1095
-            });
-
             var chair = new Chair({
                 x: 1105.2716,
                 y: 459.7251,
                 z: -79.8097
             });
+
+            //  var comfyChair = new BlueChair({
+            //     x: 1100.4821,
+            //     y: 459.8161,
+            //     z:-75.9071
+            // });
+
 
             var trashcan = new Trashcan({
                 x: 1103.9034,
@@ -290,20 +287,24 @@
             var rotatorBlockProps = {
                 name: 'hifi-home-dressing-room-rotator-block',
                 type: 'Box',
-                visible: true,
+                visible: false,
                 color: {
                     red: 0,
                     green: 255,
                     blue: 0
                 },
                 dimensions: {
-                    x: 0.5,
-                    y: 0.5,
-                    z: 0.5
+                    x: 1.0000,
+                    y: 0.0367,
+                    z: 1.0000
                 },
                 collisionless: true,
                 angularDamping: 0,
-                angularVelocity: Quat.fromPitchYawRollDegrees(0, 6, 0),
+                angularVelocity: {
+                    x: 0,
+                    y: 0.10472,
+                    z: 0
+                },
                 dynamic: false,
                 userData: JSON.stringify({
                     'hifiHomeKey': {
@@ -311,10 +312,15 @@
                     }
                 }),
                 position: {
-                    x: 1107.0330,
-                    y: 460.4326,
-                    z: -74.5704
-                }
+                    x: 1106.9778,
+                    y: 460.6075,
+                    z: -74.5842
+                },
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                })
             }
 
             var rotatorBlock = Entities.addEntity(rotatorBlockProps);

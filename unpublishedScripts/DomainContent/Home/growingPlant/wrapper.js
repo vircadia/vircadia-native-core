@@ -13,18 +13,16 @@
 //
 var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
-
 Plant = function(spawnPosition, spawnRotation) {
-  print("EBL PLANT CONSTRUCTOR!")
   var orientation;
   if (spawnRotation !== undefined) {
     orientation = Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z);
   } else {
     orientation = Camera.getOrientation();
   }
-  print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
   var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
+  var BOWL_COLLISION_HULL_URL = "atp:/growingPlant/bowl.obj";
 
   var bowlDimensions = {
     x: 0.518,
@@ -38,7 +36,7 @@ Plant = function(spawnPosition, spawnRotation) {
     dynamic: true,
     shapeType: 'compound',
     compoundShapeURL: BOWL_COLLISION_HULL_URL,
-    name: "home_model_plantNowl",
+    name: "home_model_plantBowl",
     position: bowlPosition,
     userData: JSON.stringify({
       'hifiHomeKey': {
@@ -60,6 +58,7 @@ Plant = function(spawnPosition, spawnRotation) {
     y: plantDimensions.y / 2,
     z: 0
   });
+  
   var plant = Entities.addEntity({
     type: "Model",
     modelURL: PLANT_MODEL_URL,
@@ -75,9 +74,9 @@ Plant = function(spawnPosition, spawnRotation) {
     }),
   });
 
-
   var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
   var WATER_CAN_COLLIISION_HULL_URL = "atp:/growingPlant/can.obj";
+
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
@@ -92,6 +91,8 @@ Plant = function(spawnPosition, spawnRotation) {
       y: 0.2762,
       z: 0.4115
     },
+    shapeType: 'compound',
+    compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
     position: waterCanPosition,
     collisionSoundURL: "atp:/growingPlant/watering_can_drop.L.wav",
     angularDamping: 1,

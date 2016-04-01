@@ -3,7 +3,7 @@
 
 
 (function() {
-    var TRIGGER_DISTANCE = 0.85;
+
     var TRANSFORMATION_SOUND_URL = '';
 
     var _this;
@@ -28,9 +28,9 @@
             var otherProps = Entities.getEntityProperties(otherID);
 
             if (otherProps.name === "hifi-home-dressing-room-transformer-collider" && _this.locked === false) {
+                print('UNLOCKED TRANSFORMER COLLIDED WITH BASE!! THE AVATAR WHO SIMULATED THIS COLLISION IS:: ' + MyAvatar.sessionUUID);
+                _this.locked = true;
                 _this.findRotatorBlock();
-                this.locked = true;
-
             } else {
                 return;
             }
@@ -44,12 +44,6 @@
             });
         },
 
-        createTransformationParticles: function() {
-            print('transformer should create particles')
-            var particleProps = {};
-            Entities.addEntity(particleProps);
-        },
-
         findRotatorBlock: function() {
             print('transformer should find rotator block')
             var myProps = Entities.getEntityProperties(_this.entityID);
@@ -59,6 +53,7 @@
                 if (resultProps.name === "hifi-home-dressing-room-rotator-block") {
                     _this.rotatorBlock = result;
                     _this.removeCurrentBigVersion(result);
+                    return;
                 }
             });
 
@@ -67,8 +62,6 @@
         removeCurrentBigVersion: function(rotatorBlock) {
             print('transformer should remove big version')
             var blacklistKey = 'Hifi-Hand-RayPick-Blacklist';
-
-
             var myProps = Entities.getEntityProperties(_this.entityID);
             var results = Entities.findEntities(myProps.position, 10);
             results.forEach(function(result) {
@@ -80,16 +73,16 @@
                     }));
 
                     Entities.deleteEntity(result);
+                   
+                    return;
                 }
             });
-
-            _this.createBigVersion(myProps);
-
+             _this.createBigVersion();
         },
 
-        createBigVersion: function(smallProps) {
-
-            print('transformer should create big version!!')
+        createBigVersion: function() {
+            var smallProps = Entities.getEntityProperties(_this.entityID);
+            print('transformer should create big version!!' + smallProps.modelURL);
             print('transformer has rotatorBlock??' + _this.rotatorBlock);
             var rotatorProps = Entities.getEntityProperties(_this.rotatorBlock);
             var bigVersionProps = {
@@ -149,65 +142,16 @@
             var baseRotation = userData["hifiHomeTransformerKey"].baseRotation;
             littleVersionProps.position = basePosition;
             littleVersionProps.rotation = baseRotation;
-            // print('transformer  new version ' + JSON.stringify(littleVersionProps));
             var littleTransformer = Entities.addEntity(littleVersionProps);
-            print('little transformer:: ' + littleTransformer);
             _this.removeSelf();
         },
 
         removeSelf: function() {
             print('transformer should remove itself')
             var success = Entities.deleteEntity(_this.entityID);
-            print('transformer actually deleted self: ' + success);
         },
     };
 
-    function getJointData(avatar) {
-        //can you do this for an arbitrary model?
-        var allJointData = [];
-        var jointNames = MyAvatar.jointNames;
-        jointNames.forEach(function(joint, index) {
-            var translation = MyAvatar.getJointTranslation(index);
-            var rotation = MyAvatar.getJointRotation(index)
-            allJointData.push({
-                joint: joint,
-                index: index,
-                translation: translation,
-                rotation: rotation
-            });
-        });
-
-        return allJointData;
-    }
-
-    function getAvatarFootOffset() {
-        var data = getJointData();
-        var upperLeg, lowerLeg, foot, toe, toeTop;
-        data.forEach(function(d) {
-
-            var jointName = d.joint;
-            if (jointName === "RightUpLeg") {
-                upperLeg = d.translation.y;
-            }
-            if (jointName === "RightLeg") {
-                lowerLeg = d.translation.y;
-            }
-            if (jointName === "RightFoot") {
-                foot = d.translation.y;
-            }
-            if (jointName === "RightToeBase") {
-                toe = d.translation.y;
-            }
-            if (jointName === "RightToe_End") {
-                toeTop = d.translation.y
-            }
-        })
-
-        var myPosition = MyAvatar.position;
-        var offset = upperLeg + lowerLeg + foot + toe + toeTop;
-        offset = offset / 100;
-        return offset
-    }
 
     return new Transformer();
 })
