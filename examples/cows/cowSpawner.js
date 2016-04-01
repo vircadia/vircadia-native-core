@@ -1,4 +1,4 @@
-  //
+
 //  cowSpawner.js
 //  examples/cows
 //
