@@ -1943,7 +1943,7 @@ function MyController(hand) {
                     // be fixed.
                     Entities.editEntity(entityID, {
                         velocity: this.currentVelocity,
-                        angularVelocity: this.currentAngularVelocity
+                        // angularVelocity: this.currentAngularVelocity
                     });
                 }
 
