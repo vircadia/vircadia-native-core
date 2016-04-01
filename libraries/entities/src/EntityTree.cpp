@@ -1313,7 +1313,7 @@ void EntityTree::pruneTree() {
 }
 
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-    float x, float y, float z) {
+                                               float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
     args.ourTree = this;
