@@ -16,7 +16,7 @@
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "id": "{e9edc4d0-ecef-42de-88de-a652087f8a18}",
         "modelURL": "atp:/tutorialContent/Junk-Album-3.fbx",
-        "name": "Junk-Album-3.fbx",
+        "name": "home_model_junkAlbum3.fbx",
         "queryAACube": {
             "scale": 0.44973927736282349,
             "x": -0.22486963868141174,
@@ -49,7 +49,7 @@
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "id": "{cc75df45-0caf-41ff-8c05-29c771cc63d9}",
         "modelURL": "atp:/tutorialContent/Hideous-Knick-Knack1.fbx",
-        "name": "Junk-Doll",
+        "name": "home_model_junkDoll",
         "position": {
             "x": 0.3363037109375,
             "y": 0.1844482421875,
@@ -87,7 +87,7 @@
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "id": "{903543d7-4531-4532-997a-8176be9fc660}",
         "modelURL": "atp:/tutorialContent/Junk-Album-1.fbx",
-        "name": "Junk-Album-1.fbx",
+        "name": "home_model_junkAlbum1",
         "position": {
             "x": 0.10009765625,
             "y": 0.087310791015625,
@@ -125,7 +125,7 @@
         "id": "{d99aeed0-9d38-4b82-8ae0-630cdfcd32cb}",
         "marketplaceID": "268b7d13-d3f6-4e03-a252-3e5bde1d145e",
         "modelURL": "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/ozan/Lamp.fbx",
-        "name": "Junk - lamp",
+        "name": "home_model_Junk - lamp",
         "position": {
             "x": 0.61279296875,
             "y": 0.2528076171875,
@@ -161,7 +161,7 @@
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "id": "{51a01cc1-15cf-4265-9d33-261c96e0e1ed}",
         "modelURL": "atp:/models/Junk-Crate.fbx",
-        "name": "home_model_junk_holder",
+        "name": "home_model_junkHolder",
         "position": {
             "x": 0.369384765625,
             "y": 0.0540771484375,

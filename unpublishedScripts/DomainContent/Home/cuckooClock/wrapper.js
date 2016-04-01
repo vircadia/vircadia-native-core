@@ -11,6 +11,7 @@
 
 var MINUTE_HAND_CLOCK_SCRIPT_URL = Script.resolvePath("cuckooClockMinuteHandEntityScript.js" )
 var CLOCK_BODY_URL = "atp:/cuckooClock/cuckoo2_BODY.fbx";
+var CLOCK_BODY_COLLISION_HULL_URL = "atp:/cuckooClock/cuckooCollider.obj";
 var CLOCK_FACE_URL = "atp:/cuckooClock/cuckooClock2_FACE.fbx";
 var CLOCK_HOUR_HAND_URL = "atp:/cuckooClock/cuckooClock2_HOUR_HAND.fbx";
 var CLOCK_MINUTE_HAND_URL = "atp:/cuckooClock/cuckooClock2_MINUTE_HAND.fbx";
@@ -24,7 +25,9 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockBody = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_BODY_URL,
-      name: "hifi-home-model-clockbody",
+      shapeType: "compound",
+      compoundShapeURL: CLOCK_BODY_COLLISION_HULL_URL,
+      name: "home_model_clockBody",
       animation: {
         url: CLOCK_BODY_URL,
         running: false,
@@ -59,7 +62,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       type: "Model",
       parentID: clockBody,
       rotation: clockRotation,
-      name: "hifi-home-model-clockface",
+      name: "home_model_clockFace",
       modelURL: CLOCK_FACE_URL,
       position: clockFacePosition,
       dimensions: {
@@ -103,7 +106,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
 
     clockHourHand = Entities.addEntity({
       type: "Model",
-      name: "hifi-home-model-clockHourHand",
+      name: "home_model_clockHourHand",
       parentID: clockFace,
       modelURL: CLOCK_HOUR_HAND_URL,
       position: hourHandPosition,
@@ -145,7 +148,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
       type: "Model",
       parentID: clockBody,
       modelURL: CLOCK_SECOND_HAND_URL,
-      name: "hifi-home-model-clockSecondHand",
+      name: "home_model_clockSecondHand",
       position: hourHandPosition,
       dimensions: {
         x: 0.0043,
@@ -191,7 +194,7 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockMinuteHand = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_HOUR_HAND_URL,
-      name: "hifi-home-model-clockMinuteHand",
+      name: 'home_model_clockMinuteHand',
       parentID: clockFace,
       position: hourHandPosition,
       registrationPoint: {

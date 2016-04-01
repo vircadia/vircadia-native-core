@@ -139,7 +139,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
 
     var createBall = function(position) {
         var properties = {
-            name: 'Hifi Tilt Maze Ball',
+            name: 'home_sphere_tiltMazeBall',
             type: 'Sphere',
             position: getBallStartLocation(),
             dynamic: true,
@@ -169,7 +169,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
 
     var createBallSpawningAnchor = function() {
         var properties = {
-            name: 'Hifi Tilt Maze Ball Detector',
+            name: 'home_box_tiltMazeBallSpawningAnchor',
             parentID: tiltMaze,
             type: 'Box',
             color: DEBUG_COLOR,
@@ -191,7 +191,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
     var createBallDetector = function() {
 
         var properties = {
-            name: 'Hifi Tilt Maze Ball Detector',
+            name: 'home_box_tiltMazeBallDetector',
             parentID: tiltMaze,
             type: 'Box',
             color: DEBUG_COLOR,
@@ -215,7 +215,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
 
     var createTiltMaze = function(position) {
         var properties = {
-            name: 'Hifi Tilt Maze',
+            name: 'home_model_tiltMaze',
             type: 'Model',
             modelURL: MAZE_MODEL_URL,
             gravity: MAZE_GRAVITY,
@@ -254,7 +254,7 @@ TiltMaze = function(spawnPosition, spawnRotation) {
         var position = getBallFinishLocation();
         var lightProperties = {
             parentID: tiltMaze,
-            name: 'Hifi Tilt Maze End Light',
+            name: 'home_light_tiltMazeEndLight',
             type: "Light",
             isSpotlight: true,
             dimensions: END_LIGHT_DIMENSIONS,

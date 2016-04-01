@@ -29,7 +29,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     var WHITEBOARD_COLLISION_HULL_URL = "atp:/whiteboard/whiteboardCollisionHull.obj";
     var whiteboard = Entities.addEntity({
         type: "Model",
-        name: "whiteboard",
+        name: "home_model_whiteboard",
         modelURL: WHITEBOARD_MODEL_URL,
         position: whiteboardPosition,
         rotation: whiteboardRotation,
@@ -57,9 +57,10 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(whiteboardRotation)));
     var moveForwardDistance = 0.02;
     whiteboardFrontSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-moveForwardDistance, Quat.getFront(whiteboardRotation)));
+    var WHITEBOARD_SURFACE_NAME = "home_box_whiteboardDrawingSurface"; 
     var whiteboardSurfaceSettings = {
         type: "Box",
-        name: "hifi-whiteboardDrawingSurface",
+        name: WHITEBOARD_SURFACE_NAME,
         dimensions: {
             x: 1.82,
             y: 1.8,
@@ -99,6 +100,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     var eraser = Entities.addEntity({
         type: "Model",
+        name: "home_model_whiteboardEraser",
         modelURL: ERASER_MODEL_URL,
         position: eraserPosition,
         script: ERASER_SCRIPT_URL,
@@ -191,7 +193,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             modelURL: modelURL,
             rotation: markerRotation,
             shapeType: "box",
-            name: "marker",
+            name: "home_model_marker",
             dynamic: true,
             gravity: {
                 x: 0,
@@ -209,7 +211,6 @@ Whiteboard = function(spawnPosition, spawnRotation) {
                 y: 0.027,
                 z: 0.164
             },
-            name: "marker",
             script: MARKER_SCRIPT_URL,
             userData: JSON.stringify({
                 'hifiHomeKey': {

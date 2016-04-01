@@ -80,8 +80,7 @@ Plant = function(spawnPosition, spawnRotation) {
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
     type: "Model",
-    shapeType: 'compound',
-    compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
+    shapeType: 'box',
     name: "home_model_waterCan",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,
@@ -94,7 +93,6 @@ Plant = function(spawnPosition, spawnRotation) {
     compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
     position: waterCanPosition,
     collisionSoundURL: "atp:/growingPlant/watering_can_drop.L.wav",
-    angularDamping: 1,
     dynamic: true,
     gravity: {
       x: 0.0,
@@ -155,6 +153,7 @@ Plant = function(spawnPosition, spawnRotation) {
       green: 10,
       blue: 200
     },
+    collisionless: true,
     position: waterSpoutPosition,
     rotation: waterSpoutRotation,
     parentID: waterCan,

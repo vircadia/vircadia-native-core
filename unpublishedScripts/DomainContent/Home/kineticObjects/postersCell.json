@@ -12,7 +12,7 @@
             "z": 0.14119282364845276
         },
         "id": "{fb17c832-d450-4293-a9b5-5b2d0425e8fc}",
-        "name": "Poster-Nail",
+        "name": "home_model_posterNail",
         "position" : {
             "x": -0.05,
             "y": 0.4,
@@ -44,7 +44,7 @@
         "dynamic": 0,
         "id": "{9eec1faa-9e1a-4d76-abeb-a1b1175a44d5}",
         "modelURL": "atp:/kineticObjects/posters/Cellscience-Poster-2.fbx",
-        "name": "hifi-home-poster-cell",
+        "name": "home_model_posterCell",
         "queryAACube": {
             "scale": 1.4568163156509399,
             "x": 1103.1385498046875,
