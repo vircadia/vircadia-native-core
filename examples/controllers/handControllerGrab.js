@@ -1562,6 +1562,10 @@ function MyController(hand) {
         var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
 
+        if (deltaTime > 0.0) {
+            this.currentVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
+        }
+
         this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
 
@@ -1886,9 +1890,21 @@ function MyController(hand) {
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
-                var parentID = Entities.getEntityProperties(entityID, ["parentID"]).parentID;
+                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity"])
+                var parentID = props.parentID;
                 var forceVelocity = false;
+
+                deactiveProps["velocity"] = props.velocity;
+                if (parentID != NULL_UUID) {
+                    // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
+                    // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
+                    // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
+                    // can be thrown.
+                    deactiveProps["velocity"] = this.currentVelocity;
+                }
+
                 if (!noVelocity &&
+                    vec3equal(deactiveProps.velocity, ZERO_VEC) &&
                     parentID == MyAvatar.sessionUUID &&
                     Vec3.length(data["gravity"]) > 0.0 &&
                     data["dynamic"] &&
