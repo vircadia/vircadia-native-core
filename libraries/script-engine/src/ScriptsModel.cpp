@@ -25,7 +25,6 @@
 #define __STR1__(x) __STR2__(x)
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
-static const QString MODELS_LOCATION = "scripts/";
 static const QString PREFIX_PARAMETER_NAME = "prefix";
 static const QString MARKER_PARAMETER_NAME = "marker";
 static const QString IS_TRUNCATED_NAME = "IsTruncated";
@@ -159,8 +158,7 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
 
     if (url.isLocalFile()) {
         // if the url indicates a local directory, use QDirIterator
-        // QString localDir = url.toLocalFile() + "/scripts";
-        QString localDir = expandScriptUrl(url).toLocalFile() + "/scripts";
+        QString localDir = expandScriptUrl(url).toLocalFile();
         int localDirPartCount = localDir.split("/").size();
         #ifdef Q_OS_WIN
         localDirPartCount++; // one for the drive letter
@@ -176,7 +174,7 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
     } else {
         // the url indicates http(s), use QNetworkRequest
         QUrlQuery query;
-        query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
+        query.addQueryItem(PREFIX_PARAMETER_NAME, ".");
         if (!marker.isEmpty()) {
             query.addQueryItem(MARKER_PARAMETER_NAME, marker);
         }

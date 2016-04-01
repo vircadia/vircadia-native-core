@@ -251,7 +251,7 @@ static const QString SETTINGS_KEY = "Settings";
 
 void ScriptEngines::loadDefaultScripts() {
     QUrl defaultScriptsLoc = defaultScriptsLocation();
-    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "/scripts/defaultScripts.js");
+    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "/defaultScripts.js");
     loadScript(defaultScriptsLoc.toString());
 }
 
