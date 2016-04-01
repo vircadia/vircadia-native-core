@@ -5,7 +5,7 @@ WebEngineView {
     id: root
     property var newUrl;
 
-    profile.httpUserAgent: "Chrome/48.0 (HighFidelityInterface)"
+    profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
