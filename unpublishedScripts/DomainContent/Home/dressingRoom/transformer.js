@@ -4,7 +4,34 @@
 
 (function() {
 
-    var TRANSFORMATION_SOUND_URL = '';
+    //full size dimensions
+    var ARTEMIS_DIMENSIONS = {
+        x: 1.6241,
+        y: 1.7649,
+        z: 0.2715
+    };
+    var ALBERT_DIMENSIONS = {
+        x: 1.8567,
+        y: 1.8356,
+        z: 0.4193
+    };
+    var BEING_OF_LIGHT_DIMENSIONS = {
+        x: 1.8838,
+        y: 1.7865,
+        z: 0.2766
+    }
+    var KATE_DIMENSIONS = {
+        x: 1.6775,
+        y: 1.8018,
+        z: 0.3461
+    };
+    var WILL_DIMENSIONS = {
+        x: 1.6326,
+        y: 1.6764,
+        z: 0.2606
+    };
+
+    // var TRANSFORMATION_SOUND_URL = '';
 
     var _this;
 
@@ -21,7 +48,7 @@
             print('PRELOAD TRANSFORMER SCRIPT')
             this.entityID = entityID;
             this.initialProperties = Entities.getEntityProperties(entityID);
-            this.transformationSound = SoundCache.getSound(TRANSFORMATION_SOUND_URL);
+            // this.transformationSound = SoundCache.getSound(TRANSFORMATION_SOUND_URL);
         },
 
         collisionWithEntity: function(myID, otherID, collisionInfo) {
@@ -36,13 +63,13 @@
             }
         },
 
-        playTransformationSound: function(position) {
-            print('transformer should play a sound')
-            Audio.playSound(_this.transformationSound, {
-                position: position,
-                volume: 0.5
-            });
-        },
+        // playTransformationSound: function(position) {
+        //     print('transformer should play a sound')
+        //     Audio.playSound(_this.transformationSound, {
+        //         position: position,
+        //         volume: 0.5
+        //     });
+        // },
 
         findRotatorBlock: function() {
             print('transformer should find rotator block')
@@ -73,11 +100,11 @@
                     }));
 
                     Entities.deleteEntity(result);
-                   
+
                     return;
                 }
             });
-             _this.createBigVersion();
+            _this.createBigVersion();
         },
 
         createBigVersion: function() {
@@ -85,9 +112,36 @@
             print('transformer should create big version!!' + smallProps.modelURL);
             print('transformer has rotatorBlock??' + _this.rotatorBlock);
             var rotatorProps = Entities.getEntityProperties(_this.rotatorBlock);
+
+            var dimensions;
+            if (smallProps.modelURL.indexOf('Will') > -1) {
+                print('TRANSFORMER IS WILL')
+                dimensions = WILL_DIMENSIONS;
+            } else if (smallProps.modelURL.indexOf('albert') > -1) {
+                print('TRANSFORMER IS ALBERT')
+
+                dimensions = ALBERT_DIMENSIONS;
+            } else if (smallProps.modelURL.indexOf('kate') > -1) {
+                print('TRANSFORMER IS KATE')
+
+                dimensions = KATE_DIMENSIONS;
+            } else if (smallProps.modelURL.indexOf('BoL') > -1) {
+                print('TRANSFORMER IS BEING OF LIGHT')
+
+                dimensions = BEING_OF_LIGHT_DIMENSIONS;
+            } else if (smallProps.modelURL.indexOf('FemAvi') > -1) {
+                print('TRANSFORMER IS ARTMIS')
+
+                dimensions = ARTEMIS_DIMENSIONS;
+            } else {
+                print('TRANSFORMER IS SOME OTHER');
+                dimensions = smallProps.naturalDimensions;
+            }
+
             var bigVersionProps = {
                 name: "hifi-home-dressing-room-big-transformer",
                 type: 'Model',
+                dimensions: dimensions,
                 parentID: _this.rotatorBlock,
                 modelURL: smallProps.modelURL,
                 position: _this.putTransformerOnRotatorBlock(rotatorProps.position),
