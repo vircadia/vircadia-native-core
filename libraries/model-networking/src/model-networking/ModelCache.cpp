@@ -279,6 +279,9 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 
                 material->setTextures(textureMap);
                 _areTexturesLoaded = false;
+
+                // If we only use cached textures, they should all be loaded
+                areTexturesLoaded();
             }
         }
     } else {
@@ -288,8 +291,6 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 
 bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
-        _hasTransparentTextures = false;
-
         for (auto& material : _materials) {
             // Check if material textures are loaded
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
@@ -302,8 +303,6 @@ bool Geometry::areTexturesLoaded() const {
             const auto albedoTexture = material->_textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
             if (albedoTexture.texture && albedoTexture.texture->getGPUTexture()) {
                 material->resetOpacityMap();
-
-                _hasTransparentTextures |= material->getKey().isTranslucent();
             }
         }
 
