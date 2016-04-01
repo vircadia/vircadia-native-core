@@ -1,4 +1,4 @@
-print('KINETIC INCLUDING WRAPPER')
+print('HOME KINETIC INCLUDING WRAPPER')
 
 var BOOKS_URL = "atp:/kineticObjects/books.json"
 var UPPER_BOOKSHELF_URL = "atp:/kineticObjects/upperBookShelf.json"
@@ -14,7 +14,6 @@ var TRASHCAN_URL = "atp:/kineticObjects/trashcan.json"
 var BLOCKS_URL = "atp:/kineticObjects/blocks.json";
 var PLAYA_POSTER_URL = "atp:/kineticObjects/postersPlaya.json"
 var CELL_POSTER_URL = "atp:/kineticObjects/postersCell.json"
-
 var STUFF_ON_SHELVES_URL ="atp:/kineticObjects/stuff_on_shelves.json"
 
 FruitBowl = function(spawnLocation, spawnRotation) {

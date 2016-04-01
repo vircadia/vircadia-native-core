@@ -241,6 +241,8 @@
                 z: -79.8097
             });
 
+            print('HOME CREATE BLUE CHAIR')
+
              var blueChair = new BlueChair({
                 x: 1100.4821,
                 y: 459.8161,
