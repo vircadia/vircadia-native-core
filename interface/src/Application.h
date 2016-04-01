@@ -312,6 +312,7 @@ private slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
+    void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     void updateDisplayMode();

@@ -680,6 +680,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
+    connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
     connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
@@ -4121,15 +4122,26 @@ void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
         getMyAvatar()->sendIdentityPacket();
-    } else if (node->getType() == NodeType::AssetServer) {
+    }
+}
+
+void Application::nodeActivated(SharedNodePointer node) {
+    if (node->getType() == NodeType::AssetServer) {
         // asset server just connected - check if we have the asset browser showing
 
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
 
         if (assetDialog) {
-            // call reload on the shown asset browser dialog to get the mappings (if permissions allow)
-            QMetaObject::invokeMethod(assetDialog, "reload");
+            auto nodeList = DependencyManager::get<NodeList>();
+
+            if (nodeList->getThisNodeCanRez()) {
+                // call reload on the shown asset browser dialog to get the mappings (if permissions allow)
+                QMetaObject::invokeMethod(assetDialog, "reload");
+            } else {
+                // we switched to an Asset Server that we can't modify, hide the Asset Browser
+                assetDialog->setVisible(false);
+            }
         }
     }
 }
