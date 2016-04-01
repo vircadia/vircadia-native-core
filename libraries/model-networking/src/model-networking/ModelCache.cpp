@@ -29,6 +29,10 @@ public:
     const QUrl& textureBaseUrl;
 };
 
+QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
+    return textureBaseUrl.isValid() ? textureBaseUrl : url;
+}
+
 class GeometryMappingResource : public GeometryResource {
     Q_OBJECT
 public:
@@ -52,18 +56,17 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         finishedLoading(false);
     } else {
         QUrl url = _url.resolved(filename);
-        QUrl textureBaseUrl;
 
         QString texdir = mapping.value("texdir").toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
-            textureBaseUrl = _url.resolved(texdir);
+            _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra{ mapping, textureBaseUrl };
+        GeometryExtra extra{ mapping, _textureBaseUrl };
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
         _geometryResource = modelCache->getResource(url, QUrl(), false, &extra).staticCast<GeometryResource>();
@@ -160,7 +163,7 @@ class GeometryDefinitionResource : public GeometryResource {
     Q_OBJECT
 public:
     GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
-        GeometryResource(url, textureBaseUrl.isValid() ? textureBaseUrl : url), _mapping(mapping) {}
+        GeometryResource(url, resolveTextureBaseUrl(url, textureBaseUrl)), _mapping(mapping) {}
 
     virtual void downloadFinished(const QByteArray& data) override;
 
