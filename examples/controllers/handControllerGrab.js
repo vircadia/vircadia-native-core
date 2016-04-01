@@ -1500,6 +1500,7 @@ function MyController(hand) {
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectRotation = grabbedProperties.rotation;
         this.currentVelocity = ZERO_VEC;
+        this.currentAngularVelocity = ZERO_VEC;
     };
 
     this.continueNearGrabbing = function() {
@@ -1531,7 +1532,7 @@ function MyController(hand) {
 
         this.heartBeat(this.grabbedEntity);
 
-        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position"]);
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position", "rotation"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
             this.setState(STATE_RELEASE);
@@ -1568,8 +1569,16 @@ function MyController(hand) {
 
         if (deltaTime > 0.0) {
             var worldDeltaPosition = Vec3.subtract(props.position, this.currentObjectPosition);
+
+            var previousEulers = Quat.safeEulerAngles(this.currentObjectRotation);
+            var newEulers = Quat.safeEulerAngles(props.rotation);
+            var worldDeltaRotation = Vec3.subtract(newEulers, previousEulers);
+
             this.currentVelocity = Vec3.multiply(worldDeltaPosition, 1.0 / deltaTime);
+            this.currentAngularVelocity = Vec3.multiply(worldDeltaRotation, Math.PI / (deltaTime * 180.0));
+
             this.currentObjectPosition = props.position;
+            this.currentObjectRotation = props.rotation;
         }
 
         this.currentHandControllerTipPosition = handControllerPosition;
@@ -1901,16 +1910,12 @@ function MyController(hand) {
                 var forceVelocity = false;
 
                 var doSetVelocity = false;
-                var setVelocityTo = ZERO_VEC;
-
                 if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID) {
                     // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
                     // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
                     // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
                     // can be thrown.
-                    print("SETTING doSetVelocity");
                     doSetVelocity = true;
-                    setVelocityTo = this.currentVelocity;;
                 }
 
                 if (!noVelocity &&
@@ -1931,14 +1936,15 @@ function MyController(hand) {
 
                 Entities.editEntity(entityID, deactiveProps);
 
-                print("doSetVelocity = " + doSetVelocity);
                 if (doSetVelocity) {
                     // this is a continuation of the TODO above -- we shouldn't need to set this here.
                     // do this after the parent has been reset.  setting this at the same time as
                     // the parent causes it to go off in the wrong direction.  This is a bug that should
                     // be fixed.
-                    print("SETTING VEL TO" + vec3toStr(setVelocityTo));
-                    Entities.editEntity(entityID, { "velocity": setVelocityTo });
+                    Entities.editEntity(entityID, {
+                        velocity: this.currentVelocity,
+                        angularVelocity: this.currentAngularVelocity
+                    });
                 }
 
                 data = null;
