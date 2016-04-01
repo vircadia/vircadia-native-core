@@ -241,15 +241,24 @@
                 z: -79.8097
             });
 
-            print('HOME CREATE BLUE CHAIR')
-
-             var blueChair = new BlueChair({
+            var blueChair = new BlueChair({
                 x: 1100.4821,
                 y: 459.8161,
-                z:-75.9071
+                z: -75.9071
             });
 
-            // var stuffOnShelf = new stuffOnShelf({});
+
+            var stuffOnShelves = new StuffOnShelves({
+                x: 1105.9432,
+                y: 461.1020,
+                z: -80.7894
+            });
+
+            var junk = new HomeJunk({
+                x: 1102.8754,
+                y: 460.2932,
+                z: -69.0222
+            });
 
             var trashcan = new Trashcan({
                 x: 1103.9034,
