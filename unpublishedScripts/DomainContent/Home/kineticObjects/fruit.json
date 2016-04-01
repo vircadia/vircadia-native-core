@@ -1,6 +1,7 @@
 {
     "Entities": [{
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_fruitBowl",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/kineticObjects/fruit/Fruit-Bowl.obj",
         "created": "2016-03-15T23:11:03Z",
@@ -38,6 +39,7 @@
         "type": "Model"
     }, {
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
         "collisionsWillMove": 1,
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
@@ -76,6 +78,7 @@
         "type": "Model"
     }, {
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
         "collisionsWillMove": 1,
         "created": "2016-03-15T21:26:11Z",
         "dimensions": {
@@ -114,6 +117,7 @@
         "type": "Model"
     }, {
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -152,6 +156,7 @@
         "type": "Model"
     }, {
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -190,6 +195,7 @@
         "type": "Model"
     }, {
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {
@@ -228,6 +234,7 @@
         "type": "Model"
     }, {
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
         "collisionsWillMove": 1,
         "created": "2016-03-16T00:27:30Z",
         "dimensions": {

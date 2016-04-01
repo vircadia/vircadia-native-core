@@ -33,7 +33,6 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
-    dynamic: true,
     shapeType: 'compound',
     compoundShapeURL: BOWL_COLLISION_HULL_URL,
     name: "home_model_plantBowl",

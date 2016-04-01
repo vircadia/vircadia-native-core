@@ -14,7 +14,7 @@
         },
         "id": "{c7c6108b-4c60-4735-b2bf-5559d7e30e7d}",
         "ignoreForCollisions": 1,
-        "name": "hifi-home-living-room-desk-lamp-trigger",
+        "name": "home_box_livingRoomDeskLampTrigger",
         "parentID": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
         "position": {
             "x": 0.0062166899442672729,
@@ -55,12 +55,12 @@
         "id": "{47e2c415-854c-4b6a-b71e-06c760675afd}",
         "intensity": 20,
         "isSpotlight": 1,
-        "name": "hifi-home-living-room-desk-lamp-spotlight",
+        "name": "home_light_livingRoomLight",
         "parentID": "{c7c6108b-4c60-4735-b2bf-5559d7e30e7d}",
         "position": {
-            "x": -0.10525670647621155,
+            "x": 0,
             "y": -0.14917388558387756,
-            "z": 0.71759903430938721
+            "z": 0
         },
         "queryAACube": {
             "scale": 20.784608840942383,
@@ -94,7 +94,7 @@
         },
         "id": "{6c59ca6f-e3f6-42c1-ae4d-1549b5bdaee1}",
         "modelURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.fbx",
-        "name": "hifi-home-model-bulldog-shade",
+        "name": "home_model_bulldogShade",
         "position": {
             "x": 0.085205078125,
             "y": 0.5194091796875,
@@ -138,7 +138,7 @@
         },
         "id": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
         "modelURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.fbx",
-        "name": "hifi-home-model-bulldog-base",
+        "name": "home_model_BulldogBase",
         "position": {
             "x": 0.08642578125,
             "y": 0.306884765625,
