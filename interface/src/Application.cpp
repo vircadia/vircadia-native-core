@@ -3215,6 +3215,25 @@ void Application::update(float deltaTime) {
 
     updateLOD();
 
+    if (!_physicsEnabled && _processOctreeStatsCounter > 0) {
+
+        // process octree stats packets are sent in between full sends of a scene.
+        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+
+        if (nearbyEntitiesAreReadyForPhysics()) {
+            _physicsEnabled = true;
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        } else {
+            auto characterController = getMyAvatar()->getCharacterController();
+            if (characterController) {
+                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                // a non-loading collision hull.
+                characterController->setEnabled(false);
+            }
+        }
+    }
+
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
@@ -4260,22 +4279,7 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-    if (!_physicsEnabled) {
-        if (nearbyEntitiesAreReadyForPhysics()) {
-            // These stats packets are sent in between full sends of a scene.
-            // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
-            // scene is ready to compute its collision shape.
-            _physicsEnabled = true;
-            getMyAvatar()->updateMotionBehaviorFromMenu();
-        } else {
-            auto characterController = getMyAvatar()->getCharacterController();
-            if (characterController) {
-                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                // a non-loading collision hull.
-                characterController->setEnabled(false);
-            }
-        }
-    }
+    _processOctreeStatsCounter++;
 
     return statsMessageLength;
 }
