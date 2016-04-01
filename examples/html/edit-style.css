@@ -85,6 +85,7 @@ table {
 thead {
     font-family: Raleway-Regular;
     font-size: 12px;
+    text-transform: uppercase;
     background-color: #1c1c1c;
     padding: 1px 0px;
     border-bottom: 1px solid #575757;
@@ -502,6 +503,13 @@ input[type=checkbox]:checked + label:hover {
 }
 .xyz > div, .pyr > div, .gen > div {
     clear: both;
+}
+
+.unit {
+    padding-left: 4px;
+    vertical-align: top;
+    position: relative;
+    top: 5px;
 }
 
 .dropdown {
