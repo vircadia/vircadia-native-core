@@ -21,7 +21,7 @@ class AssetResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
     AssetResourceRequest(const QUrl& url) : ResourceRequest(url) { }
-    ~AssetResourceRequest();
+    virtual ~AssetResourceRequest() override;
 
 protected:
     virtual void doSend() override;
