@@ -109,7 +109,7 @@ protected:
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
     /// \param extra extra data to pass to the creator, if appropriate
-    Q_INVOKABLE QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
                                                      bool delayLoad = false, void* extra = NULL);
 
     /// Creates a new resource.
@@ -123,7 +123,7 @@ protected:
     
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
-    Q_INVOKABLE static bool attemptRequest(Resource* resource);
+    static bool attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
     static bool attemptHighestPriorityRequest();
 

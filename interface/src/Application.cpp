@@ -588,9 +588,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
     // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
     // downloads.
-    QSharedPointer<ModelCache> modelCacheP = DependencyManager::get<ModelCache>();
-    ResourceCache* modelCache = modelCacheP.data();
-    connect(this, &Application::checkBackgroundDownloads, modelCache, &ResourceCache::checkAsynchronousGets);
+    auto modelCache = DependencyManager::get<ModelCache>();
+    connect(this, &Application::checkBackgroundDownloads, modelCache.data(), &ModelCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
