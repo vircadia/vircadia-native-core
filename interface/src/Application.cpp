@@ -4121,6 +4121,16 @@ void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
         getMyAvatar()->sendIdentityPacket();
+    } else if (node->getType() == NodeType::AssetServer) {
+        // asset server just connected - check if we have the asset browser showing
+
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
+
+        if (assetDialog) {
+            // call reload on the shown asset browser dialog to get the mappings (if permissions allow)
+            QMetaObject::invokeMethod(assetDialog, "reload");
+        }
     }
 }
 
@@ -4136,10 +4146,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
-    }
-
-    if (node->getType() == NodeType::EntityServer) {
-
+    } else if (node->getType() == NodeType::EntityServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
         _entityServerJurisdictions.withReadLock([&] {
@@ -4170,6 +4177,16 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    } else if (node->getType() == NodeType::AssetServer) {
+        // asset server going away - check if we have the asset browser showing
+
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
+
+        if (assetDialog) {
+            // call reload on the shown asset browser dialog
+            QMetaObject::invokeMethod(assetDialog, "clear");
+        }
     }
 }
 void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
