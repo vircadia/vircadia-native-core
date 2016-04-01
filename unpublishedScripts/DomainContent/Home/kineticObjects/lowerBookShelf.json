@@ -1,6 +1,7 @@
 {
     "Entities": [{
         "created": "2016-03-07T21:07:29Z",
+        "name": "home_model_lowerBookShelf",
         "dimensions": {
             "x": 2.0069153308868408,
             "y": 0.0160951167345047,

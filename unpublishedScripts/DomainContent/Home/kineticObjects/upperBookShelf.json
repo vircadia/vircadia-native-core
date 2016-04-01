@@ -1,6 +1,7 @@
 {
     "Entities": [{
         "created": "2016-03-15T21:26:11Z",
+        "name": "home_model_upperBookShelf",
         "dimensions": {
             "x": 2.0069153308868408,
             "y": 0.0160951167345047,

@@ -3,7 +3,7 @@
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/kineticObjects/trashcan/Trash-Can-4.obj",
         "created": "2016-03-15T23:06:41Z",
-        "name": "hifi-home-model-trashcan",
+        "name": "home_model_Trashcan",
         "dimensions": {
             "x": 0.4264354407787323,
             "y": 0.50489801168441772,

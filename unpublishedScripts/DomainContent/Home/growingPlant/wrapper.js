@@ -94,7 +94,6 @@ Plant = function(spawnPosition, spawnRotation) {
     compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
     position: waterCanPosition,
     collisionSoundURL: "atp:/growingPlant/watering_can_drop.L.wav",
-    angularDamping: 1,
     dynamic: true,
     gravity: {
       x: 0.0,
@@ -155,6 +154,7 @@ Plant = function(spawnPosition, spawnRotation) {
       green: 10,
       blue: 200
     },
+    collisionless: true,
     position: waterSpoutPosition,
     rotation: waterSpoutRotation,
     parentID: waterCan,
