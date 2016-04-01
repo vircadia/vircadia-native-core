@@ -20,12 +20,16 @@
 
 using namespace render;
 
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
 
-    for (const auto& itemDetails : inItems) {
-        auto& item = scene->getItem(itemDetails.id);
+    int numItemsToDraw = (int)inItems.size();
+    if (maxDrawnItems != -1) {
+        numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
+    }
+    for (auto i = 0; i < numItemsToDraw; ++i) {
+        auto& item = scene->getItem(inItems[i].id);
         item.render(args);
     }
 }
@@ -69,7 +73,10 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
     // render lights
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, inLights);
+        renderItems(sceneContext, renderContext, inLights, _maxDrawn);
         args->_batch = nullptr;
     });
+
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+    config->setNumDrawn((int)inLights.size());
 }

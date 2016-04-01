@@ -23,6 +23,7 @@ private slots:
     void testCtorsAndSetters();
     void testContainsPoint();
     void testTouchesSphere();
+    void testScale();
 };
 
 #endif // hifi_AABoxTests_h

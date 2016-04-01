@@ -561,6 +561,12 @@ bool ParticleEffectEntityItem::needsToCallUpdate() const {
 
 void ParticleEffectEntityItem::update(const quint64& now) {
 
+    // we check for 'now' in the past in case users set their clock backward
+    if (now < _lastSimulated) {
+        _lastSimulated = now;
+        return;
+    }
+
     float deltaTime = (float)(now - _lastSimulated) / (float)USECS_PER_SECOND;
     _lastSimulated = now;
 

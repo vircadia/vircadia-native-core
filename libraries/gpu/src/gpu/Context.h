@@ -35,6 +35,7 @@ public:
 
     int _RSNumTextureBounded = 0;
 
+    int _DSNumAPIDrawcalls = 0;
     int _DSNumDrawcalls = 0;
     int _DSNumTriangles = 0;
  

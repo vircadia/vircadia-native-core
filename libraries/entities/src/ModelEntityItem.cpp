@@ -42,6 +42,17 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _color[0] = _color[1] = _color[2] = 0;
 }
 
+const QString ModelEntityItem::getTextures() const {
+    QReadLocker locker(&_texturesLock);
+    auto textures = _textures;
+    return textures;
+}
+
+void ModelEntityItem::setTextures(const QString& textures) {
+    QWriteLocker locker(&_texturesLock);
+    _textures = textures;
+}
+
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
