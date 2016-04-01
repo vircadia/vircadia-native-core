@@ -94,7 +94,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 // virtual
-bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
+void EntityMotionState::handleEasyChanges(uint32_t& flags) {
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
@@ -137,8 +137,6 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
-
-    return true;
 }
 
 
@@ -422,19 +420,18 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
         if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
             // acceleration measured during the most recent simulation step was close to gravity.
-            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
-                // only increment this if we haven't reached the threshold yet.  this is to avoid
-                // overflowing the counter.
-                incrementAccelerationNearlyGravityCount();
+            if (_accelerationNearlyGravityCount < STEPS_TO_DECIDE_BALLISTIC) {
+                // only increment this if we haven't reached the threshold yet, to avoid overflowing the counter
+                ++_accelerationNearlyGravityCount;
             }
         } else {
-            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
-            resetAccelerationNearlyGravityCount();
+            // acceleration wasn't similar to this entity's gravity, reset the counter
+            _accelerationNearlyGravityCount = 0;
         }
 
         // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
-        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
+        if (_accelerationNearlyGravityCount >= STEPS_TO_DECIDE_BALLISTIC) {
             _entity->setAcceleration(_entity->getGravity());
         } else {
             _entity->setAcceleration(glm::vec3(0.0f));

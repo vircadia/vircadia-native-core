@@ -29,7 +29,7 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual bool handleEasyChanges(uint32_t& flags) override;
+    virtual void handleEasyChanges(uint32_t& flags) override;
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
     /// \return PhysicsMotionType based on params set in EntityItem
@@ -50,10 +50,6 @@ public:
 
     virtual uint32_t getIncomingDirtyFlags() override;
     virtual void clearIncomingDirtyFlags() override;
-
-    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
-    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    uint8_t getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }
