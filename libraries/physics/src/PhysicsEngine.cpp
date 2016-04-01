@@ -201,7 +201,7 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
     // active static bodies have changed (in an Easy way) and need their Aabbs updated
     // but we've configured Bullet to NOT update them automatically (for improved performance)
     // so we must do it outselves
-    for (int i = 0; i < _activeStaticBodies.size(); ++i) {
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
         _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
     }
     return stillNeedChange;
@@ -399,7 +399,7 @@ const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
     // Bullet will not deactivate static objects (it doesn't expect them to be active)
     // so we must deactivate them ourselves
-    for (int i = 0; i < _activeStaticBodies.size(); ++i) {
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
         _activeStaticBodies[i]->forceActivationState(ISLAND_SLEEPING);
     }
     _activeStaticBodies.clear();
