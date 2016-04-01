@@ -122,11 +122,16 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             object->setProperty(SOURCE_PROPERTY, _source);
 
             // Forward messages received from QML on to the script
-            connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(const QVariant&)), Qt::QueuedConnection);
+            connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
         });
     }
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow.data()));
+}
+
+void QmlWindowClass::qmlToScript(const QVariant& message) {
+    QJSValue js = qvariant_cast<QJSValue>(message);
+    emit fromQml(js.toVariant());
 }
 
 void QmlWindowClass::sendToQml(const QVariant& message) {

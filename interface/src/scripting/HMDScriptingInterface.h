@@ -34,6 +34,8 @@ public:
 
     Q_INVOKABLE glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
     Q_INVOKABLE glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
+    Q_INVOKABLE QString preferredAudioInput() const;
+    Q_INVOKABLE QString preferredAudioOutput() const;
 
 public:
     HMDScriptingInterface();

@@ -178,6 +178,10 @@ private:
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
 
+    quint64 _lastZoneCheck { 0 };
+    const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
+    const float ZONE_CHECK_DISTANCE = 0.001f;
+
     glm::vec3 _previousKeyLightColor;
     float _previousKeyLightIntensity;
     float _previousKeyLightAmbientIntensity;

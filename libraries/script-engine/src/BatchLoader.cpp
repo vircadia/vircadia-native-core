@@ -18,6 +18,7 @@
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 #include "ResourceManager.h"
+#include "ScriptEngines.h"
 
 BatchLoader::BatchLoader(const QList<QUrl>& urls) 
     : QObject(),
@@ -34,8 +35,9 @@ void BatchLoader::start() {
     }
 
     _started = true;
-    
-    for (const auto& url : _urls) {
+
+    for (const auto& rawURL : _urls) {
+        QUrl url = expandScriptUrl(normalizeScriptURL(rawURL));
         auto request = ResourceManager::createResourceRequest(this, url);
         if (!request) {
             _data.insert(url, QString());

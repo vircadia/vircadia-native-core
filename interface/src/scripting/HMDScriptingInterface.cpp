@@ -97,3 +97,11 @@ bool HMDScriptingInterface::isMounted() const{
     auto displayPlugin = qApp->getActiveDisplayPlugin();
     return (displayPlugin->isHmd() && displayPlugin->isDisplayVisible());
 }
+
+QString HMDScriptingInterface::preferredAudioInput() const {
+    return qApp->getActiveDisplayPlugin()->getPreferredAudioInDevice();
+}
+
+QString HMDScriptingInterface::preferredAudioOutput() const {
+    return qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
+}
