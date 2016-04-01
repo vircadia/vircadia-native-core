@@ -460,6 +460,14 @@ uint32 Texture::getStoredMipSize(uint16 level) const {
     return 0;
 }
 
+gpu::Resource::Size Texture::getStoredSize() const {
+    auto size = 0;
+    for (int level = 0; level < evalNumMips(); ++level) {
+        size += getStoredMipSize(level);
+    }
+    return size;
+}
+
 uint16 Texture::evalNumSamplesUsed(uint16 numSamplesTried) {
     uint16 sample = numSamplesTried;
     if (numSamplesTried <= 1)

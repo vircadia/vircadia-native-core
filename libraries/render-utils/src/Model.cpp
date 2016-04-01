@@ -76,14 +76,9 @@ AbstractViewStateInterface* Model::_viewState = NULL;
 
 bool Model::needsFixupInScene() const {
     if (readyToAddToScene()) {
-        // Once textures are loaded, fixup if they are now transparent
-        if (_needsUpdateTransparentTextures && _geometry->getGeometry()->areTexturesLoaded()) {
-            _needsUpdateTransparentTextures = false;
-            bool hasTransparentTextures = _geometry->getGeometry()->hasTransparentTextures();
-            if (_hasTransparentTextures != hasTransparentTextures) {
-                _hasTransparentTextures = hasTransparentTextures;
-                return true;
-            }
+        if (_needsUpdateTextures && _geometry->getGeometry()->areTexturesLoaded()) {
+            _needsUpdateTextures = false;
+            return true;
         }
         if (!_readyWhenAdded) {
             return true;
@@ -546,43 +541,6 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
     }
 }
 
-
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, bool showCollisionHull) {
-
-    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
-        _showCollisionHull = showCollisionHull;
-        segregateMeshGroups();
-    }
-
-    bool somethingAdded = false;
-
-    foreach (auto renderItem, _modelMeshRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _modelMeshRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _collisionRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _collisionRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    _readyWhenAdded = readyToAddToScene();
-
-    return somethingAdded;
-}
-
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
                        render::PendingChanges& pendingChanges,
                        render::Item::Status::Getters& statusGetters,
@@ -594,28 +552,48 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _modelMeshRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _modelMeshRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
+    if (_modelMeshRenderItems.size()) {
+        for (auto item : _modelMeshRenderItems.keys()) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+        }
+    } else {
+        for (auto renderItem : _modelMeshRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            if (statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
+            }
+            pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+            _modelMeshRenderItems.insert(item, renderPayload);
+            somethingAdded = true;
+        }
     }
 
-    foreach (auto renderItem, _collisionRenderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _collisionRenderItems.insert(item, renderPayload);
-        somethingAdded = true;
+    if (_collisionRenderItems.size()) {
+        for (auto item : _collisionRenderItems.keys()) {
+            pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+        }
+    } else {
+        for (auto renderItem : _collisionRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
+            if (statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
+            }
+            pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
+                data.notifyLocationChanged();
+            });
+            _collisionRenderItems.insert(item, renderPayload);
+            somethingAdded = true;
+        }
     }
 
     _readyWhenAdded = readyToAddToScene();
@@ -791,6 +769,13 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
 }
 
+void Model::setTextures(const QVariantMap& textures) {
+    if (isLoaded()) {
+        _needsUpdateTextures = true;
+        _geometry->getGeometry()->setTextures(textures);
+    }
+}
+
 void Model::setURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
     if (_url == url && _geometry && _geometry->getURL() == url) {
@@ -807,8 +792,7 @@ void Model::setURL(const QUrl& url) {
     }
 
     _needsReload = true;
-    _needsUpdateTransparentTextures = true;
-    _hasTransparentTextures = false;
+    _needsUpdateTextures = true;
     _meshGroupsKnown = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();

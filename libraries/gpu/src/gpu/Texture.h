@@ -289,8 +289,11 @@ public:
     Stamp getStamp() const { return _stamp; }
     Stamp getDataStamp() const { return _storage->getStamp(); }
 
-    // The size in bytes of data stored in the texture
+    // The theoretical size in bytes of data stored in the texture
     Size getSize() const { return _size; }
+
+    // The actual size in bytes of data stored in the texture
+    Size getStoredSize() const;
 
     // Resize, unless auto mips mode would destroy all the sub mips
     Size resize1D(uint16 width, uint16 numSamples);

@@ -12,8 +12,8 @@ if (WIN32)
     add_definitions(-DGLEW_STATIC)
 
     set(TARGET_NAME oculus)
-    setup_hifi_plugin()
-    link_hifi_libraries(shared gl gpu controllers ui plugins display-plugins input-plugins)
+    setup_hifi_plugin(Multimedia)
+    link_hifi_libraries(shared gl gpu controllers ui plugins display-plugins input-plugins audio-client networking)
     
     include_hifi_library_headers(octree)
     
@@ -21,5 +21,6 @@ if (WIN32)
     find_package(LibOVR REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
+    target_link_libraries(${TARGET_NAME} Winmm.lib)
 
 endif()
