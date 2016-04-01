@@ -36,8 +36,8 @@
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
         _this.strokes = [];
         _this.PAINTING_TRIGGER_THRESHOLD = 0.2;
-        _this.STROKE_NAME = "hifi-marker-stroke";
-        _this.WHITEBOARD_SURFACE_NAME = "hifi-whiteboardDrawingSurface";
+        _this.STROKE_NAME = "home_polyline_markerStroke";
+        _this.WHITEBOARD_SURFACE_NAME = "home_box_whiteboardDrawingSurface"
         _this.MARKER_RESET_WAIT_TIME = 3000;
     };
 
@@ -48,25 +48,17 @@
             _this.whiteboards = [];
             _this.equipped = true;
             _this.hand = params[0] == "left" ? 0 : 1;
-            print('before thing', id)
-            print('GET user data?' + typeof getEntityUserData)
             _this.markerColor = getEntityUserData(_this.entityID).markerColor;
-            print('after thing')
                 // search for whiteboards
             var markerPosition = Entities.getEntityProperties(_this.entityID, "position").position;
             var entities = Entities.findEntities(markerPosition, 10);
-            print('LOOKING FOR BOARDS')
             entities.forEach(function(entity) {
 
                 var entityName = Entities.getEntityProperties(entity, "name").name;
-                print('NAME ' + entityName)
                 if (entityName === _this.WHITEBOARD_SURFACE_NAME) {
-                    print('FOUND A WHITEBOARD!!')
                     _this.whiteboards.push(entity);
                 }
             });
-
-            print("intersectable entities " + JSON.stringify(_this.whiteboards))
         },
 
         releaseEquip: function() {
