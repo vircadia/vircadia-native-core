@@ -17,6 +17,7 @@
 #include <QtCore/QObject>
 
 #include "AssetUtils.h"
+#include "AssetClient.h"
 
 class MappingRequest : public QObject {
     Q_OBJECT
@@ -31,12 +32,15 @@ public:
         UnknownError
     };
 
+    virtual ~MappingRequest();
+
     Q_INVOKABLE void start();
     Error getError() const { return _error; }
     Q_INVOKABLE QString getErrorString() const;
 
 protected:
     Error _error { NoError };
+    MessageID _mappingRequestID { AssetClient::INVALID_MESSAGE_ID };
 
 private:
     virtual void doStart() = 0;

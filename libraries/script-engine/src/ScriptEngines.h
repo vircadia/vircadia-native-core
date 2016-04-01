@@ -45,7 +45,7 @@ public:
     void loadDefaultScripts();
     void setScriptsLocation(const QString& scriptsLocation);
     QStringList getRunningScripts();
-    ScriptEngine* getScriptEngine(const QString& scriptHash);
+    ScriptEngine* getScriptEngine(const QUrl& scriptHash);
 
     ScriptsModel* scriptsModel() { return &_scriptsModel; };
     ScriptsModelFilter* scriptsModelFilter() { return &_scriptsModelFilter; };
@@ -65,12 +65,12 @@ public:
     // Called at shutdown time
     void shutdownScripting();
 
-signals: 
+signals:
     void scriptCountChanged();
     void scriptsReloading();
     void scriptLoadError(const QString& filename, const QString& error);
 
-protected slots: 
+protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
 
 protected:
@@ -86,7 +86,7 @@ protected:
 
     Setting::Handle<bool> _firstRun { "firstRun", true };
     QReadWriteLock _scriptEnginesHashLock;
-    QHash<QString, ScriptEngine*> _scriptEnginesHash;
+    QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
     std::atomic<bool> _stoppingAllScripts { false };
@@ -97,6 +97,6 @@ protected:
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);
-QUrl expandScriptUrl(const QUrl& normalizedScriptURL);
+QUrl expandScriptUrl(const QUrl& rawScriptURL);
 
 #endif // hifi_ScriptEngine_h

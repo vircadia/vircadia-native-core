@@ -515,6 +515,8 @@ private:
 
     std::map<void*, std::function<void()>> _preRenderLambdas;
     std::mutex _preRenderLambdasLock;
+
+    std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
 };
 
 #endif // hifi_Application_h

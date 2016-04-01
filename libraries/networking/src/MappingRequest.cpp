@@ -15,7 +15,12 @@
 
 #include <DependencyManager.h>
 
-#include "AssetClient.h"
+MappingRequest::~MappingRequest() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    if (_mappingRequestID) {
+        assetClient->cancelMappingRequest(_mappingRequestID);
+    }
+}
 
 void MappingRequest::start() {
     if (QThread::currentThread() != thread()) {
@@ -60,7 +65,10 @@ void GetMappingRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
-    assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    _mappingRequestID = assetClient->getAssetMapping(_path,
+            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -89,7 +97,11 @@ GetAllMappingsRequest::GetAllMappingsRequest() {
 
 void GetAllMappingsRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAllAssetMappings([this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    _mappingRequestID = assetClient->getAllAssetMappings(
+            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
+
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -137,7 +149,10 @@ void SetMappingRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
-    assetClient->setAssetMapping(_path, _hash, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    _mappingRequestID = assetClient->setAssetMapping(_path, _hash,
+            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -177,7 +192,10 @@ void DeleteMappingsRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
-    assetClient->deleteAssetMappings(_paths, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    _mappingRequestID = assetClient->deleteAssetMappings(_paths,
+            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -216,9 +234,10 @@ void RenameMappingRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
-    assetClient->renameAssetMapping(_oldPath, _newPath, [this, assetClient](bool responseReceived,
-                                                                            AssetServerError error,
-                                                                            QSharedPointer<ReceivedMessage> message) {
+    _mappingRequestID = assetClient->renameAssetMapping(_oldPath, _newPath,
+            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = AssetClient::INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {

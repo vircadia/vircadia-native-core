@@ -105,13 +105,18 @@ bool ModelPackager::loadModel() {
         qWarning() << QString("ModelPackager::loadModel(): Could not open FBX file %1").arg(_fbxInfo.filePath());
         return false;
     }
-    qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
-    QByteArray fbxContents = fbx.readAll();
+    try {
+        qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
+        QByteArray fbxContents = fbx.readAll();
 
-    _geometry.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));
+        _geometry.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));
 
-    // make sure we have some basic mappings
-    populateBasicMapping(_mapping, _fbxInfo.filePath(), *_geometry);
+        // make sure we have some basic mappings
+        populateBasicMapping(_mapping, _fbxInfo.filePath(), *_geometry);
+    } catch (const QString& error) {
+        qCDebug(interfaceapp) << "Error reading " << _fbxInfo.filePath() << ": " << error;
+        return false;
+    }
     return true;
 }
 
