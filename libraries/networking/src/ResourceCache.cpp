@@ -117,22 +117,22 @@ void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
-    if (resource->getBytesTotal() > _unusedResourcesMaxSize) {
-        // If it doesn't fit anyway, let's leave whatever is already in the cache.
+    // If it doesn't fit or its size is unknown, leave the cache alone.
+    if (resource->getBytes() == 0 || resource->getBytes() > _unusedResourcesMaxSize) {
         resource->setCache(nullptr);
         return;
     }
-    reserveUnusedResource(resource->getBytesTotal());
+    reserveUnusedResource(resource->getBytes());
     
     resource->setLRUKey(++_lastLRUKey);
     _unusedResources.insert(resource->getLRUKey(), resource);
-    _unusedResourcesSize += resource->getBytesTotal();
+    _unusedResourcesSize += resource->getBytes();
 }
 
 void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resource) {
     if (_unusedResources.contains(resource->getLRUKey())) {
         _unusedResources.remove(resource->getLRUKey());
-        _unusedResourcesSize -= resource->getBytesTotal();
+        _unusedResourcesSize -= resource->getBytes();
     }
 }
 
@@ -142,7 +142,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         
-        _unusedResourcesSize -= it.value()->getBytesTotal();
+        _unusedResourcesSize -= it.value()->getBytes();
         it.value()->setCache(nullptr);
         _unusedResources.erase(it);
     }
@@ -399,7 +399,7 @@ void Resource::makeRequest() {
     connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
 
-    _bytesReceived = _bytesTotal = 0;
+    _bytesReceived = _bytesTotal = _bytes = 0;
 
     _request->send();
 }
@@ -411,6 +411,8 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 
 void Resource::handleReplyFinished() {
     Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
+
+    _bytes = _bytesTotal;
 
     if (!_request || _request != sender()) {
         // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
