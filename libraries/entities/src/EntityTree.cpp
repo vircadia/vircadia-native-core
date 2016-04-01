@@ -1313,7 +1313,7 @@ void EntityTree::pruneTree() {
 }
 
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                               float x, float y, float z) {
+    float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
     args.ourTree = this;
@@ -1323,7 +1323,9 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     // We need to keep a map so that we can map parent identifiers correctly.
     QHash<EntityItemID, EntityItemID> map;
     args.map = &map;
-    recurseTreeWithOperation(sendEntitiesOperation, &args);
+    withReadLock([&] {
+        recurseTreeWithOperation(sendEntitiesOperation, &args);
+    });
     packetSender->releaseQueuedMessages();
 
     return map.values().toVector();

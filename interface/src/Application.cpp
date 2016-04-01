@@ -2815,60 +2815,68 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
-
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-    for (auto entityID : entityIDs) { // Gather entities and properties.
-        auto entityItem = entityTree->findEntityByEntityItemID(entityID);
-        if (!entityItem) {
-            qCWarning(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
-            continue;
-        }
-
-        if (!givenOffset) {
-            EntityItemID parentID = entityItem->getParentID();
-            if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
-                auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
-                root.x = glm::min(root.x, position.x);
-                root.y = glm::min(root.y, position.y);
-                root.z = glm::min(root.z, position.z);
+    bool success = true;
+    entityTree->withReadLock([&] {
+        for (auto entityID : entityIDs) { // Gather entities and properties.
+            auto entityItem = entityTree->findEntityByEntityItemID(entityID);
+            if (!entityItem) {
+                qCWarning(interfaceapp) << "Skipping export of" << entityID << "that is not in scene.";
+                continue;
             }
+
+            if (!givenOffset) {
+                EntityItemID parentID = entityItem->getParentID();
+                if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
+                    auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                    root.x = glm::min(root.x, position.x);
+                    root.y = glm::min(root.y, position.y);
+                    root.z = glm::min(root.z, position.z);
+                }
+            }
+            entities[entityID] = entityItem;
         }
-        entities[entityID] = entityItem;
-    }
 
-    if (entities.size() == 0) {
-        return false;
-    }
+        if (entities.size() == 0) {
+            success = false;
+            return;
+        }
 
-    if (givenOffset) {
-        root = *givenOffset;
-    }
-    for (EntityItemPointer& entityDatum : entities) {
-        auto properties = entityDatum->getProperties();
-        EntityItemID parentID = properties.getParentID();
-        if (parentID.isInvalidID()) {
-            properties.setPosition(properties.getPosition() - root);
-        } else if (!entities.contains(parentID)) {
-            entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
-        } // else valid parent -- don't offset
-        exportTree->addEntity(entityDatum->getEntityItemID(), properties);
-    }
+        if (givenOffset) {
+            root = *givenOffset;
+        }
+        for (EntityItemPointer& entityDatum : entities) {
+            auto properties = entityDatum->getProperties();
+            EntityItemID parentID = properties.getParentID();
+            if (parentID.isInvalidID()) {
+                properties.setPosition(properties.getPosition() - root);
+            }
+            else if (!entities.contains(parentID)) {
+                entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+            } // else valid parent -- don't offset
+            exportTree->addEntity(entityDatum->getEntityItemID(), properties);
+        }
+    });
+    if (success) {
+        exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
-    exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
-
-    // restore the main window's active state
-    _window->activateWindow();
-    return true;
+        // restore the main window's active state
+        _window->activateWindow();
+    }
+    return success;
 }
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     glm::vec3 offset(x, y, z);
     QVector<EntityItemPointer> entities;
     QVector<EntityItemID> ids;
-    getEntities()->getTree()->findEntities(AACube(offset, scale), entities);
-    foreach(EntityItemPointer entity, entities) {
-        ids << entity->getEntityItemID();
-    }
+    auto entityTree = getEntities()->getTree();
+    entityTree->withReadLock([&] {
+        entityTree->findEntities(AACube(offset, scale), entities);
+        foreach(EntityItemPointer entity, entities) {
+            ids << entity->getEntityItemID();
+        }
+    });
     return exportEntities(filename, ids, &offset);
 }
 
@@ -2898,12 +2906,15 @@ void Application::saveSettings() {
 }
 
 bool Application::importEntities(const QString& urlOrFilename) {
-    _entityClipboard->eraseAllOctreeElements();
+    bool success = false;
+    _entityClipboard->withWriteLock([&] {
+        _entityClipboard->eraseAllOctreeElements();
 
-    bool success = _entityClipboard->readFromURL(urlOrFilename);
-    if (success) {
-        _entityClipboard->reaverageOctreeElements();
-    }
+        success = _entityClipboard->readFromURL(urlOrFilename);
+        if (success) {
+            _entityClipboard->reaverageOctreeElements();
+        }
+    });
     return success;
 }
 
