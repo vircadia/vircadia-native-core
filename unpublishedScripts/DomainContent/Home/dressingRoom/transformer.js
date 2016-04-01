@@ -188,7 +188,7 @@
             // delete littleVersionProps.script;
             littleVersionProps.gravity = {
                 x: 0,
-                y: -5,
+                y: -10,
                 z: 0
             };
             var userData = JSON.parse(littleVersionProps.userData);

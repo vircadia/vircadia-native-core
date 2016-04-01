@@ -35,7 +35,7 @@
 
     var PING_PONG_GUN_GRAVITY = {
         x: 0,
-        y: -5,
+        y: -10,
         z: 0
     };
 

@@ -15,7 +15,7 @@
          dynamic: true,
          gravity: {
              x: 0,
-             y: -5,
+             y: -10,
              z: 0
          },
          visible: true,

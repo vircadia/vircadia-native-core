@@ -112,7 +112,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
         dynamic: true,
         gravity: {
             x: 0,
-            y: -1,
+            y: -10,
             z: 0
         },
         velocity: {
@@ -195,7 +195,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             dynamic: true,
             gravity: {
                 x: 0,
-                y: -1,
+                y: -10,
                 z: 0
             },
             velocity: {

@@ -98,7 +98,7 @@ Plant = function(spawnPosition, spawnRotation) {
     dynamic: true,
     gravity: {
       x: 0.0,
-      y: -2.0,
+      y: -10.0,
       z: 0
     },
     velocity: {

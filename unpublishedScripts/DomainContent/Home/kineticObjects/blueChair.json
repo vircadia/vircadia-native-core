@@ -32,7 +32,7 @@
             },
             "shapeType": "compound",
             "type": "Model",
-            "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+            "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
         }
     ],
     "Version": 57

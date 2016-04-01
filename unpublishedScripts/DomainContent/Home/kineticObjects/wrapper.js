@@ -14,7 +14,8 @@ var TRASHCAN_URL = "atp:/kineticObjects/trashcan.json"
 var BLOCKS_URL = "atp:/kineticObjects/blocks.json";
 var PLAYA_POSTER_URL = "atp:/kineticObjects/postersPlaya.json"
 var CELL_POSTER_URL = "atp:/kineticObjects/postersCell.json"
-var STUFF_ON_SHELVES_URL ="atp:/kineticObjects/stuff_on_shelves.json"
+var STUFF_ON_SHELVES_URL = "atp:/kineticObjects/stuff_on_shelves.json"
+var JUNK_URL = "atp:/kineticObjects/junk.json"
 
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
@@ -139,6 +140,7 @@ BlueChair = function(spawnLocation, spawnRotation) {
 
     function create() {
         var success = Clipboard.importEntities(BLUE_CHAIR_URL);
+
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
@@ -279,6 +281,29 @@ StuffOnShelves = function(spawnLocation, spawnRotation) {
 
     function create() {
         var success = Clipboard.importEntities(STUFF_ON_SHELVES_URL);
+        if (success === true) {
+            created = Clipboard.pasteEntities(spawnLocation)
+            print('created ' + created);
+        }
+    };
+
+    function cleanup() {
+        created.forEach(function(obj) {
+            Entities.deleteEntity(obj);
+        })
+    };
+
+    create();
+
+    this.cleanup = cleanup;
+}
+
+HomeJunk = function(spawnLocation, spawnRotation) {
+    print('HOME CREATE JUNK')
+    var created = [];
+
+    function create() {
+        var success = Clipboard.importEntities(JUNK_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);

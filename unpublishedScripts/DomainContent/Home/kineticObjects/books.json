@@ -2,7 +2,7 @@
     "Entities": [{
         "gravity": {
             "x": 0,
-            "y": -7,
+            "y": -10,
             "z": 0
         },
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
