@@ -30,9 +30,6 @@
 
     var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
 
-    //EBL REMOVE ME
-    var myPlant;
-
     var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
     var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
@@ -62,7 +59,7 @@
 
     Reset.prototype = {
         tidying: false,
- 
+
         preload: function(entityID) {
             _this.entityID = entityID;
         },
@@ -169,7 +166,7 @@
                 z: 0
             });
 
-            myPlant = new Plant({
+            var myPlant = new Plant({
                 x: 1099.8785,
                 y: 460.3115,
                 z: -84.7736
@@ -188,6 +185,7 @@
                 y: 179.0293,
                 z: 89.9698
             });
+
             var cuckooClock = new MyCuckooClock({
                 x: 1105.267,
                 y: 461.44,
@@ -237,18 +235,19 @@
                 z: -80.2837
             });
 
-            var chair = new Chair({
+            var deskChair = new Chair({
                 x: 1105.2716,
                 y: 459.7251,
                 z: -79.8097
             });
 
-            //  var comfyChair = new BlueChair({
+            //  var blueChair = new BlueChair({
             //     x: 1100.4821,
             //     y: 459.8161,
             //     z:-75.9071
             // });
 
+            // var stuffOnShelf = new stuffOnShelf({});
 
             var trashcan = new Trashcan({
                 x: 1103.9034,

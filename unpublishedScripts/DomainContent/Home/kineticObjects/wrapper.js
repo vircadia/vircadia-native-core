@@ -15,6 +15,8 @@ var BLOCKS_URL = "atp:/kineticObjects/blocks.json";
 var PLAYA_POSTER_URL = "atp:/kineticObjects/postersPlaya.json"
 var CELL_POSTER_URL = "atp:/kineticObjects/postersCell.json"
 
+var STUFF_ON_SHELVES_URL ="atp:/kineticObjects/stuff_on_shelves.json"
+
 FruitBowl = function(spawnLocation, spawnRotation) {
     print('CREATE FRUIT BOWL')
     var created = [];
@@ -255,6 +257,29 @@ PosterPlaya = function(spawnLocation, spawnRotation) {
 
     function create() {
         var success = Clipboard.importEntities(PLAYA_POSTER_URL);
+        if (success === true) {
+            created = Clipboard.pasteEntities(spawnLocation)
+            print('created ' + created);
+        }
+    };
+
+    function cleanup() {
+        created.forEach(function(obj) {
+            Entities.deleteEntity(obj);
+        })
+    };
+
+    create();
+
+    this.cleanup = cleanup;
+}
+
+StuffOnShelves = function(spawnLocation, spawnRotation) {
+    print('CREATE STUFF ON SHELVES')
+    var created = [];
+
+    function create() {
+        var success = Clipboard.importEntities(STUFF_ON_SHELVES_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);

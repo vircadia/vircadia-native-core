@@ -13,7 +13,6 @@ Script.include("../utils.js");
 var scriptURL = Script.resolvePath('pingPongGun.js');
 var MODEL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.fbx'
 var COLLISION_HULL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.obj';
-var COLLISION_SOUND_URL = 'atp:/pingPongGun/plastic_impact.L.wav';
 
 HomePingPongGun = function(spawnPosition, spawnRotation) {
   var pingPongGun = Entities.addEntity({
@@ -35,7 +34,6 @@ HomePingPongGun = function(spawnPosition, spawnRotation) {
     },
     rotation: Quat.fromPitchYawRollDegrees(spawnRotation.x, spawnRotation.y, spawnRotation.z),
     dynamic: true,
-    collisionSoundURL: COLLISION_SOUND_URL,
     userData: JSON.stringify({
       grabbableKey: {
         invertSolidWhileHeld: true
