@@ -266,6 +266,8 @@ void GLBackend::do_setResourceTexture(Batch& batch, size_t paramOffset) {
 
         _resource._textures[slot] = resourceTexture;
 
+        _stats._RSAmountTextureMemoryBounded += object->size();
+
     } else {
         releaseResourceTexture(slot);
         return;

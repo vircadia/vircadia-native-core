@@ -83,11 +83,17 @@ public:
         GLTexture();
         ~GLTexture();
 
-        void setSize(GLuint size);
         GLuint size() const { return _size; }
+        GLuint virtualSize() const { return _virtualSize; }
+
+        void updateSize(GLuint virtualSize);
 
     private:
-        GLuint _size;
+        void setSize(GLuint size);
+        void setVirtualSize(GLuint size);
+
+        GLuint _size; // true size as reported by the gl api
+        GLuint _virtualSize; // theorical size as expected
     };
     static GLTexture* syncGPUObject(const Texture& texture);
     static GLuint getTextureID(const TexturePointer& texture, bool sync = true);

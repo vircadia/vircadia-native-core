@@ -192,6 +192,13 @@ enum Semantic {
     SRGBA,
     SBGRA,
 
+    COMPRESSED_R,
+    COMPRESSED_RGB,
+    COMPRESSED_RGBA,
+
+    COMPRESSED_SRGB,
+    COMPRESSED_SRGBA,
+
     R11G11B10,
 
     UNIFORM,

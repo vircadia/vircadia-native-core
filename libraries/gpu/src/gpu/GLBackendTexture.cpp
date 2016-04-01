@@ -18,7 +18,8 @@ GLBackend::GLTexture::GLTexture() :
     _contentStamp(0),
     _texture(0),
     _target(GL_TEXTURE_2D),
-    _size(0)
+    _size(0),
+    _virtualSize(0)
 {
     Backend::incrementTextureGPUCount();
 }
@@ -28,6 +29,7 @@ GLBackend::GLTexture::~GLTexture() {
         glDeleteTextures(1, &_texture);
     }
     Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
     Backend::decrementTextureGPUCount();
 }
 
@@ -35,6 +37,25 @@ void GLBackend::GLTexture::setSize(GLuint size) {
     Backend::updateTextureGPUMemoryUsage(_size, size);
     _size = size;
 }
+
+void GLBackend::GLTexture::setVirtualSize(GLuint size) {
+    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, size);
+    _virtualSize = size;
+}
+
+void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
+    setVirtualSize(virtualSize);
+
+    GLint gpuSize{ 0 };
+    glGetTexLevelParameteriv(_target, 0, GL_TEXTURE_COMPRESSED, &gpuSize);
+    if (gpuSize) {
+        glGetTexLevelParameteriv(_target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &gpuSize);
+        setSize(gpuSize);
+    } else {
+        setSize(virtualSize);
+    }
+}
+
 
 class GLTexelFormat {
 public:
@@ -56,6 +77,11 @@ public:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RED;
                     break;
+
+                case gpu::COMPRESSED_R:
+                    texel.internalFormat = GL_COMPRESSED_RED_RGTC1;
+                    break;
+
                 case gpu::DEPTH:
                     texel.internalFormat = GL_DEPTH_COMPONENT;
                     break;
@@ -96,6 +122,12 @@ public:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RGB;
                     break;
+                case gpu::COMPRESSED_RGB:
+                    texel.internalFormat = GL_COMPRESSED_RGB;
+                    break;
+                case gpu::COMPRESSED_SRGB:
+                    texel.internalFormat = GL_COMPRESSED_SRGB;
+                    break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
@@ -132,6 +164,13 @@ public:
                     break;
                 case gpu::SRGBA:
                     texel.internalFormat = GL_SRGB_ALPHA;
+                    break;
+
+                case gpu::COMPRESSED_RGBA:
+                    texel.internalFormat = GL_COMPRESSED_RGBA;
+                    break;
+                case gpu::COMPRESSED_SRGBA:
+                    texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -452,15 +491,15 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                     }
 
-                object->_target = GL_TEXTURE_2D;
+                    object->_target = GL_TEXTURE_2D;
 
-                syncSampler(texture.getSampler(), texture.getType(), object);
-
+                    syncSampler(texture.getSampler(), texture.getType(), object);
 
                     // At this point the mip piels have been loaded, we can notify
                     texture.notifyMipFaceGPULoaded(0, 0);
 
                     object->_contentStamp = texture.getDataStamp();
+                    object->updateSize((GLuint)texture.evalTotalSize());
                 }
             } else {
                 const GLvoid* bytes = 0;
@@ -493,7 +532,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->setSize((GLuint)texture.getSize());
+                object->updateSize((GLuint)texture.evalTotalSize());
             }
 
             glBindTexture(GL_TEXTURE_2D, boundTex);
@@ -539,6 +578,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_contentStamp = texture.getDataStamp();
 
+                object->updateSize((GLuint)texture.evalTotalSize());
             } else {
                 glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
 
@@ -571,7 +611,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->setSize((GLuint)texture.getSize());
+                object->updateSize((GLuint)texture.evalTotalSize());
             }
 
             glBindTexture(GL_TEXTURE_CUBE_MAP, boundTex);

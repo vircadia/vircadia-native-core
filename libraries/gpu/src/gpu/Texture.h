@@ -146,6 +146,7 @@ public:
     static Size getTextureCPUMemoryUsage();
     static uint32_t getTextureGPUCount();
     static Size getTextureGPUMemoryUsage();
+    static Size getTextureGPUVirtualMemoryUsage();
 
     class Usage {
     public:

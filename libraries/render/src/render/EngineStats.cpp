@@ -32,6 +32,7 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     config->textureGPUCount = gpu::Texture::getTextureGPUCount();
     config->textureCPUMemoryUsage = gpu::Texture::getTextureCPUMemoryUsage();
     config->textureGPUMemoryUsage = gpu::Texture::getTextureGPUMemoryUsage();
+    config->textureGPUVirtualMemoryUsage = gpu::Texture::getTextureGPUVirtualMemoryUsage();
 
     gpu::ContextStats gpuStats(_gpuStats);
     renderContext->args->_context->getStats(_gpuStats);
@@ -45,6 +46,7 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
 
     config->frameTextureCount = _gpuStats._RSNumTextureBounded - gpuStats._RSNumTextureBounded;
     config->frameTextureRate = config->frameTextureCount * frequency;
+    config->frameTextureMemoryUsage = _gpuStats._RSAmountTextureMemoryBounded - gpuStats._RSAmountTextureMemoryBounded;
 
     config->emitDirty();
 }
