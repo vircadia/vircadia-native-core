@@ -41,12 +41,7 @@
             "y": 1.1607639789581299,
             "z": 0.87844705581665039
         },
-        "dynamic": 1,
-        "gravity": {
-            "x": 0,
-            "y": -5,
-            "z": 0
-        },
+        "dynamic": 0,
         "id": "{9eec1faa-9e1a-4d76-abeb-a1b1175a44d5}",
         "modelURL": "atp:/kineticObjects/posters/Cellscience-Poster-2.fbx",
         "name": "hifi-home-poster-cell",
@@ -60,6 +55,35 @@
         "shapeType": "compound",
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    },
+     {
+        "color": {
+            "blue": 255,
+            "green": 0,
+            "red": 255
+        },
+        "name": "home_sphere_cellsciencePortkey",
+        "href": "hifi://cellscience",
+        "script": "atp:/switches/portkey.js",
+        "visible": false,
+        "dimensions": {
+            "x": 0.111,
+            "y": 0.111,
+            "z": 0.111
+        },
+        "position": {
+            "x": 0.0,
+            "y": -0.2,
+            "z": 0.0
+        },
+        "queryAACube": {
+            "scale": 0.25831151008605957,
+            "x": -0.12915575504302979,
+            "y": -0.12915575504302979,
+            "z": -0.10074388980865479
+        },
+        "type": "Sphere",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}, \"grabbableKey\": {\"wantsTrigger\": true}}"
     }],
     "Version": 57
 }

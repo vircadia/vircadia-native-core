@@ -9,8 +9,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+//
 var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js");
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
 Plant = function(spawnPosition, spawnRotation) {
   var orientation;
   if (spawnRotation !== undefined) {
@@ -18,10 +20,10 @@ Plant = function(spawnPosition, spawnRotation) {
   } else {
     orientation = Camera.getOrientation();
   }
-  print("EBL ORIENTATION " + JSON.stringify(orientation));
   var bowlPosition = spawnPosition;
   var BOWL_MODEL_URL = "atp:/growingPlant/Flowers-Bowl.fbx";
   var BOWL_COLLISION_HULL_URL = "atp:/growingPlant/bowl.obj";
+
   var bowlDimensions = {
     x: 0.518,
     y: 0.1938,
@@ -31,9 +33,10 @@ Plant = function(spawnPosition, spawnRotation) {
     type: "Model",
     modelURL: BOWL_MODEL_URL,
     dimensions: bowlDimensions,
+    dynamic: true,
     shapeType: 'compound',
     compoundShapeURL: BOWL_COLLISION_HULL_URL,
-    name: "plant bowl",
+    name: "home_model_plantBowl",
     position: bowlPosition,
     userData: JSON.stringify({
       'hifiHomeKey': {
@@ -43,8 +46,8 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var PLANT_MODEL_URL = "atp:/growingPlant/Flowers-Rock.fbx";
 
+  var PLANT_MODEL_URL = "atp:/growingPlant/Flowers-Rock.fbx";
   var plantDimensions = {
     x: 0.52,
     y: 0.2600,
@@ -59,7 +62,7 @@ Plant = function(spawnPosition, spawnRotation) {
   var plant = Entities.addEntity({
     type: "Model",
     modelURL: PLANT_MODEL_URL,
-    name: "hifi-growable-plant",
+    name: "home_model_growablePlant",
     dimensions: plantDimensions,
     position: plantPosition,
     script: PLANT_SCRIPT_URL,
@@ -78,7 +81,9 @@ Plant = function(spawnPosition, spawnRotation) {
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
     type: "Model",
-    name: "hifi-water-can-newest",
+    shapeType: 'compound',
+    compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
+    name: "home_model_waterCan",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,
     dimensions: {
@@ -135,11 +140,12 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
 
-  var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
+  var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.21, Quat.getFront(orientation)))
   var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
+  var WATER_SPOUT_NAME = "home_box_waterSpout"; 
   var waterSpout = Entities.addEntity({
     type: "Box",
-    name: "hifi-water-spout",
+    name: WATER_SPOUT_NAME,
     dimensions: {
       x: 0.02,
       y: 0.02,

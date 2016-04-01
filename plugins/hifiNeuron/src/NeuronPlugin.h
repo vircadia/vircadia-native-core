@@ -31,7 +31,7 @@ public:
     virtual const QString& getName() const override { return NAME; }
     const QString& getID() const override { return NEURON_ID_STRING; }
 
-    virtual void activate() override;
+    virtual bool activate() override;
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }

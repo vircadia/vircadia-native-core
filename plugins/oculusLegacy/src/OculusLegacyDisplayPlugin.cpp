@@ -68,18 +68,20 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
     return result;
 }
 
-void OculusLegacyDisplayPlugin::internalActivate() {
+bool OculusLegacyDisplayPlugin::internalActivate() {
     Parent::internalActivate();
     
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
+        return false;
     }
     
     _hswDismissed = false;
     _hmd = ovrHmd_Create(0);
     if (!_hmd) {
         qFatal("Failed to acquire HMD");
+        return false;
     }
     
     _ipd = ovrHmd_GetFloat(_hmd, OVR_KEY_IPD, _ipd);
@@ -107,6 +109,8 @@ void OculusLegacyDisplayPlugin::internalActivate() {
                                   ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0)) {
         qFatal("Could not attach to sensor device");
     }
+
+    return true;
 }
 
 void OculusLegacyDisplayPlugin::internalDeactivate() {

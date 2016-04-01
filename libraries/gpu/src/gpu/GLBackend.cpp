@@ -324,7 +324,10 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
     glDrawArrays(mode, startVertex, numVertices);
-    (void) CHECK_GL_ERROR();
+    _stats._DSNumTriangles += numVertices / 3;
+    _stats._DSNumDrawcalls++;
+
+    (void)CHECK_GL_ERROR();
 }
 
 void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
@@ -339,6 +342,9 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
     glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
+    _stats._DSNumTriangles += numIndices / 3;
+    _stats._DSNumDrawcalls++;
+
     (void) CHECK_GL_ERROR();
 }
 
@@ -350,6 +356,9 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     uint32 startVertex = batch._params[paramOffset + 1]._uint;
 
     glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+    _stats._DSNumTriangles += (numInstances * numVertices) / 3;
+    _stats._DSNumDrawcalls += numInstances;
+
     (void) CHECK_GL_ERROR();
 }
 
@@ -372,6 +381,9 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, numInstances);
     Q_UNUSED(startInstance); 
 #endif
+    _stats._DSNumTriangles += (numInstances * numIndices) / 3;
+    _stats._DSNumDrawcalls += numInstances;
+
     (void)CHECK_GL_ERROR();
 }
 
@@ -382,6 +394,7 @@ void GLBackend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
 
     glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
+    _stats._DSNumDrawcalls += commandCount;
 #else
     // FIXME implement the slow path
 #endif
@@ -396,6 +409,8 @@ void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
     GLenum indexType = _elementTypeToGLType[_input._indexBufferType];
   
     glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
+    _stats._DSNumDrawcalls += commandCount;
+
 #else
     // FIXME implement the slow path
 #endif

@@ -59,7 +59,7 @@ class DisplayPlugin : public Plugin {
     Q_OBJECT
     using Parent = Plugin;
 public:
-    void activate() override;
+    bool activate() override;
     void deactivate() override;
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }

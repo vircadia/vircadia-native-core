@@ -18,25 +18,33 @@ using namespace gpu;
 Material::Material() :
     _key(0),
     _schemaBuffer(),
-    _textureMaps() {
-       
-        // only if created from nothing shall we create the Buffer to store the properties
-        Schema schema;
-        _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _textureMaps()
+{
+    // created from nothing: create the Buffer to store the properties
+    Schema schema;
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
         
 
 }
 
 Material::Material(const Material& material) :
     _key(material._key),
-    _schemaBuffer(material._schemaBuffer),
-    _textureMaps(material._textureMaps) {
+    _textureMaps(material._textureMaps)
+{
+    // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
+    Schema schema;
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 }
 
 Material& Material::operator= (const Material& material) {
     _key = (material._key);
-    _schemaBuffer = (material._schemaBuffer);
     _textureMaps = (material._textureMaps);
+
+    // copied: create the Buffer to store the properties, avoid holding a ref to the old Buffer
+    Schema schema;
+    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 
     return (*this);
 }
@@ -83,41 +91,48 @@ void Material::setMetallic(float metallic) {
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));
- 
-        if (channel == MaterialKey::ALBEDO_MAP) {
-            // clear the previous flags whatever they were:
-            _key.setOpacityMaskMap(false);
-            _key.setTranslucentMap(false);
-
-            if (textureMap->useAlphaChannel() && textureMap->isDefined() && textureMap->getTextureView().isValid()) {
-                auto usage = textureMap->getTextureView()._texture->getUsage();
-                if (usage.isAlpha()) {
-                    // Texture has alpha, is not just a mask or a true transparent channel
-                    if (usage.isAlphaMask()) {
-                        _key.setOpacityMaskMap(true);
-                        _key.setTranslucentMap(false);
-                    } else {
-                        _key.setOpacityMaskMap(false);
-                        _key.setTranslucentMap(true);
-                    }
-                }
-            }
-        }
-
         _textureMaps[channel] = textureMap;
     } else {
         _key.setMapChannel(channel, (false));
-
-        if (channel == MaterialKey::ALBEDO_MAP) {
-            _key.setOpacityMaskMap(false);
-            _key.setTranslucentMap(false);
-        }
-
         _textureMaps.erase(channel);
     }
 
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
 
+    if (channel == MaterialKey::ALBEDO_MAP) {
+        resetOpacityMap();
+    }
+
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+
+}
+
+void Material::resetOpacityMap() const {
+    // Clear the previous flags
+    _key.setOpacityMaskMap(false);
+    _key.setTranslucentMap(false);
+
+    const auto& textureMap = getTextureMap(MaterialKey::ALBEDO_MAP);
+    if (textureMap &&
+        textureMap->useAlphaChannel() &&
+        textureMap->isDefined() &&
+        textureMap->getTextureView().isValid()) {
+
+        auto usage = textureMap->getTextureView()._texture->getUsage();
+        if (usage.isAlpha()) {
+            if (usage.isAlphaMask()) {
+                // Texture has alpha, but it is just a mask
+                _key.setOpacityMaskMap(true);
+                _key.setTranslucentMap(false);
+            } else {
+                // Texture has alpha, it is a true translucency channel
+                _key.setOpacityMaskMap(false);
+                _key.setTranslucentMap(true);
+            }
+        }
+    }
+
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
 }
 
 

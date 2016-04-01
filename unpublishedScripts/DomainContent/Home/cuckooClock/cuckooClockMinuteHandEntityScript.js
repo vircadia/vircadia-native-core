@@ -80,16 +80,16 @@
                 print("WE DONT HAVE A SECOND HAND! RETURNING");
                 return;
             }
-
+            var clockRotation = Entities.getEntityProperties(_this.clockBody, "rotation").rotation;
             var DEGREES_FOR_SECOND = 6;
             var myDate = new Date();
             var seconds = myDate.getSeconds();
             secondRollDegrees = -seconds * DEGREES_FOR_SECOND;
-            // var localClockHandRotation = Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees);
-            // var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
-            // Entities.editEntity(_this.secondHand, {
-            //     rotation: worldClockHandRotation
-            // });
+            var localClockHandRotation = Quat.fromPitchYawRollDegrees(0, 0, secondRollDegrees);
+            var worldClockHandRotation = Quat.multiply(clockRotation, localClockHandRotation);
+            Entities.editEntity(_this.secondHand, {
+                rotation: worldClockHandRotation
+            });
 
         },
 
@@ -122,12 +122,12 @@
             var seconds = date.getSeconds();
             var minutes = date.getMinutes();
 
-            // if (seconds === 0 && minutes === 0) {
-            //     _this.popCuckooOut();
-            // }
-            if (seconds % 30 === 0) {
+            if (seconds === 0 && minutes === 0) {
                 _this.popCuckooOut();
             }
+            // if (seconds % 30 === 0) {
+            //     _this.popCuckooOut();
+            // }
 
         },
 

@@ -190,25 +190,21 @@ void OffscreenQmlRenderThread::setupFbo() {
     using namespace oglplus;
     _textures.setSize(_size);
 
-    // Before making any ogl calls, clear any outstanding errors
-    // FIXME: Something upstream is polluting the context with a GL_INVALID_ENUM,
-    //        likely from glewExperimental = true
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        qDebug() << "Clearing outstanding GL error to set up QML FBO:" << glewGetErrorString(err);
+    try {
+        _depthStencil.reset(new Renderbuffer());
+        Context::Bound(Renderbuffer::Target::Renderbuffer, *_depthStencil)
+            .Storage(
+            PixelDataInternalFormat::DepthComponent,
+            _size.x, _size.y);
+
+        _fbo.reset(new Framebuffer());
+        _fbo->Bind(Framebuffer::Target::Draw);
+        _fbo->AttachRenderbuffer(Framebuffer::Target::Draw,
+            FramebufferAttachment::Depth, *_depthStencil);
+        DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
+    } catch (oglplus::Error& error) {
+        qWarning() << "OpenGL error in QML render setup: " << error.what();
     }
-
-    _depthStencil.reset(new Renderbuffer());
-    Context::Bound(Renderbuffer::Target::Renderbuffer, *_depthStencil)
-        .Storage(
-        PixelDataInternalFormat::DepthComponent,
-        _size.x, _size.y);
-
-    _fbo.reset(new Framebuffer());
-    _fbo->Bind(Framebuffer::Target::Draw);
-    _fbo->AttachRenderbuffer(Framebuffer::Target::Draw,
-        FramebufferAttachment::Depth, *_depthStencil);
-    DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
 }
 
 void OffscreenQmlRenderThread::init() {
@@ -299,10 +295,21 @@ void OffscreenQmlRenderThread::render() {
 
     try {
         PROFILE_RANGE("qml_render")
-            TexturePtr texture = _textures.getNextTexture();
-        _fbo->Bind(Framebuffer::Target::Draw);
-        _fbo->AttachTexture(Framebuffer::Target::Draw, FramebufferAttachment::Color, *texture, 0);
-        _fbo->Complete(Framebuffer::Target::Draw);
+
+        TexturePtr texture = _textures.getNextTexture();
+
+        try {
+            _fbo->Bind(Framebuffer::Target::Draw);
+            _fbo->AttachTexture(Framebuffer::Target::Draw, FramebufferAttachment::Color, *texture, 0);
+            _fbo->Complete(Framebuffer::Target::Draw);
+        } catch (oglplus::Error& error) {
+            qWarning() << "OpenGL error in QML render: " << error.what();
+
+            // In case we are failing from a failed setupFbo, reset fbo before next render
+            setupFbo();
+            throw;
+        }
+
         {
             PROFILE_RANGE("qml_render->rendercontrol")
             _renderControl->render();
@@ -311,13 +318,14 @@ void OffscreenQmlRenderThread::render() {
             // for now just clear the errors
             glGetError();
         }
+
         // FIXME probably unecessary
         DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
         _quickWindow->resetOpenGLState();
         _escrow.submit(GetName(*texture));
         _lastRenderTime = usecTimestampNow();
     } catch (std::runtime_error& error) {
-        qWarning() << "Failed to render QML " << error.what();
+        qWarning() << "Failed to render QML: " << error.what();
     }
 }
 

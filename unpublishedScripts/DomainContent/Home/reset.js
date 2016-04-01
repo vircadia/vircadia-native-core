@@ -30,6 +30,9 @@
 
     var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
 
+    //EBL REMOVE ME
+    var myPlant;
+
     var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
     var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
@@ -166,15 +169,15 @@
                 z: 0
             });
 
-            // var myPlant = new Plant({
-            //     x: 1099.8785,
-            //     y: 460.3115,
-            //     z: -84.7736
-            // }, {
-            //     x: 0,
-            //     y: 0,
-            //     z: 0
-            // });
+            myPlant = new Plant({
+                x: 1099.8785,
+                y: 460.3115,
+                z: -84.7736
+            }, {
+                x: 0,
+                y: 0,
+                z: 0
+            });
 
             var pingPongGun = new HomePingPongGun({
                 x: 1101.2123,
@@ -195,7 +198,7 @@
                 z: 0
             });
 
-            //v2.0
+            // v2.0
             // var musicBox = new MusicBox();
             // var doppelganger = new Doppelganger();
 
@@ -270,12 +273,6 @@
                 y: 461,
                 z: -73.3
             });
-
-            var livingRoomLampTriggerBoxName = "hifi-home-living-room-desk-lamp-trigger";
-            var livingRoomLampModelName = "hifi-home-model-bulldog-base";
-            Script.setTimeout(function() {
-                attachChildToParent(livingRoomLampTriggerBoxName, livingRoomLampModelName, MyAvatar.position, 20);
-            }, 1000);
 
         },
 
@@ -468,7 +465,8 @@
         },
 
         unload: function() {
-            // this.findAndDeleteHomeEntities();
+            this.findAndDeleteHomeEntities();
+
         }
 
     }
