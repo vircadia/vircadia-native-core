@@ -11,6 +11,7 @@
 
 var MINUTE_HAND_CLOCK_SCRIPT_URL = Script.resolvePath("cuckooClockMinuteHandEntityScript.js" )
 var CLOCK_BODY_URL = "atp:/cuckooClock/cuckoo2_BODY.fbx";
+var CLOCK_BODY_COLLISION_HULL_URL = "atp:/cuckooClock/cuckooCollider.obj";
 var CLOCK_FACE_URL = "atp:/cuckooClock/cuckooClock2_FACE.fbx";
 var CLOCK_HOUR_HAND_URL = "atp:/cuckooClock/cuckooClock2_HOUR_HAND.fbx";
 var CLOCK_MINUTE_HAND_URL = "atp:/cuckooClock/cuckooClock2_MINUTE_HAND.fbx";
@@ -24,6 +25,8 @@ MyCuckooClock = function(spawnPosition, spawnRotation) {
     clockBody = Entities.addEntity({
       type: "Model",
       modelURL: CLOCK_BODY_URL,
+      shapeType: "compound",
+      compoundShapeURL: CLOCK_BODY_COLLISION_HULL_URL,
       name: "hifi-home-model-clockbody",
       animation: {
         url: CLOCK_BODY_URL,
