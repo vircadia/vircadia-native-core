@@ -49,7 +49,19 @@ void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
     GLint gpuSize{ 0 };
     glGetTexLevelParameteriv(_target, 0, GL_TEXTURE_COMPRESSED, &gpuSize);
     if (gpuSize) {
-        glGetTexLevelParameteriv(_target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &gpuSize);
+        GLint baseLevel;
+        GLint maxLevel;
+        glGetTexParameteriv(_target, GL_TEXTURE_BASE_LEVEL, &baseLevel);
+        glGetTexParameteriv(_target, GL_TEXTURE_MAX_LEVEL, &maxLevel);
+
+        for (GLint level = baseLevel; level < maxLevel; level++) {
+            GLint levelSize{ 0 };
+            glGetTexLevelParameteriv(_target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
+            if (levelSize <= 0) {
+                break;
+            }
+            gpuSize += levelSize;
+        }
         setSize(gpuSize);
     } else {
         setSize(virtualSize);
