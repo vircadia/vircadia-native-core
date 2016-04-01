@@ -767,8 +767,14 @@ void printSystemInformation() {
 #endif
 
     qDebug() << "Environment Variables";
-    auto envVariables = QProcessEnvironment::systemEnvironment().toStringList();
-    for (auto& env : envVariables) {
-        qDebug().noquote().nospace() << "\t" << env;
+    // List of env variables to include in the log. For privacy reasons we don't send all env variables.
+    const QStringList envWhitelist = {
+        "QTWEBENGINE_REMOTE_DEBUGGING"
+    };
+    auto envVariables = QProcessEnvironment::systemEnvironment();
+    for (auto& env : envWhitelist)
+    {
+        qDebug().noquote().nospace() << "\t" <<
+            (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
     }
 }
