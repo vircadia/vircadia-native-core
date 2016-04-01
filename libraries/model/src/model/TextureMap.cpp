@@ -49,9 +49,7 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
     _lightmapOffsetScale.y = scale;
 }
 
-
-// FIXME why is this in the model library?  Move to GPU or GPU_GL
-gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImage, bool isLinear, bool doCompress, bool generateMips) {
     QImage image = srcImage;
     bool validAlpha = false;
     bool alphaAsMask = true;
@@ -63,7 +61,7 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
-        
+
         // Actual alpha channel? create the histogram
         for (int y = 0; y < image.height(); ++y) {
             const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
@@ -83,22 +81,58 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
 
             alphaAsMask = ((numTranslucents / (double)totalNumPixels) < 0.05);
         }
-    } 
-    
+    }
+
     if (!validAlpha && image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
     }
-    
+
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::COMPRESSED_SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatGPU;
+        gpu::Element formatMip;
+
         if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::COMPRESSED_SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+            gpu::Semantic gpuSemantic;
+            gpu::Semantic mipSemantic;
+            if (isLinear) {
+                mipSemantic = gpu::SBGRA;
+                if (doCompress) {
+                    gpuSemantic = gpu::COMPRESSED_SRGBA;
+                } else {
+                    gpuSemantic = gpu::SRGBA;
+                }
+            } else {
+                mipSemantic = gpu::BGRA;
+                if (doCompress) {
+                    gpuSemantic = gpu::COMPRESSED_RGBA;
+                } else {
+                    gpuSemantic = gpu::RGBA;
+                }
+            }
+            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
+            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);
+        } else {
+            gpu::Semantic gpuSemantic;
+            gpu::Semantic mipSemantic;
+            if (isLinear) {
+                mipSemantic = gpu::SRGB;
+                if (doCompress) {
+                    gpuSemantic = gpu::COMPRESSED_SRGB;
+                } else {
+                    gpuSemantic = gpu::SRGB;
+                }
+            } else {
+                mipSemantic = gpu::RGB;
+                if (doCompress) {
+                    gpuSemantic = gpu::COMPRESSED_RGB;
+                } else {
+                    gpuSemantic = gpu::RGB;
+                }
+            }
+            formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);
+            formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, mipSemantic);
         }
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -113,13 +147,30 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         theTexture->setUsage(usage.build());
 
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
-        
-        // FIXME queue for transfer to GPU and block on completion
 
+        if (generateMips) {
+            theTexture->autoGenerateMips(-1);
+        }
     }
-    
+
     return theTexture;
+}
+
+gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, false, true);
+}
+
+
+gpu::Texture* TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, true, true);
+}
+
+gpu::Texture* TextureUsage::createEmissiveTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, true, true);
+}
+
+gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, true, true);
 }
 
 
@@ -596,91 +647,5 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
             }
     }
     
-    return theTexture;
-}
-
-
-gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
-
-    int imageArea = image.width() * image.height();
-
-    int opaquePixels = 0;
-    int translucentPixels = 0;
-    //bool isTransparent = false;
-    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
-
-    if (!image.hasAlphaChannel()) {
-        if (image.format() != QImage::Format_RGB888) {
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-            }
-        }
-        if (imageArea > 0) {
-            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
-        }
-    } else {
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-
-        // check for translucency/false transparency
-        // int opaquePixels = 0;
-        // int translucentPixels = 0;
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-                int alpha = qAlpha(rgb);
-                alphaTotal += alpha;
-                if (alpha == EIGHT_BIT_MAXIMUM) {
-                    opaquePixels++;
-                } else if (alpha != 0) {
-                    translucentPixels++;
-                }
-            }
-        }
-        if (opaquePixels == imageArea) {
-            qCDebug(modelLog) << "Image with alpha channel is completely opaque:" << QString(srcImageName.c_str());
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-
-        averageColor = QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
-
-        //isTransparent = (translucentPixels >= imageArea / 2);
-    }
-
-    gpu::Texture* theTexture = nullptr;
-    if ((image.width() > 0) && (image.height() > 0)) {
-
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::COMPRESSED_SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::COMPRESSED_SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
-        }
-
-
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
-    }
-
     return theTexture;
 }
