@@ -1,4 +1,4 @@
-  //
+
 //  cowEntityScript.js
 //  examples/cows
 //
