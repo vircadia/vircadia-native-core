@@ -120,25 +120,25 @@ function menuItemEvent(menuItem) {
         if (menuItem.endsWith(" for Output")) {
             var selectedDevice = menuItem.trimStartsWith("Use ").trimEndsWith(" for Output");
             print("output audio selection..." + selectedDevice);
-	        Menu.menuItemEvent.disconnect(menuItemEvent);
+            Menu.menuItemEvent.disconnect(menuItemEvent);
             Menu.setIsOptionChecked(selectedOutputMenu, false);
             selectedOutputMenu = menuItem;
             Menu.setIsOptionChecked(selectedOutputMenu, true);
             if (AudioDevice.setOutputDevice(selectedDevice)) {
                 Settings.setValue(OUTPUT_DEVICE_SETTING, selectedDevice);
             }
-	        Menu.menuItemEvent.connect(menuItemEvent);
+            Menu.menuItemEvent.connect(menuItemEvent);
         } else if (menuItem.endsWith(" for Input")) {
             var selectedDevice = menuItem.trimStartsWith("Use ").trimEndsWith(" for Input");
             print("input audio selection..." + selectedDevice);
-	        Menu.menuItemEvent.disconnect(menuItemEvent);
+            Menu.menuItemEvent.disconnect(menuItemEvent);
             Menu.setIsOptionChecked(selectedInputMenu, false);
             selectedInputMenu = menuItem;
             Menu.setIsOptionChecked(selectedInputMenu, true);
             if (AudioDevice.setInputDevice(selectedDevice)) {
                 Settings.setValue(INPUT_DEVICE_SETTING, selectedDevice);
             }
-	        Menu.menuItemEvent.connect(menuItemEvent);
+            Menu.menuItemEvent.connect(menuItemEvent);
         }
     }
 }
