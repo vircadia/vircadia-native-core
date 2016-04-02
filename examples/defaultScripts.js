@@ -20,5 +20,5 @@ Script.load("controllers/squeezeHands.js");
 Script.load("grab.js");
 Script.load("directory.js");
 Script.load("dialTone.js");
-Script.load("attachedEntitiesManager.js");
+// Script.load("attachedEntitiesManager.js");
 Script.load("depthReticle.js");
