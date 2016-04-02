@@ -1439,7 +1439,7 @@ function MyController(hand) {
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
             if (this.temporaryPositionOffset && (this.state == STATE_EQUIP || this.state == STATE_HOLD)) {
                 this.offsetPosition = this.temporaryPositionOffset;
-                hasPresetPosition = true;
+                // hasPresetPosition = true;
             }
         }
 
@@ -1464,6 +1464,7 @@ function MyController(hand) {
                 reparentProps["localRotation"] = this.offsetRotation;
             }
             Entities.editEntity(this.grabbedEntity, reparentProps);
+
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
                 grabbedEntity: this.grabbedEntity
