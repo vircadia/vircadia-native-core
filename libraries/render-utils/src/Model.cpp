@@ -89,12 +89,12 @@ bool Model::needsFixupInScene() const {
 
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
-    enqueueLocationChange();
+    updateRenderItems();
 }
 
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
-    enqueueLocationChange();
+    updateRenderItems();
 }
 
 void Model::setScale(const glm::vec3& scale) {
@@ -124,7 +124,7 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
-void Model::enqueueLocationChange() {
+void Model::updateRenderItems() {
 
     _needsUpdateClusterMatrices = true;
 
@@ -552,49 +552,32 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     bool somethingAdded = false;
 
-    if (_modelMeshRenderItems.size()) {
-        for (auto item : _modelMeshRenderItems.keys()) {
-            pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
-                data.notifyLocationChanged();
-            });
-        }
-    } else {
-        for (auto renderItem : _modelMeshRenderItemsSet) {
+    if (_modelMeshRenderItems.empty()) {
+        foreach (auto renderItem, _modelMeshRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
             if (statusGetters.size()) {
                 renderPayload->addStatusGetters(statusGetters);
             }
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<ModelMeshPartPayload>(item, [](ModelMeshPartPayload& data) {
-                data.notifyLocationChanged();
-            });
             _modelMeshRenderItems.insert(item, renderPayload);
             somethingAdded = true;
         }
     }
-
-    if (_collisionRenderItems.size()) {
-        for (auto item : _collisionRenderItems.keys()) {
-            pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-                data.notifyLocationChanged();
-            });
-        }
-    } else {
-        for (auto renderItem : _collisionRenderItemsSet) {
+    if (_collisionRenderItems.empty()) {
+        foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             if (statusGetters.size()) {
                 renderPayload->addStatusGetters(statusGetters);
             }
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-                data.notifyLocationChanged();
-            });
             _collisionRenderItems.insert(item, renderPayload);
             somethingAdded = true;
         }
     }
+
+    updateRenderItems();
 
     _readyWhenAdded = readyToAddToScene();
 
@@ -1169,38 +1152,17 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-AABox Model::getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation) const {
-
+AABox Model::getRenderableMeshBound() const {
     if (!isLoaded()) {
         return AABox();
-    }
-
-    if (meshIndex < _meshStates.size()) {
-        const MeshState& state = _meshStates.at(meshIndex);
-        bool isSkinned = state.clusterMatrices.size() > 1;
-        if (isSkinned) {
-            // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
-            return calculateScaledOffsetAABox(getFBXGeometry().meshExtents, modelPosition, modelOrientation);
+    } else {
+        // Build a bound using the last known bound from all the renderItems.
+        AABox totalBound;
+        for (auto& renderItem : _modelMeshRenderItemsSet) {
+            totalBound += renderItem->getBound();
         }
+        return totalBound;
     }
-    if (getFBXGeometry().meshes.size() > meshIndex) {
-
-        // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
-        //           box of the mesh part fails. It seems to create boxes that are not consistent with where the
-        //           geometry actually renders. If instead we make all the parts share the bounds of the entire subMesh
-        //           things will render properly.
-        //
-        //    return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
-        //
-        //    NOTE: we also don't want to use the _calculatedMeshBoxes[] because they don't handle avatar moving correctly
-        //          without recalculating them...
-        //    return _calculatedMeshBoxes[meshIndex];
-        //
-        // If we not skinned use the bounds of the subMesh for all it's parts
-        const FBXMesh& mesh = getFBXGeometry().meshes.at(meshIndex);
-        return calculateScaledOffsetExtents(mesh.meshExtents, modelPosition, modelOrientation);
-    }
-    return AABox();
 }
 
 void Model::segregateMeshGroups() {
@@ -1292,20 +1254,15 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
             _modelMeshRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<ModelMeshPartPayload>(item, [transform, offset](MeshPartPayload& data) {
-                data.notifyLocationChanged();
-            });
         }
         foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _collisionRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [transform, offset](MeshPartPayload& data) {
-                data.notifyLocationChanged();
-            });
         }
         scene->enqueuePendingChanges(pendingChanges);
+        updateRenderItems();
 
         _readyWhenAdded = true;
         return true;
