@@ -13,12 +13,26 @@
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QFile>
+#include <QtCore/QThread>
 
 #include <AssetRequest.h>
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
 #include <OffscreenUi.h>
+
+void AssetMappingModel::clear() {
+    // make sure we are on the same thread before we touch the hash
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "clear");
+        return;
+    }
+
+    qDebug() << "Clearing loaded asset mappings for Asset Browser";
+
+    _pathToItemMap.clear();
+    QStandardItemModel::clear();
+}
 
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
