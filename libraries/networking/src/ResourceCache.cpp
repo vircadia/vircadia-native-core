@@ -142,8 +142,9 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         
-        _unusedResourcesSize -= it.value()->getBytes();
+        _resources.remove(it.value()->getURL());
         it.value()->setCache(nullptr);
+        _unusedResourcesSize -= it.value()->getBytes();
         _unusedResources.erase(it);
     }
 }
