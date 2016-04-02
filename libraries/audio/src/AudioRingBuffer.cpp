@@ -17,6 +17,7 @@
 #include <QtCore/QDebug>
 
 #include <udt/PacketHeaders.h>
+#include <LogHandler.h>
 
 #include "AudioLogging.h"
 
@@ -129,7 +130,10 @@ int AudioRingBuffer::writeData(const char* data, int maxSize) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
+
+        const QString RING_BUFFER_OVERFLOW_DEBUG { "AudioRingBuffer::writeData has overflown the buffer. Overwriting old data." };
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(RING_BUFFER_OVERFLOW_DEBUG);
+        qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     if (_endOfLastWrite + samplesToCopy <= _buffer + _bufferLength) {

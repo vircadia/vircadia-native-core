@@ -21,6 +21,7 @@ class ResourceRequest : public QObject {
     Q_OBJECT
 public:
     ResourceRequest(const QUrl& url);
+    virtual ~ResourceRequest() = default;
 
     enum State {
         NotStarted = 0,

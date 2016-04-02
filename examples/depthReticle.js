@@ -112,7 +112,7 @@ function autoHideReticle() {
 function checkReticleDepth() {
     var now = Date.now();
     var timeSinceLastDepthCheck = now - lastDepthCheckTime;
-    if (timeSinceLastDepthCheck > TIME_BETWEEN_DEPTH_CHECKS) {
+    if (timeSinceLastDepthCheck > TIME_BETWEEN_DEPTH_CHECKS && Reticle.visible) {
         var newDesiredDepth = desiredDepth;
         lastDepthCheckTime = now;
         var reticlePosition = Reticle.position;
@@ -160,7 +160,6 @@ function moveToDesiredDepth() {
         } else {
             newDepth = Reticle.depth + distanceToAdjustThisCycle;
         }
-
         Reticle.setDepth(newDepth);
     }
 }

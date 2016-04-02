@@ -74,9 +74,6 @@ public:
     void setTextures(const QVariantMap& textureMap);
 
     virtual bool areTexturesLoaded() const;
-    // Returns true if any albedo texture has a non-masking alpha channel.
-    // This can only be known after areTexturesLoaded().
-    bool hasTransparentTextures() const { return _hasTransparentTextures; }
 
 protected:
     friend class GeometryMappingResource;
@@ -91,7 +88,6 @@ protected:
 
 private:
     mutable bool _areTexturesLoaded { false };
-    mutable bool _hasTransparentTextures { false };
 };
 
 /// A geometry loaded from the network.
@@ -99,15 +95,25 @@ class GeometryResource : public Resource, public Geometry {
 public:
     using Pointer = QSharedPointer<GeometryResource>;
 
-    GeometryResource(const QUrl& url) : Resource(url) {}
+    GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) :
+        Resource(url), _textureBaseUrl(textureBaseUrl) {}
 
     virtual bool areTexturesLoaded() const { return isLoaded() && Geometry::areTexturesLoaded(); }
 
+    virtual void deleter() override;
+
 protected:
+    friend class ModelCache;
     friend class GeometryMappingResource;
 
-    virtual bool isCacheable() const override { return _loaded && _isCacheable; }
+    // Geometries may not hold onto textures while cached - that is for the texture cache
+    bool hasTextures() const { return !_materials.empty(); }
+    void setTextures();
+    void resetTextures();
 
+    QUrl _textureBaseUrl;
+
+    virtual bool isCacheable() const override { return _loaded && _isCacheable; }
     bool _isCacheable { true };
 };
 

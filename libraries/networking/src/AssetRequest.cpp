@@ -25,6 +25,16 @@ AssetRequest::AssetRequest(const QString& hash) :
 {
 }
 
+AssetRequest::~AssetRequest() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    if (_assetRequestID) {
+        assetClient->cancelGetAssetRequest(_assetRequestID);
+    }
+    if (_assetInfoRequestID) {
+        assetClient->cancelGetAssetInfoRequest(_assetInfoRequestID);
+    }
+}
+
 void AssetRequest::start() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
@@ -60,7 +70,11 @@ void AssetRequest::start() {
     _state = WaitingForInfo;
     
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAssetInfo(_hash, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+    _assetInfoRequestID = assetClient->getAssetInfo(_hash,
+            [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+
+        _assetInfoRequestID = AssetClient::INVALID_MESSAGE_ID;
+
         _info = info;
 
         if (!responseReceived) {
@@ -92,8 +106,11 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAsset(_hash, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
-                                                                                const QByteArray& data) {
+        _assetRequestID = assetClient->getAsset(_hash, start, end,
+                [this, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+
+            _assetRequestID = AssetClient::INVALID_MESSAGE_ID;
+
             if (!responseReceived) {
                 _error = NetworkError;
             } else if (serverError != AssetServerError::NoError) {

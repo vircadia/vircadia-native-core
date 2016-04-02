@@ -120,7 +120,7 @@ Window {
             }
 
             HifiControls.VerticalSpacer {
-                height: 2  // Table view draws a little taller than it's height.
+                height: hifi.dimensions.controlInterlineHeight + 2  // Table view draws a little taller than it's height.
             }
         }
 

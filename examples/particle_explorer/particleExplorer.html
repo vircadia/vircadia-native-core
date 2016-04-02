@@ -20,6 +20,12 @@
 <script type="text/javascript" src="../html/eventBridgeLoader.js"></script>
 <script type="text/javascript" src="particleExplorer.js?v42"></script>
 <script>
+    function loaded() {
+        // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+        }, false);
+    }
 </script>
 <style>
 
@@ -60,7 +66,7 @@ body{
 
 </style>
 </head>
-<body>
+<body  onload="loaded();">
 <div class="importer">
 <input type='text' id="importer-input" placeholder="Import: Paste JSON here."  onkeypress="handleInputKeyPress(event)">
 <div class = "exported-props-section">

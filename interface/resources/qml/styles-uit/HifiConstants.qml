@@ -58,6 +58,7 @@ Item {
         readonly property color lightGrayText: "#afafaf"
         readonly property color faintGray: "#e3e3e3"
         readonly property color primaryHighlight: "#00b4ef"
+        readonly property color blueHighlight: "#00b4ef"
         readonly property color blueAccent: "#1080b8"
         readonly property color redHighlight: "#e2334d"
         readonly property color redAccent: "#b70a37"
@@ -75,12 +76,12 @@ Item {
         readonly property color lightGrayText80: "#ccafafaf"
         readonly property color faintGray80: "#cce3e3e3"
         readonly property color faintGray50: "#80e3e3e3"
-        readonly property color locked: "#252525"
 
         // Other colors
         readonly property color white: "#ffffff"
         readonly property color gray: "#808080"
         readonly property color black: "#000000"
+        readonly property color locked: "#252525"
         // Semitransparent
         readonly property color white50: "#80ffffff"
         readonly property color white30: "#4dffffff"
@@ -115,6 +116,8 @@ Item {
         readonly property color dropDownDarkStart: "#7d7d7d"
         readonly property color dropDownDarkFinish: "#6b6a6b"
         readonly property color textFieldLightBackground: "#d4d4d4"
+        readonly property color tabBackgroundDark: "#252525"
+        readonly property color tabBackgroundLight: "#d4d4d4"
     }
 
     Item {
@@ -152,6 +155,7 @@ Item {
         readonly property real sectionName: dimensions.largeScreen ? 12 : 10
         readonly property real inputLabel: dimensions.largeScreen ? 14 : 10
         readonly property real textFieldInput: dimensions.largeScreen ? 15 : 12
+        readonly property real textFieldInputLabel: dimensions.largeScreen ? 13 : 9
         readonly property real tableText: dimensions.largeScreen ? 15 : 12
         readonly property real buttonLabel: dimensions.largeScreen ? 13 : 9
         readonly property real iconButton: dimensions.largeScreen ? 13 : 9
@@ -164,7 +168,7 @@ Item {
         readonly property real menuItem: dimensions.largeScreen ? 15 : 11
         readonly property real shortcutText: dimensions.largeScreen ? 13 : 9
         readonly property real carat: dimensions.largeScreen ? 38 : 30
-        readonly property real disclosureButton: dimensions.largeScreen ? 20 : 15
+        readonly property real disclosureButton: dimensions.largeScreen ? 30 : 22
     }
 
     Item {
