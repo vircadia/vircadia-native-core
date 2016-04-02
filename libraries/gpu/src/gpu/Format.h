@@ -192,12 +192,21 @@ enum Semantic {
     SRGBA,
     SBGRA,
 
+    // These are generic compression format smeantic for images
     COMPRESSED_R,
-    COMPRESSED_RGB,
+
+    COMPRESSED_RGB, 
     COMPRESSED_RGBA,
 
     COMPRESSED_SRGB,
     COMPRESSED_SRGBA,
+
+    // FIXME: Will have to be supported later:
+    /*COMPRESSED_BC3_RGBA,  // RGBA_S3TC_DXT5_EXT,
+    COMPRESSED_BC3_SRGBA, // SRGB_ALPHA_S3TC_DXT5_EXT
+
+    COMPRESSED_BC7_RGBA,
+    COMPRESSED_BC7_SRGBA, */
 
     R11G11B10,
 
