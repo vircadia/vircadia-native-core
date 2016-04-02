@@ -114,6 +114,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
     _unusedResourcesMaxSize = clamp(unusedResourcesMaxSize, MIN_UNUSED_MAX_SIZE, MAX_UNUSED_MAX_SIZE);
     reserveUnusedResource(0);
+    emit dirty();
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
@@ -127,6 +128,7 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     resource->setLRUKey(++_lastLRUKey);
     _unusedResources.insert(resource->getLRUKey(), resource);
     _unusedResourcesSize += resource->getBytes();
+    emit dirty();
 }
 
 void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resource) {
@@ -134,6 +136,7 @@ void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resourc
         _unusedResources.remove(resource->getLRUKey());
         _unusedResourcesSize -= resource->getBytes();
     }
+    emit dirty();
 }
 
 void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
@@ -142,9 +145,13 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         
-        _resources.remove(it.value()->getURL());
         it.value()->setCache(nullptr);
-        _unusedResourcesSize -= it.value()->getBytes();
+        auto size = it.value()->getBytes();
+
+        _totalResourcesSize -= size;
+        _resources.remove(it.value()->getURL());
+
+        _unusedResourcesSize -= size;
         _unusedResources.erase(it);
     }
 }
@@ -158,6 +165,11 @@ void ResourceCache::clearUnusedResource() {
         }
         _unusedResources.clear();
     }
+}
+
+void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
+    _totalResourcesSize += (newSize - oldSize);
+    emit dirty();
 }
 
 void ResourceCacheSharedItems::appendActiveRequest(Resource* resource) {
@@ -378,6 +390,11 @@ void Resource::finishedLoading(bool success) {
     emit finished(success);
 }
 
+void Resource::setBytes(const qint64& bytes) {
+    QMetaObject::invokeMethod(_cache.data(), "updateTotalSize", Q_ARG(qint64, _bytes), Q_ARG(qint64, bytes));
+    _bytes = bytes;
+}
+
 void Resource::reinsert() {
     _cache->_resources.insert(_url, _self);
 }
@@ -413,7 +430,7 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 void Resource::handleReplyFinished() {
     Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
 
-    _bytes = _bytesTotal;
+    setBytes(_bytesTotal);
 
     if (!_request || _request != sender()) {
         // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.

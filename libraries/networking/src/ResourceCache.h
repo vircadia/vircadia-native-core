@@ -79,8 +79,18 @@ private:
 /// Base class for resource caches.
 class ResourceCache : public QObject {
     Q_OBJECT
+    Q_PROPERTY(int numTotal READ getNumTotalResources NOTIFY dirty)
+    Q_PROPERTY(int numCached READ getNumCachedResources NOTIFY dirty)
+    Q_PROPERTY(qint64 sizeTotal READ getSizeTotalResources NOTIFY dirty)
+    Q_PROPERTY(qint64 sizeCached READ getSizeCachedResources NOTIFY dirty)
     
 public:
+    int getNumTotalResources() const { return _resources.size(); }
+    qint64 getSizeTotalResources() const { return _totalResourcesSize; }
+
+    int getNumCachedResources() const { return _unusedResources.size(); }
+    qint64 getSizeCachedResources() const { return _unusedResourcesSize; }
+
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
 
@@ -101,8 +111,14 @@ public:
     void refreshAll();
     void refresh(const QUrl& url);
 
+signals:
+    void dirty();
+
 public slots:
     void checkAsynchronousGets();
+
+protected slots:
+    void updateTotalSize(const qint64& oldSize, const qint64& newSize);
 
 protected:
     /// Loads a resource from the specified URL.
@@ -118,8 +134,6 @@ protected:
     
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
-    void reserveUnusedResource(qint64 resourceSize);
-    void clearUnusedResource();
     
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
@@ -129,6 +143,9 @@ protected:
 
 private:
     friend class Resource;
+
+    void reserveUnusedResource(qint64 resourceSize);
+    void clearUnusedResource();
 
     QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
@@ -140,8 +157,10 @@ private:
     QReadWriteLock _resourcesToBeGottenLock;
     QQueue<QUrl> _resourcesToBeGotten;
     
+    qint64 _totalResourcesSize { 0 };
+    qint64 _unusedResourcesSize { 0 };
+
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
-    qint64 _unusedResourcesSize = 0;
     QMap<int, QSharedPointer<Resource>> _unusedResources;
 };
 
@@ -226,7 +245,7 @@ protected:
     virtual void downloadFinished(const QByteArray& data) { finishedLoading(true); }
 
     /// Called when the download is finished and processed, sets the number of actual bytes.
-    void setBytes(qint64 bytes) { _bytes = bytes; }
+    void setBytes(const qint64& bytes);
 
     /// Called when the download is finished and processed.
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
