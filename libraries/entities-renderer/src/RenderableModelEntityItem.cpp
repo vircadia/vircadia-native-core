@@ -69,13 +69,9 @@ void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
     EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
     assert(renderer);
-    if (!_model || _needsModelReload) {
+    {
         PerformanceTimer perfTimer("getModel");
         getModel(renderer);
-    }
-    if (_model) {
-        _model->setURL(getParsedModelURL());
-        _model->setCollisionModelURL(QUrl(getCompoundShapeURL()));
     }
 }
 
@@ -109,7 +105,7 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     // If textures are unset, revert to original textures
-    if (textures == "") {
+    if (textures.isEmpty()) {
         return _originalTextures;
     }
 
@@ -121,10 +117,11 @@ QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
     QJsonParseError error;
     QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
     if (error.error != QJsonParseError::NoError) {
-        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << textures;
         return _originalTextures;
     }
-    return texturesJson.object().toVariantMap();
+
+    return texturesJson.toVariant().toMap();
 }
 
 void RenderableModelEntityItem::remapTextures() {
@@ -146,11 +143,17 @@ void RenderableModelEntityItem::remapTextures() {
         _currentTextures = _originalTextures;
     }
 
-    auto textures = parseTexturesToMap(_textures);
+    auto textures = getTextures();
+    if (textures == _lastTextures) {
+        return;
+    }
 
-    if (textures != _currentTextures) {
-        geometry->setTextures(textures);
-        _currentTextures = textures;
+    _lastTextures = textures;
+    auto newTextures = parseTexturesToMap(textures);
+
+    if (newTextures != _currentTextures) {
+        geometry->setTextures(newTextures);
+        _currentTextures = newTextures;
     }
 }
 
@@ -364,13 +367,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
-            // check if the URL has changed
-            auto& currentURL = getParsedModelURL();
-            if (currentURL != _model->getURL()) {
-                qCDebug(entitiesrenderer).noquote() << "Updating model URL: " << currentURL.toDisplayString();
-                _model->setURL(currentURL);
-            }
-
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -435,6 +431,15 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
                 updateModelBounds();
+
+                // Check if the URL has changed
+                // Do this last as the getModel is queued for the next frame,
+                // and we need to keep state directing the model to reinitialize
+                auto& currentURL = getParsedModelURL();
+                if (currentURL != _model->getURL()) {
+                    // Defer setting the url to the render thread
+                    getModel(_myRenderer);
+                }
             }
         }
     } else {
@@ -450,10 +455,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 }
 
 ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
-    ModelPointer result = nullptr;
-
     if (!renderer) {
-        return result;
+        return nullptr;
     }
 
     // make sure our renderer is setup
@@ -468,21 +471,22 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     
     _needsModelReload = false; // this is the reload
 
-    // if we have a URL, then we will want to end up returning a model...
+    // If we have a URL, then we will want to end up returning a model...
     if (!getModelURL().isEmpty()) {
-    
-        // if we have a previously allocated model, but its URL doesn't match
-        // then we need to let our renderer update our model for us.
-        if (_model && (QUrl(getModelURL()) != _model->getURL() ||
-                       QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
-            result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
+        // If we don't have a model, allocate one *immediately*
+        if (!_model) {
+            _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
-        } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
-            result = _model = _myRenderer->allocateModel(getModelURL(), getCompoundShapeURL());
+        // If we need to change URLs, update it *after rendering* (to avoid access violations)
+        } else if ((QUrl(getModelURL()) != _model->getURL() || QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
+            QMetaObject::invokeMethod(_myRenderer, "updateModel", Qt::QueuedConnection,
+                Q_ARG(ModelPointer, _model),
+                Q_ARG(const QString&, getModelURL()),
+                Q_ARG(const QString&, getCompoundShapeURL()));
             _needsInitialSimulation = true;
-        } else { // we already have the model we want...
-            result = _model;
         }
+        // Else we can just return the _model
+    // If we have no URL, then we can delete any model we do have...
     } else if (_model) {
         // remove from scene
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
@@ -492,11 +496,11 @@ ModelPointer RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 
         // release interest
         _myRenderer->releaseModel(_model);
-        result = _model = nullptr;
+        _model = nullptr;
         _needsInitialSimulation = true;
     }
 
-    return result;
+    return _model;
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {

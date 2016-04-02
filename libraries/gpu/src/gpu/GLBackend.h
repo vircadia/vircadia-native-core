@@ -158,7 +158,6 @@ public:
         ~GLState();
 
         // The state commands to reset to default,
-        // WARNING depending on the order of the State::Field enum
         static const Commands _resetStateCommands;
 
         friend class GLBackend;

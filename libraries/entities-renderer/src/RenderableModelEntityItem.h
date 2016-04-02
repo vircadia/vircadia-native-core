@@ -90,6 +90,7 @@ private:
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
     EntityTreeRenderer* _myRenderer = nullptr;
+    QString _lastTextures;
     QVariantMap _currentTextures;
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;

@@ -32,9 +32,10 @@ public:
 
 class RenderDeferred {
 public:
+    using JobModel = render::Job::Model<RenderDeferred>;
+
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    using JobModel = render::Job::Model<RenderDeferred>;
 };
 
 class DrawConfig : public render::Job::Config {

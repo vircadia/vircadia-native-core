@@ -19,6 +19,10 @@
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
+class SpatialParentTree {
+public:
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) { return nullptr; }
+};
 class SpatialParentFinder : public Dependency {
 
 
@@ -31,7 +35,7 @@ public:
     SpatialParentFinder() { }
     virtual ~SpatialParentFinder() { }
 
-    virtual SpatiallyNestableWeakPointer find(QUuid parentID, bool& success) const = 0;
+    virtual SpatiallyNestableWeakPointer find(QUuid parentID, bool& success, SpatialParentTree* entityTree = nullptr) const = 0;
 };
 
 #endif // hifi_SpatialParentFinder_h

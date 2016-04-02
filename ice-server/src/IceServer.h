@@ -58,7 +58,7 @@ private:
     using DomainPublicKeyHash = std::unordered_map<QUuid, RSAUniquePtr>;
     DomainPublicKeyHash _domainPublicKeys;
 
-    quint64 _lastPacketTimestamp;
+    quint64 _lastInactiveCheckTimestamp;
 };
 
 #endif // hifi_IceServer_h

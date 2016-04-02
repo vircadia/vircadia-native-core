@@ -250,9 +250,10 @@ void GLBackend::render(Batch& batch) {
         PROFILE_RANGE("Transfer");
         renderPassTransfer(batch);
     }
-    _stereo._enable =batch.isStereoEnabled();
+  //  _stereo._enable =batch.isStereoEnabled();
     
-    glEnable(GL_CLIP_DISTANCE0);
+    if (_stereo._enable)
+        glEnable(GL_CLIP_DISTANCE0);
 
     {
         PROFILE_RANGE(_stereo._enable ? "LeftRender" : "Render");
@@ -266,7 +267,8 @@ void GLBackend::render(Batch& batch) {
         _stereo._pass = 0;
     }*/
 
-    glDisable(GL_CLIP_DISTANCE0);
+    if (_stereo._enable)
+        glDisable(GL_CLIP_DISTANCE0);
     
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
@@ -337,6 +339,7 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
         _stats._DSNumTriangles += numVertices / 3;
     }
     _stats._DSNumDrawcalls++;
+    _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
 }
@@ -360,6 +363,7 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
         _stats._DSNumTriangles += numIndices / 3;
     }
     _stats._DSNumDrawcalls++;
+    _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
 }
@@ -375,6 +379,7 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     glDrawArraysInstancedARB(mode, startVertex, numVertices, trueNumInstances);
     _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
     _stats._DSNumDrawcalls += trueNumInstances;
+    _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
 }
@@ -402,6 +407,7 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
 #endif
     _stats._DSNumTriangles += (trueNumInstances * numIndices) / 3;
     _stats._DSNumDrawcalls += trueNumInstances;
+    _stats._DSNumAPIDrawcalls++;
 
     (void)CHECK_GL_ERROR();
 }
@@ -414,6 +420,8 @@ void GLBackend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
 
     glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
     _stats._DSNumDrawcalls += commandCount;
+    _stats._DSNumAPIDrawcalls++;
+
 #else
     // FIXME implement the slow path
 #endif
@@ -429,7 +437,7 @@ void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
   
     glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
     _stats._DSNumDrawcalls += commandCount;
-
+    _stats._DSNumAPIDrawcalls++;
 #else
     // FIXME implement the slow path
 #endif

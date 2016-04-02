@@ -1056,7 +1056,9 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         // limit rotation
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-        deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
+        if (fabsf(glm::angle(deltaQuat)) > MAX_ANGLE) {
+            deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
+        }
 
         // directly set absolutePose rotation
         _internalPoseSet._absolutePoses[index].rot = deltaQuat * headQuat;

@@ -44,6 +44,7 @@ namespace render {
     typedef unsigned int ItemID;
 }
 class MeshPartPayload;
+class ModelMeshPartPayload;
 class ModelRenderLocations;
 
 inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
@@ -73,6 +74,7 @@ public:
     }
 
     /// Sets the URL of the model to render.
+    // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
@@ -133,7 +135,8 @@ public:
     /// Provided as a convenience, will crash if !isCollisionLoaded()
     const FBXGeometry& getCollisionFBXGeometry() const { assert(isCollisionLoaded()); return getCollisionGeometry()->getGeometry()->getGeometry(); }
 
-    // Set the model to use for collisions
+    // Set the model to use for collisions.
+    // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
 
@@ -373,8 +376,12 @@ protected:
     bool _renderCollisionHull;
 
 
-    QSet<std::shared_ptr<MeshPartPayload>> _renderItemsSet;
-    QMap<render::ItemID, render::PayloadPointer> _renderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _collisionRenderItemsSet;
+    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItems;
+
+    QSet<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItemsSet;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItems;
+
     bool _readyWhenAdded { false };
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };

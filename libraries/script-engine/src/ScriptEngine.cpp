@@ -234,7 +234,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
     if (_wantSignals) {
-        emit scriptLoaded(_fileNameString);
+        emit scriptLoaded(url.toString());
     }
 }
 
@@ -673,11 +673,14 @@ void ScriptEngine::run() {
         }
 
         qint64 now = usecTimestampNow();
-        float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (!_isFinished) {
-            if (_wantSignals) {
-                emit update(deltaTime);
+        // we check for 'now' in the past in case people set their clock back
+        if (lastUpdate < now) {
+            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
             }
         }
         lastUpdate = now;
