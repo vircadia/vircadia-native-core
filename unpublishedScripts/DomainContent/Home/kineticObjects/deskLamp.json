@@ -13,7 +13,9 @@
             "z": 0.2535492241382599
         },
         "id": "{c7c6108b-4c60-4735-b2bf-5559d7e30e7d}",
-        "ignoreForCollisions": 1,
+        "collisionless": 1,
+        "dynamic": 1,
+        "shapeType": "box",
         "name": "home_box_livingRoomDeskLampTrigger",
         "parentID": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
         "position": {
@@ -36,7 +38,7 @@
         "script": "atp:/switches/livingRoomDeskLamp.js",
         "scriptTimestamp": 1458860464095,
         "type": "Box",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"grabbableKey\":{\"wantsTrigger\":true},\"home-switch\":{\"state\":\"off\"}}",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"home-switch\":{\"state\":\"off\"}}",
         "visible": 0
     }, {
         "color": {
