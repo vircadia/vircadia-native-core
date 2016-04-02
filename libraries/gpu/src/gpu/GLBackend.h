@@ -97,8 +97,15 @@ public:
 
     class GLShader : public GPUObject {
     public:
-        GLuint _shader;
-        GLuint _program;
+        enum Version {
+            Mono = 0,
+            Stereo,
+
+            NumVersions
+        };
+
+        GLuint _shader[NumVersions];
+        GLuint _program[NumVersions];
 
         GLint _transformCameraSlot = -1;
         GLint _transformObjectSlot = -1;
