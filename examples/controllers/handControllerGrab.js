@@ -20,7 +20,7 @@ Script.include("../libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = true;
+var WANT_DEBUG_STATE = false;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 //
@@ -1019,7 +1019,6 @@ function MyController(hand) {
             var refCount = ("refCount" in grabData) ? grabData.refCount : 0;
             if (near && (refCount < 1 || entityHasActions(this.grabbedEntity))) {
                 if (this.state == STATE_SEARCHING) {
-                    print("HERE: " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
                     this.setState(STATE_NEAR_GRABBING);
                 } else { // (this.state == STATE_HOLD_SEARCHING)
                     this.setState(STATE_HOLD);
@@ -1404,14 +1403,7 @@ function MyController(hand) {
         }
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-        print("USERDATA FOR " + this.grabbedEntity + " IS " + grabbedProperties.userData);
         this.activateEntity(this.grabbedEntity, grabbedProperties, false);
-        // if (grabbedProperties.dynamic && NEAR_GRABBING_KINEMATIC) {
-        //    Entities.editEntity(this.grabbedEntity, {
-        //        velocity: {x: 0, y: 0, z: 0},
-        //        dynamic: false
-        //    });
-        // }
 
         // var handRotation = this.getHandRotation();
         var handRotation = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
@@ -1419,7 +1411,6 @@ function MyController(hand) {
 
         var hasPresetPosition = false;
         if ((this.state == STATE_EQUIP || this.state == STATE_HOLD) && this.hasPresetOffsets()) {
-            print("HAS PRESET");
             var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
@@ -1427,8 +1418,6 @@ function MyController(hand) {
             this.offsetRotation = this.getPresetRotation();
             hasPresetPosition = true;
         } else {
-            print("NO PRESET");
-
             this.ignoreIK = false;
 
             var objectRotation = grabbedProperties.rotation;
@@ -1445,13 +1434,11 @@ function MyController(hand) {
 
         var isPhysical = this.propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
         if (isPhysical && this.state == STATE_NEAR_GRABBING) {
-            print("HERE: setting up hold action " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
             // grab entity via action
             if (!this.setupHoldAction()) {
                 return;
             }
         } else {
-            print("HERE: parenting " + (this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"));
             // grab entity via parenting
             this.actionID = null;
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
