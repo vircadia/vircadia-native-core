@@ -1437,7 +1437,7 @@ function MyController(hand) {
             var currentObjectPosition = grabbedProperties.position;
             var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
-            if (this.temporaryPositionOffset && (this.state == STATE_EQUIP || this.state == STATE_HOLD)) {
+            if (this.temporaryPositionOffset && (this.state == STATE_EQUIP)) {
                 this.offsetPosition = this.temporaryPositionOffset;
                 // hasPresetPosition = true;
             }
