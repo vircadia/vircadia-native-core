@@ -285,7 +285,7 @@ Texture::Size Texture::resize(Type type, const Element& texelFormat, uint16 widt
         }
 
         // Here the Texture has been fully defined from the gpu point of view (size and format)
-         _defined = true;
+        _defined = true;
     } else {
          _stamp++;
     }
@@ -455,6 +455,14 @@ uint32 Texture::getStoredMipSize(uint16 level) const {
         return evalMipWidth(level) * evalMipHeight(level) * evalMipDepth(level) * getTexelFormat().getSize();
     }
     return 0;
+}
+
+gpu::Resource::Size Texture::getStoredSize() const {
+    auto size = 0;
+    for (int level = 0; level < evalNumMips(); ++level) {
+        size += getStoredMipSize(level);
+    }
+    return size;
 }
 
 uint16 Texture::evalNumSamplesUsed(uint16 numSamplesTried) {

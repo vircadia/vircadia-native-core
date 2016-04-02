@@ -13,13 +13,14 @@
 
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
+#include <PathUtils.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
 #define __STR2__(x) #x
 #define __STR1__(x) __STR2__(x)
-#define __LOC__ __FILE__ "("__STR1__(__LINE__)") : Warning Msg: "
+#define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
 #ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -41,24 +42,46 @@ ScriptEngines::ScriptEngines()
     _scriptsModelFilter.setDynamicSortFilter(true);
 }
 
-QString normalizeScriptUrl(const QString& rawScriptUrl) {
-    if (!rawScriptUrl.startsWith("http:") && !rawScriptUrl.startsWith("https:") &&  !rawScriptUrl.startsWith("atp:")) {
-#ifdef Q_OS_LINUX
-        if (rawScriptUrl.startsWith("file:")) {
-            return rawScriptUrl;
-        }
-        return QUrl::fromLocalFile(rawScriptUrl).toString();
-#else
-        if (rawScriptUrl.startsWith("file:")) {
-            return rawScriptUrl.toLower();
-        }
-        // Force lowercase on file scripts because of drive letter weirdness.
-        return QUrl::fromLocalFile(rawScriptUrl).toString().toLower();
-#endif
+QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
+    if (rawScriptURL.scheme() == "file") {
+        QUrl fullNormal = rawScriptURL;
+        QUrl defaultScriptLoc = defaultScriptsLocation();
 
+        // if this url is something "beneath" the default script url, replace the local path with ~
+        if (fullNormal.scheme() == defaultScriptLoc.scheme() &&
+            fullNormal.host() == defaultScriptLoc.host() &&
+            fullNormal.path().startsWith(defaultScriptLoc.path())) {
+            fullNormal.setPath("/~/" + fullNormal.path().mid(defaultScriptLoc.path().size()));
+        }
+        return fullNormal;
+    } else if (rawScriptURL.scheme() == "http" || rawScriptURL.scheme() == "https" || rawScriptURL.scheme() == "atp") {
+        return rawScriptURL;
+    } else {
+        // don't accidently support gopher
+        return QUrl("");
     }
-    return QUrl(rawScriptUrl).toString();
 }
+
+QUrl expandScriptUrl(const QUrl& rawScriptURL) {
+    QUrl normalizedScriptURL = normalizeScriptURL(rawScriptURL);
+    if (normalizedScriptURL.scheme() == "http" ||
+        normalizedScriptURL.scheme() == "https" ||
+        normalizedScriptURL.scheme() == "atp") {
+        return normalizedScriptURL;
+    } else if (normalizedScriptURL.scheme() == "file") {
+        if (normalizedScriptURL.path().startsWith("/~/")) {
+            QUrl url = normalizedScriptURL;
+            QStringList splitPath = url.path().split("/");
+            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            url.setPath(defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/")); // 2 to skip the slashes in /~/
+            return url;
+        }
+        return normalizedScriptURL;
+    } else {
+        return QUrl("");
+    }
+}
+
 
 QObject* scriptsModel();
 
@@ -192,19 +215,25 @@ QVariantList ScriptEngines::getLocal() {
 }
 
 QVariantList ScriptEngines::getRunning() {
-    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     QVariantList result;
     auto runningScripts = getRunningScripts();
     foreach(const QString& runningScript, runningScripts) {
         QUrl runningScriptURL = QUrl(runningScript);
-        if (runningScriptURL.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        if (!runningScriptURL.isValid()) {
             runningScriptURL = QUrl::fromLocalFile(runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
         }
         QVariantMap resultNode;
         resultNode.insert("name", runningScriptURL.fileName());
-        resultNode.insert("url", runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
+        QUrl displayURL = expandScriptUrl(runningScriptURL);
+        QString displayURLString;
+        if (displayURL.isLocalFile()) {
+            displayURLString = displayURL.toLocalFile();
+        } else {
+            displayURLString = displayURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded));
+        }
+        resultNode.insert("url", displayURLString);
         // The path contains the exact path/URL of the script, which also is used in the stopScript function.
-        resultNode.insert("path", runningScript);
+        resultNode.insert("path", normalizeScriptURL(runningScript).toString());
         resultNode.insert("local", runningScriptURL.isLocalFile());
         result.append(resultNode);
     }
@@ -213,10 +242,11 @@ QVariantList ScriptEngines::getRunning() {
 
 
 static const QString SETTINGS_KEY = "Settings";
-static const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 
 void ScriptEngines::loadDefaultScripts() {
-    loadScript(DEFAULT_SCRIPTS_JS_URL);
+    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "/defaultScripts.js");
+    loadScript(defaultScriptsLoc.toString());
 }
 
 void ScriptEngines::loadOneScript(const QString& scriptFilename) {
@@ -232,7 +262,7 @@ void ScriptEngines::loadScripts() {
         loadDefaultScripts();
         _firstRun.set(false);
         return;
-    } 
+    }
 
     // loads all saved scripts
     Settings settings;
@@ -265,7 +295,7 @@ void ScriptEngines::saveScripts() {
     for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
         if (getScriptEngine(*it)->isUserLoaded()) {
             settings.setArrayIndex(i);
-            settings.setValue("script", *it);
+            settings.setValue("script", normalizeScriptURL(*it).toString());
             ++i;
         }
     }
@@ -274,7 +304,12 @@ void ScriptEngines::saveScripts() {
 
 QStringList ScriptEngines::getRunningScripts() {
     QReadLocker lock(&_scriptEnginesHashLock);
-    return _scriptEnginesHash.keys();
+    QList<QUrl> urls = _scriptEnginesHash.keys();
+    QStringList result;
+    for (auto url : urls) {
+        result.append(url.toString());
+    }
+    return result;
 }
 
 void ScriptEngines::stopAllScripts(bool restart) {
@@ -282,7 +317,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     if (restart) {
         // Delete all running scripts from cache so that they are re-downloaded when they are restarted
         auto scriptCache = DependencyManager::get<ScriptCache>();
-        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+        for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
             if (!it.value()->isFinished()) {
                 scriptCache->deleteScript(it.key());
@@ -291,7 +326,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     }
 
     // Stop and possibly restart all currently running scripts
-    for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+    for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
         if (it.value()->isFinished()) {
             continue;
@@ -307,23 +342,27 @@ void ScriptEngines::stopAllScripts(bool restart) {
     }
 }
 
-bool ScriptEngines::stopScript(const QString& rawScriptUrl, bool restart) {
+bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
     bool stoppedScript = false;
     {
+        QUrl scriptURL = normalizeScriptURL(QUrl(rawScriptURL));
+        if (!scriptURL.isValid()) {
+            scriptURL = normalizeScriptURL(QUrl::fromLocalFile(rawScriptURL));
+        }
+
         QReadLocker lock(&_scriptEnginesHashLock);
-        const QString scriptURLString = normalizeScriptUrl(rawScriptUrl);
-        if (_scriptEnginesHash.contains(scriptURLString)) {
-            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURLString];
+        if (_scriptEnginesHash.contains(scriptURL)) {
+            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURL];
             if (restart) {
                 auto scriptCache = DependencyManager::get<ScriptCache>();
-                scriptCache->deleteScript(QUrl(scriptURLString));
+                scriptCache->deleteScript(scriptURL);
                 connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
                     reloadScript(scriptName);
                 });
             }
             scriptEngine->stop();
             stoppedScript = true;
-            qCDebug(scriptengine) << "stopping script..." << scriptURLString;
+            qCDebug(scriptengine) << "stopping script..." << scriptURL;
         }
     }
     return stoppedScript;
@@ -338,25 +377,37 @@ void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
     _scriptsModel.updateScriptsLocation(scriptsLocation);
 }
 
-void ScriptEngines::reloadAllScripts() { 
+void ScriptEngines::reloadAllScripts() {
     DependencyManager::get<ScriptCache>()->clearCache();
     emit scriptsReloading();
     stopAllScripts(true);
 }
 
-ScriptEngine* ScriptEngines::loadScript(const QString& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
+ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
+                                        bool activateMainWindow, bool reload) {
     if (thread() != QThread::currentThread()) {
         ScriptEngine* result { nullptr };
         QMetaObject::invokeMethod(this, "loadScript", Qt::BlockingQueuedConnection, Q_RETURN_ARG(ScriptEngine*, result),
-            Q_ARG(QString, scriptFilename),
+            Q_ARG(QUrl, scriptFilename),
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),
             Q_ARG(bool, activateMainWindow),
             Q_ARG(bool, reload));
         return result;
     }
-    QUrl scriptUrl(scriptFilename);
-    auto scriptEngine = getScriptEngine(scriptUrl.toString());
+    QUrl scriptUrl;
+    if (!scriptFilename.isValid() ||
+        (scriptFilename.scheme() != "http" &&
+         scriptFilename.scheme() != "https" &&
+         scriptFilename.scheme() != "atp" &&
+         scriptFilename.scheme() != "file")) {
+        // deal with a "url" like c:/something
+        scriptUrl = normalizeScriptURL(QUrl::fromLocalFile(scriptFilename.toString()));
+    } else {
+        scriptUrl = normalizeScriptURL(scriptFilename);
+    }
+
+    auto scriptEngine = getScriptEngine(scriptUrl);
     if (scriptEngine) {
         return scriptEngine;
     }
@@ -368,7 +419,7 @@ ScriptEngine* ScriptEngines::loadScript(const QString& scriptFilename, bool isUs
     }, Qt::QueuedConnection);
 
 
-    if (scriptFilename.isNull()) {
+    if (scriptFilename.isEmpty()) {
         launchScriptEngine(scriptEngine);
     } else {
         // connect to the appropriate signals of this script engine
@@ -382,12 +433,12 @@ ScriptEngine* ScriptEngines::loadScript(const QString& scriptFilename, bool isUs
     return scriptEngine;
 }
 
-ScriptEngine* ScriptEngines::getScriptEngine(const QString& rawScriptUrl) {
+ScriptEngine* ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
     ScriptEngine* result = nullptr;
     {
         QReadLocker lock(&_scriptEnginesHashLock);
-        const QString scriptURLString = normalizeScriptUrl(rawScriptUrl);
-        auto it = _scriptEnginesHash.find(scriptURLString);
+        const QUrl scriptURL = normalizeScriptURL(rawScriptURL);
+        auto it = _scriptEnginesHash.find(scriptURL);
         if (it != _scriptEnginesHash.end()) {
             result = it.value();
         }
@@ -396,16 +447,17 @@ ScriptEngine* ScriptEngines::getScriptEngine(const QString& rawScriptUrl) {
 }
 
 // FIXME - change to new version of ScriptCache loading notification
-void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptUrl) {
-    UserActivityLogger::getInstance().loadedScript(rawScriptUrl);
+void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
+    UserActivityLogger::getInstance().loadedScript(rawScriptURL);
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 
     launchScriptEngine(scriptEngine);
 
     {
         QWriteLocker lock(&_scriptEnginesHashLock);
-        const QString scriptURLString = normalizeScriptUrl(rawScriptUrl);
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
+        QUrl url = QUrl(rawScriptURL);
+        QUrl normalized = normalizeScriptURL(url);
+        _scriptEnginesHash.insertMulti(normalized, scriptEngine);
     }
     emit scriptCountChanged();
 }
@@ -427,12 +479,12 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
 }
 
 
-void ScriptEngines::onScriptFinished(const QString& rawScriptUrl, ScriptEngine* engine) {
+void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* engine) {
     bool removed = false;
     {
         QWriteLocker lock(&_scriptEnginesHashLock);
-        const QString scriptURLString = normalizeScriptUrl(rawScriptUrl);
-        for (auto it = _scriptEnginesHash.find(scriptURLString); it != _scriptEnginesHash.end(); ++it) {
+        const QUrl scriptURL = normalizeScriptURL(QUrl(rawScriptURL));
+        for (auto it = _scriptEnginesHash.find(scriptURL); it != _scriptEnginesHash.end(); ++it) {
             if (it.value() == engine) {
                 _scriptEnginesHash.erase(it);
                 removed = true;

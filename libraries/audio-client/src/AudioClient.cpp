@@ -50,6 +50,9 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
+static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
+static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
+
 Setting::Handle<bool> dynamicJitterBuffers("dynamicJitterBuffers", DEFAULT_DYNAMIC_JITTER_BUFFERS);
 Setting::Handle<int> maxFramesOverDesired("maxFramesOverDesired", DEFAULT_MAX_FRAMES_OVER_DESIRED);
 Setting::Handle<int> staticDesiredJitterBufferFrames("staticDesiredJitterBufferFrames",
@@ -103,7 +106,9 @@ AudioClient::AudioClient() :
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream, this),
     _stats(&_receivedAudioStream),
-    _inputGate()
+    _inputGate(),
+    _positionGetter(DEFAULT_POSITION_GETTER),
+    _orientationGetter(DEFAULT_ORIENTATION_GETTER)
 {
     // clear the array of locally injected samples
     memset(_localProceduralSamples, 0, AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL);
@@ -169,6 +174,50 @@ int numDestinationSamplesRequired(const QAudioFormat& sourceFormat, const QAudio
 
     return (numSourceSamples * ratio) + 0.5f;
 }
+
+#ifdef Q_OS_WIN
+QString friendlyNameForAudioDevice(IMMDevice* pEndpoint) {
+    QString deviceName;
+    IPropertyStore* pPropertyStore;
+    pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
+    pEndpoint->Release();
+    pEndpoint = NULL;
+    PROPVARIANT pv;
+    PropVariantInit(&pv);
+    HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
+    pPropertyStore->Release();
+    pPropertyStore = NULL;
+    deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
+    if (!IsWindows8OrGreater()) {
+        // Windows 7 provides only the 31 first characters of the device name.
+        const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
+        deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
+    }
+    PropVariantClear(&pv);
+    return deviceName;
+}
+
+QString AudioClient::friendlyNameForAudioDevice(wchar_t* guid) {
+    QString deviceName;
+    HRESULT hr = S_OK;
+    CoInitialize(NULL);
+    IMMDeviceEnumerator* pMMDeviceEnumerator = NULL;
+    CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pMMDeviceEnumerator);
+    IMMDevice* pEndpoint;
+    hr = pMMDeviceEnumerator->GetDevice(guid, &pEndpoint);
+    if (hr == E_NOTFOUND) {
+        printf("Audio Error: device not found\n");
+        deviceName = QString("NONE");
+    } else {
+        deviceName = ::friendlyNameForAudioDevice(pEndpoint);
+    }
+    pMMDeviceEnumerator->Release();
+    pMMDeviceEnumerator = NULL;
+    CoUninitialize();
+    return deviceName;
+}
+
+#endif
 
 QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 #ifdef __APPLE__
@@ -243,23 +292,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             printf("Audio Error: device not found\n");
             deviceName = QString("NONE");
         } else {
-            IPropertyStore* pPropertyStore;
-            pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
-            pEndpoint->Release();
-            pEndpoint = NULL;
-            PROPVARIANT pv;
-            PropVariantInit(&pv);
-            hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
-            pPropertyStore->Release();
-            pPropertyStore = NULL;
-            deviceName = QString::fromWCharArray((wchar_t*)pv.pwszVal);
-            if (!IsWindows8OrGreater()) {
-                // Windows 7 provides only the 31 first characters of the device name.
-                const DWORD QT_WIN7_MAX_AUDIO_DEVICENAME_LEN = 31;
-                deviceName = deviceName.left(QT_WIN7_MAX_AUDIO_DEVICENAME_LEN);
-            }
-            qCDebug(audioclient) << (mode == QAudio::AudioOutput ? "output" : "input") << " device:" << deviceName;
-            PropVariantClear(&pv);
+            deviceName = friendlyNameForAudioDevice(pEndpoint);
         }
         pMMDeviceEnumerator->Release();
         pMMDeviceEnumerator = NULL;
@@ -550,7 +583,7 @@ void AudioClient::configureReverb() {
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
-    p.lateGain -= 12.0f;    // quieter than listener reverb
+    p.lateGain += _reverbOptions->getWetDryMix() * (24.0f/100.0f) - 24.0f;  // -0dB to -24dB, based on wetDryMix
     p.lateMixLeft = 0.0f;
     p.lateMixRight = 0.0f;
 

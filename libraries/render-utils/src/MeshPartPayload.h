@@ -74,15 +74,15 @@ namespace render {
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
     ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
-    
+
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
+    void updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices);
 
     // Render Item interface
     render::ItemKey getKey() const override;
-    render::Item::Bound getBound() const override;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) const override;
 
@@ -100,5 +100,12 @@ public:
     bool _isSkinned{ false };
     bool _isBlendShaped{ false };
 };
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
+    template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
+    template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
+}
 
 #endif // hifi_MeshPartPayload_h

@@ -221,6 +221,24 @@ ApplicationWindow {
             }
 
             Button {
+                text: "Add Tab 2"
+                onClicked: {
+                    console.log(desktop.toolWindow);
+                    desktop.toolWindow.addWebTab({ source: "Foo 2" });
+                    desktop.toolWindow.showTabForUrl("Foo 2", true);
+                }
+            }
+
+            Button {
+                text: "Add Tab 3"
+                onClicked: {
+                    console.log(desktop.toolWindow);
+                    desktop.toolWindow.addWebTab({ source: "Foo 3" });
+                    desktop.toolWindow.showTabForUrl("Foo 3", true);
+                }
+            }
+
+            Button {
                 text: "Destroy Tab"
                 onClicked: {
                     console.log(desktop.toolWindow);

@@ -220,10 +220,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
         return;
     }
 
-    _fileNameString = scriptURL.toString();
+    QUrl url = expandScriptUrl(scriptURL);
+    _fileNameString = url.toString();
     _isReloading = reload;
-
-    QUrl url(scriptURL);
 
     bool isPending;
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -234,7 +233,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
     if (_wantSignals) {
-        emit scriptLoaded(_fileNameString);
+        emit scriptLoaded(url.toString());
     }
 }
 
@@ -673,11 +672,14 @@ void ScriptEngine::run() {
         }
 
         qint64 now = usecTimestampNow();
-        float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (!_isFinished) {
-            if (_wantSignals) {
-                emit update(deltaTime);
+        // we check for 'now' in the past in case people set their clock back
+        if (lastUpdate < now) {
+            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
             }
         }
         lastUpdate = now;
@@ -845,7 +847,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     QUrl url(include);
     // first lets check to see if it's already a full URL
     if (!url.scheme().isEmpty()) {
-        return url;
+        return expandScriptUrl(url);
     }
 
     // we apparently weren't a fully qualified url, so, let's assume we're relative
@@ -862,7 +864,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     }
 
     // at this point we should have a legitimate fully qualified URL for our parent
-    url = parentURL.resolved(url);
+    url = expandScriptUrl(parentURL.resolved(url));
     return url;
 }
 

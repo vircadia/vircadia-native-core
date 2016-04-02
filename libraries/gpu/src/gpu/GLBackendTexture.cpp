@@ -225,6 +225,12 @@ public:
                     }
                     break;
 
+                case gpu::R11G11B10:
+                    texel.format = GL_RGB;
+                    // the type should be float
+                    texel.internalFormat = GL_R11F_G11F_B10F;
+                    break;
+
                 case gpu::DEPTH:
                     texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
                     texel.internalFormat = GL_DEPTH_COMPONENT;
@@ -302,11 +308,6 @@ public:
                 case gpu::SRGBA:
                     texel.internalFormat = GL_SRGB; // standard 2.2 gamma correction color
                     break;
-                case gpu::R11G11B10: {
-                    // the type should be float
-                    texel.internalFormat = GL_R11F_G11F_B10F;
-                    break;
-                }
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
                 }

@@ -11,7 +11,7 @@
 
 #include "AssignmentParentFinder.h"
 
-SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& success) const {
+SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& success, SpatialParentTree* entityTree) const {
     SpatiallyNestableWeakPointer parent;
 
     if (parentID.isNull()) {
@@ -20,7 +20,11 @@ SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& 
     }
 
     // search entities
-    parent = _tree->findEntityByEntityItemID(parentID);
+    if (entityTree) {
+        parent = entityTree->findByID(parentID);
+    } else {
+        parent = _tree->findEntityByEntityItemID(parentID);
+    }
     if (parent.expired()) {
         success = false;
     } else {

@@ -60,6 +60,8 @@ public:
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
 
+    static const MessageID INVALID_MESSAGE_ID = 0;
+
 public slots:
     void init();
 
@@ -75,30 +77,37 @@ private slots:
     void handleNodeKilled(SharedNodePointer node);
 
 private:
-    bool getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
-    bool getAllAssetMappings(MappingOperationCallback callback);
-    bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
-    bool deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback);
-    bool renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback);
+    MessageID getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    MessageID getAllAssetMappings(MappingOperationCallback callback);
+    MessageID setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
+    MessageID deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback);
+    MessageID renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback);
 
-    bool getAssetInfo(const QString& hash, GetInfoCallback callback);
-    bool getAsset(const QString& hash, DataOffset start, DataOffset end,
+    MessageID getAssetInfo(const QString& hash, GetInfoCallback callback);
+    MessageID getAsset(const QString& hash, DataOffset start, DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
-    bool uploadAsset(const QByteArray& data, UploadResultCallback callback);
+    MessageID uploadAsset(const QByteArray& data, UploadResultCallback callback);
 
-    struct GetAssetCallbacks {
+    bool cancelMappingRequest(MessageID id);
+    bool cancelGetAssetInfoRequest(MessageID id);
+    bool cancelGetAssetRequest(MessageID id);
+    bool cancelUploadAssetRequest(MessageID id);
+
+    struct GetAssetRequestData {
+        QSharedPointer<ReceivedMessage> message;
         ReceivedAssetCallback completeCallback;
         ProgressCallback progressCallback;
     };
 
     static MessageID _currentID;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, MappingOperationCallback>> _pendingMappingRequests;
-    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetCallbacks>> _pendingRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetRequestData>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
 
     friend class AssetRequest;
     friend class AssetUpload;
+    friend class MappingRequest;
     friend class GetMappingRequest;
     friend class GetAllMappingsRequest;
     friend class SetMappingRequest;
