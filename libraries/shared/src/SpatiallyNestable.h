@@ -149,9 +149,9 @@ protected:
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer(bool& success) const;
 
-    void getLocalEverything(Transform& localTransform, glm::vec3& localVelocity, glm::vec3& localAngularVelocity) const;
+    void getLocalTransformAndVelocities(Transform& localTransform, glm::vec3& localVelocity, glm::vec3& localAngularVelocity) const;
 
-    void setLocalEverything(
+    void setLocalTransformAndVelocities(
             const Transform& localTransform,
             const glm::vec3& localVelocity,
             const glm::vec3& localAngularVelocity);

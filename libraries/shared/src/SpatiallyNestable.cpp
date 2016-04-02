@@ -843,7 +843,7 @@ AACube SpatiallyNestable::getQueryAACube() const {
     return result;
 }
 
-void SpatiallyNestable::getLocalEverything(
+void SpatiallyNestable::getLocalTransformAndVelocities(
         Transform& transform,
         glm::vec3& velocity,
         glm::vec3& angularVelocity) const {
@@ -861,7 +861,7 @@ void SpatiallyNestable::getLocalEverything(
     });
 }
 
-void SpatiallyNestable::setLocalEverything(
+void SpatiallyNestable::setLocalTransformAndVelocities(
         const Transform& localTransform,
         const glm::vec3& localVelocity,
         const glm::vec3& localAngularVelocity) {

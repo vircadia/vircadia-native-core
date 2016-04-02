@@ -886,7 +886,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     Transform transform;
     glm::vec3 linearVelocity;
     glm::vec3 angularVelocity;
-    getLocalEverything(transform, linearVelocity, angularVelocity);
+    getLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
 
     bool isMoving = false;
     if (glm::length2(angularVelocity) > 0.0f) {
@@ -942,7 +942,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             isMoving = true;
         }
     }
-    setLocalEverything(transform, linearVelocity, angularVelocity);
+    setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
     if (!isMoving) {
         // flag this entity to be removed from kinematic motion
         _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
