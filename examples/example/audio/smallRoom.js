@@ -1,3 +1,17 @@
+//
+//  smallRoom.js
+//  examples
+//
+//  Created by Freidrica on 4/1/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  This entity script invokes reverb upon entering an entity acting as a trigger zone
+
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
   var _this = this;
 ​

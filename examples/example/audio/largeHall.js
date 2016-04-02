@@ -15,7 +15,7 @@
   var _this = this;
 ​
   Script.include("http://public.highfidelity.io/scripts/utilities/tools/cookies.js");
-print("EBL PRELOADING NEW VERSION ")
+  print("EBL PRELOADING NEW VERSION ")
  var audioOptions = new AudioEffectOptions({
     bandwidth: 7000,
     preDelay: 80,
@@ -123,7 +123,7 @@ var parameters = [
   
   _this.leaveEntity = function(entityID) {
     print('EBL I am outsidee');
-  panel.destroy();
+    panel.destroy();
     AudioDevice.setReverb(false);
     print("Reverb is OFF.");
 ​
