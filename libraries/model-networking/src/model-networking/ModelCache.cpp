@@ -144,10 +144,11 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            // Ensure the resource has not been deleted, and won't be while invoke method is in flight.
+            // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
             auto resource = _resource.toStrongRef();
             if (!resource) {
                 qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+                delete fbxGeometry;
             } else {
                 QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition", Qt::BlockingQueuedConnection, Q_ARG(void*, fbxGeometry));
             }
@@ -159,7 +160,7 @@ void GeometryReader::run() {
         qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
 
         auto resource = _resource.toStrongRef();
-        // Ensure the resoruce has not been deleted, and won't be while invoke method is in flight.
+        // Ensure the resoruce has not been deleted, and won't be while invokeMethod is in flight.
         if (!resource) {
             qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
         } else {
