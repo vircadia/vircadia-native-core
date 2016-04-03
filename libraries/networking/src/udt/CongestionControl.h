@@ -15,7 +15,6 @@
 #include <atomic>
 #include <memory>
 #include <vector>
-#include <memory>
 
 #include <PortableHighResolutionClock.h>
 
@@ -61,7 +60,7 @@ protected:
     double _congestionWindowSize { 16.0 }; // Congestion window size, in packets
     
     int _bandwidth { 0 }; // estimated bandwidth, packets per second
-    std::atomic<int> _maxBandwidth { -1 }; // Maximum desired bandwidth, bytes per second
+    std::atomic<int> _maxBandwidth { -1 }; // Maximum desired bandwidth, bits per second
     double _maxCongestionWindowSize { 0.0 }; // maximum cwnd size, in packets
     
     int _mss { 0 }; // Maximum Packet Size, including all packet headers
@@ -124,6 +123,7 @@ private:
     int _randomDecreaseThreshold { 1 }; // random threshold on decrease by number of loss events
     int _avgNAKNum { 0 }; // average number of NAKs per congestion
     int _decreaseCount { 0 }; // number of decreases in a congestion epoch
+    bool _delayedDecrease { false };
 };
     
 }
