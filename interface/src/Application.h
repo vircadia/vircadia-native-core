@@ -41,7 +41,6 @@
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
 
-#include "avatar/AvatarUpdate.h"
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
@@ -52,7 +51,6 @@
 #include "render/Engine.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
-#include "ui/ApplicationCompositor.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
@@ -68,6 +66,7 @@ class GLCanvas;
 class FaceTracker;
 class MainWindow;
 class AssetUpload;
+class CompositorHelper;
 
 namespace controller {
     class StateController;
@@ -121,9 +120,12 @@ public:
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
+    void showCursor(const QCursor& cursor);
+
     bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
+    const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
     ViewFrustum* getViewFrustum();
     const ViewFrustum* getViewFrustum() const;
@@ -148,8 +150,8 @@ public:
 
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
-    ApplicationCompositor& getApplicationCompositor() { return _compositor; }
-    const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
+    CompositorHelper& getApplicationCompositor() const;
+
     Overlays& getOverlays() { return _overlays; }
 
     bool isForeground() const { return _isForeground; }
@@ -210,31 +212,31 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+    virtual void pushPreRenderLambda(void* key, std::function<void()> func) override;
+
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
     float getAvatarSimrate();
     void setAvatarSimrateSample(float sample);
 
     float getAverageSimsPerSecond();
 
-    void fakeMouseEvent(QMouseEvent* event);
-
 signals:
     void svoImportRequested(const QString& url);
 
     void checkBackgroundDownloads();
-    void domainConnectionRefused(const QString& reason);
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
     void beforeAboutToQuit();
     void activeDisplayPluginChanged();
 
+    void uploadRequest(QString path);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
-    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url);
 
@@ -243,6 +245,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
+    void toggleAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
@@ -250,11 +253,6 @@ public slots:
     void packageModel();
 
     void openUrl(const QUrl& url);
-
-    void setAvatarUpdateThreading();
-    void setAvatarUpdateThreading(bool isThreaded);
-    void setRawAvatarUpdateThreading();
-    void setRawAvatarUpdateThreading(bool isThreaded);
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
@@ -271,40 +269,41 @@ public slots:
 
     void cycleCamera();
     void cameraMenuChanged();
+    void toggleOverlays();
+    void setOverlaysVisible(bool visible);
 
     void reloadResourceCaches();
 
+    void updateHeartbeat();
+
     void crashApplication();
+    void deadlockApplication();
 
     void rotationModeChanged();
 
     void runTests();
 
 private slots:
+    void showDesktop();
     void clearDomainOctreeDetails();
     void idle(uint64_t now);
     void aboutToQuit();
 
-    void connectedToDomain(const QString& hostname);
+    void resettingDomain();
 
     void audioMuteToggled();
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
 
-    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
-
     void notifyPacketVersionMismatch();
 
     void loadSettings();
     void saveSettings();
-    
+
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
-    bool askToUploadAsset(const QString& asset);
-    void modelUploadFinished(AssetUpload* upload, const QString& hash);
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
@@ -314,6 +313,7 @@ private slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
+    void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     void updateDisplayMode();
@@ -325,11 +325,7 @@ private:
 
     void cleanupBeforeQuit();
 
-    void emptyLocalCache();
-
     void update(float deltaTime);
-
-    void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -352,7 +348,6 @@ private:
     void checkSkeleton();
 
     void initializeAcceptedFiles();
-    int getRenderAmbientLight() const;
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
@@ -386,16 +381,18 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event);
 
-    bool _dependencyManagerIsSetup;
+    MainWindow* _window;
+    QElapsedTimer& _sessionRunTimer;
+
+    bool _previousSessionCrashed;
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
+    std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-    QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
-
-    MainWindow* _window;
+    QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -425,7 +422,6 @@ private:
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
     std::shared_ptr<TouchscreenDevice> _touchscreenDevice;   // the good old touchscreen
-    AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
@@ -476,7 +472,6 @@ private:
     typedef bool (Application::* AcceptURLMethod)(const QString &);
     static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
-    QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
@@ -489,7 +484,6 @@ private:
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
-    ApplicationCompositor _compositor;
     OverlayConductor _overlayConductor;
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
@@ -512,10 +506,21 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    bool _pendingPaint { false };
     QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
+
+    void checkChangeCursor();
+    mutable QMutex _changeCursorLock { QMutex::Recursive };
+    QCursor _desiredCursor{ Qt::BlankCursor };
+    bool _cursorNeedsChanging { false };
+
+    QThread* _deadlockWatchdogThread;
+
+    std::map<void*, std::function<void()>> _preRenderLambdas;
+    std::mutex _preRenderLambdasLock;
+
+    std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
 };
 
 #endif // hifi_Application_h
