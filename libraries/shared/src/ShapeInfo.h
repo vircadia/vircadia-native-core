@@ -63,7 +63,7 @@ public:
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
 
     float computeVolume() const;
-    
+
     /// Returns whether point is inside the shape
     /// For compound shapes it will only return whether it is inside the bounding box
     bool contains(const glm::vec3& point) const;

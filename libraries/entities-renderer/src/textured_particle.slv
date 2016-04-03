@@ -44,11 +44,12 @@ out vec4 varColor;
 out vec2 varTexcoord;
 
 const int NUM_VERTICES_PER_PARTICLE = 4;
+// This ordering ensures that un-rotated particles render upright in the wiewer.
 const vec4 UNIT_QUAD[NUM_VERTICES_PER_PARTICLE] = vec4[NUM_VERTICES_PER_PARTICLE](
-    vec4(-1.0, -1.0, 0.0, 0.0),
-    vec4(1.0, -1.0, 0.0, 0.0),
     vec4(-1.0, 1.0, 0.0, 0.0),
-    vec4(1.0, 1.0, 0.0, 0.0)
+    vec4(-1.0, -1.0, 0.0, 0.0),
+    vec4(1.0, 1.0, 0.0, 0.0),
+    vec4(1.0, -1.0, 0.0, 0.0)
 );
 
 float bezierInterpolate(float y1, float y2, float y3, float u) {
@@ -115,7 +116,8 @@ void main(void) {
     float seed = inColor.y;
 
     // Pass the texcoord and the z texcoord is representing the texture icon
-    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy + 1.0) * 0.5);
+    // Offset for corrected vertex ordering.
+    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy -1.0) * vec2(0.5, -0.5)); 
     varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
 
     // anchor point in eye space
@@ -123,7 +125,8 @@ void main(void) {
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
 
     vec4 anchorPoint;
-    <$transformModelToEyePos(cam, obj, inPosition, anchorPoint)$>
+    vec4 _inPosition = vec4(inPosition, 1.0);
+    <$transformModelToEyePos(cam, obj, _inPosition, anchorPoint)$>
 
     vec4 eyePos = anchorPoint + quadPos;
     <$transformEyeToClipPos(cam, eyePos, gl_Position)$>

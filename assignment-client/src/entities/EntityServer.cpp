@@ -272,19 +272,34 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 }
 
+void EntityServer::nodeAdded(SharedNodePointer node) {
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    tree->knowAvatarID(node->getUUID());
+    OctreeServer::nodeAdded(node);
+}
+
+void EntityServer::nodeKilled(SharedNodePointer node) {
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    tree->deleteDescendantsOfAvatar(node->getUUID());
+    tree->forgetAvatarID(node->getUUID());
+    OctreeServer::nodeKilled(node);
+}
 
 // FIXME - this stats tracking is somewhat temporary to debug the Whiteboard issues. It's not a bad
 // set of stats to have, but we'd probably want a different data structure if we keep it very long.
 // Since this version uses a single shared QMap for all senders, there could be some lock contention 
 // on this QWriteLocker
-void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) {
+void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) {
     QWriteLocker locker(&_viewerSendingStatsLock);
-    _viewerSendingStats[viewerNode][dataID] = { usecTimestampNow(), dataLastEdited };
+    _viewerSendingStats[sessionID][dataID] = { usecTimestampNow(), dataLastEdited };
 }
 
-void EntityServer::trackViewerGone(const QUuid& viewerNode) {
+void EntityServer::trackViewerGone(const QUuid& sessionID) {
     QWriteLocker locker(&_viewerSendingStatsLock);
-    _viewerSendingStats.remove(viewerNode);
+    _viewerSendingStats.remove(sessionID);
+    if (_entitySimulation) {
+        _entitySimulation->clearOwnership(sessionID);
+    }
 }
 
 QString EntityServer::serverSubclassStats() {

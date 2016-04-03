@@ -29,7 +29,9 @@ public slots:
     void disable(bool disable);
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
-    void launch(QString applicationVersion);
+    void launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime);
+
+    void insufficientGLVersion(QString glVersion);
     
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);
@@ -39,7 +41,6 @@ public slots:
     void wentTo(QString destinationType, QString destinationName);
     
 private slots:
-    void requestFinished(QNetworkReply& requestReply);
     void requestError(QNetworkReply& errorReply);
     
 private:

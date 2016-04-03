@@ -286,83 +286,76 @@ const render::ShapeKey Circle3DOverlay::getShapeKey() {
     return builder.build();
 }
 
-void Circle3DOverlay::setProperties(const QScriptValue &properties) {
+void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     Planar3DOverlay::setProperties(properties);
 
-    QScriptValue startAt = properties.property("startAt");
+    QVariant startAt = properties["startAt"];
     if (startAt.isValid()) {
-        setStartAt(startAt.toVariant().toFloat());
+        setStartAt(startAt.toFloat());
     }
 
-    QScriptValue endAt = properties.property("endAt");
+    QVariant endAt = properties["endAt"];
     if (endAt.isValid()) {
-        setEndAt(endAt.toVariant().toFloat());
+        setEndAt(endAt.toFloat());
     }
 
-    QScriptValue outerRadius = properties.property("radius");
+    QVariant outerRadius = properties["radius"];
     if (!outerRadius.isValid()) {
-        outerRadius = properties.property("outerRadius");
+        outerRadius = properties["outerRadius"];
     }
     if (outerRadius.isValid()) {
-        setOuterRadius(outerRadius.toVariant().toFloat());
+        setOuterRadius(outerRadius.toFloat());
     }
 
-    QScriptValue innerRadius = properties.property("innerRadius");
+    QVariant innerRadius = properties["innerRadius"];
     if (innerRadius.isValid()) {
-        setInnerRadius(innerRadius.toVariant().toFloat());
+        setInnerRadius(innerRadius.toFloat());
     }
 
-    QScriptValue hasTickMarks = properties.property("hasTickMarks");
+    QVariant hasTickMarks = properties["hasTickMarks"];
     if (hasTickMarks.isValid()) {
-        setHasTickMarks(hasTickMarks.toVariant().toBool());
+        setHasTickMarks(hasTickMarks.toBool());
     }
 
-    QScriptValue majorTickMarksAngle = properties.property("majorTickMarksAngle");
+    QVariant majorTickMarksAngle = properties["majorTickMarksAngle"];
     if (majorTickMarksAngle.isValid()) {
-        setMajorTickMarksAngle(majorTickMarksAngle.toVariant().toFloat());
+        setMajorTickMarksAngle(majorTickMarksAngle.toFloat());
     }
 
-    QScriptValue minorTickMarksAngle = properties.property("minorTickMarksAngle");
+    QVariant minorTickMarksAngle = properties["minorTickMarksAngle"];
     if (minorTickMarksAngle.isValid()) {
-        setMinorTickMarksAngle(minorTickMarksAngle.toVariant().toFloat());
+        setMinorTickMarksAngle(minorTickMarksAngle.toFloat());
     }
 
-    QScriptValue majorTickMarksLength = properties.property("majorTickMarksLength");
+    QVariant majorTickMarksLength = properties["majorTickMarksLength"];
     if (majorTickMarksLength.isValid()) {
-        setMajorTickMarksLength(majorTickMarksLength.toVariant().toFloat());
+        setMajorTickMarksLength(majorTickMarksLength.toFloat());
     }
 
-    QScriptValue minorTickMarksLength = properties.property("minorTickMarksLength");
+    QVariant minorTickMarksLength = properties["minorTickMarksLength"];
     if (minorTickMarksLength.isValid()) {
-        setMinorTickMarksLength(minorTickMarksLength.toVariant().toFloat());
+        setMinorTickMarksLength(minorTickMarksLength.toFloat());
     }
 
-    QScriptValue majorTickMarksColor = properties.property("majorTickMarksColor");
+    bool valid;
+    auto majorTickMarksColor = properties["majorTickMarksColor"];
     if (majorTickMarksColor.isValid()) {
-        QScriptValue red = majorTickMarksColor.property("red");
-        QScriptValue green = majorTickMarksColor.property("green");
-        QScriptValue blue = majorTickMarksColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _majorTickMarksColor.red = red.toVariant().toInt();
-            _majorTickMarksColor.green = green.toVariant().toInt();
-            _majorTickMarksColor.blue = blue.toVariant().toInt();
+        auto color = xColorFromVariant(majorTickMarksColor, valid);
+        if (valid) {
+            _majorTickMarksColor = color;
         }
     }
 
-    QScriptValue minorTickMarksColor = properties.property("minorTickMarksColor");
+    auto minorTickMarksColor = properties["minorTickMarksColor"];
     if (minorTickMarksColor.isValid()) {
-        QScriptValue red = minorTickMarksColor.property("red");
-        QScriptValue green = minorTickMarksColor.property("green");
-        QScriptValue blue = minorTickMarksColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _minorTickMarksColor.red = red.toVariant().toInt();
-            _minorTickMarksColor.green = green.toVariant().toInt();
-            _minorTickMarksColor.blue = blue.toVariant().toInt();
+        auto color = xColorFromVariant(majorTickMarksColor, valid);
+        if (valid) {
+            _minorTickMarksColor = color;
         }
     }
 }
 
-QScriptValue Circle3DOverlay::getProperty(const QString& property) {
+QVariant Circle3DOverlay::getProperty(const QString& property) {
     if (property == "startAt") {
         return _startAt;
     }
@@ -394,10 +387,10 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return xColorToScriptValue(_scriptEngine, _majorTickMarksColor);
+        return xColorToVariant(_majorTickMarksColor);
     }
     if (property == "minorTickMarksColor") {
-        return xColorToScriptValue(_scriptEngine, _minorTickMarksColor);
+        return xColorToVariant(_minorTickMarksColor);
     }
 
     return Planar3DOverlay::getProperty(property);

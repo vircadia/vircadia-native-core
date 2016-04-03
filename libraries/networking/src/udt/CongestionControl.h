@@ -12,9 +12,9 @@
 #ifndef hifi_CongestionControl_h
 #define hifi_CongestionControl_h
 
+#include <atomic>
 #include <memory>
 #include <vector>
-#include <memory>
 
 #include <PortableHighResolutionClock.h>
 
@@ -37,11 +37,12 @@ public:
     virtual ~CongestionControl() {}
     
     int synInterval() const { return _synInterval; }
+    void setMaxBandwidth(int maxBandwidth);
 
     virtual void init() {}
     virtual void onACK(SequenceNumber ackNum) {}
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
-    
+    virtual void onTimeout() {}
 protected:
     void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRTO(int rto) { _userDefinedRTO = true; _rto = rto; }
@@ -49,7 +50,7 @@ protected:
     void setMSS(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
-    void setMaxBandwidth(int maxBandwidth) { _maxBandwidth = maxBandwidth; }
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum) = 0;
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
     void setReceiveRate(int rate) { _receiveRate = rate; }
     void setRTT(int rtt) { _rtt = rtt; }
@@ -59,7 +60,7 @@ protected:
     double _congestionWindowSize { 16.0 }; // Congestion window size, in packets
     
     int _bandwidth { 0 }; // estimated bandwidth, packets per second
-    int _maxBandwidth { -1 }; // Maximum desired bandwidth, packets per second
+    std::atomic<int> _maxBandwidth { -1 }; // Maximum desired bandwidth, bits per second
     double _maxCongestionWindowSize { 0.0 }; // maximum cwnd size, in packets
     
     int _mss { 0 }; // Maximum Packet Size, including all packet headers
@@ -104,14 +105,17 @@ public:
     virtual void onACK(SequenceNumber ackNum);
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd);
     virtual void onTimeout();
-    
+
+protected:
+    virtual void setInitialSendSequenceNumber(SequenceNumber seqNum);
+
 private:
     void stopSlowStart(); // stops the slow start on loss or timeout
     
     p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::now(); // last rate increase time
     
     bool _slowStart { true };	// if in slow start phase
-    SequenceNumber _slowStartLastAck; // last ACKed seq num
+    SequenceNumber _lastACK; // last ACKed sequence number from previous
     bool _loss { false };	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecreasePeriod { 1 }; // value of _packetSendPeriod when last decrease happened
@@ -119,6 +123,7 @@ private:
     int _randomDecreaseThreshold { 1 }; // random threshold on decrease by number of loss events
     int _avgNAKNum { 0 }; // average number of NAKs per congestion
     int _decreaseCount { 0 }; // number of decreases in a congestion epoch
+    bool _delayedDecrease { false };
 };
     
 }

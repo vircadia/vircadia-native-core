@@ -50,8 +50,7 @@ public:
         Stopped
     };
     
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination,
-                                             SequenceNumber currentSequenceNumber = SequenceNumber());
+    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
     void queuePacket(std::unique_ptr<Packet> packet);
     void queuePacketList(std::unique_ptr<PacketList> packetList);
@@ -72,32 +71,37 @@ public slots:
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     void overrideNAKListFromPacket(ControlPacket& packet);
-    void handshakeACK();
+    void handshakeACK(SequenceNumber initialSequenceNumber);
 
 signals:
     void packetSent(int dataSize, int payloadSize);
     void packetRetransmitted();
     
     void queueInactive();
+
+    void shortCircuitLoss(quint32 sequenceNumber);
+    void timeout();
     
 private slots:
     void run();
     
 private:
-    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber);
+    SendQueue(Socket* socket, HifiSockAddr dest);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
     void sendHandshake();
     
-    void sendPacket(const Packet& packet);
-    void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
+    int sendPacket(const Packet& packet);
+    bool sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
-    bool maybeSendNewPacket(); // Figures out what packet to send next
+    int maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
-    bool isInactive(bool sentAPacket);
+    bool isInactive(bool attemptedToSendPacket);
     void deactivate(); // makes the queue inactive and cleans it up
+
+    bool isFlowWindowFull() const;
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
@@ -106,6 +110,8 @@ private:
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
+
+    SequenceNumber _initialSequenceNumber; // Randomized on SendQueue creation, identifies connection during re-connect requests
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
@@ -117,8 +123,7 @@ private:
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
     std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
-    std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
-    std::atomic<uint64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
+    std::atomic<int64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
@@ -126,7 +131,8 @@ private:
     LossList _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
-    std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    using PacketResendPair = std::pair<uint8_t, std::unique_ptr<Packet>>; // Number of resend + packet ptr
+    std::unordered_map<SequenceNumber, PacketResendPair> _sentPackets; // Packets waiting for ACK.
     
     std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
     std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client

@@ -8,19 +8,18 @@
 
 #include "StereoDisplayPlugin.h"
 
-#include <QApplication>
-#include <QDesktopWidget>
-#include <QAction>
+#include <QtGui/QScreen>
+#include <QtWidgets/QAction>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QDesktopWidget>
 
 #include <gpu/GLBackend.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
 #include <plugins/PluginContainer.h>
-#include <QGuiApplication>
-#include <QScreen>
-
-StereoDisplayPlugin::StereoDisplayPlugin() {
-}
+#include <gl/GLWidget.h>
+#include <CursorManager.h>
+#include "../CompositorHelper.h"
 
 bool StereoDisplayPlugin::isSupported() const {
     // FIXME this should attempt to do a scan for supported 3D output
@@ -59,7 +58,7 @@ glm::mat4 StereoDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& basePr
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 std::vector<QAction*> _screenActions;
-void StereoDisplayPlugin::activate() {
+bool StereoDisplayPlugin::internalActivate() {
     auto screens = qApp->screens();
     _screenActions.resize(screens.size());
     for (int i = 0; i < screens.size(); ++i) {
@@ -76,27 +75,31 @@ void StereoDisplayPlugin::activate() {
 
     _container->removeMenu(FRAMERATE);
 
-    _container->setFullscreen(qApp->primaryScreen());
-    WindowOpenGLDisplayPlugin::activate();
+    _screen = qApp->primaryScreen();
+    _container->setFullscreen(_screen);
+
+    return Parent::internalActivate();
 }
 
 void StereoDisplayPlugin::updateScreen() {
     for (uint32_t i = 0; i < _screenActions.size(); ++i) {
         if (_screenActions[i]->isChecked()) {
-            _container->setFullscreen(qApp->screens().at(i));
+            _screen = qApp->screens().at(i);
+            _container->setFullscreen(_screen);
             break;
         }
     }
 }
 
-void StereoDisplayPlugin::deactivate() {
+void StereoDisplayPlugin::internalDeactivate() {
     _screenActions.clear();
     _container->unsetFullscreen();
-    WindowOpenGLDisplayPlugin::deactivate();
+    Parent::internalDeactivate();
 }
 
 // Derived classes will override the recommended render size based on the window size,
 // so here we want to fix the aspect ratio based on the window, not on the render size
 float StereoDisplayPlugin::getRecommendedAspectRatio() const {
-    return aspect(WindowOpenGLDisplayPlugin::getRecommendedRenderSize());
+    return aspect(Parent::getRecommendedRenderSize());
 }
+

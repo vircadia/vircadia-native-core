@@ -36,7 +36,7 @@ AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
 
 QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
         bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new Animation(url), &Resource::allReferencesCleared);
+    return QSharedPointer<Resource>(new Animation(url), &Resource::deleter);
 }
 
 Animation::Animation(const QUrl& url) : Resource(url) {}
@@ -132,6 +132,7 @@ void Animation::animationParseSuccess(FBXGeometry* geometry) {
 void Animation::animationParseError(int error, QString str) {
     qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
+    finishedLoading(false);
 }
 
 AnimationDetails::AnimationDetails() :

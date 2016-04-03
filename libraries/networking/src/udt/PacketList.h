@@ -59,6 +59,8 @@ public:
     
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
+
+    qint64 writeString(const QString& string);
     
 protected:
     PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);

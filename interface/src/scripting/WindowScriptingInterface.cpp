@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QClipboard>
 #include <QtCore/QDir>
 #include <QMessageBox>
 #include <QScriptValue>
@@ -25,7 +26,7 @@
 WindowScriptingInterface::WindowScriptingInterface() {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
-    connect(qApp, &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
         static const QMetaMethod svoImportRequestedSignal =
@@ -138,4 +139,9 @@ int WindowScriptingInterface::getX() {
 
 int WindowScriptingInterface::getY() {
     return qApp->getWindow()->y();
+}
+
+void WindowScriptingInterface::copyToClipboard(const QString& text) {
+    qDebug() << "Copying";
+    QApplication::clipboard()->setText(text);
 }

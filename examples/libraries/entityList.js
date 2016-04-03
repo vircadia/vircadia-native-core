@@ -5,7 +5,7 @@ EntityListTool = function(opts) {
 
     var url = ENTITY_LIST_HTML_URL;
     var webView = new OverlayWebWindow({
-        title: 'Entities',  source: url,  toolWindow: true   
+        title: 'Entity List',  source: url,  toolWindow: true   
     });
 
 
@@ -38,14 +38,14 @@ EntityListTool = function(opts) {
             type: 'selectionUpdate',
             selectedIDs: selectedIDs,
         };
-        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        webView.emitScriptEvent(JSON.stringify(data));
     });
 
     that.clearEntityList = function () {
         var data = {
             type: 'clearEntityList'
         }
-        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        webView.emitScriptEvent(JSON.stringify(data));
     };
 
     that.sendUpdate = function() {
@@ -72,11 +72,11 @@ EntityListTool = function(opts) {
             entities: entities,
             selectedIDs: selectedIDs,
         };
-        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        webView.emitScriptEvent(JSON.stringify(data));
     }
 
 
-    webView.eventBridge.webEventReceived.connect(function(data) {
+    webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;

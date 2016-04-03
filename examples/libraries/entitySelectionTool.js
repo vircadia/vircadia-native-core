@@ -16,6 +16,11 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
 
+function objectTranslationPlanePoint(position, dimensions) {
+    var newPosition = { x: position.x, y: position.y, z: position.z };
+    newPosition.y -= dimensions.y / 2.0;
+    return newPosition;
+}
 
 SelectionManager = (function() {
     var that = {};
@@ -2252,15 +2257,20 @@ SelectionDisplay = (function() {
     var constrainMajorOnly = false;
     var startPosition = null;
     var duplicatedEntityIDs = null;
+
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
+        pickPlanePosition: { x: 0, y: 0, z: 0 },
+        greatestDimension: 0.0,
+        startingDistance: 0.0,
+        startingElevation: 0.0,
         onBegin: function(event) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
             var dimensions = SelectionManager.worldDimensions;
 
             var pickRay = Camera.computePickRay(event.x, event.y);
-            initialXZPick = rayPlaneIntersection(pickRay, startPosition, {
+            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
@@ -2297,15 +2307,55 @@ SelectionDisplay = (function() {
                 visible: false
             });
         },
+        elevation: function(origin, intersection) {
+            return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
+        },
         onMove: function(event) {
+            var wantDebug = false;
             pickRay = Camera.computePickRay(event.x, event.y);
 
-            var pick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, {
+            var pick = rayPlaneIntersection2(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
             });
+
+            // If the pick ray doesn't hit the pick plane in this direction, do nothing.
+            // this will happen when someone drags across the horizon from the side they started on.
+            if (!pick) {
+                if (wantDebug) {
+                    print("Pick ray does not intersect XZ plane.");
+                }
+                return;
+            }
+
             var vector = Vec3.subtract(pick, initialXZPick);
+
+            // If the mouse is too close to the horizon of the pick plane, stop moving
+            var MIN_ELEVATION = 0.02;   //  largest dimension of object divided by distance to it
+            var elevation = translateXZTool.elevation(pickRay.origin, pick);
+            if (wantDebug) {
+                    print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
+            }
+            if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) || 
+                (translateXZTool.startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
+                if (wantDebug) {
+                    print("too close to horizon!");
+                }
+                return;
+            }
+
+            //  If the angular size of the object is too small, stop moving
+            var MIN_ANGULAR_SIZE = 0.01;   //  Radians
+            if (translateXZTool.greatestDimension > 0) {
+                var angularSize = Math.atan(translateXZTool.greatestDimension / Vec3.distance(pickRay.origin, pick));
+                if (wantDebug) {
+                    print("Angular size = " + angularSize);
+                }
+                if (angularSize < MIN_ANGULAR_SIZE) {
+                    return;
+                }
+            }
 
             // If shifted, constrain to one axis
             if (event.isShifted) {
@@ -2368,7 +2418,7 @@ SelectionDisplay = (function() {
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
 
-            var wantDebug = false;
+
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
@@ -2644,11 +2694,6 @@ SelectionDisplay = (function() {
             lastPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
-
-            // Overlays.editOverlay(normalLine, {
-            //     start: initialPosition,
-            //     end: Vec3.sum(Vec3.multiply(100000, planeNormal), initialPosition),
-            // });
 
             SelectionManager.saveProperties();
         };
@@ -3751,7 +3796,7 @@ SelectionDisplay = (function() {
     };
 
     that.mousePressEvent = function(event) {
-
+        var wantDebug = false; 
         if (!event.isLeftButton) {
             // if another mouse button than left is pressed ignore it
             return false;
@@ -3777,7 +3822,7 @@ SelectionDisplay = (function() {
 
         if (result.intersects) {
 
-            var wantDebug = false;
+            
             if (wantDebug) {
                 print("something intersects... ");
                 print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
@@ -3874,7 +3919,10 @@ SelectionDisplay = (function() {
 
         if (!somethingClicked) {
 
-            print("rotate handle case...");
+            if (wantDebug) {
+                print("rotate handle case...");
+            }
+            
 
             // After testing our stretch handles, then check out rotate handles
             Overlays.editOverlay(yawHandle, {
@@ -3942,15 +3990,17 @@ SelectionDisplay = (function() {
                         break;
 
                     default:
-                        print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        if (wantDebug) {
+                            print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        }
                         mode = "UNKNOWN";
                         break;
                 }
             }
-
-            print("    somethingClicked:" + somethingClicked);
-            print("                mode:" + mode);
-
+            if (wantDebug) {
+                print("    somethingClicked:" + somethingClicked);
+                print("                mode:" + mode);
+            }
 
             if (somethingClicked) {
 
@@ -4093,12 +4143,25 @@ SelectionDisplay = (function() {
                 switch (result.overlayID) {
                     case selectionBox:
                         activeTool = translateXZTool;
+                        translateXZTool.pickPlanePosition = result.intersection;
+                        translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), 
+                            SelectionManager.worldDimensions.z);
+                        if (wantDebug) {
+                            print("longest dimension: " + translateXZTool.greatestDimension);
+                            translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
+                            print("starting distance: " + translateXZTool.startingDistance);
+                            translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
+                            print(" starting elevation: " + translateXZTool.startingElevation);
+                        }
+                        
                         mode = translateXZTool.mode;
                         activeTool.onBegin(event);
                         somethingClicked = true;
                         break;
                     default:
-                        print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        if (wantDebug) {
+                            print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        }
                         mode = "UNKNOWN";
                         break;
                 }
@@ -4253,16 +4316,23 @@ SelectionDisplay = (function() {
         return false;
     };
 
+
     that.updateHandleSizes = function() {
         if (selectionManager.hasSelection()) {
             var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
             var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO;
+            var dimensions = SelectionManager.worldDimensions;
+            var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
+            grabberSize = Math.min(grabberSize, avgDimension / 10);
+
             for (var i = 0; i < stretchHandles.length; i++) {
                 Overlays.editOverlay(stretchHandles[i], {
                     size: grabberSize,
                 });
             }
-            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 10;
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 7;
+            handleSize = Math.min(handleSize, avgDimension / 3);
+
             Overlays.editOverlay(yawHandle, {
                 scale: handleSize,
             });
@@ -4279,7 +4349,7 @@ SelectionDisplay = (function() {
             });
             Overlays.editOverlay(grabberMoveUp, {
                 position: pos,
-                scale: handleSize / 2,
+                scale: handleSize / 1.25,
             });
         }
     }

@@ -38,6 +38,10 @@ var lightOverlayManager = new LightOverlayManager();
 var cameraManager = new CameraManager();
 
 var grid = Grid();
+gridTool = GridTool({
+    horizontalGrid: grid
+});
+gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
@@ -85,6 +89,9 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
+
+// marketplace info, etc.  not quite ready yet.
+var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
@@ -173,7 +180,6 @@ var toolBar = (function() {
         newTextButton,
         newWebButton,
         newZoneButton,
-        newPolyVoxButton,
         newParticleButton
 
     function initialize() {
@@ -184,10 +190,8 @@ var toolBar = (function() {
             };
         });
 
-
-
         activeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "edit-status.svg",
+            imageURL: toolIconUrl + "edit-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -201,7 +205,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload.svg",
+            imageURL: toolIconUrl + "upload-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -211,11 +215,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newCubeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-cube.svg",
+            imageURL: toolIconUrl + "cube-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -225,11 +230,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newSphereButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-sphere.svg",
+            imageURL: toolIconUrl + "sphere-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -239,11 +245,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newLightButton = toolBar.addTool({
-            imageURL: toolIconUrl + "light.svg",
+            imageURL: toolIconUrl + "light-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -253,11 +260,12 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newTextButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-text.svg",
+            imageURL: toolIconUrl + "text-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -267,62 +275,52 @@ var toolBar = (function() {
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newWebButton = toolBar.addTool({
-            imageURL: "https://hifi-public.s3.amazonaws.com/images/www.svg",
+            imageURL: toolIconUrl + "web-01.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 128,
-                height: 128
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zonecube_text.svg",
+            imageURL: toolIconUrl + "zone-01.svg",
             subImage: {
                 x: 0,
-                y: 128,
-                width: 128,
-                height: 128
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
-            visible: false
-        });
-
-        newPolyVoxButton = toolBar.addTool({
-            imageURL: toolIconUrl + "polyvox.svg",
-            subImage: {
-                x: 0,
-                y: 0,
-                width: 256,
-                height: 256
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
         newParticleButton = toolBar.addTool({
-            imageURL: toolIconUrl + "particle.svg",
+            imageURL: toolIconUrl + "particle-01.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 256,
-                height: 256
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
+            showButtonDown: true,
             visible: false
         });
 
@@ -338,10 +336,11 @@ var toolBar = (function() {
             if (active && !Entities.canAdjustLocks()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
+                Messages.sendLocalMessage("edit-events", JSON.stringify({enabled: active}));
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
-                    // gridTool.setVisible(false);
+                    gridTool.setVisible(false);
                     grid.setEnabled(false);
                     propertiesTool.setVisible(false);
                     selectionManager.clearSelections();
@@ -349,7 +348,7 @@ var toolBar = (function() {
                 } else {
                     hasShownPropertiesTool = false;
                     entityListTool.setVisible(true);
-                    // gridTool.setVisible(true);
+                    gridTool.setVisible(true);
                     grid.setEnabled(true);
                     propertiesTool.setVisible(true);
                     Window.setFocus();
@@ -371,7 +370,6 @@ var toolBar = (function() {
         toolBar.showTool(newTextButton, doShow);
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
-        toolBar.showTool(newPolyVoxButton, doShow);
         toolBar.showTool(newParticleButton, doShow);
     };
 
@@ -413,7 +411,6 @@ var toolBar = (function() {
         return entityID;
     }
 
-    var newModelButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
@@ -434,13 +431,13 @@ var toolBar = (function() {
             return true;
         }
 
-        // Handle these two buttons in the mouseRelease event handler so that we don't suppress a mouseRelease event from
-        // occurring when showing a modal dialog.
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            newModelButtonDown = true;
+            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+            if (url !== null && url !== "") {
+                addModel(url);
+            }
             return true;
         }
-
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
@@ -543,92 +540,6 @@ var toolBar = (function() {
             return true;
         }
 
-        if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
-            var polyVoxId = createNewEntity({
-                type: "PolyVox",
-                dimensions: {
-                    x: 10,
-                    y: 10,
-                    z: 10
-                },
-                voxelVolumeSize: {
-                    x: 16,
-                    y: 16,
-                    z: 16
-                },
-                voxelSurfaceStyle: 2
-            });
-            for (var x = 1; x <= 14; x++) {
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 1,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 14,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 1,
-                    z: 14
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: x,
-                    y: 14,
-                    z: 14
-                }, 255);
-            }
-            for (var y = 2; y <= 13; y++) {
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: y,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: y,
-                    z: 1
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: y,
-                    z: 14
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: y,
-                    z: 14
-                }, 255);
-            }
-            for (var z = 2; z <= 13; z++) {
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: 1,
-                    z: z
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: 1,
-                    z: z
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 1,
-                    y: 14,
-                    z: z
-                }, 255);
-                Entities.setVoxel(polyVoxId, {
-                    x: 14,
-                    y: 14,
-                    z: z
-                }, 255);
-            }
-
-
-            return true;
-        }
-
         if (newParticleButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "ParticleEffect",
@@ -648,26 +559,8 @@ var toolBar = (function() {
         return false;
     };
 
-    that.mouseReleaseEvent = function(event) {
-        var handled = false;
-        if (newModelButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-            if (newModelButton === toolBar.clicked(clickedOverlay)) {
-                url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
-                if (url !== null && url !== "") {
-                    addModel(url);
-                }
-                handled = true;
-            }
-        }
-
-        newModelButtonDown = false;
-
-
-        return handled;
+    that.mouseReleaseEvent = function (event) {
+        return false;
     }
 
     Window.domainChanged.connect(function() {
@@ -707,11 +600,30 @@ var intersection;
 
 var SCALE_FACTOR = 200.0;
 
-function rayPlaneIntersection(pickRay, point, normal) {
+function rayPlaneIntersection(pickRay, point, normal) {    //
+    //
+    //  This version of the test returns the intersection of a line with a plane
+    //
+    var collides = Vec3.dot(pickRay.direction, normal);
+
     var d = -Vec3.dot(point, normal);
-    var t = -(Vec3.dot(pickRay.origin, normal) + d) / Vec3.dot(pickRay.direction, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
 
     return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+}
+
+function rayPlaneIntersection2(pickRay, point, normal) {
+    //
+    //  This version of the test returns false if the ray is directed away from the plane
+    //
+    var collides = Vec3.dot(pickRay.direction, normal);
+    var d = -Vec3.dot(point, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
+    if (t < 0.0) {
+        return false;
+    } else {
+        return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+    }
 }
 
 function findClickedEntity(event) {
@@ -754,7 +666,8 @@ function findClickedEntity(event) {
     var foundEntity = result.entityID;
     return {
         pickRay: pickRay,
-        entityID: foundEntity
+        entityID: foundEntity,
+        intersection: result.intersection
     };
 }
 
@@ -922,6 +835,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
+    var wantDebug = false;
     if (isActive && event.isLeftButton) {
         var result = findClickedEntity(event);
         if (result === null) {
@@ -936,11 +850,15 @@ function mouseClickEvent(event) {
 
         var properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
-            print("Model locked " + properties.id);
+            if (wantDebug) {
+                print("Model locked " + properties.id);
+            }
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            if (wantDebug) {
+                print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            }
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -977,8 +895,9 @@ function mouseClickEvent(event) {
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
-
-                print("Model selected: " + foundEntity);
+                if (wantDebug) {
+                    print("Model selected: " + foundEntity);
+                }
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
@@ -992,6 +911,9 @@ function mouseClickEvent(event) {
     } else if (event.isRightButton) {
         var result = findClickedEntity(event);
         if (result) {
+            if (SHOULD_SHOW_PROPERTY_MENU !== true) {
+                return;
+            }
             var properties = Entities.getEntityProperties(result.entityID);
             if (properties.marketplaceID) {
                 propertyMenu.marketplaceID = properties.marketplaceID;
@@ -1562,10 +1484,10 @@ PropertiesTool = function(opts) {
             selections.push(entity);
         }
         data.selections = selections;
-        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        webView.emitScriptEvent(JSON.stringify(data));
     });
 
-    webView.eventBridge.webEventReceived.connect(function(data) {
+    webView.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.type == "print") {
             if (data.message) {
@@ -1865,9 +1787,11 @@ PopupMenu = function() {
     return this;
 };
 
+
 var propertyMenu = PopupMenu();
 
 propertyMenu.onSelectMenuItem = function(name) {
+
     if (propertyMenu.marketplaceID) {
         showMarketplace(propertyMenu.marketplaceID);
     }
@@ -1878,7 +1802,7 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 propertiesTool = PropertiesTool();
 var particleExplorerTool = ParticleExplorerTool();
 var selectedParticleEntity = 0;
-entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
+entityListTool.webView.webEventReceived.connect(function(data) {
     var data = JSON.parse(data);
     if (data.type == "selectionUpdate") {
         var ids = data.entityIds;
@@ -1899,10 +1823,10 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
                 selectedParticleEntity = ids[0];
                 particleExplorerTool.setActiveParticleEntity(ids[0]);
 
-                particleExplorerTool.webView.eventBridge.webEventReceived.connect(function(data) {
+                particleExplorerTool.webView.webEventReceived.connect(function(data) {
                     var data = JSON.parse(data);
                     if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(particleData));  
+                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));  
                     }
                 });
             } else {

@@ -17,6 +17,8 @@
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"
 
+const glm::vec3 AABox::INFINITY_VECTOR(std::numeric_limits<float>::infinity());
+
 AABox::AABox(const AACube& other) :
     _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
 }
@@ -34,7 +36,7 @@ AABox::AABox(const glm::vec3& corner, const glm::vec3& dimensions) :
     _corner(corner), _scale(dimensions) {
 };
 
-AABox::AABox() : _corner(std::numeric_limits<float>::infinity()), _scale(0.0f) {
+AABox::AABox() : _corner(INFINITY_VECTOR), _scale(0.0f) {
 };
 
 glm::vec3 AABox::calcCenter() const {
@@ -75,32 +77,32 @@ void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
     _scale = scale;
 }
 
-glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
+glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-    if (normal.x > 0) {
+    if (normal.x > 0.0f) {
         result.x += _scale.x;
     }
-    if (normal.y > 0) {
+    if (normal.y > 0.0f) {
         result.y += _scale.y;
     }
-    if (normal.z > 0) {
+    if (normal.z > 0.0f) {
         result.z += _scale.z;
     }
     return result;
 }
 
-glm::vec3 AABox::getVertexN(const glm::vec3& normal) const {
+glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
 
-    if (normal.x < 0) {
+    if (normal.x < 0.0f) {
         result.x += _scale.x;
     }
 
-    if (normal.y < 0) {
+    if (normal.y < 0.0f) {
         result.y += _scale.y;
     }
 
-    if (normal.z < 0) {
+    if (normal.z < 0.0f) {
         result.z += _scale.z;
     }
 
@@ -217,7 +219,7 @@ bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& e
                 isWithin(start.x + axisDistance*direction.x, expandedCorner.x, expandedSize.x));
 }
 
-bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                 BoxFace& face, glm::vec3& surfaceNormal) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
@@ -279,6 +281,12 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
         return true;
     }
     return false;
+}
+
+bool AABox::touchesSphere(const glm::vec3& center, float radius) const {
+    // Avro's algorithm from this paper: http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
+    glm::vec3 e = glm::max(_corner - center, Vectors::ZERO) + glm::max(center - _corner - _scale, Vectors::ZERO);
+    return glm::length2(e) <= radius * radius;
 }
 
 bool AABox::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
@@ -469,8 +477,15 @@ AABox AABox::clamp(float min, float max) const {
 }
 
 AABox& AABox::operator += (const glm::vec3& point) {
-    _corner = glm::min(_corner, point);
-    _scale = glm::max(_scale, point - _corner);
+
+    if (isInvalid()) {
+        _corner = glm::min(_corner, point);
+    } else {
+        glm::vec3 maximum(_corner + _scale);
+        _corner = glm::min(_corner, point);
+        maximum = glm::max(maximum, point);
+        _scale = maximum - _corner;
+    }
 
     return (*this);
 }
@@ -478,16 +493,30 @@ AABox& AABox::operator += (const glm::vec3& point) {
 AABox& AABox::operator += (const AABox& box) {
     if (!box.isInvalid()) {
         (*this) += box._corner;
-       _scale = glm::max(_scale, box.calcTopFarLeft() - _corner);
+        (*this) += box.calcTopFarLeft();
     }
     return (*this);
+}
+
+void AABox::embiggen(float scale) {
+    _corner += scale * (-0.5f * _scale);
+    _scale *= scale;
+}
+
+void AABox::embiggen(const glm::vec3& scale) {
+    _corner += scale * (-0.5f * _scale);
+    _scale *= scale;
+}
+
+void AABox::scale(float scale) {
+    _corner *= scale;
+    _scale *= scale;
 }
 
 void AABox::scale(const glm::vec3& scale) {
     _corner *= scale;
     _scale *= scale;
 }
-
 
 void AABox::rotate(const glm::quat& rotation) {
     auto minimum = _corner;
@@ -537,4 +566,48 @@ void AABox::transform(const Transform& transform) {
     scale(transform.getScale());
     rotate(transform.getRotation());
     translate(transform.getTranslation());
+}
+
+void AABox::transform(const glm::mat4& matrix) {
+    auto minimum = _corner;
+    auto maximum = _corner + _scale;
+
+    glm::vec3 bottomLeftNear(minimum.x, minimum.y, minimum.z);
+    glm::vec3 bottomRightNear(maximum.x, minimum.y, minimum.z);
+    glm::vec3 bottomLeftFar(minimum.x, minimum.y, maximum.z);
+    glm::vec3 bottomRightFar(maximum.x, minimum.y, maximum.z);
+    glm::vec3 topLeftNear(minimum.x, maximum.y, minimum.z);
+    glm::vec3 topRightNear(maximum.x, maximum.y, minimum.z);
+    glm::vec3 topLeftFar(minimum.x, maximum.y, maximum.z);
+    glm::vec3 topRightFar(maximum.x, maximum.y, maximum.z);
+
+    glm::vec3 bottomLeftNearTransformed = transformPoint(matrix, bottomLeftNear);
+    glm::vec3 bottomRightNearTransformed = transformPoint(matrix, bottomRightNear);
+    glm::vec3 bottomLeftFarTransformed = transformPoint(matrix, bottomLeftFar);
+    glm::vec3 bottomRightFarTransformed = transformPoint(matrix, bottomRightFar);
+    glm::vec3 topLeftNearTransformed = transformPoint(matrix, topLeftNear);
+    glm::vec3 topRightNearTransformed = transformPoint(matrix, topRightNear);
+    glm::vec3 topLeftFarTransformed = transformPoint(matrix, topLeftFar);
+    glm::vec3 topRightFarTransformed = transformPoint(matrix, topRightFar);
+
+    minimum = glm::min(bottomLeftNearTransformed,
+        glm::min(bottomRightNearTransformed,
+        glm::min(bottomLeftFarTransformed,
+        glm::min(bottomRightFarTransformed,
+        glm::min(topLeftNearTransformed,
+        glm::min(topRightNearTransformed,
+        glm::min(topLeftFarTransformed,
+        topRightFarTransformed)))))));
+
+    maximum = glm::max(bottomLeftNearTransformed,
+        glm::max(bottomRightNearTransformed,
+        glm::max(bottomLeftFarTransformed,
+        glm::max(bottomRightFarTransformed,
+        glm::max(topLeftNearTransformed,
+        glm::max(topRightNearTransformed,
+        glm::max(topLeftFarTransformed,
+        topRightFarTransformed)))))));
+
+    _corner = minimum;
+    _scale = maximum - minimum;
 }

@@ -22,13 +22,6 @@ std::unique_ptr<NLPacketList> NLPacketList::create(PacketType packetType, QByteA
     return nlPacketList;
 }
 
-std::unique_ptr<NLPacketList> NLPacketList::fromPacketList(std::unique_ptr<PacketList> packetList) {
-    auto nlPacketList = std::unique_ptr<NLPacketList>(new NLPacketList(std::move(*packetList.release())));
-    nlPacketList->open(ReadOnly);
-    return nlPacketList;
-}
-
-
 NLPacketList::NLPacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
     PacketList(packetType, extendedHeader, isReliable, isOrdered)
 {

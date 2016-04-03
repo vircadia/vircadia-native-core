@@ -11,10 +11,9 @@
 
 #include "Base3DOverlay.h"
 
-#include <QScriptValue>
-
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
+#include "Application.h"
 
 
 const float DEFAULT_LINE_WIDTH = 1.0f;
@@ -40,104 +39,95 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _drawInFront(base3DOverlay->_drawInFront)
 {
 }
-
-void Base3DOverlay::setProperties(const QScriptValue& properties) {
+void Base3DOverlay::setProperties(const QVariantMap& properties) {
     Overlay::setProperties(properties);
 
-    QScriptValue drawInFront = properties.property("drawInFront");
+    bool needRenderItemUpdate = false;
+
+    auto drawInFront = properties["drawInFront"];
 
     if (drawInFront.isValid()) {
-        bool value = drawInFront.toVariant().toBool();
+        bool value = drawInFront.toBool();
         setDrawInFront(value);
+        needRenderItemUpdate = true;
     }
 
-    QScriptValue position = properties.property("position");
+    auto position = properties["position"];
 
     // if "position" property was not there, check to see if they included aliases: point, p1
     if (!position.isValid()) {
-        position = properties.property("p1");
+        position = properties["p1"];
         if (!position.isValid()) {
-            position = properties.property("point");
+            position = properties["point"];
         }
     }
-
     if (position.isValid()) {
-        QScriptValue x = position.property("x");
-        QScriptValue y = position.property("y");
-        QScriptValue z = position.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            setPosition(newPosition);
-        }
+        setPosition(vec3FromVariant(position));
+        needRenderItemUpdate = true;
     }
 
-    if (properties.property("lineWidth").isValid()) {
-        setLineWidth(properties.property("lineWidth").toVariant().toFloat());
+    if (properties["lineWidth"].isValid()) {
+        setLineWidth(properties["lineWidth"].toFloat());
+        needRenderItemUpdate = true;
     }
 
-    QScriptValue rotation = properties.property("rotation");
+    auto rotation = properties["rotation"];
 
     if (rotation.isValid()) {
-        glm::quat newRotation;
+        setRotation(quatFromVariant(rotation));
+        needRenderItemUpdate = true;
+    }
 
-        // size, scale, dimensions is special, it might just be a single scalar, or it might be a vector, check that here
-        QScriptValue x = rotation.property("x");
-        QScriptValue y = rotation.property("y");
-        QScriptValue z = rotation.property("z");
-        QScriptValue w = rotation.property("w");
+    if (properties["isSolid"].isValid()) {
+        setIsSolid(properties["isSolid"].toBool());
+    }
+    if (properties["isFilled"].isValid()) {
+        setIsSolid(properties["isSolid"].toBool());
+    }
+    if (properties["isWire"].isValid()) {
+        setIsSolid(!properties["isWire"].toBool());
+    }
+    if (properties["solid"].isValid()) {
+        setIsSolid(properties["solid"].toBool());
+    }
+    if (properties["filled"].isValid()) {
+        setIsSolid(properties["filled"].toBool());
+    }
+    if (properties["wire"].isValid()) {
+        setIsSolid(!properties["wire"].toBool());
+    }
 
+    if (properties["isDashedLine"].isValid()) {
+        setIsDashedLine(properties["isDashedLine"].toBool());
+    }
+    if (properties["dashed"].isValid()) {
+        setIsDashedLine(properties["dashed"].toBool());
+    }
+    if (properties["ignoreRayIntersection"].isValid()) {
+        setIgnoreRayIntersection(properties["ignoreRayIntersection"].toBool());
+    }
 
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            setRotation(newRotation);
+    // Communicate changes to the renderItem if needed
+    if (needRenderItemUpdate) {
+        auto itemID = getRenderItemID();
+        if (render::Item::isValidID(itemID)) {
+            render::ScenePointer scene = qApp->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            pendingChanges.updateItem(itemID);
+            scene->enqueuePendingChanges(pendingChanges);
         }
-    }
-
-    if (properties.property("isSolid").isValid()) {
-        setIsSolid(properties.property("isSolid").toVariant().toBool());
-    }
-    if (properties.property("isFilled").isValid()) {
-        setIsSolid(properties.property("isSolid").toVariant().toBool());
-    }
-    if (properties.property("isWire").isValid()) {
-        setIsSolid(!properties.property("isWire").toVariant().toBool());
-    }
-    if (properties.property("solid").isValid()) {
-        setIsSolid(properties.property("solid").toVariant().toBool());
-    }
-    if (properties.property("filled").isValid()) {
-        setIsSolid(properties.property("filled").toVariant().toBool());
-    }
-    if (properties.property("wire").isValid()) {
-        setIsSolid(!properties.property("wire").toVariant().toBool());
-    }
-
-    if (properties.property("isDashedLine").isValid()) {
-        setIsDashedLine(properties.property("isDashedLine").toVariant().toBool());
-    }
-    if (properties.property("dashed").isValid()) {
-        setIsDashedLine(properties.property("dashed").toVariant().toBool());
-    }
-    if (properties.property("ignoreRayIntersection").isValid()) {
-        setIgnoreRayIntersection(properties.property("ignoreRayIntersection").toVariant().toBool());
     }
 }
 
-QScriptValue Base3DOverlay::getProperty(const QString& property) {
+QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
-        return vec3toScriptValue(_scriptEngine, getPosition());
+        return vec3toVariant(getPosition());
     }
     if (property == "lineWidth") {
         return _lineWidth;
     }
     if (property == "rotation") {
-        return quatToScriptValue(_scriptEngine, getRotation());
+        return quatToVariant(getRotation());
     }
     if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
         return _isSolid;

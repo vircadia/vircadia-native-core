@@ -9,11 +9,6 @@
             "Enabled": {
                 "enabled": true
             }
-        },
-        "Antialiasing": {
-            "Enabled": {
-                "enabled": true
-            }
         }
     }
 }

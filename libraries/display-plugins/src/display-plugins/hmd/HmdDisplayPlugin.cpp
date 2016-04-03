@@ -11,17 +11,28 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <QtCore/QLoggingCategory>
+#include <QtWidgets/QApplication>
 #include <QtWidgets/QWidget>
 
 #include <GLMHelpers.h>
 #include <plugins/PluginContainer.h>
+#include <gpu/GLBackend.h>
+#include <CursorManager.h>
+#include <gl/GLWidget.h>
+#include <shared/NsightHelpers.h>
+
 #include "../Logging.h"
+#include "../CompositorHelper.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const bool DEFAULT_MONO_VIEW = true;
 
-void HmdDisplayPlugin::activate() {
+glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
+    return CompositorHelper::VIRTUAL_SCREEN_SIZE;
+}
+
+bool HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
 
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -30,24 +41,84 @@ void HmdDisplayPlugin::activate() {
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
-    WindowOpenGLDisplayPlugin::activate();
-}
 
-void HmdDisplayPlugin::deactivate() {
-    WindowOpenGLDisplayPlugin::deactivate();
+    return Parent::internalActivate();
 }
 
 void HmdDisplayPlugin::customizeContext() {
-    WindowOpenGLDisplayPlugin::customizeContext();
+    Parent::customizeContext();
     // Only enable mirroring if we know vsync is disabled
     enableVsync(false);
     _enablePreview = !isVsyncEnabled();
+    _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
+}
+
+void HmdDisplayPlugin::uncustomizeContext() {
+    _sphereSection.reset();
+    _compositeFramebuffer.reset();
+    Parent::uncustomizeContext();
+}
+
+void HmdDisplayPlugin::compositeOverlay() {
+    using namespace oglplus;
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+
+    // check the alpha
+    auto overlayAlpha = compositorHelper->getAlpha();
+    if (overlayAlpha > 0.0f) {
+        // set the alpha
+        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
+
+        auto eyePoses = _currentPresentFrameInfo.eyePoses;
+        _sphereSection->Use();
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
+            auto modelView = glm::inverse(eyePoses[eye]); // *glm::translate(mat4(), vec3(0, 0, -1));
+            auto mvp = _eyeProjections[eye] * modelView;
+            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
+            _sphereSection->Draw();
+        });
+    }
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
+}
+
+void HmdDisplayPlugin::compositePointer() {
+    using namespace oglplus;
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+
+    // check the alpha
+    auto overlayAlpha = compositorHelper->getAlpha();
+    if (overlayAlpha > 0.0f) {
+        // set the alpha
+        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
+
+        // Mouse pointer
+        _plane->Use();
+        // Reconstruct the headpose from the eye poses
+        auto headPosition = vec3(_currentPresentFrameInfo.headPose[3]);
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
+            auto reticleTransform = compositorHelper->getReticleTransform(_currentPresentFrameInfo.eyePoses[eye], headPosition);
+            auto mvp = _eyeProjections[eye] * reticleTransform;
+            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
+            _plane->Draw();
+        });
+    }
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void HmdDisplayPlugin::internalPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
+
+    // Composite together the scene, overlay and mouse cursor
+    hmdPresent();
+
     // screen preview mirroring
     if (_enablePreview) {
-        auto windowSize = toGlm(_window->size());
+        auto window = _container->getPrimaryWidget();
+        auto windowSize = toGlm(window->size());
         float windowAspect = aspect(windowSize);
         float sceneAspect = aspect(_renderTargetSize);
         if (_monoPreview) {
@@ -69,19 +140,49 @@ void HmdDisplayPlugin::internalPresent() {
             targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
         }
         
-        glClear(GL_COLOR_BUFFER_BIT);
-        glViewport(
-            targetViewportPosition.x, targetViewportPosition.y,
-            targetViewportSize.x * (_monoPreview ? 2 : 1), targetViewportSize.y);
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(
-            targetViewportPosition.x, targetViewportPosition.y,
-            targetViewportSize.x, targetViewportSize.y);
-        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
-        GLenum err = glGetError();
-        Q_ASSERT(0 == err);
-        drawUnitQuad();
-        glDisable(GL_SCISSOR_TEST);
+        using namespace oglplus;
+        Context::Clear().ColorBuffer();
+        auto sourceSize = _compositeFramebuffer->size;
+        if (_monoPreview) {
+            sourceSize.x /= 2;
+        }
+        _compositeFramebuffer->Bound(Framebuffer::Target::Read, [&] {
+            Context::BlitFramebuffer(
+                0, 0, sourceSize.x, sourceSize.y,
+                targetViewportPosition.x, targetViewportPosition.y, 
+                targetViewportPosition.x + targetViewportSize.x, targetViewportPosition.y + targetViewportSize.y,
+                BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
+        });
         swapBuffers();
     }
+
+    postPreview();
+}
+
+void HmdDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
+    Lock lock(_mutex);
+    FrameInfo& frame = _frameInfos[frameIndex];
+    frame.eyePoses[eye] = pose;
+}
+
+void HmdDisplayPlugin::updateFrameData() {
+    // Check if we have old frame data to discard
+    {
+        Lock lock(_mutex);
+        auto itr = _frameInfos.find(_currentRenderFrameIndex);
+        if (itr != _frameInfos.end()) {
+            _frameInfos.erase(itr);
+        }
+    }
+
+    Parent::updateFrameData();
+
+    {
+        Lock lock(_mutex);
+        _currentPresentFrameInfo = _frameInfos[_currentRenderFrameIndex];
+    }
+}
+
+glm::mat4 HmdDisplayPlugin::getHeadPose() const {
+    return _currentRenderFrameInfo.get().headPose;
 }

@@ -19,9 +19,7 @@ const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 
 static const QString FULLSCREEN = "Fullscreen";
 
-void Basic2DWindowOpenGLDisplayPlugin::activate() {
-    WindowOpenGLDisplayPlugin::activate();
-
+bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     _framerateActions.clear();
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), FULLSCREEN,
         [this](bool clicked) {
@@ -33,18 +31,20 @@ void Basic2DWindowOpenGLDisplayPlugin::activate() {
         }, true, false);
 
     updateFramerate();
+
+    return Parent::internalActivate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) {
+void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
     _wantVsync = true; // always
-    WindowOpenGLDisplayPlugin::submitSceneTexture(frameIndex, sceneTexture, sceneSize);
+    Parent::submitSceneTexture(frameIndex, sceneTexture);
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::internalPresent() {
     if (_wantVsync != isVsyncEnabled()) {
         enableVsync(_wantVsync);
     }
-    WindowOpenGLDisplayPlugin::internalPresent();
+    Parent::internalPresent();
 }
 
 static const uint32_t MIN_THROTTLE_CHECK_FRAMES = 60;

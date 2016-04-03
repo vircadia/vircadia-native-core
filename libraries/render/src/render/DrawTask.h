@@ -13,38 +13,40 @@
 #define hifi_render_DrawTask_h
 
 #include "Engine.h"
-#include "CullTask.h"
-#include "ShapePipeline.h"
-#include "gpu/Batch.h"
-
 
 namespace render {
 
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems);
+void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, int maxDrawnItems = -1);
 void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1);
+
+
+
+class DrawLightConfig : public Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
+    int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+
+    int maxDrawn{ -1 };
+signals:
+    void numDrawnChanged();
+    void dirty();
+
+protected:
+    int numDrawn{ 0 };
+};
 
 class DrawLight {
 public:
-    using JobModel = Job::ModelI<DrawLight, ItemBounds>;
+    using Config = DrawLightConfig;
+    using JobModel = Job::ModelI<DrawLight, ItemBounds, Config>;
 
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights);
 protected:
-};
-
-class PipelineSortShapes {
-public:
-    using JobModel = Job::ModelIO<PipelineSortShapes, ItemBounds, ShapesIDsBounds>;
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes);
-};
-
-class DepthSortShapes {
-public:
-    using JobModel = Job::ModelIO<DepthSortShapes, ShapesIDsBounds, ShapesIDsBounds>;
- 
-    bool _frontToBack;
-    DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
-
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes);
+    int _maxDrawn; // initialized by Config
 };
 
 }

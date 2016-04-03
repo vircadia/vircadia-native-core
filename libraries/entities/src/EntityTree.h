@@ -16,6 +16,7 @@
 #include <QVector>
 
 #include <Octree.h>
+#include <SpatialParentFinder.h>
 
 class EntityTree;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
@@ -25,6 +26,9 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 #include "DeleteEntityOperator.h"
 
 class Model;
+using ModelPointer = std::shared_ptr<Model>;
+using ModelWeakPointer = std::weak_ptr<Model>;
+
 class EntitySimulation;
 
 class NewlyCreatedEntityHook {
@@ -35,7 +39,7 @@ public:
 class EntityItemFBXService {
 public:
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
-    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem) = 0;
+    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) = 0;
     virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem) = 0;
 };
 
@@ -43,13 +47,14 @@ public:
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
-    EntityTreePointer localTree;
+    EntityTree* ourTree;
+    EntityTreePointer otherTree;
     EntityEditPacketSender* packetSender;
-    QVector<EntityItemID>* newEntityIDs;
+    QHash<EntityItemID, EntityItemID>* map;
 };
 
 
-class EntityTree : public Octree {
+class EntityTree : public Octree, public SpatialParentTree {
     Q_OBJECT
 public:
     EntityTree(bool shouldReaverage = false);
@@ -114,14 +119,15 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
-    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
     EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
@@ -171,7 +177,7 @@ public:
     const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
     }
-    const Model* getModelForEntityItem(EntityItemPointer entityItem) {
+    ModelPointer getModelForEntityItem(EntityItemPointer entityItem) {
         return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
     }
 
@@ -196,8 +202,6 @@ public:
 
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
-
-    void remapIDs();
 
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) override;
@@ -240,6 +244,10 @@ public:
     // these are used to call through to EntityItems
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
+
+    void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
+    void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
+    void deleteDescendantsOfAvatar(QUuid avatarID);
 
 public slots:
     void callLoader(EntityItemID entityID);
@@ -286,6 +294,7 @@ protected:
 
     EntityItemFBXService* _fbxService;
 
+    mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
 
     EntitySimulation* _simulation;
@@ -313,8 +322,11 @@ protected:
     quint64 _maxEditDelta = 0;
     quint64 _treeResetTime = 0;
 
-    void fixupMissingParents();
-    QVector<EntityItemWeakPointer> _missingParent;
+    void fixupMissingParents(); // try to hook members of _missingParent to parent instances
+    QVector<EntityItemWeakPointer> _missingParent; // entites with a parentID but no (yet) known parent instance
+    // we maintain a list of avatarIDs to notice when an entity is a child of one.
+    QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server
+    QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
 };
 
 #endif // hifi_EntityTree_h

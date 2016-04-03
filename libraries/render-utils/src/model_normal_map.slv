@@ -26,10 +26,12 @@ out vec2 _texCoord0;
 out vec3 _normal;
 out vec3 _tangent;
 out vec3 _color;
+out float _alpha;
 
 void main(void) {
-    // pass along the diffuse color
-    _color = colorToLinearRGB(inColor.xyz);
+    // pass along the color
+    _color = colorToLinearRGB(inColor.rgb);
+    _alpha = inColor.a;
 
     // and the texture coordinates
     _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.xy, 0.0, 1.0)).st;

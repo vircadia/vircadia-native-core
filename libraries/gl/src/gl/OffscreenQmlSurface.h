@@ -26,7 +26,7 @@ class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
 
-class OffscreenQmlRenderer;
+class OffscreenQmlRenderThread;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
@@ -74,6 +74,7 @@ signals:
 public slots:
     void requestUpdate();
     void requestRender();
+    void onAboutToQuit();
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
@@ -83,8 +84,8 @@ private slots:
     void updateQuick();
 
 private:
-    friend class OffscreenQmlRenderer;
-    OffscreenQmlRenderer* _renderer{ nullptr };
+    friend class OffscreenQmlRenderThread;
+    OffscreenQmlRenderThread* _renderer{ nullptr };
     QQmlEngine* _qmlEngine{ nullptr };
     QQmlComponent* _qmlComponent{ nullptr };
     QQuickItem* _rootItem{ nullptr };

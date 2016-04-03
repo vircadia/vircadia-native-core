@@ -158,6 +158,12 @@ void PacketList::preparePackets(MessageNumber messageNumber) {
 
 const qint64 PACKET_LIST_WRITE_ERROR = -1;
 
+qint64 PacketList::writeString(const QString& string) {
+    QByteArray data = string.toUtf8();
+    writePrimitive(static_cast<uint32_t>(data.length()));
+    return writeData(data.constData(), data.length());
+}
+
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     auto sizeRemaining = maxSize;
 

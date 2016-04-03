@@ -11,12 +11,13 @@
 
 class OculusDebugDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
-    virtual const QString& getName() const override { return NAME; }
-    virtual grouping getGrouping() const override { return DEVELOPER; }
-    virtual bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
+    grouping getGrouping() const override { return DEVELOPER; }
+    bool isSupported() const override;
 
 protected:
-    virtual void customizeContext() override;
+    void hmdPresent() override {}
+    bool isHmdMounted() const override { return true; }
 
 private:
     static const QString NAME;

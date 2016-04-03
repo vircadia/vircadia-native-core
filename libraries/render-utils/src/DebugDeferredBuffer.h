@@ -47,11 +47,14 @@ protected:
 
     enum Mode : uint8_t {
         // Use Mode suffix to avoid collisions
-        DiffuseMode = 0,
-        SpecularMode,
-        RoughnessMode,
+        DepthMode = 0,
+        AlbedoMode,
         NormalMode,
-        DepthMode,
+        RoughnessMode,
+        MetallicMode,
+        EmissiveMode,
+        OcclusionMode,
+        LightmapMode,
         LightingMode,
         ShadowMode,
         PyramidDepthMode,

@@ -52,13 +52,7 @@
             print("Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
 
              MyAvatar.position = data.location;
-             
-            // if (data.hasOwnProperty('entryPoint') && data.hasOwnProperty('target')) {
-            //     this.lookAtTarget(data.entryPoint, data.target);
-            // }
-            // else{
 
-            // }
         }
 
     }
@@ -103,10 +97,4 @@
         }
     }
 
-    this.hoverEnterEntity = function(entityID) {
-        Entities.editEntity(entityID, {
-            animationURL: animationURL,
-            animationSettings: '{ "fps": 24, "firstFrame": 1, "lastFrame": 25, "frameIndex": 1, "running": true, "hold": true }'
-        });
-    }
 })

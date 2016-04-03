@@ -396,9 +396,10 @@ void AnimDebugDraw::update() {
         for (int i = 0; i < numVerts; i++) {
             theBound += verts[i].pos;
         }
+        data._bound = theBound;
 
         data._isVisible = (numVerts > 0);
-        data._bound = theBound;
+
         data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
         uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
         for (int i = 0; i < numVerts; i++) {

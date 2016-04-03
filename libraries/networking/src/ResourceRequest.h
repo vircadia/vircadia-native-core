@@ -20,7 +20,8 @@
 class ResourceRequest : public QObject {
     Q_OBJECT
 public:
-    ResourceRequest(QObject* parent, const QUrl& url);
+    ResourceRequest(const QUrl& url);
+    virtual ~ResourceRequest() = default;
 
     enum State {
         NotStarted = 0,
@@ -38,7 +39,6 @@ public:
         NotFound
     };
 
-    void send();
     QByteArray getData() { return _data; }
     State getState() const { return _state; }
     Result getResult() const { return _result; }
@@ -47,8 +47,11 @@ public:
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
 
+public slots:
+    void send();
+
 signals:
-    void progress(uint64_t bytesReceived, uint64_t bytesTotal);
+    void progress(qint64 bytesReceived, qint64 bytesTotal);
     void finished();
 
 protected:

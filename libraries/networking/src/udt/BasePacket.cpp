@@ -58,7 +58,7 @@ BasePacket::BasePacket(qint64 size) {
     Q_ASSERT(size >= 0 || size < maxPayload);
     
     _packetSize = size;
-    _packet.reset(new char[_packetSize]);
+    _packet.reset(new char[_packetSize]());
     _payloadCapacity = _packetSize;
     _payloadSize = 0;
     _payloadStart = _packet.get();
@@ -148,6 +148,20 @@ QByteArray BasePacket::readWithoutCopy(qint64 maxSize) {
     QByteArray data { QByteArray::fromRawData(getPayload() + pos(), sizeToRead) };
     seek(pos() + sizeToRead);
     return data;
+}
+
+qint64 BasePacket::writeString(const QString& string) {
+    QByteArray data = string.toUtf8();
+    writePrimitive(static_cast<uint32_t>(data.length()));
+    return writeData(data.constData(), data.length());
+}
+
+QString BasePacket::readString() {
+    uint32_t size;
+    readPrimitive(&size);
+    auto string = QString::fromUtf8(getPayload() + pos(), size);
+    seek(pos() + size);
+    return string;
 }
 
 bool BasePacket::reset() {

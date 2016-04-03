@@ -1,13 +1,25 @@
+//
+//  ToolWindow.qml
+//
+//  Created by Bradley Austin Davis on 12 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtWebEngine 1.1
-
+import QtWebChannel 1.0
 import Qt.labs.settings 1.0
 
-import "windows" as Windows
-import "controls" as Controls
+import "windows-uit"
+import "controls-uit"
+import "styles-uit"
 
-Windows.Window {
+Window {
     id: toolWindow
     resizable: true
     objectName: "ToolWindow"
@@ -15,13 +27,18 @@ Windows.Window {
     destroyOnInvisible: false
     closable: true
     visible: false
-    width: 384; height: 640;
-    title: "Tools"
-    property string newTabSource
+    title: "Edit"
     property alias tabView: tabView
+    implicitWidth: 520; implicitHeight: 695
+    minSize: Qt.vector2d(400, 500)
+
+    HifiConstants { id: hifi }
+
     onParentChanged: {
-        x = 120;
-        y = 120;
+        if (parent) {
+            x = 120;
+            y = 120;
+        }
     }
 
     Settings {
@@ -30,27 +47,92 @@ Windows.Window {
         property alias y: toolWindow.y
     }
 
-    property var webTabCreator: Component {
-        Controls.WebView {
-            id: webView
-            property string originalUrl;
+    TabView {
+        id: tabView;
+        width: pane.contentWidth
+        height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
+        property int tabCount: 0
 
-            // Both toolWindow.newTabSource and url can change, so we need
-            // to store the original url here, without creating any bindings
-            Component.onCompleted: {
-                originalUrl = toolWindow.newTabSource;
-                url = originalUrl;
+        Repeater {
+            model: 4
+            Tab {
+                // Force loading of the content even if the tab is not visible
+                // (required for letting the C++ code access the webview)
+                active: true
+                enabled: false
+                property string originalUrl: "";
+
+                WebView {
+                    id: webView;
+                    anchors.fill: parent
+                    enabled: false
+                    property alias eventBridgeWrapper: eventBridgeWrapper 
+                    
+                    QtObject {
+                        id: eventBridgeWrapper
+                        WebChannel.id: "eventBridgeWrapper"
+                        property var eventBridge;
+                    }
+
+                    webChannel.registeredObjects: [eventBridgeWrapper]
+                    onEnabledChanged: toolWindow.updateVisiblity();
+                }
             }
         }
-    }
 
-    TabView {
-        anchors.fill: parent
-        id: tabView;
-        onCountChanged: {
-            if (0 == count) {
-                toolWindow.visible = false
+        style: TabViewStyle {
+
+            frame: Rectangle {  // Background shown before content loads.
+                anchors.fill: parent
+                color: hifi.colors.baseGray
             }
+
+            frameOverlap: 0
+
+            tab: Rectangle {
+                implicitWidth: text.width
+                implicitHeight: 3 * text.height
+                color: styleData.selected ? hifi.colors.black : hifi.colors.tabBackgroundDark
+
+                RalewayRegular {
+                    id: text
+                    text: styleData.title
+                    font.capitalization: Font.AllUppercase
+                    size: hifi.fontSizes.tabName
+                    width: tabView.tabCount > 1 ? styleData.availableWidth / tabView.tabCount : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
+                    elide: Text.ElideRight
+                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.centerIn: parent
+                }
+
+                Rectangle {  // Separator.
+                    width: 1
+                    height: parent.height
+                    color: hifi.colors.black
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    visible: styleData.index > 0
+
+                    Rectangle {
+                        width: 1
+                        height: 1
+                        color: hifi.colors.baseGray
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                    }
+                }
+
+                Rectangle {  // Active underline.
+                    width: parent.width - (styleData.index > 0 ? 1 : 0)
+                    height: 1
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.baseGray
+                }
+            }
+
+            tabOverlap: 0
         }
     }
 
@@ -66,8 +148,7 @@ Windows.Window {
     function findIndexForUrl(source) {
         for (var i = 0; i < tabView.count; ++i) {
             var tab = tabView.getTab(i);
-            if (tab && tab.item && tab.item.originalUrl &&
-                tab.item.originalUrl === source) {
+            if (tab.originalUrl === source) {
                 return i;
             }
         }
@@ -99,49 +180,75 @@ Windows.Window {
         }
     }
 
+    function findFreeTab() {
+        for (var i = 0; i < tabView.count; ++i) {
+            var tab = tabView.getTab(i);
+            if (tab && (!tab.originalUrl || tab.originalUrl === "")) {
+                return i;
+            }
+        }
+        console.warn("Could not find free tab");
+        return -1;
+    }
+
     function removeTabForUrl(source) {
         var index = findIndexForUrl(source);
         if (index < 0) {
             return;
         }
+
         var tab = tabView.getTab(index);
-        tab.enabledChanged.disconnect(updateVisiblity);
-        tabView.removeTab(index);
-        console.log("Updating visibility based on child tab removed");
-        updateVisiblity();
+        tab.title = "";
+        tab.enabled = false;
+        tab.originalUrl = "";
+        tab.item.url = "about:blank";
+        tab.item.enabled = false;
+        tabView.tabCount--;
     }
 
     function addWebTab(properties) {
         if (!properties.source) {
-            console.warn("Attempted to open Web Tool Pane without URl")
+            console.warn("Attempted to open Web Tool Pane without URL");
             return;
         }
 
         var existingTabIndex = findIndexForUrl(properties.source);
         if (existingTabIndex >= 0) {
-            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source)
-            return tabView.getTab(existingTabIndex);
+            console.log("Existing tab " + existingTabIndex + " found with URL " + properties.source);
+            var tab = tabView.getTab(existingTabIndex);
+            return tab.item;
         }
 
-        var title = properties.title || "Unknown";
-        newTabSource = properties.source;
-        var newTab = tabView.addTab(title, webTabCreator);
-        newTab.active = true;
-        newTab.enabled = false;
+        var freeTabIndex = findFreeTab();
+        if (freeTabIndex === -1) {
+            console.warn("Unable to add new tab");
+            return;
+        }
+
 
         if (properties.width) {
-            tabView.width = Math.min(Math.max(tabView.width, properties.width),
-                                        toolWindow.maxSize.x);
+            tabView.width = Math.min(Math.max(tabView.width, properties.width), toolWindow.maxSize.x);
         }
 
         if (properties.height) {
-            tabView.height = Math.min(Math.max(tabView.height, properties.height),
-                                        toolWindow.maxSize.y);
+            tabView.height = Math.min(Math.max(tabView.height, properties.height), toolWindow.maxSize.y);
         }
 
-        console.log("Updating visibility based on child tab added");
-        newTab.enabledChanged.connect(updateVisiblity)
-        updateVisiblity();
-        return newTab
+        var tab = tabView.getTab(freeTabIndex);
+        tab.title = properties.title || "Unknown";
+        tab.enabled = true;
+        console.log("New tab URL: " + properties.source)
+        tab.originalUrl = properties.source;
+
+        var eventBridge = properties.eventBridge;
+        console.log("Event bridge: " + eventBridge);
+
+        var result = tab.item;
+        result.enabled = true;
+        tabView.tabCount++;
+        console.log("Setting event bridge: " + eventBridge);
+        result.eventBridgeWrapper.eventBridge = eventBridge;
+        result.url = properties.source;
+        return result;
     }
 }

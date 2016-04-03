@@ -45,20 +45,19 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
 
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
     updateTransform(transform, offsetTransform);
 }
 
-void MeshPartPayload::updateMeshPart(model::MeshPointer drawMesh, int partIndex) {
+void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
     _drawMesh = drawMesh;
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
-
         _localBound = _drawMesh->evalPartBound(partIndex);
     }
 }
@@ -81,7 +80,7 @@ ItemKey MeshPartPayload::getKey() const {
 
     if (_drawMaterial) {
         auto matKey = _drawMaterial->getKey();
-        if (matKey.isTransparent() || matKey.isTransparentMap()) {
+        if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
     }
@@ -100,13 +99,13 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap()) {
+    if (drawMaterialKey.isTranslucent()) {
         builder.withTranslucent();
     }
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-    if (drawMaterialKey.isGlossMap()) {
+    if (drawMaterialKey.isMetallicMap()) {
         builder.withSpecular();
     }
     if (drawMaterialKey.isLightmapMap()) {
@@ -145,20 +144,34 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto textureMaps = _drawMaterial->getTextureMaps();
     glm::mat4 texcoordTransform[2];
 
-    // Diffuse
-    if (materialKey.isDiffuseMap()) {
-        auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-        if (diffuseMap && diffuseMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, diffuseMap->getTextureView());
+    // Albedo
+    if (materialKey.isAlbedoMap()) {
+        auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
+        if (albedoMap && albedoMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, albedoMap->getTextureView());
 
-            if (!diffuseMap->getTextureTransform().isIdentity()) {
-                diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
+            if (!albedoMap->getTextureTransform().isIdentity()) {
+                albedoMap->getTextureTransform().getMatrix(texcoordTransform[0]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getWhiteTexture());
+    }
+
+    // Roughness map
+    if (materialKey.isRoughnessMap()) {
+        auto roughnessMap = textureMaps[model::MaterialKey::ROUGHNESS_MAP];
+        if (roughnessMap && roughnessMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, roughnessMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getWhiteTexture());
     }
 
     // Normal map
@@ -167,7 +180,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         if (normalMap && normalMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, normalMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, textureCache->getBlueTexture());
         }
@@ -175,26 +188,40 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
 
-    // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
-    if (materialKey.isGlossMap()) {
-        auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
+    // Metallic map
+    if (materialKey.isMetallicMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::METALLIC_MAP];
         if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, specularMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, nullptr);
     }
 
-    // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
+    // Occlusion map
+    if (materialKey.isOcclusionMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::OCCLUSION_MAP];
+        if (specularMap && specularMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, specularMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, nullptr);
+    }
+
+    // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -203,10 +230,18 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getGrayTexture());
+        }
+    } else if (materialKey.isEmissiveMap()) {
+        auto emissiveMap = textureMaps[model::MaterialKey::EMISSIVE_MAP];
+
+        if (emissiveMap && emissiveMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, emissiveMap->getTextureView());
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?
@@ -284,7 +319,9 @@ ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int par
     _model(model),
     _meshIndex(_meshIndex),
     _shapeID(shapeIndex) {
-    auto& modelMesh = _model->_geometry->getMeshes().at(_meshIndex)->_mesh;
+
+    assert(_model && _model->isLoaded());
+    auto& modelMesh = _model->getGeometry()->getGeometry()->getMeshes().at(_meshIndex);
     updateMeshPart(modelMesh, partIndex);
 
     updateTransform(transform, offsetTransform);
@@ -292,27 +329,45 @@ ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int par
 }
 
 void ModelMeshPartPayload::initCache() {
+    assert(_model->isLoaded());
+
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
 
-
-        const FBXGeometry& geometry = _model->_geometry->getFBXGeometry();
+        const FBXGeometry& geometry = _model->getFBXGeometry();
         const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
+
         _isBlendShaped = !mesh.blendshapes.isEmpty();
     }
 
-    auto networkMaterial = _model->_geometry->getShapeMaterial(_shapeID);
+    auto networkMaterial = _model->getGeometry()->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
-        _drawMaterial = networkMaterial->_material;
+        _drawMaterial = networkMaterial;
     };
 
 }
 
 
 void ModelMeshPartPayload::notifyLocationChanged() {
-    _model->_needsUpdateClusterMatrices = true;
+
+}
+
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& transform, const Transform& offsetTransform, const QVector<glm::mat4>& clusterMatrices) {
+    ModelMeshPartPayload::updateTransform(transform, offsetTransform);
+
+    if (clusterMatrices.size() > 0) {
+        _worldBound = AABox();
+        for (auto& clusterMatrix : clusterMatrices) {
+            AABox clusterBound = _localBound;
+            clusterBound.transform(clusterMatrix);
+            _worldBound += clusterBound;
+        }
+
+        // clusterMatrix has world rotation but not world translation.
+        _worldBound.translate(transform.getTranslation());
+    }
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {
@@ -329,7 +384,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
 
     if (_drawMaterial) {
         auto matKey = _drawMaterial->getKey();
-        if (matKey.isTransparent() || matKey.isTransparentMap()) {
+        if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
     }
@@ -337,15 +392,10 @@ ItemKey ModelMeshPartPayload::getKey() const {
     return builder.build();
 }
 
-Item::Bound ModelMeshPartPayload::getBound() const {
-    // NOTE: we can't cache this bounds because we need to handle the case of a moving
-    // entity or mesh part.
-    return _model->getPartBounds(_meshIndex, _partIndex, _transform.getTranslation(), _transform.getRotation());
-}
-
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
-    const FBXGeometry& geometry = _model->_geometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _model->_geometry->getMeshes();
+    assert(_model->isLoaded());
+    const FBXGeometry& geometry = _model->getFBXGeometry();
+    const auto& networkMeshes = _model->getGeometry()->getGeometry()->getMeshes();
 
     // guard against partially loaded meshes
     if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)_model->_meshStates.size()) {
@@ -376,9 +426,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
         drawMaterialKey = _drawMaterial->getKey();
     }
 
-    bool isTranslucent = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
+    bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
-    bool hasSpecular = drawMaterialKey.isGlossMap();
+    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
 
     bool isSkinned = _isSkinned;
@@ -413,9 +463,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     if (!_isBlendShaped) {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        
+
         batch.setInputFormat((_drawMesh->getVertexFormat()));
-        
+
         batch.setInputStream(0, _drawMesh->getVertexStream());
     } else {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
@@ -426,7 +476,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputBuffer(1, _model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
-    
+
     // TODO: Get rid of that extra call
     if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -470,29 +520,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         return;
     }
 
-    // render the part bounding box
-#ifdef DEBUG_BOUNDING_PARTS
-    {
-        AABox partBounds = getPartBounds(_meshIndex, partIndex);
-        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
-        
-        glm::vec4 cubeColor;
-        if (isSkinned) {
-            cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
-        } else if (inView) {
-            cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-        } else {
-            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-        }
-        
-        Transform transform;
-        transform.setTranslation(partBounds.calcCenter());
-        transform.setScale(partBounds.getDimensions());
-        batch.setModelTransform(transform);
-        DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
-    }
-#endif //def DEBUG_BOUNDING_PARTS
-    
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
@@ -500,23 +527,23 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations, canCauterize);
-    
+
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
-    
+
     // apply material properties
     bindMaterial(batch, locations);
-        
+
     if (args) {
         args->_details._materialSwitches++;
     }
-    
+
     // Draw!
     {
         PerformanceTimer perfTimer("batch.drawIndexed()");
         drawCall(batch);
     }
-    
+
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;

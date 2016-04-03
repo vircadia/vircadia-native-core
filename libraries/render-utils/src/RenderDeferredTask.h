@@ -12,9 +12,8 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "gpu/Pipeline.h"
-
-#include "render/DrawTask.h"
+#include <gpu/Pipeline.h>
+#include <render/CullTask.h>
 
 class SetupDeferred {
 public:
@@ -33,9 +32,10 @@ public:
 
 class RenderDeferred {
 public:
+    using JobModel = render::Job::Model<RenderDeferred>;
+
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    using JobModel = render::Job::Model<RenderDeferred>;
 };
 
 class DrawConfig : public render::Job::Config {
@@ -83,11 +83,27 @@ protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 };
 
+class DrawBackgroundDeferredConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(double gpuTime READ getGpuTime)
+public:
+    double getGpuTime() { return gpuTime; }
+
+protected:
+    friend class DrawBackgroundDeferred;
+    double gpuTime;
+};
+
 class DrawBackgroundDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    using Config = DrawBackgroundDeferredConfig;
+    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, render::ItemBounds, Config>;
 
-    using JobModel = render::Job::Model<DrawBackgroundDeferred>;
+    void configure(const Config& config) {}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
+
+protected:
+    gpu::RangeTimer _gpuTimer;
 };
 
 class DrawOverlay3DConfig : public render::Job::Config {

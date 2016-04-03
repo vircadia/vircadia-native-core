@@ -36,15 +36,22 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
                      const QString& id, AnimNode::Triggers& triggersOut) {
 
+    const float EPSILON = 0.0001f;
     float frame = currentFrame;
     const float clampedStartFrame = std::min(startFrame, endFrame);
-    if (fabsf(clampedStartFrame - endFrame) < 1.0f) {
+    if (fabsf(clampedStartFrame - endFrame) <= 1.0f) {
+        // An animation of a single frame should not send loop or done triggers.
         frame = endFrame;
-    } else if (timeScale > 0.0f) {
+    } else if (timeScale > EPSILON && dt > EPSILON) {
         // accumulate time, keeping track of loops and end of animation events.
         const float FRAMES_PER_SECOND = 30.0f;
         float framesRemaining = (dt * timeScale) * FRAMES_PER_SECOND;
-        while (framesRemaining > 0.0f) {
+
+        // prevent huge dt or timeScales values from causing many trigger events.
+        uint32_t triggerCount = 0;
+        const uint32_t MAX_TRIGGER_COUNT = 3;
+
+        while (framesRemaining > EPSILON && triggerCount < MAX_TRIGGER_COUNT) {
             float framesTillEnd = endFrame - frame;
             // when looping, add one frame between start and end.
             if (loopFlag) {
@@ -62,6 +69,7 @@ float accumulateTime(float startFrame, float endFrame, float timeScale, float cu
                     frame = endFrame;
                     framesRemaining = 0.0f;
                 }
+                triggerCount++;
             } else {
                 frame += framesRemaining;
                 framesRemaining = 0.0f;

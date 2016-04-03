@@ -68,6 +68,8 @@ public:
         bool isLeftEnabled;
         bool isRightEnabled;
         float bodyCapsuleRadius;
+        float bodyCapsuleHalfHeight;
+        glm::vec3 bodyCapsuleLocalOffset;
         glm::vec3 leftPosition = glm::vec3();     // rig space
         glm::quat leftOrientation = glm::quat();  // rig space (z forward)
         glm::vec3 rightPosition = glm::vec3();    // rig space
@@ -81,6 +83,7 @@ public:
         Hover
     };
 
+    Rig() {}
     virtual ~Rig() {}
 
     void destroyAnimGraph();
@@ -218,6 +221,8 @@ public:
 
     void setEnableInverseKinematics(bool enable);
 
+    const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
+
  protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
@@ -230,8 +235,6 @@ public:
                                  glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
-
-    void computeEyesInRootFrame(const AnimPoseVec& poses);
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
@@ -304,6 +307,8 @@ public:
 
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
+
+    mutable uint32_t _jointNameWarningCount { 0 };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

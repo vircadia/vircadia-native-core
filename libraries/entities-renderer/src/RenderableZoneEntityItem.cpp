@@ -18,6 +18,7 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
+#include "EntityTreeRenderer.h"
 #include "RenderableEntityItem.h"
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
@@ -60,6 +61,10 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
         somethingChanged = this->ZoneEntityItem::setProperties(properties);
     });
     return somethingChanged;
+}
+
+void RenderableZoneEntityItem::somethingChangedNotification() {
+    DependencyManager::get<EntityTreeRenderer>()->updateZone(_id);
 }
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -230,6 +235,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
 void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
@@ -237,7 +243,7 @@ void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shar
 
 
 void RenderableZoneEntityItem::notifyBoundChanged() {
-    if (_myMetaItem == render::Item::INVALID_ITEM_ID) {
+    if (!render::Item::isValidID(_myMetaItem)) {
         return;
     }
     render::PendingChanges pendingChanges;

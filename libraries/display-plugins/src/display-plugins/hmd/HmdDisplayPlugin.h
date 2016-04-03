@@ -7,39 +7,63 @@
 //
 #pragma once
 
+#include <ThreadSafeValueCache.h>
+
 #include <QtGlobal>
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include "../OpenGLDisplayPlugin.h"
 
-class HmdDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class HmdDisplayPlugin : public OpenGLDisplayPlugin {
+    using Parent = OpenGLDisplayPlugin;
 public:
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override final { return _eyeProjections[eye]; }
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
-    glm::uvec2 getRecommendedUiSize() const override final { 
-        // FIXME - would be good to have these values sync with ApplicationCompositor in a better way.
-        const int VIRTUAL_SCREEN_SIZE_X = 3960; // ~10% more pixel density than old version, 72dx240d FOV
-        const int VIRTUAL_SCREEN_SIZE_Y = 1188; // ~10% more pixel density than old version, 72dx240d FOV
-        auto result = uvec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y);
-        return result;
-    }
+    glm::uvec2 getRecommendedUiSize() const override final;
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
-    void activate() override;
-    void deactivate() override;
+    void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
+    bool isDisplayVisible() const override { return isHmdMounted(); }
+
+    virtual glm::mat4 getHeadPose() const override;
+
+    using EyePoses = std::array<glm::mat4, 2>;
+
+    struct FrameInfo {
+        EyePoses eyePoses;
+        glm::mat4 headPose;
+        double sensorSampleTime { 0 };
+        double predictedDisplayTime { 0 };
+    };
+
 
 protected:
+    virtual void hmdPresent() = 0;
+    virtual bool isHmdMounted() const = 0;
+    virtual void postPreview() {};
+
+    bool internalActivate() override;
+    void compositeOverlay() override;
+    void compositePointer() override;
     void internalPresent() override;
     void customizeContext() override;
+    void uncustomizeContext() override;
+    void updateFrameData() override;
 
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
     float _ipd { 0.064f };
+
+    QMap<uint32_t, FrameInfo> _frameInfos;
+    FrameInfo _currentPresentFrameInfo;
+    ThreadSafeValueCache<FrameInfo> _currentRenderFrameInfo;
+
 private:
     bool _enablePreview { false };
     bool _monoPreview { true };
+    ShapeWrapperPtr _sphereSection;
 };
 

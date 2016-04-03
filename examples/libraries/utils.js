@@ -28,7 +28,6 @@ colorMix = function(colorA, colorB, mix) {
     }
     return result;
 }
-
 scaleLine = function (start, end, scale) {
     var v = Vec3.subtract(end, start);
     var length = Vec3.length(v);
@@ -199,7 +198,7 @@ pointInExtents = function(point, minPoint, maxPoint) {
  * @param   Number  l       The lightness
  * @return  Array           The RGB representation
  */
-hslToRgb = function(hsl, hueOffset) {
+hslToRgb = function(hsl) {
     var r, g, b;
     if (hsl.s == 0) {
         r = g = b = hsl.l; // achromatic
@@ -261,6 +260,16 @@ randFloat = function(low, high) {
 randInt = function(low, high) {
     return Math.floor(randFloat(low, high));
 }
+
+
+randomColor = function() {
+    return {
+                red: randInt(0, 255),
+                green: randInt(0, 255),
+                blue: randInt(0, 255)
+            }
+}
+
 
 hexToRgb = function(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);

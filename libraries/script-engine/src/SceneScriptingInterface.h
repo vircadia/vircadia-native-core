@@ -81,6 +81,11 @@ namespace SceneScripting {
         // setDirection is only effective if stage Sun model is disabled
         void setDirection(const glm::vec3& direction);
 
+        // AmbientTexture is unscriptable - it must be set through the zone entity
+        void setAmbientSphere(const gpu::SHPointer& sphere);
+        void resetAmbientSphere() { setAmbientSphere(nullptr); }
+        void setAmbientMap(const gpu::TexturePointer& map);
+
     protected:
         model::SunSkyStagePointer _skyStage;
     };

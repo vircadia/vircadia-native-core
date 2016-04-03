@@ -27,13 +27,16 @@ typedef glm::vec3 Color;
 class TextureUsage {
 public:
     gpu::Texture::Type _type{ gpu::Texture::TEX_2D };
-    Material::MapFlags _materialUsage{ MaterialKey::DIFFUSE_MAP };
+    Material::MapFlags _materialUsage{ MaterialKey::ALBEDO_MAP };
 
     int _environmentUsage = 0;
 
     static gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromNormalImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createRoughnessTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createRoughnessTextureFromGlossImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createMetallicTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
 
@@ -53,6 +56,9 @@ public:
     void setTextureTransform(const Transform& texcoordTransform);
     const Transform& getTextureTransform() const { return _texcoordTransform; }
 
+    void setUseAlphaChannel(bool useAlpha) { _useAlphaChannel = useAlpha; }
+    bool useAlphaChannel() const { return _useAlphaChannel; }
+
     void setLightmapOffsetScale(float offset, float scale);
     const glm::vec2& getLightmapOffsetScale() const { return _lightmapOffsetScale; }
 
@@ -61,6 +67,8 @@ protected:
 
     Transform _texcoordTransform;
     glm::vec2 _lightmapOffsetScale{ 0.0f, 1.0f };
+
+    bool _useAlphaChannel{ false };
 };
 typedef std::shared_ptr< TextureMap > TextureMapPointer;
 

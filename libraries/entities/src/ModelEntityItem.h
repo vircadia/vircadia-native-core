@@ -110,8 +110,8 @@ public:
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
 
     static const QString DEFAULT_TEXTURES;
-    const QString& getTextures() const { return _textures; }
-    void setTextures(const QString& textures) { _textures = textures; }
+    const QString getTextures() const;
+    void setTextures(const QString& textures);
 
     virtual bool shouldBePhysical() const;
 
@@ -120,10 +120,10 @@ public:
     virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
     virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
 
-    void setJointRotations(const QVector<glm::quat>& rotations);
-    void setJointRotationsSet(const QVector<bool>& rotationsSet);
-    void setJointTranslations(const QVector<glm::vec3>& translations);
-    void setJointTranslationsSet(const QVector<bool>& translationsSet);
+    virtual void setJointRotations(const QVector<glm::quat>& rotations);
+    virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
+    virtual void setJointTranslations(const QVector<glm::vec3>& translations);
+    virtual void setJointTranslationsSet(const QVector<bool>& translationsSet);
     QVector<glm::quat> getJointRotations() const;
     QVector<bool> getJointRotationsSet() const;
     QVector<glm::vec3> getJointTranslations() const;
@@ -159,7 +159,9 @@ protected:
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
 
+    mutable QReadWriteLock _texturesLock;
     QString _textures;
+
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
     // used on client side

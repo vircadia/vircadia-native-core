@@ -5,6 +5,8 @@ import QtQuick.Controls 1.2
 Item {
     anchors.fill: parent
     anchors.leftMargin: 300
+    objectName: "StatsItem"
+
     Hifi.Stats {
         id: root
         objectName: "Stats"
@@ -27,6 +29,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
 
                 Column {
@@ -83,6 +86,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: pingCol
@@ -111,7 +115,7 @@ Item {
                         color: root.fontColor
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Voxel max ping: " + 0
+                        text: "Messages max ping: " + root.messagePing
                     }
                 }
             }
@@ -123,6 +127,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: geoCol
@@ -161,7 +166,30 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Downloads: ";
+                        text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
+                              ", Pending: " + root.downloadsPending;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded && root.downloadUrls.length > 0;
+                        text: "Download URLs:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.downloadUrls.length * 15
+
+                        visible: root.expanded && root.downloadUrls.length > 0;
+
+                        model: root.downloadUrls
+                        delegate: Text {
+                            color: root.fontColor;
+                            font.pixelSize: root.fontSize
+                            visible: root.expanded;
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
                     }
                 }
             }
@@ -172,6 +200,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: octreeCol
@@ -186,42 +215,29 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tItems Rendered Opaque: " + root.opaqueRendered +
-                            " / Translucent: " + root.translucentRendered +
-                            " / Shadow: " + root.shadowRendered +
-                            " / Other: " + root.otherRendered;
+                        text: "Items rendered / considered: " +
+                            root.itemRendered + " / " + root.itemConsidered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tOpaque considered: " + root.opaqueConsidered +
-                            " / Out of view: " + root.opaqueOutOfView + 
-                            " / Too small: " + root.opaqueTooSmall;
+                        text: " out of view: " + root.itemOutOfView +
+                            " too small: " + root.itemTooSmall;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tShadow considered: " + root.shadowConsidered +
-                            " / Out of view: " + root.shadowOutOfView +
-                            " / Too small: " + root.shadowTooSmall;
+                        text: "Shadows rendered / considered: " +
+                            root.shadowRendered + " / " + root.shadowConsidered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tTranslucent considered: " + root.translucentConsidered +
-                            " / Out of view: " + root.translucentOutOfView + 
-                            " / Too small: " + root.translucentTooSmall;
-                    }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
-                        visible: root.expanded;
-                        text: "\tOther considered: " + root.otherConsidered +
-                            " / Out of view: " + root.otherOutOfView + 
-                            " / Too small: " + root.otherTooSmall;
+                        text: " out of view: " + root.shadowOutOfView +
+                            " too small: " + root.shadowTooSmall;
                     }
                     Text {
                         color: root.fontColor;

@@ -66,10 +66,11 @@ public:
 
     void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         pendingChanges.removeItem(_myItem);
+        render::Item::clearID(_myItem);
     }
 
     void notifyChanged() {
-        if (_myItem == render::Item::INVALID_ITEM_ID) {
+        if (!render::Item::isValidID(_myItem)) {
             return;
         }
 

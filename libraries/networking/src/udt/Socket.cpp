@@ -176,7 +176,9 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
-        auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
+        auto congestionControl = _ccFactory->create();
+        congestionControl->setMaxBandwidth(_maxBandwidth);
+        auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
         
         // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
         QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
@@ -277,7 +279,7 @@ void Socket::readPendingDatagrams() {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
                     auto& connection = findOrCreateConnection(senderSockAddr);
-                    
+
                     if (!connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
                                                                   packet->getDataSize(),
                                                                   packet->getPayloadSize())) {
@@ -348,6 +350,17 @@ void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtua
     
     // update the _synInterval to the value from the factory
     _synInterval = _ccFactory->synInterval();
+}
+
+
+void Socket::setConnectionMaxBandwidth(int maxBandwidth) {
+    qInfo() << "Setting socket's maximum bandwith to" << maxBandwidth << "bps. ("
+            << _connectionsHash.size() << "live connections)";
+    _maxBandwidth = maxBandwidth;
+    for (auto& pair : _connectionsHash) {
+        auto& connection = pair.second;
+        connection->setMaxBandwidth(_maxBandwidth);
+    }
 }
 
 ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& destination) {

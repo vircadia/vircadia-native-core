@@ -17,8 +17,10 @@
 #include <QWriteLocker>
 #include <QReadLocker>
 
+#include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
+#include <shared/NsightHelpers.h>
 
 #include "AnimationLogging.h"
 #include "AnimClip.h"
@@ -36,17 +38,7 @@ static bool isEqual(const glm::quat& p, const glm::quat& q) {
     return 1.0f - fabsf(glm::dot(p, q)) <= EPSILON;
 }
 
-#ifdef NDEBUG
-#define ASSERT(cond)
-#else
-#define ASSERT(cond)                            \
-    do {                                        \
-        if (!(cond)) {                          \
-            int* ptr = nullptr;                 \
-            *ptr = 10;                          \
-        }                                       \
-    } while (0)
-#endif
+#define ASSERT(cond) assert(cond)
 
 // 2 meter tall dude
 const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 0.9f, 0.0f);
@@ -173,8 +165,6 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
-    computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
-
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
@@ -200,8 +190,6 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 void Rig::reset(const FBXGeometry& geometry) {
     _geometryOffset = AnimPose(geometry.offset);
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
-
-    computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -237,10 +225,20 @@ int Rig::getJointStateCount() const {
     return (int)_internalPoseSet._relativePoses.size();
 }
 
+static const uint32_t MAX_JOINT_NAME_WARNING_COUNT = 100;
+
 int Rig::indexOfJoint(const QString& jointName) const {
     if (_animSkeleton) {
-        return _animSkeleton->nameToJointIndex(jointName);
+        int result = _animSkeleton->nameToJointIndex(jointName);
+
+        // This is a content error, so we should issue a warning.
+        if (result < 0 && _jointNameWarningCount < MAX_JOINT_NAME_WARNING_COUNT) {
+            qCWarning(animation) << "Rig: Missing joint" << jointName << "in avatar model";
+            _jointNameWarningCount++;
+        }
+        return result;
     } else {
+        // This is normal and can happen when the avatar model has not been dowloaded/loaded yet.
         return -1;
     }
 }
@@ -442,26 +440,6 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
     }
 
     *alphaOut = alpha;
-}
-
-void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
-    // TODO: use cached eye/hips indices for these calculations
-    int numPoses = (int)poses.size();
-    int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
-    int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
-    if (hipsIndex > 0 && headIndex > 0) {
-        int rightEyeIndex = _animSkeleton->nameToJointIndex(QString("RightEye"));
-        int leftEyeIndex = _animSkeleton->nameToJointIndex(QString("LeftEye"));
-        if (numPoses > rightEyeIndex && numPoses > leftEyeIndex && rightEyeIndex > 0 && leftEyeIndex > 0) {
-            glm::vec3 rightEye = _animSkeleton->getAbsolutePose(rightEyeIndex, poses).trans;
-            glm::vec3 leftEye = _animSkeleton->getAbsolutePose(leftEyeIndex, poses).trans;
-            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
-            _eyesInRootFrame = 0.5f * (rightEye + leftEye) - hips;
-        } else {
-            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
-            _eyesInRootFrame = 0.5f * (DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) - hips;
-        }
-    }
 }
 
 void Rig::setEnableInverseKinematics(bool enable) {
@@ -875,6 +853,8 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff00ff, 0);
+
     setModelOffset(rootTransform);
 
     if (_animNode) {
@@ -893,8 +873,6 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         for (auto& trigger : triggersOut) {
             _animVars.setTrigger(trigger);
         }
-
-        computeEyesInRootFrame(_internalPoseSet._relativePoses);
     }
 
     applyOverridePoses();
@@ -1067,14 +1045,23 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         glm::mat4 rigToWorld = createMatFromQuatAndPos(modelRotation, modelTranslation);
         glm::mat4 worldToRig = glm::inverse(rigToWorld);
         glm::vec3 zAxis = glm::normalize(_internalPoseSet._absolutePoses[index].trans - transformPoint(worldToRig, lookAtSpot));
-        glm::quat q = rotationBetween(IDENTITY_FRONT, zAxis);
+
+        glm::quat desiredQuat = rotationBetween(IDENTITY_FRONT, zAxis);
+        glm::quat headQuat;
+        int headIndex = indexOfJoint("Head");
+        if (headIndex >= 0) {
+            headQuat = _internalPoseSet._absolutePoses[headIndex].rot;
+        }
+        glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
 
         // limit rotation
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-        q = glm::angleAxis(glm::clamp(glm::angle(q), -MAX_ANGLE, MAX_ANGLE), glm::axis(q));
+        if (fabsf(glm::angle(deltaQuat)) > MAX_ANGLE) {
+            deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
+        }
 
         // directly set absolutePose rotation
-        _internalPoseSet._absolutePoses[index].rot = q;
+        _internalPoseSet._absolutePoses[index].rot = deltaQuat * headQuat;
     }
 }
 
@@ -1082,28 +1069,27 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
 
         const float HAND_RADIUS = 0.05f;
-        const float BODY_RADIUS = params.bodyCapsuleRadius;
-        const float MIN_LENGTH = 1.0e-4f;
+        int hipsIndex = indexOfJoint("Hips");
+        glm::vec3 hipsTrans;
+        if (hipsIndex >= 0) {
+            hipsTrans = _internalPoseSet._absolutePoses[hipsIndex].trans;
+        }
 
-        // project the hips onto the xz plane.
-        auto hipsTrans = _internalPoseSet._absolutePoses[_animSkeleton->nameToJointIndex("Hips")].trans;
-        const glm::vec2 bodyCircleCenter(hipsTrans.x, hipsTrans.z);
+        // Use this capsule to represent the avatar body.
+        const float bodyCapsuleRadius = params.bodyCapsuleRadius;
+        const glm::vec3 bodyCapsuleCenter = hipsTrans - params.bodyCapsuleLocalOffset;
+        const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
+        const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
 
         if (params.isLeftEnabled) {
 
-            // project the hand position onto the xz plane.
-            glm::vec2 handCircleCenter(params.leftPosition.x, params.leftPosition.z);
-
-            // check for 2d overlap of the hand and body circles.
-            auto circleToCircle = handCircleCenter - bodyCircleCenter;
-            const float circleToCircleLength = glm::length(circleToCircle);
-            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
-            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
-                // push the hands out of the body
-                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
+            // prevent the hand IK targets from intersecting the body capsule
+            glm::vec3 handPosition = params.leftPosition;
+            glm::vec3 displacement(glm::vec3::_null);
+            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                handPosition -= displacement;
             }
 
-            glm::vec3 handPosition(handCircleCenter.x, params.leftPosition.y, handCircleCenter.y);
             _animVars.set("leftHandPosition", handPosition);
             _animVars.set("leftHandRotation", params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
@@ -1115,19 +1101,13 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         if (params.isRightEnabled) {
 
-            // project the hand position onto the xz plane.
-            glm::vec2 handCircleCenter(params.rightPosition.x, params.rightPosition.z);
-
-            // check for 2d overlap of the hand and body circles.
-            auto circleToCircle = handCircleCenter - bodyCircleCenter;
-            const float circleToCircleLength = glm::length(circleToCircle);
-            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
-            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
-                // push the hands out of the body
-                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
+            // prevent the hand IK targets from intersecting the body capsule
+            glm::vec3 handPosition = params.rightPosition;
+            glm::vec3 displacement(glm::vec3::_null);
+            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                handPosition -= displacement;
             }
 
-            glm::vec3 handPosition(handCircleCenter.x, params.rightPosition.y, handCircleCenter.y);
             _animVars.set("rightHandPosition", handPosition);
             _animVars.set("rightHandRotation", params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
@@ -1271,7 +1251,11 @@ void Rig::computeAvatarBoundingCapsule(
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 
-    AnimPose hips = geometryToRig * _animSkeleton->getAbsoluteBindPose(_animSkeleton->nameToJointIndex("Hips"));
+    AnimPose hips(glm::vec3(1), glm::quat(), glm::vec3());
+    int hipsIndex = indexOfJoint("Hips");
+    if (hipsIndex >= 0) {
+        hips = geometryToRig * _animSkeleton->getAbsoluteBindPose(hipsIndex);
+    }
     AnimVariantMap animVars;
     glm::quat handRotation = glm::angleAxis(PI, Vectors::UNIT_X);
     animVars.set("leftHandPosition", hips.trans);
@@ -1281,8 +1265,8 @@ void Rig::computeAvatarBoundingCapsule(
     animVars.set("rightHandRotation", handRotation);
     animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
 
-    int rightFootIndex = _animSkeleton->nameToJointIndex("RightFoot");
-    int leftFootIndex = _animSkeleton->nameToJointIndex("LeftFoot");
+    int rightFootIndex = indexOfJoint("RightFoot");
+    int leftFootIndex = indexOfJoint("LeftFoot");
     if (rightFootIndex != -1 && leftFootIndex != -1) {
         glm::vec3 foot = Vectors::ZERO;
         glm::quat footRotation = glm::angleAxis(0.5f * PI, Vectors::UNIT_X);
@@ -1314,7 +1298,7 @@ void Rig::computeAvatarBoundingCapsule(
 
     // HACK to reduce the radius of the bounding capsule to be tight with the torso, we only consider joints
     // from the head to the hips when computing the rest of the bounding capsule.
-    int index = _animSkeleton->nameToJointIndex(QString("Head"));
+    int index = indexOfJoint("Head");
     while (index != -1) {
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
         AnimPose pose = finalPoses[index];
@@ -1337,3 +1321,5 @@ void Rig::computeAvatarBoundingCapsule(
     glm::vec3 rigCenter = (geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum)));
     localOffsetOut = rigCenter - (geometryToRig * rootPosition);
 }
+
+

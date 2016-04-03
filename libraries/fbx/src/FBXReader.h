@@ -111,7 +111,7 @@ public:
     QString texcoordSetName;
     
     bool isBumpmap{ false };
-    
+
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
 
@@ -130,32 +130,55 @@ class FBXMaterial {
 public:
     FBXMaterial() {};
     FBXMaterial(const glm::vec3& diffuseColor, const glm::vec3& specularColor, const glm::vec3& emissiveColor,
-        const glm::vec2& emissiveParams, float shininess, float opacity) :
+         float shininess, float opacity) :
         diffuseColor(diffuseColor),
         specularColor(specularColor),
         emissiveColor(emissiveColor),
-        emissiveParams(emissiveParams),
         shininess(shininess),
         opacity(opacity)  {}
 
     glm::vec3 diffuseColor{ 1.0f };
-    float diffuseFactor = 1.0f;
+    float diffuseFactor{ 1.0f };
     glm::vec3 specularColor{ 0.02f };
-    float specularFactor = 1.0f;
+    float specularFactor{ 1.0f };
 
     glm::vec3 emissiveColor{ 0.0f };
-    glm::vec2 emissiveParams{ 0.0f, 1.0f };
-    float shininess = 23.0f;
-    float opacity = 1.0f;
+    float emissiveFactor{ 0.0f };
+
+    float shininess{ 23.0f };
+    float opacity{ 1.0f };
+
+    float metallic{ 0.0f };
+    float roughness{ 1.0f };
+    float emissiveIntensity{ 1.0f };
 
     QString materialID;
+    QString name;
     model::MaterialPointer _material;
 
-    FBXTexture diffuseTexture;
-    FBXTexture opacityTexture;
     FBXTexture normalTexture;
+    FBXTexture albedoTexture;
+    FBXTexture opacityTexture;
+    FBXTexture glossTexture;
+    FBXTexture roughnessTexture;
     FBXTexture specularTexture;
+    FBXTexture metallicTexture;
     FBXTexture emissiveTexture;
+    FBXTexture occlusionTexture;
+    FBXTexture lightmapTexture;
+    glm::vec2 lightmapParams{ 0.0f, 1.0f };
+
+
+    bool isPBSMaterial{ false };
+    // THe use XXXMap are not really used to drive which map are going or not, debug only
+    bool useNormalMap{ false };
+    bool useAlbedoMap{ false };
+    bool useOpacityMap{ false };
+    bool useRoughnessMap{ false };
+    bool useSpecularMap{ false };
+    bool useMetallicMap{ false };
+    bool useEmissiveMap{ false };
+    bool useOcclusionMap{ false };
 
     bool needTangentSpace() const;
 };
@@ -391,17 +414,27 @@ public:
     FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
+    // Hashes the original RelativeFilename of textures
+    QHash<QString, QByteArray> _textureFilepaths;
+    // Hashes the place to look for textures, in case they are not inlined
     QHash<QString, QByteArray> _textureFilenames;
+    // Hashes texture content by filepath, in case they are inlined
     QHash<QByteArray, QByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;
 
 
     QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> diffuseFactorTextures;
+    QHash<QString, QString> transparentTextures;
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> normalTextures;
     QHash<QString, QString> specularTextures;
+    QHash<QString, QString> metallicTextures;
+    QHash<QString, QString> roughnessTextures;
+    QHash<QString, QString> shininessTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> occlusionTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 

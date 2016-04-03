@@ -35,14 +35,14 @@ void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
 
-glm::mat4 OculusLegacyDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    static uint32_t lastFrameSeen = 0;
-    if (frameIndex > lastFrameSeen) {
-        Lock lock(_mutex);
-        _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
-        lastFrameSeen = frameIndex;
-    }
-    return toGlm(_trackingState.HeadPose.ThePose);
+void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    FrameInfo frame;
+    frame.predictedDisplayTime = frame.sensorSampleTime = ovr_GetTimeInSeconds();
+    _trackingState = ovrHmd_GetTrackingState(_hmd, frame.predictedDisplayTime);
+    frame.headPose = toGlm(_trackingState.HeadPose.ThePose);
+    _currentRenderFrameInfo.set(frame);
+    Lock lock(_mutex);
+    _frameInfos[frameIndex] = frame;
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
@@ -72,18 +72,20 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
     return result;
 }
 
-void OculusLegacyDisplayPlugin::activate() {
-    HmdDisplayPlugin::activate();
+bool OculusLegacyDisplayPlugin::internalActivate() {
+    Parent::internalActivate();
     
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
+        return false;
     }
     
     _hswDismissed = false;
     _hmd = ovrHmd_Create(0);
     if (!_hmd) {
         qFatal("Failed to acquire HMD");
+        return false;
     }
     
     _ipd = ovrHmd_GetFloat(_hmd, OVR_KEY_IPD, _ipd);
@@ -111,10 +113,12 @@ void OculusLegacyDisplayPlugin::activate() {
                                   ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0)) {
         qFatal("Could not attach to sensor device");
     }
+
+    return true;
 }
 
-void OculusLegacyDisplayPlugin::deactivate() {
-    HmdDisplayPlugin::deactivate();
+void OculusLegacyDisplayPlugin::internalDeactivate() {
+	Parent::internalDeactivate();
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
@@ -128,7 +132,7 @@ void OculusLegacyDisplayPlugin::customizeContext() {
         glewInit();
         glGetError();
     });
-    HmdDisplayPlugin::customizeContext();
+    Parent::customizeContext();
 #if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;

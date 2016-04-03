@@ -19,8 +19,8 @@
 #include <ObjectMotionState.h>
 #include <PerfStat.h>
 
-#include "../render-utils/simple_vert.h"
-#include "../render-utils/simple_frag.h"
+#include <render-utils/simple_vert.h>
+#include <render-utils/simple_frag.h>
 
 EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableBoxEntityItem(entityID) };
@@ -31,7 +31,9 @@ EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID,
 void RenderableBoxEntityItem::setUserData(const QString& value) {
     if (value != getUserData()) {
         BoxEntityItem::setUserData(value);
-        _procedural.reset();
+        if (_procedural) {
+            _procedural->parse(value);
+        }
     }
 }
 
@@ -39,7 +41,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Box);
     Q_ASSERT(args->_batch);
-
 
     if (!_procedural) {
         _procedural.reset(new Procedural(this->getUserData()));

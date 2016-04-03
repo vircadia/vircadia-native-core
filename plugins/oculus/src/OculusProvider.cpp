@@ -14,15 +14,19 @@
 
 #include <plugins/RuntimePlugin.h>
 #include <plugins/DisplayPlugin.h>
+#include <plugins/InputPlugin.h>
 
 #include "OculusDisplayPlugin.h"
 #include "OculusDebugDisplayPlugin.h"
+#include "OculusControllerManager.h"
 
-class OculusProvider : public QObject, public DisplayProvider
+class OculusProvider : public QObject, public DisplayProvider, InputProvider
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID DisplayProvider_iid FILE "oculus.json")
     Q_INTERFACES(DisplayProvider)
+    Q_PLUGIN_METADATA(IID InputProvider_iid FILE "oculus.json")
+    Q_INTERFACES(InputProvider)
 
 public:
     OculusProvider(QObject* parent = nullptr) : QObject(parent) {}
@@ -47,8 +51,20 @@ public:
         return _displayPlugins;
     }
 
+    virtual InputPluginList getInputPlugins() override {
+        static std::once_flag once;
+        std::call_once(once, [&] {
+            InputPluginPointer plugin(new OculusControllerManager());
+            if (plugin->isSupported()) {
+                _inputPlugins.push_back(plugin);
+            }
+        });
+        return _inputPlugins;
+    }
+
 private:
     DisplayPluginList _displayPlugins;
+    InputPluginList _inputPlugins;
 };
 
 #include "OculusProvider.moc"

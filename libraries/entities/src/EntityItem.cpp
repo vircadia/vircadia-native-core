@@ -142,6 +142,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                             EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
+
     // ALL this fits...
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -514,7 +515,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // we can confidently ignore this packet
     EntityTreePointer tree = getTree();
     if (tree && tree->isDeletedEntity(_id)) {
-        qDebug() << "Recieved packet for previously deleted entity [" << _id << "] ignoring. (inside " << __FUNCTION__ << ")";
+        #ifdef WANT_DEBUG
+            qDebug() << "Received packet for previously deleted entity [" << _id << "] ignoring. "
+                        "(inside " << __FUNCTION__ << ")";
+        #endif
         ignoreServerPacket = true;
     }
 
@@ -677,7 +681,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, updateRegistrationPoint);
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
@@ -1006,6 +1010,10 @@ EntityTreePointer EntityItem::getTree() const {
     return tree;
 }
 
+SpatialParentTree* EntityItem::getParentTree() const {
+    return getTree().get();
+}
+
 bool EntityItem::wantTerseEditLogging() const {
     EntityTreePointer tree = getTree();
     return tree ? tree->wantTerseEditLogging() : false;
@@ -1120,7 +1128,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 
     // these (along with "position" above) affect tree structure
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, updateRegistrationPoint);
 
     // these (along with all properties above) affect the simulation
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
@@ -1152,6 +1160,12 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
+
+    AACube saveQueryAACube = _queryAACube;
+    checkAndAdjustQueryAACube();
+    if (saveQueryAACube != _queryAACube) {
+        somethingChanged = true;
+    }
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
@@ -1340,6 +1354,15 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getDimensions());
 }
 
+void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
+    if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
+        glm::mat4 scale = glm::scale(getDimensions());
+        glm::mat4 registration = scale * glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+        glm::vec3 regTransVec = glm::vec3(registration[3]); // extract position component from matrix
+        info.setOffset(regTransVec);
+    }
+}
+
 bool EntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         bool success;
@@ -1348,12 +1371,21 @@ bool EntityItem::contains(const glm::vec3& point) const {
     } else {
         ShapeInfo info;
         info.setParams(getShapeType(), glm::vec3(0.5f));
+        adjustShapeInfoByRegistration(info);
         return info.contains(worldToEntity(point));
     }
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
+    adjustShapeInfoByRegistration(info);
+}
+
+void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
+    if (value != _registrationPoint) {
+        setRegistrationPoint(value);
+        _dirtyFlags |= Simulation::DIRTY_SHAPE;
+    }
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
@@ -1949,4 +1981,26 @@ void EntityItem::locationChanged() {
 void EntityItem::dimensionsChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::dimensionsChanged(); // Do what you have to do
+}
+
+void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
+    bool success;
+    auto globalPosition = getPosition(success);
+    if (success) {
+        properties.setPosition(globalPosition + offset);
+        properties.setRotation(getRotation());
+        properties.setDimensions(getDimensions());
+        // Should we do velocities and accelerations, too? This could end up being quite involved, which is why the method exists.
+    } else {
+        properties.setPosition(getQueryAACube().calcCenter() + offset); // best we can do
+    }
+    if (!messageTemplate.isEmpty()) {
+        QString name = properties.getName();
+        if (name.isEmpty()) {
+            name = EntityTypes::getEntityTypeName(properties.getType());
+        }
+        qCWarning(entities) << messageTemplate.arg(getEntityItemID().toString()).arg(name).arg(properties.getParentID().toString());
+    }
+    QUuid empty;
+    properties.setParentID(empty);
 }

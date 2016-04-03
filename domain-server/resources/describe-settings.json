@@ -186,6 +186,15 @@
           "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
           "default": "",
           "advanced": true
+        },
+        {
+          "name": "max_bandwidth",
+          "type": "double",
+          "label": "Max Bandwidth Per User",
+          "help": "The maximum upstream bandwidth each user can use (in Mb/s).",
+          "placeholder": "10.0",
+          "default": "",
+          "advanced": true
         }
       ]
     },
@@ -230,22 +239,40 @@
           },
           "columns": [
             {
-              "name": "x_range",
-              "label": "X range",
+              "name": "x_min",
+              "label": "X start",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "-16384.0"
             },
             {
-              "name": "y_range",
-              "label": "Y range",
+              "name": "x_max",
+              "label": "X end",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "16384.0"
+            },            
+            {
+              "name": "y_min",
+              "label": "Y start",
+              "can_set": true,
+              "placeholder": "-16384.0"
             },
             {
-              "name": "z_range",
-              "label": "Z range",
+              "name": "y_max",
+              "label": "Y end",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "16384.0"
+            },
+            {
+              "name": "z_min",
+              "label": "Z start",
+              "can_set": true,
+              "placeholder": "-16384.0"
+            },
+            {
+              "name": "z_max",
+              "label": "Z end",
+              "can_set": true,
+              "placeholder": "16384.0"
             }
           ]
         },
@@ -281,7 +308,7 @@
           "name": "reverb",
           "type": "table",
           "label": "Reverb Settings",
-          "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet level of -10 db. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet level of -5 db.",
+          "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet/dry mix of 25%. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet/dry mix of 50%.",
           "numbered": true,
           "columns": [
             {
@@ -298,9 +325,9 @@
             },
             {
               "name": "wet_level",
-              "label": "Wet Level",
+              "label": "Wet/Dry Mix",
               "can_set": true,
-              "placeholder": "(in db)"
+              "placeholder": "(in percent)"
             }
           ]
         }

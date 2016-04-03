@@ -8,16 +8,15 @@
 
 #include "SideBySideStereoDisplayPlugin.h"
 #include <GLMHelpers.h>
+#include <CursorManager.h>
+#include <plugins/PluginContainer.h>
+#include <gl/GLWidget.h>
+#include "../CompositorHelper.h"
 
 const QString SideBySideStereoDisplayPlugin::NAME("3D TV - Side by Side Stereo");
 
-SideBySideStereoDisplayPlugin::SideBySideStereoDisplayPlugin() {
-}
-
 glm::uvec2 SideBySideStereoDisplayPlugin::getRecommendedRenderSize() const {
-    uvec2 result = WindowOpenGLDisplayPlugin::getRecommendedRenderSize();
+    uvec2 result = Parent::getRecommendedRenderSize();
     result.x *= 2;
     return result;
 }
-
-

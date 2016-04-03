@@ -14,11 +14,11 @@
 uniform samplerCube cubeMap;
 
 struct Skybox {
-    vec4 _color;
+    vec4 color;
 };
 
 uniform skyboxBuffer {
-    Skybox _skybox;
+    Skybox skybox;
 };
 
 in vec3  _normal;
@@ -35,23 +35,24 @@ void main(void) {
 #ifdef PROCEDURAL
 
     vec3 color = getSkyboxColor();
+     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
+     color = pow(color, vec3(2.2));
     _fragColor = vec4(color, 0.0);
 
+    // FIXME: scribe does not yet scrub out else statements
+    return;
+
 #else 
-
     vec3 coord = normalize(_normal);
+    vec3 color = skybox.color.rgb;
 
-    // Skybox color or blend with skymap
-    vec3 color = _skybox._color.rgb;
-    if (_skybox._color.a > 0.0) {
-        vec3 texel = texture(cubeMap, coord).rgb;
-        if (_skybox._color.a < 2.0) {
-            color *= texel;
-        } else {
-            color = texel;
+    // blend is only set if there is a cubemap
+    if (skybox.color.a > 0.0) {
+        color = texture(cubeMap, coord).rgb;
+        if (skybox.color.a < 1.0) {
+            color *= skybox.color.rgb;
         }
-   }
-
+    }
     _fragColor = vec4(color, 0.0);
 
 #endif

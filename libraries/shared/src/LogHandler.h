@@ -42,6 +42,7 @@ public:
 
     void setShouldOutputProcessID(bool shouldOutputProcessID) { _shouldOutputProcessID = shouldOutputProcessID; }
     void setShouldOutputThreadID(bool shouldOutputThreadID) { _shouldOutputThreadID = shouldOutputThreadID; }
+    void setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds) { _shouldDisplayMilliseconds = shouldDisplayMilliseconds; }
 
     QString printMessage(LogMsgType type, const QMessageLogContext& context, const QString &message);
 
@@ -57,8 +58,9 @@ private:
     void flushRepeatedMessages();
 
     QString _targetName;
-    bool _shouldOutputProcessID;
-    bool _shouldOutputThreadID;
+    bool _shouldOutputProcessID { false };
+    bool _shouldOutputThreadID { false };
+    bool _shouldDisplayMilliseconds { false };
     QSet<QString> _repeatedMessageRegexes;
     QHash<QString, int> _repeatMessageCountHash;
     QHash<QString, QString> _lastRepeatedMessage;

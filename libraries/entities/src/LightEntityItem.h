@@ -16,6 +16,12 @@
 
 class LightEntityItem : public EntityItem {
 public:
+    static const bool DEFAULT_IS_SPOTLIGHT;
+    static const float DEFAULT_INTENSITY;
+    static const float DEFAULT_FALLOFF_RADIUS;
+    static const float DEFAULT_EXPONENT;
+    static const float DEFAULT_CUTOFF;
+
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     LightEntityItem(const EntityItemID& entityItemID);
@@ -65,6 +71,9 @@ public:
     float getIntensity() const { return _intensity; }
     void setIntensity(float value) { _intensity = value; }
 
+    float getFalloffRadius() const { return _falloffRadius; }
+    void setFalloffRadius(float value);
+
     float getExponent() const { return _exponent; }
     void setExponent(float value) { _exponent = value; }
 
@@ -78,10 +87,11 @@ protected:
 
     // properties of a light
     rgbColor _color;
-    bool _isSpotlight;
-    float _intensity;
-    float _exponent;
-    float _cutoff;
+    bool _isSpotlight { DEFAULT_IS_SPOTLIGHT };
+    float _intensity { DEFAULT_INTENSITY };
+    float _falloffRadius { DEFAULT_FALLOFF_RADIUS };
+    float _exponent { DEFAULT_EXPONENT };
+    float _cutoff { DEFAULT_CUTOFF };
 
     static bool _lightsArePickable;
 };

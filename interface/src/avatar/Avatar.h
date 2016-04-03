@@ -22,7 +22,6 @@
 
 #include <render/Scene.h>
 
-#include "Hand.h"
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "world.h"
@@ -58,7 +57,7 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
-    Avatar(RigPointer rig = nullptr);
+    explicit Avatar(RigPointer rig = nullptr);
     ~Avatar();
 
     typedef render::Payload<AvatarData> Payload;
@@ -85,13 +84,13 @@ public:
     bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
-    SkeletonModel& getSkeletonModel() { return _skeletonModel; }
-    const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
+    SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
+    const SkeletonModelPointer getSkeletonModel() const { return _skeletonModel; }
     glm::vec3 getChestPosition() const;
     float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
-    Hand* getHand() { return static_cast<Hand*>(_handData); }
+
     glm::quat getWorldAlignedOrientation() const;
 
     AABox getBounds() const;
@@ -115,7 +114,6 @@ public:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
-    virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
@@ -145,7 +143,7 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
-    virtual void updateAttitude() override { _skeletonModel.updateAttitude(); }
+    virtual void updateAttitude() override { _skeletonModel->updateAttitude(); }
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity
@@ -189,10 +187,11 @@ protected:
 
     void setMotionState(AvatarMotionState* motionState);
 
-    SkeletonModel _skeletonModel;
+    SkeletonModelPointer _skeletonModel;
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
+    std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
     float _bodyYawDelta;  // degrees/sec
 
@@ -231,8 +230,8 @@ protected:
     float getPelvisFloatingHeight() const;
     glm::vec3 getDisplayNamePosition() const;
 
-    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const;
+    Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();

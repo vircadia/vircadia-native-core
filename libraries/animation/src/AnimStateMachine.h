@@ -110,7 +110,7 @@ protected:
 
 public:
 
-    AnimStateMachine(const QString& id);
+    explicit AnimStateMachine(const QString& id);
     virtual ~AnimStateMachine() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;

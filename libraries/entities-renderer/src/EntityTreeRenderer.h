@@ -29,6 +29,9 @@ class Model;
 class ScriptEngine;
 class ZoneEntityItem;
 
+class Model;
+using ModelPointer = std::shared_ptr<Model>;
+using ModelWeakPointer = std::weak_ptr<Model>;
 
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
@@ -53,7 +56,7 @@ public:
     virtual void init();
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
-    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
+    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem);
     virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem);
     
     /// clears the tree
@@ -63,13 +66,13 @@ public:
     void reloadEntityScripts();
 
     /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE Model* allocateModel(const QString& url, const QString& collisionUrl);
+    Q_INVOKABLE ModelPointer allocateModel(const QString& url, const QString& collisionUrl);
     
     /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
-    Q_INVOKABLE Model* updateModel(Model* original, const QString& newUrl, const QString& collisionUrl);
+    Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl, const QString& collisionUrl);
 
     /// if a renderable entity item is done with a model, it should return it to us
-    void releaseModel(Model* model);
+    void releaseModel(ModelPointer model);
     
     void deleteReleasedModels();
     
@@ -109,6 +112,7 @@ public slots:
     void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void updateEntityRenderStatus(bool shouldRenderEntities);
+    void updateZone(const EntityItemID& id);
 
     // optional slots that can be wired to menu items
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
@@ -123,11 +127,12 @@ protected:
 
 private:
     void addEntityToScene(EntityItemPointer entity);
+    bool findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar);
 
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
 
-    QList<Model*> _releasedModels;
+    QList<ModelPointer> _releasedModels;
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                 bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
                                                                 const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>());
@@ -136,15 +141,18 @@ private:
     EntityItemID _currentClickingOnEntityID;
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
-    void checkEnterLeaveEntities();
+    bool checkEnterLeaveEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 
-    glm::vec3 _lastAvatarPosition;
+    glm::vec3 _lastAvatarPosition { 0.0f };
     QVector<EntityItemID> _currentEntitiesInside;
 
     bool _pendingSkyboxTexture { false };
     NetworkTexturePointer _skyboxTexture;
+
+    bool _pendingAmbientTexture { false };
+    NetworkTexturePointer _ambientTexture;
 
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
@@ -169,6 +177,10 @@ private:
     bool _hasPreviousZone { false };
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
+
+    quint64 _lastZoneCheck { 0 };
+    const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
+    const float ZONE_CHECK_DISTANCE = 0.001f;
 
     glm::vec3 _previousKeyLightColor;
     float _previousKeyLightIntensity;

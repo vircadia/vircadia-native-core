@@ -75,7 +75,9 @@ public:
     EntityItem(const EntityItemID& entityItemID);
     virtual ~EntityItem();
 
-    inline EntityItemPointer getThisPointer() { return std::static_pointer_cast<EntityItem>(shared_from_this()); }
+    inline EntityItemPointer getThisPointer() const {
+        return std::static_pointer_cast<EntityItem>(std::const_pointer_cast<SpatiallyNestable>(shared_from_this()));
+    }
 
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
@@ -84,6 +86,8 @@ public:
 
     /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties);
+    // Update properties with empty parent id and globalized/absolute values (applying offset), and apply (non-empty) log template to args id, name-or-type, parent id.
+    void globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate = QString(), const glm::vec3& offset = glm::vec3(0.0f)) const;
 
     /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
@@ -305,6 +309,7 @@ public:
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
 
+    virtual void adjustShapeInfoByRegistration(ShapeInfo& info) const;
     virtual bool contains(const glm::vec3& point) const;
 
     virtual bool isReadyToComputeShape() { return !isDead(); }
@@ -319,6 +324,7 @@ public:
     virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
+    virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
     void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
@@ -355,6 +361,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
+    virtual SpatialParentTree* getParentTree() const;
     bool wantTerseEditLogging() const;
 
     glm::mat4 getEntityToWorldMatrix() const;
@@ -366,7 +373,8 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void flagForOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATOR_OWNERSHIP; }
+    void pokeSimulationOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE; }
+    void grabSimulationOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB; }
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);

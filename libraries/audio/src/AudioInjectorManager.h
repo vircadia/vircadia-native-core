@@ -50,8 +50,9 @@ private:
     using Lock = std::unique_lock<Mutex>;
     
     bool threadInjector(AudioInjector* injector);
-    void restartFinishedInjector(AudioInjector* injector);
+    bool restartFinishedInjector(AudioInjector* injector);
     void notifyInjectorReadyCondition() { _injectorReady.notify_one(); }
+    bool wouldExceedLimits();
     
     AudioInjectorManager() {};
     AudioInjectorManager(const AudioInjectorManager&) = delete;

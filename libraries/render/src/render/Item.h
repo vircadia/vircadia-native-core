@@ -112,6 +112,7 @@ public:
     bool isPickable() const { return _flags[PICKABLE]; }
 
     bool isLayered() const { return _flags[LAYERED]; }
+    bool isSpatial() const { return !isLayered(); }
 
     // Probably not public, flags used by the scene
     bool isSmall() const { return _flags[SMALLER]; }
@@ -217,6 +218,10 @@ public:
     static const ID INVALID_ITEM_ID = 0;
     static const ItemCell INVALID_CELL = -1;
 
+    // Convenient function to clear an ID or check it s valid
+    static void clearID(ID& id) { id = INVALID_ITEM_ID; }
+    static bool isValidID(const ID id) { return id != INVALID_ITEM_ID; }
+
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     
@@ -308,11 +313,11 @@ public:
     Item() {}
     ~Item() {}
 
-    // Main scene / item managment interface Reset/Update/Kill
+    // Main scene / item managment interface reset/update/kill
     void resetPayload(const PayloadPointer& payload);
-    void resetCell(ItemCell cell, bool _small) { _cell = cell; _key.setSmaller(_small); }
-    void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); } // Communicate update to the payload
-    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; } // Kill means forget the payload and key and cell
+    void resetCell(ItemCell cell = INVALID_CELL, bool _small = false) { _cell = cell; _key.setSmaller(_small); }
+    void update(const UpdateFunctorPointer& updateFunctor); // communicate update to payload
+    void kill() { _payload.reset(); resetCell(); _key._flags.reset(); } // forget the payload, key, cell
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
@@ -460,7 +465,7 @@ public:
 using ItemBounds = std::vector<ItemBound>;
 
 // A map of items by ShapeKey to optimize rendering pipeline assignments
-using ShapesIDsBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;
+using ShapeBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;
 
 }
 

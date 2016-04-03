@@ -87,23 +87,25 @@ void DeferredLightingEffect::init() {
     _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
+    lp->setType(model::Light::SUN);
+
     // Add the global light to the light stage (for later shadow rendering)
     _lightStage.addLight(lp);
 
-    lp->setDirection(-glm::vec3(1.0f, 1.0f, 1.0f));
+    lp->setDirection(glm::vec3(-1.0f));
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
-    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
+    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
-        float intensity) {
-    addSpotLight(position, radius, color, intensity);    
+        float intensity, float falloffRadius) {
+    addSpotLight(position, radius, color, intensity, falloffRadius);
 }
 
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
-    float intensity, const glm::quat& orientation, float exponent, float cutoff) {
+    float intensity, float falloffRadius, const glm::quat& orientation, float exponent, float cutoff) {
     
     unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
     if (lightID >= _allocatedLights.size()) {
@@ -115,7 +117,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     lp->setMaximumRadius(radius);
     lp->setColor(color);
     lp->setIntensity(intensity);
-    //lp->setShowContour(quadraticAttenuation);
+    lp->setFalloffRadius(falloffRadius);
 
     if (exponent == 0.0f && cutoff == PI) {
         lp->setType(model::Light::POINT);
@@ -262,7 +264,9 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                 deferredTransforms[i].projection = projMats[i];
 
                 auto sideViewMat = monoViewMat * glm::inverse(eyeViews[i]);
-                viewTransforms[i].evalFromRawMatrix(sideViewMat);
+              //  viewTransforms[i].evalFromRawMatrix(sideViewMat);
+                viewTransforms[i] = monoViewTransform;
+                viewTransforms[i].postTranslate(-glm::vec3((eyeViews[i][3])));// evalFromRawMatrix(sideViewMat);
                 deferredTransforms[i].viewInverse = sideViewMat;
 
                 deferredTransforms[i].stereoSide = (i == 0 ? -1.0f : 1.0f);
@@ -312,26 +316,25 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
             // First Global directional light and ambient pass
             {
-                bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
-
                 auto& program = _shadowMapEnabled ? _directionalLightShadow : _directionalLight;
                 LightLocationsPtr locations = _shadowMapEnabled ? _directionalLightShadowLocations : _directionalLightLocations;
+                const auto& keyLight = _allocatedLights[_globalLights.front()];
 
                 // Setup the global directional pass pipeline
                 {
                     if (_shadowMapEnabled) {
-                        if (useSkyboxCubemap) {
+                        if (keyLight->getAmbientMap()) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;
-                        } else if (_ambientLightMode > -1) {
+                        } else {
                             program = _directionalAmbientSphereLightShadow;
                             locations = _directionalAmbientSphereLightShadowLocations;
                         }
                     } else {
-                        if (useSkyboxCubemap) {
+                        if (keyLight->getAmbientMap()) {
                             program = _directionalSkyboxLight;
                             locations = _directionalSkyboxLightLocations;
-                        } else if (_ambientLightMode > -1) {
+                        } else {
                             program = _directionalAmbientSphereLight;
                             locations = _directionalAmbientSphereLightLocations;
                         }
@@ -356,7 +359,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                    geometryCache->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 }
 
-                if (useSkyboxCubemap) {
+                if (keyLight->getAmbientMap()) {
                     batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
                 }
             }
@@ -432,8 +435,9 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                     float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
                     // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
                     // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
+                    const float OVER_CONSERVATIVE_SCALE = 1.1f;
                     if ((eyeHalfPlaneDistance > -nearRadius) &&
-                        (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+                        (glm::distance(eyePoint, glm::vec3(light->getPosition())) < (expandedRadius * OVER_CONSERVATIVE_SCALE) + nearRadius)) {
                         coneParam.w = 0.0f;
                         batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
@@ -449,6 +453,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                         batch.setProjectionTransform( projMats[side]);
                         batch.setViewTransform(viewTransforms[side]);
                     } else {
+                        light->setShowContour(false);
                         coneParam.w = 1.0f;
                         batch._glUniform4fv(_spotLightLocations->coneParam, 1, reinterpret_cast< const float* >(&coneParam));
 
@@ -495,15 +500,14 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    auto globalLight = _allocatedLights[_globalLights.front()];
+    auto keyLight = _allocatedLights[_globalLights.front()];
 
     if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
+        batch.setUniformBuffer(lightBufferUnit, keyLight->getSchemaBuffer());
     }
 
-    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
-    if (useSkyboxCubemap && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, _skybox->getCubemap());
+    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, keyLight->getAmbientMap());
     }
 }
 
@@ -514,7 +518,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DEFERRED_BUFFER_COLOR_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
@@ -562,32 +566,14 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 }
 
-void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= 0) && (preset < gpu::SphericalHarmonics::NUM_PRESET)) {
-        _ambientLightMode = preset;
-        auto light = _allocatedLights.front();
-        light->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(preset % gpu::SphericalHarmonics::NUM_PRESET));
-    } else {
-        // force to preset 0
-        setAmbientLightMode(0);
-    }
-}
-
-void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity) {
-    auto light = _allocatedLights.front();
-    light->setDirection(direction);
-    light->setColor(diffuse);
-    light->setIntensity(intensity);
-    light->setAmbientIntensity(ambientIntensity);
-}
-
-void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {
-    _skybox = skybox;
-    auto light = _allocatedLights.front();
-
-    if (_skybox && _skybox->getCubemap() && _skybox->getCubemap()->isDefined() && _skybox->getCubemap()->getIrradiance()) {
-        light->setAmbientSphere( (*_skybox->getCubemap()->getIrradiance()) );
-    }
+void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
+    auto globalLight = _allocatedLights.front();
+    globalLight->setDirection(light->getDirection());
+    globalLight->setColor(light->getColor());
+    globalLight->setIntensity(light->getIntensity());
+    globalLight->setAmbientIntensity(light->getAmbientIntensity());
+    globalLight->setAmbientSphere(light->getAmbientSphere());
+    globalLight->setAmbientMap(light->getAmbientMap());
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {

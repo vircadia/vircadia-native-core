@@ -104,7 +104,9 @@ void AudioInjector::restart() {
 
     // reset state to start sending from beginning again
     _nextFrame = 0;
-    _frameTimer->invalidate();
+    if (_frameTimer) {
+        _frameTimer->invalidate();
+    }
     _hasSentFirstFrame = false;
 
     // check our state to decide if we need extra handling for the restart request
@@ -122,7 +124,9 @@ void AudioInjector::restart() {
             injectLocally();
         } else {
             // wake the AudioInjectorManager back up if it's stuck waiting
-            injectorManager->restartFinishedInjector(this);
+            if (!injectorManager->restartFinishedInjector(this)) {
+                _state = State::Finished; // we're not playing, so reset the state used by isPlaying.
+            }
         }
     }
 }

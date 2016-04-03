@@ -26,17 +26,15 @@ ParticleExplorerTool = function() {
         });
 
         that.webView.setVisible(true);
-        that.webView.eventBridge.webEventReceived.connect(that.webEventReceived);        
+        that.webView.webEventReceived.connect(that.webEventReceived);        
     }
 
 
     that.destroyWebView = function() {
         if (!that.webView) {
-            print("EBL CAN'ZT CLOSE WEB VIEW- IT DOESNT EXISTS!")
             return;
         }
 
-        print("EBL CLOSING WEB VIEW")
         that.webView.close();
         that.webView = null;
         that.activeParticleEntity = 0;

@@ -12,6 +12,7 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
+#include <mutex>
 #include <QtCore/QHash>
 #include <QtCore/QList>
 #include <QtCore/QObject>
@@ -53,12 +54,25 @@ static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 // object instead
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
 public:
-    QList<QPointer<Resource>> _pendingRequests;
-    QList<Resource*> _loadingRequests;
+    void appendPendingRequest(Resource* newRequest);
+    void appendActiveRequest(Resource* newRequest);
+    void removeRequest(Resource* doneRequest);
+    QList<QPointer<Resource>> getPendingRequests() const;
+    uint32_t getPendingRequestsCount() const;
+    QList<Resource*> getLoadingRequests() const;
+    Resource* getHighestPendingRequest();
+
 private:
     ResourceCacheSharedItems() { }
     virtual ~ResourceCacheSharedItems() { }
+
+    mutable Mutex _mutex;
+    QList<QPointer<Resource>> _pendingRequests;
+    QList<Resource*> _loadingRequests;
 };
 
 
@@ -67,17 +81,19 @@ class ResourceCache : public QObject {
     Q_OBJECT
     
 public:
-    static void setRequestLimit(int limit) { _requestLimit = limit; }
+    static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
+
+    static int getRequestsActive() { return _requestsActive; }
     
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*>& getLoadingRequests() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->_loadingRequests; }
+    static const QList<Resource*> getLoadingRequests() 
+        { return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests(); }
 
     static int getPendingRequestCount() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->_pendingRequests.size(); }
+        { return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount(); }
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
@@ -105,8 +121,11 @@ protected:
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
     
-    Q_INVOKABLE static void attemptRequest(Resource* resource);
+    /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
+    /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
+    Q_INVOKABLE static bool attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
+    static bool attemptHighestPriorityRequest();
 
 private:
     friend class Resource;
@@ -115,6 +134,7 @@ private:
     int _lastLRUKey = 0;
     
     static int _requestLimit;
+    static int _requestsActive;
 
     void getResourceAsynchronously(const QUrl& url);
     QReadWriteLock _resourcesToBeGottenLock;
@@ -161,6 +181,9 @@ public:
     /// For loading resources, returns the number of total bytes (<= zero if unknown).
     qint64 getBytesTotal() const { return _bytesTotal; }
 
+    /// For loaded resources, returns the number of actual bytes (defaults to total bytes if not explicitly set).
+    qint64 getBytes() const { return _bytes; }
+
     /// For loading resources, returns the load progress.
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
     
@@ -171,19 +194,22 @@ public:
 
     void setCache(ResourceCache* cache) { _cache = cache; }
 
-    Q_INVOKABLE void allReferencesCleared();
+    virtual void deleter() { allReferencesCleared(); }
     
     const QUrl& getURL() const { return _url; }
-    const QByteArray& getData() const { return _data; }
 
 signals:
-    /// Fired when the resource has been loaded.
-    void loaded(const QByteArray& request);
+    /// Fired when the resource has been downloaded.
+    /// This can be used instead of downloadFinished to access data before it is processed.
+    void loaded(const QByteArray request);
 
-    /// Fired when resource failed to load.
+    /// Fired when the resource has finished loading.
+    void finished(bool success);
+
+    /// Fired when the resource failed to load.
     void failed(QNetworkReply::NetworkError error);
 
-    /// Fired when resource is refreshed.
+    /// Fired when the resource is refreshed.
     void onRefresh();
 
 protected slots:
@@ -192,14 +218,21 @@ protected slots:
 protected:
     virtual void init();
 
-    /// Called when the download has finished
-    virtual void downloadFinished(const QByteArray& data);
+    /// Checks whether the resource is cacheable.
+    virtual bool isCacheable() const { return true; }
 
-    /// Should be called by subclasses when all the loading that will be done has been done.
+    /// Called when the download has finished.
+    /// This should be overridden by subclasses that need to process the data once it is downloaded.
+    virtual void downloadFinished(const QByteArray& data) { finishedLoading(true); }
+
+    /// Called when the download is finished and processed, sets the number of actual bytes.
+    void setBytes(qint64 bytes) { _bytes = bytes; }
+
+    /// Called when the download is finished and processed.
+    /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
 
-    /// Reinserts this resource into the cache.
-    virtual void reinsert();
+    Q_INVOKABLE void allReferencesCleared();
 
     QUrl _url;
     QUrl _activeUrl;
@@ -209,7 +242,6 @@ protected:
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
-    QByteArray _data;
     
 private slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
@@ -220,6 +252,7 @@ private:
     
     void makeRequest();
     void retry();
+    void reinsert();
     
     friend class ResourceCache;
     
@@ -228,6 +261,7 @@ private:
     QTimer* _replyTimer = nullptr;
     qint64 _bytesReceived = 0;
     qint64 _bytesTotal = 0;
+    qint64 _bytes = 0;
     int _attempts = 0;
 };
 

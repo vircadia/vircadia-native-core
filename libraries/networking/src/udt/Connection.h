@@ -76,6 +76,8 @@ public:
 
     HifiSockAddr getDestination() const { return _destination; }
 
+    void setMaxBandwidth(int maxBandwidth);
+
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);
@@ -84,6 +86,8 @@ private slots:
     void recordSentPackets(int payload, int total);
     void recordRetransmission();
     void queueInactive();
+    void queueTimeout();
+    void queueShortCircuitLoss(quint32 sequenceNumber);
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);
@@ -130,7 +134,9 @@ private:
     
     bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
     bool _isActive { true }; // flag used for inactivity of connection
-    
+
+    SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer SendQueue on creation, identifies connection during re-connect requests
+
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
     SequenceNumber _lastReceivedACK; // The last ACK received
@@ -140,8 +146,6 @@ private:
     SequenceNumber _lastSentACK; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
 
-    SequenceNumber _inactiveSendQueueSequenceNumber { 0 };
-   
     int _acksDuringSYN { 1 }; // The number of non-SYN ACKs sent during SYN
     int _lightACKsDuringSYN { 1 }; // The number of lite ACKs sent during SYN interval
     

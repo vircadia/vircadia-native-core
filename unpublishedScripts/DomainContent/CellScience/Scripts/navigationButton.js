@@ -7,7 +7,7 @@
 
 (function() {
 
-    var version = 11;
+    var version = 12;
     var added = false;
     this.frame = 0;
     var utilsScript = Script.resolvePath('utils.js');
@@ -23,22 +23,21 @@
     }
 
     this.initialize = function(entityId) {
-        print('JBP nav button should initialize' + entityId)
         var properties = Entities.getEntityProperties(entityId);
-        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false || properties.userData==="") {
             self.initTimeout = Script.setTimeout(function() {
-                print('JBP no user data yet, try again in one second')
+                //    print(' no user data yet, try again in one second')
                 self.initialize(entityId);
             }, 1000)
 
         } else {
-            print('JBP userdata before parse attempt' + properties.userData)
+            // print('userdata before parse attempt' + properties.userData)
             self.userData = null;
             try {
                 self.userData = JSON.parse(properties.userData);
             } catch (err) {
-                print('JBP error parsing json');
-                print('JBP properties are:' + properties.userData);
+                //  print(' error parsing json');
+                //  print(' properties are:' + properties.userData);
                 return;
             }
 
@@ -46,9 +45,9 @@
             var mySavedSettings = Settings.getValue(entityId);
 
             if (mySavedSettings.buttons !== undefined) {
-                print('JBP preload buttons' + mySavedSettings.buttons)
+                // print(' preload buttons' + mySavedSettings.buttons)
                 mySavedSettings.buttons.forEach(function(b) {
-                    print('JBP deleting button' + b)
+                    // print(' deleting button' + b)
                     Overlays.deleteOverlay(b);
                 })
                 Settings.setValue(entityId, '')
@@ -56,16 +55,15 @@
 
 
             self.buttonImageURL = baseURL + "GUI/GUI_" + self.userData.name + ".png?" + version;
-            print('JBP BUTTON IMAGE URL:' + self.buttonImageURL)
+            // print(' BUTTON IMAGE URL:' + self.buttonImageURL)
             if (self.button === undefined) {
-                // print('NAV NO BUTTON ADDING ONE!!')
+                //    print(' NO BUTTON ADDING ONE!!')
                 self.button = true;
                 self.addButton();
 
             } else {
-                // print('NAV SELF ALREADY HAS A BUTTON!!')
+                //print(' SELF ALREADY HAS A BUTTON!!')
             }
-
         }
     }
 

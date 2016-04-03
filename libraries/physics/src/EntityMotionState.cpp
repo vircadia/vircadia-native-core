@@ -65,7 +65,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _loopsWithoutOwner(0),
     _accelerationNearlyGravityCount(0),
     _numInactiveUpdates(1),
-    _outgoingPriority(ZERO_SIMULATION_PRIORITY)
+    _outgoingPriority(0)
 {
     _type = MOTIONSTATE_TYPE_ENTITY;
     assert(_entity);
@@ -103,33 +103,36 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
         if (_entity->getSimulatorID().isNull()) {
             // simulation ownership has been removed by an external simulator
             if (glm::length2(_entity->getVelocity()) == 0.0f) {
-                // this object is coming to rest --> clear the ACTIVATION flag and outgoing priority
+                // this object is coming to rest --> clear the ACTIVATION flag and _outgoingPriority
                 flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
                 _body->setActivationState(WANTS_DEACTIVATION);
-                _outgoingPriority = ZERO_SIMULATION_PRIORITY;
-                _loopsWithoutOwner = 0;
+                _outgoingPriority = 0;
             } else {
-                // unowned object is still moving --> we should volunteer to own it
+                // disowned object is still moving --> start timer for ownership bid
                 // TODO? put a delay in here proportional to distance from object?
-                setOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
-                _loopsWithoutOwner = LOOPS_FOR_SIMULATION_ORPHAN;
-                _nextOwnershipBid = 0;
+                upgradeOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             }
+            _loopsWithoutOwner = 0;
+        } else if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
+            // we just inherited ownership, make sure our desired priority matches what we have
+            upgradeOutgoingPriority(_entity->getSimulationPriority());
         } else {
-            // this entity's simulation is owned by someone, so we push its ownership expiry into the future
+            _outgoingPriority = 0;
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
-            if (Physics::getSessionUUID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
-                // either we already own the simulation or our old outgoing priority momentarily looses to current owner
-                // so we clear it
-                _outgoingPriority = ZERO_SIMULATION_PRIORITY;
-            }
         }
     }
-    if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
-        // The DIRTY_SIMULATOR_OWNERSHIP bit really means "we should bid for ownership at SCRIPT priority".
-        // Since that bit is set there must be a local script that is updating the physics properties of the objects
-        // therefore we upgrade _outgoingPriority to trigger a bid for ownership.
-        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
+    if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) {
+        // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bits really mean "we should bid for ownership because
+        // a local script has been changing physics properties, or we should adjust our own ownership priority".
+        // The desired priority is determined by which bits were set.
+        if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB) {
+            _outgoingPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
+        } else {
+            _outgoingPriority = SCRIPT_POKE_SIMULATION_PRIORITY;
+        }
+        // reset bid expiry so that we bid ASAP
+        _nextOwnershipBid = 0;
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
@@ -209,7 +212,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         _loopsWithoutOwner++;
 
         if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN && usecTimestampNow() > _nextOwnershipBid) {
-            setOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
+            upgradeOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
         }
     }
 
@@ -243,7 +246,7 @@ bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
     assert(_body);
     assert(_entity);
     assert(entityTreeIsLocked());
-    return _outgoingPriority != ZERO_SIMULATION_PRIORITY || sessionID == _entity->getSimulatorID() || _entity->actionDataNeedsTransmit();
+    return _outgoingPriority != 0 || sessionID == _entity->getSimulatorID() || _entity->actionDataNeedsTransmit();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -272,7 +275,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
 
     if (_numInactiveUpdates > 0) {
-        const uint8_t MAX_NUM_INACTIVE_UPDATES = 3;
+        const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
         if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES) {
             // clear local ownership (stop sending updates) and let the server clear itself
             _entity->clearSimulationOwnership();
@@ -282,7 +285,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         // until it is removed from the outgoing updates
         // (which happens when we don't own the simulation and it isn't touching our simulation)
         const float INACTIVE_UPDATE_PERIOD = 0.5f;
-        return (dt > INACTIVE_UPDATE_PERIOD);
+        return (dt > INACTIVE_UPDATE_PERIOD * (float)_numInactiveUpdates);
     }
 
     if (!_body->isActive()) {
@@ -298,7 +301,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     if (_entity->actionDataNeedsTransmit()) {
-        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
+        _outgoingPriority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
         return true;
     }
 
@@ -385,16 +388,15 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
 
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation
-        if (_outgoingPriority != ZERO_SIMULATION_PRIORITY) {
-            // but we would like to own it
-            if (_outgoingPriority < _entity->getSimulationPriority()) {
-                // but our priority loses to remote, so we don't bother trying
-                _outgoingPriority = ZERO_SIMULATION_PRIORITY;
-                return false;
-            }
-            return usecTimestampNow() > _nextOwnershipBid;
+        bool shouldBid = _outgoingPriority > 0 && // but we would like to own it and
+                usecTimestampNow() > _nextOwnershipBid; // it is time to bid again
+        if (shouldBid && _outgoingPriority < _entity->getSimulationPriority()) {
+            // we are insufficiently interested so clear our interest
+            // and reset the bid expiry
+            _outgoingPriority = 0;
+            _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
         }
-        return false;
+        return shouldBid;
     }
 
     return remoteSimulationOutOfSync(simulationStep);
@@ -404,8 +406,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     assert(_entity);
     assert(entityTreeIsLocked());
 
-    bool active = _body->isActive();
-    if (!active) {
+    if (!_body->isActive()) {
         // make sure all derivatives are zero
         glm::vec3 zero(0.0f);
         _entity->setVelocity(zero);
@@ -495,19 +496,25 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         qCDebug(physics) << "       lastSimulated:" << debugTime(lastSimulated, now);
     #endif //def WANT_DEBUG
 
-    if (sessionID == _entity->getSimulatorID()) {
-        // we think we own the simulation
-        if (!active) {
-            // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
-            // but we remember that we do still own it...  and rely on the server to tell us that we don't
-            properties.clearSimulationOwner();
-            _outgoingPriority = ZERO_SIMULATION_PRIORITY;
-        }
-        // else the ownership is not changing so we don't bother to pack it
-    } else {
+    if (_numInactiveUpdates > 0) {
+        // we own the simulation but the entity has stopped so we tell the server we're clearing simulatorID
+        // but we remember we do still own it...  and rely on the server to tell us we don't
+        properties.clearSimulationOwner();
+        _outgoingPriority = 0;
+    } else if (sessionID != _entity->getSimulatorID()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
+        _outgoingPriority = 0; // reset outgoing priority whenever we bid
+    } else if (_outgoingPriority != _entity->getSimulationPriority()) {
+        // we own the simulation but our desired priority has changed
+        if (_outgoingPriority == 0) {
+            // we should release ownership
+            properties.clearSimulationOwner();
+        } else {
+            // we just need to change the priority
+            properties.setSimulationOwner(sessionID, _outgoingPriority);
+        }
     }
 
     EntityItemID id(_entity->getID());
@@ -583,7 +590,8 @@ QUuid EntityMotionState::getSimulatorID() const {
 }
 
 void EntityMotionState::bump(uint8_t priority) {
-    setOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
+    assert(priority != 0);
+    upgradeOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
 }
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {
@@ -645,6 +653,6 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
-void EntityMotionState::setOutgoingPriority(uint8_t priority) {
+void EntityMotionState::upgradeOutgoingPriority(uint8_t priority) {
     _outgoingPriority = glm::max<uint8_t>(_outgoingPriority, priority);
 }

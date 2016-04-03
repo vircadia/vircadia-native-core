@@ -144,7 +144,12 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
 
-    DependencyManager::get<ScriptEngines>()->removeScriptEngine(this);
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    if (scriptEngines) {
+        scriptEngines->removeScriptEngine(this);
+    } else {
+        qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
+    }
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
@@ -153,6 +158,13 @@ void ScriptEngine::disconnectNonEssentialSignals() {
 }
 
 void ScriptEngine::runInThread() {
+    Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
+
+    if (_isThreaded) {
+        qCWarning(scriptengine) << "ScriptEngine already running in thread: " << getFilename();
+        return;
+    }
+
     _isThreaded = true;
     QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
@@ -208,10 +220,9 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
         return;
     }
 
-    _fileNameString = scriptURL.toString();
+    QUrl url = expandScriptUrl(scriptURL);
+    _fileNameString = url.toString();
     _isReloading = reload;
-
-    QUrl url(scriptURL);
 
     bool isPending;
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -222,7 +233,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
     if (_wantSignals) {
-        emit scriptLoaded(_fileNameString);
+        emit scriptLoaded(url.toString());
     }
 }
 
@@ -310,6 +321,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
+    registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
@@ -480,10 +492,10 @@ void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QStrin
         return;
     }
     RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
-    QScriptValueList& handlersForEvent = handlersOnEntity[eventName];
+    CallbackList& handlersForEvent = handlersOnEntity[eventName];
     // QScriptValue does not have operator==(), so we can't use QList::removeOne and friends. So iterate.
     for (int i = 0; i < handlersForEvent.count(); ++i) {
-        if (handlersForEvent[i].equals(handler)) {
+        if (handlersForEvent[i].function.equals(handler)) {
             handlersForEvent.removeAt(i);
             return; // Design choice: since comparison is relatively expensive, just remove the first matching handler.
         }
@@ -511,6 +523,13 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         // Connect up ALL the handlers to the global entities object's signals.
         // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)
         auto entities = DependencyManager::get<EntityScriptingInterface>();
+        // Bug? These handlers are deleted when entityID is deleted, which is nice.
+        // But if they are created by an entity script on a different entity, should they also be deleted when the entity script unloads?
+        // E.g., suppose a bow has an entity script that causes arrows to be created with a potential lifetime greater than the bow,
+        // and that the entity script adds (e.g., collision) handlers to the arrows. Should those handlers fire if the bow is unloaded?
+        // Also, what about when the entity script is REloaded?
+        // For now, we are leaving them around. Changing that would require some non-trivial digging around to find the
+        // handlers that were added while a given currentEntityIdentifier was in place. I don't think this is dangerous. Just perhaps unexpected. -HRS
         connect(entities.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityID) {
             _registeredHandlers.remove(entityID);
         });
@@ -558,8 +577,9 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
     if (!_registeredHandlers.contains(entityID)) {
         _registeredHandlers[entityID] = RegisteredEventHandlers();
     }
-    QScriptValueList& handlersForEvent = _registeredHandlers[entityID][eventName];
-    handlersForEvent << handler; // Note that the same handler can be added many times. See removeEntityEventHandler().
+    CallbackList& handlersForEvent = _registeredHandlers[entityID][eventName];
+    CallbackData handlerData = {handler, currentEntityIdentifier};
+    handlersForEvent << handlerData; // Note that the same handler can be added many times. See removeEntityEventHandler().
 }
 
 
@@ -652,11 +672,14 @@ void ScriptEngine::run() {
         }
 
         qint64 now = usecTimestampNow();
-        float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (!_isFinished) {
-            if (_wantSignals) {
-                emit update(deltaTime);
+        // we check for 'now' in the past in case people set their clock back
+        if (lastUpdate < now) {
+            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
             }
         }
         lastUpdate = now;
@@ -700,12 +723,29 @@ void ScriptEngine::run() {
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
 // we want to only call it in our own run "shutdown" processing.
 void ScriptEngine::stopAllTimers() {
-    QMutableHashIterator<QTimer*, QScriptValue> i(_timerFunctionMap);
+    QMutableHashIterator<QTimer*, CallbackData> i(_timerFunctionMap);
     while (i.hasNext()) {
         i.next();
         QTimer* timer = i.key();
         stopTimer(timer);
     }
+}
+void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
+     // We could maintain a separate map of entityID => QTimer, but someone will have to prove to me that it's worth the complexity. -HRS
+    QVector<QTimer*> toDelete;
+    QMutableHashIterator<QTimer*, CallbackData> i(_timerFunctionMap);
+    while (i.hasNext()) {
+        i.next();
+        if (i.value().definingEntityIdentifier != entityID) {
+            continue;
+        }
+        QTimer* timer = i.key();
+        toDelete << timer; // don't delete while we're iterating. save it.
+    }
+    for (auto timer:toDelete) { // now reap 'em
+        stopTimer(timer);
+    }
+
 }
 
 void ScriptEngine::stop() {
@@ -738,13 +778,14 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
     QScriptValue javascriptParameters = parameters.animVariantMapToScriptValue(this, names, useNames);
     QScriptValueList callingArguments;
     callingArguments << javascriptParameters;
+    assert(currentEntityIdentifier.isInvalidID()); // No animation state handlers from entity scripts.
     QScriptValue result = callback.call(QScriptValue(), callingArguments);
     resultHandler(result);
 }
 
 void ScriptEngine::timerFired() {
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
-    QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
+    CallbackData timerData = _timerFunctionMap.value(callingTimer);
 
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
@@ -753,10 +794,11 @@ void ScriptEngine::timerFired() {
     }
 
     // call the associated JS function, if it exists
-    if (timerFunction.isValid()) {
-        timerFunction.call();
+    if (timerData.function.isValid()) {
+        callWithEnvironment(timerData.definingEntityIdentifier, timerData.function, timerData.function, QScriptValueList());
     }
 }
+
 
 QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot) {
     // create the timer, add it to the map, and start it
@@ -768,7 +810,8 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
-    _timerFunctionMap.insert(newTimer, function);
+    CallbackData timerData = {function, currentEntityIdentifier};
+    _timerFunctionMap.insert(newTimer, timerData);
 
     newTimer->start(intervalMS);
     return newTimer;
@@ -804,7 +847,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     QUrl url(include);
     // first lets check to see if it's already a full URL
     if (!url.scheme().isEmpty()) {
-        return url;
+        return expandScriptUrl(url);
     }
 
     // we apparently weren't a fully qualified url, so, let's assume we're relative
@@ -821,7 +864,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     }
 
     // at this point we should have a legitimate fully qualified URL for our parent
-    url = parentURL.resolved(url);
+    url = expandScriptUrl(parentURL.resolved(url));
     return url;
 }
 
@@ -854,6 +897,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
 
     BatchLoader* loader = new BatchLoader(urls);
+    EntityItemID capturedEntityIdentifier = currentEntityIdentifier;
 
     auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
         auto parentURL = _parentURL;
@@ -865,13 +909,16 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                 // Set the parent url so that path resolution will be relative
                 // to this script's url during its initial evaluation
                 _parentURL = url.toString();
-                QScriptValue result = evaluate(contents, url.toString());
+                auto operation = [&]() {
+                    evaluate(contents, url.toString());
+                };
+                doWithEnvironment(capturedEntityIdentifier, operation);
             }
         }
         _parentURL = parentURL;
 
         if (callback.isFunction()) {
-            QScriptValue(callback).call();
+            callWithEnvironment(capturedEntityIdentifier, QScriptValue(callback), QScriptValue(), QScriptValueList());
         }
 
         loader->deleteLater();
@@ -912,6 +959,11 @@ void ScriptEngine::load(const QString& loadFile) {
             << "loadFile:" << loadFile << "parent script:" << getFilename();
         return; // bail early
     }
+    if (!currentEntityIdentifier.isInvalidID()) {
+        qCWarning(scriptengine) << "Script.load() from entity script is ignored... "
+            << "loadFile:" << loadFile << "parent script:" << getFilename();
+        return; // bail early
+    }
 
     QUrl url = resolvePath(loadFile);
     if (_isReloading) {
@@ -928,7 +980,7 @@ void ScriptEngine::load(const QString& loadFile) {
 }
 
 // Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
-void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs) {
+void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHandlerArgs) {
     if (QThread::currentThread() != thread()) {
         qDebug() << "*** ERROR *** ScriptEngine::forwardHandlerCall() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
         assert(false);
@@ -941,10 +993,13 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
     if (!handlersOnEntity.contains(eventName)) {
         return;
     }
-    QScriptValueList handlersForEvent = handlersOnEntity[eventName];
+    CallbackList handlersForEvent = handlersOnEntity[eventName];
     if (!handlersForEvent.isEmpty()) {
         for (int i = 0; i < handlersForEvent.count(); ++i) {
-            handlersForEvent[i].call(QScriptValue(), eventHanderArgs);
+            // handlersForEvent[i] can tonain many handlers that may have each been added by different interface or entity scripts,
+            // and the entity scripts may be for entities other than the one this is a handler for.
+            // Fortunately, the definingEntityIdentifier captured the entity script id (if any) when the handler was added.
+            callWithEnvironment(handlersForEvent[i].definingEntityIdentifier, handlersForEvent[i].function, QScriptValue(), eventHandlerArgs);
         }
     }
 }
@@ -1050,9 +1105,13 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QString file = QUrl(scriptOrURL).toLocalFile();
         lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
     }
+    QScriptValue entityScriptConstructor, entityScriptObject;
+    auto initialization = [&]{
+        entityScriptConstructor = evaluate(contents, fileName);
+        entityScriptObject = entityScriptConstructor.construct();
+    };
+    doWithEnvironment(entityID, initialization);
 
-    QScriptValue entityScriptConstructor = evaluate(contents, fileName);
-    QScriptValue entityScriptObject = entityScriptConstructor.construct();
     EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified };
     _entityScripts[entityID] = newDetails;
     if (isURL) {
@@ -1082,6 +1141,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
     if (_entityScripts.contains(entityID)) {
         callEntityScriptMethod(entityID, "unload");
         _entityScripts.remove(entityID);
+        stopAllTimersForEntityScript(entityID);
     }
 }
 
@@ -1137,6 +1197,32 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
     recurseGuard = false;
 }
 
+// Execute operation in the appropriate context for (the possibly empty) entityID.
+// Even if entityID is supplied as currentEntityIdentifier, this still documents the source
+// of the code being executed (e.g., if we ever sandbox different entity scripts, or provide different
+// global values for different entity scripts).
+void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, std::function<void()> operation) {
+    EntityItemID oldIdentifier = currentEntityIdentifier;
+    currentEntityIdentifier = entityID;
+
+#if DEBUG_CURRENT_ENTITY
+    QScriptValue oldData = this->globalObject().property("debugEntityID");
+    this->globalObject().setProperty("debugEntityID", entityID.toScriptValue(this)); // Make the entityID available to javascript as a global.
+    operation();
+    this->globalObject().setProperty("debugEntityID", oldData);
+#else
+    operation();
+#endif
+
+    currentEntityIdentifier = oldIdentifier;
+}
+void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, QScriptValue function, QScriptValue thisObject, QScriptValueList args) {
+    auto operation = [&]() {
+        function.call(thisObject, args);
+    };
+    doWithEnvironment(entityID, operation);
+}
+
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
@@ -1163,7 +1249,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
-            entityScript.property(methodName).call(entityScript, args);
+            callWithEnvironment(entityID, entityScript.property(methodName), entityScript, args);
         }
 
     }
@@ -1195,7 +1281,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << event.toScriptValue(this);
-            entityScript.property(methodName).call(entityScript, args);
+            callWithEnvironment(entityID, entityScript.property(methodName), entityScript, args);
         }
     }
 }
@@ -1229,7 +1315,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             args << entityID.toScriptValue(this);
             args << otherID.toScriptValue(this);
             args << collisionToScriptValue(this, collision);
-            entityScript.property(methodName).call(entityScript, args);
+            callWithEnvironment(entityID, entityScript.property(methodName), entityScript, args);
         }
     }
 }

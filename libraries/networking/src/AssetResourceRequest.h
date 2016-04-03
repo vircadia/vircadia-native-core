@@ -20,8 +20,8 @@
 class AssetResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    AssetResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
-    ~AssetResourceRequest();
+    AssetResourceRequest(const QUrl& url) : ResourceRequest(url) { }
+    virtual ~AssetResourceRequest() override;
 
 protected:
     virtual void doSend() override;
@@ -30,6 +30,12 @@ private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 private:
+    bool urlIsAssetHash() const;
+
+    void requestMappingForPath(const AssetPath& path);
+    void requestHash(const AssetHash& hash);
+
+    GetMappingRequest* _assetMappingRequest { nullptr };
     AssetRequest* _assetRequest { nullptr };
 };
 

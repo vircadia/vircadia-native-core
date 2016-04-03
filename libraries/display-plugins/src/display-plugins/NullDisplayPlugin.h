@@ -16,12 +16,10 @@ public:
     virtual const QString& getName() const override { return NAME; }
     virtual grouping getGrouping() const override { return DEVELOPER; }
 
-    void stop() override;
-
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;
-    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
-    virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) override;
+    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
+    virtual void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) override;
     virtual QImage getScreenshot() const override;
 private:
     static const QString NAME;

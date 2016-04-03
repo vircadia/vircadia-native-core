@@ -23,6 +23,8 @@ AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimN
 
 AnimInverseKinematics::~AnimInverseKinematics() {
     clearConstraints();
+    _accumulators.clear();
+    _targetVarVec.clear();
 }
 
 void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
@@ -394,6 +396,17 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             }
             _relativePoses[i].trans = underPoses[i].trans;
         }
+
+        if (!_relativePoses.empty()) {
+            // Sometimes the underpose itself can violate the constraints.  Rather than
+            // clamp the animation we dynamically expand each constraint to accomodate it.
+            std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
+            while (constraintItr != _constraints.end()) {
+                int index = constraintItr->first;
+                constraintItr->second->dynamicallyAdjustLimits(_relativePoses[index].rot);
+                ++constraintItr;
+            }
+        }
     }
 
     if (!_relativePoses.empty()) {
@@ -468,7 +481,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             // smooth transitions by relaxing _hipsOffset toward the new value
             const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
-            float tau = dt > HIPS_OFFSET_SLAVE_TIMESCALE ? 1.0f : dt / HIPS_OFFSET_SLAVE_TIMESCALE;
+            float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
             _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
         }
     }
@@ -627,6 +640,9 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Hand", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
+            stConstraint->setTwistLimits(0.0f, 0.0f); // max == min, disables twist limits
+
+            /* KEEP THIS CODE for future experimentation -- twist limits for hands
             const float MAX_HAND_TWIST = 3.0f * PI / 5.0f;
             const float MIN_HAND_TWIST = -PI / 2.0f;
             if (isLeft) {
@@ -634,8 +650,9 @@ void AnimInverseKinematics::initConstraints() {
             } else {
                 stConstraint->setTwistLimits(MIN_HAND_TWIST, MAX_HAND_TWIST);
             }
+            */
 
-            /* KEEP THIS CODE for future experimentation
+            /* KEEP THIS CODE for future experimentation -- non-symmetrical swing limits for wrist
              * a more complicated wrist with asymmetric cone
             // these directions are approximate swing limits in parent-frame
             // NOTE: they don't need to be normalized
@@ -670,7 +687,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SHOULDER_TWIST, MAX_SHOULDER_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SHOULDER_SWING = PI / 6.0f;
+            const float MAX_SHOULDER_SWING = PI / 20.0f;
             minDots.push_back(cosf(MAX_SHOULDER_SWING));
             stConstraint->setSwingLimits(minDots);
 

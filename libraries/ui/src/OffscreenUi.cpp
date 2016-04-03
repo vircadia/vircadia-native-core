@@ -112,6 +112,7 @@ void OffscreenUi::create(QOpenGLContext* context) {
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
+    emit showDesktop();
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     // First load?
     if (!item) {
@@ -127,6 +128,7 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     // Already loaded?  
     if (item) {
+        emit showDesktop();
         item->setVisible(!item->isVisible());
         return;
     }
@@ -134,6 +136,7 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     load(url, f);
     item = getRootItem()->findChild<QQuickItem*>(name);
     if (item && !item->isVisible()) {
+        emit showDesktop();
         item->setVisible(true);
     }
 }
@@ -201,7 +204,7 @@ private slots:
     }
 };
 
-QQuickItem* OffscreenUi::createMessageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+QQuickItem* OffscreenUi::createMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     QVariantMap map;
     map.insert("title", title);
     map.insert("text", text);
@@ -229,12 +232,12 @@ int OffscreenUi::waitForMessageBoxResult(QQuickItem* messageBox) {
 }
 
 
-QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+QMessageBox::StandardButton OffscreenUi::messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     if (QThread::currentThread() != thread()) {
         QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
         QMetaObject::invokeMethod(this, "messageBox", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QMessageBox::StandardButton, result),
-            Q_ARG(QMessageBox::Icon, icon),
+            Q_ARG(Icon, icon),
             Q_ARG(QString, title),
             Q_ARG(QString, text),
             Q_ARG(QMessageBox::StandardButtons, buttons),
@@ -247,19 +250,19 @@ QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, cons
 
 QMessageBox::StandardButton OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_CRITICAL, title, text, buttons, defaultButton);
 }
 QMessageBox::StandardButton OffscreenUi::information(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_INFORMATION, title, text, buttons, defaultButton);
 }
 QMessageBox::StandardButton OffscreenUi::question(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_QUESTION, title, text, buttons, defaultButton);
 }
 QMessageBox::StandardButton OffscreenUi::warning(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_WARNING, title, text, buttons, defaultButton);
 }
 
 
@@ -283,24 +286,24 @@ private slots:
     }
 };
 
-// FIXME many input parameters currently ignored
-QString OffscreenUi::getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode, const QString & text, bool * ok, Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints) {
+QString OffscreenUi::getText(const Icon icon, const QString& title, const QString& label, const QString& text, bool* ok) {
     if (ok) { *ok = false; }
-    QVariant result = DependencyManager::get<OffscreenUi>()->inputDialog(title, label, text).toString();
+    QVariant result = DependencyManager::get<OffscreenUi>()->inputDialog(icon, title, label, text).toString();
     if (ok && result.isValid()) {
         *ok = true;
     }
     return result.toString();
 }
 
-// FIXME many input parameters currently ignored
-QString OffscreenUi::getItem(void *ignored, const QString & title, const QString & label, const QStringList & items, int current, bool editable, bool * ok, Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints) {
+QString OffscreenUi::getItem(const Icon icon, const QString& title, const QString& label, const QStringList& items,
+    int current, bool editable, bool* ok) {
+
     if (ok) { 
         *ok = false; 
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto inputDialog = offscreenUi->createInputDialog(title, label, current);
+    auto inputDialog = offscreenUi->createInputDialog(icon, title, label, current);
     if (!inputDialog) {
         return QString();
     }
@@ -318,24 +321,28 @@ QString OffscreenUi::getItem(void *ignored, const QString & title, const QString
     return result.toString();
 }
 
-QVariant OffscreenUi::inputDialog(const QString& title, const QString& label, const QVariant& current) {
+QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
         QMetaObject::invokeMethod(this, "inputDialog", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QVariant, result),
+            Q_ARG(Icon, icon),
             Q_ARG(QString, title),
             Q_ARG(QString, label),
             Q_ARG(QVariant, current));
         return result;
     }
 
-    return waitForInputDialogResult(createInputDialog(title, label, current));
+    return waitForInputDialogResult(createInputDialog(icon, title, label, current));
 }
 
 
-QQuickItem* OffscreenUi::createInputDialog(const QString& title, const QString& label, const QVariant& current) {
+QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title, const QString& label,
+    const QVariant& current) {
+
     QVariantMap map;
     map.insert("title", title);
+    map.insert("icon", icon);
     map.insert("label", label);
     map.insert("current", current);
     QVariant result;
@@ -439,6 +446,8 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     new VrMenu(this);
 
     new KeyboardFocusHack();
+
+    connect(_desktop, SIGNAL(showDesktop()), this, SLOT(showDesktop()));
 }
 
 QQuickItem* OffscreenUi::getDesktop() {
@@ -455,6 +464,7 @@ void OffscreenUi::unfocusWindows() {
 }
 
 void OffscreenUi::toggleMenu(const QPoint& screenPosition) {
+    emit showDesktop(); // we really only want to do this if you're showing the menu, but for now this works
     auto virtualPos = mapToVirtualScreen(screenPosition, nullptr);
     QMetaObject::invokeMethod(_desktop, "toggleMenu",  Q_ARG(QVariant, virtualPos));
 }

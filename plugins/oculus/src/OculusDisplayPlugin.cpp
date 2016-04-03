@@ -6,16 +6,37 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusDisplayPlugin.h"
+
+// Odd ordering of header is required to avoid 'macro redinition warnings'
+#include <AudioClient.h>
+
+#include <OVR_CAPI_Audio.h>
+
+#include <shared/NsightHelpers.h>
+
 #include "OculusHelpers.h"
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
+static ovrPerfHudMode currentDebugMode = ovrPerfHud_Off;
 
-void OculusDisplayPlugin::activate() {
-    OculusBaseDisplayPlugin::activate();
+bool OculusDisplayPlugin::internalActivate() {
+    bool result = Parent::internalActivate();
+    currentDebugMode = ovrPerfHud_Off;
+    if (result && _session) {
+        ovr_SetInt(_session, OVR_PERF_HUD_MODE, currentDebugMode);
+    }
+    return result;
+}
+
+void OculusDisplayPlugin::cycleDebugOutput() {
+    if (_session) {
+        currentDebugMode = static_cast<ovrPerfHudMode>((currentDebugMode + 1) % ovrPerfHud_Count);
+        ovr_SetInt(_session, OVR_PERF_HUD_MODE, currentDebugMode);
+    }
 }
 
 void OculusDisplayPlugin::customizeContext() {
-    OculusBaseDisplayPlugin::customizeContext();
+    Parent::customizeContext();
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_session));
     _sceneFbo->Init(getRecommendedRenderSize());
 
@@ -34,60 +55,64 @@ void OculusDisplayPlugin::uncustomizeContext() {
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo.reset();
 #endif
-    OculusBaseDisplayPlugin::uncustomizeContext();
+    Parent::uncustomizeContext();
 }
 
-void OculusDisplayPlugin::internalPresent() {
+
+template <typename SrcFbo, typename DstFbo>
+void blit(const SrcFbo& srcFbo, const DstFbo& dstFbo) {
+    using namespace oglplus;
+    srcFbo->Bound(FramebufferTarget::Read, [&] {
+        dstFbo->Bound(FramebufferTarget::Draw, [&] {
+            Context::BlitFramebuffer(
+                0, 0, srcFbo->size.x, srcFbo->size.y,
+                0, 0, dstFbo->size.x, dstFbo->size.y,
+                BufferSelectBit::ColorBuffer, BlitFilter::Linear);
+        });
+    });
+}
+
+void OculusDisplayPlugin::hmdPresent() {
+
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
+
     if (!_currentSceneTexture) {
         return;
     }
 
-    using namespace oglplus;
-    const auto& size = _sceneFbo->size;
-    _sceneFbo->Bound([&] {
-        Context::Viewport(size.x, size.y);
-        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
-        //glEnable(GL_FRAMEBUFFER_SRGB);
-        GLenum err = glGetError();
-        drawUnitQuad();
-        //glDisable(GL_FRAMEBUFFER_SRGB);
-    });
-
-    uint32_t frameIndex { 0 };
-    EyePoses eyePoses;
+    blit(_compositeFramebuffer, _sceneFbo);
+    _sceneFbo->Commit();
     {
-        Lock lock(_mutex);
-        Q_ASSERT(_sceneTextureToFrameIndexMap.contains(_currentSceneTexture));
-        frameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
-        Q_ASSERT(_frameEyePoses.contains(frameIndex));
-        eyePoses = _frameEyePoses[frameIndex];
-    }
-
-    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = eyePoses.first;
-    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = eyePoses.second;
-
-    {
-
+        _sceneLayer.SensorSampleTime = _currentPresentFrameInfo.sensorSampleTime;
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        ovrResult result = ovr_SubmitFrame(_session, frameIndex, &_viewScaleDesc, &layers, 1);
+        ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
-            qDebug() << result;
-        }
-    }
-    _sceneFbo->Increment();
-
-    // Handle mirroring to screen in base class
-    HmdDisplayPlugin::internalPresent();
-}
-
-void OculusDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
-    auto ovrPose = ovrPoseFromGlm(pose);
-    {
-        Lock lock(_mutex);
-        if (eye == Eye::Left) {
-            _frameEyePoses[frameIndex].first = ovrPose;
-        } else {
-            _frameEyePoses[frameIndex].second = ovrPose;
+            logWarning("Failed to present");
         }
     }
 }
+
+bool OculusDisplayPlugin::isHmdMounted() const {
+    ovrSessionStatus status;
+    return (OVR_SUCCESS(ovr_GetSessionStatus(_session, &status)) && 
+        (ovrFalse != status.HmdMounted));
+}
+
+QString OculusDisplayPlugin::getPreferredAudioInDevice() const { 
+    WCHAR buffer[OVR_AUDIO_MAX_DEVICE_STR_SIZE];
+    if (!OVR_SUCCESS(ovr_GetAudioDeviceInGuidStr(buffer))) {
+        return QString();
+    }
+    return AudioClient::friendlyNameForAudioDevice(buffer);
+}
+
+QString OculusDisplayPlugin::getPreferredAudioOutDevice() const { 
+    WCHAR buffer[OVR_AUDIO_MAX_DEVICE_STR_SIZE];
+    if (!OVR_SUCCESS(ovr_GetAudioDeviceOutGuidStr(buffer))) {
+        return QString();
+    }
+    return AudioClient::friendlyNameForAudioDevice(buffer);
+}
+

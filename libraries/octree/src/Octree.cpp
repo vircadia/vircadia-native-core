@@ -37,6 +37,7 @@
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <udt/PacketHeaders.h>
+#include <ResourceManager.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
 #include <Gzip.h>
@@ -937,11 +938,10 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
         params.stats->traversed(element);
     }
 
-    ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
+    ViewFrustum::intersection parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
 
     int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
                                                          currentEncodeLevel, parentLocationThisView);
-
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
@@ -974,7 +974,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
 int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                          OctreePacketData* packetData, OctreeElementBag& bag,
                                          EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                         const ViewFrustum::location& parentLocationThisView) const {
+                                         const ViewFrustum::intersection& parentLocationThisView) const {
 
 
     const bool wantDebug = false;
@@ -1013,7 +1013,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         }
     }
 
-    ViewFrustum::location nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
+    ViewFrustum::intersection nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
 
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
@@ -1034,7 +1034,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // if we are INSIDE, INTERSECT, or OUTSIDE
         if (parentLocationThisView != ViewFrustum::INSIDE) {
             assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
-            nodeLocationThisView = element->inFrustum(*params.viewFrustum);
+            nodeLocationThisView = element->computeViewIntersection(*params.viewFrustum);
         }
 
         // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
@@ -1053,7 +1053,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         bool wasInView = false;
 
         if (params.deltaViewFrustum && params.lastViewFrustum) {
-            ViewFrustum::location location = element->inFrustum(*params.lastViewFrustum);
+            ViewFrustum::intersection location = element->computeViewIntersection(*params.lastViewFrustum);
 
             // If we're a leaf, then either intersect or inside is considered "formerly in view"
             if (element->isLeaf()) {
@@ -1237,7 +1237,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                     bool childWasInView = false;
 
                     if (childElement && params.deltaViewFrustum && params.lastViewFrustum) {
-                        ViewFrustum::location location = childElement->inFrustum(*params.lastViewFrustum);
+                        ViewFrustum::intersection location = childElement->computeViewIntersection(*params.lastViewFrustum);
 
                         // If we're a leaf, then either intersect or inside is considered "formerly in view"
                         if (childElement->isLeaf()) {
@@ -1529,7 +1529,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     // If we made it this far, then we've written all of our child data... if this element is the root
     // element, then we also allow the root element to write out it's data...
     if (continueThisLevel && element == _rootElement && rootElementHasData()) {
-
         int bytesBeforeChild = packetData->getUncompressedSize();
 
         // release the bytes we reserved...
@@ -1537,6 +1536,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
         LevelDetails rootDataLevelKey = packetData->startLevel();
         OctreeElement::AppendState rootAppendState = element->appendElementData(packetData, params);
+
         bool partOfRootFit = (rootAppendState != OctreeElement::NONE);
         bool allOfRootFit = (rootAppendState == OctreeElement::COMPLETED);
 
@@ -1571,7 +1571,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             qCDebug(octree) << "WARNING UNEXPECTED CASE: Something failed in packing ROOT data";
             qCDebug(octree) << "This is not expected!!!! -- continueThisLevel=FALSE....";
         }
-
     }
 
     // if we were unable to fit this level in our packet, then rewind and add it to the element bag for
@@ -1676,34 +1675,24 @@ bool Octree::readJSONFromGzippedFile(QString qFileName) {
 }
 
 bool Octree::readFromURL(const QString& urlString) {
-    bool readOk = false;
+    auto request = std::unique_ptr<ResourceRequest>(ResourceManager::createResourceRequest(this, urlString));
 
-    // determine if this is a local file or a network resource
-    QUrl url(urlString);
-
-    if (url.isLocalFile()) {
-        readOk = readFromFile(qPrintable(url.toLocalFile()));
-    } else {
-        QNetworkRequest request;
-        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        request.setUrl(url);
-
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* reply = networkAccessManager.get(request);
-
-        qCDebug(octree) << "Downloading svo at" << qPrintable(urlString);
-
-        QEventLoop loop;
-        QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        loop.exec();
-
-        if (reply->error() == QNetworkReply::NoError) {
-            int resourceSize = reply->bytesAvailable();
-            QDataStream inputStream(reply);
-            readOk = readFromStream(resourceSize, inputStream);
-        }
+    if (!request) {
+        return false;
     }
-    return readOk;
+
+    QEventLoop loop;
+    connect(request.get(), &ResourceRequest::finished, &loop, &QEventLoop::quit);
+    request->send();
+    loop.exec();
+
+    if (request->getResult() != ResourceRequest::Success) {
+        return false;
+    }
+
+    auto data = request->getData();
+    QDataStream inputStream(data);
+    return readFromStream(data.size(), inputStream);
 }
 
 

@@ -8,7 +8,7 @@
 var numDynein = 2;
 var numKinesin = 2;
 var percentOnMainMT = 100;
-//print('RUNNING AC!!');
+
 var baseLocation;
 if (USE_LOCAL_HOST === true) {
     baseLocation = "http://localhost:8080/";
@@ -16,15 +16,32 @@ if (USE_LOCAL_HOST === true) {
     baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/"
 }
 
+var WORLD_OFFSET = {
+    x: 0,
+    y: 0,
+    z: 0
+}
+
+var WORLD_SCALE_AMOUNT = 1.0;
+
+function offsetVectorToWorld(vector) {
+    var newVector;
+
+    newVector = Vec3.sum(vector, WORLD_OFFSET);
+
+    print('JBP NEW VECTOR IS:: ' + JSON.stringify(newVector))
+    return newVector
+}
+
 var USE_LOCAL_HOST = false;
 
-Agent.isAvatar = true;
-
-EntityViewer.setPosition({
+var basePosition = offsetVectorToWorld({
     x: 3000,
     y: 13500,
     z: 3000
 });
+
+EntityViewer.setPosition(basePosition);
 EntityViewer.setKeyholeRadius(60000);
 var octreeQueryInterval = Script.setInterval(function() {
     EntityViewer.queryOctree();
@@ -46,11 +63,12 @@ var scriptURL = this.baseLocation + "Scripts/clickToRideAndLook.js?" + Math.rand
 
 var t = 0;
 var tInc = 0.001;
-var sceneOffset = {
+var sceneOffset = offsetVectorToWorld({
     x: 3000,
     y: 13500,
     z: 3000
-};
+});
+
 var yOffset = {
     dynein: 16,
     kinesin: -28
@@ -62,11 +80,11 @@ var terms;
 var secondaryInit = false;
 
 function deleteAllMotorProteins() {
-    var position = {
+    var position = offsetVectorToWorld({
         x: 3280,
         y: 13703,
         z: 4405
-    };
+    });
 
     if (secondaryInit === true) {
         return;
@@ -85,7 +103,7 @@ function deleteAllMotorProteins() {
     results.forEach(function(r) {
         var name = Entities.getEntityProperties(r, 'name').name;
         if (name.indexOf('Hifi-Motor-Protein-Anchor') > -1) {
-           // print('Script.clearTimeout DELETING A MOTOR PROTEIN::'  +  r)
+            // print('Script.clearTimeout DELETING A MOTOR PROTEIN::'  +  r)
             Entities.deleteEntity(r);
         }
 
@@ -97,7 +115,7 @@ function deleteAllMotorProteins() {
 }
 
 function makeAll() {
-   // print('CREATING MOTOR PROTEINS')
+    // print('CREATING MOTOR PROTEINS')
     var segment;
     var segments = shuffleSegments();
     var lastSegment = [];
@@ -197,11 +215,11 @@ function update(deltaTime) {
             print("servers exist -- makeAll...");
             Entities.setPacketsPerSecond(6000);
             print("PPS:" + Entities.getPacketsPerSecond());
-            Script.setTimeout(function(){
+            Script.setTimeout(function() {
                 //print('SETTING TIMEOUT')
-                 deleteAllMotorProteins()
-            },10000)
-           
+                deleteAllMotorProteins()
+            }, 10000)
+
             initialized = true;
         }
         return;

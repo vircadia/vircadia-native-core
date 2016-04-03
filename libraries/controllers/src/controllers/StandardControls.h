@@ -81,6 +81,9 @@ namespace controller {
         // Triggers
         LT,
         RT,
+        // Grips (Oculus touch squeeze)
+        LG,
+        RG,
         NUM_STANDARD_AXES,
         LZ = LT,
         RZ = RT

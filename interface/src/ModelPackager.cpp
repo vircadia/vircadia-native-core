@@ -105,13 +105,18 @@ bool ModelPackager::loadModel() {
         qWarning() << QString("ModelPackager::loadModel(): Could not open FBX file %1").arg(_fbxInfo.filePath());
         return false;
     }
-    qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
-    QByteArray fbxContents = fbx.readAll();
+    try {
+        qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
+        QByteArray fbxContents = fbx.readAll();
 
-    _geometry.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));
+        _geometry.reset(readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath()));
 
-    // make sure we have some basic mappings
-    populateBasicMapping(_mapping, _fbxInfo.filePath(), *_geometry);
+        // make sure we have some basic mappings
+        populateBasicMapping(_mapping, _fbxInfo.filePath(), *_geometry);
+    } catch (const QString& error) {
+        qCDebug(interfaceapp) << "Error reading " << _fbxInfo.filePath() << ": " << error;
+        return false;
+    }
     return true;
 }
 
@@ -342,9 +347,9 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 void ModelPackager::listTextures() {
     _textures.clear();
     foreach (const FBXMaterial mat, _geometry->materials) {
-        if (!mat.diffuseTexture.filename.isEmpty() && mat.diffuseTexture.content.isEmpty() &&
-            !_textures.contains(mat.diffuseTexture.filename)) {
-            _textures << mat.diffuseTexture.filename;
+        if (!mat.albedoTexture.filename.isEmpty() && mat.albedoTexture.content.isEmpty() &&
+            !_textures.contains(mat.albedoTexture.filename)) {
+            _textures << mat.albedoTexture.filename;
         }
         if (!mat.normalTexture.filename.isEmpty() && mat.normalTexture.content.isEmpty() &&
             !_textures.contains(mat.normalTexture.filename)) {

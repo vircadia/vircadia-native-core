@@ -19,7 +19,7 @@
 class FileResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    FileResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
+    FileResourceRequest(const QUrl& url) : ResourceRequest(url) { }
 
 protected:
     virtual void doSend() override;

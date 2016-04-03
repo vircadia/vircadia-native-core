@@ -258,9 +258,26 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (onlyEditorsAreRezzers) {
         canRez = isAllowedEditor;
     }
+
+    QUuid hintNodeID;
+
+    // in case this is a node that's failing to connect
+    // double check we don't have a node whose sockets match exactly already in the list
+    limitedNodeList->eachNodeBreakable([&nodeConnection, &hintNodeID](const SharedNodePointer& node){
+        if (node->getPublicSocket() == nodeConnection.publicSockAddr
+            && node->getLocalSocket() == nodeConnection.localSockAddr) {
+            // we have a node that already has these exact sockets - this occurs if a node
+            // is unable to connect to the domain
+            hintNodeID = node->getUUID();
+
+            return false;
+        }
+
+        return true;
+    });
     
-    // add the new node
-    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
+    // add the connecting node (or re-use the matched one from eachNodeBreakable above)
+    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection, hintNodeID);
     
     // set the edit rights for this user
     newNode->setIsAllowedEditor(isAllowedEditor);
@@ -279,28 +296,29 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     return newNode;
 }
 
-SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection) {
+SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
+                                                                      QUuid nodeID) {
     HifiSockAddr discoveredSocket = nodeConnection.senderSockAddr;
     SharedNetworkPeer connectedPeer = _icePeers.value(nodeConnection.connectUUID);
     
-    QUuid nodeUUID;
-    
     if (connectedPeer) {
         //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
-        nodeUUID = nodeConnection.connectUUID;
+        nodeID = nodeConnection.connectUUID;
         
         if (connectedPeer->getActiveSocket()) {
             // set their discovered socket to whatever the activated socket on the network peer object was
             discoveredSocket = *connectedPeer->getActiveSocket();
         }
     } else {
-        // we got a connectUUID we didn't recognize, just add the node with a new UUID
-        nodeUUID = QUuid::createUuid();
+        // we got a connectUUID we didn't recognize, either use the hinted node ID or randomly generate a new one
+        if (nodeID.isNull()) {
+            nodeID = QUuid::createUuid();
+        }
     }
     
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     
-    SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeUUID, nodeConnection.nodeType,
+    SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeID, nodeConnection.nodeType,
                                                                  nodeConnection.publicSockAddr, nodeConnection.localSockAddr);
     
     // So that we can send messages to this node at will - we need to activate the correct socket on this node now
@@ -331,7 +349,6 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                                                 QCryptographicHash::Sha256);
         
         if (rsaPublicKey) {
-            QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
             int decryptResult = RSA_verify(NID_sha256,
                                            reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
                                            usernameWithToken.size(),

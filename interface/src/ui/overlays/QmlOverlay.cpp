@@ -51,27 +51,24 @@ void QmlOverlay::buildQmlElement(const QUrl& url) {
 }
 
 QmlOverlay::~QmlOverlay() {
-    if (_qmlElement) {
-        _qmlElement->deleteLater();
-        _qmlElement = nullptr;
-    }
+    _qmlElement.reset();
 }
 
-void QmlOverlay::setProperties(const QScriptValue& properties) {
+void QmlOverlay::setProperties(const QVariantMap& properties) {
     Overlay2D::setProperties(properties);
     auto bounds = _bounds;
-    std::weak_ptr<QQuickItem> weakQmlElement;
-    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+    std::weak_ptr<QQuickItem> weakQmlElement = _qmlElement;
+    DependencyManager::get<OffscreenUi>()->executeOnUiThread([weakQmlElement, bounds, properties] {
         // check to see if qmlElement still exists
         auto qmlElement = weakQmlElement.lock();
         if (qmlElement) {
-            _qmlElement->setX(bounds.left());
-            _qmlElement->setY(bounds.top());
-            _qmlElement->setWidth(bounds.width());
-            _qmlElement->setHeight(bounds.height());
+            qmlElement->setX(bounds.left());
+            qmlElement->setY(bounds.top());
+            qmlElement->setWidth(bounds.width());
+            qmlElement->setHeight(bounds.height());
+            QMetaObject::invokeMethod(qmlElement.get(), "updatePropertiesFromScript", Qt::DirectConnection, Q_ARG(QVariant, properties));
         }
     });
-    QMetaObject::invokeMethod(_qmlElement.get(), "updatePropertiesFromScript", Q_ARG(QVariant, properties.toVariant()));
 }
 
 void QmlOverlay::render(RenderArgs* args) {

@@ -12,6 +12,7 @@
 
 #include "EntityItemID.h"
 #include <VariantMapToScriptValue.h>
+#include <SpatialParentFinder.h>
 
 #include "EntitiesLogging.h"
 #include "EntityActionFactoryInterface.h"
@@ -147,7 +148,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             if (entity) {
                 if (propertiesWithSimID.parentRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-                    propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
+                    bool success;
+                    AACube queryAACube = entity->getQueryAACube(success);
+                    if (success) {
+                        propertiesWithSimID.setQueryAACube(queryAACube);
+                    }
                 }
 
                 if (_bidOnSimulationOwnership) {
@@ -156,8 +161,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                     const QUuid myNodeID = nodeList->getSessionUUID();
 
                     // and make note of it now, so we can act on it right away.
-                    propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
-                    entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                    propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
+                    entity->setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
@@ -175,6 +180,15 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 
     return id;
+}
+
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Model);
+    properties.setName(name);
+    properties.setModelURL(modelUrl);
+    properties.setPosition(position);
+    return addEntity(properties);
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
@@ -320,20 +334,19 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object
                     // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update
                     // and instead let the physics simulation decide when to send a terse update.  This would remove
-                    // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
+                    // the "slide-no-rotate" glitch (and typical double-update) that we see during the "poke rolling
                     // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
                     // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
                     // simulation.
 
-                    if (entity->getSimulationPriority() < SCRIPT_EDIT_SIMULATION_PRIORITY) {
+                    if (entity->getSimulationPriority() < SCRIPT_POKE_SIMULATION_PRIORITY) {
                         // we re-assert our simulation ownership at a higher priority
-                        properties.setSimulationOwner(myNodeID,
-                            glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
+                        properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     }
                 } else {
                     // we make a bid for simulation ownership
-                    properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
-                    entity->flagForOwnership();
+                    properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
+                    entity->pokeSimulationOwnership();
                 }
             }
             if (properties.parentRelatedPropertyChanged() && entity->computePuffedQueryAACube()) {
@@ -805,11 +818,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                 return false;
             }
             success = entity->addAction(simulation, action);
-            auto nodeList = DependencyManager::get<NodeList>();
-            const QUuid myNodeID = nodeList->getSessionUUID();
-            if (entity->getSimulatorID() != myNodeID) {
-                entity->flagForOwnership();
-            }
+            entity->grabSimulationOwnership();
             return false; // Physics will cause a packet to be sent, so don't send from here.
         });
     if (success) {
@@ -823,11 +832,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             bool success = entity->updateAction(simulation, actionID, arguments);
             if (success) {
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->getSimulatorID() != myNodeID) {
-                    entity->flagForOwnership();
-                }
+                entity->grabSimulationOwnership();
             }
             return success;
         });
@@ -837,6 +842,10 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
     bool success = false;
     actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             success = entity->removeAction(simulation, actionID);
+            if (success) {
+                // reduce from grab to poke
+                entity->pokeSimulationOwnership();
+            }
             return false; // Physics will cause a packet to be sent, so don't send from here.
         });
     return success;
@@ -1060,6 +1069,34 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     QStringList result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+    _entityTree->withReadLock([&] {
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        bool success;
+        SpatiallyNestableWeakPointer parentWP = parentFinder->find(parentID, success);
+        if (!success) {
+            return;
+        }
+        SpatiallyNestablePointer parent = parentWP.lock();
+        if (!parent) {
+            return;
+        }
+        parent->forEachChild([&](SpatiallyNestablePointer child) {
+            if (child->getParentJointIndex() == jointIndex) {
+                result.push_back(child->getID());
+            }
+        });
+    });
     return result;
 }
 

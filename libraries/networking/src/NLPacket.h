@@ -21,6 +21,17 @@
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
+
+    //     0                   1                   2                   3
+    //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |          Packet Type          |        Packet Version         |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |          Node UUID            |    Hash (only if verified)    |  Optional (only if sourced)
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //
+    //    NLPacket Header Format
+
     // this is used by the Octree classes - must be known at compile time
     static const int MAX_PACKET_HEADER_SIZE =
         sizeof(udt::Packet::SequenceNumberAndBitField) + sizeof(udt::Packet::MessageNumberAndBitField) +

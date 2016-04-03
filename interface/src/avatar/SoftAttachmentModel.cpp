@@ -43,7 +43,7 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
     }
     _needsUpdateClusterMatrices = false;
 
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
 
     glm::mat4 modelToWorld = glm::mat4_cast(modelOrientation);
     for (int i = 0; i < _meshStates.size(); i++) {
@@ -79,6 +79,6 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
     }
 }

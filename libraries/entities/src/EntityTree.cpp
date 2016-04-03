@@ -24,7 +24,6 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
-#include "RemapIDOperator.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
@@ -57,10 +56,13 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
-    foreach (EntityTreeElementPointer element, _entityToElementMap) {
-        element->cleanupEntities();
+    {
+        QWriteLocker locker(&_entityToElementLock);
+        foreach(EntityTreeElementPointer element, _entityToElementMap) {
+            element->cleanupEntities();
+        }
+        _entityToElementMap.clear();
     }
-    _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
@@ -86,6 +88,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     if (_simulation) {
         _simulation->addEntity(entity);
     }
+
+    if (!entity->isParentIDValid()) {
+        _missingParent.append(entity);
+    }
+
     _isDirty = true;
     maybeNotifyNewCollisionSoundURL("", entity->getCollisionSoundURL());
     emit addingEntity(entity->getEntityItemID());
@@ -207,7 +214,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setAccelerationChanged(false);
 
                 if (wantTerseEditLogging()) {
-                    qCDebug(entities) << senderNode->getUUID() << "physical edits suppressed";
+                    qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";
                 }
             }
         }
@@ -251,6 +258,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!success) {
                 _missingParent.append(childEntity);
                 continue;
+            }
+            if (!childEntity->isParentIDValid()) {
+                _missingParent.append(childEntity);
             }
 
             UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
@@ -448,6 +458,17 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
+
+        if (getIsServer()) {
+            QSet<EntityItemID> childrenIDs;
+            theEntity->forEachChild([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Entity) {
+                    childrenIDs += child->getID();
+                }
+            });
+            deleteEntities(childrenIDs, true, true);
+        }
+
         theEntity->die();
 
         if (getIsServer()) {
@@ -992,11 +1013,32 @@ void EntityTree::fixupMissingParents() {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
         if (entity) {
-            bool success;
-            AACube newCube = entity->getQueryAACube(success);
-            if (success) {
-                // this entity's parent (or ancestry) was previously not fully known, and now is.  Update its
-                // location in the EntityTree.
+            bool queryAACubeSuccess;
+            AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
+            if (queryAACubeSuccess) {
+                // make sure queryAACube encompasses maxAACube
+                bool maxAACubeSuccess;
+                AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
+                if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
+                    newCube = maxAACube;
+                }
+            }
+
+            bool doMove = false;
+            if (entity->isParentIDValid()) {
+                // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
+                doMove = true;
+            } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
+                // this is a child of an avatar, which the entity server will never have
+                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+                if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+                }
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+                doMove = true;
+            }
+
+            if (queryAACubeSuccess && doMove) {
                 moveOperator.addEntityToMoveList(entity, newCube);
                 iter.remove();
                 entity->markAncestorMissing(false);
@@ -1011,7 +1053,13 @@ void EntityTree::fixupMissingParents() {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
     }
+}
 
+void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
+    if (_childrenOfAvatars.contains(avatarID)) {
+        deleteEntities(_childrenOfAvatars[avatarID]);
+        _childrenOfAvatars.remove(avatarID);
+    }
 }
 
 void EntityTree::update() {
@@ -1183,13 +1231,13 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 }
 
 EntityTreeElementPointer EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
-    // TODO: do we need to make this thread safe? Or is it acceptable as is
+    QReadLocker locker(&_entityToElementLock);
     EntityTreeElementPointer element = _entityToElementMap.value(entityItemID);
     return element;
 }
 
 void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element) {
-    // TODO: do we need to make this thread safe? Or is it acceptable as is
+    QWriteLocker locker(&_entityToElementLock);
     if (element) {
         _entityToElementMap[entityItemID] = element;
     } else {
@@ -1199,6 +1247,7 @@ void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTr
 
 void EntityTree::debugDumpMap() {
     qCDebug(entities) << "EntityTree::debugDumpMap() --------------------------";
+    QReadLocker locker(&_entityToElementLock);
     QHashIterator<EntityItemID, EntityTreeElementPointer> i(_entityToElementMap);
     while (i.hasNext()) {
         i.next();
@@ -1267,42 +1316,59 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                                                float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
-    args.localTree = localTree;
+    args.ourTree = this;
+    args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
-    QVector<EntityItemID> newEntityIDs;
-    args.newEntityIDs = &newEntityIDs;
+    // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we use new identifiers.
+    // We need to keep a map so that we can map parent identifiers correctly.
+    QHash<EntityItemID, EntityItemID> map;
+    args.map = &map;
     recurseTreeWithOperation(sendEntitiesOperation, &args);
     packetSender->releaseQueuedMessages();
 
-    return newEntityIDs;
+    return map.values().toVector();
 }
 
 bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
-        EntityItemID newID(QUuid::createUuid());
-        args->newEntityIDs->append(newID);
-        EntityItemProperties properties = entityItem->getProperties();
-        properties.setPosition(properties.getPosition() + args->root);
+    std::function<const EntityItemID(EntityItemPointer&)> getMapped = [&](EntityItemPointer& item) -> const EntityItemID {
+        EntityItemID oldID = item->getEntityItemID();
+        if (args->map->contains(oldID)) { // Already been handled (e.g., as a parent of somebody that we've processed).
+            return args->map->value(oldID);
+        }
+        EntityItemID newID = QUuid::createUuid();
+        EntityItemProperties properties = item->getProperties();
+        EntityItemID oldParentID = properties.getParentID();
+        if (oldParentID.isInvalidID()) {  // no parent
+            properties.setPosition(properties.getPosition() + args->root);
+        } else {
+            EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
+            if (parentEntity) { // map the parent
+                // Warning: (non-tail) recursion of getMapped could blow the call stack if the parent hierarchy is VERY deep.
+                properties.setParentID(getMapped(parentEntity));
+                // But do not add root offset in this case.
+            } else { // Should not happen, but let's try to be helpful...
+                item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
+            }
+        }
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
         // queue the packet to send to the server
         args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
-        if (args->localTree) {
-            args->localTree->withWriteLock([&] {
-                args->localTree->addEntity(newID, properties);
+        if (args->otherTree) {
+            args->otherTree->withWriteLock([&] {
+                args->otherTree->addEntity(newID, properties);
             });
         }
-    });
-    return true;
-}
+        args->map->insert(oldID, newID);
+        return newID;
+    };
 
-void EntityTree::remapIDs() {
-    RemapIDOperator theOperator;
-    recurseTreeWithOperator(&theOperator);
+    entityTreeElement->forEachEntity(getMapped);
+    return true;
 }
 
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
@@ -1343,7 +1409,6 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }
     }
-
     return true;
 }
 

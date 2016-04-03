@@ -16,24 +16,27 @@
 const float TARGET_RATE_OculusLegacy = 75.0f;
 
 class OculusLegacyDisplayPlugin : public HmdDisplayPlugin {
+	using Parent = HmdDisplayPlugin;
 public:
     OculusLegacyDisplayPlugin();
     virtual bool isSupported() const override;
     virtual const QString& getName() const override { return NAME; }
 
-    virtual void activate() override;
-    virtual void deactivate() override;
-
     virtual int getHmdScreen() const override;
 
     // Stereo specific methods
     virtual void resetSensors() override;
-    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
+    virtual void beginFrameRender(uint32_t frameIndex) override;
 
     virtual float getTargetFrameRate() override;
 
 protected:
+    virtual bool internalActivate() override;
+    virtual void internalDeactivate() override;
+
     virtual void customizeContext() override;
+    void hmdPresent() override {}
+    bool isHmdMounted() const override { return true; }
 #if 0
     virtual void uncustomizeContext() override;
     virtual void internalPresent() override;

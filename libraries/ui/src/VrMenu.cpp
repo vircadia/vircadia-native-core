@@ -36,7 +36,16 @@ public:
     const QUuid uuid{ QUuid::createUuid() };
 
     static MenuUserData* forObject(QObject* object) {
-        return static_cast<MenuUserData*>(object->userData(USER_DATA_ID));
+        if (!object) {
+            qWarning() << "Attempted to fetch MenuUserData for null object";
+            return nullptr;
+        }
+        auto result = static_cast<MenuUserData*>(object->userData(USER_DATA_ID));
+        if (!result) {
+            qWarning() << "Unable to find MenuUserData for object " << object;
+            return nullptr;
+        }
+        return result;
     }
 
 private:
@@ -95,6 +104,7 @@ void updateQmlItemFromAction(QObject* target, QAction* source) {
     target->setProperty("checkable", source->isCheckable());
     target->setProperty("enabled", source->isEnabled());
     target->setProperty("text", source->text());
+    target->setProperty("shortcut", source->shortcut().toString());
     target->setProperty("checked", source->isChecked());
     target->setProperty("visible", source->isVisible());
 }
@@ -105,6 +115,9 @@ void VrMenu::addMenu(QMenu* menu) {
     QObject* qmlParent = nullptr;
     if (dynamic_cast<QMenu*>(parent)) {
         MenuUserData* userData = MenuUserData::forObject(parent);
+        if (!userData) {
+            return;
+        }
         qmlParent = findMenuObject(userData->uuid.toString());
     } else if (dynamic_cast<QMenuBar*>(parent)) {
         qmlParent = _rootMenu;
@@ -119,13 +132,20 @@ void VrMenu::addMenu(QMenu* menu) {
     Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
+    if (!result) {
+        qWarning() << "Unable to create QML menu for widget menu: " << menu->title();
+        return;
+    }
 
     // Bind the QML and Widget together
     new MenuUserData(menu, result);
     auto menuAction = menu->menuAction();
     updateQmlItemFromAction(result, menuAction);
-    QObject::connect(menuAction, &QAction::changed, [=] {
+    auto connection = QObject::connect(menuAction, &QAction::changed, [=] {
         updateQmlItemFromAction(result, menuAction);
+    });
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        QObject::disconnect(connection);
     });
 
 }
@@ -133,9 +153,13 @@ void VrMenu::addMenu(QMenu* menu) {
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
     new MenuUserData(action, qmlAction);
     updateQmlItemFromAction(qmlAction, action);
-    QObject::connect(action, &QAction::changed, [=] {
+    auto connection = QObject::connect(action, &QAction::changed, [=] {
         updateQmlItemFromAction(qmlAction, action);
     });
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        QObject::disconnect(connection);
+    });
+
     QObject::connect(action, &QAction::toggled, [=](bool checked) {
         qmlAction->setProperty("checked", checked);
     });
@@ -148,6 +172,9 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(!MenuUserData::forObject(action));
     Q_ASSERT(MenuUserData::forObject(menu));
     MenuUserData* userData = MenuUserData::forObject(menu);
+    if (!userData) {
+        return;
+    }
     QObject* menuQml = findMenuObject(userData->uuid.toString());
     Q_ASSERT(menuQml);
     QQuickMenuItem* returnedValue { nullptr };
@@ -164,11 +191,28 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     bindActionToQmlAction(result, action);
 }
 
+void VrMenu::addSeparator(QMenu* menu) {
+    Q_ASSERT(MenuUserData::forObject(menu));
+    MenuUserData* userData = MenuUserData::forObject(menu);
+    if (!userData) {
+        return;
+    }
+    QObject* menuQml = findMenuObject(userData->uuid.toString());
+    Q_ASSERT(menuQml);
+
+    bool invokeResult = QMetaObject::invokeMethod(menuQml, "addSeparator", Qt::DirectConnection);
+    Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
+}
+
 void VrMenu::insertAction(QAction* before, QAction* action) {
     QObject* beforeQml{ nullptr };
     {
         MenuUserData* beforeUserData = MenuUserData::forObject(before);
         Q_ASSERT(beforeUserData);
+        if (!beforeUserData) {
+            return;
+        }
         beforeQml = findMenuObject(beforeUserData->uuid.toString());
     }
     QObject* menu = beforeQml->parent();

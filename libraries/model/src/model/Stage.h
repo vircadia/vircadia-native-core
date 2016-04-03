@@ -11,7 +11,7 @@
 #ifndef hifi_model_Stage_h
 #define hifi_model_Stage_h
 
-#include "gpu/Pipeline.h"
+#include <gpu/Pipeline.h>
 
 #include "Light.h"
 #include "Skybox.h"
@@ -143,12 +143,14 @@ public:
     bool isSunModelEnabled() const { return _sunModelEnable; }
 
     // Sun properties
-    void setSunColor(const Vec3& color);
+    void setSunColor(const Vec3& color) { _sunLight->setColor(color); }
     const Vec3& getSunColor() const { return getSunLight()->getColor(); }
-    void setSunIntensity(float intensity);
+    void setSunIntensity(float intensity) { _sunLight->setIntensity(intensity); }
     float getSunIntensity() const { return getSunLight()->getIntensity(); }
-    void setSunAmbientIntensity(float intensity);
+    void setSunAmbientIntensity(float intensity) { _sunLight->setAmbientIntensity(intensity); }
     float getSunAmbientIntensity() const { return getSunLight()->getAmbientIntensity(); }
+    void setSunAmbientSphere(const gpu::SHPointer& sphere);
+    void setSunAmbientMap(const gpu::TexturePointer& map);
 
     // The sun direction is expressed in the world space
     void setSunDirection(const Vec3& direction);
@@ -171,7 +173,7 @@ public:
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
 protected:
-    BackgroundMode _backgroundMode = SKY_BOX;
+    BackgroundMode _backgroundMode = SKY_DOME;
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;

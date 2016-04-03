@@ -16,13 +16,17 @@
 #include <QtCore/QSharedPointer>
 #include <QUdpSocket>
 
+#include <openssl/rsa.h>
+
+#include <UUIDHasher.h>
+
 #include <NetworkPeer.h>
 #include <HTTPConnection.h>
 #include <HTTPManager.h>
 #include <NLPacket.h>
 #include <udt/Socket.h>
 
-typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
+class QNetworkReply;
 
 class IceServer : public QCoreApplication, public HTTPRequestHandler {
     Q_OBJECT
@@ -31,6 +35,7 @@ public:
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
 private slots:
     void clearInactivePeers();
+    void publicKeyReplyFinished(QNetworkReply* reply);
 private:
     bool packetVersionMatch(const udt::Packet& packet);
     void processPacket(std::unique_ptr<udt::Packet> packet);
@@ -38,10 +43,22 @@ private:
     SharedNetworkPeer addOrUpdateHeartbeatingPeer(NLPacket& incomingPacket);
     void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
 
+    bool isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& plaintext, const QByteArray& signature);
+    void requestDomainPublicKey(const QUuid& domainID);
+
     QUuid _id;
     udt::Socket _serverSocket;
+
+    using NetworkPeerHash = QHash<QUuid, SharedNetworkPeer>;
     NetworkPeerHash _activePeers;
+
     HTTPManager _httpManager;
+
+    using RSAUniquePtr = std::unique_ptr<RSA, std::function<void(RSA*)>>;
+    using DomainPublicKeyHash = std::unordered_map<QUuid, RSAUniquePtr>;
+    DomainPublicKeyHash _domainPublicKeys;
+
+    quint64 _lastInactiveCheckTimestamp;
 };
 
 #endif // hifi_IceServer_h

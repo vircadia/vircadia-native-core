@@ -122,10 +122,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
         
-        if (avatar->getFaceModelURL() != faceMeshURL) {
-            avatar->setFaceModelURL(faceMeshURL);
-        }
-
         if (avatar->getSkeletonModelURL().isEmpty() || (avatar->getSkeletonModelURL() != skeletonURL)) {
             avatar->setSkeletonModelURL(skeletonURL); // Will expand "" to default and so will not continuously fire
         }

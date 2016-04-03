@@ -17,21 +17,6 @@
 
 namespace render {
 
-// A map of ItemIDSets allowing to create bucket lists of items which are filtered according to their key
-class ItemBucketMap : public std::map<ItemFilter, ItemIDSet, ItemFilter::Less> {
-public:
-
-    ItemBucketMap() {}
-
-    void insert(const ItemID& id, const ItemKey& key);
-    void erase(const ItemID& id, const ItemKey& key);
-    void reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey);
-
-    // standard builders allocating the main buckets
-    void allocateStandardOpaqueTranparentBuckets();
-    
-};
-
 class Engine;
 
 class PendingChanges {
@@ -40,7 +25,6 @@ public:
     ~PendingChanges() {}
 
     void resetItem(ItemID id, const PayloadPointer& payload);
-    void resortItem(ItemID id, ItemKey oldKey, ItemKey newKey);
     void removeItem(ItemID id);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
@@ -48,14 +32,12 @@ public:
     }
 
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
+    void updateItem(ItemID id) { updateItem(id, nullptr); }
 
     void merge(PendingChanges& changes);
 
     ItemIDs _resetItems; 
     Payloads _resetPayloads;
-    ItemIDs _resortItems;
-    ItemKeys _resortOldKeys;
-    ItemKeys _resortNewKeys;
     ItemIDs _removedItems;
     ItemIDs _updatedItems;
     UpdateFunctors _updateFunctors;
@@ -75,30 +57,37 @@ public:
     Scene(glm::vec3 origin, float size);
     ~Scene() {}
 
-    /// This call is thread safe, can be called from anywhere to allocate a new ID
+    // This call is thread safe, can be called from anywhere to allocate a new ID
     ItemID allocateID();
 
-    /// Enqueue change batch to the scene
+    // Check that the ID is valid and allocated for this scene, this a threadsafe call
+    bool isAllocatedID(const ItemID& id);
+
+    // THis is the total number of allocated items, this a threadsafe call
+    size_t getNumItems() const { return _numAllocatedItems.load(); }
+
+    // Enqueue change batch to the scene
     void enqueuePendingChanges(const PendingChanges& pendingChanges);
 
     // Process the penging changes equeued
     void processPendingChangesQueue();
 
-    /// Access a particular item form its ID
-    /// WARNING, There is No check on the validity of the ID, so this could return a bad Item
+    // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
+
+    // Access a particular item form its ID
+    // WARNING, There is No check on the validity of the ID, so this could return a bad Item
     const Item& getItem(const ItemID& id) const { return _items[id]; }
 
-    size_t getNumItems() const { return _items.size(); }
-
-    /// Access the main bucketmap of items
-    const ItemBucketMap& getMasterBucket() const { return _masterBucketMap; }
-
-    /// Access the item spatial tree
+    // Access the spatialized items
     const ItemSpatialTree& getSpatialTree() const { return _masterSpatialTree; }
-    
+
+    // Access non-spatialized items (overlays, backgrounds)
+    const ItemIDSet& getNonspatialSet() const { return _masterNonspatialSet; }
+
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
+    std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
     std::mutex _changeQueueMutex;
     PendingChangesQueue _changeQueue;
 
@@ -106,12 +95,10 @@ protected:
     // database of items is protected for editing by a mutex
     std::mutex _itemsMutex;
     Item::Vector _items;
-    ItemBucketMap _masterBucketMap;
     ItemSpatialTree _masterSpatialTree;
-
+    ItemIDSet _masterNonspatialSet;
 
     void resetItems(const ItemIDs& ids, Payloads& payloads);
-    void resortItems(const ItemIDs& ids, ItemKeys& oldKeys, ItemKeys& newKeys);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
 

@@ -19,7 +19,7 @@
 public: \
     type name() { return _##name; }; \
 private: \
-    type _##name{ initialValue }; 
+    type _##name{ initialValue };
 
 
 class Stats : public QQuickItem {
@@ -45,7 +45,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, avatarPing, 0)
     STATS_PROPERTY(int, entitiesPing, 0)
     STATS_PROPERTY(int, assetPing, 0)
-    STATS_PROPERTY(QVector3D, position, QVector3D(0, 0, 0) )
+    STATS_PROPERTY(int, messagePing, 0)
+    STATS_PROPERTY(QVector3D, position, QVector3D(0, 0, 0))
     STATS_PROPERTY(float, speed, 0)
     STATS_PROPERTY(float, yaw, 0)
     STATS_PROPERTY(int, avatarMixerInKbps, 0)
@@ -55,26 +56,20 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
     STATS_PROPERTY(int, downloads, 0)
+    STATS_PROPERTY(int, downloadLimit, 0)
     STATS_PROPERTY(int, downloadsPending, 0)
+    Q_PROPERTY(QStringList downloadUrls READ downloadUrls NOTIFY downloadUrlsChanged)
     STATS_PROPERTY(int, triangles, 0)
     STATS_PROPERTY(int, quads, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
-    STATS_PROPERTY(int, opaqueConsidered, 0)
-    STATS_PROPERTY(int, opaqueOutOfView, 0)
-    STATS_PROPERTY(int, opaqueTooSmall, 0)
-    STATS_PROPERTY(int, opaqueRendered, 0)
+    STATS_PROPERTY(int, itemConsidered, 0)
+    STATS_PROPERTY(int, itemOutOfView, 0)
+    STATS_PROPERTY(int, itemTooSmall, 0)
+    STATS_PROPERTY(int, itemRendered, 0)
     STATS_PROPERTY(int, shadowConsidered, 0)
     STATS_PROPERTY(int, shadowOutOfView, 0)
     STATS_PROPERTY(int, shadowTooSmall, 0)
     STATS_PROPERTY(int, shadowRendered, 0)
-    STATS_PROPERTY(int, translucentConsidered, 0)
-    STATS_PROPERTY(int, translucentOutOfView, 0)
-    STATS_PROPERTY(int, translucentTooSmall, 0)
-    STATS_PROPERTY(int, translucentRendered, 0)
-    STATS_PROPERTY(int, otherConsidered, 0)
-    STATS_PROPERTY(int, otherOutOfView, 0)
-    STATS_PROPERTY(int, otherTooSmall, 0)
-    STATS_PROPERTY(int, otherRendered, 0)
     STATS_PROPERTY(QString, sendingMode, QString())
     STATS_PROPERTY(QString, packetStats, QString())
     STATS_PROPERTY(QString, lodStatus, QString())
@@ -111,6 +106,8 @@ public:
         }
     }
 
+    QStringList downloadUrls () { return _downloadUrls; }
+
 public slots:
     void forceUpdateStats() { updateStats(true); }
 
@@ -131,6 +128,7 @@ signals:
     void avatarPingChanged();
     void entitiesPingChanged();
     void assetPingChanged();
+    void messagePingChanged();
     void positionChanged();
     void speedChanged();
     void yawChanged();
@@ -141,26 +139,20 @@ signals:
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
     void downloadsChanged();
+    void downloadLimitChanged();
     void downloadsPendingChanged();
+    void downloadUrlsChanged();
     void trianglesChanged();
     void quadsChanged();
     void materialSwitchesChanged();
-    void opaqueConsideredChanged();
-    void opaqueOutOfViewChanged();
-    void opaqueTooSmallChanged();
-    void opaqueRenderedChanged();
+    void itemConsideredChanged();
+    void itemOutOfViewChanged();
+    void itemTooSmallChanged();
+    void itemRenderedChanged();
     void shadowConsideredChanged();
     void shadowOutOfViewChanged();
     void shadowTooSmallChanged();
     void shadowRenderedChanged();
-    void translucentConsideredChanged();
-    void translucentOutOfViewChanged();
-    void translucentTooSmallChanged();
-    void translucentRenderedChanged();
-    void otherConsideredChanged();
-    void otherOutOfViewChanged();
-    void otherTooSmallChanged();
-    void otherRenderedChanged();
     void sendingModeChanged();
     void packetStatsChanged();
     void lodStatusChanged();
@@ -179,6 +171,7 @@ private:
     bool _timingExpanded{ false };
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
+    QStringList _downloadUrls = QStringList();
 };
 
 #endif // hifi_Stats_h

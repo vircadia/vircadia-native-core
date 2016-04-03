@@ -611,7 +611,7 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
     return loadNode(rootVal.toObject(), jsonUrl);
 }
 
-void AnimNodeLoader::onRequestDone(const QByteArray& data) {
+void AnimNodeLoader::onRequestDone(const QByteArray data) {
     auto node = load(data, _url);
     if (node) {
         emit success(node);

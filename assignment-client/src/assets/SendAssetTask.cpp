@@ -33,13 +33,10 @@ SendAssetTask::SendAssetTask(QSharedPointer<ReceivedMessage> message, const Shar
 
 void SendAssetTask::run() {
     MessageID messageID;
-    uint8_t extensionLength;
     DataOffset start, end;
     
     _message->readPrimitive(&messageID);
     QByteArray assetHash = _message->read(SHA256_HASH_LENGTH);
-    _message->readPrimitive(&extensionLength);
-    QByteArray extension = _message->read(extensionLength);
 
     // `start` and `end` indicate the range of data to retrieve for the asset identified by `assetHash`.
     // `start` is inclusive, `end` is exclusive. Requesting `start` = 1, `end` = 10 will retrieve 9 bytes of data,
@@ -59,15 +56,15 @@ void SendAssetTask::run() {
     replyPacketList->writePrimitive(messageID);
 
     if (end <= start) {
-        writeError(replyPacketList.get(), AssetServerError::InvalidByteRange);
+        replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
     } else {
-        QString filePath = _resourcesDir.filePath(QString(hexHash) + "." + QString(extension));
+        QString filePath = _resourcesDir.filePath(QString(hexHash));
         
         QFile file { filePath };
 
         if (file.open(QIODevice::ReadOnly)) {
             if (file.size() < end) {
-                writeError(replyPacketList.get(), AssetServerError::InvalidByteRange);
+                replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
                 qCDebug(networking) << "Bad byte range: " << hexHash << " " << start << ":" << end;
             } else {
                 auto size = end - start;
@@ -80,7 +77,7 @@ void SendAssetTask::run() {
             file.close();
         } else {
             qCDebug(networking) << "Asset not found: " << filePath << "(" << hexHash << ")";
-            writeError(replyPacketList.get(), AssetServerError::AssetNotFound);
+            replyPacketList->writePrimitive(AssetServerError::AssetNotFound);
         }
     }
 

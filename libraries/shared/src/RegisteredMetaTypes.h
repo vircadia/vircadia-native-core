@@ -28,6 +28,7 @@ Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
+Q_DECLARE_METATYPE(glm::mat4)
 Q_DECLARE_METATYPE(xColor)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 Q_DECLARE_METATYPE(QVector<float>)
@@ -35,42 +36,75 @@ Q_DECLARE_METATYPE(AACube)
 
 void registerMetaTypes(QScriptEngine* engine);
 
+// Mat4
+QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
+void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
+
+// Vec4
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);
 void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4);
 
+// Vec3
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
 void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
 
+QVariant vec3toVariant(const glm::vec3 &vec3);
+glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
+glm::vec3 vec3FromVariant(const QVariant &object);
+
+// Vec2
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2);
 void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2);
 
+QVariant vec2toVariant(const glm::vec2 &vec2);
+glm::vec2 vec2FromVariant(const QVariant &object, bool& valid);
+glm::vec2 vec2FromVariant(const QVariant &object);
+
+// Quaternions
 QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat& quat);
 void quatFromScriptValue(const QScriptValue &object, glm::quat& quat);
 
+QVariant quatToVariant(const glm::quat& quat);
+glm::quat quatFromVariant(const QVariant &object, bool& isValid);
+glm::quat quatFromVariant(const QVariant &object);
+
+// Rect
 QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect);
 void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
 
+QVariant qRectToVariant(const QRect& rect);
+QRect qRectFromVariant(const QVariant& object, bool& isValid);
+
+// xColor
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
 void xColorFromScriptValue(const QScriptValue &object, xColor& color);
 
+QVariant xColorToVariant(const xColor& color);
+xColor xColorFromVariant(const QVariant &object, bool& isValid);
+
+// QColor
 QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color);
 void qColorFromScriptValue(const QScriptValue& object, QColor& color);
 
 QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url);
 void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
+// vector<vec3>
 QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
 void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
 QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array);
 
+// vector<quat>
 QScriptValue qVectorQuatToScriptValue(QScriptEngine* engine, const QVector<glm::quat>& vector);
 void qVectorQuatFromScriptValue(const QScriptValue& array, QVector<glm::quat>& vector);
 QVector<glm::quat> qVectorQuatFromScriptValue(const QScriptValue& array);
 
+// vector<bool>
 QScriptValue qVectorBoolToScriptValue(QScriptEngine* engine, const QVector<bool>& vector);
 void qVectorBoolFromScriptValue(const QScriptValue& array, QVector<bool>& vector);
 QVector<bool> qVectorBoolFromScriptValue(const QScriptValue& array);
 
+// vector<float>
 QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector);
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector);
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);

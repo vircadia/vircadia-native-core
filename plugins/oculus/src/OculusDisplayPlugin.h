@@ -12,27 +12,26 @@
 struct SwapFramebufferWrapper;
 using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 
-const float TARGET_RATE_Oculus = 75.0f;
-
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
+    using Parent = OculusBaseDisplayPlugin;
 public:
-    virtual void activate() override;
-    virtual const QString& getName() const override { return NAME; }
-    virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
+    const QString& getName() const override { return NAME; }
 
-    virtual float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
+    QString getPreferredAudioInDevice() const override;
+    QString getPreferredAudioOutDevice() const override;
 
 protected:
-    virtual void internalPresent() override;
-    virtual void customizeContext() override;
-    virtual void uncustomizeContext() override;
+    bool internalActivate() override;
+    void hmdPresent() override;
+    bool isHmdMounted() const override;
+    void customizeContext() override;
+    void uncustomizeContext() override;
+    void cycleDebugOutput() override;
 
 private:
-    using EyePoses = std::pair<ovrPosef, ovrPosef>;
     static const QString NAME;
     bool _enablePreview { false };
     bool _monoPreview { true };
-    QMap<uint32_t, EyePoses> _frameEyePoses;
 
     SwapFboPtr       _sceneFbo;
 };

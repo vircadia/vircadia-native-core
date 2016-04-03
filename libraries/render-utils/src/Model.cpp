@@ -29,8 +29,8 @@
 
 using namespace std;
 
-static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
-static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
+static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
+static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
@@ -43,7 +43,7 @@ Model::Model(RigPointer rig, QObject* parent) :
     _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
-    _scaleToFitDimensions(0.0f),
+    _scaleToFitDimensions(1.0f),
     _scaledToFit(false),
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
@@ -74,15 +74,27 @@ Model::~Model() {
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+bool Model::needsFixupInScene() const {
+    if (readyToAddToScene()) {
+        if (_needsUpdateTextures && _geometry->getGeometry()->areTexturesLoaded()) {
+            _needsUpdateTextures = false;
+            return true;
+        }
+        if (!_readyWhenAdded) {
+            return true;
+        }
+    }
+    return false;
+}
 
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
-    enqueueLocationChange();
+    updateRenderItems();
 }
 
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
-    enqueueLocationChange();
+    updateRenderItems();
 }
 
 void Model::setScale(const glm::vec3& scale) {
@@ -112,42 +124,82 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
-void Model::enqueueLocationChange() {
-    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+void Model::updateRenderItems() {
 
-    Transform transform;
-    transform.setTranslation(_translation);
-    transform.setRotation(_rotation);
+    _needsUpdateClusterMatrices = true;
 
-    Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
+    // queue up this work for later processing, at the end of update and just before rendering.
+    // the application will ensure only the last lambda is actually invoked.
+    void* key = (void*)this;
+    std::weak_ptr<Model> weakSelf = shared_from_this();
+    AbstractViewStateInterface::instance()->pushPreRenderLambda(key, [weakSelf]() {
 
-    render::PendingChanges pendingChanges;
-    foreach (auto itemID, _renderItems.keys()) {
-        pendingChanges.updateItem<MeshPartPayload>(itemID, [transform, offset](MeshPartPayload& data) {
-            data.updateTransform(transform, offset);
-            data.notifyLocationChanged();
-        });
-    }
+        // do nothing, if the model has already been destroyed.
+        auto self = weakSelf.lock();
+        if (!self) {
+            return;
+        }
 
-    scene->enqueuePendingChanges(pendingChanges);
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+        Transform modelTransform;
+        modelTransform.setScale(self->_scale);
+        modelTransform.setTranslation(self->_translation);
+        modelTransform.setRotation(self->_rotation);
+
+        Transform modelMeshOffset;
+        if (self->isLoaded()) {
+            // includes model offset and unitScale.
+            modelMeshOffset = Transform(self->_rig->getGeometryToRigTransform());
+        } else {
+            modelMeshOffset.postTranslate(self->_offset);
+        }
+
+        // only apply offset only, collision mesh does not share the same unit scale as the FBX file's mesh.
+        Transform collisionMeshOffset;
+        collisionMeshOffset.postTranslate(self->_offset);
+
+        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
+
+        render::PendingChanges pendingChanges;
+        foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
+                // Ensure the model geometry was not reset between frames
+                if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
+                    // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
+                    data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
+
+                    // update the model transform and bounding box for this render item.
+                    const Model::MeshState& state = data._model->_meshStates.at(data._meshIndex);
+                    data.updateTransformForSkinnedMesh(modelTransform, modelMeshOffset, state.clusterMatrices);
+                }
+            });
+        }
+
+        foreach (auto itemID, self->_collisionRenderItems.keys()) {
+            pendingChanges.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
+                // update the model transform for this render item.
+                data.updateTransform(modelTransform, collisionMeshOffset);
+            });
+        }
+
+        scene->enqueuePendingChanges(pendingChanges);
+    });
 }
 
 void Model::initJointTransforms() {
-    if (!_geometry || !_geometry->isLoaded()) {
-        return;
+    if (isLoaded()) {
+        glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
+        _rig->setModelOffset(modelOffset);
     }
-    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-    _rig->setModelOffset(modelOffset);
 }
 
 void Model::init() {
 }
 
 void Model::reset() {
-    if (_geometry && _geometry->isLoaded()) {
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (isLoaded()) {
+        const FBXGeometry& geometry = getFBXGeometry();
         _rig->reset(geometry);
     }
 }
@@ -156,17 +208,16 @@ bool Model::updateGeometry() {
     PROFILE_RANGE(__FUNCTION__);
     bool needFullUpdate = false;
 
-    if (!_geometry || !_geometry->isLoaded()) {
-        // geometry is not ready
+    if (!isLoaded()) {
         return false;
     }
 
     _needsReload = false;
 
-    if (_rig->jointStatesEmpty() && _geometry->getFBXGeometry().joints.size() > 0) {
+    if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
         initJointStates();
 
-        const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
+        const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
@@ -190,7 +241,7 @@ bool Model::updateGeometry() {
 
 // virtual
 void Model::initJointStates() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
     _rig->initJointStates(geometry, modelOffset);
@@ -233,29 +284,22 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         glm::vec3 subMeshSurfaceNormal;
         int subMeshIndex = 0;
 
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        const FBXGeometry& geometry = getFBXGeometry();
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
-
-        if (!_calculatedMeshBoxesValid) {
+        if (!_calculatedMeshBoxesValid || (pickAgainstTriangles && !_calculatedMeshTrianglesValid)) {
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
+        for (const auto& subMeshBox : _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
-                        if (!_calculatedMeshTrianglesValid) {
-                            recalculateMeshBoxes(pickAgainstTriangles);
-                        }
                         // check our triangles here....
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
-                        int t = 0;
-                        foreach (const Triangle& triangle, meshTriangles) {
-                            t++;
-
+                        for(const auto& triangle : meshTriangles) {
                             float thisTriangleDistance;
                             if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
                                 if (thisTriangleDistance < bestDistance) {
@@ -359,7 +403,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        const FBXGeometry& geometry = getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
         _calculatedMeshBoxes.resize(numberOfMeshes);
         _calculatedMeshTriangles.clear();
@@ -470,7 +514,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
 void Model::renderSetup(RenderArgs* args) {
     // set up dilated textures on first render after load/simulate
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     if (_dilatedTextures.isEmpty()) {
         foreach (const FBXMesh& mesh, geometry.meshes) {
             QVector<QSharedPointer<Texture> > dilated;
@@ -489,37 +533,14 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
         _isVisible = newValue;
 
         render::PendingChanges pendingChanges;
-        foreach (auto item, _renderItems.keys()) {
-            pendingChanges.resetItem(item, _renderItems[item]);
+        foreach (auto item, _modelMeshRenderItems.keys()) {
+            pendingChanges.resetItem(item, _modelMeshRenderItems[item]);
+        }
+        foreach (auto item, _collisionRenderItems.keys()) {
+            pendingChanges.resetItem(item, _collisionRenderItems[item]);
         }
         scene->enqueuePendingChanges(pendingChanges);
     }
-}
-
-
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, bool showCollisionHull) {
-
-    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
-        _showCollisionHull = showCollisionHull;
-        segregateMeshGroups();
-    }
-
-    bool somethingAdded = false;
-
-    foreach (auto renderItem, _renderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    _readyWhenAdded = readyToAddToScene();
-
-    return somethingAdded;
 }
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene,
@@ -533,17 +554,32 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _renderItemsSet) {
-        auto item = scene->allocateID();
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
-            data.notifyLocationChanged();
-        });
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
+    if (_modelMeshRenderItems.empty()) {
+        foreach (auto renderItem, _modelMeshRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            if (statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
+            }
+            pendingChanges.resetItem(item, renderPayload);
+            _modelMeshRenderItems.insert(item, renderPayload);
+            somethingAdded = true;
+        }
     }
+    if (_collisionRenderItems.empty()) {
+        foreach (auto renderItem, _collisionRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
+            if (statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
+            }
+            pendingChanges.resetItem(item, renderPayload);
+            _collisionRenderItems.insert(item, renderPayload);
+            somethingAdded = true;
+        }
+    }
+
+    updateRenderItems();
 
     _readyWhenAdded = readyToAddToScene();
 
@@ -551,11 +587,17 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 }
 
 void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    foreach (auto item, _renderItems.keys()) {
+    foreach (auto item, _modelMeshRenderItems.keys()) {
         pendingChanges.removeItem(item);
     }
-    _renderItems.clear();
-    _renderItemsSet.clear();
+    _modelMeshRenderItems.clear();
+    _modelMeshRenderItemsSet.clear();
+    foreach (auto item, _collisionRenderItems.keys()) {
+        pendingChanges.removeItem(item);
+    }
+    _collisionRenderItems.clear();
+    _collisionRenderItemsSet.clear();
+    _meshGroupsKnown = false;
     _readyWhenAdded = false;
 }
 
@@ -618,7 +660,7 @@ Extents Model::getBindExtents() const {
     if (!isActive()) {
         return Extents();
     }
-    const Extents& bindExtents = _geometry->getFBXGeometry().bindExtents;
+    const Extents& bindExtents = getFBXGeometry().bindExtents;
     Extents scaledExtents = { bindExtents.minimum * _scale, bindExtents.maximum * _scale };
     return scaledExtents;
 }
@@ -627,12 +669,12 @@ Extents Model::getMeshExtents() const {
     if (!isActive()) {
         return Extents();
     }
-    const Extents& extents = _geometry->getFBXGeometry().meshExtents;
+    const Extents& extents = getFBXGeometry().meshExtents;
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+    glm::vec3 minimum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum * _scale, maximum * _scale };
     return scaledExtents;
 }
@@ -642,12 +684,12 @@ Extents Model::getUnscaledMeshExtents() const {
         return Extents();
     }
 
-    const Extents& extents = _geometry->getFBXGeometry().meshExtents;
+    const Extents& extents = getFBXGeometry().meshExtents;
 
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+    glm::vec3 minimum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum, maximum };
 
     return scaledExtents;
@@ -656,8 +698,8 @@ Extents Model::getUnscaledMeshExtents() const {
 Extents Model::calculateScaledOffsetExtents(const Extents& extents,
                                             glm::vec3 modelPosition, glm::quat modelOrientation) const {
     // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+    glm::vec3 minimum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
 
     Extents scaledOffsetExtents = { ((minimum + _offset) * _scale),
                                     ((maximum + _offset) * _scale) };
@@ -677,7 +719,7 @@ AABox Model::calculateScaledOffsetAABox(const AABox& box, glm::vec3 modelPositio
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
-    glm::vec3 offsetPoint = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(point, 1.0f));
+    glm::vec3 offsetPoint = glm::vec3(getFBXGeometry().offset * glm::vec4(point, 1.0f));
     glm::vec3 scaledPoint = ((offsetPoint + _offset) * _scale);
     glm::vec3 rotatedPoint = _rotation * scaledPoint;
     glm::vec3 translatedPoint = rotatedPoint + _translation;
@@ -705,11 +747,18 @@ void Model::setJointTranslation(int index, bool valid, const glm::vec3& translat
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
+    return (isActive() && jointIndex != -1) ? getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }
 
 int Model::getLastFreeJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
+    return (isActive() && jointIndex != -1) ? getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
+}
+
+void Model::setTextures(const QVariantMap& textures) {
+    if (isLoaded()) {
+        _needsUpdateTextures = true;
+        _geometry->getGeometry()->setTextures(textures);
+    }
 }
 
 void Model::setURL(const QUrl& url) {
@@ -728,25 +777,13 @@ void Model::setURL(const QUrl& url) {
     }
 
     _needsReload = true;
+    _needsUpdateTextures = true;
     _meshGroupsKnown = false;
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
-    _geometry.reset(new NetworkGeometry(url, false, QVariantHash()));
+    _geometry = DependencyManager::get<ModelCache>()->getGeometry(url);
     onInvalidate();
-}
-
-const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad)
-{
-    if (_collisionGeometry.isNull() && !_collisionUrl.isEmpty()) {
-        _collisionGeometry.reset(new NetworkGeometry(_collisionUrl, delayLoad, QVariantHash()));
-    }
-
-    if (_collisionGeometry && _collisionGeometry->isLoaded()) {
-        return _collisionGeometry;
-    }
-
-    return QSharedPointer<NetworkGeometry>();
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
@@ -754,7 +791,7 @@ void Model::setCollisionModelURL(const QUrl& url) {
         return;
     }
     _collisionUrl = url;
-    _collisionGeometry.reset(new NetworkGeometry(url, false, QVariantHash()));
+    _collisionGeometry = DependencyManager::get<ModelCache>()->getGeometry(url);
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
@@ -804,27 +841,27 @@ QStringList Model::getJointNames() const {
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
-    return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
+    return isActive() ? getFBXGeometry().getJointNames() : QStringList();
 }
 
 class Blender : public QRunnable {
 public:
 
-    Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+    Blender(ModelPointer model, int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
 
     virtual void run();
 
 private:
 
-    QPointer<Model> _model;
+    ModelPointer _model;
     int _blendNumber;
-    QWeakPointer<NetworkGeometry> _geometry;
+    std::weak_ptr<NetworkGeometry> _geometry;
     QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+Blender::Blender(ModelPointer model, int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
     _model(model),
     _blendNumber(blendNumber),
@@ -836,7 +873,7 @@ Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeomet
 void Blender::run() {
     PROFILE_RANGE(__FUNCTION__);
     QVector<glm::vec3> vertices, normals;
-    if (!_model.isNull()) {
+    if (_model) {
         int offset = 0;
         foreach (const FBXMesh& mesh, _meshes) {
             if (mesh.blendshapes.isEmpty()) {
@@ -866,8 +903,8 @@ void Blender::run() {
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
-        Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
+        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
+        Q_ARG(const std::weak_ptr<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
         Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
@@ -907,6 +944,14 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension, bool forceRes
             _scaledToFit = false; // force rescaling
         }
     }
+}
+
+glm::vec3 Model::getScaleToFitDimensions() const {
+    if (_scaleToFitDimensions.y == FAKE_DIMENSION_PLACEHOLDER &&
+        _scaleToFitDimensions.z == FAKE_DIMENSION_PLACEHOLDER) {
+        return glm::vec3(_scaleToFitDimensions.x);
+    }
+    return _scaleToFitDimensions;
 }
 
 void Model::scaleToFit() {
@@ -987,11 +1032,11 @@ void Model::simulateInternal(float deltaTime) {
 void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
-    if (!_needsUpdateClusterMatrices) {
+    if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
     _needsUpdateClusterMatrices = false;
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
@@ -1043,46 +1088,49 @@ void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrient
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
+        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
     }
 }
 
 void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     _rig->inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
 }
 
 bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
     return _rig->restoreJointPosition(jointIndex, fraction, priority, freeLineage);
 }
 
 float Model::getLimbLength(int jointIndex) const {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& geometry = getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
     return _rig->getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
 }
 
 bool Model::maybeStartBlender() {
-    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
-    if (fbxGeometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(this, ++_blendNumber, _geometry,
-            fbxGeometry.meshes, _blendshapeCoefficients));
-        return true;
+    if (isLoaded()) {
+        const FBXGeometry& fbxGeometry = getFBXGeometry();
+        if (fbxGeometry.hasBlendedMeshes()) {
+            QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _geometry,
+                fbxGeometry.meshes, _blendshapeCoefficients));
+            return true;
+        }
     }
     return false;
 }
 
-void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+void Model::setBlendedVertices(int blendNumber, const std::weak_ptr<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (_geometry != geometry || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
+    auto geometryRef = geometry.lock();
+    if (!geometryRef || _geometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
         return;
     }
     _appliedBlendNumber = blendNumber;
-    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
+    const FBXGeometry& fbxGeometry = getFBXGeometry();
     int index = 0;
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
@@ -1099,69 +1147,43 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
     }
 }
 
-void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
-    if (_geometry == newGeometry) {
-        return;
-    }
-    _geometry = newGeometry;
-}
-
 void Model::deleteGeometry() {
+    _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
     _meshStates.clear();
     _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
 }
 
-AABox Model::getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation) const {
-
-    if (!_geometry || !_geometry->isLoaded()) {
+AABox Model::getRenderableMeshBound() const {
+    if (!isLoaded()) {
         return AABox();
-    }
-
-    if (meshIndex < _meshStates.size()) {
-        const MeshState& state = _meshStates.at(meshIndex);
-        bool isSkinned = state.clusterMatrices.size() > 1;
-        if (isSkinned) {
-            // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
-            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents, modelPosition, modelOrientation);
+    } else {
+        // Build a bound using the last known bound from all the renderItems.
+        AABox totalBound;
+        for (auto& renderItem : _modelMeshRenderItemsSet) {
+            totalBound += renderItem->getBound();
         }
+        return totalBound;
     }
-    if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
-
-        // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
-        //           box of the mesh part fails. It seems to create boxes that are not consistent with where the
-        //           geometry actually renders. If instead we make all the parts share the bounds of the entire subMesh
-        //           things will render properly.
-        //
-        //    return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
-        //
-        //    NOTE: we also don't want to use the _calculatedMeshBoxes[] because they don't handle avatar moving correctly
-        //          without recalculating them...
-        //    return _calculatedMeshBoxes[meshIndex];
-        //
-        // If we not skinned use the bounds of the subMesh for all it's parts
-        const FBXMesh& mesh = _geometry->getFBXGeometry().meshes.at(meshIndex);
-        return calculateScaledOffsetExtents(mesh.meshExtents, modelPosition, modelOrientation);
-    }
-    return AABox();
 }
 
 void Model::segregateMeshGroups() {
-    QSharedPointer<NetworkGeometry> networkGeometry;
+    NetworkGeometry::Pointer networkGeometry;
     bool showingCollisionHull = false;
     if (_showCollisionHull && _collisionGeometry) {
-        if (_collisionGeometry->isLoaded()) {
+        if (isCollisionLoaded()) {
             networkGeometry = _collisionGeometry;
             showingCollisionHull = true;
         } else {
             return;
         }
     } else {
+        assert(isLoaded());
         networkGeometry = _geometry;
     }
-    const FBXGeometry& geometry = networkGeometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
+    const FBXGeometry& geometry = networkGeometry->getGeometry()->getGeometry();
+    const auto& networkMeshes = networkGeometry->getGeometry()->getMeshes();
 
     // all of our mesh vectors must match in size
     auto geoMeshesSize = geometry.meshes.size();
@@ -1172,10 +1194,14 @@ void Model::segregateMeshGroups() {
         return;
     }
 
-    Q_ASSERT(_renderItems.isEmpty()); // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_renderItemsSet.isEmpty()); // We should not have any existing renderItemsSet if we enter this section of code
+    // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_modelMeshRenderItems.isEmpty());
+    Q_ASSERT(_modelMeshRenderItemsSet.isEmpty());
+    Q_ASSERT(_collisionRenderItems.isEmpty());
+    Q_ASSERT(_collisionRenderItemsSet.isEmpty());
 
-    _renderItemsSet.clear();
+    _modelMeshRenderItemsSet.clear();
+    _collisionRenderItemsSet.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1189,7 +1215,7 @@ void Model::segregateMeshGroups() {
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
         const FBXMesh& mesh = geometry.meshes.at(i);
-        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
+        const auto& networkMesh = networkMeshes.at(i);
 
         // Create the render payloads
         int totalParts = mesh.parts.size();
@@ -1197,13 +1223,13 @@ void Model::segregateMeshGroups() {
             if (showingCollisionHull) {
                 if (!_collisionHullMaterial) {
                     _collisionHullMaterial = std::make_shared<model::Material>();
-                    _collisionHullMaterial->setDiffuse(glm::vec3(1.0f, 0.5f, 0.0f));
+                    _collisionHullMaterial->setAlbedo(glm::vec3(1.0f, 0.5f, 0.0f));
                     _collisionHullMaterial->setMetallic(0.02f);
-                    _collisionHullMaterial->setGloss(1.0f);
+                    _collisionHullMaterial->setRoughness(0.5f);
                 }
-                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, _collisionHullMaterial, transform, offset);
+                _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(networkMesh, partIndex, _collisionHullMaterial, transform, offset);
             } else {
-                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+                _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
             }
 
             shapeID++;
@@ -1226,17 +1252,20 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         offset.setScale(_scale);
         offset.postTranslate(_offset);
 
-        foreach (auto renderItem, _renderItemsSet) {
+        foreach (auto renderItem, _modelMeshRenderItemsSet) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            _modelMeshRenderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+        }
+        foreach (auto renderItem, _collisionRenderItemsSet) {
             auto item = scene->allocateID();
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-            _renderItems.insert(item, renderPayload);
+            _collisionRenderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [transform,offset](MeshPartPayload& data) {
-                data.updateTransform(transform, offset);
-                data.notifyLocationChanged();
-            });
         }
         scene->enqueuePendingChanges(pendingChanges);
+        updateRenderItems();
 
         _readyWhenAdded = true;
         return true;
@@ -1251,29 +1280,36 @@ ModelBlender::ModelBlender() :
 ModelBlender::~ModelBlender() {
 }
 
-void ModelBlender::noteRequiresBlend(Model* model) {
+void ModelBlender::noteRequiresBlend(ModelPointer model) {
     if (_pendingBlenders < QThread::idealThreadCount()) {
         if (model->maybeStartBlender()) {
             _pendingBlenders++;
         }
         return;
     }
-    if (!_modelsRequiringBlends.contains(model)) {
-        _modelsRequiringBlends.append(model);
+
+    {
+        Lock lock(_mutex);
+        _modelsRequiringBlends.insert(model);
     }
 }
 
-void ModelBlender::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
-        const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (!model.isNull()) {
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber,
+        const std::weak_ptr<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (model) {
         model->setBlendedVertices(blendNumber, geometry, vertices, normals);
     }
     _pendingBlenders--;
-    while (!_modelsRequiringBlends.isEmpty()) {
-        Model* nextModel = _modelsRequiringBlends.takeFirst();
-        if (nextModel && nextModel->maybeStartBlender()) {
-            _pendingBlenders++;
-            return;
+    {
+        Lock lock(_mutex);
+        for (auto i = _modelsRequiringBlends.begin(); i != _modelsRequiringBlends.end();) {
+            auto weakPtr = *i;
+            _modelsRequiringBlends.erase(i++); // remove front of the set
+            ModelPointer nextModel = weakPtr.lock();
+            if (nextModel && nextModel->maybeStartBlender()) {
+                _pendingBlenders++;
+                return;
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ NetworkShader::NetworkShader(const QUrl& url, bool delayLoad)
 
 void NetworkShader::downloadFinished(const QByteArray& data) {
     _source = QString::fromUtf8(data);
+    finishedLoading(true);
 }
 
 ShaderCache& ShaderCache::instance() {
@@ -27,6 +28,6 @@ NetworkShaderPointer ShaderCache::getShader(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ShaderCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new NetworkShader(url, delayLoad), &Resource::allReferencesCleared);
+    return QSharedPointer<Resource>(new NetworkShader(url, delayLoad), &Resource::deleter);
 }
 
