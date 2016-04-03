@@ -118,10 +118,8 @@ void GeometryReader::run() {
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
 
-    // Ensure the resource is still being requested
-    auto resource = _resource.toStrongRef();
-    if (!resource) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+    if (!_resource.data()) {
+        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; resource was deleted";
         return;
     }
 
@@ -146,14 +144,28 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(void*, fbxGeometry));
+            // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+            auto resource = _resource.toStrongRef();
+            if (!resource) {
+                qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+                delete fbxGeometry;
+            } else {
+                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition", Qt::BlockingQueuedConnection, Q_ARG(void*, fbxGeometry));
+            }
         } else {
             throw QString("url is invalid");
         }
     } catch (const QString& error) {
+
         qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
-        QMetaObject::invokeMethod(resource.data(), "finishedLoading", Q_ARG(bool, false));
+
+        auto resource = _resource.toStrongRef();
+        // Ensure the resoruce has not been deleted, and won't be while invokeMethod is in flight.
+        if (!resource) {
+            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+        } else {
+            QMetaObject::invokeMethod(resource.data(), "finishedLoading", Qt::BlockingQueuedConnection, Q_ARG(bool, false));
+        }
     }
 
     QThread::currentThread()->setPriority(originalPriority);
