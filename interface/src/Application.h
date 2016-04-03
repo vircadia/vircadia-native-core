@@ -312,6 +312,7 @@ private slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void nodeAdded(SharedNodePointer node);
+    void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     void updateDisplayMode();
@@ -515,6 +516,8 @@ private:
 
     std::map<void*, std::function<void()>> _preRenderLambdas;
     std::mutex _preRenderLambdasLock;
+
+    std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
 };
 
 #endif // hifi_Application_h

@@ -354,7 +354,7 @@ void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtua
 
 
 void Socket::setConnectionMaxBandwidth(int maxBandwidth) {
-    qInfo() << "Setting socket's maximum bandwith to" << maxBandwidth << ". ("
+    qInfo() << "Setting socket's maximum bandwith to" << maxBandwidth << "bps. ("
             << _connectionsHash.size() << "live connections)";
     _maxBandwidth = maxBandwidth;
     for (auto& pair : _connectionsHash) {

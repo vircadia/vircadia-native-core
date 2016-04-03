@@ -25,7 +25,6 @@
 #define __STR1__(x) __STR2__(x)
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
-static const QString MODELS_LOCATION = "scripts/";
 static const QString PREFIX_PARAMETER_NAME = "prefix";
 static const QString MARKER_PARAMETER_NAME = "marker";
 static const QString IS_TRUNCATED_NAME = "IsTruncated";
@@ -41,7 +40,7 @@ TreeNodeBase::TreeNodeBase(TreeNodeFolder* parent, const QString& name, TreeNode
 TreeNodeScript::TreeNodeScript(const QString& localPath, const QString& fullPath, ScriptOrigin origin) :
     TreeNodeBase(NULL, localPath.split("/").last(), TREE_NODE_TYPE_SCRIPT),
     _localPath(localPath),
-    _fullPath(fullPath),
+    _fullPath(expandScriptUrl(QUrl(fullPath)).toString()),
     _origin(origin) {
 };
 
@@ -159,9 +158,11 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
 
     if (url.isLocalFile()) {
         // if the url indicates a local directory, use QDirIterator
-        // QString localDir = url.toLocalFile() + "/scripts";
-        QString localDir = expandScriptUrl(url).toLocalFile() + "/scripts";
+        QString localDir = expandScriptUrl(url).toLocalFile();
         int localDirPartCount = localDir.split("/").size();
+        if (localDir.endsWith("/")) {
+            localDirPartCount--;
+        }
         #ifdef Q_OS_WIN
         localDirPartCount++; // one for the drive letter
         #endif
@@ -176,7 +177,7 @@ void ScriptsModel::requestDefaultFiles(QString marker) {
     } else {
         // the url indicates http(s), use QNetworkRequest
         QUrlQuery query;
-        query.addQueryItem(PREFIX_PARAMETER_NAME, MODELS_LOCATION);
+        query.addQueryItem(PREFIX_PARAMETER_NAME, ".");
         if (!marker.isEmpty()) {
             query.addQueryItem(MARKER_PARAMETER_NAME, marker);
         }
@@ -240,7 +241,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
                     if (jsRegex.exactMatch(xml.text().toString())) {
                         QString localPath = lastKey.split("/").mid(1).join("/");
                         QUrl fullPath = defaultScriptsLocation();
-                        fullPath.setPath(fullPath.path() + "/" + lastKey);
+                        fullPath.setPath(fullPath.path() + lastKey);
                         const QString fullPathStr = normalizeScriptURL(fullPath).toString();
                         _treeNodes.append(new TreeNodeScript(localPath, fullPathStr, SCRIPT_ORIGIN_DEFAULT));
                     }

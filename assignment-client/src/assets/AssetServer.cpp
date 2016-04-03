@@ -82,11 +82,11 @@ void AssetServer::completeSetup() {
     auto maxBandwidthFloat = maxBandwidthValue.toDouble(-1);
 
     if (maxBandwidthFloat > 0.0) {
-        const int BYTES_PER_MEGABITS = (1024 * 1024) / 8;
-        int maxBandwidth = maxBandwidthFloat * BYTES_PER_MEGABITS;
+        const int BITS_PER_MEGABITS = 1000 * 1000;
+        int maxBandwidth = maxBandwidthFloat * BITS_PER_MEGABITS;
         nodeList->setConnectionMaxBandwidth(maxBandwidth);
         qInfo() << "Set maximum bandwith per connection to" << maxBandwidthFloat << "Mb/s."
-                    " (" << maxBandwidth << "bytes/sec)";
+                    " (" << maxBandwidth << "bits/s)";
     }
 
     // get the path to the asset folder from the domain server settings

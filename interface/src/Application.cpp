@@ -680,6 +680,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
+    connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
     connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
@@ -3215,6 +3216,25 @@ void Application::update(float deltaTime) {
 
     updateLOD();
 
+    if (!_physicsEnabled && _processOctreeStatsCounter > 0) {
+
+        // process octree stats packets are sent in between full sends of a scene.
+        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+
+        if (nearbyEntitiesAreReadyForPhysics()) {
+            _physicsEnabled = true;
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        } else {
+            auto characterController = getMyAvatar()->getCharacterController();
+            if (characterController) {
+                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                // a non-loading collision hull.
+                characterController->setEnabled(false);
+            }
+        }
+    }
+
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
@@ -4124,6 +4144,27 @@ void Application::nodeAdded(SharedNodePointer node) {
     }
 }
 
+void Application::nodeActivated(SharedNodePointer node) {
+    if (node->getType() == NodeType::AssetServer) {
+        // asset server just connected - check if we have the asset browser showing
+
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
+
+        if (assetDialog) {
+            auto nodeList = DependencyManager::get<NodeList>();
+
+            if (nodeList->getThisNodeCanRez()) {
+                // call reload on the shown asset browser dialog to get the mappings (if permissions allow)
+                QMetaObject::invokeMethod(assetDialog, "reload");
+            } else {
+                // we switched to an Asset Server that we can't modify, hide the Asset Browser
+                assetDialog->setVisible(false);
+            }
+        }
+    }
+}
+
 void Application::nodeKilled(SharedNodePointer node) {
 
     // These are here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
@@ -4136,10 +4177,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
-    }
-
-    if (node->getType() == NodeType::EntityServer) {
-
+    } else if (node->getType() == NodeType::EntityServer) {
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
         _entityServerJurisdictions.withReadLock([&] {
@@ -4170,6 +4208,16 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    } else if (node->getType() == NodeType::AssetServer) {
+        // asset server going away - check if we have the asset browser showing
+
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto assetDialog = offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer");
+
+        if (assetDialog) {
+            // call reload on the shown asset browser dialog
+            QMetaObject::invokeMethod(assetDialog, "clear");
+        }
     }
 }
 void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
@@ -4260,22 +4308,7 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-    if (!_physicsEnabled) {
-        if (nearbyEntitiesAreReadyForPhysics()) {
-            // These stats packets are sent in between full sends of a scene.
-            // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
-            // scene is ready to compute its collision shape.
-            _physicsEnabled = true;
-            getMyAvatar()->updateMotionBehaviorFromMenu();
-        } else {
-            auto characterController = getMyAvatar()->getCharacterController();
-            if (characterController) {
-                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                // a non-loading collision hull.
-                characterController->setEnabled(false);
-            }
-        }
-    }
+    _processOctreeStatsCounter++;
 
     return statsMessageLength;
 }

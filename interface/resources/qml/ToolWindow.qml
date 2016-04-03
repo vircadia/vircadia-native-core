@@ -1,13 +1,25 @@
+//
+//  ToolWindow.qml
+//
+//  Created by Bradley Austin Davis on 12 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import Qt.labs.settings 1.0
 
-import "windows" as Windows
-import "controls" as Controls
+import "windows-uit"
+import "controls-uit"
+import "styles-uit"
 
-Windows.Window {
+Window {
     id: toolWindow
     resizable: true
     objectName: "ToolWindow"
@@ -15,9 +27,13 @@ Windows.Window {
     destroyOnInvisible: false
     closable: true
     visible: false
-    width: 384; height: 640;
-    title: "Tools"
+    title: "Edit"
     property alias tabView: tabView
+    implicitWidth: 520; implicitHeight: 695
+    minSize: Qt.vector2d(400, 500)
+
+    HifiConstants { id: hifi }
+
     onParentChanged: {
         if (parent) {
             x = 120;
@@ -32,8 +48,11 @@ Windows.Window {
     }
 
     TabView {
-        anchors.fill: parent
         id: tabView;
+        width: pane.contentWidth
+        height: pane.scrollHeight  // Pane height so that don't use Window's scrollbars otherwise tabs may be scrolled out of view.
+        property int tabCount: 0
+
         Repeater {
             model: 4
             Tab {
@@ -43,7 +62,7 @@ Windows.Window {
                 enabled: false
                 property string originalUrl: "";
 
-                Controls.WebView {
+                WebView {
                     id: webView;
                     anchors.fill: parent
                     enabled: false
@@ -59,6 +78,61 @@ Windows.Window {
                     onEnabledChanged: toolWindow.updateVisiblity();
                 }
             }
+        }
+
+        style: TabViewStyle {
+
+            frame: Rectangle {  // Background shown before content loads.
+                anchors.fill: parent
+                color: hifi.colors.baseGray
+            }
+
+            frameOverlap: 0
+
+            tab: Rectangle {
+                implicitWidth: text.width
+                implicitHeight: 3 * text.height
+                color: styleData.selected ? hifi.colors.black : hifi.colors.tabBackgroundDark
+
+                RalewayRegular {
+                    id: text
+                    text: styleData.title
+                    font.capitalization: Font.AllUppercase
+                    size: hifi.fontSizes.tabName
+                    width: tabView.tabCount > 1 ? styleData.availableWidth / tabView.tabCount : implicitWidth + 2 * hifi.dimensions.contentSpacing.x
+                    elide: Text.ElideRight
+                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.lightGrayText
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.centerIn: parent
+                }
+
+                Rectangle {  // Separator.
+                    width: 1
+                    height: parent.height
+                    color: hifi.colors.black
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    visible: styleData.index > 0
+
+                    Rectangle {
+                        width: 1
+                        height: 1
+                        color: hifi.colors.baseGray
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                    }
+                }
+
+                Rectangle {  // Active underline.
+                    width: parent.width - (styleData.index > 0 ? 1 : 0)
+                    height: 1
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    color: styleData.selected ? hifi.colors.primaryHighlight : hifi.colors.baseGray
+                }
+            }
+
+            tabOverlap: 0
         }
     }
 
@@ -129,6 +203,7 @@ Windows.Window {
         tab.originalUrl = "";
         tab.item.url = "about:blank";
         tab.item.enabled = false;
+        tabView.tabCount--;
     }
 
     function addWebTab(properties) {
@@ -150,6 +225,7 @@ Windows.Window {
             return;
         }
 
+
         if (properties.width) {
             tabView.width = Math.min(Math.max(tabView.width, properties.width), toolWindow.maxSize.x);
         }
@@ -169,6 +245,7 @@ Windows.Window {
 
         var result = tab.item;
         result.enabled = true;
+        tabView.tabCount++;
         console.log("Setting event bridge: " + eventBridge);
         result.eventBridgeWrapper.eventBridge = eventBridge;
         result.url = properties.source;

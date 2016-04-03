@@ -130,8 +130,13 @@ void QmlWindowClass::initQml(QVariantMap properties) {
 }
 
 void QmlWindowClass::qmlToScript(const QVariant& message) {
-    QJSValue js = qvariant_cast<QJSValue>(message);
-    emit fromQml(js.toVariant());
+    if (message.canConvert<QJSValue>()) {
+        emit fromQml(qvariant_cast<QJSValue>(message).toVariant());
+    } else if (message.canConvert<QString>()) {
+        emit fromQml(message.toString());
+    } else {
+        qWarning() << "Unsupported message type " << message;
+    }
 }
 
 void QmlWindowClass::sendToQml(const QVariant& message) {

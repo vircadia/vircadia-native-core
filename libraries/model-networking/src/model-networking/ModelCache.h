@@ -95,7 +95,8 @@ class GeometryResource : public Resource, public Geometry {
 public:
     using Pointer = QSharedPointer<GeometryResource>;
 
-    GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) : Resource(url) {}
+    GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) :
+        Resource(url), _textureBaseUrl(textureBaseUrl) {}
 
     virtual bool areTexturesLoaded() const { return isLoaded() && Geometry::areTexturesLoaded(); }
 
