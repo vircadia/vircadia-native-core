@@ -83,6 +83,7 @@ class ResourceCache : public QObject {
     Q_PROPERTY(int numCached READ getNumCachedResources NOTIFY dirty)
     Q_PROPERTY(qint64 sizeTotal READ getSizeTotalResources NOTIFY dirty)
     Q_PROPERTY(qint64 sizeCached READ getSizeCachedResources NOTIFY dirty)
+    Q_PROPERTY(QVariantList resources READ getResourceList NOTIFY dirty)
     
 public:
     int getNumTotalResources() const { return _resources.size(); }
@@ -90,6 +91,8 @@ public:
 
     int getNumCachedResources() const { return _unusedResources.size(); }
     qint64 getSizeCachedResources() const { return _unusedResourcesSize; }
+
+    const QVariantList getResourceList() const;
 
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }

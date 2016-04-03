@@ -56,6 +56,16 @@ void ResourceCache::refresh(const QUrl& url) {
     }
 }
 
+const QVariantList ResourceCache::getResourceList() const {
+    QVariantList list;
+    auto resources = _resources.uniqueKeys();
+    list.reserve(resources.size());
+    for (auto& resource : resources) {
+        list << resource;
+    }
+    return list;
+}
+
 void ResourceCache::setRequestLimit(int limit) {
     _requestLimit = limit;
 
