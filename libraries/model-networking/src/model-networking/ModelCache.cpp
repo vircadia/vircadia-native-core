@@ -232,7 +232,7 @@ std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const 
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
     GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
     if (resource) {
-        if (resource->isLoaded() && !resource->hasTextures()) {
+        if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
         }
         return std::make_shared<NetworkGeometry>(resource);
