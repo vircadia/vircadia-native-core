@@ -159,11 +159,13 @@ void Model::updateRenderItems() {
         Transform collisionMeshOffset;
         collisionMeshOffset.postTranslate(self->_offset);
 
+        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
+
         render::PendingChanges pendingChanges;
         foreach (auto itemID, self->_modelMeshRenderItems.keys()) {
-            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset](ModelMeshPartPayload& data) {
+            pendingChanges.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, modelMeshOffset, deleteGeometryCounter](ModelMeshPartPayload& data) {
                 // Ensure the model geometry was not reset between frames
-                if (data._model->isLoaded()) {
+                if (data._model && data._model->isLoaded() && deleteGeometryCounter == data._model->_deleteGeometryCounter) {
                     // lazy update of cluster matrices used for rendering.  We need to update them here, so we can correctly update the bounding box.
                     data._model->updateClusterMatrices(modelTransform.getTranslation(), modelTransform.getRotation());
 
@@ -1146,6 +1148,7 @@ void Model::setBlendedVertices(int blendNumber, const std::weak_ptr<NetworkGeome
 }
 
 void Model::deleteGeometry() {
+    _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
     _meshStates.clear();
     _rig->destroyAnimGraph();
