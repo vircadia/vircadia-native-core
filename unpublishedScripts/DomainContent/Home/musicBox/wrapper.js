@@ -61,8 +61,8 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
     var LID_SCRIPT_URL = Script.resolvePath('lid.js?' + Math.random());
 
     var LID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxLid.fbx';
-    var BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxNoLidNoanimation.fbx';
-
+    var BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
+    var BASE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
 
     var base, lid;
 
@@ -73,6 +73,14 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             modelURL: BASE_MODEL_URL,
             position: BASE_POSITION,
             dimensions: BASE_DIMENSIONS,
+            animation: {
+                url: BASE_ANIMATION_URL,
+                running: false,
+                currentFrame: 0,
+                firstFrame: 0,
+                lastFrame: 120,
+                loop: false
+            },
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
@@ -94,8 +102,8 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
         var backOffset = 0.0125;
         var backPosition = baseProps.position;
         var backPosition = Vec3.sum(baseProps.position, Vec3.multiply(backOffset, backVector));
-        backPosition.y = backPosition.y +=(BASE_DIMENSIONS.y / 2)
-        // backPosition = Vec3.sum(backPosition,LID_OFFSET)
+        backPosition.y = backPosition.y += (BASE_DIMENSIONS.y / 2)
+
         print('backPosition' + JSON.stringify(backPosition));
         var lidProperties = {
             name: 'hifi-home-music-box-lid',
@@ -118,15 +126,15 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
                     rotationLocked: false,
                     positionMod: false,
                     rotationMod: {
+                        pitch: false,
+                        yaw: false,
                         roll: {
                             min: 0,
                             max: 75,
                             startingAxis: 'y',
                             startingPoint: backPosition.y,
-                            distanceToMax: backPosition.y + 0.35,
-                        },
-                        yaw: false,
-                        pitch: false
+                            distanceToMax: backPosition.y + 0.35
+                        }
                     }
                 },
                 grabbableKey: {
