@@ -11,18 +11,20 @@
 
 #include "TextureCache.h"
 
+#include <mutex>
+
 #include <QNetworkReply>
 #include <QPainter>
 #include <QRunnable>
 #include <QThreadPool>
 #include <QImageReader>
 
-#include <mutex>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
 #include <gpu/Batch.h>
+
+#include <shared/NsightHelpers.h>
 
 #include <Finally.h>
 #include <PathUtils.h>
@@ -280,6 +282,7 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void ImageReader::run() {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, nullptr);
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
@@ -326,6 +329,8 @@ void ImageReader::run() {
         }
 
         auto url = _url.toString().toStdString();
+
+        PROFILE_RANGE_EX(__FUNCTION__"::textureLoader", 0xffffff00, nullptr);
         texture = resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url);
     }
 

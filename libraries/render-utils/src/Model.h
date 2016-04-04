@@ -394,6 +394,8 @@ protected:
 
     friend class ModelMeshPartPayload;
     RigPointer _rig;
+
+    uint32_t _deleteGeometryCounter { 0 };
 };
 
 Q_DECLARE_METATYPE(ModelPointer)
