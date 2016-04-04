@@ -26,7 +26,9 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
     _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
 
     // at DPI 100 use these arbitrary values to divide dragging distance 
+    static const float DPI_SCALE_X = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchX() / 100.0), 1.0f, 10.0f)
                        * 600.0f;
+    static const float DPI_SCALE_Y = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchY() / 100.0), 1.0f, 10.0f)
                        * 200.0f;
 
     float distanceScaleX, distanceScaleY;
