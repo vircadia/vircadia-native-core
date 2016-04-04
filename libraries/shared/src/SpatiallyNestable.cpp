@@ -90,9 +90,11 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         return parent;
     }
 
+    SpatiallyNestablePointer thisPointer = getThisPointer();
+
     if (parent) {
         // we have a parent pointer but our _parentID doesn't indicate this parent.
-        parent->forgetChild(getThisPointer());
+        parent->forgetChild(thisPointer);
         _parentKnowsMe = false;
         _parent.reset();
     }
@@ -110,11 +112,16 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
 
     parent = _parent.lock();
     if (parent) {
-        parent->beParentOfChild(getThisPointer());
+        parent->beParentOfChild(thisPointer);
         _parentKnowsMe = true;
     }
 
-    success = (parent || parentID.isNull());
+    if (parent || parentID.isNull()) {
+        success = true;
+    } else {
+        success = false;
+    }
+
     return parent;
 }
 
@@ -842,6 +849,7 @@ AACube SpatiallyNestable::getQueryAACube() const {
     }
     return result;
 }
+<<<<<<< HEAD
 
 void SpatiallyNestable::getLocalTransformAndVelocities(
         Transform& transform,
@@ -879,7 +887,6 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
     });
     locationChanged();
 }
-
 
 bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
     if (_nestableType == nestableType) {

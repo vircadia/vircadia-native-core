@@ -67,10 +67,7 @@ int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep
 
         saveKinematicState(fixedTimeStep*clampedSimulationSteps);
 
-        {
-            BT_PROFILE("applyGravity");
-            applyGravity();
-        }
+        applyGravity();
 
         for (int i=0;i<clampedSimulationSteps;i++) {
             internalSingleStepSimulation(fixedTimeStep);
@@ -145,25 +142,4 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
         }
     }
 }
-
-void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
-///would like to iterate over m_nonStaticRigidBodies, but unfortunately old API allows
-///to switch status _after_ adding kinematic objects to the world
-///fix it for Bullet 3.x release
-    BT_PROFILE("saveKinematicState");
-    for (int i=0;i<m_collisionObjects.size();i++)
-    {
-        btCollisionObject* colObj = m_collisionObjects[i];
-        btRigidBody* body = btRigidBody::upcast(colObj);
-        if (body && body->getActivationState() != ISLAND_SLEEPING)
-        {
-            if (body->isKinematicObject())
-            {
-                //to calculate velocities next frame
-                body->saveKinematicState(timeStep);
-            }
-        }
-    }
-}
-
 

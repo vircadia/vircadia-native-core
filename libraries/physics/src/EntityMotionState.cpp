@@ -94,7 +94,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 // virtual
-void EntityMotionState::handleEasyChanges(uint32_t& flags) {
+bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
@@ -137,6 +137,8 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
+
+    return true;
 }
 
 
@@ -178,13 +180,11 @@ bool EntityMotionState::isMoving() const {
 // (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
-    BT_PROFILE("getWorldTransform");
     if (!_entity) {
         return;
     }
     assert(entityTreeIsLocked());
     if (_motionType == MOTION_TYPE_KINEMATIC) {
-        BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation.
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
@@ -425,18 +425,19 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
         if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
             // acceleration measured during the most recent simulation step was close to gravity.
-            if (_accelerationNearlyGravityCount < STEPS_TO_DECIDE_BALLISTIC) {
-                // only increment this if we haven't reached the threshold yet, to avoid overflowing the counter
-                ++_accelerationNearlyGravityCount;
+            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
+                // only increment this if we haven't reached the threshold yet.  this is to avoid
+                // overflowing the counter.
+                incrementAccelerationNearlyGravityCount();
             }
         } else {
-            // acceleration wasn't similar to this entity's gravity, reset the counter
-            _accelerationNearlyGravityCount = 0;
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            resetAccelerationNearlyGravityCount();
         }
 
         // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
-        if (_accelerationNearlyGravityCount >= STEPS_TO_DECIDE_BALLISTIC) {
+        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
             _entity->setAcceleration(_entity->getGravity());
         } else {
             _entity->setAcceleration(glm::vec3(0.0f));

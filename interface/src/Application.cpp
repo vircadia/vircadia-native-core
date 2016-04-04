@@ -1468,10 +1468,6 @@ void Application::paintGL() {
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
 
-    // update sensorToWorldMatrix for camera and hand controllers
-    getMyAvatar()->updateSensorToWorldMatrix();
-
-
     auto lodManager = DependencyManager::get<LODManager>();
 
 
@@ -3403,6 +3399,9 @@ void Application::update(float deltaTime) {
             PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
+
+        // update sensorToWorldMatrix for camera and hand controllers
+        getMyAvatar()->updateSensorToWorldMatrix();
 
         qApp->updateMyAvatarLookAtPosition();
 
