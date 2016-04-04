@@ -12,7 +12,9 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
+#include <atomic>
 #include <mutex>
+
 #include <QtCore/QHash>
 #include <QtCore/QList>
 #include <QtCore/QObject>
@@ -28,6 +30,8 @@
 #include <DependencyManager.h>
 
 #include "ResourceManager.h"
+
+Q_DECLARE_METATYPE(size_t)
 
 class QNetworkReply;
 class QTimer;
@@ -79,20 +83,19 @@ private:
 /// Base class for resource caches.
 class ResourceCache : public QObject {
     Q_OBJECT
-    Q_PROPERTY(int numTotal READ getNumTotalResources NOTIFY dirty)
-    Q_PROPERTY(int numCached READ getNumCachedResources NOTIFY dirty)
-    Q_PROPERTY(qint64 sizeTotal READ getSizeTotalResources NOTIFY dirty)
-    Q_PROPERTY(qint64 sizeCached READ getSizeCachedResources NOTIFY dirty)
-    Q_PROPERTY(QVariantList resources READ getResourceList NOTIFY dirty)
+    Q_PROPERTY(size_t numTotal READ getNumTotalResources NOTIFY dirty)
+    Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
+    Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
+    Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
     
 public:
-    int getNumTotalResources() const { return _resources.size(); }
-    qint64 getSizeTotalResources() const { return _totalResourcesSize; }
+    size_t getNumTotalResources() const { return _numTotalResources; }
+    size_t getSizeTotalResources() const { return _totalResourcesSize; }
 
-    int getNumCachedResources() const { return _unusedResources.size(); }
-    qint64 getSizeCachedResources() const { return _unusedResourcesSize; }
+    size_t getNumCachedResources() const { return _numUnusedResources; }
+    size_t getSizeCachedResources() const { return _unusedResourcesSize; }
 
-    const QVariantList getResourceList() const;
+    Q_INVOKABLE QVariantList getResourceList();
 
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
@@ -149,6 +152,7 @@ private:
 
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
+    void resetResourceCounters();
 
     QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
@@ -160,8 +164,11 @@ private:
     QReadWriteLock _resourcesToBeGottenLock;
     QQueue<QUrl> _resourcesToBeGotten;
     
-    qint64 _totalResourcesSize { 0 };
-    qint64 _unusedResourcesSize { 0 };
+    std::atomic<size_t> _numTotalResources { 0 };
+    std::atomic<size_t> _numUnusedResources { 0 };
+
+    std::atomic<qint64> _totalResourcesSize { 0 };
+    std::atomic<qint64> _unusedResourcesSize { 0 };
 
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
     QMap<int, QSharedPointer<Resource>> _unusedResources;

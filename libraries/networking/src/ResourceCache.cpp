@@ -38,6 +38,7 @@ ResourceCache::~ResourceCache() {
 void ResourceCache::refreshAll() {
     // Clear all unused resources so we don't have to reload them
     clearUnusedResource();
+    resetResourceCounters();
     
     // Refresh all remaining resources in use
     foreach (auto resource, _resources) {
@@ -53,16 +54,24 @@ void ResourceCache::refresh(const QUrl& url) {
         resource->refresh();
     } else {
         _resources.remove(url);
+        resetResourceCounters();
     }
 }
 
-const QVariantList ResourceCache::getResourceList() const {
+QVariantList ResourceCache::getResourceList() {
     QVariantList list;
-    auto resources = _resources.uniqueKeys();
-    list.reserve(resources.size());
-    for (auto& resource : resources) {
-        list << resource;
+    if (QThread::currentThread() != thread()) {
+        // NOTE: invokeMethod does not allow a const QObject*
+        QMetaObject::invokeMethod(this, "getResourceList", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariantList, list));
+    } else {
+        auto resources = _resources.uniqueKeys();
+        list.reserve(resources.size());
+        for (auto& resource : resources) {
+            list << resource;
+        }
     }
+
     return list;
 }
 
@@ -124,7 +133,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
     _unusedResourcesMaxSize = clamp(unusedResourcesMaxSize, MIN_UNUSED_MAX_SIZE, MAX_UNUSED_MAX_SIZE);
     reserveUnusedResource(0);
-    emit dirty();
+    resetResourceCounters();
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
@@ -138,7 +147,8 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     resource->setLRUKey(++_lastLRUKey);
     _unusedResources.insert(resource->getLRUKey(), resource);
     _unusedResourcesSize += resource->getBytes();
-    emit dirty();
+
+    resetResourceCounters();
 }
 
 void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resource) {
@@ -146,7 +156,7 @@ void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resourc
         _unusedResources.remove(resource->getLRUKey());
         _unusedResourcesSize -= resource->getBytes();
     }
-    emit dirty();
+    resetResourceCounters();
 }
 
 void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
@@ -175,6 +185,12 @@ void ResourceCache::clearUnusedResource() {
         }
         _unusedResources.clear();
     }
+}
+
+void ResourceCache::resetResourceCounters() {
+    _numTotalResources = _resources.size();
+    _numUnusedResources = _unusedResources.size();
+    emit dirty();
 }
 
 void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
