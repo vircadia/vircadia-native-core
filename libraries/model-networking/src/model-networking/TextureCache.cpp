@@ -11,19 +11,21 @@
 
 #include "TextureCache.h"
 
+#include <QNetworkReply>
+#include <QPainter>
+#include <QRunnable>
+#include <QThreadPool>
+#include <QImageReader>
+
 #include <mutex>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
-#include <QNetworkReply>
-#include <QPainter>
-#include <QRunnable>
-#include <QThreadPool>
-#include <qimagereader.h>
-#include <PathUtils.h>
-
 #include <gpu/Batch.h>
+
+#include <Finally.h>
+#include <PathUtils.h>
 
 #include "ModelNetworkingLogging.h"
 
@@ -283,10 +285,12 @@ void ImageReader::run() {
         originalPriority = QThread::NormalPriority;
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
+    Finally restorePriority([originalPriority]{
+        QThread::currentThread()->setPriority(originalPriority);
+    });
 
     if (!_resource.data()) {
         qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-        QThread::currentThread()->setPriority(originalPriority);
         return;
     }
 
@@ -318,7 +322,6 @@ void ImageReader::run() {
         auto resource = _resource.toStrongRef();
         if (!resource) {
             qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-            QThread::currentThread()->setPriority(originalPriority);
             return;
         }
 
@@ -336,8 +339,6 @@ void ImageReader::run() {
             Q_ARG(void*, texture),
             Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
     }
-
-    QThread::currentThread()->setPriority(originalPriority);
 }
 
 void NetworkTexture::setImage(void* voidTexture, int originalWidth,
