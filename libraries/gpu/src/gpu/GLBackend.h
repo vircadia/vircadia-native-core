@@ -112,9 +112,16 @@ public:
 
         GLShader();
         ~GLShader();
+
+        GLuint getProgram(bool isStereo) const {
+            if (isStereo && _program[1]) {
+                return _program[1];
+            } else {
+                return _program[0];
+            }
+        }
     };
     static GLShader* syncGPUObject(const Shader& shader);
-    static GLuint getShaderID(const ShaderPointer& shader);
 
     class GLState : public GPUObject {
     public:

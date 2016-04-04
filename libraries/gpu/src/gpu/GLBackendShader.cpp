@@ -13,25 +13,34 @@
 
 using namespace gpu;
 
-GLBackend::GLShader::GLShader() :
-    _shader(0),
-    _program(0)
-{}
+GLBackend::GLShader::GLShader()
+{
+    for (auto& so : _shader) {
+        so = 0;
+    }
+    for (auto& po : _program) {
+        po = 0;
+    }
+}
 
 GLBackend::GLShader::~GLShader() {
-    if (_shader != 0) {
-        glDeleteShader(_shader);
+    for (auto so : _shader) {
+        if (so != 0) {
+            glDeleteShader(so);
+        }
     }
-    if (_program != 0) {
-        glDeleteProgram(_program);
+    for (auto po : _program) {
+        if (po != 0) {
+            glDeleteProgram(po);
+        }
     }
 }
 
 void makeBindings(GLBackend::GLShader* shader) {
-    if(!shader || !shader->_program) {
+    if(!shader || !shader->_program[0]) {
         return;
     }
-    GLuint glprogram = shader->_program;
+    GLuint glprogram = shader->_program[0];
     GLint loc = -1;
      
     //Check for gpu specific attribute slotBindings
@@ -115,17 +124,11 @@ void makeBindings(GLBackend::GLShader* shader) {
     (void)CHECK_GL_ERROR();
 }
 
-GLBackend::GLShader* compileShader(const Shader& shader) {
-    // Any GLSLprogram ? normally yes...
-    const std::string& shaderSource = shader.getSource().getCode();
+bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject) {
     if (shaderSource.empty()) {
         qCDebug(gpulogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
-        return nullptr;
+        return false;
     }
-
-    // Shader domain
-    const GLenum SHADER_DOMAINS[2] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
-    GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
 
     // Create the shader object
     GLuint glshader = glCreateShader(shaderDomain);
@@ -135,8 +138,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     }
 
     // Assign the source
-    const GLchar* srcstr = shaderSource.c_str();
-    glShaderSource(glshader, 1, &srcstr, NULL);
+    const GLchar* srcstr[] = { defines.c_str(), shaderSource.c_str() };
+    glShaderSource(glshader, 2, srcstr, NULL);
 
     // Compile !
     glCompileShader(glshader);
@@ -148,26 +151,26 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // if compilation fails
     if (!compiled) {
         // save the source code to a temp file so we can debug easily
-       /* std::ofstream filestream;
+        /* std::ofstream filestream;
         filestream.open("debugshader.glsl");
         if (filestream.is_open()) {
-            filestream << shaderSource->source;
-            filestream.close();
+        filestream << shaderSource->source;
+        filestream.close();
         }
         */
 
         GLint infoLength = 0;
         glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
 
-        char* temp = new char[infoLength] ;
+        char* temp = new char[infoLength];
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        
+
         /*
         filestream.open("debugshader.glsl.info.txt");
         if (filestream.is_open()) {
-            filestream << std::string(temp);
-            filestream.close();
+        filestream << std::string(temp);
+        filestream.close();
         }
         */
 
@@ -178,7 +181,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         delete[] temp;
 
         glDeleteShader(glshader);
-        return nullptr;
+        return false;
     }
 
     GLuint glprogram = 0;
@@ -187,7 +190,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
         qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader & gl program object";
-        return nullptr;
+        return false;
     }
 
     glProgramParameteri(glprogram, GL_PROGRAM_SEPARABLE, GL_TRUE);
@@ -203,15 +206,15 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         std::ofstream filestream;
         filestream.open("debugshader.glsl");
         if (filestream.is_open()) {
-            filestream << shaderSource->source;
-            filestream.close();
+        filestream << shaderSource->source;
+        filestream.close();
         }
         */
 
         GLint infoLength = 0;
         glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
 
-        char* temp = new char[infoLength] ;
+        char* temp = new char[infoLength];
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
         qCDebug(gpulogging) << "GLShader::compileShader -  failed to LINK the gl program object :";
@@ -220,49 +223,30 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         /*
         filestream.open("debugshader.glsl.info.txt");
         if (filestream.is_open()) {
-            filestream << String(temp);
-            filestream.close();
+        filestream << String(temp);
+        filestream.close();
         }
         */
         delete[] temp;
 
         glDeleteShader(glshader);
         glDeleteProgram(glprogram);
-        return nullptr;
+        return false;
     }
 #endif
 
-    // So far so good, the shader is created successfully
-    GLBackend::GLShader* object = new GLBackend::GLShader();
-    object->_shader = glshader;
-    object->_program = glprogram;
+    shaderObject = glshader;
+    programObject = glprogram;
 
-    makeBindings(object);
-
-    return object;
+    return true;
 }
 
-GLBackend::GLShader* compileProgram(const Shader& program) {
-    if(!program.isProgram()) {
-        return nullptr;
-    }
-
-    // Let's go through every shaders and make sure they are ready to go
-    std::vector< GLuint > shaderObjects;
-    for (auto subShader : program.getShaders()) {
-        GLuint so = GLBackend::getShaderID(subShader);
-        if (!so) {
-            qCDebug(gpulogging) << "GLShader::compileProgram - One of the shaders of the program is not compiled?";
-            return nullptr;
-        }
-        shaderObjects.push_back(so);
-    }
-
-    // so far so good, program is almost done, need to link:
+GLuint compileProgram(const std::vector<GLuint>& shaderObjects) {
+    // A brand new program:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
         qCDebug(gpulogging) << "GLShader::compileProgram - failed to create the gl program object";
-        return nullptr;
+        return 0;
     }
 
     // glProgramParameteri(glprogram, GL_PROGRAM_, GL_TRUE);
@@ -283,15 +267,15 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
         std::ofstream filestream;
         filestream.open("debugshader.glsl");
         if (filestream.is_open()) {
-            filestream << shaderSource->source;
-            filestream.close();
+        filestream << shaderSource->source;
+        filestream.close();
         }
         */
 
         GLint infoLength = 0;
         glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
 
-        char* temp = new char[infoLength] ;
+        char* temp = new char[infoLength];
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
         qCDebug(gpulogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
@@ -300,20 +284,87 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
         /*
         filestream.open("debugshader.glsl.info.txt");
         if (filestream.is_open()) {
-            filestream << std::string(temp);
-            filestream.close();
+        filestream << std::string(temp);
+        filestream.close();
         }
         */
         delete[] temp;
 
         glDeleteProgram(glprogram);
+        return false;
+    }
+
+    return glprogram;
+}
+
+GLBackend::GLShader* compileBackendShader(const Shader& shader) {
+    // Any GLSLprogram ? normally yes...
+    const std::string& shaderSource = shader.getSource().getCode();
+
+    // Shader domain
+    const GLenum SHADER_DOMAINS[2] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
+    GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
+
+    // First make default version of the shader
+    std::string shaderDefines;
+    GLuint glshader{ 0 };
+    GLuint glprogram{ 0 };
+    bool result = compileShader(shaderDomain, shaderSource, shaderDefines, glshader, glprogram);
+    if (!result) {
+        return nullptr;
+    }
+
+    // So far so good, the shader is created successfully
+    GLBackend::GLShader* object = new GLBackend::GLShader();
+    object->_shader[0] = glshader;
+    object->_program[0] = glprogram;
+
+    makeBindings(object);
+
+    {
+        shaderDefines = "#define GPU_TRANSFORM_IS_STEREO";
+        GLuint glshader{ 0 };
+        GLuint glprogram{ 0 };
+        bool result = compileShader(shaderDomain, shaderSource, shaderDefines, glshader, glprogram);
+        if (!result) {
+            return nullptr;
+        }
+        object->_shader[1] = glshader;
+        object->_program[1] = glprogram;
+
+    }
+    
+    return object;
+}
+
+GLBackend::GLShader* compileBackendProgram(const Shader& program) {
+    if(!program.isProgram()) {
+        return nullptr;
+    }
+
+    // Let's go through every shaders and make sure they are ready to go
+    std::vector< GLuint > shaderObjects;
+    for (auto subShader : program.getShaders()) {
+        auto object = GLBackend::syncGPUObject(*subShader);
+        GLuint so = 0;
+        if (object) {
+            so = object->_shader[0];
+        } else {
+            qCDebug(gpulogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
+            return nullptr;
+        }
+        shaderObjects.push_back(so);
+    }
+
+    GLuint glprogram = compileProgram(shaderObjects);
+    if (glprogram == 0) {
         return nullptr;
     }
 
     // So far so good, the program is created successfully
     GLBackend::GLShader* object = new GLBackend::GLShader();
-    object->_shader = 0;
-    object->_program = glprogram;
+    object->_shader[0] = 0;
+    object->_program[0] = glprogram;
 
     makeBindings(object);
 
@@ -329,13 +380,13 @@ GLBackend::GLShader* GLBackend::syncGPUObject(const Shader& shader) {
     }
     // need to have a gpu object?
     if (shader.isProgram()) {
-         GLShader* tempObject = compileProgram(shader);
+         GLShader* tempObject = compileBackendProgram(shader);
          if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
         }
     } else if (shader.isDomain()) {
-         GLShader* tempObject = compileShader(shader);
+         GLShader* tempObject = compileBackendShader(shader);
          if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
@@ -343,23 +394,6 @@ GLBackend::GLShader* GLBackend::syncGPUObject(const Shader& shader) {
     }
 
     return object;
-}
-
-
-GLuint GLBackend::getShaderID(const ShaderPointer& shader) {
-    if (!shader) {
-        return 0;
-    }
-    GLShader* object = GLBackend::syncGPUObject(*shader);
-    if (object) {
-        if (shader->isProgram()) {
-            return object->_program;
-        } else {
-            return object->_shader;
-        }
-    } else {
-        return 0;
-    }
 }
 
 class ElementResource {
@@ -714,20 +748,20 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
         return false;
     }
 
-    if (object->_program) {
+    if (object->_program[0]) {
         Shader::SlotSet buffers;
-        makeUniformBlockSlots(object->_program, slotBindings, buffers);
+        makeUniformBlockSlots(object->_program[0], slotBindings, buffers);
 
         Shader::SlotSet uniforms;
         Shader::SlotSet textures;
         Shader::SlotSet samplers;
-        makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers);
+        makeUniformSlots(object->_program[0], slotBindings, uniforms, textures, samplers);
         
         Shader::SlotSet inputs;
-        makeInputSlots(object->_program, slotBindings, inputs);
+        makeInputSlots(object->_program[0], slotBindings, inputs);
 
         Shader::SlotSet outputs;
-        makeOutputSlots(object->_program, slotBindings, outputs);
+        makeOutputSlots(object->_program[0], slotBindings, outputs);
 
         shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
 
