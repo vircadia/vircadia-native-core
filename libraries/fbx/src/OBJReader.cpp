@@ -12,17 +12,20 @@
 // http://www.scratchapixel.com/old/lessons/3d-advanced-lessons/obj-file-format/obj-file-format/
 // http://paulbourke.net/dataformats/obj/
 
+#include "OBJReader.h"
 
-#include <QBuffer>
-#include <QIODevice>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkRequest>
-#include <QEventLoop>
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
 
+#include <QtCore/QBuffer>
+#include <QtCore/QIODevice>
+#include <QtCore/QEventLoop>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+
+#include <shared/NsightHelpers.h>
 #include <NetworkAccessManager.h>
+
 #include "FBXReader.h"
-#include "OBJReader.h"
 #include "ModelFormatLogging.h"
 
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
@@ -404,7 +407,7 @@ done:
 
 
 FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
-
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, nullptr);
     QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
 

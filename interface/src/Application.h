@@ -136,14 +136,14 @@ public:
     const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() override { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() { return DependencyManager::get<EntityTreeRenderer>().data(); }
+    EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
-    MainWindow* getWindow() { return _window; }
-    EntityTreePointer getEntityClipboard() { return _entityClipboard; }
+    MainWindow* getWindow() const { return _window; }
+    EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
-    ivec2 getMouse();
+    ivec2 getMouse() const;
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
@@ -156,7 +156,7 @@ public:
 
     bool isForeground() const { return _isForeground; }
 
-    uint32_t getFrameCount() { return _frameCount; }
+    uint32_t getFrameCount() const { return _frameCount; }
     float getFps() const { return _fps; }
     float getTargetFrameRate(); // frames/second
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
@@ -180,7 +180,7 @@ public:
     DisplayPlugin* getActiveDisplayPlugin();
     const DisplayPlugin* getActiveDisplayPlugin() const;
 
-    FileLogger* getLogger() { return _logger; }
+    FileLogger* getLogger() const { return _logger; }
 
     glm::vec2 getViewportDimensions() const;
 
@@ -190,7 +190,7 @@ public:
 
     bool isAboutToQuit() const { return _aboutToQuit; }
 
-    // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
+    // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
@@ -198,14 +198,14 @@ public:
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
-    QRect getDesirableApplicationGeometry();
+    QRect getDesirableApplicationGeometry() const;
     Bookmarks* getBookmarks() const { return _bookmarks; }
 
     virtual bool canAcceptURL(const QString& url) const override;
     virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
-    int getMaxOctreePacketsPerSecond();
+    int getMaxOctreePacketsPerSecond() const;
 
     render::ScenePointer getMain3DScene() override { return _main3DScene; }
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
@@ -240,22 +240,22 @@ public slots:
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url);
 
-    void setLowVelocityFilter(bool lowVelocityFilter);
+    static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
-    Q_INVOKABLE void loadScriptURLDialog();
+    Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
-    void toggleRunningScriptsWidget();
+    void toggleRunningScriptsWidget() const;
     void toggleAssetServerWidget(QString filePath = "");
 
-    void handleLocalServerConnection();
-    void readArgumentsFromLocalSocket();
+    void handleLocalServerConnection() const;
+    void readArgumentsFromLocalSocket() const;
 
-    void packageModel();
+    static void packageModel();
 
-    void openUrl(const QUrl& url);
+    void openUrl(const QUrl& url) const;
 
     void resetSensors(bool andReload = false);
-    void setActiveFaceTracker();
+    void setActiveFaceTracker() const;
 
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
@@ -265,7 +265,7 @@ public slots:
 #endif
 
     void aboutApp();
-    void showHelp();
+    static void showHelp();
 
     void cycleCamera();
     void cameraMenuChanged();
@@ -274,14 +274,14 @@ public slots:
 
     void reloadResourceCaches();
 
-    void updateHeartbeat();
+    void updateHeartbeat() const;
 
-    void crashApplication();
-    void deadlockApplication();
+    static void crashApplication();
+    static void deadlockApplication();
 
-    void rotationModeChanged();
+    void rotationModeChanged() const;
 
-    void runTests();
+    static void runTests();
 
 private slots:
     void showDesktop();
@@ -291,7 +291,7 @@ private slots:
 
     void resettingDomain();
 
-    void audioMuteToggled();
+    void audioMuteToggled() const;
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
@@ -299,7 +299,7 @@ private slots:
     void notifyPacketVersionMismatch();
 
     void loadSettings();
-    void saveSettings();
+    void saveSettings() const;
 
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
@@ -309,18 +309,18 @@ private slots:
     void displayAvatarAttachmentWarning(const QString& message) const;
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
-    void setSessionUUID(const QUuid& sessionUUID);
+    void setSessionUUID(const QUuid& sessionUUID) const;
     void domainChanged(const QString& domainHostname);
-    void updateWindowTitle();
-    void nodeAdded(SharedNodePointer node);
-    void nodeActivated(SharedNodePointer node);
+    void updateWindowTitle() const;
+    void nodeAdded(SharedNodePointer node) const;
+    void nodeActivated(SharedNodePointer node) const;
     void nodeKilled(SharedNodePointer node);
-    void packetSent(quint64 length);
+    static void packetSent(quint64 length);
     void updateDisplayMode();
     void updateInputModes();
 
 private:
-    void initDisplay();
+    static void initDisplay();
     void init();
 
     void cleanupBeforeQuit();
@@ -328,14 +328,14 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateLOD();
+    void updateLOD() const;
     void updateThreads(float deltaTime);
-    void updateDialogs(float deltaTime);
+    void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
-    void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
+    static void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
-    glm::vec3 getSunDirection();
+    glm::vec3 getSunDirection() const;
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region);
 
@@ -345,7 +345,7 @@ private:
 
     MyAvatar* getMyAvatar() const;
 
-    void checkSkeleton();
+    void checkSkeleton() const;
 
     void initializeAcceptedFiles();
 
@@ -367,7 +367,7 @@ private:
 
     void mouseMoveEvent(QMouseEvent* event);
     void mousePressEvent(QMouseEvent* event);
-    void mouseDoublePressEvent(QMouseEvent* event);
+    void mouseDoublePressEvent(QMouseEvent* event) const;
     void mouseReleaseEvent(QMouseEvent* event);
 
     void touchBeginEvent(QTouchEvent* event);
@@ -375,11 +375,11 @@ private:
     void touchUpdateEvent(QTouchEvent* event);
     void touchGestureEvent(QGestureEvent* event);
 
-    void wheelEvent(QWheelEvent* event);
+    void wheelEvent(QWheelEvent* event) const;
     void dropEvent(QDropEvent* event);
-    void dragEnterEvent(QDragEnterEvent* event);
+    static void dragEnterEvent(QDragEnterEvent* event);
 
-    void maybeToggleMenuVisible(QMouseEvent* event);
+    void maybeToggleMenuVisible(QMouseEvent* event) const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -426,7 +426,7 @@ private:
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
     Camera _myCamera;                            // My view onto the world
-    Camera _mirrorCamera;                        // Cammera for mirror view
+    Camera _mirrorCamera;                        // Camera for mirror view
     QRect _mirrorViewRect;
 
     Setting::Handle<QString> _previousScriptLocation;
