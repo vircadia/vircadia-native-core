@@ -495,7 +495,8 @@ function MyController(hand) {
         }
     };
 
-    this.searchIndicatorOn = function(handPosition, distantPickRay) {
+    this.searchIndicatorOn = function(distantPickRay) {
+        var handPosition = distantPickRay.origin;
         var SEARCH_SPHERE_SIZE = 0.011;
         var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
 
@@ -857,7 +858,9 @@ function MyController(hand) {
 
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
-        var currentControllerPosition = Controller.getPoseValue(controllerHandInput).position;
+        var currentControllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation,
+                                                                   Controller.getPoseValue(controllerHandInput).translation),
+                                                 MyAvatar.position);
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
         var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
@@ -865,16 +868,10 @@ function MyController(hand) {
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var distantPickRay = {
-            origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
+            origin: PICK_WITH_HAND_RAY ? currentControllerPosition : Camera.position,
             direction: PICK_WITH_HAND_RAY ? Quat.getUp(controllerRotation) : Vec3.mix(Quat.getUp(controllerRotation),
                                                                                           Quat.getFront(Camera.orientation),
                                                                                           HAND_HEAD_MIX_RATIO),
-            length: PICK_MAX_DISTANCE
-        };
-
-        var searchVisualizationPickRay = {
-            origin: currentControllerPosition,
-            direction: Quat.getUp(this.getHandRotation()),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1086,7 +1083,7 @@ function MyController(hand) {
             this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
-        this.searchIndicatorOn(handPosition, distantPickRay);
+        this.searchIndicatorOn(distantPickRay);
         Reticle.setVisible(false);
 
     };
@@ -1668,7 +1665,7 @@ function MyController(hand) {
                 if (intersection.intersects) {
                     this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 }
-                this.searchIndicatorOn(handPosition, pickRay);
+                this.searchIndicatorOn(pickRay);
             }
         }
 
