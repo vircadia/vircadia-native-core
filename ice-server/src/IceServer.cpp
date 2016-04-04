@@ -62,7 +62,14 @@ bool IceServer::packetVersionMatch(const udt::Packet& packet) {
     if (headerVersion == versionForPacketType(headerType)) {
         return true;
     } else {
-        qDebug() << "Packet version mismatch for packet" << headerType << " from" << packet.getSenderSockAddr();
+        static QSet<HifiSockAddr> mismatchedClients;
+
+        // only output a version mismatch once per ice-server run
+        if (!mismatchedClients.contains(packet.getSenderSockAddr())) {
+            mismatchedClients.insert(packet.getSenderSockAddr());
+
+            qDebug() << "Packet version mismatch for packet" << headerType << " from" << packet.getSenderSockAddr();
+        }
         
         return false;
     }
