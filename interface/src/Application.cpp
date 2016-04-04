@@ -369,7 +369,7 @@ public:
 };
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    QString logMessage = LogHandler::getInstance().printMessage(static_cast<LogMsgType>(type), context, message);
+    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
 
     if (!logMessage.isEmpty()) {
 #ifdef Q_OS_WIN
@@ -915,13 +915,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice = std::make_shared<controller::StateController>();
 
     _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
-        return static_cast<float>(qApp->isHMDMode());
+        return (float)qApp->isHMDMode();
     }));
     _applicationStateDevice->addInputVariant(QString("SnapTurn"), controller::StateController::ReadLambda([]() -> float {
-        return static_cast<float>(qApp->getMyAvatar()->getSnapTurn());
+        return (float)qApp->getMyAvatar()->getSnapTurn();
     }));
     _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-        return static_cast<float>(qApp->getMyAvatar()->getCharacterController()->onGround());
+        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
     }));
     _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -1442,7 +1442,7 @@ void Application::paintGL() {
     uint64_t diff = now - lastPaintBegin;
     float instantaneousFps = 0.0f;
     if (diff != 0) {
-        instantaneousFps = static_cast<float>(USECS_PER_SECOND) / static_cast<float>(diff);
+        instantaneousFps = (float)USECS_PER_SECOND / (float)diff;
         _framesPerSecond.updateAverage(_lastInstantaneousFps);
     }
 
@@ -1454,7 +1454,7 @@ void Application::paintGL() {
         _lastFramesPerSecondUpdate = now;
     }
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, static_cast<uint64_t>(_frameCount));
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -1800,12 +1800,12 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
-    if (static_cast<int>(event->type()) == static_cast<int>(Lambda)) {
+    if ((int)event->type() == (int)Lambda) {
         static_cast<LambdaEvent*>(event)->call();
         return true;
     }
 
-    if (static_cast<int>(event->type()) == static_cast<int>(Paint)) {
+    if ((int)event->type() == (int)Paint) {
         paintGL();
         return true;
     }
@@ -2574,7 +2574,7 @@ void Application::idle(uint64_t now) {
     bool isThrottled = displayPlugin->isThrottled();
     //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
     // This attempts to lock the simulation at 60 updates per second, regardless of framerate
-    float timeSinceLastUpdateUs = static_cast<float>(_lastTimeUpdated.nsecsElapsed()) / NSECS_PER_USEC;
+    float timeSinceLastUpdateUs = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_USEC;
     float secondsSinceLastUpdate = timeSinceLastUpdateUs / USECS_PER_SECOND;
 
     if (isThrottled && (timeSinceLastUpdateUs / USECS_PER_MSEC) < THROTTLED_SIM_FRAME_PERIOD_MS) {
@@ -3197,7 +3197,7 @@ void Application::updateDialogs(float deltaTime) const {
 
 void Application::update(float deltaTime) {
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, static_cast<uint64_t>(_frameCount) + 1);
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
@@ -3357,14 +3357,14 @@ void Application::update(float deltaTime) {
             });
         }
         {
-            PROFILE_RANGE_EX("StepSimulation", 0xffff8000, static_cast<uint64_t>(getActiveDisplayPlugin()->presentCount()));
+            PROFILE_RANGE_EX("StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("stepSimulation");
             getEntities()->getTree()->withWriteLock([&] {
                 _physicsEngine->stepSimulation();
             });
         }
         {
-            PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, static_cast<uint64_t>(getActiveDisplayPlugin()->presentCount()));
+            PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
@@ -3402,20 +3402,20 @@ void Application::update(float deltaTime) {
         qApp->setAvatarSimrateSample(1.0f / deltaTime);
 
         {
-            PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, static_cast<uint64_t>(getActiveDisplayPlugin()->presentCount()));
+            PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
         qApp->updateMyAvatarLookAtPosition();
 
         {
-            PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, static_cast<uint64_t>(getActiveDisplayPlugin()->presentCount()));
+            PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateMyAvatar(deltaTime);
         }
     }
 
     {
-        PROFILE_RANGE_EX("Overlays", 0xffff0000, static_cast<uint64_t>(getActiveDisplayPlugin()->presentCount()));
+        PROFILE_RANGE_EX("Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
@@ -3435,7 +3435,7 @@ void Application::update(float deltaTime) {
 
     // Update my voxel servers with my current voxel query...
     {
-        PROFILE_RANGE_EX("QueryOctree", 0xffff0000, static_cast<uint64_t>(getActiveDisplayPlugin()->presentCount()));
+        PROFILE_RANGE_EX("QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
@@ -3474,7 +3474,7 @@ void Application::update(float deltaTime) {
     }
 
     {
-        PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, static_cast<uint64_t>(0));
+        PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
         std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
         for (auto& iter : _preRenderLambdas) {
@@ -3528,7 +3528,7 @@ int Application::sendNackPackets() {
             }
 
             if (nackPacketList->getNumPackets()) {
-                packetsSent += static_cast<int>(nackPacketList->getNumPackets());
+                packetsSent += (int)nackPacketList->getNumPackets();
 
                 // send the packet list
                 nodeList->sendPacketList(std::move(nackPacketList), *node);
@@ -4011,7 +4011,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
 
-    float aspect = static_cast<float>(region.width()) / region.height();
+    float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
     auto myAvatar = getMyAvatar();
@@ -4047,7 +4047,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
 
     // set the bounds of rear mirror view
     // the region is in device independent coordinates; must convert to device
-    float ratio = static_cast<float>(QApplication::desktop()->windowHandle()->devicePixelRatio()) * getRenderResolutionScale();
+    float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
     int width = region.width() * ratio;
     int height = region.height() * ratio;
     gpu::Vec4i viewport = gpu::Vec4i(0, 0, width, height);
