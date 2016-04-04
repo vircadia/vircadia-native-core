@@ -142,6 +142,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
+    bool hasAncestorOfType(NestableType nestableType);
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;

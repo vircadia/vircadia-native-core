@@ -1963,7 +1963,11 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
 }
 
 void EntityItem::locationChanged() {
-    requiresRecalcBoxes();
+    _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
+    EntityTreePointer tree = getTree();
+    if (tree) {
+        tree->entityChanged(getThisPointer());
+    }
     SpatiallyNestable::locationChanged(); // tell all the children, also
 }
 

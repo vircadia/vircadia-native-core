@@ -879,3 +879,18 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
     });
     locationChanged();
 }
+
+
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
+    if (_nestableType == nestableType) {
+        return true;
+    }
+
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return false;
+    }
+
+    return parent->hasAncestorOfType(nestableType);
+}
