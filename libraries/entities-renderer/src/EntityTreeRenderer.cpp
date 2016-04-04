@@ -297,7 +297,14 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     auto sceneLocation = sceneStage->getLocation();
     auto sceneTime = sceneStage->getTime();
     
+    // Skybox and procedural skybox data
+    auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
+    static QString userData;
+
     if (!zone) {
+        userData = QString();
+        skybox->clear();
+
         _pendingSkyboxTexture = false;
         _skyboxTexture.clear();
 
@@ -373,9 +380,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 
     switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_SKYBOX: {
-            auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
             skybox->setColor(zone->getSkyboxProperties().getColorVec3());
-            static QString userData;
             if (userData != zone->getUserData()) {
                 userData = zone->getUserData();
                 skybox->parse(userData);
@@ -414,9 +419,15 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 
         case BACKGROUND_MODE_INHERIT:
         default:
-            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application background through
-            _pendingSkyboxTexture = false;
+            // Clear the skybox to release its textures
+            userData = QString();
+            skybox->clear();
+
             _skyboxTexture.clear();
+            _pendingSkyboxTexture = false;
+
+            // Let the application background through
+            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
             break;
     }
 
