@@ -1,5 +1,7 @@
 (function() {
 
+    //TODO -- At the part of the animation where the user starts to close the lid we need to rewind any frames past the one where it is aligned for going up/down before switching to the down animation
+
     var _this;
 
     function Lid() {
@@ -10,12 +12,12 @@
     var MUSIC_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/music_converted.wav');
     var SHUT_SOUND_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav');
     var OPEN_SOUND_URL = Script.resolvePath('http://public.highfidelity.io/sounds/Switches%20and%20sliders/lamp_switch_2.wav');
-    var BASE_ANIMATIONS = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
+    var BASE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
 
     Lid.prototype = {
         musicInjector: null,
+        playingByClick: false,
         preload: function(entityID) {
-            print('PRELOAD LID');
             _this.entityID = entityID;
             _this.music = SoundCache.getSound(MUSIC_URL);
             _this.shutSound = SoundCache.getSound(SHUT_SOUND_URL);
@@ -29,16 +31,19 @@
             _this.openSoundInjector = {
                 isPlaying: false
             }
+            _this.getBase();
+        },
+
+        startNearTrigger: function() {
+            this.getBase();
         },
 
         continueNearTrigger: function() {
             var properties = Entities.getEntityProperties(this.entityID);
-
         },
 
         playMusic: function() {
             if (this.musicIsPlaying !== true) {
-
                 var properties = Entities.getEntityProperties(this.entityID);
 
                 var audioOptions = {
@@ -48,12 +53,17 @@
                 }
                 this.musicInjector = Audio.playSound(this.music, audioOptions);
                 this.musicIsPlaying = true;
+                print('music should be playing now')
             }
+
         },
 
         stopMusic: function() {
-            this.musicInjector.stop();
-            this.musicIsPlaying = false;
+            if (this.musicInjector !== null) {
+                this.musicInjector.stop();
+                this.musicIsPlaying = false;
+            }
+
         },
 
         playOpenSound: function() {
@@ -69,6 +79,7 @@
                 this.openSoundInjector = Audio.playSound(this.openSound, audioOptions);
             }
         },
+
         playShutSound: function() {
             if (this.shutSoundInjector.isPlaying !== true) {
 
@@ -82,6 +93,7 @@
                 this.shutSoundInjector = Audio.playSound(this.shutSound, audioOptions);
             }
         },
+
         rotateLid: function(myID, paramsArray) {
 
             var finalRotation;
@@ -139,10 +151,9 @@
             if (finalRotation.x === 75) {
                 animation = {
                     loop: true,
-                    hold: true,
                     firstFrame: 30,
                     lastFrame: 90,
-                    animationIsPlaying: true,
+                    running: true,
                     animationFPS: 30,
                 }
             } else {
@@ -150,10 +161,9 @@
                     url: BASE_ANIMATION_URL,
                     running: false,
                     currentFrame: currentFrame,
-                    animationIsPlaying: false,
                     firstFrame: 0,
                     lastFrame: 30
-                },
+                }
             }
 
             Entities.editEntity(this.entityID, {
@@ -166,8 +176,90 @@
 
         },
 
+        clickDownOnEntity: function() {
+            this.getBase();
+            if (this.playingByClick === false) {
+                this.playingByClick = true;
+                this.playByClick();
+            } else {
+                this.playingByClick = false;
+                this.stopByClick();
+            }
+        },
 
         clickReleaseOnEntity: function() {
+
+
+        },
+
+        playByClick: function() {
+
+            //turn music on
+            this.playMusic();
+            var animation;
+            //play frames 0 to 30 and
+            animation = {
+                url: BASE_ANIMATION_URL,
+                running: true,
+                firstFrame: 0,
+                lastFrame: 30,
+                animationFPS: 30
+            };
+            Entities.editEntity(this.base, {
+                animation: animation
+            });
+            // rotate the lid, 
+
+            //then hold at 30-90
+            Script.setTimeout(function() {
+                animation = {
+                    running: true,
+                    firstFrame: 30,
+                    lastFrame: 90,
+                    animationFPS: 30,
+                    loop: true,
+                }
+                Entities.editEntity(_this.base, {
+                    animation: animation
+                });
+            }, 1000);
+
+        },
+
+        stopByClick: function() {
+
+            var animation;
+            //play frames 90-120 then stop animating
+
+            animation = {
+                running: true,
+                firstFrame: 90,
+                lastFrame: 120,
+                animationFPS: 30
+            };
+            Entities.editEntity(this.base, {
+                animation: animation
+            });
+            Script.setTimeout(function() {
+                //turn music off
+                _this.stopMusic();
+                animation = {
+                    currentFrame: 120,
+                    firstFrame: 120,
+                    lastFrame: 120,
+                    loop: false,
+                    animationFPS: 0,
+                    running: false
+                }
+                Entities.editEntity(_this.base, {
+                    animation: animation
+                });
+                print('should stop')
+            }, 1000)
+
+        },
+
+        playThroughToClose: function() {
 
         },
 
@@ -179,13 +271,28 @@
             this.base = base;
         },
 
+        rotateHat: function() {
+
+        },
+
+        rotateKey: function() {
+
+        },
+
+        raiseHat: function() {
+
+        },
+
+        lowerHat: function() {
+
+        },
+
         unload: function() {
             if (this.musicInjector !== null) {
                 this.musicInjector.stop();
             }
         },
     }
-
 
     var scaleValue = function(value, min1, max1, min2, max2) {
         return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));

@@ -129,6 +129,10 @@
             //     _this.popCuckooOut();
             // }
 
+            if(minutes%15===0){
+                _this.popCuckooOut();
+            }
+
         },
 
         popCuckooOut: function() {

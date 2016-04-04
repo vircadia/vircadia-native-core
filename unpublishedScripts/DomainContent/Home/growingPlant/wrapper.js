@@ -80,7 +80,6 @@ Plant = function(spawnPosition, spawnRotation) {
   var waterCanRotation = orientation;
   var waterCan = Entities.addEntity({
     type: "Model",
-    shapeType: 'box',
     name: "home_model_waterCan",
     modelURL: WATER_CAN_MODEL_URL,
     script: WATER_CAN_SCRIPT_URL,

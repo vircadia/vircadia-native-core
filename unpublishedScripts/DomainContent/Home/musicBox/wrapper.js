@@ -64,7 +64,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
     var BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
     var BASE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
 
-    var base, lid;
+    var base, lid, hat, key;
 
     function createBase() {
         var baseProperties = {
@@ -145,30 +145,65 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
         }
 
         lid = Entities.addEntity(lidProperties);
+        createKey(baseID)
+        createHat(baseID)
 
     };
 
-    var theta = 0;
-    var min = 0;
-    var max = 60;
-    var direction = "up";
-
-    function animateLid() {
-        theata += 1
+    function createHat(baseID) {
+        var properties = {
+            name: 'hifi-home-music-box-hat',
+            type: 'Box',
+            parentID: baseID,
+            dimensions: {
+                x: 0.1,
+                y: 0.1,
+                z: 0.1
+            },
+        }
+        hat = Entities.addEntity(properties);
     }
 
-    // if (SHOULD_CLEANUP === true) {
-    //     Script.scriptEnding.connect(cleanup);
-    // }
+    function createKey(baseID) {
+        var properties = {
+            name: 'hifi-home-music-box-key',
+            type: 'Box',
+            parentID: baseID,
+            dimensions: {
+                x: 0.1,
+                y: 0.1,
+                z: 0.1
+            },
+        }
+        key = Entities.addEntity(properties);
+
+    }
+
+    function createBaseBox() {
+        var properties = {
+            name: 'hifi-home-music-box-base',
+            type: 'Box',
+            dimensions: {
+                x: 0.1,
+                y: 0.1,
+                z: 0.1
+            },
+        }
+        base = Entities.addEntity(properties);
+
+    }
 
     function cleanup() {
         Entities.deleteEntity(base);
         Entities.deleteEntity(lid);
+        Entities.deleteEntity(key);
+        Entities.deleteEntity(hat);
     }
 
     this.cleanup = cleanup;
 
     createBase();
+
 
 
     return this;
