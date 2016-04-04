@@ -38,8 +38,11 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
+// We init worldSimulationStep to 1 instead of 0 because we initialize _lastKineticStep to (worldSimulationStep - 1)
+// so that the object starts moving on the first frame that it was set kinematic.
+static uint32_t worldSimulationStep { 1 };
+
 // static
-uint32_t worldSimulationStep = 1;
 void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
     assert(step > worldSimulationStep);
     worldSimulationStep = step;

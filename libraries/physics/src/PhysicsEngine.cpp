@@ -50,6 +50,12 @@ void PhysicsEngine::init() {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+
+        // By default Bullet will update the Aabb's of all objects every frame, even statics.
+        // This can waste CPU cycles so we configure Bullet to only update ACTIVE objects here.
+        // However, this means when a static object is moved we must manually update its Aabb
+        // in order for its broadphase collision queries to work correctly. Look at how we use
+        // _activeStaticBodies to track and update the Aabb's of moved static objects.
         _dynamicsWorld->setForceUpdateAllAabbs(false);
     }
 }
@@ -200,7 +206,7 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
     }
     // active static bodies have changed (in an Easy way) and need their Aabbs updated
     // but we've configured Bullet to NOT update them automatically (for improved performance)
-    // so we must do it outselves
+    // so we must do it ourselves
     for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
         _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
     }
