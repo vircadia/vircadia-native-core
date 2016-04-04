@@ -2614,7 +2614,7 @@ void Application::idle(uint64_t now) {
         static uint64_t lastIdleStart{ now };
         uint64_t idleStartToStartDuration = now - lastIdleStart;
         if (idleStartToStartDuration != 0) {
-            _simsPerSecond.updateAverage(static_cast<float>(USECS_PER_SECOND) / static_cast<float>(idleStartToStartDuration));
+            _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
         }
         lastIdleStart = now;
     }
