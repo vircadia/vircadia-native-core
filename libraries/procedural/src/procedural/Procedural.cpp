@@ -96,6 +96,7 @@ bool Procedural::parseVersion(const QJsonValue& version) {
 bool Procedural::parseUrl(const QUrl& shaderUrl) {
     if (!shaderUrl.isValid()) {
         qWarning() << "Invalid shader URL: " << shaderUrl;
+        _networkShader.reset();
         return false;
     }
 
@@ -110,6 +111,7 @@ bool Procedural::parseUrl(const QUrl& shaderUrl) {
         _shaderPath = _shaderUrl.toLocalFile();
         qDebug() << "Shader path: " << _shaderPath;
         if (!QFile(_shaderPath).exists()) {
+            _networkShader.reset();
             return false;;
         }
     } else {
@@ -135,9 +137,14 @@ bool Procedural::parseTextures(const QJsonArray& channels) {
 
         auto textureCache = DependencyManager::get<TextureCache>();
         size_t channelCount = std::min(MAX_PROCEDURAL_TEXTURE_CHANNELS, (size_t)_parsedChannels.size());
-        for (size_t i = 0; i < channelCount; ++i) {
-            QString url = _parsedChannels.at((int)i).toString();
-            _channels[i] = textureCache->getTexture(QUrl(url));
+        size_t channel = 0;
+        for (; channel < channelCount; ++channel) {
+            QString url = _parsedChannels.at((int)channel).toString();
+            _channels[channel] = textureCache->getTexture(QUrl(url));
+        }
+        for (; channel < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++channel) {
+            // Release those textures no longer in use
+            _channels[channel] = textureCache->getTexture(QUrl());
         }
 
         _channelsDirty = true;
@@ -149,20 +156,21 @@ bool Procedural::parseTextures(const QJsonArray& channels) {
 void Procedural::parse(const QJsonObject& proceduralData) {
     _enabled = false;
 
-    if (proceduralData.isEmpty()) {
-        return;
-    }
-
     auto version = proceduralData[VERSION_KEY];
     auto shaderUrl = proceduralData[URL_KEY].toString();
     shaderUrl = ResourceManager::normalizeURL(shaderUrl);
     auto uniforms = proceduralData[UNIFORMS_KEY].toObject();
     auto channels = proceduralData[CHANNELS_KEY].toArray();
 
-    if (parseVersion(version) &&
-        parseUrl(shaderUrl) &&
-        parseUniforms(uniforms) &&
-        parseTextures(channels)) {
+    bool isValid = true;
+
+    // Run through parsing regardless of validity to clear old cached resources
+    isValid = parseVersion(version) && isValid;
+    isValid = parseUrl(shaderUrl) && isValid;
+    isValid = parseUniforms(uniforms) && isValid;
+    isValid = parseTextures(channels) && isValid;
+
+    if (!proceduralData.isEmpty() && isValid) {
         _enabled = true;
     }
 }
