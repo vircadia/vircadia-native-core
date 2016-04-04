@@ -45,6 +45,16 @@ static const GLenum _elementTypeToGLType[gpu::NUM_TYPES] = {
     GL_UNSIGNED_BYTE
 };
 
+class GLTexelFormat {
+public:
+    GLenum internalFormat;
+    GLenum format;
+    GLenum type;
+
+
+    static GLTexelFormat evalGLTexelFormat(const gpu::Element& dstFormat, const gpu::Element& srcFormat);
+};
+
 // Stupid preprocessor trick to turn the line macro into a string
 #define CHECK_GL_ERROR_HELPER(x) #x
 // FIXME doesn't build on Linux or Mac.  Hmmmm

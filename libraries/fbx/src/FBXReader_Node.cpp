@@ -9,16 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <iostream>
-#include <QBuffer>
-#include <QDataStream>
-#include <QIODevice>
-#include <QStringList>
-#include <QTextStream>
-#include <QtDebug>
-#include <QtEndian>
-#include <QFileInfo>
 #include "FBXReader.h"
+
+#include <iostream>
+#include <QtCore/QBuffer>
+#include <QtCore/QDataStream>
+#include <QtCore/QIODevice>
+#include <QtCore/QStringList>
+#include <QtCore/QTextStream>
+#include <QtCore/QDebug>
+#include <QtCore/QtEndian>
+#include <QtCore/QFileInfo>
+
+#include <shared/NsightHelpers.h>
 
 template<class T> int streamSize() {
     return sizeof(T);
@@ -47,6 +50,9 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
         in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
         position += compressedLength;
         QByteArray uncompressed = qUncompress(compressed);
+        if (uncompressed.isEmpty()) { // answers empty byte array if corrupt
+            throw QString("corrupt fbx file");
+        }
         QDataStream uncompressedIn(uncompressed);
         uncompressedIn.setByteOrder(QDataStream::LittleEndian);
         uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
@@ -296,6 +302,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
 }
 
 FBXNode FBXReader::parseFBX(QIODevice* device) {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, device);
     // verify the prolog
     const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
     if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {

@@ -10,6 +10,7 @@
 //
 
 #include "ModelCache.h"
+#include <Finally.h>
 #include <FSTReader.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
@@ -28,6 +29,10 @@ public:
     const QVariantHash& mapping;
     const QUrl& textureBaseUrl;
 };
+
+QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
+    return textureBaseUrl.isValid() ? textureBaseUrl : url;
+}
 
 class GeometryMappingResource : public GeometryResource {
     Q_OBJECT
@@ -52,18 +57,17 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         finishedLoading(false);
     } else {
         QUrl url = _url.resolved(filename);
-        QUrl textureBaseUrl;
 
         QString texdir = mapping.value("texdir").toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
-            textureBaseUrl = _url.resolved(texdir);
+            _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra{ mapping, textureBaseUrl };
+        GeometryExtra extra{ mapping, _textureBaseUrl };
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
         _geometryResource = modelCache->getResource(url, QUrl(), false, &extra).staticCast<GeometryResource>();
@@ -114,11 +118,12 @@ void GeometryReader::run() {
         originalPriority = QThread::NormalPriority;
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
+    Finally setPriorityBackToNormal([originalPriority]() {
+        QThread::currentThread()->setPriority(originalPriority);
+    });
 
-    // Ensure the resource is still being requested
-    auto resource = _resource.toStrongRef();
-    if (!resource) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+    if (!_resource.data()) {
+        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; resource was deleted";
         return;
     }
 
@@ -143,24 +148,36 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(void*, fbxGeometry));
+            // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+            auto resource = _resource.toStrongRef();
+            if (!resource) {
+                qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+                delete fbxGeometry;
+            } else {
+                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition", Qt::BlockingQueuedConnection, Q_ARG(void*, fbxGeometry));
+            }
         } else {
             throw QString("url is invalid");
         }
     } catch (const QString& error) {
-        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
-        QMetaObject::invokeMethod(resource.data(), "finishedLoading", Q_ARG(bool, false));
-    }
 
-    QThread::currentThread()->setPriority(originalPriority);
+        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
+
+        auto resource = _resource.toStrongRef();
+        // Ensure the resoruce has not been deleted, and won't be while invokeMethod is in flight.
+        if (!resource) {
+            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+        } else {
+            QMetaObject::invokeMethod(resource.data(), "finishedLoading", Qt::BlockingQueuedConnection, Q_ARG(bool, false));
+        }
+    }
 }
 
 class GeometryDefinitionResource : public GeometryResource {
     Q_OBJECT
 public:
     GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
-        GeometryResource(url, textureBaseUrl.isValid() ? textureBaseUrl : url), _mapping(mapping) {}
+        GeometryResource(url, resolveTextureBaseUrl(url, textureBaseUrl)), _mapping(mapping) {}
 
     virtual void downloadFinished(const QByteArray& data) override;
 
@@ -229,7 +246,7 @@ std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const 
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
     GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
     if (resource) {
-        if (resource->isLoaded() && !resource->hasTextures()) {
+        if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
         }
         return std::make_shared<NetworkGeometry>(resource);

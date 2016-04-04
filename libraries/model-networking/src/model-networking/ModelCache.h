@@ -95,7 +95,8 @@ class GeometryResource : public Resource, public Geometry {
 public:
     using Pointer = QSharedPointer<GeometryResource>;
 
-    GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) : Resource(url) {}
+    GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) :
+        Resource(url), _textureBaseUrl(textureBaseUrl) {}
 
     virtual bool areTexturesLoaded() const { return isLoaded() && Geometry::areTexturesLoaded(); }
 
@@ -106,7 +107,8 @@ protected:
     friend class GeometryMappingResource;
 
     // Geometries may not hold onto textures while cached - that is for the texture cache
-    bool hasTextures() const { return !_materials.empty(); }
+    // Instead, these methods clear and reset textures from the geometry when caching/loading
+    bool shouldSetTextures() const { return _geometry && _materials.empty(); }
     void setTextures();
     void resetTextures();
 

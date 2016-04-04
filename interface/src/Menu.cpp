@@ -137,15 +137,14 @@ Menu::Menu() {
     QObject::connect(nodeList.data(), &NodeList::canRezChanged, assetServerAction, &QAction::setEnabled);
     assetServerAction->setEnabled(nodeList->getThisNodeCanRez());
 
-    // Edit > Reload All Content [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
     // Edit > Package Model... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
         qApp, SLOT(packageModel()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Content [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
 
     // Audio menu ----------------------------------

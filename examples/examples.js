@@ -1,5 +1,5 @@
 //
-//  marketplace.js
+//  examples.js
 //  examples
 //
 //  Created by Eric Levin on 8 Jan 2016
@@ -16,9 +16,9 @@ Script.include([
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 
-var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-var marketplaceWindow = new OverlayWebWindow({
-    title: 'Marketplace',
+var EXAMPLES_URL = "https://metaverse.highfidelity.com/examples";
+var examplesWindow = new OverlayWebWindow({
+    title: 'Examples',
     source: "about:blank",
     width: 900,
     height: 700,
@@ -29,43 +29,43 @@ var toolHeight = 50;
 var toolWidth = 50;
 
 
-function showMarketplace(marketplaceID) {
-    var url = MARKETPLACE_URL;
+function showExamples(marketplaceID) {
+    var url = EXAMPLES_URL;
     if (marketplaceID) {
         url = url + "/items/" + marketplaceID;
     }
-    print("setting marketplace URL to " + url);
-    marketplaceWindow.setURL(url);
-    marketplaceWindow.setVisible(true);
+    print("setting examples URL to " + url);
+    examplesWindow.setURL(url);
+    examplesWindow.setVisible(true);
 }
 
-function hideMarketplace() {
-    marketplaceWindow.setVisible(false);
-    marketplaceWindow.setURL("about:blank");
+function hideExamples() {
+    examplesWindow.setVisible(false);
+    examplesWindow.setURL("about:blank");
 }
 
-function toggleMarketplace() {
-    if (marketplaceWindow.visible) {
-        hideMarketplace();
+function toggleExamples() {
+    if (examplesWindow.visible) {
+        hideExamples();
     } else {
-        showMarketplace();
+        showExamples();
     }
 }
 
 var toolBar = (function() {
     var that = {},
         toolBar,
-        browseMarketplaceButton;
+        browseExamplesButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.marketplace.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,
                 y: 135
             };
         });
-        browseMarketplaceButton = toolBar.addTool({
-            imageURL: toolIconUrl + "market-01.svg",
+        browseExamplesButton = toolBar.addTool({
+            imageURL: toolIconUrl + "examples-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -79,10 +79,10 @@ var toolBar = (function() {
             showButtonDown: true
         });
 
-        toolBar.showTool(browseMarketplaceButton, true);
+        toolBar.showTool(browseExamplesButton, true);
     }
 
-    var browseMarketplaceButtonDown = false;
+    var browseExamplesButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
@@ -98,10 +98,8 @@ var toolBar = (function() {
             y: event.y
         });
 
-
-
-        if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
-            toggleMarketplace();
+        if (browseExamplesButton === toolBar.clicked(clickedOverlay)) {
+            toggleExamples();
             return true;
         }
 
@@ -112,7 +110,7 @@ var toolBar = (function() {
         var handled = false;
 
 
-        if (browseMarketplaceButtonDown) {
+        if (browseExamplesButtonDown) {
             var clickedOverlay = Overlays.getOverlayAtPoint({
                 x: event.x,
                 y: event.y
@@ -120,7 +118,7 @@ var toolBar = (function() {
         }
 
         newModelButtonDown = false;
-        browseMarketplaceButtonDown = false;
+        browseExamplesButtonDown = false;
 
         return handled;
     }

@@ -187,9 +187,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
-        bool isLinearRGB = true;
-
+        
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
 
@@ -225,7 +223,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     const double pStrength = 2.0;
     int width = image.width();
     int height = image.height();
-    QImage result(width, height, image.format());
+    QImage result(width, height, QImage::Format_RGB888);
     
     for (int i = 0; i < width; i++) {
         const int iNextClamped = clampPixelCoordinate(i + 1, width - 1);
@@ -273,23 +271,16 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
-        }
-        
-        
+
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+
+
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         theTexture->autoGenerateMips(-1);
     }
-    
+
     return theTexture;
 }
 

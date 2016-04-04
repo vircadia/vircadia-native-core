@@ -21,6 +21,8 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>
+
+#include <shared/NsightHelpers.h>
 #include <PathUtils.h>
 
 #include <gpu/Batch.h>
@@ -289,6 +291,7 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void ImageReader::run() {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, nullptr);
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
@@ -326,6 +329,7 @@ void ImageReader::run() {
     gpu::Texture* theTexture = nullptr;
     auto ntex = texture.dynamicCast<NetworkTexture>();
     if (ntex) {
+        PROFILE_RANGE_EX(__FUNCTION__"::textureLoader", 0xffffff00, nullptr);
         theTexture = ntex->getTextureLoader()(image, _url.toString().toStdString());
     }
 
