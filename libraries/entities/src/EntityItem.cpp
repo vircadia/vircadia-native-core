@@ -979,7 +979,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     transform.setTranslation(position);
     setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
 
-    if (!isMoving) {
+    if (setFlags && !isMoving) {
         // flag this entity to transition from KINEMATIC to STATIC
         _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
     }
