@@ -10,9 +10,9 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js" );
+var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js");
 
-var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js" );
+var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js");
 
 Whiteboard = function(spawnPosition, spawnRotation) {
 
@@ -57,7 +57,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(whiteboardRotation)));
     var moveForwardDistance = 0.02;
     whiteboardFrontSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-moveForwardDistance, Quat.getFront(whiteboardRotation)));
-    var WHITEBOARD_SURFACE_NAME = "home_box_whiteboardDrawingSurface"; 
+    var WHITEBOARD_SURFACE_NAME = "home_box_whiteboardDrawingSurface";
     var whiteboardSurfaceSettings = {
         type: "Box",
         name: WHITEBOARD_SURFACE_NAME,
@@ -98,7 +98,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
     var eraserRotation = markerRotation;
 
-    var eraser = Entities.addEntity({
+    var eraserProps = {
         type: "Model",
         name: "home_model_whiteboardEraser",
         modelURL: ERASER_MODEL_URL,
@@ -153,9 +153,8 @@ Whiteboard = function(spawnPosition, spawnRotation) {
                 }
             }
         })
-    });
+    }
 
-    createMarkers();
 
     function createMarkers() {
         var modelURLS = [
@@ -249,6 +248,11 @@ Whiteboard = function(spawnPosition, spawnRotation) {
         markers.push(marker);
 
     }
+    var eraser;
+    Script.setTimeout(function() {
+        eraser = Entities.addEntity(eraserProps);
+        createMarkers();
+    }, 1500)
 
     function cleanup() {
         print('WHITEBOARD CLEANUP')

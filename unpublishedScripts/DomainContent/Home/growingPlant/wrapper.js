@@ -12,7 +12,7 @@
 
 //
 var PLANT_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/growingPlantEntityScript.js");
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js"); 
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("atp:/growingPlant/waterCanEntityScript.js");
 Plant = function(spawnPosition, spawnRotation) {
   var orientation;
   if (spawnRotation !== undefined) {
@@ -57,7 +57,7 @@ Plant = function(spawnPosition, spawnRotation) {
     y: plantDimensions.y / 2,
     z: 0
   });
-  
+
   var plant = Entities.addEntity({
     type: "Model",
     modelURL: PLANT_MODEL_URL,
@@ -89,8 +89,7 @@ Plant = function(spawnPosition, spawnRotation) {
       y: 0.2762,
       z: 0.4115
     },
-    shapeType: 'compound',
-    compoundShapeURL: WATER_CAN_COLLIISION_HULL_URL,
+    shapeType: 'box',
     position: waterCanPosition,
     collisionSoundURL: "atp:/growingPlant/watering_can_drop.L.wav",
     dynamic: true,
@@ -139,7 +138,7 @@ Plant = function(spawnPosition, spawnRotation) {
 
   var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.21, Quat.getFront(orientation)))
   var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
-  var WATER_SPOUT_NAME = "home_box_waterSpout"; 
+  var WATER_SPOUT_NAME = "home_box_waterSpout";
   var waterSpout = Entities.addEntity({
     type: "Box",
     name: WATER_SPOUT_NAME,
