@@ -90,9 +90,11 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         return parent;
     }
 
+    SpatiallyNestablePointer thisPointer = getThisPointer();
+
     if (parent) {
         // we have a parent pointer but our _parentID doesn't indicate this parent.
-        parent->forgetChild(getThisPointer());
+        parent->forgetChild(thisPointer);
         _parentKnowsMe = false;
         _parent.reset();
     }
@@ -110,11 +112,16 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
 
     parent = _parent.lock();
     if (parent) {
-        parent->beParentOfChild(getThisPointer());
+        parent->beParentOfChild(thisPointer);
         _parentKnowsMe = true;
     }
 
-    success = (parent || parentID.isNull());
+    if (parent || parentID.isNull()) {
+        success = true;
+    } else {
+        success = false;
+    }
+
     return parent;
 }
 
@@ -841,41 +848,4 @@ AACube SpatiallyNestable::getQueryAACube() const {
         qDebug() << "getQueryAACube failed for" << getID();
     }
     return result;
-}
-
-void SpatiallyNestable::getLocalTransformAndVelocities(
-        Transform& transform,
-        glm::vec3& velocity,
-        glm::vec3& angularVelocity) const {
-    // transform
-    _transformLock.withReadLock([&] {
-        transform = _transform;
-    });
-    // linear velocity
-    _velocityLock.withReadLock([&] {
-        velocity = _velocity;
-    });
-    // angular velocity
-    _angularVelocityLock.withReadLock([&] {
-        angularVelocity = _angularVelocity;
-    });
-}
-
-void SpatiallyNestable::setLocalTransformAndVelocities(
-        const Transform& localTransform,
-        const glm::vec3& localVelocity,
-        const glm::vec3& localAngularVelocity) {
-    // transform
-    _transformLock.withWriteLock([&] {
-        _transform = localTransform;
-    });
-    // linear velocity
-    _velocityLock.withWriteLock([&] {
-        _velocity = localVelocity;
-    });
-    // angular velocity
-    _angularVelocityLock.withWriteLock([&] {
-        _angularVelocity = localAngularVelocity;
-    });
-    locationChanged();
 }
