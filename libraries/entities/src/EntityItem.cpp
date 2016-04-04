@@ -895,9 +895,9 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
         }
 
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH_SQUARED = 0.0017453f * 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
-        if (glm::length2(angularVelocity) < EPSILON_ANGULAR_VELOCITY_LENGTH_SQUARED) {
-            angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        const float MIN_KINEMATIC_ANGULAR_SPEED_SQUARED = 0.0017453f * 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
+        if (glm::length2(angularVelocity) < MIN_KINEMATIC_ANGULAR_SPEED_SQUARED) {
+            angularVelocity = Vectors::ZERO;
         } else {
             // for improved agreement with the way Bullet integrates rotations we use an approximation
             // and break the integration into bullet-sized substeps
@@ -912,43 +912,75 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             isMoving = true;
         }
     }
-    if (glm::length2(linearVelocity) > 0.0f) {
+    glm::vec3 position = transform.getTranslation();
+
+    const float MIN_KINEMATIC_LINEAR_SPEED_SQUARED = 1.0e-6f; // 1mm/sec ^2
+    bool hasLinearVelocity = (glm::length2(linearVelocity) > MIN_KINEMATIC_LINEAR_SPEED_SQUARED );
+    if (hasLinearVelocity) {
         // linear damping
         if (_damping > 0.0f) {
             linearVelocity *= powf(1.0f - _damping, timeElapsed);
         }
 
-        glm::vec3 linearAcceleration = _acceleration;
-        bool nonZeroAcceleration = (glm::length2(_acceleration) > 0.0f);
-        if (nonZeroAcceleration) {
-            // acceleration is in world-frame but we need it in local-frame
-            bool success;
-            Transform parentTransform = getParentTransform(success);
-            if (success) {
-                linearAcceleration = glm::inverse(parentTransform.getRotation()) * linearAcceleration;
-            }
+        // integrate position forward sans acceleration
+        position += linearVelocity * timeElapsed;
+    }
+
+    const float MIN_KINEMATIC_GRAVITY_MOTION_SQUARED = 1.0e-6f; // 0.001 mm/sec^2
+    bool hasGravity = (glm::length2(_gravity) > MIN_KINEMATIC_GRAVITY_MOTION_SQUARED);
+    if (hasGravity) {
+        // acceleration is in world-frame but we need it in local-frame
+        glm::vec3 linearAcceleration = _gravity;
+        bool success;
+        Transform parentTransform = getParentTransform(success);
+        if (success) {
+            linearAcceleration = glm::inverse(parentTransform.getRotation()) * linearAcceleration;
         }
 
-        // integrate position forward
-        glm::vec3 position = transform.getTranslation() + (linearVelocity * timeElapsed) + 0.5f * linearAcceleration * timeElapsed * timeElapsed;
-        transform.setTranslation(position);
+        // integrate position's acceleration term
+        position += 0.5f * linearAcceleration * timeElapsed * timeElapsed;
 
         // integrate linearVelocity
         linearVelocity += linearAcceleration * timeElapsed;
+    }
 
-        const float EPSILON_LINEAR_VELOCITY_LENGTH_SQUARED = 1.0e-6f; // 1mm/sec ^2
-        if (glm::length2(linearVelocity) < EPSILON_LINEAR_VELOCITY_LENGTH_SQUARED) {
-            setVelocity(ENTITY_ITEM_ZERO_VEC3);
-            if (nonZeroAcceleration) {
+    if (hasLinearVelocity || hasGravity) {
+        // We MUST eventually stop kinematic motion for slow entities otherwise they will take
+        // a looooong time to settle down, so we remeasure linear speed and zero the velocity
+        // if it is too small.
+        if (glm::length2(linearVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
+            linearVelocity = Vectors::ZERO;
+            if (!hasLinearVelocity) {
+                // Despite some gravity the final linear velocity is still too small to defeat the
+                // "effective resistance of free-space" which means we must reset position back to
+                // where it started since otherwise the entity may creep vveerrryy sslloowwllyy at
+                // a constant speed.
+                position = transform.getTranslation();
+
+                // Ultimately what this means is that there is some minimum gravity we can
+                // fully support for kinematic motion.  It's exact value is a function of this
+                // entity's linearDamping and the hardcoded MIN_KINEMATIC_FOO parameters above,
+                // but the theoretical minimum gravity for zero damping at 90Hz is:
+                //
+                // minGravity = minSpeed / dt = 0.001 m/sec * 90 /sec = 0.09 m/sec^2
+                //
+                // In practice the true minimum is half that value, since if the frame rate is ever
+                // less than the expected then sometimes dt will be twice as long.
+                //
+                // Since we don't set isMoving true here this entity is destined to transition to
+                // STATIC unless it has some angular motion keeping it alive.
+            } else {
                 isMoving = true;
             }
         } else {
             isMoving = true;
         }
     }
+    transform.setTranslation(position);
     setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
+
     if (!isMoving) {
-        // flag this entity to be removed from kinematic motion
+        // flag this entity to transition from KINEMATIC to STATIC
         _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
     }
 }
