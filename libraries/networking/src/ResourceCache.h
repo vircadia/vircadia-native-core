@@ -255,7 +255,7 @@ protected:
     virtual void downloadFinished(const QByteArray& data) { finishedLoading(true); }
 
     /// Called when the download is finished and processed, sets the number of actual bytes.
-    void setBytes(const qint64& bytes);
+    void setSize(const qint64& bytes);
 
     /// Called when the download is finished and processed.
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.

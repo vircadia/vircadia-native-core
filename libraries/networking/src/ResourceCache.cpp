@@ -416,7 +416,7 @@ void Resource::finishedLoading(bool success) {
     emit finished(success);
 }
 
-void Resource::setBytes(const qint64& bytes) {
+void Resource::setSize(const qint64& bytes) {
     QMetaObject::invokeMethod(_cache.data(), "updateTotalSize", Q_ARG(qint64, _bytes), Q_ARG(qint64, bytes));
     _bytes = bytes;
 }
@@ -456,7 +456,7 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 void Resource::handleReplyFinished() {
     Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
 
-    setBytes(_bytesTotal);
+    setSize(_bytesTotal);
 
     if (!_request || _request != sender()) {
         // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
