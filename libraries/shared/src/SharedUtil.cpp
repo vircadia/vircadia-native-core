@@ -247,12 +247,6 @@ int getNthBit(unsigned char byte, int ordinal) {
     return ERROR_RESULT;
 }
 
-bool isBetween(int64_t value, int64_t max, int64_t min) {
-    return ((value <= max) && (value >= min));
-}
-
-
-
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
     byte |= ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
@@ -260,12 +254,7 @@ void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
 
 bool isInEnvironment(const char* environment) {
     char* environmentString = getenv("HIFI_ENVIRONMENT");
-
-    if (environmentString && strcmp(environmentString, environment) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return (environmentString && strcmp(environmentString, environment) == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -630,10 +619,6 @@ void debug::setDeadBeef(void* memoryVoid, int size) {
 
 void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
-}
-
-bool isNaN(float value) {
-    return value != value;
 }
 
 QString formatUsecTime(float usecs, int prec) {

@@ -38,8 +38,11 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
+// We init worldSimulationStep to 1 instead of 0 because we initialize _lastKineticStep to (worldSimulationStep - 1)
+// so that the object starts moving on the first frame that it was set kinematic.
+static uint32_t worldSimulationStep { 1 };
+
 // static
-uint32_t worldSimulationStep = 0;
 void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
     assert(step > worldSimulationStep);
     worldSimulationStep = step;
@@ -164,7 +167,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-bool ObjectMotionState::handleEasyChanges(uint32_t& flags) {
+void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_POSITION) {
         btTransform worldTrans = _body->getWorldTransform();
         btVector3 newPosition = glmToBullet(getObjectPosition());
@@ -183,6 +186,10 @@ bool ObjectMotionState::handleEasyChanges(uint32_t& flags) {
             worldTrans.setRotation(newRotation);
         }
         _body->setWorldTransform(worldTrans);
+        if (!(flags & HARD_DIRTY_PHYSICS_FLAGS) && _body->isStaticObject()) {
+            // force activate static body so its Aabb is updated later
+            _body->activate(true);
+        }
     } else if (flags & Simulation::DIRTY_ROTATION) {
         btTransform worldTrans = _body->getWorldTransform();
         btQuaternion newRotation = glmToBullet(getObjectRotation());
@@ -192,6 +199,10 @@ bool ObjectMotionState::handleEasyChanges(uint32_t& flags) {
         }
         worldTrans.setRotation(newRotation);
         _body->setWorldTransform(worldTrans);
+        if (!(flags & HARD_DIRTY_PHYSICS_FLAGS) && _body->isStaticObject()) {
+            // force activate static body so its Aabb is updated later
+            _body->activate(true);
+        }
     }
 
     if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
@@ -232,8 +243,6 @@ bool ObjectMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_MASS) {
         updateBodyMassProperties();
     }
-
-    return true;
 }
 
 bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
@@ -290,6 +299,10 @@ void ObjectMotionState::updateBodyVelocities() {
     setBodyAngularVelocity(getObjectAngularVelocity());
     setBodyGravity(getObjectGravity());
     _body->setActivationState(ACTIVE_TAG);
+}
+
+void ObjectMotionState::updateLastKinematicStep() {
+    _lastKinematicStep = ObjectMotionState::getWorldSimulationStep() - 1;
 }
 
 void ObjectMotionState::updateBodyMassProperties() {

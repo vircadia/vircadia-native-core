@@ -50,6 +50,13 @@ void PhysicsEngine::init() {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+
+        // By default Bullet will update the Aabb's of all objects every frame, even statics.
+        // This can waste CPU cycles so we configure Bullet to only update ACTIVE objects here.
+        // However, this means when a static object is moved we must manually update its Aabb
+        // in order for its broadphase collision queries to work correctly. Look at how we use
+        // _activeStaticBodies to track and update the Aabb's of moved static objects.
+        _dynamicsWorld->setForceUpdateAllAabbs(false);
     }
 }
 
@@ -80,6 +87,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
             motionState->updateBodyVelocities();
+            motionState->updateLastKinematicStep();
             const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
             const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
             body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
@@ -189,12 +197,18 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
                 stillNeedChange.push_back(object);
             }
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleEasyChanges(flags)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                stillNeedChange.push_back(object);
-            }
+            object->handleEasyChanges(flags);
+            object->clearIncomingDirtyFlags();
         }
+        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
+            _activeStaticBodies.push_back(object->getRigidBody());
+        }
+    }
+    // active static bodies have changed (in an Easy way) and need their Aabbs updated
+    // but we've configured Bullet to NOT update them automatically (for improved performance)
+    // so we must do it ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
     }
     return stillNeedChange;
 }
@@ -240,6 +254,7 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
+        BT_PROFILE("avatarController");
         // TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
         // be done on the main thread during the pre-simulation stuff
@@ -388,6 +403,12 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
 
 const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
+    // Bullet will not deactivate static objects (it doesn't expect them to be active)
+    // so we must deactivate them ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _activeStaticBodies[i]->forceActivationState(ISLAND_SLEEPING);
+    }
+    _activeStaticBodies.clear();
     _dynamicsWorld->synchronizeMotionStates();
     _hasOutgoingChanges = false;
     return _dynamicsWorld->getChangedMotionStates();

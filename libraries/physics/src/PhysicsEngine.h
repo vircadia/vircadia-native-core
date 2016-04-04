@@ -13,9 +13,9 @@
 #define hifi_PhysicsEngine_h
 
 #include <stdint.h>
+#include <vector>
 
 #include <QUuid>
-#include <QVector>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 
@@ -41,7 +41,7 @@ public:
 };
 
 typedef std::map<ContactKey, ContactInfo> ContactMap;
-typedef QVector<Collision> CollisionEvents;
+typedef std::vector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
@@ -110,6 +110,7 @@ private:
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
     QHash<QUuid, EntityActionPointer> _objectActions;
+    std::vector<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;
     QUuid _sessionID;
@@ -121,7 +122,6 @@ private:
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
-
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;
