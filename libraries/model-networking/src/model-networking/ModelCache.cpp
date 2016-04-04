@@ -10,6 +10,7 @@
 //
 
 #include "ModelCache.h"
+#include <Finally.h>
 #include <FSTReader.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
@@ -117,6 +118,9 @@ void GeometryReader::run() {
         originalPriority = QThread::NormalPriority;
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
+    Finally setPriorityBackToNormal([originalPriority]() {
+        QThread::currentThread()->setPriority(originalPriority);
+    });
 
     if (!_resource.data()) {
         qCWarning(modelnetworking) << "Abandoning load of" << _url << "; resource was deleted";
@@ -167,8 +171,6 @@ void GeometryReader::run() {
             QMetaObject::invokeMethod(resource.data(), "finishedLoading", Qt::BlockingQueuedConnection, Q_ARG(bool, false));
         }
     }
-
-    QThread::currentThread()->setPriority(originalPriority);
 }
 
 class GeometryDefinitionResource : public GeometryResource {
