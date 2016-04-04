@@ -19,8 +19,6 @@
 using namespace gpu;
 
 GLenum gpuToGLTextureType(const Texture& texture) {
-    // If we get here, we need to allocate and or update the content of the texture
-    // or it's already being transferred
     switch (texture.getType()) {
     case Texture::TEX_2D:
         return GL_TEXTURE_2D;
@@ -94,17 +92,17 @@ GLBackend::GLTexture::~GLTexture() {
     Backend::decrementTextureGPUCount();
 }
 
-bool GLBackend::GLTexture::invalid() const {
+bool GLBackend::GLTexture::isInvalid() const {
     return _storageStamp < _gpuTexture.getStamp();
 }
 
-bool GLBackend::GLTexture::outdated() const {
+bool GLBackend::GLTexture::isOutdated() const {
     return _contentStamp < _gpuTexture.getDataStamp();
 }
 
-bool GLBackend::GLTexture::ready() const {
+bool GLBackend::GLTexture::isReady() const {
     // If we have an invalid texture, we're never ready
-    if (invalid()) {
+    if (isInvalid()) {
         return false;
     }
 
@@ -112,7 +110,7 @@ bool GLBackend::GLTexture::ready() const {
     // as a special case
     auto syncState = _syncState.load();
 
-    if (outdated()) {
+    if (isOutdated()) {
         return Pending == syncState;
     }
 
@@ -167,7 +165,7 @@ void GLBackend::GLTexture::transfer() const {
 
         case Texture::TEX_CUBE:
             // transfer pixels from each faces
-            for (int f = 0; f < CUBE_NUM_FACES; f++) {
+            for (uint8_t f = 0; f < CUBE_NUM_FACES; f++) {
                 if (_gpuTexture.isStoredMipFaceAvailable(0, f)) {
                     transferMip(CUBE_FACE_LAYOUT[f], _gpuTexture.accessStoredMipFace(0, f));
                 }
@@ -188,15 +186,14 @@ void GLBackend::GLTexture::transfer() const {
 // Do any post-transfer operations that might be required on the main context / rendering thread
 void GLBackend::GLTexture::postTransfer() {
     setSyncState(GLTexture::Idle);
+    // At this point the mip pixels have been loaded, we can notify the gpu texture to abandon it's memory
     switch (_gpuTexture.getType()) {
         case Texture::TEX_2D:
-            // At this point the mip piels have been loaded, we can notify
             _gpuTexture.notifyMipFaceGPULoaded(0, 0);
             break;
 
         case Texture::TEX_CUBE:
             for (uint8_t f = 0; f < CUBE_NUM_FACES; ++f) {
-                // At this point the mip piels have been loaded, we can notify
                 _gpuTexture.notifyMipFaceGPULoaded(0, f);
             }
             break;
@@ -216,7 +213,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePoin
 
     // If the object hasn't been created, or the object definition is out of date, drop and re-create
     GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
-    if (object && object->ready()) {
+    if (object && object->isReady()) {
         return object;
     }
 
@@ -224,7 +221,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePoin
     
     // Create the texture if need be (force re-creation if the storage stamp changes
     // for easier use of immutable storage)
-    if (!object || object->invalid()) {
+    if (!object || object->isInvalid()) {
         // This automatically destroys the old texture
         object = new GLTexture(texture);
     }
@@ -236,7 +233,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePoin
 
     // Object might be outdated, if so, start the transfer
     // (outdated objects that are already in transfer will have reported 'true' for ready()
-    if (object->outdated()) {
+    if (object->isOutdated()) {
         _textureTransferHelper->transferTexture(texturePointer);
     }
 

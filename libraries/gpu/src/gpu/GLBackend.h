@@ -103,13 +103,13 @@ public:
         SyncState getSyncState() const { return _syncState; }
 
         // Is the storage out of date relative to the gpu texture?
-        bool invalid() const;
+        bool isInvalid() const;
 
         // Is the content out of date relative to the gpu texture?
-        bool outdated() const;
+        bool isOutdated() const;
 
         // Is the texture in a state where it can be rendered with no work?
-        bool ready() const;
+        bool isReady() const;
 
         // Move the image bits from the CPU to the GPU
         void transfer() const;

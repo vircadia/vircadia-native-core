@@ -12,18 +12,27 @@
 #include "GLTexelFormat.h"
 
 #ifdef THREADED_TEXTURE_TRANSFER
-#include <gl/OffscreenGLCanvas.h>
-#include <gl/OglplusHelpers.h>
-#include <gl/QOpenGLContextWrapper.h>
-#endif
 
-using namespace gpu;
+#include <gl/OffscreenGLCanvas.h>
+#include <gl/QOpenGLContextWrapper.h>
+
+//#define FORCE_DRAW_AFTER_TRANSFER
+
+#ifdef FORCE_DRAW_AFTER_TRANSFER
+
+#include <gl/OglplusHelpers.h>
 
 static ProgramPtr _program;
 static ProgramPtr _cubeProgram;
 static ShapeWrapperPtr _plane;
 static ShapeWrapperPtr _skybox;
 static BasicFramebufferWrapperPtr _framebuffer;
+
+#endif
+
+#endif
+
+using namespace gpu;
 
 GLTextureTransferHelper::GLTextureTransferHelper() {
 #ifdef THREADED_TEXTURE_TRANSFER
@@ -54,6 +63,8 @@ void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texture
 void GLTextureTransferHelper::setup() {
 #ifdef THREADED_TEXTURE_TRANSFER
     _canvas->makeCurrent();
+
+#ifdef FORCE_DRAW_AFTER_TRANSFER
     _program = loadDefaultShader();
     _plane = loadPlane(_program);
     _cubeProgram = loadCubemapShader();
@@ -61,6 +72,8 @@ void GLTextureTransferHelper::setup() {
     _framebuffer = std::make_shared<BasicFramebufferWrapper>();
     _framebuffer->Init({ 100, 100 });
     _framebuffer->fbo.Bind(oglplus::FramebufferTarget::Draw);
+#endif
+
 #endif
 }
 
@@ -77,6 +90,7 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
         GLBackend::GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texturePointer);
         object->transfer();
 
+#ifdef FORCE_DRAW_AFTER_TRANSFER        
         // Now force a draw using the texture
         try {
             switch (texturePointer->getType()) {
@@ -99,9 +113,12 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
         } catch (const std::runtime_error& error) {
             qWarning() << "Failed to render texture on background thread: " << error.what();
         }
+#endif
 
         glBindTexture(object->_target, 0);
-        glFinish();
+        auto writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        glClientWaitSync(writeSync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+        glDeleteSync(writeSync);
         object->_contentStamp = texturePointer->getDataStamp();
         object->setSyncState(GLBackend::GLTexture::Transferred);
     }
