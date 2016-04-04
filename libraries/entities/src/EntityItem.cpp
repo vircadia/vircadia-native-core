@@ -919,7 +919,8 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
         }
 
         glm::vec3 linearAcceleration = _acceleration;
-        if (glm::length2(_acceleration) > 0.0f) {
+        bool nonZeroAcceleration = (glm::length2(_acceleration) > 0.0f);
+        if (nonZeroAcceleration) {
             // acceleration is in world-frame but we need it in local-frame
             bool success;
             Transform parentTransform = getParentTransform(success);
@@ -928,17 +929,20 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             }
         }
 
+        // integrate position forward
+        glm::vec3 position = transform.getTranslation() + (linearVelocity * timeElapsed) + 0.5f * linearAcceleration * timeElapsed * timeElapsed;
+        transform.setTranslation(position);
+
         // integrate linearVelocity
         linearVelocity += linearAcceleration * timeElapsed;
 
         const float EPSILON_LINEAR_VELOCITY_LENGTH_SQUARED = 1.0e-6f; // 1mm/sec ^2
         if (glm::length2(linearVelocity) < EPSILON_LINEAR_VELOCITY_LENGTH_SQUARED) {
             setVelocity(ENTITY_ITEM_ZERO_VEC3);
+            if (nonZeroAcceleration) {
+                isMoving = true;
+            }
         } else {
-            // integrate position forward
-            // NOTE: we're using the NEW linear velocity, which is why we negate the acceleration term
-            glm::vec3 position = transform.getTranslation() + (linearVelocity * timeElapsed) - 0.5f * linearAcceleration * timeElapsed * timeElapsed;
-            transform.setTranslation(position);
             isMoving = true;
         }
     }
