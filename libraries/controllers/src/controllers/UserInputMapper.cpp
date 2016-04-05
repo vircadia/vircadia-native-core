@@ -1033,7 +1033,7 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
         Route::Pointer route = parseRoute(channelIt);
 
         if (!route) {
-            qWarning() << "Couldn't parse route";
+            qWarning() << "Couldn't parse route:" << mapping->name << channelIt;
             continue;
         }
 
