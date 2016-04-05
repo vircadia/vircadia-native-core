@@ -90,12 +90,14 @@ ovrSession acquireOculusSession() {
 
 void releaseOculusSession() {
     Q_ASSERT(refCount > 0 && session);
+#if 0
     if (!--refCount) {
         qCDebug(oculus) << "oculus: zero refcount, shutdown SDK and session";
         ovr_Destroy(session);
         ovr_Shutdown();
         session = nullptr;
     }
+#endif
 }
 
 
