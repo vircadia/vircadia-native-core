@@ -133,7 +133,6 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
                 y: 0.0549,
                 z: 0.0810
             },
-            dynamic: true,
             angularDamping: 1,
             angularVelocity: {
                 x: 0,
@@ -143,9 +142,6 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
-                },
-                'musicBoxKey': {
-                    'startPosition': getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET)
                 }
             })
         };
@@ -191,7 +187,9 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             modelURL: "atp:/MB_Box.fbx",
             name: 'home_music_box_base',
             type: 'Model',
+            shapeType:'box',
             position: BASE_POSITION,
+            dynamic:true,
             dimensions: {
                 x: 0.1661,
                 y: 0.0928,
