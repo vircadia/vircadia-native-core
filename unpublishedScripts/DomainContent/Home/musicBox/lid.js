@@ -10,32 +10,39 @@
     }
 
     var MUSIC_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/music_converted.wav');
-    var SHUT_SOUND_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav');
-    var OPEN_SOUND_URL = Script.resolvePath('http://public.highfidelity.io/sounds/Switches%20and%20sliders/lamp_switch_2.wav');
-    var BASE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
+    // var SHUT_SOUND_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav');
+    // var OPEN_SOUND_URL = Script.resolvePath('http://public.highfidelity.io/sounds/Switches%20and%20sliders/lamp_switch_2.wav');
+    var SHUT_SOUND_URL = Script.resolvePath('atp:/openSound.wav');
+    var OPEN_SOUND_URL = Script.resolvePath('atp:/closeSound.wav');
 
     Lid.prototype = {
         musicInjector: null,
-        playingByClick: false,
         preload: function(entityID) {
-            _this.entityID = entityID;
-            _this.music = SoundCache.getSound(MUSIC_URL);
-            _this.shutSound = SoundCache.getSound(SHUT_SOUND_URL);
-            _this.openSound = SoundCache.getSound(OPEN_SOUND_URL);
-            _this.musicIsPlaying = false;
-            _this.shut = true;
-            _this.shutSoundInjector = {
+            this.entityID = entityID;
+            this.music = SoundCache.getSound(MUSIC_URL);
+            this.shutSound = SoundCache.getSound(SHUT_SOUND_URL);
+            this.openSound = SoundCache.getSound(OPEN_SOUND_URL);
+
+            print('OPEN SOUND?? ' + this.openSound)
+            this.musicIsPlaying = false;
+            this.shut = true;
+            this.shutSoundInjector = {
                 isPlaying: false
             };
-            _this.musicInjector = null;
-            _this.openSoundInjector = {
+            this.musicInjector = null;
+            this.openSoundInjector = {
                 isPlaying: false
             }
-            _this.getBase();
+            this.getParts();
+            this.props = Entities.getEntityProperties(this.entityID);
+        },
+
+        updateSoundPositionWhileBaseIsHeld: function() {
+
         },
 
         startNearTrigger: function() {
-            this.getBase();
+            this.getParts();
         },
 
         continueNearTrigger: function() {
@@ -59,9 +66,9 @@
         },
 
         stopMusic: function() {
+            this.musicIsPlaying = false;
             if (this.musicInjector !== null) {
                 this.musicInjector.stop();
-                this.musicIsPlaying = false;
             }
 
         },
@@ -77,10 +84,12 @@
                     loop: false
                 }
                 this.openSoundInjector = Audio.playSound(this.openSound, audioOptions);
+                print('this oppen soundinejctopr' + JSON.stringify(this.openSoundInjector))
             }
         },
 
         playShutSound: function() {
+            print('shut injector' + JSON.stringify(this.shutSoundInjector));
             if (this.shutSoundInjector.isPlaying !== true) {
 
                 var properties = Entities.getEntityProperties(this.entityID);
@@ -114,10 +123,10 @@
 
 
             //this might be z now that its roll
-            var constraint = finalRotation.x
+            var constraint = finalRotation.z
 
             var MIN_LID_ROTATION = 0;
-            var MAX_LID_ROTAITON = 75;
+            var MAX_LID_ROTATION = 75;
 
             //handle sound on open, close, and actually play the song
             if (constraint > 20 && this.musicIsPlaying === false) {
@@ -132,10 +141,14 @@
                 print('play open sound!!')
                 this.shut = false;
                 this.playOpenSound();
+                this.startHat();
+                this.startKey();
             } else if (constraint <= 0 && this.shut === false) {
                 print('play shut sound!!')
                 this.shut = true;
                 this.playShutSound();
+                this.stopKey();
+                this.stopHat();
             }
 
             //handle scaling the lid angle to the animation frame
@@ -144,147 +157,88 @@
 
             //scale for going up down, and then spin when fully open ;)
 
-            var currentFrame = scaleValue(constraint, MIN_LID_ROTATION, MAX_LID_ROTAITON, 0, 30)
-
-            var animation;
-
-            if (finalRotation.x === 75) {
-                animation = {
-                    loop: true,
-                    firstFrame: 30,
-                    lastFrame: 90,
-                    running: true,
-                    animationFPS: 30,
-                }
-            } else {
-                animation = {
-                    url: BASE_ANIMATION_URL,
-                    running: false,
-                    currentFrame: currentFrame,
-                    firstFrame: 0,
-                    lastFrame: 30
-                }
-            }
+            var hatHeight = scaleValue(constraint, MIN_LID_ROTATION, MAX_LID_ROTATION, 0, 0.04);
 
             Entities.editEntity(this.entityID, {
                 rotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
             })
 
-            Entities.editEntity(this.base, {
-                animation: animation
+            var VERTICAL_OFFSET = 0.025;
+            var FORWARD_OFFSET = 0.0;
+            var LATERAL_OFFSET = 0.0;
+
+            var hatOffset = getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET)
+            var upOffset = Vec3.sum({
+                x: 0,
+                y: hatHeight,
+                z: 0
+            }, hatOffset)
+            Entities.editEntity(this.hat, {
+                position: upOffset
             })
 
         },
 
-        clickDownOnEntity: function() {
-            this.getBase();
-            if (this.playingByClick === false) {
-                this.playingByClick = true;
-                this.playByClick();
-            } else {
-                this.playingByClick = false;
-                this.stopByClick();
-            }
-        },
+        getParts: function() {
+            var properties = Entities.getEntityProperties(this.entityID);
+            var results = Entities.findEntities(properties.position, 2);
+            results.forEach(function(result) {
 
-        clickReleaseOnEntity: function() {
+                var props = Entities.getEntityProperties(result);
 
-
-        },
-
-        playByClick: function() {
-
-            //turn music on
-            this.playMusic();
-            var animation;
-            //play frames 0 to 30 and
-            animation = {
-                url: BASE_ANIMATION_URL,
-                running: true,
-                firstFrame: 0,
-                lastFrame: 30,
-                animationFPS: 30
-            };
-            Entities.editEntity(this.base, {
-                animation: animation
-            });
-            // rotate the lid, 
-
-            //then hold at 30-90
-            Script.setTimeout(function() {
-                animation = {
-                    running: true,
-                    firstFrame: 30,
-                    lastFrame: 90,
-                    animationFPS: 30,
-                    loop: true,
+                if (props.name === 'home_music_box_base') {
+                    print('FOUND BASE');
+                    _this.base = result;
+                    _this.baseProps = props;
                 }
-                Entities.editEntity(_this.base, {
-                    animation: animation
-                });
-            }, 1000);
 
-        },
-
-        stopByClick: function() {
-
-            var animation;
-            //play frames 90-120 then stop animating
-
-            animation = {
-                running: true,
-                firstFrame: 90,
-                lastFrame: 120,
-                animationFPS: 30
-            };
-            Entities.editEntity(this.base, {
-                animation: animation
-            });
-            Script.setTimeout(function() {
-                //turn music off
-                _this.stopMusic();
-                animation = {
-                    currentFrame: 120,
-                    firstFrame: 120,
-                    lastFrame: 120,
-                    loop: false,
-                    animationFPS: 0,
-                    running: false
+                if (props.name === 'home_music_box_key') {
+                    print('FOUND KEY')
+                    _this.key = result;
+                    _this.keyProps = props;
                 }
-                Entities.editEntity(_this.base, {
-                    animation: animation
-                });
-                print('should stop')
-            }, 1000)
 
+                if (props.name === 'home_music_box_hat') {
+                    print('FOUND HAT')
+                    _this.hat = result;
+                    _this.hatProps = props;
+                }
+
+            })
         },
 
-        playThroughToClose: function() {
-
+        startHat: function() {
+            Entities.editEntity(this.hat, {
+                angularDamping: 0,
+                angularVelocity: {
+                    x: 0,
+                    y: 0.785398,
+                    z: 0,
+                }
+            })
         },
 
-        getBase: function() {
-            var props = Entities.getEntityProperties(this.entityID);
-            var data = JSON.parse(props.userData);
-            var base = data["hifiHomeKey"].musicBoxBase;
-            print('base is: ' + base);
-            this.base = base;
+        startKey: function() {
+            Entities.editEntity(this.key, {
+                angularDamping: 0,
+                angularVelocity: {
+                    x: 0,
+                    y: 0,
+                    z: 0.785398,
+                }
+            })
         },
 
-        rotateHat: function() {
-
+        stopHat: function() {
+            Entities.editEntity(this.hat, {
+                angularDamping: 0.5,
+            });
         },
 
-        rotateKey: function() {
-
-        },
-
-        raiseHat: function() {
-
-        },
-
-        lowerHat: function() {
-
+        stopKey: function() {
+            Entities.editEntity(this.key, {
+                angularDamping: 0.5,
+            });
         },
 
         unload: function() {
@@ -297,6 +251,26 @@
     var scaleValue = function(value, min1, max1, min2, max2) {
         return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
     }
+
+    function getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
+
+        var properties = Entities.getEntityProperties(_this.base);
+
+        var upVector = Quat.getUp(properties.rotation);
+        var frontVector = Quat.getFront(properties.rotation);
+        var rightVector = Quat.getRight(properties.rotation);
+
+        var upOffset = Vec3.multiply(upVector, VERTICAL_OFFSET);
+        var frontOffset = Vec3.multiply(frontVector, FORWARD_OFFSET);
+        var rightOffset = Vec3.multiply(rightVector, LATERAL_OFFSET);
+
+        var finalOffset = Vec3.sum(properties.position, upOffset);
+        finalOffset = Vec3.sum(finalOffset, frontOffset);
+        finalOffset = Vec3.sum(finalOffset, rightOffset);
+
+        return finalOffset
+    };
+
 
 
     return new Lid();

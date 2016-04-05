@@ -60,65 +60,32 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
 
     var LID_SCRIPT_URL = Script.resolvePath('lid.js?' + Math.random());
 
-    var LID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxLid.fbx';
-    var BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
-    var BASE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/MusicBoxAnimated2.fbx';
 
     var base, lid, hat, key;
-
-    function createBase() {
-        var baseProperties = {
-            name: 'hifi-home-music-box-base',
-            type: 'Model',
-            modelURL: BASE_MODEL_URL,
-            position: BASE_POSITION,
-            dimensions: BASE_DIMENSIONS,
-            animation: {
-                url: BASE_ANIMATION_URL,
-                running: false,
-                currentFrame: 0,
-                firstFrame: 0,
-                lastFrame: 120,
-                loop: false
-            },
-            userData: JSON.stringify({
-                'hifiHomeKey': {
-                    'reset': true
-                }
-            }),
-        }
-
-        base = Entities.addEntity(baseProperties);
-        createLid(base);
-    };
-
 
     function createLid(baseID) {
 
         var baseProps = Entities.getEntityProperties(baseID);
-        var frontVector = Quat.getFront(baseProps.rotation);
-        var rightVector = Quat.getRight(baseProps.rotation);
-        var backVector = Vec3.multiply(-1, frontVector);
-        var backOffset = 0.0125;
-        var backPosition = baseProps.position;
-        var backPosition = Vec3.sum(baseProps.position, Vec3.multiply(backOffset, backVector));
-        backPosition.y = backPosition.y += (BASE_DIMENSIONS.y / 2)
+        var VERTICAL_OFFSET = 0.05;
+        var FORWARD_OFFSET = 0;
+        var LATERAL_OFFSET = -0.070;
 
-        print('backPosition' + JSON.stringify(backPosition));
+        var startPosition = getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET);
+
         var lidProperties = {
-            name: 'hifi-home-music-box-lid',
+            name: 'home_music_box_lid',
             type: 'Model',
-            modelURL: LID_MODEL_URL,
+            modelURL: 'atp:/MB_Lid.fbx',
             dimensions: LID_DIMENSIONS,
-            position: baseProps.position,
+            position: startPosition,
+            parentID: baseID,
             registrationPoint: LID_REGISTRATION_POINT,
             dynamic: false,
             script: LID_SCRIPT_URL,
             collidesWith: 'myAvatar,otherAvatar',
             userData: JSON.stringify({
                 'hifiHomeKey': {
-                    'reset': true,
-                    'musicBoxBase': baseID
+                    'reset': true
                 },
                 grabConstraintsKey: {
                     callback: 'rotateLid',
@@ -132,8 +99,8 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
                             min: 0,
                             max: 75,
                             startingAxis: 'y',
-                            startingPoint: backPosition.y,
-                            distanceToMax: backPosition.y + 0.35
+                            startingPoint: startPosition.y,
+                            distanceToMax: startPosition.y + 0.35
                         }
                     }
                 },
@@ -142,69 +109,134 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
                     disableReleaseVelocity: true
                 }
             })
-        }
+        };
 
         lid = Entities.addEntity(lidProperties);
-        createKey(baseID)
-        createHat(baseID)
+        createKey(baseID);
+        createHat(baseID);
 
     };
 
     function createHat(baseID) {
+        var VERTICAL_OFFSET = 0.025;
+        var FORWARD_OFFSET = 0.0;
+        var LATERAL_OFFSET = 0.0;
+
         var properties = {
-            name: 'hifi-home-music-box-hat',
-            type: 'Box',
+            modelURL: "atp:/MB_Hat.fbx",
+            name: 'home_music_box_hat',
+            type: 'Model',
+            position: getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET),
             parentID: baseID,
             dimensions: {
-                x: 0.1,
-                y: 0.1,
-                z: 0.1
+                x: 0.0786,
+                y: 0.0549,
+                z: 0.0810
             },
-        }
+            dynamic: true,
+            angularDamping: 1,
+            angularVelocity: {
+                x: 0,
+                y: 0.785398,
+                z: 0,
+            },
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                },
+                'musicBoxKey': {
+                    'startPosition': getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET)
+                }
+            })
+        };
+
         hat = Entities.addEntity(properties);
-    }
+    };
 
     function createKey(baseID) {
-        var properties = {
-            name: 'hifi-home-music-box-key',
-            type: 'Box',
-            parentID: baseID,
-            dimensions: {
-                x: 0.1,
-                y: 0.1,
-                z: 0.1
-            },
-        }
-        key = Entities.addEntity(properties);
+        var VERTICAL_OFFSET = 0.0;
+        var FORWARD_OFFSET = 0.11;
+        var LATERAL_OFFSET = 0.0;
 
-    }
+        var properties = {
+            modelURL: "atp:/MB_Key.fbx",
+            name: 'home_music_box_key',
+            type: 'Model',
+            parentID: baseID,
+            angularDamping:1,
+            angularVelocity: {
+                x: 0,
+                y: 0,
+                z: 0.785398,
+            },
+            position: getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET),
+            dimensions: {
+                x: 0.0057,
+                y: 0.0482,
+                z: 0.0435
+            },
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            })
+        };
+
+        key = Entities.addEntity(properties);
+    };
 
     function createBaseBox() {
-        var properties = {
-            name: 'hifi-home-music-box-base',
-            type: 'Box',
-            dimensions: {
-                x: 0.1,
-                y: 0.1,
-                z: 0.1
-            },
-        }
-        base = Entities.addEntity(properties);
 
-    }
+        var properties = {
+            modelURL: "atp:/MB_Box.fbx",
+            name: 'home_music_box_base',
+            type: 'Model',
+            position: BASE_POSITION,
+            dimensions: {
+                x: 0.1661,
+                y: 0.0928,
+                z: 0.2022
+            },
+            userData: JSON.stringify({
+                'hifiHomeKey': {
+                    'reset': true
+                }
+            })
+        }
+
+        base = Entities.addEntity(properties);
+        createLid(base);
+    };
 
     function cleanup() {
         Entities.deleteEntity(base);
         Entities.deleteEntity(lid);
         Entities.deleteEntity(key);
         Entities.deleteEntity(hat);
-    }
+    };
+
+    function getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
+
+        var properties = Entities.getEntityProperties(base);
+
+        var upVector = Quat.getUp(properties.rotation);
+        var frontVector = Quat.getFront(properties.rotation);
+        var rightVector = Quat.getRight(properties.rotation);
+
+        var upOffset = Vec3.multiply(upVector, VERTICAL_OFFSET);
+        var frontOffset = Vec3.multiply(frontVector, FORWARD_OFFSET);
+        var rightOffset = Vec3.multiply(rightVector, LATERAL_OFFSET);
+
+        var finalOffset = Vec3.sum(properties.position, upOffset);
+        finalOffset = Vec3.sum(finalOffset, frontOffset);
+        finalOffset = Vec3.sum(finalOffset, rightOffset);
+
+        return finalOffset
+    };
 
     this.cleanup = cleanup;
 
-    createBase();
-
-
+    createBaseBox();
 
     return this;
 }

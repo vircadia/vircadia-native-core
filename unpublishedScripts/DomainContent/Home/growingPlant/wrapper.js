@@ -74,7 +74,6 @@ Plant = function(spawnPosition, spawnRotation) {
   });
 
   var WATER_CAN_MODEL_URL = "atp:/growingPlant/waterCan.fbx";
-  var WATER_CAN_COLLIISION_HULL_URL = "atp:/growingPlant/can.obj";
 
   var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
   var waterCanRotation = orientation;

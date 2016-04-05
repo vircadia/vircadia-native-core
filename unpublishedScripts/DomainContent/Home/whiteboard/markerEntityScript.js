@@ -49,7 +49,7 @@
             _this.equipped = true;
             _this.hand = params[0] == "left" ? 0 : 1;
             _this.markerColor = getEntityUserData(_this.entityID).markerColor;
-                // search for whiteboards
+            // search for whiteboards
             var markerPosition = Entities.getEntityProperties(_this.entityID, "position").position;
             var entities = Entities.findEntities(markerPosition, 10);
             entities.forEach(function(entity) {
@@ -68,9 +68,25 @@
             });
 
             // Once user releases marker, wait a bit then put marker back to its original position and rotation
-            Script.setTimeout(function() {
+            // Script.setTimeout(function() {
+            //     var userData = getEntityUserData(_this.entityID);
+            //     Entities.editEntity(_this.entityID, {
+            //         position: userData.originalPosition,
+            //         rotation: userData.originalRotation,
+            //         velocity: {
+            //             x: 0,
+            //             y: -0.01,
+            //             z: 0
+            //         }
+            //     });
+            // }, _this.MARKER_RESET_WAIT_TIME);
+        },
+
+        collisionWithEntity: function(myID, otherID, collision) {
+            var otherProps = Entities.getEntityProperties(otherID);
+            if (otherProps.name === 'home_model_homeset') {
                 var userData = getEntityUserData(_this.entityID);
-                Entities.editEntity(_this.entityID, {
+                Entities.editEntity(_this.entityID) {
                     position: userData.originalPosition,
                     rotation: userData.originalRotation,
                     velocity: {
@@ -78,11 +94,9 @@
                         y: -0.01,
                         z: 0
                     }
-                });
-            }, _this.MARKER_RESET_WAIT_TIME);
+                }
+            }
         },
-
-
         continueEquip: function() {
             // cast a ray from marker and see if it hits anything
             var markerProps = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
