@@ -1,0 +1,14 @@
+{
+    "name": "Oculus Remote to Standard",
+    "channels": [
+        { "from": "OculusRemote.Back", "to": "Standard.Back" }, 
+        { "from": "OculusRemote.Start", "to": "Standard.Start" }, 
+        
+        { "from": "OculusRemote.DU", "to": "Standard.DU" },
+        { "from": "OculusRemote.DD", "to": "Standard.DD" }, 
+        { "from": "OculusRemote.DL", "to": "Standard.DL" },
+        { "from": "OculusRemote.DR", "to": "Standard.DR" }
+    ]
+}
+
+
