@@ -341,7 +341,7 @@ void Resource::allReferencesCleared() {
         _cache->addUnusedResource(self);
 
     } else {
-        delete this;
+        deleteLater();
     }
 }
 
