@@ -191,8 +191,10 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     }
     if (offset != INVALID_OFFSET) {
         // We include both camera offsets for stereo
+        GLuint rangeSize = sizeof(Backend::TransformCamera);
         if (stereo._enable && stereo._pass) {
             offset += _cameraUboSize;
+            rangeSize += sizeof(Backend::TransformCamera);
         }
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
                           _cameraBuffer, offset, sizeof(Backend::TransformCamera));

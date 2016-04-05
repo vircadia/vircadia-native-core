@@ -27,7 +27,7 @@ ToneMappingEffect::ToneMappingEffect() {
 }
 
 void ToneMappingEffect::init() {
-    const char BlitTextureGamma_frag[] = R"SCRIBE(#version 410 core
+    const char BlitTextureGamma_frag[] = R"SCRIBE(
         //  Generated on Sat Oct 24 09:34:37 2015
         //
         //  Draw texture 0 fetched at texcoord.xy

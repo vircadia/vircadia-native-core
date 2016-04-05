@@ -21,10 +21,19 @@ struct TransformCamera {
 };
 
 layout(std140) uniform transformCameraBuffer {
+#ifdef GPU_TRANSFORM_IS_STEREO
+    TransformCamera _camera[2];
+#else
     TransformCamera _camera;
+#endif
 };
 TransformCamera getTransformCamera() {
+#ifdef GPU_TRANSFORM_IS_STEREO
+    uint eyeIndex = gl_InstanceID % 2;
+    return _camera[eyeIndex];
+#else
     return _camera;
+#endif
 }
 <@endfunc@>
 

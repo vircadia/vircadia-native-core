@@ -15,113 +15,17 @@ using namespace gpu;
 
 GLBackend::GLShader::GLShader()
 {
-    for (auto& so : _shader) {
-        so = 0;
-    }
-    for (auto& po : _program) {
-        po = 0;
-    }
 }
 
 GLBackend::GLShader::~GLShader() {
-    for (auto so : _shader) {
-        if (so != 0) {
-            glDeleteShader(so);
+    for (auto& so : _shaderObjects) {
+        if (so.glshader != 0) {
+            glDeleteShader(so.glshader);
+        }
+        if (so.glprogram != 0) {
+            glDeleteProgram(so.glprogram);
         }
     }
-    for (auto po : _program) {
-        if (po != 0) {
-            glDeleteProgram(po);
-        }
-    }
-}
-
-void makeBindings(GLBackend::GLShader* shader) {
-    if(!shader || !shader->_program[0]) {
-        return;
-    }
-    GLuint glprogram = shader->_program[0];
-    GLint loc = -1;
-     
-    //Check for gpu specific attribute slotBindings
-    loc = glGetAttribLocation(glprogram, "inPosition");
-    if (loc >= 0 && loc != gpu::Stream::POSITION) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "inPosition");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inNormal");
-    if (loc >= 0 && loc != gpu::Stream::NORMAL) {
-        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "inNormal");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inColor");
-    if (loc >= 0 && loc != gpu::Stream::COLOR) {
-        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "inColor");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTexCoord0");
-    if (loc >= 0 && loc != gpu::Stream::TEXCOORD) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "inTexCoord0");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTangent");
-    if (loc >= 0 && loc != gpu::Stream::TANGENT) {
-        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTexCoord1");
-    if (loc >= 0 && loc != gpu::Stream::TEXCOORD1) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "inTexCoord1");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
-    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_INDEX) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "inSkinClusterIndex");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inSkinClusterWeight");
-    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_WEIGHT) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
-    }
-
-    loc = glGetAttribLocation(glprogram, "_drawCallInfo");
-    if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
-        glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
-    }
-
-    // Link again to take into account the assigned attrib location
-    glLinkProgram(glprogram);
-
-    GLint linked = 0;
-    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        qCDebug(gpulogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
-    }
-
-    // now assign the ubo binding, then DON't relink!
-
-    //Check for gpu specific uniform slotBindings
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-    loc = glGetProgramResourceIndex(glprogram, GL_SHADER_STORAGE_BLOCK, "transformObjectBuffer");
-    if (loc >= 0) {
-        glShaderStorageBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
-        shader->_transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
-    }
-#else
-    loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
-    if (loc >= 0) {
-        glProgramUniform1i(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
-        shader->_transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
-    }
-#endif
-
-    loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
-        shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
-    }
-
-    (void)CHECK_GL_ERROR();
 }
 
 bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject) {
@@ -138,8 +42,8 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     }
 
     // Assign the source
-    const GLchar* srcstr[] = { defines.c_str(), shaderSource.c_str() };
-    glShaderSource(glshader, 2, srcstr, NULL);
+    const GLchar* srcstr[] = { "#version 410 core\n", defines.c_str(), shaderSource.c_str() };
+    glShaderSource(glshader, 3, srcstr, NULL);
 
     // Compile !
     glCompileShader(glshader);
@@ -241,7 +145,7 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     return true;
 }
 
-GLuint compileProgram(const std::vector<GLuint>& shaderObjects) {
+GLuint compileProgram(const std::vector<GLuint>& glshaders) {
     // A brand new program:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
@@ -251,7 +155,7 @@ GLuint compileProgram(const std::vector<GLuint>& shaderObjects) {
 
     // glProgramParameteri(glprogram, GL_PROGRAM_, GL_TRUE);
     // Create the program from the sub shaders
-    for (auto so : shaderObjects) {
+    for (auto so : glshaders) {
         glAttachShader(glprogram, so);
     }
 
@@ -291,10 +195,99 @@ GLuint compileProgram(const std::vector<GLuint>& shaderObjects) {
         delete[] temp;
 
         glDeleteProgram(glprogram);
-        return false;
+        return 0;
     }
 
     return glprogram;
+}
+
+
+void makeProgramBindings(GLBackend::GLShader::ShaderObject& shaderObject) {
+    if (!shaderObject.glprogram) {
+        return;
+    }
+    GLuint glprogram = shaderObject.glprogram;
+    GLint loc = -1;
+
+    //Check for gpu specific attribute slotBindings
+    loc = glGetAttribLocation(glprogram, "inPosition");
+    if (loc >= 0 && loc != gpu::Stream::POSITION) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "inPosition");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inNormal");
+    if (loc >= 0 && loc != gpu::Stream::NORMAL) {
+        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "inNormal");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inColor");
+    if (loc >= 0 && loc != gpu::Stream::COLOR) {
+        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "inColor");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inTexCoord0");
+    if (loc >= 0 && loc != gpu::Stream::TEXCOORD) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "inTexCoord0");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inTangent");
+    if (loc >= 0 && loc != gpu::Stream::TANGENT) {
+        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inTexCoord1");
+    if (loc >= 0 && loc != gpu::Stream::TEXCOORD1) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "inTexCoord1");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
+    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_INDEX) {
+        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "inSkinClusterIndex");
+    }
+
+    loc = glGetAttribLocation(glprogram, "inSkinClusterWeight");
+    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_WEIGHT) {
+        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
+    }
+
+    loc = glGetAttribLocation(glprogram, "_drawCallInfo");
+    if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
+        glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
+    }
+
+    // Link again to take into account the assigned attrib location
+    glLinkProgram(glprogram);
+
+    GLint linked = 0;
+    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        qCDebug(gpulogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
+    }
+
+    // now assign the ubo binding, then DON't relink!
+
+    //Check for gpu specific uniform slotBindings
+#ifdef GPU_SSBO_DRAW_CALL_INFO
+    loc = glGetProgramResourceIndex(glprogram, GL_SHADER_STORAGE_BLOCK, "transformObjectBuffer");
+    if (loc >= 0) {
+        glShaderStorageBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
+        shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
+    }
+#else
+    loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
+    if (loc >= 0) {
+        glProgramUniform1i(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
+        shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
+    }
+#endif
+
+    loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
+    if (loc >= 0) {
+        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
+        shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
+    }
+
+    (void)CHECK_GL_ERROR();
 }
 
 GLBackend::GLShader* compileBackendShader(const Shader& shader) {
@@ -305,35 +298,27 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
     const GLenum SHADER_DOMAINS[2] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
 
-    // First make default version of the shader
-    std::string shaderDefines;
-    GLuint glshader{ 0 };
-    GLuint glprogram{ 0 };
-    bool result = compileShader(shaderDomain, shaderSource, shaderDefines, glshader, glprogram);
-    if (!result) {
-        return nullptr;
+    // Make several versions of the shader
+    std::string shaderDefines[GLBackend::GLShader::NumVersions] = {
+        "",
+        "#define GPU_TRANSFORM_IS_STEREO"
+    };
+
+    GLBackend::GLShader::ShaderObjects shaderObjects;
+
+    for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
+        auto& shaderObject = shaderObjects[version];
+
+        bool result = compileShader(shaderDomain, shaderSource, shaderDefines[version], shaderObject.glshader, shaderObject.glprogram);
+        if (!result) {
+            return nullptr;
+        }
     }
 
     // So far so good, the shader is created successfully
     GLBackend::GLShader* object = new GLBackend::GLShader();
-    object->_shader[0] = glshader;
-    object->_program[0] = glprogram;
+    object->_shaderObjects = shaderObjects;
 
-    makeBindings(object);
-
-    {
-        shaderDefines = "#define GPU_TRANSFORM_IS_STEREO";
-        GLuint glshader{ 0 };
-        GLuint glprogram{ 0 };
-        bool result = compileShader(shaderDomain, shaderSource, shaderDefines, glshader, glprogram);
-        if (!result) {
-            return nullptr;
-        }
-        object->_shader[1] = glshader;
-        object->_program[1] = glprogram;
-
-    }
-    
     return object;
 }
 
@@ -342,31 +327,37 @@ GLBackend::GLShader* compileBackendProgram(const Shader& program) {
         return nullptr;
     }
 
-    // Let's go through every shaders and make sure they are ready to go
-    std::vector< GLuint > shaderObjects;
-    for (auto subShader : program.getShaders()) {
-        auto object = GLBackend::syncGPUObject(*subShader);
-        GLuint so = 0;
-        if (object) {
-            so = object->_shader[0];
-        } else {
-            qCDebug(gpulogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
+    GLBackend::GLShader::ShaderObjects programObjects;
+
+    for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
+        auto& programObject = programObjects[version];
+
+        // Let's go through every shaders and make sure they are ready to go
+        std::vector< GLuint > shaderGLObjects;
+        for (auto subShader : program.getShaders()) {
+            auto object = GLBackend::syncGPUObject(*subShader);
+            if (object) {
+                shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
+            } else {
+                qCDebug(gpulogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
+                return nullptr;
+            }
+        }
+
+        GLuint glprogram = compileProgram(shaderGLObjects);
+        if (glprogram == 0) {
             return nullptr;
         }
-        shaderObjects.push_back(so);
+
+        programObject.glprogram = glprogram;
+
+        makeProgramBindings(programObject);
     }
 
-    GLuint glprogram = compileProgram(shaderObjects);
-    if (glprogram == 0) {
-        return nullptr;
-    }
 
-    // So far so good, the program is created successfully
+    // So far so good, the program versions have all been created successfully
     GLBackend::GLShader* object = new GLBackend::GLShader();
-    object->_shader[0] = 0;
-    object->_program[0] = glprogram;
-
-    makeBindings(object);
+    object->_shaderObjects = programObjects;
 
     return object;
 }
@@ -748,25 +739,30 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
         return false;
     }
 
-    if (object->_program[0]) {
-        Shader::SlotSet buffers;
-        makeUniformBlockSlots(object->_program[0], slotBindings, buffers);
+    // APply bindings to all program versions and generate list of slots from default version
+    for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
+        auto& shaderObject = object->_shaderObjects[version];
 
-        Shader::SlotSet uniforms;
-        Shader::SlotSet textures;
-        Shader::SlotSet samplers;
-        makeUniformSlots(object->_program[0], slotBindings, uniforms, textures, samplers);
-        
-        Shader::SlotSet inputs;
-        makeInputSlots(object->_program[0], slotBindings, inputs);
+        if (shaderObject.glprogram) {
+            Shader::SlotSet buffers;
+            makeUniformBlockSlots(shaderObject.glprogram, slotBindings, buffers);
 
-        Shader::SlotSet outputs;
-        makeOutputSlots(object->_program[0], slotBindings, outputs);
+            Shader::SlotSet uniforms;
+            Shader::SlotSet textures;
+            Shader::SlotSet samplers;
+            makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers);
 
-        shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
+            Shader::SlotSet inputs;
+            makeInputSlots(shaderObject.glprogram, slotBindings, inputs);
 
-    } else if (object->_shader) {
+            Shader::SlotSet outputs;
+            makeOutputSlots(shaderObject.glprogram, slotBindings, outputs);
 
+            // Define the public slots only from the default version
+            if (version == 0) {
+                shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
+            }
+        }
     }
 
     return true;

@@ -17,6 +17,7 @@
 #include <queue>
 #include <utility>
 #include <list>
+#include <array>
 
 #include <gl/Config.h>
 
@@ -104,20 +105,25 @@ public:
             NumVersions
         };
 
-        GLuint _shader[NumVersions];
-        GLuint _program[NumVersions];
+        struct ShaderObject {
+            GLuint glshader{ 0 };
+            GLuint glprogram{ 0 };
+            GLint transformCameraSlot{ -1 };
+            GLint transformObjectSlot{ -1 };
+        };
 
-        GLint _transformCameraSlot = -1;
-        GLint _transformObjectSlot = -1;
+        using ShaderObjects = std::array< ShaderObject, NumVersions >;
 
         GLShader();
         ~GLShader();
 
+        ShaderObjects _shaderObjects;
+
         GLuint getProgram(bool isStereo) const {
-            if (isStereo && _program[1]) {
-                return _program[1];
+            if (isStereo && _shaderObjects[Stereo].glprogram) {
+                return _shaderObjects[Stereo].glprogram;
             } else {
-                return _program[0];
+                return _shaderObjects[Mono].glprogram;
             }
         }
     };
