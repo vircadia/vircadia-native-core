@@ -21,7 +21,7 @@ import "dialogs"
 Window {
     id: root
     objectName: "AssetServer"
-    title: "My Asset Server"
+    title: "Asset Browser"
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
@@ -123,6 +123,10 @@ Window {
         return supportedExtensions.reduce(function(total, current) {
             return total | new RegExp(current).test(path);
         }, false);
+    }
+
+    function clear() {
+        Assets.mappingModel.clear();
     }
 
     function reload() {

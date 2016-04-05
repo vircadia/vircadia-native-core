@@ -520,26 +520,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         return;
     }
 
-    // render the part bounding box
-#ifdef DEBUG_BOUNDING_PARTS
-    {
-        AABox partBounds = getPartBounds(_meshIndex, partIndex);
-
-        glm::vec4 cubeColor(1.0f, 1.0f, 0.0f, 1.0f);
-        if (isSkinned) {
-            cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
-        } else if (args->_viewFrustum->boxIntersectsFrustum(partBounds)) {
-            cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-        }
-
-        Transform transform;
-        transform.setTranslation(partBounds.calcCenter());
-        transform.setScale(partBounds.getDimensions());
-        batch.setModelTransform(transform);
-        DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
-    }
-#endif //def DEBUG_BOUNDING_PARTS
-
     auto locations =  args->_pipeline->locations;
     assert(locations);
 

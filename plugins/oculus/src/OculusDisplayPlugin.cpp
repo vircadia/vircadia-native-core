@@ -52,6 +52,16 @@ void OculusDisplayPlugin::customizeContext() {
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {
+    using namespace oglplus;
+    
+    // Present a final black frame to the HMD
+    _compositeFramebuffer->Bound(FramebufferTarget::Draw, [] {
+        Context::ClearColor(0, 0, 0, 1);
+        Context::Clear().ColorBuffer();
+    });
+
+    hmdPresent();
+    
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo.reset();
 #endif

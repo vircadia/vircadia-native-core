@@ -10,6 +10,7 @@
 //
 
 #include "ModelCache.h"
+#include <Finally.h>
 #include <FSTReader.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
@@ -117,11 +118,12 @@ void GeometryReader::run() {
         originalPriority = QThread::NormalPriority;
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
+    Finally setPriorityBackToNormal([originalPriority]() {
+        QThread::currentThread()->setPriority(originalPriority);
+    });
 
-    // Ensure the resource is still being requested
-    auto resource = _resource.toStrongRef();
-    if (!resource) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+    if (!_resource.data()) {
+        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; resource was deleted";
         return;
     }
 
@@ -146,17 +148,29 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(void*, fbxGeometry));
+            // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+            auto resource = _resource.toStrongRef();
+            if (!resource) {
+                qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+                delete fbxGeometry;
+            } else {
+                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition", Qt::BlockingQueuedConnection, Q_ARG(void*, fbxGeometry));
+            }
         } else {
             throw QString("url is invalid");
         }
     } catch (const QString& error) {
-        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
-        QMetaObject::invokeMethod(resource.data(), "finishedLoading", Q_ARG(bool, false));
-    }
 
-    QThread::currentThread()->setPriority(originalPriority);
+        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
+
+        auto resource = _resource.toStrongRef();
+        // Ensure the resoruce has not been deleted, and won't be while invokeMethod is in flight.
+        if (!resource) {
+            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+        } else {
+            QMetaObject::invokeMethod(resource.data(), "finishedLoading", Qt::BlockingQueuedConnection, Q_ARG(bool, false));
+        }
+    }
 }
 
 class GeometryDefinitionResource : public GeometryResource {
@@ -232,7 +246,7 @@ std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const 
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
     GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
     if (resource) {
-        if (resource->isLoaded() && !resource->hasTextures()) {
+        if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
         }
         return std::make_shared<NetworkGeometry>(resource);
