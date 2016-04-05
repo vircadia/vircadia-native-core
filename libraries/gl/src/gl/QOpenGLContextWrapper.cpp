@@ -13,6 +13,9 @@
 
 #include <QOpenGLContext>
 
+QOpenGLContext* QOpenGLContextWrapper::currentContext() {
+    return QOpenGLContext::currentContext();
+}
 
 QOpenGLContextWrapper::QOpenGLContextWrapper() :
     _context(new QOpenGLContext)

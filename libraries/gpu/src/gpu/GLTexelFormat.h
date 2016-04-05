@@ -14,6 +14,9 @@ public:
     GLenum format;
     GLenum type;
 
+    static GLTexelFormat evalGLTexelFormat(const gpu::Element& dstFormat) {
+        return evalGLTexelFormat(dstFormat, dstFormat);
+    }
     static GLTexelFormat evalGLTexelFormat(const gpu::Element& dstFormat, const gpu::Element& srcFormat) {
         using namespace gpu;
         if (dstFormat != srcFormat) {
