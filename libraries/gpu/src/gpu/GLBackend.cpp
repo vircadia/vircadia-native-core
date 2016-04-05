@@ -125,6 +125,7 @@ GLBackend::GLBackend() {
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initInput();
     initTransform();
+    initTextureTransferHelper();
 }
 
 GLBackend::~GLBackend() {
