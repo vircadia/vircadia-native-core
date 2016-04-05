@@ -168,13 +168,14 @@
             var LATERAL_OFFSET = 0.0;
 
             var hatOffset = getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET)
-            var upOffset = Vec3.sum({
-                x: 0,
-                y: hatHeight,
-                z: 0
-            }, hatOffset)
+
+            var baseProps = Entities.getEntityProperties(this.base);
+
+            var upOffset = Vec3.multiply(hatHeight,Quat.getUp(baseProps.rotation));
+
+            var hatPosition = Vec3.sum(hatOffset, upOffset)
             Entities.editEntity(this.hat, {
-                position: upOffset
+                position: hatPosition
             })
 
         },

@@ -1712,12 +1712,17 @@ function MyController(hand) {
                 modTypes.push('roll')
             }
 
+            var safeEuler = Quat.safeEulerAngles(grabbedProps.rotation);
+
+            print('SAFE EULER FOR ROTAITON IS:: ' + JSON.stringify(safeEuler))
 
             finalRotation = {
                 x: 0,
                 y: 0,
                 z: 0
             }
+
+            finalRotation = safeEuler;
             modTypes.forEach(function(modType) {
 
                 var value = handPosition[constraints.rotationMod[modType].startingAxis];
