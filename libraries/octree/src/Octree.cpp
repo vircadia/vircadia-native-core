@@ -384,9 +384,10 @@ int Octree::readElementData(OctreeElementPointer destinationElement, const unsig
         // check the exists mask to see if we have a child to traverse into
 
         if (oneAtBit(childInBufferMask, childIndex)) {
-            if (!destinationElement->getChildAtIndex(childIndex)) {
+            auto childAt = destinationElement->getChildAtIndex(childIndex);
+            if (!childAt) {
                 // add a child at that index, if it doesn't exist
-                destinationElement->addChildAtIndex(childIndex);
+                childAt = destinationElement->addChildAtIndex(childIndex);
                 bool nodeIsDirty = destinationElement->isDirty();
                 if (nodeIsDirty) {
                     _isDirty = true;
@@ -394,8 +395,7 @@ int Octree::readElementData(OctreeElementPointer destinationElement, const unsig
             }
 
             // tell the child to read the subsequent data
-            int lowerLevelBytes = readElementData(destinationElement->getChildAtIndex(childIndex),
-                                      nodeData + bytesRead, bytesLeftToRead, args);
+            int lowerLevelBytes = readElementData(childAt, nodeData + bytesRead, bytesLeftToRead, args);
 
             bytesRead += lowerLevelBytes;
             bytesLeftToRead -= lowerLevelBytes;
