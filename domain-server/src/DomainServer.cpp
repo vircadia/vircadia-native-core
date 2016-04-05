@@ -1680,7 +1680,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
                     QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
 
-                    if (settingsUsername == headerUsername && headerPassword == settingsPassword) {
+                    if (settingsUsername == headerUsername && headerPassword.toUtf8().toBase64() == settingsPassword) {
                         return true;
                     }
                 }
