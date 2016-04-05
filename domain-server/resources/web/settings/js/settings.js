@@ -871,7 +871,7 @@ function saveSettings() {
   if (formJSON["security"]) {
     var password = formJSON["security"]["http_password"];
     if (password.length > 0) {
-      formJSON["security"]["http_password"] = btoa(password);
+      formJSON["security"]["http_password"] = sha256_digest(password);
     }
   }
 

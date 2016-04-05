@@ -180,7 +180,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 qDebug() << "Migrating plaintext password to base64 password in domain-server settings.";
 
-                *passwordVariant = plaintextPassword.toUtf8().toBase64();
+                *passwordVariant = QCryptographicHash::hash(plaintextPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
 
                 // write the new settings to file
                 persistToFile();
