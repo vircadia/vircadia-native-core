@@ -1122,7 +1122,7 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
-    // add a logline indicating if QTWEBENGINE_REMOTE_DEBUGGING is set or not
+    // add a logline indicating if QTWEBENGINE_REMOTE_DEBUGGING is set or not.
     QProcessEnvironment env;
     bool webengineRemoteDebuggingSet = env.keys().contains("QTWEBENGINE_REMOTE_DEBUGGING");
     qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebuggingSet;
