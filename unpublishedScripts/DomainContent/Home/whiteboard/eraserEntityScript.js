@@ -84,15 +84,20 @@
             var otherProps = Entities.getEntityProperties(otherID);
             if (otherProps.name === 'home_model_homeset') {
                 var userData = getEntityUserData(_this.entityID);
-                Entities.editEntity(_this.entityID) {
+                Entities.editEntity(_this.entityID, {
                     position: userData.originalPosition,
                     rotation: userData.originalRotation,
                     velocity: {
                         x: 0,
                         y: -0.01,
                         z: 0
+                    },
+                    angularVelocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
                     }
-                }
+                });
             }
         },
 

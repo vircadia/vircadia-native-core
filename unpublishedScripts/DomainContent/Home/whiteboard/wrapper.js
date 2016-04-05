@@ -25,8 +25,10 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     });
     var whiteboardPosition = spawnPosition;
     var whiteboardRotation = orientation;
+   
     var WHITEBOARD_MODEL_URL = "atp:/whiteboard/Whiteboard-4.fbx";
     var WHITEBOARD_COLLISION_HULL_URL = "atp:/whiteboard/whiteboardCollisionHull.obj";
+   
     var whiteboard = Entities.addEntity({
         type: "Model",
         name: "home_model_whiteboard",
@@ -92,7 +94,12 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     var WHITEBOARD_RACK_DEPTH = 1.9;
 
+
+
+    // ************ ERASER ************************************************
     var ERASER_MODEL_URL = "atp:/whiteboard/eraser-2.fbx";
+
+
 
     var eraserPosition = Vec3.sum(spawnPosition, Vec3.multiply(Quat.getFront(whiteboardRotation), -0.1));
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
@@ -156,12 +163,16 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     }
 
 
+ // ************************************************************************************************* 
+
     function createMarkers() {
         var modelURLS = [
             "atp:/whiteboard/marker-blue.fbx",
             "atp:/whiteboard/marker-red.fbx",
             "atp:/whiteboard/marker-black.fbx",
         ];
+
+
         var markerPosition = Vec3.sum(spawnPosition, Vec3.multiply(Quat.getFront(whiteboardRotation), -0.1));
 
         createMarker(modelURLS[0], markerPosition, {
@@ -196,7 +207,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             dynamic: true,
             gravity: {
                 x: 0,
-                y: -10,
+                y: -5,
                 z: 0
             },
             velocity: {

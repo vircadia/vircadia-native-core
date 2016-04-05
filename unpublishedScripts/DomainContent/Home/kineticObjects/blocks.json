@@ -21,7 +21,7 @@
         },
         "id": "{5371218c-e05b-49da-ac70-81f1f76c55ea}",
         "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.69732666015625,
             "y": 0.1600341796875,
@@ -64,7 +64,7 @@
         },
         "id": "{ccc1198a-a501-48b8-959a-68297258aea7}",
         "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.47344970703125,
             "y": 0.06005859375,
@@ -107,7 +107,7 @@
         },
         "id": "{3aaf5dd5-16d8-4852-880d-8256de68de19}",
         "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.2613525390625,
             "y": 0.01007080078125,
@@ -150,7 +150,7 @@
         },
         "id": "{0474a29f-c45b-4d42-ae95-0c0bd1e6c501}",
         "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.30487060546875,
             "y": 0.01007080078125,
@@ -193,7 +193,7 @@
         },
         "id": "{53e06851-8346-45ac-bdb5-0a74c99b5bd5}",
         "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.40277099609375,
             "y": 0.035064697265625,
@@ -236,7 +236,7 @@
         },
         "id": "{38bcb70d-e384-4b60-878a-e34d4830f045}",
         "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.54962158203125,
             "y": 0.010040283203125,
@@ -279,7 +279,7 @@
         },
         "id": "{fa8f8bbc-5bd0-4121-985d-75ce2f68eba1}",
         "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.52001953125,
             "y": 0.01007080078125,
@@ -322,7 +322,7 @@
         },
         "id": "{d4b8582b-b707-453c-89c6-65e358da5cd7}",
         "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.66876220703125,
             "y": 0,
@@ -365,7 +365,7 @@
         },
         "id": "{3b5b53fb-7ee5-44eb-9b81-8de8a525c433}",
         "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.83819580078125,
             "y": 0.135040283203125,
@@ -408,7 +408,7 @@
         },
         "id": "{0d1f27e9-7e74-4263-9428-8c8f7aac94a6}",
         "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.61773681640625,
             "y": 0.0350341796875,
@@ -451,7 +451,7 @@
         },
         "id": "{79ea518f-aac3-45ff-b22d-6d295b3c9e87}",
         "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.7188720703125,
             "y": 0.08502197265625,
@@ -494,7 +494,7 @@
         },
         "id": "{ff470ff9-c889-4893-a25f-80895bff0e9a}",
         "modelURL": "atp:/kineticObjects/blocks/planky_blue.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.74981689453125,
             "y": 0.010040283203125,
@@ -537,7 +537,7 @@
         },
         "id": "{b5319f85-603d-436b-8bbe-fc9f798ca738}",
         "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.8824462890625,
             "y": 0.0350341796875,
@@ -580,7 +580,7 @@
         },
         "id": "{944a4616-8dac-4d6a-a92b-49fa98514416}",
         "modelURL": "atp:/kineticObjects/blocks/planky_blue.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.963623046875,
             "y": 0.010009765625,
@@ -623,7 +623,7 @@
         },
         "id": "{ea6a1038-7047-4a1e-bdbd-076d6e41508c}",
         "modelURL": "atp:/kineticObjects/blocks/planky_blue.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.49188232421875,
             "y": 0.010040283203125,
@@ -666,7 +666,7 @@
         },
         "id": "{ff65f5dd-2d53-4127-86da-05156a42946d}",
         "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0,
             "y": 0.010101318359375,
@@ -709,7 +709,7 @@
         },
         "id": "{3a9acd14-f754-4c70-b294-9f622c000785}",
         "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.88006591796875,
             "y": 0.010040283203125,
@@ -752,7 +752,7 @@
         },
         "id": "{bb014301-247b-44d0-8b09-b830fea4439e}",
         "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
-        "name": "hifi-home-model-block",
+        "name": "home_model_block",
         "position": {
             "x": 0.80487060546875,
             "y": 0.010040283203125,
