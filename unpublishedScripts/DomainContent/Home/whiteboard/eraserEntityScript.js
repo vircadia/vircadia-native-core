@@ -67,9 +67,24 @@
             });
 
             // Once user releases eraser, wait a bit then put marker back to its original position and rotation
-            Script.setTimeout(function() {
+            //     Script.setTimeout(function() {
+            //         var userData = getEntityUserData(_this.entityID);
+            //         Entities.editEntity(_this.entityID, {
+            //             position: userData.originalPosition,
+            //             rotation: userData.originalRotation,
+            // velocity: {
+            //     x: 0,
+            //     y: -0.01,
+            //     z: 0
+            // }
+            //         });
+            //     }, _this.ERASER_RESET_WAIT_TIME);
+        },
+        collisionWithEntity: function(myID, otherID, collision) {
+            var otherProps = Entities.getEntityProperties(otherID);
+            if (otherProps.name === 'home_model_homeset') {
                 var userData = getEntityUserData(_this.entityID);
-                Entities.editEntity(_this.entityID, {
+                Entities.editEntity(_this.entityID) {
                     position: userData.originalPosition,
                     rotation: userData.originalRotation,
                     velocity: {
@@ -77,10 +92,9 @@
                         y: -0.01,
                         z: 0
                     }
-                });
-            }, _this.ERASER_RESET_WAIT_TIME);
+                }
+            }
         },
-
 
 
         preload: function(entityID) {

@@ -21,7 +21,6 @@
 
     };
 
-
     function startUpdate() {
         print("EBL Start CLOCK Update")
             //when the baton is claimed;
@@ -101,7 +100,6 @@
             }
         },
 
-
         update: function() {
 
             if (iOwn === false) {
@@ -122,16 +120,14 @@
             var seconds = date.getSeconds();
             var minutes = date.getMinutes();
 
-            if (seconds === 0 && minutes === 0) {
+            if (minutes % 15 === 0 && seconds === 0) {
                 _this.popCuckooOut();
             }
-            // if (seconds % 30 === 0) {
-            //     _this.popCuckooOut();
-            // }
 
         },
 
         popCuckooOut: function() {
+            _this.checkTime = false;
             // We are at the top of the hour!
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
             print("EBL POP CUCKOO CLOCK!!!!!!!!!!!");
@@ -151,7 +147,6 @@
                     currentFrame: 0
                 }
             });
-            _this.checkTime = false;
             Script.setTimeout(function() {
                 _this.checkTime = true;
             }, _this.TIME_CHECK_REFRACTORY_PERIOD);
