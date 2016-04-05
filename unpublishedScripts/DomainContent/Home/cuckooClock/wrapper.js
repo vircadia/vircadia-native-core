@@ -11,7 +11,7 @@
 
 var MINUTE_HAND_CLOCK_SCRIPT_URL = Script.resolvePath("cuckooClockMinuteHandEntityScript.js" )
 var CLOCK_BODY_URL = "atp:/cuckooClock/cuckoo2_BODY.fbx";
-var CLOCK_BODY_COLLISION_HULL_URL = "atp:/cuckooClock/cuckooCollider.obj";
+var CLOCK_BODY_COLLISION_HULL_URL = "atp:/cuckooClock/clockHull.obj";
 var CLOCK_FACE_URL = "atp:/cuckooClock/cuckooClock2_FACE.fbx";
 var CLOCK_HOUR_HAND_URL = "atp:/cuckooClock/cuckooClock2_HOUR_HAND.fbx";
 var CLOCK_MINUTE_HAND_URL = "atp:/cuckooClock/cuckooClock2_MINUTE_HAND.fbx";
