@@ -849,44 +849,6 @@ AACube SpatiallyNestable::getQueryAACube() const {
     }
     return result;
 }
-<<<<<<< HEAD
-
-void SpatiallyNestable::getLocalTransformAndVelocities(
-        Transform& transform,
-        glm::vec3& velocity,
-        glm::vec3& angularVelocity) const {
-    // transform
-    _transformLock.withReadLock([&] {
-        transform = _transform;
-    });
-    // linear velocity
-    _velocityLock.withReadLock([&] {
-        velocity = _velocity;
-    });
-    // angular velocity
-    _angularVelocityLock.withReadLock([&] {
-        angularVelocity = _angularVelocity;
-    });
-}
-
-void SpatiallyNestable::setLocalTransformAndVelocities(
-        const Transform& localTransform,
-        const glm::vec3& localVelocity,
-        const glm::vec3& localAngularVelocity) {
-    // transform
-    _transformLock.withWriteLock([&] {
-        _transform = localTransform;
-    });
-    // linear velocity
-    _velocityLock.withWriteLock([&] {
-        _velocity = localVelocity;
-    });
-    // angular velocity
-    _angularVelocityLock.withWriteLock([&] {
-        _angularVelocity = localAngularVelocity;
-    });
-    locationChanged();
-}
 
 bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
     if (_nestableType == nestableType) {
