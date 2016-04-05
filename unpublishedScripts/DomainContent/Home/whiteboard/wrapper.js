@@ -25,8 +25,14 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     });
     var whiteboardPosition = spawnPosition;
     var whiteboardRotation = orientation;
-    var WHITEBOARD_MODEL_URL = "atp:/whiteboard/Whiteboard-4.fbx";
-    var WHITEBOARD_COLLISION_HULL_URL = "atp:/whiteboard/whiteboardCollisionHull.obj";
+   
+    // var WHITEBOARD_MODEL_URL = "atp:/whiteboard/Whiteboard-4.fbx";
+    // var WHITEBOARD_COLLISION_HULL_URL = "atp:/whiteboard/whiteboardCollisionHull.obj";
+
+    // EBL REMOVE ME
+    var WHITEBOARD_MODEL_URL = "https://hifi-content.s3.amazonaws.com/eric/models/Whiteboard-4.fbx";
+    var WHITEBOARD_COLLISION_HULL_URL = "https://hifi-content.s3.amazonaws.com/eric/models/whiteboardCollisionHull.obj";
+   
     var whiteboard = Entities.addEntity({
         type: "Model",
         name: "home_model_whiteboard",
@@ -92,8 +98,16 @@ Whiteboard = function(spawnPosition, spawnRotation) {
 
     var WHITEBOARD_RACK_DEPTH = 1.9;
 
+
+
+    // ************ ERAAAAAAASSSEERRRR ************************************************
+    // ********************************************************************************
     var ERASER_MODEL_URL = "atp:/whiteboard/eraser-2.fbx";
 
+    // EBL REMOVE ME
+    var ERASER_MODEL_URL = "https://s3.amazonaws.com/hifi-public/eric/models/eraser.fbx";
+
+    
     var eraserPosition = Vec3.sum(spawnPosition, Vec3.multiply(Quat.getFront(whiteboardRotation), -0.1));
     eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
     var eraserRotation = markerRotation;
@@ -156,11 +170,23 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     }
 
 
+ // ************************************************************************************************* 
+ // ************************************************************************************************* 
+ // ************************************************************************************************* 
+
     function createMarkers() {
+        // var modelURLS = [
+        //     "atp:/whiteboard/marker-blue.fbx",
+        //     "atp:/whiteboard/marker-red.fbx",
+        //     "atp:/whiteboard/marker-black.fbx",
+        // ];
+
+
+        // EBL REMOVE ME
         var modelURLS = [
-            "atp:/whiteboard/marker-blue.fbx",
-            "atp:/whiteboard/marker-red.fbx",
-            "atp:/whiteboard/marker-black.fbx",
+            "https://hifi-content.s3.amazonaws.com/eric/models/marker-black.fbx",
+            "https://hifi-content.s3.amazonaws.com/eric/models/marker-red.fbx",
+            "https://hifi-content.s3.amazonaws.com/eric/models/marker-blue.fbx",
         ];
         var markerPosition = Vec3.sum(spawnPosition, Vec3.multiply(Quat.getFront(whiteboardRotation), -0.1));
 
@@ -196,7 +222,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
             dynamic: true,
             gravity: {
                 x: 0,
-                y: -10,
+                y: -5,
                 z: 0
             },
             velocity: {
