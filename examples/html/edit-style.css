@@ -231,11 +231,11 @@ input[type="text"] {
 input[type="number"] {
     position: relative;
     height: 28px;
-    width: 120px;
+    width: 124px;
 }
 
 input[type=number] {
-    padding-right: 6px;
+    padding-right: 3px;
 }
 input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -657,7 +657,7 @@ div.refresh input[type="button"] {
     padding-left: 25px;
 }
 .pyr .tuple input {
-    padding-left: 45px;
+    padding-left: 40px;
 }
 
 .tuple div > label:first-child {
