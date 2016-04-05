@@ -52,7 +52,8 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
     _target(gpuToGLTextureType(texture)),
     _size(0),
     _virtualSize(0),
-    _numLevels(texture.maxMip() + 1),
+    _numLevels(1),
+    //_numLevels(texture.maxMip() + 1),
     _gpuTexture(texture) 
 {
     Backend::incrementTextureGPUCount();
@@ -254,7 +255,7 @@ void GLBackend::GLTexture::transfer() const {
     }
 
     if (_gpuTexture.isAutogenerateMips()) {
-        glGenerateMipmap(_target);
+        //glGenerateMipmap(_target);
         (void)CHECK_GL_ERROR();
     }
 }
@@ -435,7 +436,7 @@ void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
     glActiveTexture(GL_TEXTURE0 + bindingSlot);
     glBindTexture(object->_target, object->_texture);
 
-    glGenerateMipmap(object->_target);
+    //glGenerateMipmap(object->_target);
 
     if (freeSlot < 0) {
         // If had to use slot 0 then restore state
