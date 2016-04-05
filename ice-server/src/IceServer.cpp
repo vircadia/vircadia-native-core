@@ -53,6 +53,10 @@ IceServer::IceServer(int argc, char* argv[]) :
     QTimer* inactivePeerTimer = new QTimer(this);
     connect(inactivePeerTimer, &QTimer::timeout, this, &IceServer::clearInactivePeers);
     inactivePeerTimer->start(CLEAR_INACTIVE_PEERS_INTERVAL_MSECS);
+
+    // handle public keys when they arrive from the QNetworkAccessManager
+    auto& networkAccessManager = NetworkAccessManager::getInstance();
+    connect(&networkAccessManager, &QNetworkAccessManager::finished, this, &IceServer::publicKeyReplyFinished);
 }
 
 bool IceServer::packetVersionMatch(const udt::Packet& packet) {
@@ -62,8 +66,6 @@ bool IceServer::packetVersionMatch(const udt::Packet& packet) {
     if (headerVersion == versionForPacketType(headerType)) {
         return true;
     } else {
-        qDebug() << "Packet version mismatch for packet" << headerType << " from" << packet.getSenderSockAddr();
-        
         return false;
     }
 }
@@ -202,7 +204,6 @@ bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& pla
 void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     // send a request to the metaverse API for the public key for this domain
     auto& networkAccessManager = NetworkAccessManager::getInstance();
-    connect(&networkAccessManager, &QNetworkAccessManager::finished, this, &IceServer::publicKeyReplyFinished);
 
     QUrl publicKeyURL { NetworkingConstants::METAVERSE_SERVER_URL };
     QString publicKeyPath = QString("/api/v1/domains/%1/public_key").arg(uuidStringWithoutCurlyBraces(domainID));
