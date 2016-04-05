@@ -1974,6 +1974,7 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
 }
 
 void EntityItem::locationChanged() {
+    requiresRecalcBoxes();
     _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
     EntityTreePointer tree = getTree();
     if (tree) {
@@ -1988,6 +1989,7 @@ void EntityItem::dimensionsChanged() {
 }
 
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
+    // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
     auto globalPosition = getPosition(success);
     if (success) {
