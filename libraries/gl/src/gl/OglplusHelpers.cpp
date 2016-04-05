@@ -6,8 +6,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OglplusHelpers.h"
-#include <QSharedPointer>
+
 #include <set>
+#include <oglplus/shapes/plane.hpp>
+#include <oglplus/shapes/sky_box.hpp>
 
 using namespace oglplus;
 using namespace oglplus::shapes;
@@ -20,11 +22,13 @@ uniform mat4 mvp = mat4(1);
 in vec3 Position;
 in vec2 TexCoord;
 
+out vec3 vPosition;
 out vec2 vTexCoord;
 
 void main() {
   gl_Position = mvp * vec4(Position, 1);
-  vTexCoord = TexCoord ;
+  vTexCoord = TexCoord;
+  vPosition = Position;
 }
 
 )VS";
@@ -35,7 +39,9 @@ static const char * SIMPLE_TEXTURED_FS = R"FS(#version 410 core
 uniform sampler2D sampler;
 uniform float alpha = 1.0;
 
+in vec3 vPosition;
 in vec2 vTexCoord;
+
 out vec4 FragColor;
 
 void main() {
@@ -47,9 +53,35 @@ void main() {
 )FS";
 
 
+static const char * SIMPLE_TEXTURED_CUBEMAP_FS = R"FS(#version 410 core
+#pragma line __LINE__
+
+uniform samplerCube sampler;
+uniform float alpha = 1.0;
+
+in vec3 vPosition;
+in vec3 vTexCoord;
+
+out vec4 FragColor;
+
+void main() {
+
+    FragColor = texture(sampler, vPosition);
+    FragColor.a *= alpha;
+}
+
+)FS";
+
+
 ProgramPtr loadDefaultShader() {
     ProgramPtr result;
     compileProgram(result, SIMPLE_TEXTURED_VS, SIMPLE_TEXTURED_FS);
+    return result;
+}
+
+ProgramPtr loadCubemapShader() {
+    ProgramPtr result;
+    compileProgram(result, SIMPLE_TEXTURED_VS, SIMPLE_TEXTURED_CUBEMAP_FS);
     return result;
 }
 
@@ -91,6 +123,10 @@ ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect) {
     return ShapeWrapperPtr(
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, shapes::Plane(a, b), *program)
     );
+}
+
+ShapeWrapperPtr loadSkybox(ProgramPtr program) {
+    return ShapeWrapperPtr(new shapes::ShapeWrapper({ { "Position" } }, shapes::SkyBox(), *program));
 }
 
 // Return a point's cartesian coordinates on a sphere from pitch and yaw
