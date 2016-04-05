@@ -115,6 +115,7 @@ std::atomic<Buffer::Size> Context::_bufferGPUMemoryUsage{ 0 };
 std::atomic<uint32_t> Context::_textureGPUCount{ 0 };
 std::atomic<Texture::Size> Context::_textureGPUMemoryUsage{ 0 };
 std::atomic<Texture::Size> Context::_textureGPUVirtualMemoryUsage{ 0 };
+std::atomic<uint32_t> Context::_textureGPUTransferCount{ 0 };
 
 void Context::incrementBufferGPUCount() {
     _bufferGPUCount++;
@@ -161,6 +162,13 @@ void Context::updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newOb
     }
 }
 
+void Context::incrementTextureGPUTransferCount() {
+    _textureGPUTransferCount++;
+}
+void Context::decrementTextureGPUTransferCount() {
+    _textureGPUTransferCount--;
+}
+
 uint32_t Context::getBufferGPUCount() {
     return _bufferGPUCount.load();
 }
@@ -181,6 +189,10 @@ Context::Size Context::getTextureGPUVirtualMemoryUsage() {
     return _textureGPUVirtualMemoryUsage.load();
 }
 
+uint32_t Context::getTextureGPUTransferCount() {
+    return _textureGPUTransferCount.load();
+}
+
 void Backend::incrementBufferGPUCount() { Context::incrementBufferGPUCount(); }
 void Backend::decrementBufferGPUCount() { Context::decrementBufferGPUCount(); }
 void Backend::updateBufferGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateBufferGPUMemoryUsage(prevObjectSize, newObjectSize); }
@@ -188,4 +200,5 @@ void Backend::incrementTextureGPUCount() { Context::incrementTextureGPUCount(); 
 void Backend::decrementTextureGPUCount() { Context::decrementTextureGPUCount(); }
 void Backend::updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUMemoryUsage(prevObjectSize, newObjectSize); }
 void Backend::updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize) { Context::updateTextureGPUVirtualMemoryUsage(prevObjectSize, newObjectSize); }
-
+void Backend::incrementTextureGPUTransferCount() { Context::incrementTextureGPUTransferCount(); }
+void Backend::decrementTextureGPUTransferCount() { Context::decrementTextureGPUTransferCount(); }

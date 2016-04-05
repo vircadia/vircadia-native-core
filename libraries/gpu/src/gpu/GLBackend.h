@@ -24,6 +24,8 @@
 
 namespace gpu {
 
+class GLTextureTransferHelper;
+
 class GLBackend : public Backend {
 
     // Context Backend static interface required
@@ -35,7 +37,6 @@ class GLBackend : public Backend {
     explicit GLBackend(bool syncCache);
     GLBackend();
 public:
-
     virtual ~GLBackend();
 
     virtual void render(Batch& batch);
@@ -75,12 +76,12 @@ public:
 
     class GLTexture : public GPUObject {
     public:
-        Stamp _storageStamp;
-        Stamp _contentStamp;
-        GLuint _texture;
-        GLenum _target;
+        const Stamp _storageStamp;
+        Stamp _contentStamp { 0 };
+        const GLuint _texture;
+        const GLenum _target;
 
-        GLTexture();
+        GLTexture(const gpu::Texture& gpuTexture);
         ~GLTexture();
 
         GLuint size() const { return _size; }
@@ -88,18 +89,59 @@ public:
 
         void updateSize(GLuint virtualSize);
 
+        enum SyncState {
+            // The texture is currently undergoing no processing, although it's content
+            // may be out of date, or it's storage may be invalid relative to the 
+            // owning GPU texture
+            Idle,
+            // The texture has been queued for transfer to the GPU
+            Pending,
+            // The texture has been transferred to the GPU, but is awaiting
+            // any post transfer operations that may need to occur on the 
+            // primary rendering thread
+            Transferred,
+        };
+
+        void setSyncState(SyncState syncState) { _syncState = syncState; }
+        SyncState getSyncState() const { return _syncState; }
+
+        // Is the storage out of date relative to the gpu texture?
+        bool isInvalid() const;
+
+        // Is the content out of date relative to the gpu texture?
+        bool isOutdated() const;
+
+        // Is the texture in a state where it can be rendered with no work?
+        bool isReady() const;
+
+        // Move the image bits from the CPU to the GPU
+        void transfer() const;
+
+        // Execute any post-move operations that must occur only on the main thread
+        void postTransfer();
+
+        static const size_t CUBE_NUM_FACES = 6;
+        static const GLenum CUBE_FACE_LAYOUT[6];
+
     private:
+
         void setSize(GLuint size);
         void setVirtualSize(GLuint size);
 
         GLuint _size; // true size as reported by the gl api
         GLuint _virtualSize; // theorical size as expected
+
+        void transferMip(GLenum target, const Texture::PixelsPointer& mip) const;
+
+        // The owning texture
+        const Texture& _gpuTexture;
+        std::atomic<SyncState> _syncState { SyncState::Idle };
     };
-    static GLTexture* syncGPUObject(const Texture& texture);
+    static GLTexture* syncGPUObject(const TexturePointer& texture);
     static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
 
     // very specific for now
-    static void syncSampler(const Sampler& sampler, Texture::Type type, GLTexture* object);
+    static void syncSampler(const Sampler& sampler, Texture::Type type, const GLTexture* object);
 
     class GLShader : public GPUObject {
     public:
@@ -246,6 +288,11 @@ public:
 protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
+
+    void initTextureTransferHelper();
+    static void transferGPUObject(const TexturePointer& texture);
+
+    static std::shared_ptr<GLTextureTransferHelper> _textureTransferHelper;
 
     // Draw Stage
     void do_draw(Batch& batch, size_t paramOffset);
@@ -490,6 +537,7 @@ protected:
 
     typedef void (GLBackend::*CommandCall)(Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
+
 };
 
 };

@@ -87,6 +87,11 @@ Item {
                     prop: "frameTextureCount",
                     label: "Frame",
                     color: "#E2334D"
+                },
+                {
+                    prop: "textureGPUTransferCount",
+                    label: "Transfer",
+                    color: "#9495FF"
                 }
             ]
         }

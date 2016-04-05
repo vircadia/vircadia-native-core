@@ -33,6 +33,7 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     config->textureCPUMemoryUsage = gpu::Texture::getTextureCPUMemoryUsage();
     config->textureGPUMemoryUsage = gpu::Texture::getTextureGPUMemoryUsage();
     config->textureGPUVirtualMemoryUsage = gpu::Texture::getTextureGPUVirtualMemoryUsage();
+    config->textureGPUTransferCount = gpu::Texture::getTextureGPUTransferCount();
 
     gpu::ContextStats gpuStats(_gpuStats);
     renderContext->args->_context->getStats(_gpuStats);

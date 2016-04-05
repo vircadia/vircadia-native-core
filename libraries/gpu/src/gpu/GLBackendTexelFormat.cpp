@@ -22,7 +22,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
-                texel.internalFormat = GL_RED;
+                texel.internalFormat = GL_R8;
                 break;
 
             case gpu::COMPRESSED_R:
@@ -30,7 +30,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
 
             case gpu::DEPTH:
-                texel.internalFormat = GL_DEPTH_COMPONENT;
+                texel.internalFormat = GL_DEPTH_COMPONENT32;
                 break;
             case gpu::DEPTH_STENCIL:
                 texel.type = GL_UNSIGNED_INT_24_8;
@@ -50,7 +50,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
-                texel.internalFormat = GL_RG;
+                texel.internalFormat = GL_RG8;
                 break;
             default:
                 qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -67,7 +67,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
-                texel.internalFormat = GL_RGB;
+                texel.internalFormat = GL_RGB8;
                 break;
             case gpu::COMPRESSED_RGB:
                 texel.internalFormat = GL_COMPRESSED_RGB;
@@ -101,16 +101,16 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
-                texel.internalFormat = GL_RGB;
+                texel.internalFormat = GL_RGB8;
                 break;
             case gpu::RGBA:
-                texel.internalFormat = GL_RGBA;
+                texel.internalFormat = GL_RGBA8;
                 break;
             case gpu::SRGB:
-                texel.internalFormat = GL_SRGB;
+                texel.internalFormat = GL_SRGB8;
                 break;
             case gpu::SRGBA:
-                texel.internalFormat = GL_SRGB_ALPHA;
+                texel.internalFormat = GL_SRGB8_ALPHA8;
                 break;
 
             case gpu::COMPRESSED_RGBA:
@@ -148,7 +148,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         }
         return texel;
     } else {
-        GLTexelFormat texel = { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };
+        GLTexelFormat texel = { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE };
 
         switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
@@ -171,11 +171,11 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                     break;
                 }
                 case gpu::NUINT32: {
-                    texel.internalFormat = GL_RED;
+                    texel.internalFormat = GL_R8;
                     break;
                 }
                 case gpu::NINT32: {
-                    texel.internalFormat = GL_RED_SNORM;
+                    texel.internalFormat = GL_R8_SNORM;
                     break;
                 }
                 case gpu::FLOAT: {
@@ -212,7 +212,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 case gpu::NUINT8: {
                     if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
-                        texel.internalFormat = GL_SLUMINANCE;
+                        texel.internalFormat = GL_SLUMINANCE8;
                     } else {
                         texel.internalFormat = GL_R8;
                     }
@@ -237,7 +237,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
             case gpu::DEPTH:
                 texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
-                texel.internalFormat = GL_DEPTH_COMPONENT;
+                texel.internalFormat = GL_DEPTH_COMPONENT32;
                 switch (dstFormat.getType()) {
                 case gpu::UINT32:
                 case gpu::INT32:
@@ -289,7 +289,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
-                texel.internalFormat = GL_RG;
+                texel.internalFormat = GL_RG8;
                 break;
             default:
                 qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -306,11 +306,11 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
             case gpu::RGBA:
-                texel.internalFormat = GL_RGB;
+                texel.internalFormat = GL_RGB8;
                 break;
             case gpu::SRGB:
             case gpu::SRGBA:
-                texel.internalFormat = GL_SRGB; // standard 2.2 gamma correction color
+                texel.internalFormat = GL_SRGB8; // standard 2.2 gamma correction color
                 break;
             default:
                 qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -324,10 +324,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
-                texel.internalFormat = GL_RGB;
+                texel.internalFormat = GL_RGB8;
                 break;
             case gpu::RGBA:
-                texel.internalFormat = GL_RGBA;
+                texel.internalFormat = GL_RGBA8;
                 switch (dstFormat.getType()) {
                 case gpu::UINT32:
                     texel.format = GL_RGBA_INTEGER;
@@ -383,10 +383,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 break;
             case gpu::SRGB:
-                texel.internalFormat = GL_SRGB;
+                texel.internalFormat = GL_SRGB8;
                 break;
             case gpu::SRGBA:
-                texel.internalFormat = GL_SRGB_ALPHA; // standard 2.2 gamma correction color
+                texel.internalFormat = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
                 break;
             default:
                 qCDebug(gpulogging) << "Unknown combination of texel format";

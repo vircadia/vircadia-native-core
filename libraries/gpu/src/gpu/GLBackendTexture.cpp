@@ -9,19 +9,83 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GPULogging.h"
+
+#include <QtCore/QThread>
+
 #include "GLBackendShared.h"
+#include "GLBackendTextureTransfer.h"
 
 using namespace gpu;
 
-GLBackend::GLTexture::GLTexture() :
-    _storageStamp(0),
-    _contentStamp(0),
-    _texture(0),
-    _target(GL_TEXTURE_2D),
+GLenum gpuToGLTextureType(const Texture& texture) {
+    switch (texture.getType()) {
+    case Texture::TEX_2D:
+        return GL_TEXTURE_2D;
+        break;
+
+    case Texture::TEX_CUBE:
+        return GL_TEXTURE_CUBE_MAP;
+        break;
+
+    default:
+        qFatal("Unsupported texture type");
+    }
+    Q_UNREACHABLE();
+    return GL_TEXTURE_2D;
+}
+
+GLuint allocateSingleTexture() {
+    GLuint result;
+    glGenTextures(1, &result);
+    return result;
+}
+
+const GLenum GLBackend::GLTexture::CUBE_FACE_LAYOUT[6] = {
+    GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+};
+
+// Create the texture and allocate storage
+GLBackend::GLTexture::GLTexture(const Texture& texture) : 
+    _storageStamp(texture.getStamp()),
+    _texture(allocateSingleTexture()), 
+    _target(gpuToGLTextureType(texture)),
     _size(0),
-    _virtualSize(0)
+    _virtualSize(0),
+    _gpuTexture(texture) 
 {
     Backend::incrementTextureGPUCount();
+    Backend::updateTextureGPUMemoryUsage(0, _size);
+    Backend::setGPUObject(texture, this);
+
+    GLsizei width = texture.getWidth();
+    GLsizei height = texture.getHeight();
+    GLsizei levels = 1;
+    if (texture.maxMip() > 0) {
+        if (texture.isAutogenerateMips()) {
+            while ((width | height) >> levels) {
+                ++levels;
+            }
+        }
+        levels = std::max(1, std::min(texture.maxMip() + 1, levels));
+    }
+
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat());
+    withPreservedTexture(_target, [&] {
+        glBindTexture(_target, _texture);
+        (void)CHECK_GL_ERROR();
+        // GO through the process of allocating the correct storage 
+        if (GLEW_VERSION_4_2) {
+            glTexStorage2D(_target, levels, texelFormat.internalFormat, width, height);
+        } else {
+            glTexImage2D(_target, 0, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, 0);
+        }
+        (void)CHECK_GL_ERROR();
+        syncSampler(texture.getSampler(), texture.getType(), this);
+        (void)CHECK_GL_ERROR();
+        updateSize((GLuint)texture.evalTotalSize());
+    });
 }
 
 GLBackend::GLTexture::~GLTexture() {
@@ -31,6 +95,10 @@ GLBackend::GLTexture::~GLTexture() {
     Backend::updateTextureGPUMemoryUsage(_size, 0);
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
     Backend::decrementTextureGPUCount();
+}
+
+bool GLBackend::GLTexture::isInvalid() const {
+    return _storageStamp < _gpuTexture.getStamp();
 }
 
 void GLBackend::GLTexture::setSize(GLuint size) {
@@ -68,195 +136,143 @@ void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
     }
 }
 
-GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
-    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
 
-    // If GPU object already created and in sync
-    bool needUpdate = false;
-    if (object && (object->_storageStamp == texture.getStamp())) {
-        // If gpu object info is in sync with sysmem version
-        if (object->_contentStamp >= texture.getDataStamp()) {
-            // Then all good, GPU object is ready to be used
-            return object;
-        } else {
-            // Need to update the content of the GPU object from the source sysmem of the texture
-            needUpdate = true;
-        }
-    } else if (!texture.isDefined()) {
+bool GLBackend::GLTexture::isOutdated() const {
+    return _contentStamp < _gpuTexture.getDataStamp();
+}
+
+bool GLBackend::GLTexture::isReady() const {
+    // If we have an invalid texture, we're never ready
+    if (isInvalid()) {
+        return false;
+    }
+
+    // If we're out of date, but the transfer is in progress, report ready
+    // as a special case
+    auto syncState = _syncState.load();
+
+    if (isOutdated()) {
+        return Pending == syncState;
+    }
+
+    return Idle == syncState;
+}
+
+
+// Move content bits from the CPU to the GPU for a given mip / face
+void GLBackend::GLTexture::transferMip(GLenum target, const Texture::PixelsPointer& mip) const {
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuTexture.getTexelFormat(), mip->getFormat());
+
+    glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());
+    (void)CHECK_GL_ERROR();
+}
+
+// Move content bits from the CPU to the GPU
+void GLBackend::GLTexture::transfer() const {
+    PROFILE_RANGE(__FUNCTION__);
+    qDebug() << "Transferring texture: " << _texture;
+    // Need to update the content of the GPU object from the source sysmem of the texture
+    if (_contentStamp >= _gpuTexture.getDataStamp()) {
+        return;
+    }
+
+    glBindTexture(_target, _texture);
+    // GO through the process of allocating the correct storage and/or update the content
+    switch (_gpuTexture.getType()) {
+        case Texture::TEX_2D:
+            if (_gpuTexture.isStoredMipFaceAvailable(0)) {
+                transferMip(GL_TEXTURE_2D, _gpuTexture.accessStoredMipFace(0));
+            }
+            break;
+
+        case Texture::TEX_CUBE:
+            // transfer pixels from each faces
+            for (uint8_t f = 0; f < CUBE_NUM_FACES; f++) {
+                if (_gpuTexture.isStoredMipFaceAvailable(0, f)) {
+                    transferMip(CUBE_FACE_LAYOUT[f], _gpuTexture.accessStoredMipFace(0, f));
+                }
+            }
+            break;
+
+        default:
+            qCWarning(gpulogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
+            break;
+    }
+
+    if (_gpuTexture.isAutogenerateMips()) {
+        glGenerateMipmap(_target);
+        (void)CHECK_GL_ERROR();
+    }
+}
+
+// Do any post-transfer operations that might be required on the main context / rendering thread
+void GLBackend::GLTexture::postTransfer() {
+    setSyncState(GLTexture::Idle);
+    // At this point the mip pixels have been loaded, we can notify the gpu texture to abandon it's memory
+    switch (_gpuTexture.getType()) {
+        case Texture::TEX_2D:
+            _gpuTexture.notifyMipFaceGPULoaded(0, 0);
+            break;
+
+        case Texture::TEX_CUBE:
+            for (uint8_t f = 0; f < CUBE_NUM_FACES; ++f) {
+                _gpuTexture.notifyMipFaceGPULoaded(0, f);
+            }
+            break;
+
+        default:
+            qCWarning(gpulogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
+            break;
+    }
+}
+
+GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer) {
+    const Texture& texture = *texturePointer;
+    if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
         return nullptr;
     }
 
+    // If the object hasn't been created, or the object definition is out of date, drop and re-create
+    GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
+    if (object && object->isReady()) {
+        return object;
+    }
+
+    // Object isn't ready, check what we need to do...
+    
+    // Create the texture if need be (force re-creation if the storage stamp changes
+    // for easier use of immutable storage)
+    if (!object || object->isInvalid()) {
+        // This automatically destroys the old texture
+        object = new GLTexture(texture);
+    }
+
     // need to have a gpu object?
-    if (!object) {
-        object = new GLTexture();
-        glGenTextures(1, &object->_texture);
-        (void) CHECK_GL_ERROR();
-        Backend::setGPUObject(texture, object);
+    if (texture.getNumSlices() != 1) {
+        return object;
     }
 
-    // GO through the process of allocating the correct storage and/or update the content
-    switch (texture.getType()) {
-    case Texture::TEX_2D: {
-        if (texture.getNumSlices() == 1) {
-            GLint boundTex = -1;
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-            glBindTexture(GL_TEXTURE_2D, object->_texture);
-
-            if (needUpdate) {
-                if (texture.isStoredMipFaceAvailable(0)) {
-                    Texture::PixelsPointer mip = texture.accessStoredMipFace(0);
-                    const GLvoid* bytes = mip->readData();
-                    Element srcFormat = mip->getFormat();
-                
-                    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-
-                    glBindTexture(GL_TEXTURE_2D, object->_texture);
-                    glTexSubImage2D(GL_TEXTURE_2D, 0,
-                        texelFormat.internalFormat, texture.getWidth(), texture.getHeight(), 0,
-                        texelFormat.format, texelFormat.type, bytes);
-
-                    if (texture.isAutogenerateMips()) {
-                        glGenerateMipmap(GL_TEXTURE_2D);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                    }
-
-                    object->_target = GL_TEXTURE_2D;
-
-                    syncSampler(texture.getSampler(), texture.getType(), object);
-
-                    // At this point the mip piels have been loaded, we can notify
-                    texture.notifyMipFaceGPULoaded(0, 0);
-
-                    object->_contentStamp = texture.getDataStamp();
-                    object->updateSize((GLuint)texture.evalTotalSize());
-                }
-            } else {
-                const GLvoid* bytes = 0;
-                Element srcFormat = texture.getTexelFormat();
-                if (texture.isStoredMipFaceAvailable(0)) {
-                    Texture::PixelsPointer mip = texture.accessStoredMipFace(0);
-                
-                    bytes = mip->readData();
-                    srcFormat = mip->getFormat();
-
-                    object->_contentStamp = texture.getDataStamp();
-                }
-
-                GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-
-                glTexImage2D(GL_TEXTURE_2D, 0,
-                    texelFormat.internalFormat, texture.getWidth(), texture.getHeight(), 0,
-                    texelFormat.format, texelFormat.type, bytes);
-
-                if (bytes && texture.isAutogenerateMips()) {
-                    glGenerateMipmap(GL_TEXTURE_2D);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                }
-                object->_target = GL_TEXTURE_2D;
-
-                syncSampler(texture.getSampler(), texture.getType(), object);
-                
-                // At this point the mip pixels have been loaded, we can notify
-                texture.notifyMipFaceGPULoaded(0, 0);
-
-                object->_storageStamp = texture.getStamp();
-                object->_contentStamp = texture.getDataStamp();
-                object->updateSize((GLuint)texture.evalTotalSize());
-            }
-
-            glBindTexture(GL_TEXTURE_2D, boundTex);
-        }
-        break;
+    // Object might be outdated, if so, start the transfer
+    // (outdated objects that are already in transfer will have reported 'true' for ready()
+    if (object->isOutdated()) {
+        Backend::incrementTextureGPUTransferCount();
+        _textureTransferHelper->transferTexture(texturePointer);
     }
-    case Texture::TEX_CUBE: {
-        if (texture.getNumSlices() == 1) {
-            GLint boundTex = -1;
-            glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
-            const int NUM_FACES = 6;
-            const GLenum FACE_LAYOUT[] = {
-                 GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-                 GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                 GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z };
-            if (needUpdate) {
-                glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
 
-                // transfer pixels from each faces
-                for (int f = 0; f < NUM_FACES; f++) {
-                    if (texture.isStoredMipFaceAvailable(0, f)) {
-                        Texture::PixelsPointer mipFace = texture.accessStoredMipFace(0, f);
-                        Element srcFormat = mipFace->getFormat();
-                        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-
-                        glTexSubImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, texture.getWidth(), texture.getWidth(), 0,
-                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->readData()));
-
-                        // At this point the mip pixels have been loaded, we can notify
-                        texture.notifyMipFaceGPULoaded(0, f);
-                    }
-                }
-
-                if (texture.isAutogenerateMips()) {
-                    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                }
-
-                object->_target = GL_TEXTURE_CUBE_MAP;
-
-                syncSampler(texture.getSampler(), texture.getType(), object);
-
-                object->_contentStamp = texture.getDataStamp();
-
-                object->updateSize((GLuint)texture.evalTotalSize());
-            } else {
-                glBindTexture(GL_TEXTURE_CUBE_MAP, object->_texture);
-
-                // transfer pixels from each faces
-                for (int f = 0; f < NUM_FACES; f++) {
-                    if (texture.isStoredMipFaceAvailable(0, f)) {
-                        Texture::PixelsPointer mipFace = texture.accessStoredMipFace(0, f);
-                        Element srcFormat = mipFace->getFormat();
-                        GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-
-                        glTexImage2D(FACE_LAYOUT[f], 0, texelFormat.internalFormat, texture.getWidth(), texture.getWidth(), 0,
-                                texelFormat.format, texelFormat.type, (GLvoid*) (mipFace->readData()));
-
-                        // At this point the mip pixels have been loaded, we can notify
-                        texture.notifyMipFaceGPULoaded(0, f);
-                    }
-                }
-
-                if (texture.isAutogenerateMips()) {
-                    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                } else {
-                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                }
-                
-                object->_target = GL_TEXTURE_CUBE_MAP;
-
-                syncSampler(texture.getSampler(), texture.getType(), object);
-
-                object->_storageStamp = texture.getStamp();
-                object->_contentStamp = texture.getDataStamp();
-                object->updateSize((GLuint)texture.evalTotalSize());
-            }
-
-            glBindTexture(GL_TEXTURE_CUBE_MAP, boundTex);
-        }
-        break;
+    if (GLTexture::Transferred == object->getSyncState()) {
+        Backend::decrementTextureGPUTransferCount();
+        object->postTransfer();
     }
-    default:
-        qCDebug(gpulogging) << "GLBackend::syncGPUObject(const Texture&) case for Texture Type " << texture.getType() << " not supported";    
-    }
-    (void) CHECK_GL_ERROR();
 
     return object;
 }
 
+std::shared_ptr<GLTextureTransferHelper> GLBackend::_textureTransferHelper;
 
+void GLBackend::initTextureTransferHelper() {
+    _textureTransferHelper = std::make_shared<GLTextureTransferHelper>();
+}
 
 GLuint GLBackend::getTextureID(const TexturePointer& texture, bool sync) {
     if (!texture) {
@@ -264,7 +280,7 @@ GLuint GLBackend::getTextureID(const TexturePointer& texture, bool sync) {
     }
     GLTexture* object { nullptr };
     if (sync) {
-        object = GLBackend::syncGPUObject(*texture);
+        object = GLBackend::syncGPUObject(texture);
     } else {
         object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
     }
@@ -275,38 +291,37 @@ GLuint GLBackend::getTextureID(const TexturePointer& texture, bool sync) {
     }
 }
 
-void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTexture* object) {
+void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, const GLTexture* object) {
     if (!object) return;
-    if (!object->_texture) return;
 
     class GLFilterMode {
     public:
         GLint minFilter;
         GLint magFilter;
     };
-    static const GLFilterMode filterModes[] = {   
-        {GL_NEAREST,      GL_NEAREST},  //FILTER_MIN_MAG_POINT,
-        {GL_NEAREST,       GL_LINEAR},  //FILTER_MIN_POINT_MAG_LINEAR,
-        {GL_LINEAR,      GL_NEAREST},  //FILTER_MIN_LINEAR_MAG_POINT,
-        {GL_LINEAR,       GL_LINEAR},  //FILTER_MIN_MAG_LINEAR,
- 
-        {GL_NEAREST_MIPMAP_NEAREST,      GL_NEAREST},  //FILTER_MIN_MAG_MIP_POINT,
-        {GL_NEAREST_MIPMAP_NEAREST,      GL_NEAREST},  //FILTER_MIN_MAG_MIP_POINT,
-        {GL_NEAREST_MIPMAP_LINEAR,       GL_NEAREST},  //FILTER_MIN_MAG_POINT_MIP_LINEAR,
-        {GL_NEAREST_MIPMAP_NEAREST,      GL_LINEAR},  //FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT,
-        {GL_NEAREST_MIPMAP_LINEAR,       GL_LINEAR},  //FILTER_MIN_POINT_MAG_MIP_LINEAR,
-        {GL_LINEAR_MIPMAP_NEAREST,       GL_NEAREST},  //FILTER_MIN_LINEAR_MAG_MIP_POINT,
-        {GL_LINEAR_MIPMAP_LINEAR,        GL_NEAREST},  //FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
-        {GL_LINEAR_MIPMAP_NEAREST,       GL_LINEAR},  //FILTER_MIN_MAG_LINEAR_MIP_POINT,
-        {GL_LINEAR_MIPMAP_LINEAR,        GL_LINEAR},  //FILTER_MIN_MAG_MIP_LINEAR,
-        {GL_LINEAR_MIPMAP_LINEAR,        GL_LINEAR}  //FILTER_ANISOTROPIC,
+    static const GLFilterMode filterModes[] = {
+        { GL_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_POINT,
+        { GL_NEAREST, GL_LINEAR },  //FILTER_MIN_POINT_MAG_LINEAR,
+        { GL_LINEAR, GL_NEAREST },  //FILTER_MIN_LINEAR_MAG_POINT,
+        { GL_LINEAR, GL_LINEAR },  //FILTER_MIN_MAG_LINEAR,
+
+        { GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_MIP_POINT,
+        { GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_MIP_POINT,
+        { GL_NEAREST_MIPMAP_LINEAR, GL_NEAREST },  //FILTER_MIN_MAG_POINT_MIP_LINEAR,
+        { GL_NEAREST_MIPMAP_NEAREST, GL_LINEAR },  //FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT,
+        { GL_NEAREST_MIPMAP_LINEAR, GL_LINEAR },  //FILTER_MIN_POINT_MAG_MIP_LINEAR,
+        { GL_LINEAR_MIPMAP_NEAREST, GL_NEAREST },  //FILTER_MIN_LINEAR_MAG_MIP_POINT,
+        { GL_LINEAR_MIPMAP_LINEAR, GL_NEAREST },  //FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
+        { GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR },  //FILTER_MIN_MAG_LINEAR_MIP_POINT,
+        { GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR },  //FILTER_MIN_MAG_MIP_LINEAR,
+        { GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR }  //FILTER_ANISOTROPIC,
     };
 
     auto fm = filterModes[sampler.getFilter()];
     glTexParameteri(object->_target, GL_TEXTURE_MIN_FILTER, fm.minFilter);
     glTexParameteri(object->_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
-    static const GLenum comparisonFuncs[] = { 
+    static const GLenum comparisonFuncs[] = {
         GL_NEVER,
         GL_LESS,
         GL_EQUAL,
@@ -323,7 +338,7 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTextur
         glTexParameteri(object->_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     }
 
-    static const GLenum wrapModes[] = {   
+    static const GLenum wrapModes[] = {
         GL_REPEAT,                         // WRAP_REPEAT,
         GL_MIRRORED_REPEAT,                // WRAP_MIRROR,
         GL_CLAMP_TO_EDGE,                  // WRAP_CLAMP,
@@ -334,15 +349,12 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTextur
     glTexParameteri(object->_target, GL_TEXTURE_WRAP_T, wrapModes[sampler.getWrapModeV()]);
     glTexParameteri(object->_target, GL_TEXTURE_WRAP_R, wrapModes[sampler.getWrapModeW()]);
 
-    glTexParameterfv(object->_target, GL_TEXTURE_BORDER_COLOR, (const float*) &sampler.getBorderColor());
+    glTexParameterfv(object->_target, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
     glTexParameteri(object->_target, GL_TEXTURE_BASE_LEVEL, sampler.getMipOffset());
-    glTexParameterf(object->_target, GL_TEXTURE_MIN_LOD, (float) sampler.getMinMip());
+    glTexParameterf(object->_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(object->_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
     glTexParameterf(object->_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-
 }
-
-
 
 void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
@@ -350,7 +362,7 @@ void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
         return;
     }
 
-    GLTexture* object = GLBackend::syncGPUObject(*resourceTexture);
+    GLTexture* object = GLBackend::syncGPUObject(resourceTexture);
     if (!object) {
         return;
     }
@@ -365,7 +377,7 @@ void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
 
     if (freeSlot < 0) {
         // If had to use slot 0 then restore state
-        GLTexture* boundObject = GLBackend::syncGPUObject(*_resource._textures[0]);
+        GLTexture* boundObject = GLBackend::syncGPUObject(_resource._textures[0]);
         if (boundObject) {
             glBindTexture(boundObject->_target, boundObject->_texture);
         }

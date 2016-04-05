@@ -144,9 +144,7 @@
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
-
-
-// ON Windows PC, Nvidia Optimus laptop, we want to enable NVIDIA GPU
+// On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
 extern "C" {
@@ -1255,6 +1253,9 @@ void Application::initializeGL() {
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
+    // The gpu context can make child contexts for transfers, so 
+    // we need to restore primary rendering context
+    _offscreenContext->makeCurrent();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -1469,10 +1470,6 @@ void Application::paintGL() {
 
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
-
-    // update sensorToWorldMatrix for camera and hand controllers
-    getMyAvatar()->updateSensorToWorldMatrix();
-
 
     auto lodManager = DependencyManager::get<LODManager>();
 
@@ -3405,6 +3402,9 @@ void Application::update(float deltaTime) {
             PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
+
+        // update sensorToWorldMatrix for camera and hand controllers
+        getMyAvatar()->updateSensorToWorldMatrix();
 
         qApp->updateMyAvatarLookAtPosition();
 
