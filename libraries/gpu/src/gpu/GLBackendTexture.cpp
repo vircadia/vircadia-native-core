@@ -72,20 +72,41 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
     }
 
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat());
-    withPreservedTexture(_target, [&] {
-        glBindTexture(_target, _texture);
-        (void)CHECK_GL_ERROR();
-        // GO through the process of allocating the correct storage 
-        if (GLEW_VERSION_4_2) {
-            glTexStorage2D(_target, levels, texelFormat.internalFormat, width, height);
-        } else {
-            glTexImage2D(_target, 0, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, 0);
-        }
-        (void)CHECK_GL_ERROR();
-        syncSampler(texture.getSampler(), texture.getType(), this);
-        (void)CHECK_GL_ERROR();
-        updateSize((GLuint)texture.evalTotalSize());
-    });
+
+    GLint boundTex = -1;
+    switch (_target) {
+    case GL_TEXTURE_2D:
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
+        break;
+
+    case GL_TEXTURE_CUBE_MAP:
+        glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
+        break;
+
+    default:
+        qFatal("Unsupported texture type");
+    }
+    (void)CHECK_GL_ERROR();
+
+    glBindTexture(_target, _texture);
+
+    (void)CHECK_GL_ERROR();
+    // GO through the process of allocating the correct storage 
+    if (GLEW_VERSION_4_2) {
+        glTexStorage2D(_target, levels, texelFormat.internalFormat, width, height);
+    } else {
+        glTexImage2D(_target, 0, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, 0);
+    }
+    (void)CHECK_GL_ERROR();
+
+    syncSampler(texture.getSampler(), texture.getType(), this);
+    (void)CHECK_GL_ERROR();
+
+    updateSize((GLuint)texture.evalTotalSize());
+    (void)CHECK_GL_ERROR();
+
+    glBindTexture(_target, boundTex);
+    (void)CHECK_GL_ERROR();
 }
 
 GLBackend::GLTexture::~GLTexture() {

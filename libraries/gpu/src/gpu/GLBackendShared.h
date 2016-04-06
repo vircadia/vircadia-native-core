@@ -54,6 +54,8 @@ public:
     static GLTexelFormat evalGLTexelFormat(const gpu::Element& dstFormat) {
         return evalGLTexelFormat(dstFormat, dstFormat);
     }
+    static GLTexelFormat evalGLTexelFormatInternal(const gpu::Element& dstFormat);
+
     static GLTexelFormat evalGLTexelFormat(const gpu::Element& dstFormat, const gpu::Element& srcFormat);
 };
 
