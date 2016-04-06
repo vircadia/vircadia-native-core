@@ -397,7 +397,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 if (_numAvatarSoundSentBytes == soundByteArray.size()) {
                     // we're done with this sound object - so set our pointer back to NULL
                     // and our sent bytes back to zero
-                    _avatarSound = NULL;
+                    _avatarSound.clear();
                     _numAvatarSoundSentBytes = 0;
                 }
             }

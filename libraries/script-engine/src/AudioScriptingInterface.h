@@ -27,7 +27,7 @@ public:
 
 protected:
     // this method is protected to stop C++ callers from calling, but invokable from script
-    Q_INVOKABLE ScriptAudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
+    Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
     Q_INVOKABLE void setStereoInput(bool stereo);
 
