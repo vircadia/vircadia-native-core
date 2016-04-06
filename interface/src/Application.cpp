@@ -1007,6 +1007,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
                 if (webEntity) {
                     webEntity->setProxyWindow(_window->windowHandle());
+                    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+                        _keyboardMouseDevice->pluginFocusOutEvent();
+                    }
                     _keyboardFocusedItem = entityItemID;
                     _lastAcceptedKeyPress = usecTimestampNow();
                     if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
