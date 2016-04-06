@@ -28,7 +28,7 @@ void StateController::setStateVariables(const QStringList& newStateVariables) {
 StateController::StateController() : InputDevice("Application") {
     _deviceID = UserInputMapper::STANDARD_DEVICE;
     for (const auto& variable : stateVariables) {
-        _namedReadLambdas[variable] = [] { return 0; };
+        _namedReadLambdas[variable] = []()->float{ return 0; };
     }
 }
 
