@@ -27,22 +27,18 @@
 #include "AudioLogging.h"
 #include "Sound.h"
 
-static int soundMetaTypeId = qRegisterMetaType<Sound*>();
-
-QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in) {
-    return engine->newQObject(in.data());
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
+    return engine->newQObject(new SoundScriptingInterface(in), QScriptEngine::ScriptOwnership);
 }
 
-void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer &out) {
-    out = SharedSoundPointer(qobject_cast<Sound*>(object.toQObject()));
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer& out) {
+    if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object.toQObject())) {
+        out = soundInterface->getSound();
+    }
 }
 
-QScriptValue soundPointerToScriptValue(QScriptEngine* engine, Sound* const& in) {
-    return engine->newQObject(in);
-}
-
-void soundPointerFromScriptValue(const QScriptValue &object, Sound* &out) {
-    out = qobject_cast<Sound*>(object.toQObject());
+SoundScriptingInterface::SoundScriptingInterface(SharedSoundPointer sound) : _sound(sound) {
+    QObject::connect(sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
 }
 
 Sound::Sound(const QUrl& url, bool isStereo) :
