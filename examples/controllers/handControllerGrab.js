@@ -7,7 +7,6 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
-//  Also supports touch and equipping objects.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -305,7 +304,6 @@ function MyController(hand) {
         switch (this.state) {
             case STATE_OFF:
                 this.off();
-                this.touchTest();
                 break;
             case STATE_SEARCHING:
             case STATE_HOLD_SEARCHING:
@@ -495,7 +493,8 @@ function MyController(hand) {
         }
     };
 
-    this.searchIndicatorOn = function(handPosition, distantPickRay) {
+    this.searchIndicatorOn = function(distantPickRay) {
+        var handPosition = distantPickRay.origin;
         var SEARCH_SPHERE_SIZE = 0.011;
         var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
 
@@ -857,7 +856,9 @@ function MyController(hand) {
 
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
-        var currentControllerPosition = Controller.getPoseValue(controllerHandInput).position;
+        var currentControllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation,
+                                                                   Controller.getPoseValue(controllerHandInput).translation),
+                                                 MyAvatar.position);
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
         var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
@@ -865,16 +866,10 @@ function MyController(hand) {
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var distantPickRay = {
-            origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
+            origin: PICK_WITH_HAND_RAY ? currentControllerPosition : Camera.position,
             direction: PICK_WITH_HAND_RAY ? Quat.getUp(controllerRotation) : Vec3.mix(Quat.getUp(controllerRotation),
                                                                                           Quat.getFront(Camera.orientation),
                                                                                           HAND_HEAD_MIX_RATIO),
-            length: PICK_MAX_DISTANCE
-        };
-
-        var searchVisualizationPickRay = {
-            origin: currentControllerPosition,
-            direction: Quat.getUp(this.getHandRotation()),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1086,7 +1081,7 @@ function MyController(hand) {
             this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
-        this.searchIndicatorOn(handPosition, distantPickRay);
+        this.searchIndicatorOn(distantPickRay);
         Reticle.setVisible(false);
 
     };
@@ -1668,76 +1663,11 @@ function MyController(hand) {
                 if (intersection.intersects) {
                     this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 }
-                this.searchIndicatorOn(handPosition, pickRay);
+                this.searchIndicatorOn(pickRay);
             }
         }
 
         this.callEntityMethodOnGrabbed("continueFarTrigger");
-    };
-
-    _this.allTouchedIDs = {};
-
-    this.touchTest = function() {
-        var maxDistance = 0.05;
-        var leftHandPosition = MyAvatar.getLeftPalmPosition();
-        var rightHandPosition = MyAvatar.getRightPalmPosition();
-        var leftEntities = Entities.findEntities(leftHandPosition, maxDistance);
-        var rightEntities = Entities.findEntities(rightHandPosition, maxDistance);
-        var ids = [];
-
-        if (leftEntities.length !== 0) {
-            leftEntities.forEach(function(entity) {
-                ids.push(entity);
-            });
-
-        }
-
-        if (rightEntities.length !== 0) {
-            rightEntities.forEach(function(entity) {
-                ids.push(entity);
-            });
-        }
-
-        ids.forEach(function(id) {
-            var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
-            if (!props ||
-                !props.boundingBox ||
-                props.name === 'pointer') {
-                return;
-            }
-            var entityMinPoint = props.boundingBox.brn;
-            var entityMaxPoint = props.boundingBox.tfl;
-            var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
-            var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
-
-            if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
-                // we haven't been touched before, but either right or left is touching us now
-                _this.allTouchedIDs[id] = true;
-                _this.startTouch(id);
-            } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
-                // we have been touched before and are still being touched
-                // continue touch
-                _this.continueTouch(id);
-            } else if (_this.allTouchedIDs[id]) {
-                delete _this.allTouchedIDs[id];
-                _this.stopTouch(id);
-            }
-        });
-    };
-
-    this.startTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "startTouch", args);
-    };
-
-    this.continueTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "continueTouch", args);
-    };
-
-    this.stopTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
     this.release = function() {

@@ -434,6 +434,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 _showCollisionHull = shouldShowCollisionHull;
                 render::PendingChanges pendingChanges;
 
+                _model->removeFromScene(scene, pendingChanges);
+
                 render::Item::Status::Getters statusGetters;
                 makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                 _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
