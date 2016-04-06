@@ -789,6 +789,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 100%;
     overflow-x: hidden;
     overflow-y: auto;
+    box-sizing: border-box;
     padding-top: 28px; /* Space for header and footer outside of scroll region. */
     margin-top: 28px;
     border-left: 2px solid #575757;
@@ -807,6 +808,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #entity-table thead {
+    box-sizing: border-box;
     border: 2px solid #575757;
     border-top-left-radius: 7px;
     border-top-right-radius: 7px;
@@ -814,6 +816,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #entity-table tfoot {
+    box-sizing: border-box;
     border: 2px solid #575757;
     border-bottom-left-radius: 7px;
     border-bottom-right-radius: 7px;
