@@ -12,7 +12,9 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
+#include <atomic>
 #include <mutex>
+
 #include <QtCore/QHash>
 #include <QtCore/QList>
 #include <QtCore/QObject>
@@ -28,6 +30,8 @@
 #include <DependencyManager.h>
 
 #include "ResourceManager.h"
+
+Q_DECLARE_METATYPE(size_t)
 
 class QNetworkReply;
 class QTimer;
@@ -79,8 +83,20 @@ private:
 /// Base class for resource caches.
 class ResourceCache : public QObject {
     Q_OBJECT
+    Q_PROPERTY(size_t numTotal READ getNumTotalResources NOTIFY dirty)
+    Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
+    Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
+    Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
     
 public:
+    size_t getNumTotalResources() const { return _numTotalResources; }
+    size_t getSizeTotalResources() const { return _totalResourcesSize; }
+
+    size_t getNumCachedResources() const { return _numUnusedResources; }
+    size_t getSizeCachedResources() const { return _unusedResourcesSize; }
+
+    Q_INVOKABLE QVariantList getResourceList();
+
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
 
@@ -101,15 +117,21 @@ public:
     void refreshAll();
     void refresh(const QUrl& url);
 
+signals:
+    void dirty();
+
 public slots:
     void checkAsynchronousGets();
+
+protected slots:
+    void updateTotalSize(const qint64& oldSize, const qint64& newSize);
 
 protected:
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
     /// \param extra extra data to pass to the creator, if appropriate
-    Q_INVOKABLE QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
                                                      bool delayLoad = false, void* extra = NULL);
 
     /// Creates a new resource.
@@ -118,17 +140,19 @@ protected:
     
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
-    void reserveUnusedResource(qint64 resourceSize);
-    void clearUnusedResource();
     
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
-    Q_INVOKABLE static bool attemptRequest(Resource* resource);
+    static bool attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
     static bool attemptHighestPriorityRequest();
 
 private:
     friend class Resource;
+
+    void reserveUnusedResource(qint64 resourceSize);
+    void clearUnusedResource();
+    void resetResourceCounters();
 
     QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
@@ -140,8 +164,13 @@ private:
     QReadWriteLock _resourcesToBeGottenLock;
     QQueue<QUrl> _resourcesToBeGotten;
     
+    std::atomic<size_t> _numTotalResources { 0 };
+    std::atomic<size_t> _numUnusedResources { 0 };
+
+    std::atomic<qint64> _totalResourcesSize { 0 };
+    std::atomic<qint64> _unusedResourcesSize { 0 };
+
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
-    qint64 _unusedResourcesSize = 0;
     QMap<int, QSharedPointer<Resource>> _unusedResources;
 };
 
@@ -226,7 +255,7 @@ protected:
     virtual void downloadFinished(const QByteArray& data) { finishedLoading(true); }
 
     /// Called when the download is finished and processed, sets the number of actual bytes.
-    void setBytes(qint64 bytes) { _bytes = bytes; }
+    void setSize(const qint64& bytes);
 
     /// Called when the download is finished and processed.
     /// This should be called by subclasses that override downloadFinished to mark the end of processing.
