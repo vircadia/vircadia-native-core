@@ -46,20 +46,7 @@
         startNearTrigger: function() {
             this.getParts();
         },
-        getGrabConstraints: function() {
-            var defaultConstraints = {
-                positionLocked: false,
-                rotationLocked: false,
-                positionMod: false,
-                rotationMod: {
-                    pitch: false,
-                    yaw: false,
-                    roll: false
-                }
-            }
-            var constraints = getEntityCustomData(GRAB_CONSTRAINTS_USER_DATA_KEY, this.grabbedEntity, defaultConstraints);
-            return constraints;
-        },
+
         getHandPosition: function() {
             if (this.hand === 'left') {
                 return MyAvatar.getLeftPalmPosition();
@@ -71,66 +58,24 @@
         },
         continueNearTrigger: function(myID, paramsArray) {
             paramsArray.forEach(function(param, index) {
-                print('PARAM::' + param)
                 if (index === 0) {
                     _this.hand = param;
                 }
             });
 
-            print('HAND:: ' + _this.hand);
-
-            var constraints = this.getGrabConstraints();
-            var handPosition = this.getHandPosition();
-
-
-            var modTypes = [];
-            if (constraints.rotationMod !== false) {
-                if (constraints.rotationMod.pitch !== false) {
-                    modTypes.push('pitch')
-                }
-                if (constraints.rotationMod.yaw !== false) {
-                    modTypes.push('yaw')
-                }
-                if (constraints.rotationMod.roll !== false) {
-                    modTypes.push('roll')
-                }
-            }
-
-
-  
-            // var properties = Entities.getEntityProperties(this.entityID);
-
-            // var constraints = this.getGrabConstraints();
-            // if (constraints.rotationMod !== false) {
-            //     //implement the rotation modifier
-            //     var grabbedProps = Entities.getEntityProperties(this.grabbedEntity);
-
-            var handPosition = this.getHandPosition();
-
-            var modTypes = [];
-
-            if (constraints.rotationMod.pitch !== false) {
-                modTypes.push('pitch')
-            }
-            if (constraints.rotationMod.yaw !== false) {
-                modTypes.push('yaw')
-            }
-            if (constraints.rotationMod.roll !== false) {
-                modTypes.push('roll')
-            }
-
             // get the base position
             // get the hand position
-            // 
+            // get the distance between
+            // use that value to scale the angle of the lid rotation
 
             var baseProps = Entities.getEntityProperties(_this.base);
             var baseBoxPosition = baseProps.position;
             var handPosition = _this.getHandPosition();
             var lidProps = Entities.getEntityProperties(_this.entityID);
-            
+
             var distaceHandToBaseBox = Vec3.distance(baseBoxPosition, handPosition);
 
-            var safeEuler = Quat.safeEulerAngles()
+            var safeEuler = Quat.safeEulerAngles(baseProps.rotation);
             var finalRotation = {
                 x: 0,
                 y: 0,
@@ -142,7 +87,7 @@
 
             var maxDistance = 0.4;
 
-            var finalAngle = scale(distance, 0, maxDistance, 0, 75)
+            var finalAngle = scaleValue(distaceHandToBaseBox, 0.1, maxDistance, 0, 75)
 
             print('FINAL ANGLE:: ' + finalAngle);
 
@@ -153,9 +98,8 @@
                 finalAngle = 75;
             }
             finalRotation.z = finalAngle;
+
             _this.handleLidActivities(finalRotation)
-
-
 
         },
 
@@ -185,10 +129,10 @@
                 this.stopHat();
             }
 
-            var hatHeight = scaleValue(constraint, MIN_LID_ROTATION, MAX_LID_ROTATION, 0, 0.04);
+            var hatHeight = scaleValue(constraint, 0, 75, 0, 0.04);
 
             Entities.editEntity(this.entityID, {
-                rotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
+                localRotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
             })
 
             var VERTICAL_OFFSET = 0.025;

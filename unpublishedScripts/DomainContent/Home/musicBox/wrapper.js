@@ -80,25 +80,12 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             position: startPosition,
             parentID: baseID,
             registrationPoint: LID_REGISTRATION_POINT,
-            dynamic: false,
+            dynamic: true,
             script: LID_SCRIPT_URL,
             collidesWith: 'myAvatar,otherAvatar',
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
-                },
-                grabConstraintsKey: {
-                    rotationMod: {
-                        pitch: false,
-                        yaw: false,
-                        roll: {
-                            min: 0,
-                            max: 75,
-                            startingAxis: 'y',
-                            startingPoint: startPosition.y,
-                            distanceToMax: startPosition.y + 0.35
-                        }
-                    }
                 },
                 grabbableKey: {
                     wantsTrigger: true,
@@ -184,9 +171,9 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             name: 'home_music_box_base',
             type: 'Model',
             position: BASE_POSITION,
-            // dynamic: true,
-            // shapeType: 'compound',
-            // compoundShapeURL: 'atp:/boxHull2.obj',
+            dynamic: true,
+            shapeType: 'compound',
+            compoundShapeURL: 'atp:/boxHull2.obj',
             dimensions: {
                 x: 0.1661,
                 y: 0.0928,
