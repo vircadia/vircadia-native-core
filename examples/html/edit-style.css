@@ -76,8 +76,10 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-}
 
+    overflow-x: hidden;
+    overflow-y: auto;
+}
 
 table {
     font-family: FiraSans-SemiBold;
