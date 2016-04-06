@@ -77,6 +77,12 @@ void GLTextureTransferHelper::setup() {
 #endif
 }
 
+void GLTextureTransferHelper::shutdown() {
+    _canvas->doneCurrent();
+    _canvas->moveToThreadWithContext(qApp->thread());
+}
+
+
 bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
     for (auto package : messages) {
         glWaitSync(package.fence, 0, GL_TIMEOUT_IGNORED);
