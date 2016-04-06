@@ -12,7 +12,6 @@
 #include "FileLogger.h"
 
 #include <QtCore/QDateTime>
-#include <QtCore/QFile>
 #include <QtCore/QDir>
 #include <QtGui/QDesktopServices>
 
@@ -30,6 +29,8 @@ static const qint64 MAX_LOG_SIZE = 1024 * 1024;
 // Max log age is 1 hour
 static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
 
+static FilePersistThread* _persistThreadInstance;
+
 QString getLogRollerFilename() {
     QString result = FileUtils::standardPath(LOGS_DIRECTORY);
     QHostAddress clientAddress = getGuessedLocalAddress();
@@ -43,51 +44,53 @@ const QString& getLogFilename() {
     return fileName;
 }
 
+FilePersistThread::FilePersistThread(const FileLogger& logger) : _logger(logger) {
+    setObjectName("LogFileWriter");
 
-class FilePersistThread : public GenericQueueThread < QString > {    
-public:
-    FilePersistThread(const FileLogger& logger) : _logger(logger) {
-        setObjectName("LogFileWriter");
+    // A file may exist from a previous run - if it does, roll the file and suppress notifying listeners.
+    QFile file(_logger._fileName);
+    if (file.exists()) {
+        rollFileIfNecessary(file, false);
     }
+    _lastRollTime = usecTimestampNow();
+}
 
-protected:
-    void rollFileIfNecessary(QFile& file) {
-        uint64_t now = usecTimestampNow();
-        if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
-            QString newFileName = getLogRollerFilename();
-            if (file.copy(newFileName)) {
-                _lastRollTime = now;
-                file.open(QIODevice::WriteOnly | QIODevice::Truncate);
-                file.close();
-                qDebug() << "Rolled log file:" << newFileName;
+void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled) {
+    uint64_t now = usecTimestampNow();
+    if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
+        QString newFileName = getLogRollerFilename();
+        if (file.copy(newFileName)) {
+            file.open(QIODevice::WriteOnly | QIODevice::Truncate);
+            file.close();
+            qDebug() << "Rolled log file:" << newFileName;
+
+            if (notifyListenersIfRolled) {
+                emit rollingLogFile(newFileName);
             }
+
+            _lastRollTime = now;
         }
     }
+}
 
-    virtual bool processQueueItems(const Queue& messages) {
-        QFile file(_logger._fileName);
-        rollFileIfNecessary(file);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-            QTextStream out(&file);
-            foreach(const QString& message, messages) {
-                out << message;
-            }
+bool FilePersistThread::processQueueItems(const Queue& messages) {
+    QFile file(_logger._fileName);
+    rollFileIfNecessary(file);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+        QTextStream out(&file);
+        foreach(const QString& message, messages) {
+            out << message;
         }
-        return true;
     }
-private:
-    const FileLogger& _logger;
-    uint64_t _lastRollTime = 0; 
-};
-
-static FilePersistThread* _persistThreadInstance;
+    return true;
+}
 
 FileLogger::FileLogger(QObject* parent) :
     AbstractLoggerInterface(parent), _fileName(getLogFilename())
 {
     _persistThreadInstance = new FilePersistThread(*this);
     _persistThreadInstance->initialize(true, QThread::LowestPriority);
-
+    connect(_persistThreadInstance, &FilePersistThread::rollingLogFile, this, &FileLogger::rollingLogFile);
 }
 
 FileLogger::~FileLogger() {

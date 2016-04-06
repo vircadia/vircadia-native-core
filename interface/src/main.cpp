@@ -177,8 +177,14 @@ int main(int argc, const char* argv[]) {
         });
 
         // BugSplat WILL NOT work with file paths that do not use OS native separators.
-        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        auto logger = app.getLogger();
+        auto logPath = QDir::toNativeSeparators(logger->getFilename());
         mpSender.sendAdditionalFile(qPrintable(logPath));
+
+        QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&mpSender](QString newFilename) {
+            auto rolledLogPath = QDir::toNativeSeparators(newFilename);
+            mpSender.sendAdditionalFile(qPrintable(rolledLogPath));
+        });
 #endif
 
         printSystemInformation();
