@@ -14,7 +14,6 @@
 
 (function() {
     var _this = this;
-    Script.include("http://public.highfidelity.io/scripts/utilities/tools/cookies.js");
     print("EBL PRELOADING NEW VERSION ")
     var audioOptions = new AudioEffectOptions({
         bandwidth: 7000,
@@ -39,7 +38,6 @@
         lateMixRight: 90,
         wetDryMix: 70,
     });
-    var panel = new Panel(10, 160);
 
         function setter(name) {
             return function(value) {
@@ -61,37 +59,20 @@
         }
 
         function scriptEnding() {
-            panel.destroy();
             AudioDevice.setReverb(false);
             print("Reverb is OFF.");
         }
     _this.enterEntity = function(entityID) {
         print('EBL I am insiude');
         // create a slider for each parameter
-        for (var i = 0; i < parameters.length; i++) {
-            var p = parameters[i];
-            panel.newSlider(p.name, p.min, p.max, setter(p.name), getter(p.name), displayer(p.units));
-        }
-        Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) {
-            return panel.mouseMoveEvent(event);
-        });
-        Controller.mousePressEvent.connect(function panelMousePressEvent(event) {
-            return panel.mousePressEvent(event);
-        });
-        Controller.mouseReleaseEvent.connect(function(event) {
-            return panel.mouseReleaseEvent(event);
-        });
         AudioDevice.setReverbOptions(audioOptions);
         AudioDevice.setReverb(true);
         print("Reverb is ON.");
-        // Messages.sendMessage('PlayBackOnAssignment', 'BowShootingGameWelcome');
     };
 
     _this.leaveEntity = function(entityID) {
         print('EBL I am outsidee');
-        panel.destroy();
         AudioDevice.setReverb(false);
         print("Reverb is OFF.");
-        // Messages.sendMessage('PlayBackOnAssignment', 'BowShootingGameWelcome');
     };
 });
