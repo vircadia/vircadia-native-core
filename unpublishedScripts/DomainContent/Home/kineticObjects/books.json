@@ -162,6 +162,7 @@
         },
         "id": "{f9af3a1e-dbd5-4fb3-ad38-dc818592e4c6}",
         "modelURL": "atp:/kineticObjects/books/Book-F2-IA.fbx",
+        "name": "home_model_bookSecondFoundation",
         "position": {
             "x": 0.056884765625,
             "y": 0.00262451171875,
@@ -235,6 +236,7 @@
         },
         "id": "{4982da58-d573-4582-b627-f08312cc0d07}",
         "modelURL": "atp:/kineticObjects/books/Book-LPP-ASE.fbx",
+        "name": "home_model_bookLePetitePrince",
         "position": {
             "x": 0.1171875,
             "y": 0.01153564453125,
@@ -270,6 +272,7 @@
             "z": 0.033324316143989563
         },
         "id": "{178b1cef-f76b-4cda-b834-42080208d502}",
+        "name": "home_model_bookNeuromancer",
         "modelURL": "atp:/kineticObjects/books/Book-N-WG.fbx",
         "position": {
             "x": 0.1429443359375,
