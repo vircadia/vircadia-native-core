@@ -19,32 +19,37 @@
 
 namespace controller {
 
+static QStringList stateVariables;
+
+void StateController::setStateVariables(const QStringList& newStateVariables) {
+    stateVariables = newStateVariables;
+}
+
 StateController::StateController() : InputDevice("Application") {
+    _deviceID = UserInputMapper::STANDARD_DEVICE;
+    for (const auto& variable : stateVariables) {
+        _namedReadLambdas[variable] = [] { return 0; };
+    }
 }
 
-StateController::~StateController() {
-}
-
-void StateController::update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) {}
-
-void StateController::focusOutEvent() {}
-
-void StateController::addInputVariant(QString name, ReadLambda lambda) {
-    _namedReadLambdas.push_back(NamedReadLambda(name, lambda));
+void StateController::setInputVariant(const QString& name, ReadLambda lambda) {
+    // All state variables must be predeclared;
+    Q_ASSERT(_namedReadLambdas.contains(name));
+    _namedReadLambdas[name] = lambda;
 }
 
 Input::NamedVector StateController::getAvailableInputs() const {
     Input::NamedVector availableInputs;
     int i = 0;
-    for (auto& pair : _namedReadLambdas) {
-        availableInputs.push_back(Input::NamedPair(Input(_deviceID, i, ChannelType::BUTTON), pair.first));
+    for (const auto& name : stateVariables) {
+        availableInputs.push_back(Input::NamedPair(Input(_deviceID, i, ChannelType::BUTTON), name));
         i++;
     }
     return availableInputs;
 }
 
 EndpointPointer StateController::createEndpoint(const Input& input) const {
-    return std::make_shared<LambdaEndpoint>(_namedReadLambdas[input.getChannel()].second);
+    return std::make_shared<LambdaEndpoint>(_namedReadLambdas[stateVariables[input.getChannel()]]);
 }
 
 }

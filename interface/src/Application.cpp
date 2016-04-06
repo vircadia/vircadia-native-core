@@ -380,6 +380,11 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+static const QString STATE_IN_HMD = "InHMD";
+static const QString STATE_SNAP_TURN = "SnapTurn";
+static const QString STATE_GROUNDED = "Grounded";
+static const QString STATE_NAV_FOCUSED = "NavigationFocused";
+
 bool setupEssentials(int& argc, char** argv) {
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -449,6 +454,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
+    controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -898,6 +904,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 auto reticlePosition = getApplicationCompositor().getReticlePosition();
                 offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
+                if (!offscreenUi->navigationFocused()) {
+                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
+                    offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                }
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
                 getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
@@ -910,28 +921,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
     });
 
-    // A new controllerInput device used to reflect current values from the application state
-    _applicationStateDevice = std::make_shared<controller::StateController>();
+    _applicationStateDevice = userInputMapper->getStateDevice();
 
-    _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->isHMDMode();
-    }));
-    _applicationStateDevice->addInputVariant(QString("SnapTurn"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->getMyAvatar()->getSnapTurn();
-    }));
-    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-    }));
-    _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        return offscreenUi->navigationFocused() ? 1.0 : 0.0;
-    }));
-
-    userInputMapper->registerDevice(_applicationStateDevice);
+    _applicationStateDevice->setInputVariant(STATE_IN_HMD, []() -> float {
+        return qApp->isHMDMode() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
+        return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
+        return qApp->getMyAvatar()->getCharacterController()->onGround() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_NAV_FOCUSED, []() -> float {
+        return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
+    });
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
-    userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
