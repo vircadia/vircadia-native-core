@@ -898,6 +898,9 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         return sensitivity;
     };
 
+    // Guard against meaningless query and fragment parts.
+    // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
+    const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
         QUrl thisURL { resolvePath(file) };
         if (!_includedURLs.contains(thisURL)) {
@@ -905,13 +908,13 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                 (
                     (currentSandboxURL.scheme() != "file") ||
                         (
-                            !thisURL.toString(QUrl::RemoveFilename).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
-                            !thisURL.toString(QUrl::RemoveFilename).startsWith(currentSandboxURL.toString(QUrl::RemoveFilename), getSensitivity())
+                            !thisURL.toString(strippingFlags).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
+                            !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity())
                         )
                  )
                 ) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << thisURL << "outside of original entity script" << currentSandboxURL;
-             } else {
+            } else {
                 // We could also check here for CORS, but we don't yet.
                 // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.
                 urls.append(thisURL);
