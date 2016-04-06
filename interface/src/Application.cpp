@@ -561,9 +561,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
     // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
     // downloads.
-    QSharedPointer<ModelCache> modelCacheP = DependencyManager::get<ModelCache>();
-    ResourceCache* modelCache = modelCacheP.data();
-    connect(this, &Application::checkBackgroundDownloads, modelCache, &ResourceCache::checkAsynchronousGets);
+    auto modelCache = DependencyManager::get<ModelCache>();
+    connect(this, &Application::checkBackgroundDownloads, modelCache.data(), &ModelCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -1253,6 +1252,9 @@ void Application::initializeGL() {
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
+    // The gpu context can make child contexts for transfers, so 
+    // we need to restore primary rendering context
+    _offscreenContext->makeCurrent();
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -1326,7 +1328,6 @@ void Application::initializeUi() {
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
     rootContext->setContextProperty("ApplicationInterface", this);
-    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
@@ -1356,8 +1357,13 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+
+    // Caches
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
+    rootContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
     rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+
     rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
     rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
@@ -4350,8 +4356,13 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+
+    // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    scriptEngine->registerGlobalObject("TextureCache", DependencyManager::get<TextureCache>().data());
+    scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 

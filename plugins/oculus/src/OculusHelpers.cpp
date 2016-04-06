@@ -90,12 +90,16 @@ ovrSession acquireOculusSession() {
 
 void releaseOculusSession() {
     Q_ASSERT(refCount > 0 && session);
+    // HACK the Oculus runtime doesn't seem to play well with repeated shutdown / restart.
+    // So for now we'll just hold on to the session
+#if 0
     if (!--refCount) {
         qCDebug(oculus) << "oculus: zero refcount, shutdown SDK and session";
         ovr_Destroy(session);
         ovr_Shutdown();
         session = nullptr;
     }
+#endif
 }
 
 
