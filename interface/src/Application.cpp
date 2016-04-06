@@ -2564,6 +2564,15 @@ void Application::idle(uint64_t now) {
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
+    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
+        _keyboardMouseDevice->pluginFocusOutEvent();
+        _keyboardDeviceHasFocus = false;
+    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
+        _keyboardDeviceHasFocus = true;
+    }
+
     auto displayPlugin = getActiveDisplayPlugin();
     // depending on whether we're throttling or not.
     // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
