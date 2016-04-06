@@ -7,7 +7,6 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
-//  Also supports touch and equipping objects.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -46,8 +45,8 @@ var PICK_WITH_HAND_RAY = true;
 
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
-var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
-var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance holding action timeframe is unmodified
+var DISTANCE_HOLDING_UNITY_MASS = 1200;  //  The mass at which the distance holding action timeframe is unmodified
+var DISTANCE_HOLDING_UNITY_DISTANCE = 6;  //  The distance at which the distance holding action timeframe is unmodified
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
@@ -129,7 +128,6 @@ var GRABBABLE_PROPERTIES = [
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
-var GRAB_CONSTRAINTS_USER_DATA_KEY = "grabConstraintsKey"
 
 var DEFAULT_GRABBABLE_DATA = {
     disableReleaseVelocity: false
@@ -306,7 +304,6 @@ function MyController(hand) {
         switch (this.state) {
             case STATE_OFF:
                 this.off();
-                this.touchTest();
                 break;
             case STATE_SEARCHING:
             case STATE_HOLD_SEARCHING:
@@ -361,7 +358,7 @@ function MyController(hand) {
         this.grabSphereOff();
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             print("STATE (" + this.hand + "): " + stateToName(this.state) + " --> " +
-                stateToName(newState) + ", hand: " + this.hand);
+                  stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
     };
@@ -440,15 +437,11 @@ function MyController(hand) {
     }
 
     this.grabSphereOn = function() {
-        var color = {
-            red: 0,
-            green: 255,
-            blue: 0
-        };
+        var color = {red: 0, green: 255, blue: 0};
         if (this.grabSphere === null) {
             var sphereProperties = {
                 position: this.getHandPosition(),
-                size: GRAB_RADIUS * 2,
+                size: GRAB_RADIUS*2,
                 color: color,
                 alpha: 0.1,
                 solid: true,
@@ -458,7 +451,7 @@ function MyController(hand) {
         } else {
             Overlays.editOverlay(this.grabSphere, {
                 position: this.getHandPosition(),
-                size: GRAB_RADIUS * 2,
+                size: GRAB_RADIUS*2,
                 color: color,
                 alpha: 0.1,
                 solid: true,
@@ -500,7 +493,8 @@ function MyController(hand) {
         }
     };
 
-    this.searchIndicatorOn = function(handPosition, distantPickRay) {
+    this.searchIndicatorOn = function(distantPickRay) {
+        var handPosition = distantPickRay.origin;
         var SEARCH_SPHERE_SIZE = 0.011;
         var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
 
@@ -511,10 +505,12 @@ function MyController(hand) {
         }
 
         var searchSphereLocation = Vec3.sum(distantPickRay.origin,
-            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
-        this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance, (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                                            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
+        this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
+                            (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
-            this.overlayLineOn(handPosition, searchSphereLocation, (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+            this.overlayLineOn(handPosition, searchSphereLocation,
+                               (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
     }
 
@@ -860,25 +856,20 @@ function MyController(hand) {
 
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
-        var currentControllerPosition = Controller.getPoseValue(controllerHandInput).position;
+        var currentControllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation,
+                                                                   Controller.getPoseValue(controllerHandInput).translation),
+                                                 MyAvatar.position);
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
         var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
-            Controller.Standard.RightHand : Controller.Standard.LeftHand);
+                                                           Controller.Standard.RightHand : Controller.Standard.LeftHand);
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var distantPickRay = {
-            origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
+            origin: PICK_WITH_HAND_RAY ? currentControllerPosition : Camera.position,
             direction: PICK_WITH_HAND_RAY ? Quat.getUp(controllerRotation) : Vec3.mix(Quat.getUp(controllerRotation),
-                Quat.getFront(Camera.orientation),
-                HAND_HEAD_MIX_RATIO),
-
-            length: PICK_MAX_DISTANCE
-        };
-
-        var searchVisualizationPickRay = {
-            origin: currentControllerPosition,
-            direction: Quat.getUp(this.getHandRotation()),
+                                                                                          Quat.getFront(Camera.orientation),
+                                                                                          HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1051,9 +1042,7 @@ function MyController(hand) {
                         intersectionPointToCenterDistance *
                         FAR_TO_NEAR_GRAB_PADDING_FACTOR);
                 }
-
                 this.setState(STATE_DISTANCE_HOLDING);
-
 
                 this.searchSphereOff();
                 return;
@@ -1092,7 +1081,7 @@ function MyController(hand) {
             this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
-        this.searchIndicatorOn(handPosition, distantPickRay);
+        this.searchIndicatorOn(distantPickRay);
         Reticle.setVisible(false);
 
     };
@@ -1119,7 +1108,7 @@ function MyController(hand) {
 
         // transform it into world frame
         var controllerPosition = Vec3.sum(MyAvatar.position,
-            Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+                                          Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
@@ -1182,11 +1171,11 @@ function MyController(hand) {
 
         // controller pose is in avatar frame
         var avatarControllerPose = Controller.getPoseValue((this.hand === RIGHT_HAND) ?
-            Controller.Standard.RightHand : Controller.Standard.LeftHand);
+                                                           Controller.Standard.RightHand : Controller.Standard.LeftHand);
 
         // transform it into world frame
         var controllerPosition = Vec3.sum(MyAvatar.position,
-            Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+                                          Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
@@ -1207,9 +1196,9 @@ function MyController(hand) {
 
         // double delta controller rotation
         var handChange = Quat.multiply(Quat.slerp(this.previousControllerRotation,
-                controllerRotation,
-                DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-            Quat.inverse(this.previousControllerRotation));
+                                                  controllerRotation,
+                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+                                       Quat.inverse(this.previousControllerRotation));
 
         // update the currentObject position and rotation.
         this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
@@ -1227,7 +1216,7 @@ function MyController(hand) {
         var lastVelocity = Vec3.subtract(controllerPosition, this.previousControllerPosition);
         lastVelocity = Vec3.multiply(lastVelocity, 1.0 / deltaTime);
         var newRadialVelocity = Vec3.dot(lastVelocity,
-            Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
+                                         Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
 
         var VELOCITY_AVERAGING_TIME = 0.016;
         this.grabRadialVelocity = (deltaTime / VELOCITY_AVERAGING_TIME) * newRadialVelocity +
@@ -1356,9 +1345,7 @@ function MyController(hand) {
     };
 
     this.hasPresetOffsets = function() {
-        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {
-            joints: {}
-        });
+        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
         if ("joints" in wearableData) {
             var allowedJoints = wearableData.joints;
             var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
@@ -1370,9 +1357,7 @@ function MyController(hand) {
     }
 
     this.getPresetPosition = function() {
-        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {
-            joints: {}
-        });
+        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
         var allowedJoints = wearableData.joints;
         var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
         if (handJointName in allowedJoints) {
@@ -1381,9 +1366,7 @@ function MyController(hand) {
     }
 
     this.getPresetRotation = function() {
-        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {
-            joints: {}
-        });
+        var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
         var allowedJoints = wearableData.joints;
         var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
         if (handJointName in allowedJoints) {
@@ -1391,23 +1374,7 @@ function MyController(hand) {
         }
     }
 
-    this.getGrabConstraints = function() {
-        var defaultConstraints = {
-            positionLocked: false,
-            rotationLocked: false,
-            positionMod: false,
-            rotationMod: {
-                pitch: false,
-                yaw: false,
-                roll: false
-            }
-        }
-        var constraints = getEntityCustomData(GRAB_CONSTRAINTS_USER_DATA_KEY, this.grabbedEntity, defaultConstraints);
-        return constraints;
-    }
-
     this.nearGrabbing = function() {
-        print('NEAR GRAB')
         var now = Date.now();
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
@@ -1487,16 +1454,8 @@ function MyController(hand) {
         }
 
         Entities.editEntity(this.grabbedEntity, {
-            velocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            angularVelocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
+            velocity: {x: 0, y: 0, z: 0},
+            angularVelocity: {x: 0, y: 0, z: 0},
             dynamic: false
         });
 
@@ -1528,7 +1487,6 @@ function MyController(hand) {
     };
 
     this.continueNearGrabbing = function() {
-        print('CONTINUE NEAR GRAB')
         if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1569,7 +1527,7 @@ function MyController(hand) {
             Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
             // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
             print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
-                props.parentID + " " + vec3toStr(props.position));
+                  props.parentID + " " + vec3toStr(props.position));
             this.setState(STATE_RELEASE);
             if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
                 this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1617,19 +1575,7 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
-
-        var constraints = this.getGrabConstraints();
-        if (constraints.positionLocked === true) {
-            print('IT HAS ITS POSITION LOCKED!!')
-        }
-        if (constraints.rotationMod !== false) {
-            print('IT HAS A ROTATION MOD!!!')
-        }
-
-
-        // so it never seems to hit this currently
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
-
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
@@ -1670,9 +1616,6 @@ function MyController(hand) {
         }
         this.callEntityMethodOnGrabbed("startNearTrigger");
         this.setState(STATE_CONTINUE_NEAR_TRIGGER);
-        print('START NEAR TRIGGER')
-
-
     };
 
     this.farTrigger = function() {
@@ -1690,76 +1633,6 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
-        }
-
-
-        var constraints = this.getGrabConstraints();
-        if (constraints.rotationMod !== false) {
-            //implement the rotation modifier
-            var grabbedProps = Entities.getEntityProperties(this.grabbedEntity);
-
-            var handPosition = this.getHandPosition();
-
-            var modTypes = [];
-
-            if (constraints.rotationMod.pitch !== false) {
-                modTypes.push('pitch')
-            }
-            if (constraints.rotationMod.yaw !== false) {
-                modTypes.push('yaw')
-            }
-            if (constraints.rotationMod.roll !== false) {
-                modTypes.push('roll')
-            }
-
-            var safeEuler = Quat.safeEulerAngles(grabbedProps.rotation);
-
-            print('SAFE EULER FOR ROTAITON IS:: ' + JSON.stringify(safeEuler))
-
-            finalRotation = {
-                x: 0,
-                y: 0,
-                z: 0
-            }
-
-            finalRotation = safeEuler;
-            modTypes.forEach(function(modType) {
-
-                var value = handPosition[constraints.rotationMod[modType].startingAxis];
-                var min1 = constraints.rotationMod[modType].startingPoint;
-
-                var finalAngle = scale(value, min1, constraints.rotationMod[modType].distanceToMax, constraints.rotationMod[modType].min, constraints.rotationMod[modType].max)
-                    // print('VARS: ')
-                    // print('CONSTRAINTS:: ' + JSON.stringify(constraints))
-                    // print('value: ' + value)
-                    // print('min1:' + min1)
-                    // print('max1:' + constraints.rotationMod[modType].distanceToMax)
-                    // print('min2: ' + constraints.rotationMod[modType].min)
-                    // print('max2: ' + constraints.rotationMod[modType].max)
-                    // print('FINAL ANGLE::' + finalAngle)
-
-
-                if (finalAngle < constraints.rotationMod[modType].min) {
-                    finalAngle = constraints.rotationMod[modType].min;
-                }
-
-                if (finalAngle > constraints.rotationMod[modType].max) {
-                    finalAngle = constraints.rotationMod[modType].max;
-                }
-
-                if (modType === 'pitch') {
-                    finalRotation.x = finalAngle
-                }
-                if (modType === 'yaw') {
-                    finalRotation.y = finalAngle
-                }
-                if (modType === 'roll') {
-                    finalRotation.z = finalAngle
-                }
-            });
-
-            Entities.callEntityMethod(this.grabbedEntity, constraints.callback, [JSON.stringify(finalRotation)]);
-
         }
         this.callEntityMethodOnGrabbed("continueNearTrigger");
     };
@@ -1790,76 +1663,11 @@ function MyController(hand) {
                 if (intersection.intersects) {
                     this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 }
-                this.searchIndicatorOn(handPosition, pickRay);
+                this.searchIndicatorOn(pickRay);
             }
         }
 
         this.callEntityMethodOnGrabbed("continueFarTrigger");
-    };
-
-    _this.allTouchedIDs = {};
-
-    this.touchTest = function() {
-        var maxDistance = 0.05;
-        var leftHandPosition = MyAvatar.getLeftPalmPosition();
-        var rightHandPosition = MyAvatar.getRightPalmPosition();
-        var leftEntities = Entities.findEntities(leftHandPosition, maxDistance);
-        var rightEntities = Entities.findEntities(rightHandPosition, maxDistance);
-        var ids = [];
-
-        if (leftEntities.length !== 0) {
-            leftEntities.forEach(function(entity) {
-                ids.push(entity);
-            });
-
-        }
-
-        if (rightEntities.length !== 0) {
-            rightEntities.forEach(function(entity) {
-                ids.push(entity);
-            });
-        }
-
-        ids.forEach(function(id) {
-            var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
-            if (!props ||
-                !props.boundingBox ||
-                props.name === 'pointer') {
-                return;
-            }
-            var entityMinPoint = props.boundingBox.brn;
-            var entityMaxPoint = props.boundingBox.tfl;
-            var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
-            var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
-
-            if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
-                // we haven't been touched before, but either right or left is touching us now
-                _this.allTouchedIDs[id] = true;
-                _this.startTouch(id);
-            } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
-                // we have been touched before and are still being touched
-                // continue touch
-                _this.continueTouch(id);
-            } else if (_this.allTouchedIDs[id]) {
-                delete _this.allTouchedIDs[id];
-                _this.stopTouch(id);
-            }
-        });
-    };
-
-    this.startTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "startTouch", args);
-    };
-
-    this.continueTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "continueTouch", args);
-    };
-
-    this.stopTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
     this.release = function() {
@@ -1873,7 +1681,6 @@ function MyController(hand) {
                 // sometimes we want things to stay right where they are when we let go.
                 var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-                print('RELEASE DATA::' + JSON.stringify(releaseVelocityData))
                 if (releaseVelocityData.disableReleaseVelocity === true ||
                     // this next line allowed both:
                     // (1) far-grab, pull to self, near grab, then throw
@@ -1888,7 +1695,6 @@ function MyController(hand) {
         this.actionID = null;
         this.setState(STATE_OFF);
 
-        print('HAS VELOCITY AT RELEASE?? ' + noVelocity)
         Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
             action: 'release',
             grabbedEntity: this.grabbedEntity,
@@ -1961,7 +1767,6 @@ function MyController(hand) {
                     // when using string values
                     "collidesWith": COLLIDES_WITH_WHILE_GRABBED
                 };
-                print('ACTIVATING ENTITY')
                 Entities.editEntity(entityID, whileHeldProperties);
             } else if (data["refCount"] > 1) {
                 if (data["heartBeat"] === undefined ||
@@ -1979,12 +1784,9 @@ function MyController(hand) {
                 // people are holding something and one of them will be able (if the other releases at the right time) to
                 // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
                 // the collision mask hinges on who the physics simulation owner is.
-                Entities.editEntity(entityID, {
-                    "collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED
-                });
+                Entities.editEntity(entityID, {"collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED});
             }
         }
-        print('ACTIVATED ENTITY!!!')
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
         return data;
     };
@@ -1996,9 +1798,7 @@ function MyController(hand) {
         var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
         children.forEach(function(childID) {
             print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
-            Entities.editEntity(childID, {
-                parentID: NULL_UUID
-            });
+            Entities.editEntity(childID, {parentID: NULL_UUID});
         });
     }
 
@@ -2043,27 +1843,13 @@ function MyController(hand) {
                     data["dynamic"] &&
                     data["parentID"] == NULL_UUID &&
                     !data["collisionless"]) {
-
-                    deactiveProps["velocity"] = {
-                        x: 0.0,
-                        y: 0.1,
-                        z: 0.0
-                    };
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.1, z: 0.0};
                     doSetVelocity = false;
                 }
                 if (noVelocity) {
-                    deactiveProps["velocity"] = {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    };
-                    deactiveProps["angularVelocity"] = {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    };
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.0, z: 0.0};
+                    deactiveProps["angularVelocity"] = {x: 0.0, y: 0.0, z: 0.0};
                     doSetVelocity = false;
-
                 }
 
                 Entities.editEntity(entityID, deactiveProps);
@@ -2085,31 +1871,13 @@ function MyController(hand) {
                 var deactiveProps = {
                     parentID: this.previousParentID,
                     parentJointIndex: this.previousParentJointIndex,
-                    velocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    angularVelocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    }
+                    velocity: {x: 0.0, y: 0.0, z: 0.0},
+                    angularVelocity: {x: 0.0, y: 0.0, z: 0.0}
                 };
                 Entities.editEntity(entityID, deactiveProps);
             } else if (noVelocity) {
-                Entities.editEntity(entityID, {
-                    velocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    },
-                    angularVelocity: {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0
-                    }
-                });
+                Entities.editEntity(entityID, {velocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0}});
             }
         } else {
             data = null;
@@ -2244,8 +2012,3 @@ function cleanup() {
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
-
-
-function scale(value, min1, max1, min2, max2) {
-    return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
-}

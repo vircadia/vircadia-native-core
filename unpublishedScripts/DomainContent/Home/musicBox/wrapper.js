@@ -88,10 +88,6 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
                     'reset': true
                 },
                 grabConstraintsKey: {
-                    callback: 'rotateLid',
-                    positionLocked: true,
-                    rotationLocked: false,
-                    positionMod: false,
                     rotationMod: {
                         pitch: false,
                         yaw: false,
@@ -188,9 +184,9 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             name: 'home_music_box_base',
             type: 'Model',
             position: BASE_POSITION,
-            dynamic: true,
-            shapeType: 'compound',
-            compoundShapeURL: 'atp:/boxHull2.obj',
+            // dynamic: true,
+            // shapeType: 'compound',
+            // compoundShapeURL: 'atp:/boxHull2.obj',
             dimensions: {
                 x: 0.1661,
                 y: 0.0928,

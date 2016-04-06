@@ -1,6 +1,8 @@
 (function() {
 
     //TODO -- At the part of the animation where the user starts to close the lid we need to rewind any frames past the one where it is aligned for going up/down before switching to the down animation
+    Script.include('../utils.js');
+    var GRAB_CONSTRAINTS_USER_DATA_KEY = "grabConstraintsKey"
 
     var _this;
 
@@ -44,9 +46,166 @@
         startNearTrigger: function() {
             this.getParts();
         },
+        getGrabConstraints: function() {
+            var defaultConstraints = {
+                positionLocked: false,
+                rotationLocked: false,
+                positionMod: false,
+                rotationMod: {
+                    pitch: false,
+                    yaw: false,
+                    roll: false
+                }
+            }
+            var constraints = getEntityCustomData(GRAB_CONSTRAINTS_USER_DATA_KEY, this.grabbedEntity, defaultConstraints);
+            return constraints;
+        },
+        getHandPosition: function() {
+            if (this.hand === 'left') {
+                return MyAvatar.getLeftPalmPosition();
+            }
+            if (this.hand === 'right') {
+                return MyAvatar.getRightPalmPosition();
+            }
 
-        continueNearTrigger: function() {
-            var properties = Entities.getEntityProperties(this.entityID);
+        },
+        continueNearTrigger: function(myID, paramsArray) {
+            paramsArray.forEach(function(param, index) {
+                print('PARAM::' + param)
+                if (index === 0) {
+                    _this.hand = param;
+                }
+            });
+
+            print('HAND:: ' + _this.hand);
+
+            var constraints = this.getGrabConstraints();
+            var handPosition = this.getHandPosition();
+
+
+            var modTypes = [];
+            if (constraints.rotationMod !== false) {
+                if (constraints.rotationMod.pitch !== false) {
+                    modTypes.push('pitch')
+                }
+                if (constraints.rotationMod.yaw !== false) {
+                    modTypes.push('yaw')
+                }
+                if (constraints.rotationMod.roll !== false) {
+                    modTypes.push('roll')
+                }
+            }
+
+
+  
+            // var properties = Entities.getEntityProperties(this.entityID);
+
+            // var constraints = this.getGrabConstraints();
+            // if (constraints.rotationMod !== false) {
+            //     //implement the rotation modifier
+            //     var grabbedProps = Entities.getEntityProperties(this.grabbedEntity);
+
+            var handPosition = this.getHandPosition();
+
+            var modTypes = [];
+
+            if (constraints.rotationMod.pitch !== false) {
+                modTypes.push('pitch')
+            }
+            if (constraints.rotationMod.yaw !== false) {
+                modTypes.push('yaw')
+            }
+            if (constraints.rotationMod.roll !== false) {
+                modTypes.push('roll')
+            }
+
+            // get the base position
+            // get the hand position
+            // 
+
+            var baseProps = Entities.getEntityProperties(_this.base);
+            var baseBoxPosition = baseProps.position;
+            var handPosition = _this.getHandPosition();
+            var lidProps = Entities.getEntityProperties(_this.entityID);
+            
+            var distaceHandToBaseBox = Vec3.distance(baseBoxPosition, handPosition);
+
+            var safeEuler = Quat.safeEulerAngles()
+            var finalRotation = {
+                x: 0,
+                y: 0,
+                z: 0
+            }
+
+            var min1 = 0;
+            var max1 = 75;
+
+            var maxDistance = 0.4;
+
+            var finalAngle = scale(distance, 0, maxDistance, 0, 75)
+
+            print('FINAL ANGLE:: ' + finalAngle);
+
+            if (finalAngle < 0) {
+                finalAngle = 0;
+            }
+            if (finalAngle > 75) {
+                finalAngle = 75;
+            }
+            finalRotation.z = finalAngle;
+            _this.handleLidActivities(finalRotation)
+
+
+
+        },
+
+        handleLidActivities: function(finalRotation) {
+            var constraint = finalRotation.z;
+
+            //handle sound on open, close, and actually play the song
+            if (constraint > 20 && this.musicIsPlaying === false) {
+                this.playMusic();
+                print('play music!!')
+            }
+            if (constraint <= 20 && this.musicIsPlaying === true) {
+                print('stop music!!')
+                this.stopMusic();
+            }
+            if (constraint > 0 && this.shut === true) {
+                print('play open sound!!')
+                this.shut = false;
+                this.playOpenSound();
+                this.startHat();
+                this.startKey();
+            } else if (constraint <= 0 && this.shut === false) {
+                print('play shut sound!!')
+                this.shut = true;
+                this.playShutSound();
+                this.stopKey();
+                this.stopHat();
+            }
+
+            var hatHeight = scaleValue(constraint, MIN_LID_ROTATION, MAX_LID_ROTATION, 0, 0.04);
+
+            Entities.editEntity(this.entityID, {
+                rotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
+            })
+
+            var VERTICAL_OFFSET = 0.025;
+            var FORWARD_OFFSET = 0.0;
+            var LATERAL_OFFSET = 0.0;
+
+            var hatOffset = getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET)
+
+            var baseProps = Entities.getEntityProperties(this.base);
+
+            var upOffset = Vec3.multiply(hatHeight, Quat.getUp(baseProps.rotation));
+
+            var hatPosition = Vec3.sum(hatOffset, upOffset)
+            Entities.editEntity(this.hat, {
+                position: hatPosition
+            })
+
         },
 
         playMusic: function() {
@@ -101,83 +260,6 @@
                 }
                 this.shutSoundInjector = Audio.playSound(this.shutSound, audioOptions);
             }
-        },
-
-        rotateLid: function(myID, paramsArray) {
-
-            var finalRotation;
-            paramsArray.forEach(function(param) {
-                var p;
-                // print('param is:' + param)
-                try {
-                    p = JSON.parse(param);
-                    finalRotation = p;
-
-                } catch (err) {
-                    // print('not a json param')
-                    return;
-                    p = param;
-                }
-
-            });
-
-
-            //this might be z now that its roll
-            var constraint = finalRotation.z
-
-            var MIN_LID_ROTATION = 0;
-            var MAX_LID_ROTATION = 75;
-
-            //handle sound on open, close, and actually play the song
-            if (constraint > 20 && this.musicIsPlaying === false) {
-                this.playMusic();
-                print('play music!!')
-            }
-            if (constraint <= 20 && this.musicIsPlaying === true) {
-                print('stop music!!')
-                this.stopMusic();
-            }
-            if (constraint > 0 && this.shut === true) {
-                print('play open sound!!')
-                this.shut = false;
-                this.playOpenSound();
-                this.startHat();
-                this.startKey();
-            } else if (constraint <= 0 && this.shut === false) {
-                print('play shut sound!!')
-                this.shut = true;
-                this.playShutSound();
-                this.stopKey();
-                this.stopHat();
-            }
-
-            //handle scaling the lid angle to the animation frame
-            //0 to 30 hat going up
-            //30-90 hat spinning
-
-            //scale for going up down, and then spin when fully open ;)
-
-            var hatHeight = scaleValue(constraint, MIN_LID_ROTATION, MAX_LID_ROTATION, 0, 0.04);
-
-            Entities.editEntity(this.entityID, {
-                rotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
-            })
-
-            var VERTICAL_OFFSET = 0.025;
-            var FORWARD_OFFSET = 0.0;
-            var LATERAL_OFFSET = 0.0;
-
-            var hatOffset = getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET)
-
-            var baseProps = Entities.getEntityProperties(this.base);
-
-            var upOffset = Vec3.multiply(hatHeight,Quat.getUp(baseProps.rotation));
-
-            var hatPosition = Vec3.sum(hatOffset, upOffset)
-            Entities.editEntity(this.hat, {
-                position: hatPosition
-            })
-
         },
 
         getParts: function() {
