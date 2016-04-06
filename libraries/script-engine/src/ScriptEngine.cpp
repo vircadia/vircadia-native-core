@@ -1094,8 +1094,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
             testConstructorType = "empty";
         }
         QString testConstructorValue = testConstructor.toString();
-        if (testConstructorValue.size() > 80) {
-            testConstructorValue = testConstructorValue.mid(0, 80) + "...";
+        const int maxTestConstructorValueSize = 80;
+        if (testConstructorValue.size() > maxTestConstructorValueSize) {
+            testConstructorValue = testConstructorValue.mid(0, maxTestConstructorValueSize) + "...";
         }
         qCDebug(scriptengine) << "Error -- ScriptEngine::loadEntityScript() entity:" << entityID
                               << "failed to load entity script -- expected a function, got " + testConstructorType
