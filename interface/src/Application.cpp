@@ -38,6 +38,8 @@
 
 #include <QtMultimedia/QMediaPlayer>
 
+#include <QProcessEnvironment>
+
 #include <gl/QOpenGLContextWrapper.h>
 
 #include <ResourceScriptingInterface.h>
@@ -1122,6 +1124,10 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // add a logline indicating if QTWEBENGINE_REMOTE_DEBUGGING is set or not
+    QString webengineRemoteDebugging = QProcessEnvironment::systemEnvironment().value("QTWEBENGINE_REMOTE_DEBUGGING", "false");
+    qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebugging;
+
     // Stop third party processes so that they're not left running in the event of a subsequent shutdown crash.
 #ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->setEnabled(false);
