@@ -447,7 +447,7 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
     new KeyboardFocusHack();
 
-    connect(_desktop, SIGNAL(showDesktop()), this, SLOT(showDesktop()));
+    connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
 }
 
 QQuickItem* OffscreenUi::getDesktop() {
