@@ -44,30 +44,6 @@
 ​
   var panel = new Panel(10, 160);
 ​
-var parameters = [
-//    { name: "bandwidth", min: 1000, max: 12000, units: " Hz" },
-//    { name: "preDelay", min: 0, max: 333, units: " ms" },
-//    { name: "lateDelay", min: 0, max: 166, units: " ms" },
-//    { name: "reverbTime", min: 0.1, max: 10, units: " seconds" },
-//    { name: "earlyDiffusion", min: 0, max: 100, units: " percent" },
-//    { name: "lateDiffusion", min: 0, max: 100, units: " percent" },
-//    { name: "roomSize", min: 0, max: 100, units: " percent" },
-//    { name: "density", min: 0, max: 100, units: " percent" },
-//    { name: "bassMult", min: 0.1, max: 4, units: " ratio" },
-//    { name: "bassFreq", min: 10, max: 500, units: " Hz" },
-//    { name: "highGain", min: -24, max: 0, units: " dB" },
-//    { name: "highFreq", min: 1000, max: 12000, units: " Hz" },
-//    { name: "modRate", min: 0.1, max: 10, units: " Hz" },
-//    { name: "modDepth", min: 0, max: 100, units: " percent" }, 
-//    { name: "earlyGain", min: -96, max: 24, units: " dB" },
-//    { name: "lateGain", min: -96, max: 24, units: " dB" },
-//    { name: "earlyMixLeft", min: 0, max: 100, units: " percent" },
-//    { name: "earlyMixRight", min: 0, max: 100, units: " percent" },
-//    { name: "lateMixLeft", min: 0, max: 100, units: " percent" },
-//    { name: "lateMixRight", min: 0, max: 100, units: " percent" },
-//    { name: "wetDryMix", min: 0, max: 100, units: " percent" },
-]
-​
 ​
   function setter(name) {
     return function(value) {
