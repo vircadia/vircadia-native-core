@@ -235,6 +235,11 @@ void AssignmentClient::sendAssignmentRequest() {
 void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message) {
     qCDebug(assigmnentclient) << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
+    if (_currentAssignment) {
+        qCWarning(assigmnentclient) << "Received a PacketType::CreateAssignment while still running an active assignment. Ignoring.";
+        return;
+    }
+
     // construct the deployed assignment from the packet data
     _currentAssignment = AssignmentFactory::unpackAssignment(*message);
 
