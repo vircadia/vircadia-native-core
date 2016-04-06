@@ -131,6 +131,8 @@
 
             var hatHeight = scaleValue(constraint, 0, 75, 0, 0.04);
 
+            this.updateHatRotation();
+            this.updateKeyRotation();
             Entities.editEntity(this.entityID, {
                 localRotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
             })
@@ -149,6 +151,40 @@
             Entities.editEntity(this.hat, {
                 position: hatPosition
             })
+
+        },
+
+        updateHatRotation: function() {
+            var baseProps = Entities.getEntityProperties(_this.base);
+            var localAngularVelocity = {
+                x: 0,
+                y: 0.785398,
+                z: 0,
+            };
+
+            var worldAngularVelocity = Vec3.multiplyQbyV(baseProps.rotation, localAngularVelocity);
+            Entities.editEntity(_this.hat, {
+                angularVelocity: worldAngularVelocity
+            })
+
+            print('UPDATE HAT ANGULAR VELOCITY!' + JSON.stringify(worldAngularVelocity));
+
+        },
+
+        updateKeyRotation: function() {
+            var baseProps = Entities.getEntityProperties(_this.base);
+            var localAngularVelocity = {
+                x: 0,
+                y: 0,
+                z: 0.785398,
+            };
+
+            var worldAngularVelocity = Vec3.multiplyQbyV(baseProps.rotation, localAngularVelocity);
+            Entities.editEntity(this.key, {
+                angularVelocity: worldAngularVelocity
+            })
+
+            print('UPDATE KEY ANGULAR VELOCITY!' + JSON.stringify(worldAngularVelocity));
 
         },
 

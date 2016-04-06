@@ -60,7 +60,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
 
     var LID_SCRIPT_URL = Script.resolvePath('lid.js?' + Math.random());
 
-
+    var BASE_SCRIPT_URL = Script.resolvePath('baseBox.js?' + Math.random());
     var base, lid, hat, key;
 
     function createLid(baseID) {
@@ -173,12 +173,13 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
             position: BASE_POSITION,
             dynamic: true,
             shapeType: 'compound',
-            compoundShapeURL: 'atp:/boxHull2.obj',
+            compoundShapeURL: 'atp:/boxHull3.obj',
             dimensions: {
                 x: 0.1661,
                 y: 0.0928,
                 z: 0.2022
             },
+            script: BASE_SCRIPT_URL,
             userData: JSON.stringify({
                 'hifiHomeKey': {
                     'reset': true
