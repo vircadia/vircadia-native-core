@@ -518,6 +518,8 @@ private:
     std::mutex _preRenderLambdasLock;
 
     std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
+
+    bool _keyboardDeviceHasFocus { true };
 };
 
 #endif // hifi_Application_h
