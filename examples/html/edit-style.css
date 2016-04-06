@@ -252,6 +252,7 @@ input[type=number]::-webkit-inner-spin-button {
     display: block;
     position: relative;
     width: 10px;
+    height: 100%;
     overflow: hidden;
     font-family: hifi-glyphs;
     font-size: 50px;
