@@ -63,6 +63,11 @@ bool Bookmarks::contains(const QString& name) const {
 void Bookmarks::readFromFile() {
     QFile loadFile(_bookmarksFilename);
 
+    if (!loadFile.exists()) {
+        // User has not yet saved bookmarks
+        return;
+    }
+
     if (!loadFile.open(QIODevice::ReadOnly)) {
         qWarning("Couldn't open bookmarks file for reading");
         return;
