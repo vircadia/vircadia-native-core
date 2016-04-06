@@ -38,6 +38,8 @@
 
 #include <QtMultimedia/QMediaPlayer>
 
+#include <QProcessEnvironment>
+
 #include <gl/QOpenGLContextWrapper.h>
 
 #include <ResourceScriptingInterface.h>
@@ -561,9 +563,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
     // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
     // downloads.
-    QSharedPointer<ModelCache> modelCacheP = DependencyManager::get<ModelCache>();
-    ResourceCache* modelCache = modelCacheP.data();
-    connect(this, &Application::checkBackgroundDownloads, modelCache, &ResourceCache::checkAsynchronousGets);
+    auto modelCache = DependencyManager::get<ModelCache>();
+    connect(this, &Application::checkBackgroundDownloads, modelCache.data(), &ModelCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -1008,6 +1009,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
                 if (webEntity) {
                     webEntity->setProxyWindow(_window->windowHandle());
+                    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+                        _keyboardMouseDevice->pluginFocusOutEvent();
+                    }
                     _keyboardFocusedItem = entityItemID;
                     _lastAcceptedKeyPress = usecTimestampNow();
                     if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
@@ -1120,6 +1124,10 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // add a logline indicating if QTWEBENGINE_REMOTE_DEBUGGING is set or not
+    QString webengineRemoteDebugging = QProcessEnvironment::systemEnvironment().value("QTWEBENGINE_REMOTE_DEBUGGING", "false");
+    qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebugging;
+
     // Stop third party processes so that they're not left running in the event of a subsequent shutdown crash.
 #ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->setEnabled(false);
@@ -1329,7 +1337,6 @@ void Application::initializeUi() {
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
     rootContext->setContextProperty("ApplicationInterface", this);
-    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
@@ -1359,8 +1366,13 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+
+    // Caches
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
+    rootContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
     rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+
     rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
     rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
@@ -2562,6 +2574,15 @@ void Application::idle(uint64_t now) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
+    }
+
+    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
+        _keyboardMouseDevice->pluginFocusOutEvent();
+        _keyboardDeviceHasFocus = false;
+    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
+        _keyboardDeviceHasFocus = true;
     }
 
     auto displayPlugin = getActiveDisplayPlugin();
@@ -4353,8 +4374,13 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+
+    // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    scriptEngine->registerGlobalObject("TextureCache", DependencyManager::get<TextureCache>().data());
+    scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
