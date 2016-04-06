@@ -371,7 +371,7 @@ void NetworkTexture::setImage(void* voidTexture, int originalWidth,
     if (gpuTexture) {
         _width = gpuTexture->getWidth();
         _height = gpuTexture->getHeight();
-        setBytes(gpuTexture->getStoredSize());
+        setSize(gpuTexture->getStoredSize());
     } else {
         // FIXME: If !gpuTexture, we failed to load!
         _width = _height = 0;

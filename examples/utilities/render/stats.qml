@@ -10,7 +10,7 @@
 //
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import "plotperf"
+import "../lib/plotperf"
 
 Item {
     id: statsUI
@@ -32,7 +32,6 @@ Item {
             title: "Num Buffers"
             height: parent.evalEvenHeight()
             object: stats.config
-            trigger: stats.config["bufferCPUCount"]
             plots: [
                 {
                     prop: "bufferCPUCount",
@@ -50,7 +49,6 @@ Item {
             title: "gpu::Buffer Memory"
             height: parent.evalEvenHeight()
             object: stats.config
-            trigger: stats.config["bufferCPUMemoryUsage"]
             valueScale: 1048576
             valueUnit: "Mb"
             valueNumDigits: "1"
@@ -71,7 +69,6 @@ Item {
             title: "Num Textures"
             height: parent.evalEvenHeight()
             object: stats.config
-            trigger: stats.config["textureCPUCount"]
             plots: [
                 {
                     prop: "textureCPUCount",
@@ -99,7 +96,6 @@ Item {
             title: "gpu::Texture Memory"
             height: parent.evalEvenHeight()
             object: stats.config
-            trigger: stats.config["textureCPUMemoryUsage"]
             valueScale: 1048576
             valueUnit: "Mb"
             valueNumDigits: "1"
@@ -132,7 +128,6 @@ Item {
             title: "Triangles"
             height: parent.evalEvenHeight()
             object: stats.config
-            trigger: stats.config["frameTriangleCount"]
             valueScale: 1000
             valueUnit: "K"
             plots: [
@@ -154,7 +149,6 @@ Item {
             title: "Drawcalls"
             height: parent.evalEvenHeight()
             object: stats.config
-            trigger: stats.config["frameDrawcallCount"]
             plots: [
                 {
                     prop: "frameAPIDrawcallCount",
@@ -184,7 +178,6 @@ Item {
             title: "Items"
             height: parent.evalEvenHeight()
             object: parent.drawOpaqueConfig
-            trigger: Render.getConfig("DrawOpaqueDeferred")["numDrawn"]
             plots: [
                 {
                     object: Render.getConfig("DrawOpaqueDeferred"),
