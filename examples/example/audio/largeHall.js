@@ -71,7 +71,6 @@
 
     _this.leaveEntity = function(entityID) {
         print('EBL I am outsidee');
-        panel.destroy();
         AudioDevice.setReverb(false);
         print("Reverb is OFF.");
         // Messages.sendMessage('PlayBackOnAssignment', 'BowShootingGameWelcome');

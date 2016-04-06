@@ -39,29 +39,29 @@
         wetDryMix: 70,
     });
 
-        function setter(name) {
-            return function(value) {
-                audioOptions[name] = value;
-                AudioDevice.setReverbOptions(audioOptions);
-            }
+    function setter(name) {
+        return function(value) {
+            audioOptions[name] = value;
+            AudioDevice.setReverbOptions(audioOptions);
         }
+    }
 
-        function getter(name) {
-            return function() {
-                return audioOptions[name];
-            }
+    function getter(name) {
+        return function() {
+            return audioOptions[name];
         }
+    }
 
-        function displayer(units) {
-            return function(value) {
-                return (value).toFixed(1) + units;
-            }
+    function displayer(units) {
+        return function(value) {
+            return (value).toFixed(1) + units;
         }
+    }
 
-        function scriptEnding() {
-            AudioDevice.setReverb(false);
-            print("Reverb is OFF.");
-        }
+    function scriptEnding() {
+        AudioDevice.setReverb(false);
+        print("Reverb is OFF.");
+    }
     _this.enterEntity = function(entityID) {
         print('EBL I am insiude');
         // create a slider for each parameter
@@ -71,7 +71,7 @@
     };
 
     _this.leaveEntity = function(entityID) {
-        print('EBL I am outsidee');
+        print('EBL I am outside');
         AudioDevice.setReverb(false);
         print("Reverb is OFF.");
     };
