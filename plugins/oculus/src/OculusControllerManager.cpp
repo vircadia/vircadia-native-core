@@ -44,13 +44,16 @@ bool OculusControllerManager::activate() {
 
     // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    _remote = std::make_shared<RemoteDevice>(*this);
-    userInputMapper->registerDevice(_remote);
 
-#if 0
-    _touch = std::make_shared<TouchDevice>();
-    userInputMapper->registerDevice(_touch);
-#endif
+    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+        _remote = std::make_shared<RemoteDevice>(*this);
+        userInputMapper->registerDevice(_remote);
+    }
+
+    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+        _touch = std::make_shared<TouchDevice>(*this);
+        userInputMapper->registerDevice(_touch);
+    }
 
     return true;
 }
@@ -75,7 +78,6 @@ void OculusControllerManager::deactivate() {
 
 void OculusControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     PerformanceTimer perfTimer("OculusControllerManager::TouchDevice::update");
-
 
     if (_touch) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
@@ -141,10 +143,10 @@ static const std::vector<std::pair<ovrTouch, StandardButtonChannel>> TOUCH_MAP {
 controller::Input::NamedVector OculusControllerManager::RemoteDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs {
-        makePair(DU, "Up"),
-        makePair(DD, "Down"),
-        makePair(DL, "Left"),
-        makePair(DR, "Right"),
+        makePair(DU, "DU"),
+        makePair(DD, "DD"),
+        makePair(DL, "DL"),
+        makePair(DR, "DR"),
         makePair(START, "Start"),
         makePair(BACK, "Back"),
     };
