@@ -888,6 +888,9 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     if (hasActions()) {
         return;
     }
+    if (!_parentID.isNull()) {
+        return;
+    }
 
     if (hasLocalAngularVelocity()) {
         glm::vec3 localAngularVelocity = getLocalAngularVelocity();
