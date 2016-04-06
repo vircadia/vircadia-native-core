@@ -10,14 +10,14 @@
 //
 
 Script.include("../utils.js");
-var scriptURL = Script.resolvePath('pingPongGun.js');
-var MODEL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.fbx'
+var scriptURL = 'atp:/pingPongGun/pingPingGun.js';
+var MODEL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.fbx';
 var COLLISION_HULL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.obj';
 
 HomePingPongGun = function(spawnPosition, spawnRotation) {
   var pingPongGun = Entities.addEntity({
     type: "Model",
-    name: "home_model_pingPongGun"
+    name: "home_model_pingPongGun",
     modelURL: MODEL_URL,
     shapeType: 'compound',
     compoundShapeURL: COLLISION_HULL_URL,
@@ -70,12 +70,12 @@ HomePingPongGun = function(spawnPosition, spawnRotation) {
   });
 
   function cleanup() {
-    print('PING PONG CLEANUP!')
+    print('HOME PING PONG CLEANUP!')
     Entities.deleteEntity(pingPongGun);
   }
 
   this.cleanup = cleanup;
 
-  print('CREATED PING PONG GUN')
+  print('HOME CREATED PING PONG GUN')
 
 }

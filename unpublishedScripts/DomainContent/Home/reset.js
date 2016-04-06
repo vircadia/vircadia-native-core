@@ -176,15 +176,15 @@
                 z: 0
             });
 
-            // var pingPongGun = new HomePingPongGun({
-            //     x: 1101.2123,
-            //     y: 460.2328,
-            //     z: -65.8513
-            // }, {
-            //     x: 97.3683,
-            //     y: 179.0293,
-            //     z: 89.9698
-            // });
+            var pingPongGun = new HomePingPongGun({
+                x: 1101.2123,
+                y: 460.2328,
+                z: -65.8513
+            }, {
+                x: 97.3683,
+                y: 179.0293,
+                z: 89.9698
+            });
 
             var cuckooClock = new MyCuckooClock({
                 x: 1105.267,
@@ -196,9 +196,8 @@
                 z: 0
             });
 
-            // v2.0
             // var musicBox = new MusicBox();
-            // var doppelganger = new Doppelganger();
+
 
         },
 
