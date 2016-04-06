@@ -130,6 +130,7 @@ public:
 
         GLuint _size; // true size as reported by the gl api
         GLuint _virtualSize; // theorical size as expected
+        GLuint _numLevels{ 0 };
 
         void transferMip(GLenum target, const Texture::PixelsPointer& mip) const;
 
@@ -137,7 +138,7 @@ public:
         const Texture& _gpuTexture;
         std::atomic<SyncState> _syncState { SyncState::Idle };
     };
-    static GLTexture* syncGPUObject(const TexturePointer& texture);
+    static GLTexture* syncGPUObject(const TexturePointer& texture, bool needTransfer = true);
     static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
 
     // very specific for now

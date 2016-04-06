@@ -53,6 +53,8 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
     _target(gpuToGLTextureType(texture)),
     _size(0),
     _virtualSize(0),
+   // _numLevels(std::max((uint16)1, texture.maxMip())),
+    _numLevels(texture.maxMip() + 1),
     _gpuTexture(texture) 
 {
     Backend::incrementTextureGPUCount();
@@ -61,15 +63,6 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
 
     GLsizei width = texture.getWidth();
     GLsizei height = texture.getHeight();
-    GLsizei levels = 1;
-    if (texture.maxMip() > 0) {
-        if (texture.isAutogenerateMips()) {
-            while ((width | height) >> levels) {
-                ++levels;
-            }
-        }
-        levels = std::max(1, std::min(texture.maxMip() + 1, levels));
-    }
 
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat());
 
@@ -92,12 +85,26 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
 
     (void)CHECK_GL_ERROR();
     // GO through the process of allocating the correct storage 
-    if (GLEW_VERSION_4_2) {
-        glTexStorage2D(_target, levels, texelFormat.internalFormat, width, height);
+    if (GLEW_VERSION_4_2 && !texture.getTexelFormat().isCompressed()) {
+        glTexStorage2D(_target, _numLevels, texelFormat.internalFormat, width, height);
+        (void)CHECK_GL_ERROR();
     } else {
-        glTexImage2D(_target, 0, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, 0);
+        glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(_target, GL_TEXTURE_MAX_LEVEL, _numLevels - 1);
+
+        for (int l = 0; l < _numLevels; l++) {
+            if (texture.getType() == gpu::Texture::TEX_CUBE) {
+                for (int face = 0; face < CUBE_NUM_FACES; face++) {
+                    glTexImage2D(CUBE_FACE_LAYOUT[face], l, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, NULL);
+                }
+            } else {
+                glTexImage2D(_target, l, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, NULL);
+            }
+            width = std::max(1, (width / 2));
+            height = std::max(1, (height / 2));
+        }
+        (void)CHECK_GL_ERROR();
     }
-    (void)CHECK_GL_ERROR();
 
     syncSampler(texture.getSampler(), texture.getType(), this);
     (void)CHECK_GL_ERROR();
@@ -118,9 +125,6 @@ GLBackend::GLTexture::~GLTexture() {
     Backend::decrementTextureGPUCount();
 }
 
-bool GLBackend::GLTexture::isInvalid() const {
-    return _storageStamp < _gpuTexture.getStamp();
-}
 
 void GLBackend::GLTexture::setSize(GLuint size) {
     Backend::updateTextureGPUMemoryUsage(_size, size);
@@ -136,16 +140,30 @@ void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
     setVirtualSize(virtualSize);
 
     GLint gpuSize{ 0 };
-    glGetTexLevelParameteriv(_target, 0, GL_TEXTURE_COMPRESSED, &gpuSize);
+    if (_target == GL_TEXTURE_CUBE_MAP) {
+        glGetTexLevelParameteriv(CUBE_FACE_LAYOUT[0], 0, GL_TEXTURE_COMPRESSED, &gpuSize);
+    } else {
+        glGetTexLevelParameteriv(_target, 0, GL_TEXTURE_COMPRESSED, &gpuSize);
+    }
+    (void)CHECK_GL_ERROR();
+
     if (gpuSize) {
         GLint baseLevel;
         GLint maxLevel;
         glGetTexParameteriv(_target, GL_TEXTURE_BASE_LEVEL, &baseLevel);
         glGetTexParameteriv(_target, GL_TEXTURE_MAX_LEVEL, &maxLevel);
 
-        for (GLint level = baseLevel; level < maxLevel; level++) {
+        for (GLint level = baseLevel; level <= maxLevel; level++) {
             GLint levelSize{ 0 };
-            glGetTexLevelParameteriv(_target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
+            if (_target == GL_TEXTURE_CUBE_MAP) {
+                for (int face = 0; face < CUBE_NUM_FACES; face++) {
+                    GLint faceSize{ 0 };
+                    glGetTexLevelParameteriv(CUBE_FACE_LAYOUT[face], level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &faceSize);
+                    levelSize += faceSize;
+                }
+            } else {
+                glGetTexLevelParameteriv(_target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
+            }
             if (levelSize <= 0) {
                 break;
             }
@@ -157,6 +175,10 @@ void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
     }
 }
 
+
+bool GLBackend::GLTexture::isInvalid() const {
+    return _storageStamp < _gpuTexture.getStamp();
+}
 
 bool GLBackend::GLTexture::isOutdated() const {
     return _contentStamp < _gpuTexture.getDataStamp();
@@ -247,7 +269,7 @@ void GLBackend::GLTexture::postTransfer() {
     }
 }
 
-GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer) {
+GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer, bool needTransfer) {
     const Texture& texture = *texturePointer;
     if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
@@ -269,8 +291,9 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePoin
         object = new GLTexture(texture);
     }
 
-    // need to have a gpu object?
-    if (texture.getNumSlices() != 1) {
+    // Object maybe doens't neet to be tranasferred after creation
+    if (!needTransfer) {
+        object->_contentStamp = texturePointer->getDataStamp();
         return object;
     }
 
@@ -383,7 +406,8 @@ void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
         return;
     }
 
-    GLTexture* object = GLBackend::syncGPUObject(resourceTexture);
+    // DO not transfer the texture, this call is expected for rendering texture
+    GLTexture* object = GLBackend::syncGPUObject(resourceTexture, false);
     if (!object) {
         return;
     }

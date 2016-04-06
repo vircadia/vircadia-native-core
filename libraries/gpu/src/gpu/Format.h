@@ -193,6 +193,7 @@ enum Semantic {
     SBGRA,
 
     // These are generic compression format smeantic for images
+    _FIRST_COMPRESSED,
     COMPRESSED_R,
 
     COMPRESSED_RGB, 
@@ -207,6 +208,8 @@ enum Semantic {
 
     COMPRESSED_BC7_RGBA,
     COMPRESSED_BC7_SRGBA, */
+
+    _LAST_COMPRESSED,
 
     R11G11B10,
 
@@ -240,6 +243,7 @@ public:
 
     Dimension getDimension() const { return (Dimension)_dimension; }
     
+    bool isCompressed() const { return (getSemantic() - _FIRST_COMPRESSED <= _LAST_COMPRESSED - _FIRST_COMPRESSED); }
 
     Type getType() const { return (Type)_type; }
     bool isNormalized() const { return (getType() >= NORMALIZED_START); }

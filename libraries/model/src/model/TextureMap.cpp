@@ -162,15 +162,15 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
 
 
 gpu::Texture* TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, true, true);
+    return process2DTextureColorFromImage(srcImage, true, false, true);
 }
 
 gpu::Texture* TextureUsage::createEmissiveTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, true, true);
+    return process2DTextureColorFromImage(srcImage, true, false, true);
 }
 
 gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, true, true);
+    return process2DTextureColorFromImage(srcImage, true, false, true);
 }
 
 
