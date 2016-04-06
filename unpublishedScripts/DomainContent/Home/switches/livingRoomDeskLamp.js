@@ -19,7 +19,7 @@
             this.toggleLights();
         },
 
-        startNearTrigger: function() {
+        startNearGrab: function() {
             this.toggleLights();
         },
 
@@ -67,8 +67,6 @@
                 if (properties.name === _this.lightName) {
                     print("EBL FOUND THE LIGHT!");
                     found.push(result);
-                } else {
-                    print("EBL DID NOT FIND THE LIGHT!");
                 }
             });
             return found;
@@ -132,10 +130,6 @@
         preload: function(entityID) {
             print("EBL PRELOAD LIGHT SWITCH SCRIPT");
             this.entityID = entityID;
-            setEntityCustomData('grabbableKey', this.entityID, {
-                wantsTrigger: true
-            });
-
             var properties = Entities.getEntityProperties(this.entityID);
 
 

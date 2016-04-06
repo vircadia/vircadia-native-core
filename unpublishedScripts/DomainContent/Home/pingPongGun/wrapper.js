@@ -17,6 +17,7 @@ var COLLISION_HULL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.obj';
 HomePingPongGun = function(spawnPosition, spawnRotation) {
   var pingPongGun = Entities.addEntity({
     type: "Model",
+    name: "home_model_pingPongGun"
     modelURL: MODEL_URL,
     shapeType: 'compound',
     compoundShapeURL: COLLISION_HULL_URL,

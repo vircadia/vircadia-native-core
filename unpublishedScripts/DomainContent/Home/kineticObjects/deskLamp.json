@@ -1,46 +1,5 @@
 {
     "Entities": [{
-        "collisionless": 1,
-        "color": {
-            "blue": 0,
-            "green": 0,
-            "red": 255
-        },
-        "created": "2016-03-24T22:17:16Z",
-        "dimensions": {
-            "x": 0.2776367485523224,
-            "y": 0.27723021268844604,
-            "z": 0.2535492241382599
-        },
-        "id": "{c7c6108b-4c60-4735-b2bf-5559d7e30e7d}",
-        "collisionless": 1,
-        "dynamic": 1,
-        "shapeType": "box",
-        "name": "home_box_livingRoomDeskLampTrigger",
-        "parentID": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
-        "position": {
-            "x": 0.0062166899442672729,
-            "y": -0.1577162891626358,
-            "z": -0.0018789069727063179
-        },
-        "queryAACube": {
-            "scale": 6.92822265625,
-            "x": 1101.2117919921875,
-            "y": 456.86856079101562,
-            "z": -84.708488464355469
-        },
-        "rotation": {
-            "w": 0.84585332870483398,
-            "x": 1.52587890625e-05,
-            "y": 0.53337907791137695,
-            "z": -0.0001373291015625
-        },
-        "script": "atp:/switches/livingRoomDeskLamp.js",
-        "scriptTimestamp": 1458860464095,
-        "type": "Box",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"home-switch\":{\"state\":\"off\"}}",
-        "visible": 0
-    }, {
         "color": {
             "blue": 68,
             "green": 252,
@@ -56,9 +15,9 @@
         "falloffRadius": 0.30000001192092896,
         "id": "{47e2c415-854c-4b6a-b71e-06c760675afd}",
         "intensity": 20,
-        "isSpotlight": 1,
+        "isSpotlight": 0,
         "name": "home_light_livingRoomLight",
-        "parentID": "{c7c6108b-4c60-4735-b2bf-5559d7e30e7d}",
+        "parentID": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
         "position": {
             "x": 0,
             "y": -0.14917388558387756,
@@ -133,6 +92,7 @@
             "z": 0.26436954736709595
         },
         "dynamic": 1,
+        "script": "atp:/switches/livingRoomDeskLamp.js",
         "gravity": {
             "x": 0,
             "y": -10,
@@ -160,7 +120,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"home-switch\":{\"state\":\"off\"}}",
         "velocity": {
             "x": -0.0026286719366908073,
             "y": 0.0016162246465682983,
