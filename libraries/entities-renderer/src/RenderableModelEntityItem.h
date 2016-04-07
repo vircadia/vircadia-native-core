@@ -82,6 +82,11 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    // These operate on a copy of the renderAnimationProperties, so they can be accessed
+    // without having the entityTree lock.
+    bool hasRenderAnimation() const { return !_renderAnimationProperties.getURL().isEmpty(); }
+    const QString& getRenderAnimationURL() const { return _renderAnimationProperties.getURL(); }
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
@@ -96,6 +101,8 @@ private:
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
+
+    AnimationPropertyGroup _renderAnimationProperties;
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 
