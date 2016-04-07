@@ -88,7 +88,7 @@ public:
         GLuint size() const { return _size; }
         GLuint virtualSize() const { return _virtualSize; }
 
-        void updateSize(GLuint virtualSize);
+        void updateSize();
 
         enum SyncState {
             // The texture is currently undergoing no processing, although it's content

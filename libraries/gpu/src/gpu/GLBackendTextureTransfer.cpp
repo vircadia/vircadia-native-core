@@ -63,10 +63,10 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
 
         GLBackend::GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texturePointer);
         object->transfer();
-
-
-        glBindTexture(object->_target, 0);
         auto writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
+        object->updateSize();
+        glBindTexture(object->_target, 0);
         glClientWaitSync(writeSync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
         glDeleteSync(writeSync);
         object->_contentStamp = texturePointer->getDataStamp();

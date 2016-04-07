@@ -95,7 +95,7 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
        // for (int l = 0; l < _numLevels; l++) {
         { int l = 0;
             if (texture.getType() == gpu::Texture::TEX_CUBE) {
-                for (int face = 0; face < CUBE_NUM_FACES; face++) {
+                for (size_t face = 0; face < CUBE_NUM_FACES; face++) {
                     glTexImage2D(CUBE_FACE_LAYOUT[face], l, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, NULL);
                 }
             } else {
@@ -110,7 +110,9 @@ GLBackend::GLTexture::GLTexture(const Texture& texture) :
     syncSampler(texture.getSampler(), texture.getType(), this);
     (void)CHECK_GL_ERROR();
 
-    updateSize((GLuint)texture.evalTotalSize());
+    GLuint virtualSize = _gpuTexture.evalTotalSize();
+    setVirtualSize(virtualSize);
+    setSize(virtualSize);
     (void)CHECK_GL_ERROR();
 
     glBindTexture(_target, boundTex);
@@ -140,9 +142,12 @@ void GLBackend::GLTexture::setVirtualSize(GLuint size) {
     _virtualSize = size;
 }
 
-void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
+void GLBackend::GLTexture::updateSize() {
+    GLuint virtualSize = _gpuTexture.evalTotalSize();
     setVirtualSize(virtualSize);
-
+    if (!_texture) {
+        setSize(virtualSize);
+    }
     GLint gpuSize{ 0 };
     if (_target == GL_TEXTURE_CUBE_MAP) {
         glGetTexLevelParameteriv(CUBE_FACE_LAYOUT[0], 0, GL_TEXTURE_COMPRESSED, &gpuSize);
@@ -160,7 +165,7 @@ void GLBackend::GLTexture::updateSize(GLuint virtualSize) {
         for (GLint level = baseLevel; level <= maxLevel; level++) {
             GLint levelSize{ 0 };
             if (_target == GL_TEXTURE_CUBE_MAP) {
-                for (int face = 0; face < CUBE_NUM_FACES; face++) {
+                for (size_t face = 0; face < CUBE_NUM_FACES; face++) {
                     GLint faceSize{ 0 };
                     glGetTexLevelParameteriv(CUBE_FACE_LAYOUT[face], level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &faceSize);
                     levelSize += faceSize;
