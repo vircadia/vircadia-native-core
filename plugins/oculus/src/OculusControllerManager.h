@@ -45,7 +45,7 @@ private:
     class RemoteDevice : public OculusInputDevice {
     public:
         using Pointer = std::shared_ptr<RemoteDevice>;
-        RemoteDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "Oculus Remote") {}
+        RemoteDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "OculusRemote") {}
 
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
@@ -58,7 +58,7 @@ private:
     class TouchDevice : public OculusInputDevice {
     public:
         using Pointer = std::shared_ptr<TouchDevice>;
-        TouchDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "Oculus Touch") {}
+        TouchDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "OculusTouch") {}
 
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
