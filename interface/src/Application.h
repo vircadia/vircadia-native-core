@@ -255,6 +255,7 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
+    void toggleSuppressDeadlockWatchdogStatus(bool checked);
 
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();

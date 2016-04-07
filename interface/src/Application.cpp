@@ -241,6 +241,8 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void setSuppressStatus(bool suppress) { _suppressStatus = suppress; }
+
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
@@ -252,35 +254,45 @@ public:
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
-                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "maxElapsed:" << _maxElapsed
                     << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
-                    << "NEW maxElapsedAverage:" << elapsedMovingAverage
+                    << "NEW maxElapsedAverage:" << elapsedMovingAverage << "** NEW MAX ELAPSED AVERAGE **"
                     << "samples:" << _movingAverage.getSamples();
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
-                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsed:"
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "PREVIOUS maxElapsed:" << _maxElapsed
-                    << "NEW maxElapsed:" << lastHeartbeatAge
+                    << "NEW maxElapsed:" << lastHeartbeatAge << "** NEW MAX ELAPSED **"
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
                 _maxElapsed = lastHeartbeatAge;
             }
-            if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
-                qDebug() << "DEADLOCK WATCHDOG STATUS -- lastHeartbeatAge:" << lastHeartbeatAge
-                         << "elapsedMovingAverage:" << elapsedMovingAverage
-                         << "maxElapsed:" << _maxElapsed
-                         << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "samples:" << _movingAverage.getSamples();
+            if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE**"
+                    << "maxElapsed:" << _maxElapsed
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
                 _lastReport = now;
             }
 
-#ifdef NDEBUG
+            if (!_suppressStatus && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
+                qDebug() << "DEADLOCK WATCHDOG STATUS:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "maxElapsed:" << _maxElapsed
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _lastReport = now;
+            }
+
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qDebug() << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
@@ -290,12 +302,17 @@ public:
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
                          << "samples:" << _movingAverage.getSamples();
-                deadlockDetectionCrash();
+
+                // Don't actually crash in debug builds, in case this apparent deadlock is simply from
+                // the developer actively debugging code
+                #ifdef NDEBUG
+                    deadlockDetectionCrash();
+                #endif
             }
-#endif
         }
     }
 
+    static std::atomic<bool> _suppressStatus;
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _lastReport;
     static std::atomic<uint64_t> _maxElapsed;
@@ -305,11 +322,16 @@ public:
     bool _quit { false };
 };
 
+std::atomic<bool> DeadlockWatchdogThread::_suppressStatus;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
+
+void Application::toggleSuppressDeadlockWatchdogStatus(bool checked) {
+    DeadlockWatchdogThread::setSuppressStatus(checked);
+}
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
