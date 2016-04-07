@@ -78,7 +78,8 @@ public:
     public:
         const Stamp _storageStamp;
         Stamp _contentStamp { 0 };
-        const GLuint _texture;
+        const GLuint _secretTexture;
+        GLuint _texture{ 0 };
         const GLenum _target;
 
         GLTexture(const gpu::Texture& gpuTexture);
