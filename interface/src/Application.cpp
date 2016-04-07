@@ -895,6 +895,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 DependencyManager::get<AudioClient>()->toggleMute();
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
+            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
+                if (!offscreenUi->navigationFocused()) {
+                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
+                    offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 auto reticlePosition = getApplicationCompositor().getReticlePosition();
                 offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
