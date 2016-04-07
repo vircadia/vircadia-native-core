@@ -467,8 +467,6 @@ void CompositorHelper::toggle() {
     }
 }
 
-
-
 glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::vec3& headPosition) const {
     glm::mat4 result;
     if (isHMD()) {
@@ -487,7 +485,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
             pointerTransform[3] = vec4(cursorRay + headPosition, 1);
             // Scale up the cursor because of distance
             reticleScale *= reticleDepth;
-        } 
+        }
         glm::mat4 overlayXfm;
         _modelTransform.getMatrix(overlayXfm);
         pointerTransform = overlayXfm * pointerTransform;
@@ -503,7 +501,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         mousePosition.y *= -1.0f;
 
         vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-        return glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
+        result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
     return result;
 }
