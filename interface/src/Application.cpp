@@ -250,37 +250,49 @@ public:
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
             auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
+            auto menu = Menu::getInstance();
+            bool suppressStatusMessages = menu ? menu->isOptionChecked(MenuOption::SupressDeadlockWatchdogStatus) : false;
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
-                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "maxElapsed:" << _maxElapsed
                     << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
-                    << "NEW maxElapsedAverage:" << elapsedMovingAverage
+                    << "NEW maxElapsedAverage:" << elapsedMovingAverage << "** NEW MAX ELAPSED AVERAGE **"
                     << "samples:" << _movingAverage.getSamples();
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
-                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsed:"
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "PREVIOUS maxElapsed:" << _maxElapsed
-                    << "NEW maxElapsed:" << lastHeartbeatAge
+                    << "NEW maxElapsed:" << lastHeartbeatAge << "** NEW MAX ELAPSED **"
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
                 _maxElapsed = lastHeartbeatAge;
             }
-            if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
-                qDebug() << "DEADLOCK WATCHDOG STATUS -- lastHeartbeatAge:" << lastHeartbeatAge
-                         << "elapsedMovingAverage:" << elapsedMovingAverage
-                         << "maxElapsed:" << _maxElapsed
-                         << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "samples:" << _movingAverage.getSamples();
+            if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE**"
+                    << "maxElapsed:" << _maxElapsed
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
                 _lastReport = now;
             }
 
-#ifdef NDEBUG
+            if (!suppressStatusMessages && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
+                qDebug() << "DEADLOCK WATCHDOG STATUS:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "maxElapsed:" << _maxElapsed
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _lastReport = now;
+            }
+
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qDebug() << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
@@ -290,9 +302,13 @@ public:
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
                          << "samples:" << _movingAverage.getSamples();
-                deadlockDetectionCrash();
+
+                // Don't actually crash in debug builds, in case this apparent deadlock is simply from
+                // the developer actively debugging code
+                #ifdef NDEBUG
+                    deadlockDetectionCrash();
+                #endif
             }
-#endif
         }
     }
 
