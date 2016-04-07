@@ -522,6 +522,8 @@ private:
     bool _keyboardDeviceHasFocus { true };
 
     bool _recentlyClearedDomain { false };
+
+    QString _returnFromFullScreenMirrorTo;
 };
 
 #endif // hifi_Application_h
