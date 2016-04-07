@@ -219,12 +219,12 @@ Menu::Menu() {
     // View > First Person
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::FirstPerson, 0, // QML Qt:: Key_P
-        false, qApp, SLOT(cameraMenuChanged())));
+        true, qApp, SLOT(cameraMenuChanged())));
 
     // View > Third Person
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::ThirdPerson, 0,
-        true, qApp, SLOT(cameraMenuChanged())));
+        false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Mirror
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
