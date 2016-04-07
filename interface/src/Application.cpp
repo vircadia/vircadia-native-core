@@ -38,6 +38,8 @@
 
 #include <QtMultimedia/QMediaPlayer>
 
+#include <QProcessEnvironment>
+
 #include <gl/QOpenGLContextWrapper.h>
 
 #include <ResourceScriptingInterface.h>
@@ -1007,6 +1009,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
                 if (webEntity) {
                     webEntity->setProxyWindow(_window->windowHandle());
+                    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+                        _keyboardMouseDevice->pluginFocusOutEvent();
+                    }
                     _keyboardFocusedItem = entityItemID;
                     _lastAcceptedKeyPress = usecTimestampNow();
                     if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
@@ -1119,6 +1124,10 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    // add a logline indicating if QTWEBENGINE_REMOTE_DEBUGGING is set or not
+    QString webengineRemoteDebugging = QProcessEnvironment::systemEnvironment().value("QTWEBENGINE_REMOTE_DEBUGGING", "false");
+    qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebugging;
+
     // Stop third party processes so that they're not left running in the event of a subsequent shutdown crash.
 #ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->setEnabled(false);
@@ -2565,6 +2574,15 @@ void Application::idle(uint64_t now) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
+    }
+
+    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
+        _keyboardMouseDevice->pluginFocusOutEvent();
+        _keyboardDeviceHasFocus = false;
+    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
+        _keyboardDeviceHasFocus = true;
     }
 
     auto displayPlugin = getActiveDisplayPlugin();

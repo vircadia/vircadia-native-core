@@ -32,8 +32,8 @@ AudioInjector::AudioInjector(QObject* parent) :
 
 }
 
-AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
-    _audioData(sound->getByteArray()),
+AudioInjector::AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions) :
+    _audioData(sound.getByteArray()),
     _options(injectorOptions)
 {
 
