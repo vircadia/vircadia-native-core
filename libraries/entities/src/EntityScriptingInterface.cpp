@@ -488,7 +488,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(cons
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, 
                 const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
 
-    qDebug() << "Entities.findRayIntersectionBlocking() is obsolete, use Entities.findRayIntersection() instead.";
+    qWarning() << "Entities.findRayIntersectionBlocking() is obsolete, use Entities.findRayIntersection() instead.";
     const QVector<EntityItemID>& entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     const QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
     return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
