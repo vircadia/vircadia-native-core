@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-Script.include("../libraries/utils.js");
+Script.include("/~/libraries/utils.js");
 
 
 //
@@ -79,6 +79,7 @@ var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing t
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 var SHOW_GRAB_SPHERE = false; // draw a green sphere to show the grab search position and size
+var CHECK_TOO_FAR_UNEQUIP_TIME = 1.0; // seconds
 
 //
 // equip
@@ -290,10 +291,12 @@ function MyController(hand) {
     this.intersectionDistance = 0.0;
     this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
 
-
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
+
+    this.lastPickTime = 0;
+    this.lastUnequipCheckTime = 0;
 
     var _this = this;
 
@@ -1523,18 +1526,30 @@ function MyController(hand) {
             return;
         }
 
-        if (props.parentID == MyAvatar.sessionUUID &&
-            Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
-            // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
-            print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
-                  props.parentID + " " + vec3toStr(props.position));
-            this.setState(STATE_RELEASE);
-            if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
-                this.callEntityMethodOnGrabbed("releaseGrab");
-            } else { // (this.state == STATE_CONTINUE_EQUIP || this.state == STATE_CONTINUE_HOLD)
-                this.callEntityMethodOnGrabbed("releaseEquip");
+
+        var now = Date.now();
+        if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
+            this.lastUnequipCheckTime = now;
+
+            if (props.parentID == MyAvatar.sessionUUID &&
+                Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
+                var handPosition = this.getHandPosition();
+                // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
+                // need to fail the findEntities test.
+                nearPickedCandidateEntities = Entities.findEntities(handPosition, GRAB_RADIUS);
+                if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
+                    // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
+                    print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
+                          props.parentID + " " + vec3toStr(props.position));
+                    this.setState(STATE_RELEASE);
+                    if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
+                        this.callEntityMethodOnGrabbed("releaseGrab");
+                    } else { // (this.state == STATE_CONTINUE_EQUIP || this.state == STATE_CONTINUE_HOLD)
+                        this.callEntityMethodOnGrabbed("releaseEquip");
+                    }
+                    return;
+                }
             }
-            return;
         }
 
         // Keep track of the fingertip velocity to impart when we release the object.

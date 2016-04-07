@@ -888,6 +888,9 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     if (hasActions()) {
         return;
     }
+    if (!_parentID.isNull()) {
+        return;
+    }
 
     if (hasLocalAngularVelocity()) {
         glm::vec3 localAngularVelocity = getLocalAngularVelocity();
@@ -1975,6 +1978,11 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
 
 void EntityItem::locationChanged() {
     requiresRecalcBoxes();
+    _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
+    EntityTreePointer tree = getTree();
+    if (tree) {
+        tree->entityChanged(getThisPointer());
+    }
     SpatiallyNestable::locationChanged(); // tell all the children, also
 }
 
@@ -1984,6 +1992,7 @@ void EntityItem::dimensionsChanged() {
 }
 
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
+    // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
     auto globalPosition = getPosition(success);
     if (success) {
