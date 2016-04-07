@@ -154,7 +154,11 @@ ScriptEngine::~ScriptEngine() {
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();
-    connect(this, &ScriptEngine::doneRunning, thread(), &QThread::quit);
+    QThread* receiver;
+    // Ensure the thread should be running, and does exist
+    if (_isRunning && _isThreaded && (receiver = thread())) {
+        connect(this, &ScriptEngine::doneRunning, receiver, &QThread::quit);
+    }
 }
 
 void ScriptEngine::runInThread() {
