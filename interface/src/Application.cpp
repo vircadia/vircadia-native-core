@@ -4184,7 +4184,8 @@ void Application::nodeActivated(SharedNodePointer node) {
     }
 
     // If we get a new EntityServer activated, do a "forceRedraw" query. This will send a degenerate
-    // query so that if the server doesn't
+    // query so that the server will think our next non-degenerate query is "different enough" to send
+    // us a full scene
     if (_recentlyClearedDomain && node->getType() == NodeType::EntityServer) {
         _recentlyClearedDomain = false;
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
