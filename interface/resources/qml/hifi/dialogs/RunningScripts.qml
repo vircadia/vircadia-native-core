@@ -175,11 +175,12 @@ Window {
 
             HifiControls.TextField {
                 id: filterEdit
+                isSearchField: true
                 anchors.left: parent.left
                 anchors.right: parent.right
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
-                placeholderText: "filter"
+                placeholderText: "Filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }

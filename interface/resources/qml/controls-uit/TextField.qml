@@ -20,6 +20,7 @@ TextField {
 
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
+    property bool isSearchField: false
     property string label: ""
     property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
 
@@ -28,6 +29,7 @@ TextField {
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
+    font.italic: textField.text == ""
     height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
 
     y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
@@ -42,11 +44,22 @@ TextField {
                    : (textField.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: hifi.colors.primaryHighlight
             border.width: textField.focus ? 1 : 0
+            radius: isSearchField ? textField.height / 2 : 0
+
+            HiFiGlyphs {
+                text: hifi.glyphs.search
+                color: textColor
+                size: hifi.fontSizes.textFieldSearchIcon
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: hifi.dimensions.textPadding
+                visible: isSearchField
+            }
         }
         placeholderTextColor: hifi.colors.lightGray
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        padding.left: hifi.dimensions.textPadding
+        padding.left: (isSearchField ? textField.height : 0) + hifi.dimensions.textPadding
         padding.right: hifi.dimensions.textPadding
     }
 
