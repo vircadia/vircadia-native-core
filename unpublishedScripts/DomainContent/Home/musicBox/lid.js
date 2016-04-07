@@ -3,6 +3,7 @@
     //TODO -- At the part of the animation where the user starts to close the lid we need to rewind any frames past the one where it is aligned for going up/down before switching to the down animation
     Script.include('../utils.js');
     var GRAB_CONSTRAINTS_USER_DATA_KEY = "grabConstraintsKey"
+    var MAPPING_NAME = "com.highfidelity.musicBox";
 
     var _this;
 
@@ -18,6 +19,9 @@
     var OPEN_SOUND_URL = Script.resolvePath('atp:/closeSound.wav');
 
     Lid.prototype = {
+        disabledHand: 'none',
+        lidLoopConnected: false,
+        myInterval: null,
         musicInjector: null,
         preload: function(entityID) {
             this.entityID = entityID;
@@ -37,31 +41,122 @@
             }
             this.getParts();
             this.props = Entities.getEntityProperties(this.entityID);
+            var mapping = Controller.newMapping(MAPPING_NAME);
+
+            mapping.from([Controller.Standard.RT]).peek().to(_this.rightTriggerPress);
+
+            mapping.from([Controller.Standard.LT]).peek().to(_this.leftTriggerPress);
+
+            Controller.enableMapping(MAPPING_NAME);
+
+        },
+        setLeftHand: function() {
+            _this.disabledHand = 'left';
+            print('LID HAND IS LEFT');
         },
 
+        setRightHand: function() {
+            _this.disabledHand = 'right';
+            print('LID HAND IS RIGHT')
+        },
+
+        clearHand: function() {
+            _this.disabledHand = "none";
+        },
+
+        createMyInteval: function() {
+            _this.myInterval = Script.setInterval(function() {
+                _this.handleTrigger();
+            }, 16);
+        },
+        clearMyInterval: function() {
+            if (_this.myInterval !== null) {
+                Script.clearInterval(_this.myInterval)
+            }
+        },
+        rightTriggerPress: function(value) {
+            print('right trigger press 1')
+            if (_this.disabledHand === 'none') {
+                _this.generalTriggerPress(value,'right');
+                return;
+            }
+            if (_this.disabledHand !== 'right') {
+                return;
+            }
+            _this.hand = 'right';
+            print('RIGHT TRIGGER PRESS')
+            _this.triggerPress(value);
+        },
+
+        leftTriggerPress: function(value) {
+            print('left trigger press1 ')
+            if (_this.disabledHand === 'none') {
+                _this.generalTriggerPress(value,'left');
+                return;
+            }
+            if (_this.disabledHand !== 'left') {
+                return;
+            }
+            _this.hand = 'left';
+            _this.triggerPress(value)
+            print('LEFT TRIGGER PRESS2');
+        },
+
+        generalTriggerPress: function(value,hand) {
+            // print('GENERAL TRIGGER PRESS');
+            _this.hand = hand;
+            if (_this.disabledHand !== 'none') {
+                return;
+            } else {
+            var handPosition = _this.getHandPosition();
+            var lidProps = Entities.getEntityProperties(_this.entityID);
+
+            var distanceHandToLid = Vec3.distance(lidProps.position, handPosition);
+            print('DISTANCE TO LID' + distanceHandToLid)
+
+            if(distanceHandToLid<=0.4){
+                 print('SOME PRESS NEARBY BUT WE ARE NOT GRABBING THE BOTTOM')
+                   _this.triggerPress(value);
+            }
+            else{
+                print('TOO FAR FOR THIS TO COUNT')
+            }
+            
+               
+            }
+        },
+
+        triggerPress: function(value) {
+        
+            print('SOME TRIGGER PRESS ' + value);
+            if (value > 0.1 && _this.lidLoopConnected === false) {
+                print('SHOULD CREATE INTERVAL')
+                _this.lidLoopConnected = true;
+                _this.createMyInteval();
+            };
+
+            if (value <= 0.1 && _this.lidLoopConnected === true) {
+                print('SHOULD CLEAR INTERVAL')
+                _this.lidLoopConnected = false;
+                _this.clearMyInterval();
+            }
+
+        },
         updateSoundPositionWhileBaseIsHeld: function() {
 
         },
 
-        startNearTrigger: function() {
-            this.getParts();
-        },
-
         getHandPosition: function() {
-            if (this.hand === 'left') {
+            if (_this.hand === 'left') {
                 return MyAvatar.getLeftPalmPosition();
             }
-            if (this.hand === 'right') {
+            if (_this.hand === 'right') {
                 return MyAvatar.getRightPalmPosition();
             }
 
         },
-        continueNearTrigger: function(myID, paramsArray) {
-            paramsArray.forEach(function(param, index) {
-                if (index === 0) {
-                    _this.hand = param;
-                }
-            });
+
+        handleTrigger: function() {
 
             // get the base position
             // get the hand position
@@ -89,7 +184,7 @@
 
             var finalAngle = scaleValue(distaceHandToBaseBox, 0.1, maxDistance, 0, 75)
 
-            print('FINAL ANGLE:: ' + finalAngle);
+            // print('FINAL ANGLE:: ' + finalAngle);
 
             if (finalAngle < 0) {
                 finalAngle = 0;
@@ -167,7 +262,7 @@
                 angularVelocity: worldAngularVelocity
             })
 
-            print('UPDATE HAT ANGULAR VELOCITY!' + JSON.stringify(worldAngularVelocity));
+            // print('UPDATE HAT ANGULAR VELOCITY!' + JSON.stringify(worldAngularVelocity));
 
         },
 
@@ -184,7 +279,7 @@
                 angularVelocity: worldAngularVelocity
             })
 
-            print('UPDATE KEY ANGULAR VELOCITY!' + JSON.stringify(worldAngularVelocity));
+            // print('UPDATE KEY ANGULAR VELOCITY!' + JSON.stringify(worldAngularVelocity));
 
         },
 
@@ -223,7 +318,7 @@
                     loop: false
                 }
                 this.openSoundInjector = Audio.playSound(this.openSound, audioOptions);
-                print('this oppen soundinejctopr' + JSON.stringify(this.openSoundInjector))
+                print('this open soundinjector' + JSON.stringify(this.openSoundInjector))
             }
         },
 
@@ -305,9 +400,12 @@
         },
 
         unload: function() {
+            Controller.disableMapping(MAPPING_NAME);
+            print('DISABLED MAPPING:: ' + MAPPING_NAME);
             if (this.musicInjector !== null) {
                 this.musicInjector.stop();
             }
+
         },
     }
 
