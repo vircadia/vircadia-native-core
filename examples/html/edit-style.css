@@ -12,7 +12,7 @@
     font-family: Raleway-Regular;
     src: url(../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
          url(../../fonts/Raleway-Regular.ttf),  /* OSX production */
-         url(../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development */
+         url(../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
 }
 
 @font-face {
