@@ -867,6 +867,14 @@ function saveSettings() {
   // grab a JSON representation of the form via form2js
   var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
 
+  // check if we've set the basic http password - if so convert it to base64
+  if (formJSON["security"]) {
+    var password = formJSON["security"]["http_password"];
+    if (password.length > 0) {
+      formJSON["security"]["http_password"] = sha256_digest(password);
+    }
+  }
+
   console.log(formJSON);
 
   // re-enable all inputs
