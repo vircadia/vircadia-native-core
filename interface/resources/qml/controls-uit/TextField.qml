@@ -52,14 +52,14 @@ TextField {
                 size: hifi.fontSizes.textFieldSearchIcon
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: hifi.dimensions.textPadding
+                anchors.leftMargin: hifi.dimensions.textPadding - 2
                 visible: isSearchField
             }
         }
         placeholderTextColor: hifi.colors.lightGray
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        padding.left: (isSearchField ? textField.height : 0) + hifi.dimensions.textPadding
+        padding.left: (isSearchField ? textField.height - 2 : 0) + hifi.dimensions.textPadding
         padding.right: hifi.dimensions.textPadding
     }
 
