@@ -140,7 +140,6 @@ void UserInputMapper::loadDefaultMapping(uint16 deviceID) {
         return;
     }
 
-
     auto mapping = loadMappings(proxyEntry->second->getDefaultMappingConfigs());
     if (mapping) {
         auto prevMapping = _mappingsByDevice[deviceID];
@@ -705,6 +704,12 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile, bool enab
     if (jsonFile.isEmpty()) {
         return Mapping::Pointer();
     }
+    // Each mapping only needs to be loaded once
+    static QSet<QString> loaded;
+    if (loaded.contains(jsonFile)) {
+        return Mapping::Pointer();
+    }
+    loaded.insert(jsonFile);
     QString json;
     {
         QFile file(jsonFile);
@@ -971,7 +976,7 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     result->json = QString(QJsonDocument(obj).toJson());
     result->source = parseSource(obj[JSON_CHANNEL_FROM]);
     result->debug = obj[JSON_CHANNEL_DEBUG].toBool();
-    result->debug = obj[JSON_CHANNEL_PEEK].toBool();
+    result->peek = obj[JSON_CHANNEL_PEEK].toBool();
     if (!result->source) {
         qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
         return Route::Pointer();
