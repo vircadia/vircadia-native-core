@@ -452,6 +452,10 @@ input[type=checkbox]:checked + label:hover {
     min-height: 29px;
 }
 
+.property.checkbox {
+    width: auto;
+}
+
 .property label {
     display: table-cell;
     vertical-align: middle;

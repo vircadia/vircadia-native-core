@@ -43,6 +43,11 @@ public:
         auto result = static_cast<MenuUserData*>(object->userData(USER_DATA_ID));
         if (!result) {
             qWarning() << "Unable to find MenuUserData for object " << object;
+            if (auto action = dynamic_cast<QAction*>(object)) {
+                qWarning() << action->text();
+            } else if (auto menu = dynamic_cast<QMenu*>(object)) {
+                qWarning() << menu->title();
+            }
             return nullptr;
         }
         return result;

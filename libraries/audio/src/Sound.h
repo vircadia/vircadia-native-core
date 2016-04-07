@@ -20,18 +20,16 @@
 
 class Sound : public Resource {
     Q_OBJECT
-    
-    Q_PROPERTY(bool downloaded READ isReady)
-    Q_PROPERTY(float duration READ getDuration)
+
 public:
     Sound(const QUrl& url, bool isStereo = false);
     
     bool isStereo() const { return _isStereo; }    
     bool isReady() const { return _isReady; }
-    float getDuration() { return _duration; }
+    float getDuration() const { return _duration; }
 
  
-    const QByteArray& getByteArray() { return _byteArray; }
+    const QByteArray& getByteArray() const { return _byteArray; }
 
 signals:
     void ready();
@@ -50,13 +48,28 @@ private:
 
 typedef QSharedPointer<Sound> SharedSoundPointer;
 
+class SoundScriptingInterface : public QObject {
+    Q_OBJECT
+
+    Q_PROPERTY(bool downloaded READ isReady)
+    Q_PROPERTY(float duration READ getDuration)
+
+public:
+    SoundScriptingInterface(SharedSoundPointer sound);
+    SharedSoundPointer getSound() { return _sound; }
+
+    bool isReady() const { return _sound->isReady(); }
+    float getDuration() { return _sound->getDuration(); }
+
+signals:
+    void ready();
+
+private:
+    SharedSoundPointer _sound;
+};
+
 Q_DECLARE_METATYPE(SharedSoundPointer)
-QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in);
-void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer &out);
-
-Q_DECLARE_METATYPE(Sound*)
-QScriptValue soundPointerToScriptValue(QScriptEngine* engine, Sound* const& in);
-void soundPointerFromScriptValue(const QScriptValue& object, Sound* &out);
-
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in);
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer& out);
 
 #endif // hifi_Sound_h

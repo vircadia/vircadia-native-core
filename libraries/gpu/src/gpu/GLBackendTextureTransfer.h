@@ -28,6 +28,7 @@ public:
 
 protected:
     void setup() override;
+    void shutdown() override;
     bool processQueueItems(const Queue& messages) override;
     void transferTextureSynchronous(const gpu::Texture& texture);
 
