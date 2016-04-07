@@ -3462,11 +3462,9 @@ void Application::update(float deltaTime) {
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
         bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
-
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
-
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
             }
@@ -3561,7 +3559,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend) {
 
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
@@ -3648,7 +3646,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     auto queryPacket = NLPacket::create(packetType);
 
-    nodeList->eachNode([&](const SharedNodePointer& node){
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
 
@@ -3715,6 +3713,16 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
+            }
+
+            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner 
+            // that will cause our next query to be guarenteed to be different and the server will resend to us
+            if (forceResend) {
+                _octreeQuery.setCameraPosition(glm::vec3(-0.1, -0.1, -0.1));
+                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
+                _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
+                _octreeQuery.setCameraNearClip(0.1f);
+                _octreeQuery.setCameraFarClip(0.1f);
             }
 
             // encode the query data
@@ -4133,6 +4141,7 @@ void Application::clearDomainOctreeDetails() {
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
 
+    _recentlyClearedDomain = true;
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -4154,7 +4163,7 @@ void Application::nodeAdded(SharedNodePointer node) const {
     }
 }
 
-void Application::nodeActivated(SharedNodePointer node) const {
+void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::AssetServer) {
         // asset server just connected - check if we have the asset browser showing
 
@@ -4173,10 +4182,20 @@ void Application::nodeActivated(SharedNodePointer node) const {
             }
         }
     }
+
+    // If we get a new EntityServer activated, do a "forceRedraw" query. This will send a degenerate
+    // query so that the server will think our next non-degenerate query is "different enough" to send
+    // us a full scene
+    if (_recentlyClearedDomain && node->getType() == NodeType::EntityServer) {
+        _recentlyClearedDomain = false;
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+            queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions, true);
+        }
+    }
+
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
-
     // These are here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
     // OctreePacketProcessor::nodeKilled is not being called when NodeList::nodeKilled is emitted.
     // This may have to do with GenericThread::threadRoutine() blocking the QThread event loop
