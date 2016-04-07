@@ -218,6 +218,12 @@ input.search {
     border-radius: 14px;
 }
 
+input.search:focus {
+    outline: none;
+    box-sizing: border-box;
+    box-shadow: 0 0 0px 1px #00b4ef;
+}
+
 input:disabled, textarea:disabled {
     background-color: #383838;
     color: #afafaf;
