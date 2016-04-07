@@ -47,6 +47,7 @@ class CallbackData {
 public:
     QScriptValue function;
     EntityItemID definingEntityIdentifier;
+    QUrl definingSandboxURL;
 };
 
 typedef QList<CallbackData> CallbackList;
@@ -57,6 +58,7 @@ public:
     QString scriptText;
     QScriptValue scriptObject;
     int64_t lastModified;
+    QUrl definingSandboxURL;
 };
 
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
@@ -214,8 +216,9 @@ protected:
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
 
     EntityItemID currentEntityIdentifier {}; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
-    void doWithEnvironment(const EntityItemID& entityID, std::function<void()> operation);
-    void callWithEnvironment(const EntityItemID& entityID, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
+    QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
+    void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
+    void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     friend class ScriptEngines;
     static std::atomic<bool> _stoppingAllScripts;
