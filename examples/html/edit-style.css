@@ -474,11 +474,16 @@ input[type=checkbox]:checked + label:hover {
     min-height: 29px;
 }
 
-.property label {
+.property label, .number label {
     display: table-cell;
     vertical-align: middle;
     font-family: Raleway-SemiBold;
     font-size: 14px;
+}
+.property label .unit, .number label .unit {
+    margin-left: 8px;
+    font-family: Raleway-Light;
+    font-size: 13px;
 }
 
 .value {
@@ -512,7 +517,8 @@ input[type=checkbox]:checked + label:hover {
 
 .text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
     float: left;
-    margin-bottom: 4px;
+    margin-left: 1px;
+    margin-bottom: 3px;
 }
 
 .number > input {
@@ -525,13 +531,6 @@ input[type=checkbox]:checked + label:hover {
 }
 .xyz > div, .pyr > div, .gen > div {
     clear: both;
-}
-
-.unit {
-    padding-left: 4px;
-    vertical-align: top;
-    position: relative;
-    top: 5px;
 }
 
 .dropdown {
@@ -768,7 +767,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 
 
 #entity-list-header {
-    margin-bottom: 24px;
+    margin-bottom: 36px;
 }
 
 #delete {
@@ -793,6 +792,8 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 #radius-and-unit {
     float: right;
     margin-right: -148px;
+    position: relative;
+    top: -20px;
 }
 
 

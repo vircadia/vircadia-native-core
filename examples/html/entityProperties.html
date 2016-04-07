@@ -1336,7 +1336,7 @@
             <label>Spatial</label><span>M</span>
         </div>
         <div class="spatial-group property xyz">
-            <label>Position</label>
+            <label>Position <span class="unit">m</span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
                 <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
@@ -1357,7 +1357,7 @@
             <input type="number" id="property-parent-joint-index">
         </div>
         <div class="spatial-group property xyz">
-            <label>Registration</label>
+            <label>Registration <span class="unit">0.0&ndash;1.0</span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
                 <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
@@ -1365,7 +1365,7 @@
             </div>
         </div>
         <div class="spatial-group property xyz">
-            <label>Dimensions</label>
+            <label>Dimensions <span class="unit">m</span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
                 <div><input type="number" class="y" id="property-dim-y" step="0.1"><label for="property-dim-y">Y:</label></div>
@@ -1373,7 +1373,7 @@
             </div>
         </div>
         <div class="spatial-group property gen">
-            <label>Scale</label>
+            <label>Scale <span class="unit">%</span></label>
             <div class="row">
                 <input type="number" id="dimension-rescale-pct" value=100>
                 <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
@@ -1381,7 +1381,7 @@
             </div>
         </div>
         <div class="spatial-group poly-vox-section property XYZ">
-            <label>Voxel volume size</label>
+            <label>Voxel volume size <span class="unit">m</span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
                 <div><input type="number" class="y" id="property-voxel-volume-size-y"><label for="property-voxel-volume-size-y">Y:</label></div>
@@ -1413,7 +1413,7 @@
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
         <div class="spatial-group property pyr">
-            <label>Rotation</label>
+            <label>Rotation <span class="unit">deg</span></label>
             <div class="tuple">
                 <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
                 <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
@@ -1426,7 +1426,7 @@
             <label>Physical</label><span>M</span>
         </div>
         <div class="physical-group property xyz">
-            <label>Linear velocity</label>
+            <label>Linear velocity <span class="unit">m/s</span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-lvel-x"><label for="property-lvel-x">X:</label></div>
                 <div><input type="number" class="y" id="property-lvel-y"><label for="property-lvel-y">Y:</label></div>
@@ -1438,7 +1438,7 @@
             <input type="number" id="property-ldamping">
         </div>
         <div class="physical-group property pyr">
-            <label>Angular velocity</label>
+            <label>Angular velocity <span class="unit">deg/s</span></label>
             <div class="tuple">
                 <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
                 <div><input type="number" class="yaw" id="property-avel-y"><label for="property-avel-y">Yaw:</label></div>
@@ -1457,7 +1457,7 @@
             </div>
         </div>
         <div class="physical-group property xyz">
-            <label>Gravity</label>
+            <label>Gravity <span class="unit">m/s<sup>2</sup></span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-grav-x"><label for="property-grav-x">X:</label></div>
                 <div><input type="number" class="y" id="property-grav-y"><label for="property-grav-y">Y:</label></div>
@@ -1465,7 +1465,7 @@
             </div>
         </div>
         <div class="physical-group property xyz">
-            <label>Acceleration</label>
+            <label>Acceleration <span class="unit">m/s<sup>2</sup></span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-lacc-x"><label for="property-lacc-x">X:</label></div>
                 <div><input type="number" class="y" id="property-lacc-y"><label for="property-lacc-y">Y:</label></div>
@@ -1551,7 +1551,7 @@
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
         <div class="behavior-group property number">
-            <label>Lifetime</label>
+            <label>Lifetime <span class="unit">s</span></label>
             <input type="number" id="property-lifetime">
         </div>
         <div class="behavior-group property url refresh">
@@ -1635,7 +1635,7 @@
             <input type="text" id="property-text-text">
         </div>
         <div class="text-group text-section property number">
-            <label>Line height</label>
+            <label>Line height <span class="unit">m</span></label>
             <input type="number" id="property-text-line-height" min="0" step="0.005">
         </div>
         <div class="text-group text-section property rgb">
@@ -1684,8 +1684,8 @@
         </div>
         <div class="zone-group zone-section keylight-section property gen">
             <div class="tuple">
-                <div><label>Light altitude</label><input type="number" id="property-zone-key-light-direction-x"></div>
-                <div><label>Light azimuth</label><input type="number" id="property-zone-key-light-direction-y"></div>
+                <div><label>Light altitude <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-x"></div>
+                <div><label>Light azimuth <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-y"></div>
                 <div></div>
             </div>
         </div>
@@ -1704,9 +1704,9 @@
         </div>
         <div class="zone-group zone-section stage-section property gen">
             <div class="tuple">
-                <div><label>Stage latitude</label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
-                <div><label>Stage longitude</label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
-                <div><label>Stage altitude</label><input type="number" id="property-zone-stage-altitude" step="1"></div>
+                <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
+                <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
+                <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
             </div>
         </div>
         <div class="zone-group zone-section stage-section property checkbox">
@@ -1716,8 +1716,8 @@
 
         <div class="zone-group zone-section stage-section property gen">
             <div class="tuple">
-                <div><label>Stage day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
-                <div><label>Stage hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
+                <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
+                <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
                 <div></div>
             </div>
         </div>
@@ -1777,7 +1777,7 @@
         <div class="light-group light-section property gen">
             <div class="tuple">
                 <div><label>Intensity</label><input type="number" id="property-light-intensity" min="0" step="0.1"></div>
-                <div><label>Fall-off radius</label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
+                <div><label>Fall-off radius <span class="unit">m</span></label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
                 <div></div>
             </div>
         </div>
