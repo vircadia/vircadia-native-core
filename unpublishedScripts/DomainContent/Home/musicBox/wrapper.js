@@ -58,9 +58,9 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
         z: 0.5
     }
 
-    var LID_SCRIPT_URL = Script.resolvePath('lid.js?' + Math.random());
+    var LID_SCRIPT_URL = Script.resolvePath('atp:/musicBox/lid.js');
 
-    var BASE_SCRIPT_URL = Script.resolvePath('baseBox.js?' + Math.random());
+    var BASE_SCRIPT_URL = Script.resolvePath('atp:/musicBox/baseBox.js');
     var base, lid, hat, key;
 
     function createLid(baseID) {
@@ -75,7 +75,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
         var lidProperties = {
             name: 'home_music_box_lid',
             type: 'Model',
-            modelURL: 'atp:/MB_Lid.fbx',
+            modelURL: 'atp:/musicBox/MB_Lid.fbx',
             dimensions: LID_DIMENSIONS,
             position: startPosition,
             parentID: baseID,
@@ -106,7 +106,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
         var LATERAL_OFFSET = 0.0;
 
         var properties = {
-            modelURL: "atp:/MB_Hat.fbx",
+            modelURL: "atp:/musicBox/MB_Hat.fbx",
             name: 'home_music_box_hat',
             type: 'Model',
             position: getOffsetFromCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET),
@@ -138,7 +138,7 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
         var LATERAL_OFFSET = 0.0;
 
         var properties = {
-            modelURL: "atp:/MB_Key.fbx",
+            modelURL: "atp:/musicBox/MB_Key.fbx",
             name: 'home_music_box_key',
             type: 'Model',
             parentID: baseID,
@@ -167,13 +167,13 @@ HomeMusicBox = function(spawnPosition, spawnRotation) {
     function createBaseBox() {
 
         var properties = {
-            modelURL: "atp:/MB_Box.fbx",
+            modelURL: "atp:/musicBox/MB_Box.fbx",
             name: 'home_music_box_base',
             type: 'Model',
             position: BASE_POSITION,
             dynamic: true,
             shapeType: 'compound',
-            compoundShapeURL: 'atp:/boxHull3.obj',
+            compoundShapeURL: 'atp:/musicBox/boxHull3.obj',
             dimensions: {
                 x: 0.1661,
                 y: 0.0928,

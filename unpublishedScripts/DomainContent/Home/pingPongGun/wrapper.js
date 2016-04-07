@@ -10,7 +10,7 @@
 //
 
 Script.include("../utils.js");
-var scriptURL = 'atp:/pingPongGun/pingPingGun.js';
+var scriptURL = 'atp:/pingPongGun/pingPongGun.js';
 var MODEL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.fbx';
 var COLLISION_HULL_URL = 'atp:/pingPongGun/Pingpong-Gun-New.obj';
 

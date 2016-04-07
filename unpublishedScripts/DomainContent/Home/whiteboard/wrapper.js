@@ -26,7 +26,7 @@ Whiteboard = function(spawnPosition, spawnRotation) {
     var whiteboardPosition = spawnPosition;
     var whiteboardRotation = orientation;
    
-    var WHITEBOARD_MODEL_URL = "atp:/whiteboard/Whiteboard-4.fbx";
+    var WHITEBOARD_MODEL_URL = "atp:/whiteboard/Whiteboard-6.fbx";
     var WHITEBOARD_COLLISION_HULL_URL = "atp:/whiteboard/whiteboardCollisionHull.obj";
    
     var whiteboard = Entities.addEntity({

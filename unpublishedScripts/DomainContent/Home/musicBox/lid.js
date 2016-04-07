@@ -12,11 +12,9 @@
         return this;
     }
 
-    var MUSIC_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/musicBox/music_converted.wav');
-    // var SHUT_SOUND_URL = Script.resolvePath('http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/book_fall.L.wav');
-    // var OPEN_SOUND_URL = Script.resolvePath('http://public.highfidelity.io/sounds/Switches%20and%20sliders/lamp_switch_2.wav');
-    var SHUT_SOUND_URL = Script.resolvePath('atp:/openSound.wav');
-    var OPEN_SOUND_URL = Script.resolvePath('atp:/closeSound.wav');
+    var MUSIC_URL = Script.resolvePath('atp:/musicBox/music.wav');
+    var OPENSHUT_SOUND_URL = Script.resolvePath('atp:/openCloseSound.wav');
+
 
     Lid.prototype = {
         disabledHand: 'none',
@@ -26,8 +24,8 @@
         preload: function(entityID) {
             this.entityID = entityID;
             this.music = SoundCache.getSound(MUSIC_URL);
-            this.shutSound = SoundCache.getSound(SHUT_SOUND_URL);
-            this.openSound = SoundCache.getSound(OPEN_SOUND_URL);
+            this.shutSound = SoundCache.getSound(OPENSHUT_SOUND_URL);
+            this.openSound = SoundCache.getSound(OPENSHUT_SOUND_URL);
 
             print('OPEN SOUND?? ' + this.openSound)
             this.musicIsPlaying = false;
