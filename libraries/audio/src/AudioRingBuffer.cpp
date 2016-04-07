@@ -23,13 +23,15 @@
 
 #include "AudioRingBuffer.h"
 
+static const QString RING_BUFFER_OVERFLOW_DEBUG { "AudioRingBuffer::writeData has overflown the buffer. Overwriting old data." };
+
 AudioRingBuffer::AudioRingBuffer(int numFrameSamples, bool randomAccessMode, int numFramesCapacity) :
-_frameCapacity(numFramesCapacity),
-_sampleCapacity(numFrameSamples * numFramesCapacity),
-_bufferLength(numFrameSamples * (numFramesCapacity + 1)),
-_numFrameSamples(numFrameSamples),
-_randomAccessMode(randomAccessMode),
-_overflowCount(0)
+    _frameCapacity(numFramesCapacity),
+    _sampleCapacity(numFrameSamples * numFramesCapacity),
+    _bufferLength(numFrameSamples * (numFramesCapacity + 1)),
+    _numFrameSamples(numFrameSamples),
+    _randomAccessMode(randomAccessMode),
+    _overflowCount(0)
 {
     if (numFrameSamples) {
         _buffer = new int16_t[_bufferLength];
@@ -41,6 +43,8 @@ _overflowCount(0)
         _nextOutput = NULL;
         _endOfLastWrite = NULL;
     }
+
+    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(RING_BUFFER_OVERFLOW_DEBUG);
 };
 
 AudioRingBuffer::~AudioRingBuffer() {
@@ -131,8 +135,6 @@ int AudioRingBuffer::writeData(const char* data, int maxSize) {
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        const QString RING_BUFFER_OVERFLOW_DEBUG { "AudioRingBuffer::writeData has overflown the buffer. Overwriting old data." };
-        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(RING_BUFFER_OVERFLOW_DEBUG);
         qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
     }
 
@@ -179,7 +181,12 @@ int AudioRingBuffer::addSilentSamples(int silentSamples) {
     if (silentSamples > samplesRoomFor) {
         // there's not enough room for this write. write as many silent samples as we have room for
         silentSamples = samplesRoomFor;
-        qCDebug(audio) << "Dropping some silent samples to prevent ring buffer overflow";
+
+        static const QString DROPPED_SILENT_DEBUG {
+            "AudioRingBuffer::addSilentSamples dropping silent samples to prevent overflow."
+        };
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(DROPPED_SILENT_DEBUG);
+        qCDebug(audio) << qPrintable(DROPPED_SILENT_DEBUG);
     }
 
     // memset zeroes into the buffer, accomodate a wrap around the end
@@ -243,7 +250,7 @@ int AudioRingBuffer::writeSamples(ConstIterator source, int maxSamples) {
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     int16_t* bufferLast = _buffer + _bufferLength - 1;
@@ -264,7 +271,7 @@ int AudioRingBuffer::writeSamplesWithFade(ConstIterator source, int maxSamples, 
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qCDebug(audio) << "Overflowed ring buffer! Overwriting old data";
+        qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     int16_t* bufferLast = _buffer + _bufferLength - 1;
