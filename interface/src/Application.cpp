@@ -252,7 +252,6 @@ public:
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
             auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
-            auto menu = Menu::getInstance();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
                 qDebug() << "DEADLOCK WATCHDOG WARNING:"
