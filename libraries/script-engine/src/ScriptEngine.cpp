@@ -1124,9 +1124,19 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     }
 
     if (!testConstructor.isFunction()) {
-        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID << "\n"
-            "    NOT CONSTRUCTOR\n"
-            "    SCRIPT:" << scriptOrURL;
+        QString testConstructorType = QString(testConstructor.toVariant().typeName());
+        if (testConstructorType == "") {
+            testConstructorType = "empty";
+        }
+        QString testConstructorValue = testConstructor.toString();
+        const int maxTestConstructorValueSize = 80;
+        if (testConstructorValue.size() > maxTestConstructorValueSize) {
+            testConstructorValue = testConstructorValue.mid(0, maxTestConstructorValueSize) + "...";
+        }
+        qCDebug(scriptengine) << "Error -- ScriptEngine::loadEntityScript() entity:" << entityID
+                              << "failed to load entity script -- expected a function, got " + testConstructorType
+                              << "," << testConstructorValue
+                              << "," << scriptOrURL;
 
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
