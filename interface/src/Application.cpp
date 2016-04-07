@@ -241,6 +241,8 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void setSuppressStatus(bool suppress) { _suppressStatus = suppress; }
+
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
@@ -251,7 +253,6 @@ public:
             auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
             auto menu = Menu::getInstance();
-            bool suppressStatusMessages = menu ? menu->isOptionChecked(MenuOption::SupressDeadlockWatchdogStatus) : false;
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
                 qDebug() << "DEADLOCK WATCHDOG WARNING:"
@@ -283,7 +284,7 @@ public:
                 _lastReport = now;
             }
 
-            if (!suppressStatusMessages && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
+            if (!_suppressStatus && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
                 qDebug() << "DEADLOCK WATCHDOG STATUS:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
@@ -312,6 +313,7 @@ public:
         }
     }
 
+    static std::atomic<bool> _suppressStatus;
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _lastReport;
     static std::atomic<uint64_t> _maxElapsed;
@@ -321,11 +323,16 @@ public:
     bool _quit { false };
 };
 
+std::atomic<bool> DeadlockWatchdogThread::_suppressStatus;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
+
+void Application::toggleSuppressDeadlockWatchdogStatus(bool checked) {
+    DeadlockWatchdogThread::setSuppressStatus(checked);
+}
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
