@@ -2171,12 +2171,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                             case CAMERA_MODE_ENTITY:
                                 _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
                                 break;
+
+                            default:
+                                _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                                break;
                         }
                     }
 
                     bool isMirrorChecked = Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
                     Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !isMirrorChecked);
                     if (isMirrorChecked) {
+
+                        // if we got here without coming in from a non-Full Screen mirror case, then our
+                        // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old 
+                        // behavior of returning to ThirdPerson
+                        if (_returnFromFullScreenMirrorTo.isEmpty()) {
+                            _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                        }
                         Menu::getInstance()->setIsOptionChecked(_returnFromFullScreenMirrorTo, true);
                     }
                     cameraMenuChanged();
