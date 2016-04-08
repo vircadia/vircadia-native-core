@@ -44,13 +44,15 @@
 
 
 namespace controller {
-    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
     const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
+    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0x00FF;
+    const uint16_t UserInputMapper::STATE_DEVICE = Input::INVALID_DEVICE - 0x0100;
 }
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 controller::UserInputMapper::UserInputMapper() {
     registerDevice(std::make_shared<ActionsDevice>());
+    registerDevice(_stateDevice = std::make_shared<StateController>());
     registerDevice(std::make_shared<StandardController>());
 }
 
@@ -137,7 +139,6 @@ void UserInputMapper::loadDefaultMapping(uint16 deviceID) {
         qCWarning(controllers) << "Unknown deviceID " << deviceID;
         return;
     }
-
 
     auto mapping = loadMappings(proxyEntry->second->getDefaultMappingConfigs());
     if (mapping) {
@@ -235,6 +236,10 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 
 void UserInputMapper::update(float deltaTime) {
     Locker locker(_lock);
+
+    static uint64_t updateCount = 0;
+    ++updateCount;
+
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
@@ -694,11 +699,17 @@ Pose UserInputMapper::getPose(const Input& input) const {
     return getPose(endpoint);
 }
 
-Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
+Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile, bool enable) {
     Locker locker(_lock);
     if (jsonFile.isEmpty()) {
         return Mapping::Pointer();
     }
+    // Each mapping only needs to be loaded once
+    static QSet<QString> loaded;
+    if (loaded.contains(jsonFile)) {
+        return Mapping::Pointer();
+    }
+    loaded.insert(jsonFile);
     QString json;
     {
         QFile file(jsonFile);
@@ -707,7 +718,11 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
         }
         file.close();
     }
-    return parseMapping(json);
+    auto result = parseMapping(json);
+    if (enable) {
+        enableMapping(result->name);
+    }
+    return result;
 }
 
 MappingPointer UserInputMapper::loadMappings(const QStringList& jsonFiles) {
@@ -961,7 +976,7 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     result->json = QString(QJsonDocument(obj).toJson());
     result->source = parseSource(obj[JSON_CHANNEL_FROM]);
     result->debug = obj[JSON_CHANNEL_DEBUG].toBool();
-    result->debug = obj[JSON_CHANNEL_PEEK].toBool();
+    result->peek = obj[JSON_CHANNEL_PEEK].toBool();
     if (!result->source) {
         qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
         return Route::Pointer();
@@ -1033,7 +1048,7 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
         Route::Pointer route = parseRoute(channelIt);
 
         if (!route) {
-            qWarning() << "Couldn't parse route";
+            qWarning() << "Couldn't parse route:" << mapping->name << QString(QJsonDocument(channelIt.toObject()).toJson());
             continue;
         }
 

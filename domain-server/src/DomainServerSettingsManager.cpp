@@ -129,7 +129,9 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 // reload the master and user config so that the merged config is right
                 _configMap.loadMasterAndUserConfig(argumentList);
             }
-        } else if (oldVersion < 1.1) {
+        }
+
+        if (oldVersion < 1.1) {
             static const QString ENTITY_SERVER_SETTINGS_KEY = "entity_server_settings";
             static const QString ENTITY_FILE_NAME_KEY = "persistFilename";
             static const QString ENTITY_FILE_PATH_KEYPATH = ENTITY_SERVER_SETTINGS_KEY + ".persistFilePath";
@@ -164,6 +166,28 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _configMap.loadMasterAndUserConfig(argumentList);
             }
 
+        }
+
+        if (oldVersion < 1.2) {
+            // This was prior to the base64 encoding of password for HTTP Basic Authentication.
+            // If we have a password in the previous settings file, make it base 64
+            static const QString BASIC_AUTH_PASSWORD_KEY_PATH { "security.http_password" };
+
+            QVariant* passwordVariant = valueForKeyPath(_configMap.getUserConfig(), BASIC_AUTH_PASSWORD_KEY_PATH);
+
+            if (passwordVariant && passwordVariant->canConvert(QMetaType::QString)) {
+                QString plaintextPassword = passwordVariant->toString();
+
+                qDebug() << "Migrating plaintext password to SHA256 hash in domain-server settings.";
+
+                *passwordVariant = QCryptographicHash::hash(plaintextPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
+
+                // write the new settings to file
+                persistToFile();
+
+                // reload the master and user config so the merged config is correct
+                _configMap.loadMasterAndUserConfig(argumentList);
+            }
         }
     }
 
