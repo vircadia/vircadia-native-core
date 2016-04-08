@@ -896,11 +896,3 @@ input#dimension-rescale-button {
     min-width: 50px;
     margin-left: 6px;
 }
-
-
-.color-set label, .color-set span {
-    display: block;
-}
-.color-set span {
-    padding-top: 2px;
-}
