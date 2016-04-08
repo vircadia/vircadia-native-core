@@ -3490,9 +3490,6 @@ void Application::update(float deltaTime) {
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
-        // update sensorToWorldMatrix for camera and hand controllers
-        getMyAvatar()->updateSensorToWorldMatrix();
-
         qApp->updateMyAvatarLookAtPosition();
 
         {
