@@ -7,13 +7,12 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
-//  Also supports touch and equipping objects.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-Script.include("../libraries/utils.js");
+Script.include("/~/libraries/utils.js");
 
 
 //
@@ -80,6 +79,7 @@ var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing t
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 var SHOW_GRAB_SPHERE = false; // draw a green sphere to show the grab search position and size
+var CHECK_TOO_FAR_UNEQUIP_TIME = 1.0; // seconds
 
 //
 // equip
@@ -291,10 +291,12 @@ function MyController(hand) {
     this.intersectionDistance = 0.0;
     this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
 
-
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
+
+    this.lastPickTime = 0;
+    this.lastUnequipCheckTime = 0;
 
     var _this = this;
 
@@ -305,7 +307,6 @@ function MyController(hand) {
         switch (this.state) {
             case STATE_OFF:
                 this.off();
-                this.touchTest();
                 break;
             case STATE_SEARCHING:
             case STATE_HOLD_SEARCHING:
@@ -1525,18 +1526,30 @@ function MyController(hand) {
             return;
         }
 
-        if (props.parentID == MyAvatar.sessionUUID &&
-            Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
-            // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
-            print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
-                  props.parentID + " " + vec3toStr(props.position));
-            this.setState(STATE_RELEASE);
-            if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
-                this.callEntityMethodOnGrabbed("releaseGrab");
-            } else { // (this.state == STATE_CONTINUE_EQUIP || this.state == STATE_CONTINUE_HOLD)
-                this.callEntityMethodOnGrabbed("releaseEquip");
+
+        var now = Date.now();
+        if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
+            this.lastUnequipCheckTime = now;
+
+            if (props.parentID == MyAvatar.sessionUUID &&
+                Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
+                var handPosition = this.getHandPosition();
+                // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
+                // need to fail the findEntities test.
+                nearPickedCandidateEntities = Entities.findEntities(handPosition, GRAB_RADIUS);
+                if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
+                    // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
+                    print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
+                          props.parentID + " " + vec3toStr(props.position));
+                    this.setState(STATE_RELEASE);
+                    if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
+                        this.callEntityMethodOnGrabbed("releaseGrab");
+                    } else { // (this.state == STATE_CONTINUE_EQUIP || this.state == STATE_CONTINUE_HOLD)
+                        this.callEntityMethodOnGrabbed("releaseEquip");
+                    }
+                    return;
+                }
             }
-            return;
         }
 
         // Keep track of the fingertip velocity to impart when we release the object.
@@ -1670,71 +1683,6 @@ function MyController(hand) {
         }
 
         this.callEntityMethodOnGrabbed("continueFarTrigger");
-    };
-
-    _this.allTouchedIDs = {};
-
-    this.touchTest = function() {
-        var maxDistance = 0.05;
-        var leftHandPosition = MyAvatar.getLeftPalmPosition();
-        var rightHandPosition = MyAvatar.getRightPalmPosition();
-        var leftEntities = Entities.findEntities(leftHandPosition, maxDistance);
-        var rightEntities = Entities.findEntities(rightHandPosition, maxDistance);
-        var ids = [];
-
-        if (leftEntities.length !== 0) {
-            leftEntities.forEach(function(entity) {
-                ids.push(entity);
-            });
-
-        }
-
-        if (rightEntities.length !== 0) {
-            rightEntities.forEach(function(entity) {
-                ids.push(entity);
-            });
-        }
-
-        ids.forEach(function(id) {
-            var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
-            if (!props ||
-                !props.boundingBox ||
-                props.name === 'pointer') {
-                return;
-            }
-            var entityMinPoint = props.boundingBox.brn;
-            var entityMaxPoint = props.boundingBox.tfl;
-            var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
-            var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
-
-            if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
-                // we haven't been touched before, but either right or left is touching us now
-                _this.allTouchedIDs[id] = true;
-                _this.startTouch(id);
-            } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
-                // we have been touched before and are still being touched
-                // continue touch
-                _this.continueTouch(id);
-            } else if (_this.allTouchedIDs[id]) {
-                delete _this.allTouchedIDs[id];
-                _this.stopTouch(id);
-            }
-        });
-    };
-
-    this.startTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "startTouch", args);
-    };
-
-    this.continueTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "continueTouch", args);
-    };
-
-    this.stopTouch = function(entityID) {
-        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-        Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
     this.release = function() {

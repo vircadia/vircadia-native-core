@@ -49,6 +49,9 @@ public:
     template<typename T>
     static QSharedPointer<T> get();
     
+    template<typename T>
+    static bool isSet();
+    
     template<typename T, typename ...Args>
     static QSharedPointer<T> set(Args&&... args);
 
@@ -87,6 +90,14 @@ QSharedPointer<T> DependencyManager::get() {
     }
     
     return instance.toStrongRef();
+}
+
+template <typename T>
+bool DependencyManager::isSet() {
+    static size_t hashCode = manager().getHashCode<T>();
+
+    QSharedPointer<Dependency>& instance = manager().safeGet(hashCode);
+    return !instance.isNull();
 }
 
 template <typename T, typename ...Args>

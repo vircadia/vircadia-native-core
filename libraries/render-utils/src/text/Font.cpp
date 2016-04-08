@@ -9,6 +9,7 @@
 
 #include "sdf_text3D_vert.h"
 #include "sdf_text3D_frag.h"
+#include "sdf_text3D_overlay_frag.h"
 
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
@@ -220,10 +221,13 @@ void Font::setupGPU() {
         {
             auto vertexShader = gpu::Shader::createVertex(std::string(sdf_text3D_vert));
             auto pixelShader = gpu::Shader::createPixel(std::string(sdf_text3D_frag));
+            auto pixelShaderOverlay = gpu::Shader::createPixel(std::string(sdf_text3D_overlay_frag));
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
+            gpu::ShaderPointer programOverlay = gpu::Shader::createProgram(vertexShader, pixelShaderOverlay);
 
             gpu::Shader::BindingSet slotBindings;
             gpu::Shader::makeProgram(*program, slotBindings);
+            gpu::Shader::makeProgram(*programOverlay, slotBindings);
 
             _fontLoc = program->getTextures().findLocation("Font");
             _outlineLoc = program->getUniforms().findLocation("Outline");
@@ -237,9 +241,10 @@ void Font::setupGPU() {
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
             _pipeline = gpu::Pipeline::create(program, state);
 
-            auto layeredState = std::make_shared<gpu::State>(state->getValues());
-            layeredState->setDepthTest(false);
-            _layeredPipeline = gpu::Pipeline::create(program, layeredState);
+            auto layeredState = std::make_shared<gpu::State>();
+            layeredState->setCullMode(gpu::State::CULL_BACK);
+            layeredState->setDepthTest(true, true, gpu::LESS_EQUAL);
+            _layeredPipeline = gpu::Pipeline::create(programOverlay, layeredState);
         }
 
         // Sanity checks

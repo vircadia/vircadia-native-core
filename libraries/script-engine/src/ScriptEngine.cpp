@@ -154,7 +154,11 @@ ScriptEngine::~ScriptEngine() {
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();
-    connect(this, &ScriptEngine::doneRunning, thread(), &QThread::quit);
+    QThread* receiver;
+    // Ensure the thread should be running, and does exist
+    if (_isRunning && _isThreaded && (receiver = thread())) {
+        connect(this, &ScriptEngine::doneRunning, receiver, &QThread::quit);
+    }
 }
 
 void ScriptEngine::runInThread() {
@@ -578,7 +582,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         _registeredHandlers[entityID] = RegisteredEventHandlers();
     }
     CallbackList& handlersForEvent = _registeredHandlers[entityID][eventName];
-    CallbackData handlerData = {handler, currentEntityIdentifier};
+    CallbackData handlerData = {handler, currentEntityIdentifier, currentSandboxURL};
     handlersForEvent << handlerData; // Note that the same handler can be added many times. See removeEntityEventHandler().
 }
 
@@ -795,7 +799,7 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
-        callWithEnvironment(timerData.definingEntityIdentifier, timerData.function, timerData.function, QScriptValueList());
+        callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
     }
 }
 
@@ -810,7 +814,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
-    CallbackData timerData = {function, currentEntityIdentifier};
+    CallbackData timerData = {function, currentEntityIdentifier, currentSandboxURL};
     _timerFunctionMap.insert(newTimer, timerData);
 
     newTimer->start(intervalMS);
@@ -885,19 +889,49 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         return; // bail early
     }
     QList<QUrl> urls;
+    bool knowsSensitivity = false;
+    Qt::CaseSensitivity sensitivity;
+    auto getSensitivity = [&]() {
+        if (!knowsSensitivity) {
+            QString path = currentSandboxURL.path();
+            QFileInfo upperFI(path.toUpper());
+            QFileInfo lowerFI(path.toLower());
+            sensitivity = (upperFI == lowerFI) ? Qt::CaseInsensitive : Qt::CaseSensitive;
+            knowsSensitivity = true;
+        }
+        return sensitivity;
+    };
+
+    // Guard against meaningless query and fragment parts.
+    // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
+    const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
         QUrl thisURL { resolvePath(file) };
         if (!_includedURLs.contains(thisURL)) {
-            urls.append(thisURL);
-            _includedURLs << thisURL;
-        }
-        else {
+            if (!currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
+                (
+                    (currentSandboxURL.scheme() != "file") ||
+                        (
+                            !thisURL.toString(strippingFlags).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
+                            !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity())
+                        )
+                 )
+                ) {
+                qCWarning(scriptengine) << "Script.include() ignoring file path" << thisURL << "outside of original entity script" << currentSandboxURL;
+            } else {
+                // We could also check here for CORS, but we don't yet.
+                // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.
+                urls.append(thisURL);
+                _includedURLs << thisURL;
+            }
+        } else {
             qCDebug(scriptengine) << "Script.include() ignoring previously included url:" << thisURL;
         }
     }
 
     BatchLoader* loader = new BatchLoader(urls);
     EntityItemID capturedEntityIdentifier = currentEntityIdentifier;
+    QUrl capturedSandboxURL = currentSandboxURL;
 
     auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
         auto parentURL = _parentURL;
@@ -912,13 +946,13 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                 auto operation = [&]() {
                     evaluate(contents, url.toString());
                 };
-                doWithEnvironment(capturedEntityIdentifier, operation);
+                doWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, operation);
             }
         }
         _parentURL = parentURL;
 
         if (callback.isFunction()) {
-            callWithEnvironment(capturedEntityIdentifier, QScriptValue(callback), QScriptValue(), QScriptValueList());
+            callWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, QScriptValue(callback), QScriptValue(), QScriptValueList());
         }
 
         loader->deleteLater();
@@ -996,10 +1030,11 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
     CallbackList handlersForEvent = handlersOnEntity[eventName];
     if (!handlersForEvent.isEmpty()) {
         for (int i = 0; i < handlersForEvent.count(); ++i) {
-            // handlersForEvent[i] can tonain many handlers that may have each been added by different interface or entity scripts,
+            // handlersForEvent[i] can contain many handlers that may have each been added by different interface or entity scripts,
             // and the entity scripts may be for entities other than the one this is a handler for.
             // Fortunately, the definingEntityIdentifier captured the entity script id (if any) when the handler was added.
-            callWithEnvironment(handlersForEvent[i].definingEntityIdentifier, handlersForEvent[i].function, QScriptValue(), eventHandlerArgs);
+            CallbackData& handler = handlersForEvent[i];
+            callWithEnvironment(handler.definingEntityIdentifier, handler.definingSandboxURL, handler.function, QScriptValue(), eventHandlerArgs);
         }
     }
 }
@@ -1089,9 +1124,19 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     }
 
     if (!testConstructor.isFunction()) {
-        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID << "\n"
-            "    NOT CONSTRUCTOR\n"
-            "    SCRIPT:" << scriptOrURL;
+        QString testConstructorType = QString(testConstructor.toVariant().typeName());
+        if (testConstructorType == "") {
+            testConstructorType = "empty";
+        }
+        QString testConstructorValue = testConstructor.toString();
+        const int maxTestConstructorValueSize = 80;
+        if (testConstructorValue.size() > maxTestConstructorValueSize) {
+            testConstructorValue = testConstructorValue.mid(0, maxTestConstructorValueSize) + "...";
+        }
+        qCDebug(scriptengine) << "Error -- ScriptEngine::loadEntityScript() entity:" << entityID
+                              << "failed to load entity script -- expected a function, got " + testConstructorType
+                              << "," << testConstructorValue
+                              << "," << scriptOrURL;
 
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
@@ -1106,13 +1151,14 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
     }
     QScriptValue entityScriptConstructor, entityScriptObject;
+    QUrl sandboxURL = currentSandboxURL.isEmpty() ? scriptOrURL : currentSandboxURL;
     auto initialization = [&]{
         entityScriptConstructor = evaluate(contents, fileName);
         entityScriptObject = entityScriptConstructor.construct();
     };
-    doWithEnvironment(entityID, initialization);
+    doWithEnvironment(entityID, sandboxURL, initialization);
 
-    EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified };
+    EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified, sandboxURL };
     _entityScripts[entityID] = newDetails;
     if (isURL) {
         setParentURL("");
@@ -1201,9 +1247,11 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
 // Even if entityID is supplied as currentEntityIdentifier, this still documents the source
 // of the code being executed (e.g., if we ever sandbox different entity scripts, or provide different
 // global values for different entity scripts).
-void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, std::function<void()> operation) {
+void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation) {
     EntityItemID oldIdentifier = currentEntityIdentifier;
+    QUrl oldSandboxURL = currentSandboxURL;
     currentEntityIdentifier = entityID;
+    currentSandboxURL = sandboxURL;
 
 #if DEBUG_CURRENT_ENTITY
     QScriptValue oldData = this->globalObject().property("debugEntityID");
@@ -1215,12 +1263,13 @@ void ScriptEngine::doWithEnvironment(const EntityItemID& entityID, std::function
 #endif
 
     currentEntityIdentifier = oldIdentifier;
+    currentSandboxURL = oldSandboxURL;
 }
-void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, QScriptValue function, QScriptValue thisObject, QScriptValueList args) {
+void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args) {
     auto operation = [&]() {
         function.call(thisObject, args);
     };
-    doWithEnvironment(entityID, operation);
+    doWithEnvironment(entityID, sandboxURL, operation);
 }
 
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
@@ -1249,7 +1298,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
-            callWithEnvironment(entityID, entityScript.property(methodName), entityScript, args);
+            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
 
     }
@@ -1281,7 +1330,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << event.toScriptValue(this);
-            callWithEnvironment(entityID, entityScript.property(methodName), entityScript, args);
+            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
     }
 }
@@ -1315,7 +1364,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             args << entityID.toScriptValue(this);
             args << otherID.toScriptValue(this);
             args << collisionToScriptValue(this, collision);
-            callWithEnvironment(entityID, entityScript.property(methodName), entityScript, args);
+            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
         }
     }
 }
