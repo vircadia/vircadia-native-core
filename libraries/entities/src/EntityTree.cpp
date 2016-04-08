@@ -1032,9 +1032,7 @@ void EntityTree::fixupMissingParents() {
         }
     }
 
-    QListIterator<EntityItemPointer> iter(missingParents);
-    while (iter.hasNext()) {
-        EntityItemPointer entity = iter.next();
+    for (EntityItemPointer entity : missingParents) {
         if (entity) {
             bool queryAACubeSuccess;
             AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
