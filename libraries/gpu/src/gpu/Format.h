@@ -243,7 +243,7 @@ public:
 
     Dimension getDimension() const { return (Dimension)_dimension; }
     
-    bool isCompressed() const { return (getSemantic() - _FIRST_COMPRESSED <= _LAST_COMPRESSED - _FIRST_COMPRESSED); }
+    bool isCompressed() const { return uint8(getSemantic() - _FIRST_COMPRESSED) <= uint8(_LAST_COMPRESSED - _FIRST_COMPRESSED); }
 
     Type getType() const { return (Type)_type; }
     bool isNormalized() const { return (getType() >= NORMALIZED_START); }

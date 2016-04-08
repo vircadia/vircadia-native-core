@@ -78,12 +78,13 @@ public:
     public:
         const Stamp _storageStamp;
         Stamp _contentStamp { 0 };
-        const GLuint _secretTexture;
         GLuint _texture{ 0 };
         const GLenum _target;
 
         GLTexture(const gpu::Texture& gpuTexture);
         ~GLTexture();
+
+        void createTexture();
 
         GLuint size() const { return _size; }
         GLuint virtualSize() const { return _virtualSize; }
@@ -125,6 +126,9 @@ public:
         static const GLenum CUBE_FACE_LAYOUT[6];
 
     private:
+        // at creation the true texture is created in GL
+        // it becomes public only when ready.
+        GLuint _privateTexture;
 
         void setSize(GLuint size);
         void setVirtualSize(GLuint size);
