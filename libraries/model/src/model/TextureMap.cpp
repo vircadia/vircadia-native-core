@@ -19,8 +19,8 @@
 using namespace model;
 using namespace gpu;
 
-// FIXME: Turn that define off to prevent compression
-#define COMPRESS_TEXTURES
+// FIXME: Declare this to enable compression
+//#define COMPRESS_TEXTURES
 
 
 void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
