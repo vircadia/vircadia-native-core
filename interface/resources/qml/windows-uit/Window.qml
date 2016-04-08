@@ -51,6 +51,7 @@ Fadable {
     // property bool pinnable: false
     // property bool pinned: false
     property bool resizable: false
+    property bool gradientsSupported: desktop.gradientsSupported
 
     property vector2d minSize: Qt.vector2d(100, 100)
     property vector2d maxSize: Qt.vector2d(1280, 800)
@@ -142,9 +143,7 @@ Fadable {
         }
 
         LinearGradient {
-            // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX/AMD
-            //        because shaders are 4.2, and do not include #version declaration.
-            visible: modality != Qt.ApplicationModal && Qt.platform.os != "osx" && !~GL.vendor.indexOf("ATI")
+            visible: gradientsSupported && modality != Qt.ApplicationModal
             anchors.top: contentBackground.bottom
             anchors.left: contentBackground.left
             width: contentBackground.width - 1

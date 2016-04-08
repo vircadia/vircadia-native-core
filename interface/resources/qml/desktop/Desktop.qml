@@ -34,6 +34,10 @@ FocusScope {
     // The VR version of the primary menu
     property var rootMenu: Menu { objectName: "rootMenu" }
 
+    // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX/AMD
+    //        because shaders are 4.2, and do not include #version declarations.
+    property bool gradientsSupported: Qt.platform.os != "osx" && !~GL.vendor.indexOf("ATI")
+
     readonly property alias zLevels: zLevels
     QtObject {
         id: zLevels;
