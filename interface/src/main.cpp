@@ -181,7 +181,11 @@ int main(int argc, const char* argv[]) {
         auto logPath = QDir::toNativeSeparators(logger->getFilename());
         mpSender.sendAdditionalFile(qPrintable(logPath));
 
-        QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&mpSender](QString newFilename) {
+        QMetaObject::Connection connection;
+        connection = QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&mpSender, &connection](QString newFilename) {
+            // We only want to add the first rolled log file (the "beginning" of the log) to BugSplat to ensure we don't exceed the 2MB
+            // zipped limit, so we disconnect here.
+            QObject::disconnect(connection);
             auto rolledLogPath = QDir::toNativeSeparators(newFilename);
             mpSender.sendAdditionalFile(qPrintable(rolledLogPath));
         });
