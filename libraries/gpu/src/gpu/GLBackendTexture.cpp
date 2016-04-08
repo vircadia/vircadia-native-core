@@ -49,7 +49,6 @@ const GLenum GLBackend::GLTexture::CUBE_FACE_LAYOUT[6] = {
 // Create the texture and allocate storage
 GLBackend::GLTexture::GLTexture(const Texture& texture) : 
     _storageStamp(texture.getStamp()),
-    _privateTexture(0),
     _target(gpuToGLTextureType(texture)),
     _size(0),
     _virtualSize(0),

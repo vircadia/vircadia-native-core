@@ -76,9 +76,11 @@ public:
 
     class GLTexture : public GPUObject {
     public:
+        // The public gl texture object
+        GLuint _texture{ 0 };
+
         const Stamp _storageStamp;
         Stamp _contentStamp { 0 };
-        GLuint _texture{ 0 };
         const GLenum _target;
 
         GLTexture(const gpu::Texture& gpuTexture);
@@ -124,11 +126,11 @@ public:
 
         static const size_t CUBE_NUM_FACES = 6;
         static const GLenum CUBE_FACE_LAYOUT[6];
-
+        
     private:
         // at creation the true texture is created in GL
         // it becomes public only when ready.
-        GLuint _privateTexture;
+        GLuint _privateTexture{ 0 };
 
         void setSize(GLuint size);
         void setVirtualSize(GLuint size);
