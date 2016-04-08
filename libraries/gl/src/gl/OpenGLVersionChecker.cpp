@@ -13,6 +13,7 @@
 
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QJsonObject>
 
 #include "Config.h"
 #include "GLWidget.h"
@@ -22,7 +23,7 @@ OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
 {
 }
 
-QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
+QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     valid = true;
     override = false;
 
@@ -38,12 +39,15 @@ QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
         messageBox.setStandardButtons(QMessageBox::Ok);
         messageBox.setDefaultButton(QMessageBox::Ok);
         messageBox.exec();
-        return QString();
+        return QJsonObject();
     }
     
     // Retrieve OpenGL version
     glWidget->initializeGL();
     QString glVersion = QString((const char*)glGetString(GL_VERSION));
+    QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    QString glVendor = QString((const char*) glGetString(GL_VENDOR));
+    QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
     delete glWidget;
 
     // Compare against minimum
@@ -72,5 +76,10 @@ QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
         override = messageBox.exec() == QMessageBox::Ignore;
     }
 
-    return glVersion;
+    return QJsonObject{
+        { "version", glVersion },
+        { "slVersion", glslVersion },
+        { "vendor", glVendor },
+        { "renderer", glRenderer },
+    };
 }
