@@ -7,7 +7,8 @@ Script.include([
 ]);
 
 var isActive = false;
-var toolIconUrl = "http://headache.hungry.com/~seth/hifi/";
+var toolIconUrl = "https://s3-us-west-1.amazonaws.com/hifi-content/seth/production/icons/"
+
 var toolHeight = 50;
 var toolWidth = 50;
 
