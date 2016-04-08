@@ -39,6 +39,7 @@ public:
         InterpolationData<float> radius;
         InterpolationData<glm::vec4> color; // rgba
         float lifespan;
+        glm::vec3 spare;
     };
     
     struct ParticlePrimitive {
