@@ -103,4 +103,5 @@
 <script src='js/sweetalert.min.js'></script>
 <script src='js/settings.js'></script>
 <script src='js/form2js.min.js'></script>
+<script src='js/sha256.js'></script>
 <!--#include virtual="page-end.html"-->

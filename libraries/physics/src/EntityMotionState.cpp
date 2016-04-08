@@ -161,7 +161,12 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         }
         return MOTION_TYPE_DYNAMIC;
     }
-    return (_entity->isMovingRelativeToParent() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
+    if (_entity->isMovingRelativeToParent() ||
+        _entity->hasActions() ||
+        _entity->hasAncestorOfType(NestableType::Avatar)) {
+        return MOTION_TYPE_KINEMATIC;
+    }
+    return MOTION_TYPE_STATIC;
 }
 
 bool EntityMotionState::isMoving() const {

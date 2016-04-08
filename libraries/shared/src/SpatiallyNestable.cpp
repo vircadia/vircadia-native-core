@@ -849,3 +849,17 @@ AACube SpatiallyNestable::getQueryAACube() const {
     }
     return result;
 }
+
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return false;
+    }
+
+    if (parent->_nestableType == nestableType) {
+        return true;
+    }
+
+    return parent->hasAncestorOfType(nestableType);
+}

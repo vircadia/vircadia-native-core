@@ -44,12 +44,17 @@ bool OculusControllerManager::activate() {
 
     // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    if (_remote) {
+
+    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+        _remote = std::make_shared<RemoteDevice>(*this);
         userInputMapper->registerDevice(_remote);
     }
-    if (_touch) {
+
+    if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+        _touch = std::make_shared<TouchDevice>(*this);
         userInputMapper->registerDevice(_touch);
     }
+
     return true;
 }
 
@@ -74,16 +79,20 @@ void OculusControllerManager::deactivate() {
 void OculusControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     PerformanceTimer perfTimer("OculusControllerManager::TouchDevice::update");
 
-    if (!OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
-        qCWarning(oculus) << "Unable to read oculus input state";
-        return;
+    if (_touch) {
+        if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
+            _touch->update(deltaTime, inputCalibrationData, jointsCaptured);
+        } else {
+            qCWarning(oculus) << "Unable to read Oculus touch input state";
+        }
     }
 
-    if (_touch) {
-        _touch->update(deltaTime, inputCalibrationData, jointsCaptured);
-    }
     if (_remote) {
-        _remote->update(deltaTime, inputCalibrationData, jointsCaptured);
+        if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
+            _remote->update(deltaTime, inputCalibrationData, jointsCaptured);
+        } else {
+            qCWarning(oculus) << "Unable to read Oculus remote input state";
+        }
     }
 }
 
@@ -99,6 +108,12 @@ void OculusControllerManager::pluginFocusOutEvent() {
 using namespace controller;
 
 static const std::vector<std::pair<ovrButton, StandardButtonChannel>> BUTTON_MAP { {
+    { ovrButton_Up, DU },
+    { ovrButton_Down, DD },
+    { ovrButton_Left, DL },
+    { ovrButton_Right, DR },
+    { ovrButton_Enter, START },
+    { ovrButton_Back, BACK },
     { ovrButton_X, X },
     { ovrButton_Y, Y },
     { ovrButton_A, A },
@@ -123,6 +138,39 @@ static const std::vector<std::pair<ovrTouch, StandardButtonChannel>> TOUCH_MAP {
     { ovrTouch_LIndexPointing, LEFT_INDEX_POINT },
     { ovrTouch_RIndexPointing, RIGHT_INDEX_POINT },
 } };
+
+
+controller::Input::NamedVector OculusControllerManager::RemoteDevice::getAvailableInputs() const {
+    using namespace controller;
+    QVector<Input::NamedPair> availableInputs {
+        makePair(DU, "DU"),
+        makePair(DD, "DD"),
+        makePair(DL, "DL"),
+        makePair(DR, "DR"),
+        makePair(START, "Start"),
+        makePair(BACK, "Back"),
+    };
+    return availableInputs;
+}
+
+QString OculusControllerManager::RemoteDevice::getDefaultMappingConfig() const {
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/oculus_remote.json";
+    return MAPPING_JSON;
+}
+
+void OculusControllerManager::RemoteDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+    _buttonPressedMap.clear();
+    const auto& inputState = _parent._inputState;
+    for (const auto& pair : BUTTON_MAP) {
+        if (inputState.Buttons & pair.first) {
+            _buttonPressedMap.insert(pair.second);
+        }
+    }
+}
+
+void OculusControllerManager::RemoteDevice::focusOutEvent() {
+    _buttonPressedMap.clear();
+}
 
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     _poseStateMap.clear();
@@ -211,7 +259,7 @@ controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailabl
 }
 
 QString OculusControllerManager::TouchDevice::getDefaultMappingConfig() const {
-    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/touch.json";
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/oculus_touch.json";
     return MAPPING_JSON;
 }
 
