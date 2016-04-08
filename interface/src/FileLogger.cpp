@@ -24,8 +24,9 @@
 static const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
-// Max log size is 1 MB
-static const qint64 MAX_LOG_SIZE = 1024 * 1024;
+// Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
+// small so it doesn't go over the 2MB zipped limit for all of the files we send.
+static const qint64 MAX_LOG_SIZE = 512 * 1024;
 // Max log age is 1 hour
 static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
 
