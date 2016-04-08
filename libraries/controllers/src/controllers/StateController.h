@@ -24,26 +24,28 @@ class StateController : public QObject, public InputDevice {
     Q_PROPERTY(QString name READ getName)
 
 public:
+    using Pointer = std::shared_ptr<StateController>;
+    using ReadLambda = std::function<float()>;
+    using NamedReadLambda = QPair<QString, ReadLambda>;
+
+    static void setStateVariables(const QStringList& stateVariables);
+
+    StateController();
+
     const QString& getName() const { return _name; }
 
     // Device functions
     virtual Input::NamedVector getAvailableInputs() const override;
-    virtual void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
-    virtual void focusOutEvent() override;
 
-    StateController();
-    virtual ~StateController();
+    void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) override {}
+    void focusOutEvent() override {}
 
-    using ReadLambda = std::function<float()>;
-    using NamedReadLambda = QPair<QString, ReadLambda>;
+    void setInputVariant(const QString& name, ReadLambda lambda);
 
-    void addInputVariant(QString name, ReadLambda lambda);
-
-    virtual EndpointPointer createEndpoint(const Input& input) const override;
-
+    EndpointPointer createEndpoint(const Input& input) const override;
 
 protected:
-    QVector<NamedReadLambda> _namedReadLambdas;
+    QHash<QString, ReadLambda> _namedReadLambdas;
 };
 
 }

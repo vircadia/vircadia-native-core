@@ -33,8 +33,10 @@ static QVariantMap createDeviceMap(const controller::InputDevice::Pointer device
     for (const auto& inputMapping : userInputMapper->getAvailableInputs(device->getDeviceID())) {
         const auto& input = inputMapping.first;
         const auto inputName = QString(inputMapping.second).remove(SANITIZE_NAME_EXPRESSION);
+#ifdef DEBUG
         qCDebug(controllers) << "\tInput " << input.getChannel() << (int)input.getType()
             << QString::number(input.getID(), 16) << ": " << inputName;
+#endif
         deviceMap.insert(inputName, input.getID());
     }
     return deviceMap;
