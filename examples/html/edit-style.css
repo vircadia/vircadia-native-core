@@ -908,8 +908,45 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background-color: #00b4ef;
 }
 
-
 input#dimension-rescale-button {
     min-width: 50px;
     margin-left: 6px;
+}
+
+
+#properties-header {
+    display: table-row;
+    height: 28px;
+}
+
+#properties-header .property {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+#properties-header #type-icon {
+    font-family: hifi-glyphs;
+    font-size: 31px;
+    color: #00b4ef;
+    margin: -4px 12px -4px -2px;
+    width: auto;
+    display: none;
+    vertical-align: middle;
+}
+
+#properties-header #property-type {
+    padding: 5px 24px 5px 0;
+    border-right: 1px solid #808080;
+    height: 100%;
+    width: auto;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#properties-header .checkbox:last-child {
+    padding-left: 24px;
+}
+
+#properties-header .checkbox label {
+    background-position-y: 1px;
 }
