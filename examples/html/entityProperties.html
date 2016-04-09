@@ -1537,7 +1537,7 @@
         </div>
 
         <div class="behavior-group two-column">
-            <div class="column-1">
+            <div class="column">
                 <div class="sub-section-header">
                     <span>Collides With</span>
                 </div>
@@ -1568,7 +1568,7 @@
                     </div>
                 </div>
             </div>
-            <div class="column-2">
+            <div class="column">
                 <div class="sub-section-header">
                     <span>Grabbing</span>
                 </div>
@@ -1644,28 +1644,40 @@
             <input type="text" id="property-model-animation-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
-        <div class="model-group model-section property checkbox">
-            <input type="checkbox" id="property-model-animation-playing">
-            <label for="property-model-animation-playing">Animation playing</label>
-        </div>
-        <div class="model-group model-section property number">
-            <label>Animation FPS</label>
-            <input type="number" id="property-model-animation-fps">
-        </div>
-        <div class="model-group model-section property number">
-            <div class="tuple">
-                <div><label>Animation frame</label><input type="number" id="property-model-animation-frame"></div>
-                <div><label>First frame</label><input type="number" id="property-model-animation-first-frame"></div>
-                <div><label>Last frame</label><input type="number" id="property-model-animation-last-frame"></div>
+
+        <div class="model-group model-section two-column">
+            <div class="column">
+                <div class="property checkbox">
+                    <input type="checkbox" id="property-model-animation-playing">
+                    <label for="property-model-animation-playing">Animation playing</label>
+                </div>
+                <div class="property checkbox indent">
+                    <input type="checkbox" id="property-model-animation-loop">
+                    <label for="property-model-animation-loop">Animation loop</label>
+                </div>
+                <div class="property checkbox indent">
+                    <input type="checkbox" id="property-model-animation-hold">
+                    <label for="property-model-animation-hold">Animation hold</label>
+                </div>
+                <div id="animation-fps" class="property number">
+                    <label>Animation FPS</label>
+                    <input type="number" id="property-model-animation-fps">
+                </div>
             </div>
-        </div>
-        <div class="model-group model-section property checkbox">
-            <input type="checkbox" id="property-model-animation-loop">
-            <label for="property-model-animation-loop">Animation loop</label>
-        </div>
-        <div class="model-group model-section property checkbox">
-            <input type="checkbox" id="property-model-animation-hold">
-            <label for="property-model-animation-hold">Animation hold</label>
+            <div class="column">
+                <div class="property number">
+                    <label>Animation frame</label>
+                    <input type="number" id="property-model-animation-frame">
+                </div>
+                <div class="property number">
+                    <label>First frame</label>
+                    <input type="number" id="property-model-animation-first-frame">
+                </div>
+                <div class="property number">
+                    <label>Last frame</label>
+                    <input type="number" id="property-model-animation-last-frame">
+                </div>
+            </div>
         </div>
         <hr class="model-group model-section" />
         <div class="model-group model-section property textarea">

@@ -767,6 +767,13 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     display: table-cell;
     width: 50%;
 }
+.column {
+    vertical-align: top;
+}
+
+.indent {
+    margin-left: 24px;
+}
 
 ::-webkit-scrollbar {
     width: 10px;
@@ -976,4 +983,8 @@ input#property-parent-id {
 input#dimension-rescale-button {
     min-width: 50px;
     margin-left: 6px;
+}
+
+#animation-fps {
+    margin-top: 51px;
 }
