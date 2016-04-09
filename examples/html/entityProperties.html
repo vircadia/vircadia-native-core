@@ -1536,54 +1536,60 @@
             <label for="property-dynamic">Dynamic</label>
         </div>
 
-        <div class="behavior-group sub-section-header">
-            <span>Collides With</span>
-        </div>
-        <div class="behavior-group checkbox-sub-props">
-            <div class="property checkbox">
-                <input type="checkbox" id="property-collide-static">
-                <label for="property-collide-static">Static entities</label>
+        <div class="behavior-group two-column">
+            <div class="column-1">
+                <div class="sub-section-header">
+                    <span>Collides With</span>
+                </div>
+                <div class="checkbox-sub-props">
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-collide-static">
+                        <label for="property-collide-static">Static entities</label>
+                    </div>
+
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-collide-dynamic">
+                        <label for="property-collide-dynamic">Dynamic entities</label>
+                    </div>
+
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-collide-kinematic">
+                        <label for="property-collide-kinematic">Kinematic entities</label>
+                    </div>
+
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-collide-myAvatar">
+                        <label for="property-collide-myAvatar">My avatar</label>
+                    </div>
+
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-collide-otherAvatar">
+                        <label for="property-collide-otherAvatar">Other avatars</label>
+                    </div>
+                </div>
+            </div>
+            <div class="column-2">
+                <div class="sub-section-header">
+                    <span>Grabbing</span>
+                </div>
+                <div class="checkbox-sub-props">
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-grabbable">
+                        <label for="property-grabbable">Grabbable</label>
+                    </div>
+
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-wants-trigger">
+                        <label for="property-wants-trigger">Triggerable</label>
+                    </div>
+
+                    <div class="property checkbox">
+                        <input type="checkbox" id="property-ignore-ik">
+                        <label for="property-ignore-ik">Ignore inverse kinematics</label>
+                    </div>
+                </div>
             </div>
 
-            <div class="property checkbox">
-                <input type="checkbox" id="property-collide-dynamic">
-                <label for="property-collide-dynamic">Dynamic entities</label>
-            </div>
-
-            <div class="property checkbox">
-                <input type="checkbox" id="property-collide-kinematic">
-                <label for="property-collide-kinematic">Kinematic entities</label>
-            </div>
-
-            <div class="property checkbox">
-                <input type="checkbox" id="property-collide-myAvatar">
-                <label for="property-collide-myAvatar">My avatar</label>
-            </div>
-
-            <div class="property checkbox">
-                <input type="checkbox" id="property-collide-otherAvatar">
-                <label for="property-collide-otherAvatar">Other avatars</label>
-            </div>
-        </div>
-
-        <div class="behavior-group sub-section-header">
-            <span>Grabbing</span>
-        </div>
-        <div class="behavior-group checkbox-sub-props">
-            <div class="property checkbox">
-                <input type="checkbox" id="property-grabbable">
-                <label for="property-grabbable">Grabbable</label>
-            </div>
-
-            <div class="property checkbox">
-                <input type="checkbox" id="property-wants-trigger">
-                <label for="property-wants-trigger">Triggerable</label>
-            </div>
-
-            <div class="property checkbox">
-                <input type="checkbox" id="property-ignore-ik">
-                <label for="property-ignore-ik">Ignore inverse kinematics</label>
-            </div>
         </div>
 
         <hr class="behavior-group" />

@@ -759,15 +759,22 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     float: left;
 }
 
+.two-column {
+    display: table;
+    width: 100%;
+}
+.two-column > div {
+    display: table-cell;
+    width: 50%;
+}
+
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
- 
 ::-webkit-scrollbar-track {
     background-color: #2e2e2e;
 }
- 
 ::-webkit-scrollbar-thumb {
     background-color: #696969;
     border: 2px solid #2e2e2e;
