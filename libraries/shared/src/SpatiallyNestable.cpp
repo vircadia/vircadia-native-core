@@ -422,8 +422,18 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
     glm::vec3 parentVelocity = getParentVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _velocityLock.withWriteLock([&] {
-        // TODO: take parent angularVelocity into account.
-        _velocity = glm::inverse(parentTransform.getRotation()) * (velocity - parentVelocity);
+        // HACK: until we are treating _velocity the same way we treat _position (meaning,
+        // _velocity is a vs parent value and any request for a world-frame velocity must
+        // be computed), do this to avoid equipped (parenting-grabbed) things from drifting.
+        // turning a zero velocity into a non-zero _velocity (because the avatar is moving)
+        // causes EntityItem::simulateKinematicMotion to have an effect on the equipped entity,
+        // which causes it to drift from the hand.
+        if (hasAncestorOfType(NestableType::Avatar)) {
+            _velocity = velocity;
+        } else {
+            // TODO: take parent angularVelocity into account.
+            _velocity = glm::inverse(parentTransform.getRotation()) * (velocity - parentVelocity);
+        }
     });
 }
 
