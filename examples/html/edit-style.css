@@ -745,14 +745,19 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     white-space: nowrap;
 }
 
-.row input {
-    float: left;
+.row .property {
+    width: auto;
+    display: inline-block;
+
+    margin-right: 12px;
 }
-.row input[type=button] {
-    margin-left: 8px;
+.row .property:last-child {
     margin-right: 0;
 }
-
+.row .property input {
+    clear: both;
+    float: left;
+}
 
 ::-webkit-scrollbar {
     width: 10px;
@@ -904,28 +909,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 
-#properties-list .property:first-child {
-    margin-top: 0;
-}
-
-#id label {
-    width: 24px;
-}
-#property-id {
-    display: inline-block;
-}
-
-#property-id::selection {
-    color: #000000;
-    background-color: #00b4ef;
-}
-
-input#dimension-rescale-button {
-    min-width: 50px;
-    margin-left: 6px;
-}
-
-
 #properties-header {
     display: table-row;
     height: 28px;
@@ -965,4 +948,25 @@ input#dimension-rescale-button {
 
 #properties-header + hr {
     margin-top: 12px;
+}
+
+
+#id label {
+    width: 24px;
+}
+#property-id {
+    display: inline-block;
+}
+#property-id::selection {
+    color: #000000;
+    background-color: #00b4ef;
+}
+
+input#property-parent-id {
+    width: 340px;
+}
+
+input#dimension-rescale-button {
+    min-width: 50px;
+    margin-left: 6px;
 }

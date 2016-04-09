@@ -1377,14 +1377,19 @@
                 <input type="button" id="preview-camera-button" value="Preview Camera">
             </div>
         </div>
-        <div class="spatial-group property text">
-            <label for="property-parent-id">Parent ID</label>
-            <input type="text" id="property-parent-id">
+
+        <div class="spatial-group row">
+            <div class="property text">
+                <label for="property-parent-id">Parent ID</label>
+                <input type="text" id="property-parent-id">
+            </div>
+            <div class="property number">
+                <label for="property-parent-joint-index">Parent joint index</label>
+                <input type="number" id="property-parent-joint-index">
+            </div>
         </div>
-        <div class="spatial-group property number">
-            <label for="property-parent-joint-index">Parent joint index</label>
-            <input type="number" id="property-parent-joint-index">
-        </div>
+
+
         <div class="spatial-group property xyz">
             <label>Registration <span class="unit">0.0&ndash;1.0</span></label>
             <div class="tuple">
@@ -1411,7 +1416,7 @@
             </div>
         </div>
         <hr class="spatial-group poly-vox-section" />
-        <div class="spatial-group poly-vox-section property XYZ">
+        <div class="spatial-group poly-vox-section property xyz">
             <label>Voxel volume size <span class="unit">m</span></label>
             <div class="tuple">
                 <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
