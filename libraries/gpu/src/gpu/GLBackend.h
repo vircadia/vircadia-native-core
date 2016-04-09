@@ -153,10 +153,15 @@ public:
 
         using ShaderObjects = std::array< ShaderObject, NumVersions >;
 
+        using UniformMapping = std::map<GLint, GLint>;
+        using UniformMappingVersions = std::vector<UniformMapping>;
+        
         GLShader();
         ~GLShader();
 
         ShaderObjects _shaderObjects;
+
+        UniformMappingVersions _uniformMappings;
 
         GLuint getProgram(bool isStereo) const {
             if (isStereo && _shaderObjects[Stereo].glprogram) {
@@ -164,6 +169,15 @@ public:
             } else {
                 return _shaderObjects[Mono].glprogram;
             }
+        }
+
+        GLint getUniformLocation(bool isStereo, GLint srcLoc) {
+            if (isStereo) {
+                if (srcLoc >= 0) {
+                    return _uniformMappings[0][srcLoc];
+                }
+            }
+            return srcLoc;
         }
     };
     static GLShader* syncGPUObject(const Shader& shader);
@@ -467,6 +481,7 @@ protected:
         PipelinePointer _pipeline;
 
         GLuint _program;
+        GLShader* _programShader;
         bool _invalidProgram;
 
         State::Data _stateCache;
@@ -478,6 +493,7 @@ protected:
         PipelineStageState() :
             _pipeline(),
             _program(0),
+            _programShader(nullptr),
             _invalidProgram(false),
             _stateCache(State::DEFAULT),
             _stateSignatureCache(0),

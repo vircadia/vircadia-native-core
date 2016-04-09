@@ -42,8 +42,9 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     }
 
     // Assign the source
+    const int NUM_SOURCE_STRINGS = 3;
     const GLchar* srcstr[] = { "#version 410 core\n", defines.c_str(), shaderSource.c_str() };
-    glShaderSource(glshader, 3, srcstr, NULL);
+    glShaderSource(glshader, NUM_SOURCE_STRINGS, srcstr, NULL);
 
     // Compile !
     glCompileShader(glshader);
@@ -79,7 +80,9 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
         */
 
         qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        qCWarning(gpulogging) << srcstr;
+        for (auto s : srcstr) {
+            qCWarning(gpulogging) << s;
+        }
         qCWarning(gpulogging) << "GLShader::compileShader - errors:";
         qCWarning(gpulogging) << temp;
         delete[] temp;
@@ -295,21 +298,34 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
     const std::string& shaderSource = shader.getSource().getCode();
 
     // Shader domain
-    const GLenum SHADER_DOMAINS[2] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
+    const int NUM_SHADER_DOMAINS = 2;
+    const GLenum SHADER_DOMAINS[NUM_SHADER_DOMAINS] = {
+        GL_VERTEX_SHADER,
+        GL_FRAGMENT_SHADER
+    };
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
 
-    // Make several versions of the shader
-    std::string shaderDefines[GLBackend::GLShader::NumVersions] = {
+    // Domain specific defines
+    const std::string domainDefines[NUM_SHADER_DOMAINS] = {
+        "#define VERTEX_SHADER",
+        "#define PIXEL_SHADER"
+    };
+
+    // Versions specific of the shader
+    const std::string versionDefines[GLBackend::GLShader::NumVersions] = {
         "",
         "#define GPU_TRANSFORM_IS_STEREO"
     };
+
 
     GLBackend::GLShader::ShaderObjects shaderObjects;
 
     for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
-        bool result = compileShader(shaderDomain, shaderSource, shaderDefines[version], shaderObject.glshader, shaderObject.glprogram);
+        std::string shaderDefines = domainDefines[shader.getType()] + "\n" + versionDefines[version];
+
+        bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
         if (!result) {
             return nullptr;
         }
@@ -742,7 +758,6 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
     // APply bindings to all program versions and generate list of slots from default version
     for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
         auto& shaderObject = object->_shaderObjects[version];
-
         if (shaderObject.glprogram) {
             Shader::SlotSet buffers;
             makeUniformBlockSlots(shaderObject.glprogram, slotBindings, buffers);
@@ -761,6 +776,12 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
             // Define the public slots only from the default version
             if (version == 0) {
                 shader.defineSlots(uniforms, buffers, textures, samplers, inputs, outputs);
+            } else {
+                GLShader::UniformMapping mapping;
+                for (auto srcUniform : shader.getUniforms()) {
+                    mapping[srcUniform._location] = uniforms.findLocation(srcUniform._name);
+                }
+                object->_uniformMappings.push_back(mapping);
             }
         }
     }

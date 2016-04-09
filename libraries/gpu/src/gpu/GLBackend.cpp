@@ -523,8 +523,10 @@ void GLBackend::do_glUniform1i(Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 1]._int);
+
     glUniform1f(
-        batch._params[paramOffset + 1]._int,
+        location,
         batch._params[paramOffset + 0]._int);
     (void) CHECK_GL_ERROR();
 }
@@ -546,9 +548,10 @@ void GLBackend::do_glUniform1f(Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 1]._int);
 
     glUniform1f(
-        batch._params[paramOffset + 1]._int,
+        location,
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
 }
@@ -571,7 +574,7 @@ void GLBackend::do_glUniform2f(Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
     glUniform2f(
-        batch._params[paramOffset + 2]._int,
+        _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 2]._int),
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
@@ -596,7 +599,7 @@ void GLBackend::do_glUniform3f(Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
     glUniform3f(
-        batch._params[paramOffset + 3]._int,
+        _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 3]._int),
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
@@ -625,7 +628,7 @@ void GLBackend::do_glUniform4f(Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
     glUniform4f(
-        batch._params[paramOffset + 4]._int,
+        _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 4]._int),
         batch._params[paramOffset + 3]._float,
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
@@ -651,7 +654,7 @@ void GLBackend::do_glUniform3fv(Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
     glUniform3fv(
-        batch._params[paramOffset + 2]._int,
+        _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 2]._int),
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
 
@@ -677,7 +680,7 @@ void GLBackend::do_glUniform4fv(Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
     
-    GLint location = batch._params[paramOffset + 2]._int;
+    GLint location = _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 2]._int);
     GLsizei count = batch._params[paramOffset + 1]._uint;
     const GLfloat* value = (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint);
     glUniform4fv(location, count, value);
@@ -703,7 +706,7 @@ void GLBackend::do_glUniform4iv(Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
     glUniform4iv(
-        batch._params[paramOffset + 2]._int,
+        _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 2]._int),
         batch._params[paramOffset + 1]._uint,
         (const GLint*)batch.editData(batch._params[paramOffset + 0]._uint));
 
@@ -728,8 +731,9 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = _pipeline._programShader->getUniformLocation(isStereo(), batch._params[paramOffset + 3]._int);
     glUniformMatrix4fv(
-        batch._params[paramOffset + 3]._int,
+        location,
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));

@@ -27,10 +27,23 @@ layout(std140) uniform transformCameraBuffer {
     TransformCamera _camera;
 #endif
 };
+
+#ifdef GPU_TRANSFORM_IS_STEREO
+#ifdef VERTEX_SHADER
+flat out int _stereoSide;
+#endif
+
+#ifdef PIXEL_SHADER
+flat in int _stereoSide;
+#endif
+#endif
+
 TransformCamera getTransformCamera() {
 #ifdef GPU_TRANSFORM_IS_STEREO
-    uint eyeIndex = gl_InstanceID % 2;
-    return _camera[eyeIndex];
+#ifdef VERTEX_SHADER
+    _stereoSide = gl_InstanceID % 2;
+#endif
+    return _camera[_stereoSide];
 #else
     return _camera;
 #endif
@@ -77,8 +90,8 @@ TransformObject getTransformObject() {
 
 
 <@func declareStandardTransform()@>
-<$declareStandardObjectTransform()$>
 <$declareStandardCameraTransform()$>
+<$declareStandardObjectTransform()$>
 <@endfunc@>
 
 <@func transformCameraViewport(cameraTransform, viewport)@>
