@@ -418,7 +418,7 @@ input[type=checkbox]:checked + label:hover {
 }
 
 
-.section-header, .sub-section-header {
+.section-header, .sub-section-header, hr {
     display: table;
     width: 100%;
     margin: 22px -12px 0 -12px;
@@ -436,7 +436,7 @@ input[type=checkbox]:checked + label:hover {
     background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAqCAIAAAAbNW1vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAmSURBVChTY1BFAgzhSIDBAQmMcoYHRwIJMCgjAQZ9JMBgBQdWVgBh5XmBV5A2FQAAAABJRU5ErkJggg==) repeat-x top left;
 }
 
-.sub-section-header, .no-collapse {
+.sub-section-header, .no-collapse, hr {
     background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
 }
 
@@ -462,6 +462,11 @@ input[type=checkbox]:checked + label:hover {
 
 .section-header[collapsed="true"] {
     margin-bottom: -22px;
+}
+
+hr {
+    border: none;
+    padding-top: 2px;
 }
 
 .text-group[collapsed="true"] ~ .text-group,
@@ -949,4 +954,8 @@ input#dimension-rescale-button {
 
 #properties-header .checkbox label {
     background-position-y: 1px;
+}
+
+#properties-header + hr {
+    margin-top: 12px;
 }

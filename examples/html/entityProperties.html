@@ -381,7 +381,7 @@
                 var elReloadScriptButton = document.getElementById("reload-script-button");
                 var elUserData = document.getElementById("property-user-data");
     
-                var elColorSection = document.getElementById("color-section");
+                var elColorSections = document.querySelectorAll(".color-section");
                 var elColor = document.getElementById("property-color");
                 var elColorRed = document.getElementById("property-color-red");
                 var elColorGreen = document.getElementById("property-color-green");
@@ -678,13 +678,17 @@
                                 }
 
                                 if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
-                                    elColorSection.style.display = 'table';
+                                    for (var i = 0; i < elColorSections.length; i++) {
+                                        elColorSections[i].style.display = 'table';
+                                    }
                                     elColorRed.value = properties.color.red;
                                     elColorGreen.value = properties.color.green;
                                     elColorBlue.value = properties.color.blue;
                                     elColor.style.backgroundColor = "rgb(" + properties.color.red  + "," + properties.color.green + "," + properties.color.blue + ")";
                                 } else {
-                                    elColorSection.style.display = 'none';
+                                    for (var i = 0; i < elColorSections.length; i++) {
+                                        elColorSections[i].style.display = 'none';
+                                    }
                                 }
     
                                 if (properties.type == "Model") {
@@ -1329,6 +1333,7 @@
                 <label for="property-visible">Visible</label>
             </div>
         </div>
+        <hr />
         <div id="id" class="property value">
             <label>ID:</label>
             <span id="property-id" class="selectable"></span>
@@ -1388,6 +1393,7 @@
                 <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
             </div>
         </div>
+        <hr class="spatial-group" />
         <div class="spatial-group property xyz">
             <label>Dimensions <span class="unit">m</span></label>
             <div class="tuple">
@@ -1404,6 +1410,7 @@
                 <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
             </div>
         </div>
+        <hr class="spatial-group poly-vox-section" />
         <div class="spatial-group poly-vox-section property XYZ">
             <label>Voxel volume size <span class="unit">m</span></label>
             <div class="tuple">
@@ -1436,6 +1443,7 @@
             <input type="text" id="property-z-texture-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
+        <hr class="spatial-group" />
         <div class="spatial-group property pyr">
             <label>Rotation <span class="unit">deg</span></label>
             <div class="tuple">
@@ -1461,6 +1469,7 @@
             <label>Linear damping</label>
             <input type="number" id="property-ldamping">
         </div>
+        <hr class="physical-group"  />
         <div class="physical-group property pyr">
             <label>Angular velocity <span class="unit">deg/s</span></label>
             <div class="tuple">
@@ -1473,6 +1482,7 @@
             <label>Angular damping</label>
             <input type="number" id="property-adamping">
         </div>
+        <hr class="physical-group" />
         <div class="physical-group property gen">
             <div class="tuple">
                 <div><label>Restitution</label><input type="number" id="property-restitution"></div>
@@ -1480,6 +1490,7 @@
                 <div><label>Density</label><input type="number" id="property-density"></div>
             </div>
         </div>
+        <hr class="physical-group" />
         <div class="physical-group property xyz">
             <label>Gravity <span class="unit">m/s<sup>2</sup></span></label>
             <div class="tuple">
@@ -1496,7 +1507,8 @@
                 <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
             </div>
         </div>
-        <div id="color-section" class="physical-group property rgb">
+        <hr class="physical-group color-section" />
+        <div class="physical-group color-section property rgb">
             <div id="property-color" class="color-picker"></div>
             <label>Entity color</label>
             <div class="tuple">
@@ -1569,6 +1581,7 @@
             </div>
         </div>
 
+        <hr class="behavior-group" />
         <div class="behavior-group property url refresh">
             <label for="property-collision-sound-url">Collision sound URL</label>
             <input type="text" id="property-collision-sound-url">
@@ -1578,6 +1591,7 @@
             <label>Lifetime <span class="unit">s</span></label>
             <input type="number" id="property-lifetime">
         </div>
+        <hr class="behavior-group" />
         <div class="behavior-group property url refresh">
             <!--
             FIXME: If reload buttons at the end of each URL continue to work OK during beta, this reload button and associated
@@ -1613,6 +1627,7 @@
             <input type="text" id="property-compound-shape-url">
             <input type="button" class="update-url-version glyph" value="F" />
         </div>
+        <hr class="model-group model-section" />
         <div class="model-group model-section property url refresh">
             <label for="property-model-animation-url">Animation URL</label>
             <input type="text" id="property-model-animation-url">
@@ -1641,6 +1656,7 @@
             <input type="checkbox" id="property-model-animation-hold">
             <label for="property-model-animation-hold">Animation hold</label>
         </div>
+        <hr class="model-group model-section" />
         <div class="model-group model-section property textarea">
             <label for="property-model-textures">Textures</label>
             <textarea id="property-model-textures"></textarea>
