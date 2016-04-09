@@ -51,12 +51,16 @@
     // Script.include(musicBoxPath);
     Script.include(transformerPath);
 
-    var TRANSFORMER_URL_ARTEMIS = 'atp:/dressingRoom/0314HiFiFemAviHeightChange.fbx';
-    var TRANSFORMER_URL_ALBERT = 'atp:/dressingRoom/albert.fbx';
-    var TRANSFORMER_URL_BEING_OF_LIGHT = 'atp:/dressingRoom/0318HiFiBoL.fbx';
-    var TRANSFORMER_URL_KATE = 'atp:/dressingRoom/kate.fbx';
-    var TRANSFORMER_URL_WILL = 'atp:/dressingRoom/Will.fbx';
+    var TRANSFORMER_URL_ROBOT = 'atp:/dressingRoom/simple_robot.fbx';
 
+    var TRANSFORMER_URL_BEING_OF_LIGHT = 'atp:/dressingRoom/being_of_light.fbx';
+
+    var TRANSFORMER_URL_WILL = 'atp:/dressingRoom/will_T.fbx';
+
+    var TRANSFORMER_URL_STYLIZED_FEMALE = 'atp:/dressingRoom/stylized_female.fbx';
+
+    var TRANSFORMER_URL_REALISTIC_MALE = '';
+    var TRANSFORMER_URL_REALISTIC_FEMALE = '';
     Reset.prototype = {
         tidying: false,
 
@@ -387,41 +391,35 @@
             var rotationAsQuat = Quat.fromPitchYawRollDegrees(dollRotation.x, dollRotation.y, dollRotation.z);
 
             var dolls = [
-                TRANSFORMER_URL_ARTEMIS,
-                TRANSFORMER_URL_ALBERT,
+                TRANSFORMER_URL_STYLIZED_FEMALE,
+                TRANSFORMER_URL_ROBOT,
                 TRANSFORMER_URL_BEING_OF_LIGHT,
-                TRANSFORMER_URL_KATE,
                 TRANSFORMER_URL_WILL
             ];
 
             var dollDimensions = [{
-                //artemis
-                x: 0.8120,
-                y: 0.8824,
-                z: 0.1358
+                //stylized female artemis
+                x: 1.6323,
+                y: 1.7705,
+                z: 0.2851
             }, {
-                //albert
-                x: 0.9283,
-                y: 0.9178,
-                z: 0.2097
+                //robot
+                x: 1.4439,
+                y: 0.6224,
+                z: 0.4998
             }, {
                 //being of light
-                x: 0.9419,
-                y: 0.8932,
-                z: 0.1383
-            }, {
-                //kate
-                x: 0.8387,
-                y: 0.9009,
-                z: 0.1731
+                x: 1.8838,
+                y: 1.7865,
+                z: 0.2955
             }, {
                 //will
-                x: 0.8163,
-                y: 0.8382,
-                z: 0.1303
+                x: 1.6326,
+                y: 1.6764,
+                z: 0.2606
             }];
 
-            var TRANSFORMER_SCALE = 0.5;
+            var TRANSFORMER_SCALE = 0.25;
 
             dollDimensions.forEach(function(vector, index) {
                 var scaled = Vec3.multiply(vector, TRANSFORMER_SCALE);

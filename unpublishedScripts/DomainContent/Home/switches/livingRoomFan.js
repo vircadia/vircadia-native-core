@@ -7,11 +7,11 @@
         _this = this;
         this.switchSound = SoundCache.getSound("atp:/switches/lamp_switch_2.wav");
         _this.FAN_VOLUME = 0.1;
-        _this.FAN_SOUND_ENTITY_NAME = "home_sfx _ceiling_fan";
+        _this.FAN_SOUND_ENTITY_NAME = "home_sfx_ceiling_fan";
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-',
+        prefix: 'home_living_room',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -69,20 +69,12 @@
             setEntityCustomData("soundKey", _this.fanSoundEntity, soundUserData);
         },
 
-        ventSoundOn: function() {
-
-        },
-
-        ventSoundOff: function() {
-
-        },
-
         findFan: function() {
             var found = [];
             var results = Entities.findEntities(this.position, SEARCH_RADIUS);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-                if (properties.name === _this.prefix + "ceiling-fan") {
+                if (properties.name === _this.prefix + "_model_ceiling_fan_blades") {
                     found.push(result);
                 }
             });
@@ -112,7 +104,6 @@
             if (this._switch.state === 'off') {
                 this.fanRotationOn();
                 this.fanSoundOn();
-                this.ventSoundOn();
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'on'
                 });
@@ -120,7 +111,6 @@
             } else {
                 this.fanRotationOff();
                 this.fanSoundOff();
-                this.ventSoundOff();
 
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'off'

@@ -1,26 +1,26 @@
 {
     "Entities": [{
         "color": {
-            "blue": 68,
-            "green": 252,
-            "red": 243
+            "blue": 83,
+            "green": 199,
+            "red": 252
         },
         "created": "2016-03-24T22:21:38Z",
         "cutoff": 90,
         "dimensions": {
-            "x": 4,
-            "y": 4,
-            "z": 4
+            "x": 11,
+            "y": 11,
+            "z": 11
         },
-        "falloffRadius": 0.30000001192092896,
+        "falloffRadius": 0.2,
         "id": "{47e2c415-854c-4b6a-b71e-06c760675afd}",
-        "intensity": 20,
+        "intensity": 33,
         "isSpotlight": 0,
         "name": "home_light_livingRoomLight",
         "parentID": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
         "position": {
             "x": 0,
-            "y": -0.14917388558387756,
+            "y": -0.075,
             "z": 0
         },
         "queryAACube": {
