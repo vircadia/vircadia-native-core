@@ -117,11 +117,15 @@ void Stats::updateStats(bool force) {
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(serverCount, (int)nodeList->size());
-    STAT_UPDATE(renderrate, (int)qApp->getFps());
+    STAT_UPDATE(renderrate, qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
-        STAT_UPDATE(presentrate, (int)round(qApp->getActiveDisplayPlugin()->presentRate()));
+        STAT_UPDATE(presentrate, qApp->getActiveDisplayPlugin()->presentRate());
+        STAT_UPDATE(presentnewrate, qApp->getActiveDisplayPlugin()->newFramePresentRate());
+        STAT_UPDATE(presentdroprate, qApp->getActiveDisplayPlugin()->droppedFrameRate());
     } else {
         STAT_UPDATE(presentrate, -1);
+        STAT_UPDATE(presentnewrate, -1);
+        STAT_UPDATE(presentdroprate, -1);
     }
     STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());

@@ -30,6 +30,7 @@
 #include <CursorManager.h>
 #include "CompositorHelper.h"
 
+
 #if THREADED_PRESENT
 
 // FIXME, for display plugins that don't block on something like vsync, just 
@@ -415,25 +416,18 @@ void OpenGLDisplayPlugin::updateTextures() {
     if (_sceneTextureEscrow.fetchAndReleaseWithGpuWait(_currentSceneTexture)) {
 #endif
         updateFrameData();
-    }
+        _newFrameRate.increment();
+    } 
 
     _overlayTextureEscrow.fetchSignaledAndRelease(_currentOverlayTexture);
 }
 
 void OpenGLDisplayPlugin::updateFrameData() {
     Lock lock(_mutex);
+    auto previousFrameIndex = _currentRenderFrameIndex;
     _currentRenderFrameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
-}
-
-void OpenGLDisplayPlugin::updateFramerate() {
-    uint64_t now = usecTimestampNow();
-    static uint64_t lastSwapEnd { now };
-    uint64_t diff = now - lastSwapEnd;
-    lastSwapEnd = now;
-    if (diff != 0) {
-        Lock lock(_mutex);
-        _usecsPerFrame.updateAverage(diff);
-    }
+    auto skippedCount = (_currentRenderFrameIndex - previousFrameIndex) - 1;
+    _droppedFrameRate.increment(skippedCount);
 }
 
 void OpenGLDisplayPlugin::compositeOverlay() {
@@ -545,19 +539,20 @@ void OpenGLDisplayPlugin::present() {
         compositeLayers();
         // Take the composite framebuffer and send it to the output device
         internalPresent();
-        updateFramerate();
+        _presentRate.increment();
     }
 }
 
-float OpenGLDisplayPlugin::presentRate() {
-    float result { -1.0f }; 
-    {
-        Lock lock(_mutex);
-        result = _usecsPerFrame.getAverage();
-    }
-    result = 1.0f / result; 
-    result *= USECS_PER_SECOND;
-    return result;
+float OpenGLDisplayPlugin::newFramePresentRate() const {
+    return _newFrameRate.rate();
+}
+
+float OpenGLDisplayPlugin::droppedFrameRate() const {
+    return _droppedFrameRate.rate();
+}
+
+float OpenGLDisplayPlugin::presentRate() const {
+    return _presentRate.rate();
 }
 
 void OpenGLDisplayPlugin::drawUnitQuad() {
