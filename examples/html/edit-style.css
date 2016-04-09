@@ -908,6 +908,13 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     margin-top: 0;
 }
 
+#id label {
+    width: 24px;
+}
+#property-id {
+    display: inline-block;
+}
+
 #property-id::selection {
     color: #000000;
     background-color: #00b4ef;
