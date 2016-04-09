@@ -121,7 +121,12 @@
             var minutes = date.getMinutes();
 
             if (minutes % 15 === 0 && seconds === 0) {
+                _this.locked=true;
                 _this.popCuckooOut();
+                _this.setTimeout(function(){
+                    //five minute cooldown
+                    _this.locked=false;
+                },300000)
             }
 
         },
