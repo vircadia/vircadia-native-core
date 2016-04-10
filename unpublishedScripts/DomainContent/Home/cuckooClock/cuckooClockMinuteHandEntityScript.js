@@ -33,7 +33,7 @@
     };
 
     function startUpdate() {
-        print("EBL Start CLOCK Update")
+        // print("EBL Start CLOCK Update")
             //when the baton is claimed;
             //   print('trying to claim the object' + _entityID)
         iOwn = true;
@@ -67,7 +67,7 @@
             _this.userData = getEntityUserData(entityID);
             // print("ANIMATION!!! " + JSON.stringify(_this.animationURL));
             if (!_this.userData || !_this.userData.clockBody) {
-                print("THIS CLOCK HAND IS NOT ATTACHED TO A CLOCK BODY!");
+                // print("THIS CLOCK HAND IS NOT ATTACHED TO A CLOCK BODY!");
                 return;
             }
             _this.clockBody = _this.userData.clockBody;
@@ -75,7 +75,7 @@
             // One winner for each entity
 
             if (Entities.canRez() && Entities.canAdjustLocks) {
-                print("EBL I HAVE EDIT RIGHTS, SO SET UP BATON!");
+                // print("EBL I HAVE EDIT RIGHTS, SO SET UP BATON!");
                 baton = virtualBaton({
                     batonName: "io.highfidelity.cuckooClock:" + _this.entityID
                 });
@@ -87,7 +87,7 @@
         updateSecondHandForOwnersLocalTime: function() {
             // We are taking over so make sure to update our second hand to reflect local time
             if (!_this.secondHand) {
-                print("WE DONT HAVE A SECOND HAND! RETURNING");
+                // print("WE DONT HAVE A SECOND HAND! RETURNING");
                 return;
             }
             var clockRotation = Entities.getEntityProperties(_this.clockBody, "rotation").rotation;
@@ -132,7 +132,6 @@
             var minutes = date.getMinutes();
 
             if (minutes % 15 === 0 && seconds === 0) {
-                _this.locked = true;
                 _this.popCuckooOut();
             }
 
@@ -142,7 +141,7 @@
             _this.checkTime = false;
             // We are at the top of the hour!
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-            print("EBL POP CUCKOO CLOCK!!!!!!!!!!!");
+            // print("EBL POP CUCKOO CLOCK!!!!!!!!!!!");
             if (!_this.cuckooSoundInjector) {
                 _this.cuckooSoundInjector = Audio.playSound(_this.cuckooSound, {
                     position: _this.position,
