@@ -5,8 +5,17 @@
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  This cleanups up and creates content for the home.
+//  To begin, it finds any entity with the home reset key in its user data and deletes it.
+//  Next, it creates 'scripted entities', or objects that have scripts attached to them.
+//  Then it creates 'kinetic entities', or objects that need to be reset but have no scripts attached.
+//  Finally it sets up the 'dressing room' - an area that turns small models into big models on collision with a platform.
 //
-//
+//  The code is organized into a folder for each scripted entity containing a 'wrapper' file that instantiates the entity at a given location and rotation;
+//  The rest of the folder contains the scripts needed for that entity.
+//  Additionally, there is a folder for the kinetic entities that contains JSON files describing their content, and a single 'wrapper' file that contains constructors for each the various objects.
+//  A utilities file and the virtualBaton are included at the root level for all scripts to access as necessary.
+//  
+// 
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -60,7 +69,9 @@
     var TRANSFORMER_URL_STYLIZED_FEMALE = 'atp:/dressingRoom/stylized_female.fbx';
 
     var TRANSFORMER_URL_REALISTIC_MALE = '';
+
     var TRANSFORMER_URL_REALISTIC_FEMALE = '';
+
     Reset.prototype = {
         tidying: false,
 
@@ -123,7 +134,7 @@
 
                 Script.setTimeout(function() {
                     _this.createKineticEntities();
-                    _this.createDynamicEntities();
+                    _this.createScriptedEntities();
                     _this.setupDressingRoom();
                 }, 750)
 
@@ -143,7 +154,39 @@
             _this.toggleButton();
         },
 
-        createDynamicEntities: function() {
+        findAndDeleteHomeEntities: function() {
+            print('HOME trying to find home entities to delete')
+            var resetProperties = Entities.getEntityProperties(_this.entityID);
+            var results = Entities.findEntities(resetProperties.position, 1000);
+            var found = [];
+            results.forEach(function(result) {
+                var properties = Entities.getEntityProperties(result);
+
+                if (properties.userData === "" || properties.userData === undefined) {
+                    print('no userdata -- its blank or undefined')
+                    return;
+                }
+
+                var userData = null;
+                try {
+                    userData = JSON.parse(properties.userData);
+                } catch (err) {
+                    print('error parsing json in resetscript for: ' + properties.name);
+                    //print('properties are:' + properties.userData);
+                    return;
+                }
+                if (userData.hasOwnProperty('hifiHomeKey')) {
+                    if (userData.hifiHomeKey.reset === true) {
+                        Entities.deleteEntity(result);
+                    }
+                }
+
+
+            })
+            print('HOME after deleting home entities')
+        },
+
+        createScriptedEntities: function() {
             var fishTank = new FishTank({
                 x: 1099.2200,
                 y: 460.5460,
@@ -201,10 +244,9 @@
             });
 
             // var musicBox = new MusicBox();
-
+            print('HOME after creating scripted entities')
 
         },
-
 
         createKineticEntities: function() {
 
@@ -286,7 +328,7 @@
                 y: 461,
                 z: -73.3
             });
-
+            print('HOME after creating kinetic entities')
         },
 
         setupDressingRoom: function() {
@@ -439,41 +481,8 @@
 
         },
 
-        findAndDeleteHomeEntities: function() {
-            print('HOME trying to find home entities to delete')
-            var resetProperties = Entities.getEntityProperties(_this.entityID);
-            var results = Entities.findEntities(resetProperties.position, 1000);
-            var found = [];
-            results.forEach(function(result) {
-                var properties = Entities.getEntityProperties(result);
-
-                if (properties.userData === "" || properties.userData === undefined) {
-                    print('no userdata -- its blank or undefined')
-                    return;
-                }
-
-                var userData = null;
-                try {
-                    userData = JSON.parse(properties.userData);
-                } catch (err) {
-                    print('error parsing json in resetscript for: ' + properties.name);
-                    //print('properties are:' + properties.userData);
-                    return;
-                }
-                if (userData.hasOwnProperty('hifiHomeKey')) {
-                    if (userData.hifiHomeKey.reset === true) {
-                        Entities.deleteEntity(result);
-                    }
-                }
-
-
-            })
-            print('HOME after deleting home entities')
-        },
-
         unload: function() {
-            this.findAndDeleteHomeEntities();
-
+            // this.findAndDeleteHomeEntities();
         }
 
     }

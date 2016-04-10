@@ -1,3 +1,15 @@
+//
+//
+//  Created by The Content Team 4/10/216
+//  Copyright 2016 High Fidelity, Inc.
+//
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//
+
 (function() {
 
     //TODO -- At the part of the animation where the user starts to close the lid we need to rewind any frames past the one where it is aligned for going up/down before switching to the down animation
@@ -63,11 +75,15 @@
         },
 
         createMyInteval: function() {
+            var handToDisable = _this.hand;
+            print("disabling hand: " + handToDisable);
+            Messages.sendLocalMessage('Hifi-Hand-Disabler', handToDisable);
             _this.myInterval = Script.setInterval(function() {
                 _this.handleTrigger();
             }, 16);
         },
         clearMyInterval: function() {
+            Messages.sendLocalMessage('Hifi-Hand-Disabler','none');
             if (_this.myInterval !== null) {
                 Script.clearInterval(_this.myInterval)
             }
@@ -398,6 +414,7 @@
         },
 
         unload: function() {
+            Messages.sendLocalMessage('Hifi-Hand-Disabler','none');
             Controller.disableMapping(MAPPING_NAME);
             print('DISABLED MAPPING:: ' + MAPPING_NAME);
             if (this.musicInjector !== null) {
