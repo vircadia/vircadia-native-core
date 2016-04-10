@@ -25,7 +25,7 @@
     var CUCKOO_SOUND_URL = "atp:/cuckooClock/cuckoomix.wav";
     CuckooClockMinuteHand = function() {
         _this = this;
-        _this.TIME_CHECK_REFRACTORY_PERIOD = 5000;
+        _this.TIME_LOCK_DURATION = 300000;
         _this.checkTime = true;
         _this.cuckooSound = SoundCache.getSound(CUCKOO_SOUND_URL);
         _this.CUCKOO_SOUND_VOLUME = 0.1;
@@ -132,12 +132,8 @@
             var minutes = date.getMinutes();
 
             if (minutes % 15 === 0 && seconds === 0) {
-                _this.locked=true;
+                _this.locked = true;
                 _this.popCuckooOut();
-                _this.setTimeout(function(){
-                    //five minute cooldown
-                    _this.locked=false;
-                },300000)
             }
 
         },
@@ -165,7 +161,7 @@
             });
             Script.setTimeout(function() {
                 _this.checkTime = true;
-            }, _this.TIME_CHECK_REFRACTORY_PERIOD);
+            }, _this.TIME_LOCK_DURATION);
         }
 
 
