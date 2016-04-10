@@ -75,7 +75,7 @@ public:
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet) override;
 
     virtual void loader() override;
-    virtual void locationChanged() override;
+    virtual void locationChanged(bool tellPhysics = true) override;
 
     virtual void resizeJointArrays(int newSize = -1) override;
 
