@@ -59,13 +59,13 @@ public:
 
     virtual glm::vec3 getPosition(bool& success) const;
     virtual glm::vec3 getPosition() const;
-    virtual void setPosition(const glm::vec3& position, bool& success);
+    virtual void setPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
     virtual void setPosition(const glm::vec3& position);
 
     virtual glm::quat getOrientation(bool& success) const;
     virtual glm::quat getOrientation() const;
     virtual glm::quat getOrientation(int jointIndex, bool& success) const;
-    virtual void setOrientation(const glm::quat& orientation, bool& success);
+    virtual void setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
     virtual void setOrientation(const glm::quat& orientation);
 
     virtual glm::vec3 getVelocity(bool& success) const;
@@ -159,7 +159,7 @@ protected:
     mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
-    virtual void locationChanged(); // called when a this object's location has changed
+    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { } // called when a this object's dimensions have changed
 
     // _queryAACube is used to decide where something lives in the octree

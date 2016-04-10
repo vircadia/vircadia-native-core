@@ -42,7 +42,7 @@ public:
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     
 private:
-    virtual void locationChanged() override { EntityItem::locationChanged(); notifyBoundChanged(); }
+    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
     void notifyBoundChanged();
 
