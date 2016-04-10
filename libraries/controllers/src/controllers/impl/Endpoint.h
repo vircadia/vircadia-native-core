@@ -67,6 +67,23 @@ namespace controller {
         WriteLambda _writeLambda;
     };
 
+    extern Endpoint::WriteLambda DEFAULT_WRITE_LAMBDA;
+
+    class LambdaRefEndpoint : public Endpoint {
+    public:
+        using Endpoint::apply;
+        LambdaRefEndpoint(const ReadLambda& readLambda, const WriteLambda& writeLambda = DEFAULT_WRITE_LAMBDA)
+            : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) {
+        }
+
+        virtual float peek() const override { return _readLambda(); }
+        virtual void apply(float value, const Pointer& source) override { _writeLambda(value); }
+
+    private:
+        const ReadLambda& _readLambda;
+        const WriteLambda& _writeLambda;
+    };
+
 
     class VirtualEndpoint : public Endpoint {
     public:

@@ -38,6 +38,7 @@ ResourceCache::~ResourceCache() {
 void ResourceCache::refreshAll() {
     // Clear all unused resources so we don't have to reload them
     clearUnusedResource();
+    resetResourceCounters();
     
     // Refresh all remaining resources in use
     foreach (auto resource, _resources) {
@@ -53,7 +54,25 @@ void ResourceCache::refresh(const QUrl& url) {
         resource->refresh();
     } else {
         _resources.remove(url);
+        resetResourceCounters();
     }
+}
+
+QVariantList ResourceCache::getResourceList() {
+    QVariantList list;
+    if (QThread::currentThread() != thread()) {
+        // NOTE: invokeMethod does not allow a const QObject*
+        QMetaObject::invokeMethod(this, "getResourceList", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariantList, list));
+    } else {
+        auto resources = _resources.uniqueKeys();
+        list.reserve(resources.size());
+        for (auto& resource : resources) {
+            list << resource;
+        }
+    }
+
+    return list;
 }
 
 void ResourceCache::setRequestLimit(int limit) {
@@ -114,6 +133,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 void ResourceCache::setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize) {
     _unusedResourcesMaxSize = clamp(unusedResourcesMaxSize, MIN_UNUSED_MAX_SIZE, MAX_UNUSED_MAX_SIZE);
     reserveUnusedResource(0);
+    resetResourceCounters();
 }
 
 void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) {
@@ -127,6 +147,8 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     resource->setLRUKey(++_lastLRUKey);
     _unusedResources.insert(resource->getLRUKey(), resource);
     _unusedResourcesSize += resource->getBytes();
+
+    resetResourceCounters();
 }
 
 void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resource) {
@@ -134,6 +156,7 @@ void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resourc
         _unusedResources.remove(resource->getLRUKey());
         _unusedResourcesSize -= resource->getBytes();
     }
+    resetResourceCounters();
 }
 
 void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
@@ -142,8 +165,13 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
         
-        _unusedResourcesSize -= it.value()->getBytes();
         it.value()->setCache(nullptr);
+        auto size = it.value()->getBytes();
+
+        _totalResourcesSize -= size;
+        _resources.remove(it.value()->getURL());
+
+        _unusedResourcesSize -= size;
         _unusedResources.erase(it);
     }
 }
@@ -157,6 +185,17 @@ void ResourceCache::clearUnusedResource() {
         }
         _unusedResources.clear();
     }
+}
+
+void ResourceCache::resetResourceCounters() {
+    _numTotalResources = _resources.size();
+    _numUnusedResources = _unusedResources.size();
+    emit dirty();
+}
+
+void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
+    _totalResourcesSize += (newSize - oldSize);
+    emit dirty();
 }
 
 void ResourceCacheSharedItems::appendActiveRequest(Resource* resource) {
@@ -341,7 +380,7 @@ void Resource::allReferencesCleared() {
         _cache->addUnusedResource(self);
 
     } else {
-        delete this;
+        deleteLater();
     }
 }
 
@@ -375,6 +414,11 @@ void Resource::finishedLoading(bool success) {
     }
     _loadPriorities.clear();
     emit finished(success);
+}
+
+void Resource::setSize(const qint64& bytes) {
+    QMetaObject::invokeMethod(_cache.data(), "updateTotalSize", Q_ARG(qint64, _bytes), Q_ARG(qint64, bytes));
+    _bytes = bytes;
 }
 
 void Resource::reinsert() {
@@ -412,7 +456,7 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 void Resource::handleReplyFinished() {
     Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
 
-    _bytes = _bytesTotal;
+    setSize(_bytesTotal);
 
     if (!_request || _request != sender()) {
         // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.

@@ -271,10 +271,10 @@ bool RenderableModelEntityItem::getAnimationFrame() {
         return false;
     }
 
-    if (!hasAnimation() || !_jointMappingCompleted) {
+    if (!hasRenderAnimation() || !_jointMappingCompleted) {
         return false;
     }
-    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL()); // FIXME: this could be optimized
+    AnimationPointer myAnimation = getAnimation(getRenderAnimationURL()); // FIXME: this could be optimized
     if (myAnimation && myAnimation->isLoaded()) {
 
         const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
@@ -384,7 +384,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             }
 
             if (_model) {
-                if (hasAnimation()) {
+                if (hasRenderAnimation()) {
                     if (!jointsMapped()) {
                         QStringList modelJointNames = _model->getJointNames();
                         mapJoints(modelJointNames);
@@ -433,6 +433,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
                 _showCollisionHull = shouldShowCollisionHull;
                 render::PendingChanges pendingChanges;
+
+                _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
                 makeEntityItemStatusGetters(getThisPointer(), statusGetters);
@@ -525,6 +527,9 @@ void RenderableModelEntityItem::update(const quint64& now) {
                                       Q_ARG(EntityItemProperties, properties));
         }
     }
+
+    // make a copy of the animation properites
+    _renderAnimationProperties = _animationProperties;
 
     ModelEntityItem::update(now);
 }
@@ -793,8 +798,8 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 }
 
 
-void RenderableModelEntityItem::locationChanged() {
-    EntityItem::locationChanged();
+void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged(tellPhysics);
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());

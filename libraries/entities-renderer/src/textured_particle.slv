@@ -30,10 +30,10 @@ struct Colors {
 struct ParticleUniforms {
     Radii radius;
     Colors color;
-    float lifespan;
+    vec4 lifespan; // x is lifespan, 3 spare floats
 };
 
-uniform particleBuffer {
+layout(std140) uniform particleBuffer {
     ParticleUniforms particle;
 };
 
@@ -112,7 +112,7 @@ void main(void) {
     int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
 
     // Particle properties
-    float age = inColor.x / particle.lifespan;
+    float age = inColor.x / particle.lifespan.x;
     float seed = inColor.y;
 
     // Pass the texcoord and the z texcoord is representing the texture icon

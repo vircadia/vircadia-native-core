@@ -314,7 +314,7 @@ glm::vec3 SpatiallyNestable::getPosition(int jointIndex, bool& success) const {
     return getTransform(jointIndex, success).getTranslation();
 }
 
-void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
+void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(position)) {
         success = false;
@@ -328,7 +328,7 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
         Transform::inverseMult(_transform, parentTransform, myWorldTransform);
     });
     if (success) {
-        locationChanged();
+        locationChanged(tellPhysics);
     } else {
         qDebug() << "setPosition failed for" << getID();
     }
@@ -363,7 +363,7 @@ glm::quat SpatiallyNestable::getOrientation(int jointIndex, bool& success) const
     return getTransform(jointIndex, success).getRotation();
 }
 
-void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success) {
+void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(orientation)) {
         success = false;
@@ -378,7 +378,7 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
         Transform::inverseMult(_transform, parentTransform, myWorldTransform);
     });
     if (success) {
-        locationChanged();
+        locationChanged(tellPhysics);
     }
 }
 
@@ -751,9 +751,9 @@ void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePo
     }
 }
 
-void SpatiallyNestable::locationChanged() {
+void SpatiallyNestable::locationChanged(bool tellPhysics) {
     forEachChild([&](SpatiallyNestablePointer object) {
-        object->locationChanged();
+        object->locationChanged(tellPhysics);
     });
 }
 
@@ -848,4 +848,18 @@ AACube SpatiallyNestable::getQueryAACube() const {
         qDebug() << "getQueryAACube failed for" << getID();
     }
     return result;
+}
+
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return false;
+    }
+
+    if (parent->_nestableType == nestableType) {
+        return true;
+    }
+
+    return parent->hasAncestorOfType(nestableType);
 }
