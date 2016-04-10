@@ -731,18 +731,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         registerScriptEngineWithApplicationServices(engine);
     });
 
-    static const int SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS = 5000;
-    QTimer* scriptSaveTimer = new QTimer(this);
-    connect(scriptSaveTimer, &QTimer::timeout, [] {
-        DependencyManager::get<ScriptEngines>()->saveScripts();
-    });
-    scriptSaveTimer->setSingleShot(true);
-    connect(scriptEngines, &ScriptEngines::scriptCountChanged, scriptEngines, [this, scriptSaveTimer] {
+    connect(scriptEngines, &ScriptEngines::scriptCountChanged, scriptEngines, [this] {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         if (scriptEngines->getRunningScripts().isEmpty()) {
             getMyAvatar()->clearScriptableSettings();
         }
-        scriptSaveTimer->start(SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS);
     }, Qt::QueuedConnection);
 
     connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
