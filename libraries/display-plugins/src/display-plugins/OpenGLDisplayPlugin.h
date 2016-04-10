@@ -71,6 +71,7 @@ protected:
     glm::uvec2 getSurfacePixels() const;
 
     void compositeLayers();
+    virtual void compositeScene();
     virtual void compositeOverlay();
     virtual void compositePointer();
 
@@ -93,6 +94,7 @@ protected:
 
     void withMainThreadContext(std::function<void()> f) const;
 
+    void useProgram(const ProgramPtr& program);
     void present();
     void updateTextures();
     void drawUnitQuad();
@@ -111,7 +113,7 @@ protected:
     RateCounter<> _newFrameRate;
     RateCounter<> _presentRate;
     QMap<gpu::TexturePointer, uint32_t> _sceneTextureToFrameIndexMap;
-    uint32_t _currentRenderFrameIndex { 0 };
+    uint32_t _currentPresentFrameIndex { 0 };
 
     gpu::TexturePointer _currentSceneTexture;
     gpu::TexturePointer _currentOverlayTexture;
@@ -130,6 +132,10 @@ protected:
 
     std::map<uint16_t, CursorData> _cursorsData;
     BasicFramebufferWrapperPtr _compositeFramebuffer;
+    bool _lockCurrentTexture { false };
+
+private:
+    ProgramPtr _activeProgram;
 };
 
 

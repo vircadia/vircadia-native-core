@@ -28,6 +28,7 @@ static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 static const bool DEFAULT_MONO_VIEW = true;
 
+
 glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
@@ -42,8 +43,111 @@ bool HmdDisplayPlugin::internalActivate() {
     }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
 
+    for_each_eye([&](Eye eye) {
+        _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
+    });
+
     return Parent::internalActivate();
 }
+
+
+static const char * REPROJECTION_VS = R"VS(#version 450 core
+in vec3 Position;
+in vec2 TexCoord;
+
+out vec3 vPosition;
+out vec2 vTexCoord;
+
+void main() {
+  gl_Position = vec4(Position, 1);
+  vTexCoord = TexCoord;
+  vPosition = Position;
+}
+
+)VS";
+
+static const GLint REPROJECTION_MATRIX_LOCATION = 0;
+static const GLint INVERSE_PROJECTION_MATRIX_LOCATION = 4;
+static const GLint PROJECTION_MATRIX_LOCATION = 12;
+static const char * REPROJECTION_FS = R"FS(#version 450 core
+uniform sampler2D sampler;
+layout (location = 0) uniform mat3 reprojection = mat3(1);
+layout (location = 4) uniform mat4 inverseProjections[2];
+layout (location = 12) uniform mat4 projections[2];
+
+in vec2 vTexCoord;
+in vec3 vPosition;
+
+out vec4 FragColor;
+
+void main() {
+    
+    vec2 uv = vTexCoord;
+    vec3 Z_AXIS = vec3(0.0, 0.0, -1.0);
+    vec3 rotated = reprojection * Z_AXIS;
+    float angle = acos(dot(Z_AXIS, rotated));
+    if (angle < 0.001) {
+        FragColor = texture(sampler, uv);
+        return;
+    }
+
+    
+    mat4 eyeInverseProjection;
+    mat4 eyeProjection;
+
+    
+    float xoffset = 1.0;
+    vec2 uvmin = vec2(0.0);
+    vec2 uvmax = vec2(1.0);
+    // determine the correct projection and inverse projection to use.
+    if (vTexCoord.x < 0.5) {
+        uvmax.x = 0.5;
+        eyeInverseProjection = inverseProjections[0];
+        eyeProjection = projections[0];
+    } else {
+        xoffset = -1.0;
+        uvmin.x = 0.5;
+        uvmax.x = 1.0;
+        eyeInverseProjection = inverseProjections[1];
+        eyeProjection = projections[1];
+    }
+
+    // Account for stereo in calculating the per-eye NDC coordinates
+    vec4 ndcSpace = vec4(vPosition, 1.0);
+    ndcSpace.x *= 2.0;
+    ndcSpace.x += xoffset;
+    
+    // Convert from NDC to eyespace
+    vec4 eyeSpace = eyeInverseProjection * ndcSpace;
+    eyeSpace /= eyeSpace.w;
+
+    // Convert to a noramlized ray 
+    vec3 ray = eyeSpace.xyz;
+    ray = normalize(ray);
+
+    // Adjust the ray by the rotation
+    ray = reprojection * ray;
+    
+    // Project back on to the texture plane
+    eyeSpace.xyz = ray * eyeSpace.z;
+    //eyeSpace.xyz = ray;
+
+    // Reproject back into NDC
+    ndcSpace = eyeProjection * eyeSpace;
+    ndcSpace /= ndcSpace.w;
+    ndcSpace.x -= xoffset;
+    ndcSpace.x /= 2.0;
+    
+    // Calculate the new UV coordinates
+    uv = (ndcSpace.xy / 2.0) + 0.5;
+    if (any(greaterThan(uv, uvmax)) || any(lessThan(uv, uvmin))) {
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    } else {
+        FragColor = texture(sampler, uv);
+    }
+}
+)FS";
+
 
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
@@ -51,6 +155,7 @@ void HmdDisplayPlugin::customizeContext() {
     enableVsync(false);
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
+    compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
@@ -59,21 +164,57 @@ void HmdDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
+// By default assume we'll present with the same pose as the render
+void HmdDisplayPlugin::updatePresentPose() {
+    _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
+}
+
+glm::mat3 HmdDisplayPlugin::FrameInfo::presentRotation() const {
+    if (renderPose == presentPose) {
+        return glm::mat3();
+    }
+    quat renderRotation = glm::quat_cast(renderPose);
+    quat presentRotation = glm::quat_cast(presentPose);
+    quat reprojection = glm::inverse(renderRotation) * presentRotation;
+    return glm::mat3_cast(reprojection);
+}
+
+void HmdDisplayPlugin::compositeScene() {
+    updatePresentPose();
+
+    glm::mat3 reprojection = _currentPresentFrameInfo.presentRotation();
+    if (glm::mat3() == reprojection) {
+        // No reprojection required
+        Parent::compositeScene();
+        return;
+    }
+
+    useProgram(_reprojectionProgram);
+
+    using namespace oglplus;
+    Uniform<glm::mat3>(*_reprojectionProgram, REPROJECTION_MATRIX_LOCATION).Set(reprojection);
+    // FIXME what's the right oglplus mechanism to do this?
+    glUniformMatrix4fv(INVERSE_PROJECTION_MATRIX_LOCATION, 2, GL_FALSE, &(_eyeInverseProjections[0][0][0]));
+    glUniformMatrix4fv(PROJECTION_MATRIX_LOCATION, 2, GL_FALSE, &(_eyeProjections[0][0][0]));
+    _plane->UseInProgram(*_reprojectionProgram);
+    _plane->Draw();
+}
+
 void HmdDisplayPlugin::compositeOverlay() {
     using namespace oglplus;
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     // check the alpha
+    useProgram(_program);
     auto overlayAlpha = compositorHelper->getAlpha();
     if (overlayAlpha > 0.0f) {
         // set the alpha
         Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
 
-        auto eyePoses = _currentPresentFrameInfo.eyePoses;
         _sphereSection->Use();
         for_each_eye([&](Eye eye) {
             eyeViewport(eye);
-            auto modelView = glm::inverse(eyePoses[eye]); // *glm::translate(mat4(), vec3(0, 0, -1));
+            auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye));
             auto mvp = _eyeProjections[eye] * modelView;
             Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
             _sphereSection->Draw();
@@ -88,6 +229,7 @@ void HmdDisplayPlugin::compositePointer() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     // check the alpha
+    useProgram(_program);
     auto overlayAlpha = compositorHelper->getAlpha();
     if (overlayAlpha > 0.0f) {
         // set the alpha
@@ -96,10 +238,11 @@ void HmdDisplayPlugin::compositePointer() {
         // Mouse pointer
         _plane->Use();
         // Reconstruct the headpose from the eye poses
-        auto headPosition = vec3(_currentPresentFrameInfo.headPose[3]);
+        auto headPosition = vec3(_currentPresentFrameInfo.presentPose[3]);
         for_each_eye([&](Eye eye) {
             eyeViewport(eye);
-            auto reticleTransform = compositorHelper->getReticleTransform(_currentPresentFrameInfo.eyePoses[eye], headPosition);
+            auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
+            auto reticleTransform = compositorHelper->getReticleTransform(eyePose, headPosition);
             auto mvp = _eyeProjections[eye] * reticleTransform;
             Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
             _plane->Draw();
@@ -160,16 +303,13 @@ void HmdDisplayPlugin::internalPresent() {
 }
 
 void HmdDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
-    Lock lock(_mutex);
-    FrameInfo& frame = _frameInfos[frameIndex];
-    frame.eyePoses[eye] = pose;
 }
 
 void HmdDisplayPlugin::updateFrameData() {
     // Check if we have old frame data to discard
     {
         Lock lock(_mutex);
-        auto itr = _frameInfos.find(_currentRenderFrameIndex);
+        auto itr = _frameInfos.find(_currentPresentFrameIndex);
         if (itr != _frameInfos.end()) {
             _frameInfos.erase(itr);
         }
@@ -179,10 +319,10 @@ void HmdDisplayPlugin::updateFrameData() {
 
     {
         Lock lock(_mutex);
-        _currentPresentFrameInfo = _frameInfos[_currentRenderFrameIndex];
+        _currentPresentFrameInfo = _frameInfos[_currentPresentFrameIndex];
     }
 }
 
 glm::mat4 HmdDisplayPlugin::getHeadPose() const {
-    return _currentRenderFrameInfo.get().headPose;
+    return _currentRenderFrameInfo.renderPose;
 }
