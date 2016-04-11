@@ -91,6 +91,7 @@ void GLTextureTransferHelper::setup() {
 void GLTextureTransferHelper::shutdown() {
     _canvas->doneCurrent();
     _canvas->moveToThreadWithContext(qApp->thread());
+    _canvas.reset();
 }
 
 
