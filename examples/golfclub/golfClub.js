@@ -1,7 +1,7 @@
 //
 //  golfClub.js
 //
-//  Created by Philip Rosedale on 11/11/15.
+//  Created by Philip Rosedale on April 11, 2016.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //
@@ -46,7 +46,7 @@ function triggerPulled(hand) {
 
 function ballPosition(ball) {
     //  return the position of this entity
-    var properties = Entities.getEntityProperties(ball);
+    var properties = Entities.getEntityProperties(ball, ['position']);
     if (!properties) {
         return null;
     } else {
@@ -82,7 +82,7 @@ function avatarHalfHeight() {
 
 function brakeBall(ball) {
     //  Check the ball's velocity and slow it down if beyond a threshold
-    var properties = Entities.getEntityProperties(ball);
+    var properties = Entities.getEntityProperties(ball, ['velocity']);
     if (properties) {
         var velocity = Vec3.length(properties.velocity);
         if ((velocity > 0) && (velocity < MAX_BRAKING_SPEED)) {
