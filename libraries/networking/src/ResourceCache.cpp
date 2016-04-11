@@ -41,9 +41,9 @@ void ResourceCache::refreshAll() {
     resetResourceCounters();
     
     // Refresh all remaining resources in use
-    foreach (auto resource, _resources) {
-        if (!resource.isNull()) {
-            resource.data()->refresh();
+    foreach (QSharedPointer<Resource> resource, _resources) {
+        if (resource) {
+            resource->refresh();
         }
     }
 }
@@ -110,7 +110,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     }
 
     if (QThread::currentThread() != thread()) {
-        assert(delayLoad && !extra);
+        assert(delayLoad);
         getResourceAsynchronously(url);
         return QSharedPointer<Resource>();
     }
@@ -208,9 +208,19 @@ void ResourceCacheSharedItems::appendPendingRequest(QWeakPointer<Resource> resou
     _pendingRequests.append(resource);
 }
 
-QList<QWeakPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() const {
-    Lock lock(_mutex);
-    return _pendingRequests;
+QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
+    QList<QSharedPointer<Resource>> result;
+
+    {
+        Lock lock(_mutex);
+        foreach(QSharedPointer<Resource> resource, _pendingRequests) {
+            if (resource) {
+                result.append(resource);
+            }
+        }
+        _pendingRequests.removeAll(QWeakPointer<Resource>());
+    }
+    return result;
 }
 
 uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
@@ -218,9 +228,19 @@ uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
     return _pendingRequests.size();
 }
 
-QList<QWeakPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() const {
-    Lock lock(_mutex);
-    return _loadingRequests;
+QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
+    QList<QSharedPointer<Resource>> result;
+
+    {
+        Lock lock(_mutex);
+        foreach(QSharedPointer<Resource> resource, _loadingRequests) {
+            if (resource) {
+                result.append(resource);
+            }
+        }
+        _loadingRequests.removeAll(QWeakPointer<Resource>());
+    }
+    return result;
 }
 
 void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
@@ -254,7 +274,7 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     return highestResource;
 }
 
-const QList<QWeakPointer<Resource>> ResourceCache::getLoadingRequests() {
+QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
 }
 

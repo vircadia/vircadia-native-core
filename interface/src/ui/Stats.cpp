@@ -196,7 +196,7 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerPps, -1);
         }
 
-        QList<QWeakPointer<Resource>> loadingRequests = ResourceCache::getLoadingRequests();
+        auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
         STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
@@ -205,8 +205,7 @@ void Stats::updateStats(bool force) {
         bool shouldUpdateUrls = _downloads != _downloadUrls.size();
         if (!shouldUpdateUrls) {
             for (int i = 0; i < _downloads; i++) {
-                auto request = loadingRequests[i].lock();
-                if (!request || request->getURL().toString() != _downloadUrls[i]) {
+                if (loadingRequests[i]->getURL().toString() != _downloadUrls[i]) {
                     shouldUpdateUrls = true;
                     break;
                 }
@@ -215,10 +214,8 @@ void Stats::updateStats(bool force) {
         // If the urls have changed, update the list
         if (shouldUpdateUrls) {
             _downloadUrls.clear();
-            foreach (QSharedPointer<Resource> request, loadingRequests) {
-                if (request) {
-                    _downloadUrls << request->getURL().toString();
-                }
+            foreach (auto resource, loadingRequests) {
+                _downloadUrls << resource->getURL().toString();
             }
             emit downloadUrlsChanged();
         }

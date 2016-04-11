@@ -65,9 +65,9 @@ public:
     void appendPendingRequest(QWeakPointer<Resource> newRequest);
     void appendActiveRequest(QWeakPointer<Resource> newRequest);
     void removeRequest(QWeakPointer<Resource> doneRequest);
-    QList<QWeakPointer<Resource>> getPendingRequests() const;
+    QList<QSharedPointer<Resource>> getPendingRequests();
     uint32_t getPendingRequestsCount() const;
-    QList<QWeakPointer<Resource>> getLoadingRequests() const;
+    QList<QSharedPointer<Resource>> getLoadingRequests();
     QSharedPointer<Resource> getHighestPendingRequest();
 
 private:
@@ -88,8 +88,6 @@ class ResourceCache : public QObject {
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
     
 public:
-    virtual ~ResourceCache();
-
     size_t getNumTotalResources() const { return _numTotalResources; }
     size_t getSizeTotalResources() const { return _totalResourcesSize; }
 
@@ -106,10 +104,12 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<QWeakPointer<Resource>> getLoadingRequests();
+    static QList<QSharedPointer<Resource>> getLoadingRequests();
 
     static int getPendingRequestCount();
 
+    ResourceCache(QObject* parent = nullptr);
+    virtual ~ResourceCache();
     
     void refreshAll();
     void refresh(const QUrl& url);
@@ -124,8 +124,6 @@ protected slots:
     void updateTotalSize(const qint64& oldSize, const qint64& newSize);
 
 protected:
-    ResourceCache(QObject* parent = nullptr);
-
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
