@@ -33,7 +33,7 @@
             max: 1000
         };
         _this.canCreateFlower = true;
-        _this.SHADER_URL = "atp:/shaders/flower.fs";
+        _this.SHADER_URL = "atp:/growingPlant/flower.fs";
 
         _this.flowerHSLColors = [{
             hue: 19 / 360,

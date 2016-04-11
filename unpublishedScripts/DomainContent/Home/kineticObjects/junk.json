@@ -124,7 +124,7 @@
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
         "id": "{d99aeed0-9d38-4b82-8ae0-630cdfcd32cb}",
         "marketplaceID": "268b7d13-d3f6-4e03-a252-3e5bde1d145e",
-        "modelURL": "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/ozan/Lamp.fbx",
+        "modelURL": "atp:/tutorialContent/Lamp.fbx",
         "name": "home_model_Junk - lamp",
         "position": {
             "x": 0.61279296875,
