@@ -251,26 +251,20 @@ void GLBackend::render(Batch& batch) {
         PROFILE_RANGE("Transfer");
         renderPassTransfer(batch);
     }
-  //  _stereo._enable =batch.isStereoEnabled();
     
-    if (_stereo._enable)
+    if (_stereo._enable) {
         glEnable(GL_CLIP_DISTANCE0);
+    }
 
     {
-        PROFILE_RANGE(_stereo._enable ? "LeftRender" : "Render");
+        PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
 
-  /*  if (_stereo._enable) {
-        PROFILE_RANGE("RightRender");
-        _stereo._pass = 1;
-        renderPassDraw(batch);
-        _stereo._pass = 0;
-    }*/
-
-    if (_stereo._enable)
+    if (_stereo._enable) {
         glDisable(GL_CLIP_DISTANCE0);
-    
+    }
+
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 }
@@ -335,11 +329,12 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     if (isStereo()) {
         glDrawArraysInstanced(mode, startVertex, numVertices, 2);
         _stats._DSNumTriangles += 2 * numVertices / 3;
+        _stats._DSNumDrawcalls += 2;
     } else {
         glDrawArrays(mode, startVertex, numVertices);
         _stats._DSNumTriangles += numVertices / 3;
+        _stats._DSNumDrawcalls++;
     }
-    _stats._DSNumDrawcalls++;
     _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
@@ -359,11 +354,12 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     if (isStereo()) {
         glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, 2);
         _stats._DSNumTriangles += 2 * numIndices / 3;
+        _stats._DSNumDrawcalls += 2;
     } else {
         glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
         _stats._DSNumTriangles += numIndices / 3;
+        _stats._DSNumDrawcalls++;
     }
-    _stats._DSNumDrawcalls++;
     _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();

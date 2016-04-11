@@ -1674,8 +1674,7 @@ void Application::paintGL() {
         renderArgs._boomOffset = boomOffset;
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
-     //   if (displayPlugin->isStereo()) {
-        if (true) {
+        if (displayPlugin->isStereo()) {
             // Stereo modes will typically have a larger projection matrix overall,
             // so we ask for the 'mono' projection matrix, which for stereo and HMD
             // plugins will imply the combined projection for both eyes.

@@ -66,7 +66,7 @@ void GLBackend::initTransform() {
 #ifndef GPU_SSBO_DRAW_CALL_INFO
     glGenTextures(1, &_transform._objectBufferTexture);
 #endif
-    size_t cameraSize = sizeof(TransformCamera);
+    size_t cameraSize = sizeof(TransformStageState::Cameras);
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
     }
@@ -112,14 +112,11 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
+        _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
         if (stereo._enable) {
-            _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-            for (int i = 0; i < 2; ++i) {
-                _cameras.push_back(_camera.getEyeCamera(i, stereo, _view));
-            }
+            _cameras.push_back(Cameras(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)) );
         } else {
-            _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-            _cameras.push_back(_camera.recomputeDerived(_view));
+            _cameras.push_back(Cameras(_camera.recomputeDerived(_view)));
         }
     }
 
@@ -133,7 +130,7 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
     if (!_cameras.empty()) {
         bufferData.resize(_cameraUboSize * _cameras.size());
         for (size_t i = 0; i < _cameras.size(); ++i) {
-            memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
+            memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(Cameras));
         }
         glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
@@ -191,13 +188,8 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     }
     if (offset != INVALID_OFFSET) {
         // We include both camera offsets for stereo
-        GLuint rangeSize = sizeof(Backend::TransformCamera);
-        if (stereo._enable && stereo._pass) {
-            offset += _cameraUboSize;
-            rangeSize += sizeof(Backend::TransformCamera);
-        }
-        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
-                          _cameraBuffer, offset, sizeof(Backend::TransformCamera));
+        GLuint rangeSize = sizeof(Cameras);
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, offset, rangeSize);
     }
 
     (void)CHECK_GL_ERROR();

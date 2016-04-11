@@ -396,7 +396,15 @@ protected:
     void resetTransformStage();
 
     struct TransformStageState {
-        using TransformCameras = std::vector<TransformCamera>;
+        struct Cameras {
+            TransformCamera _cams[2];
+
+            Cameras() {};
+            Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
+            Cameras(const TransformCamera& camL, const TransformCamera& camR) { memcpy(_cams, &camL, sizeof(TransformCamera)); memcpy(_cams + 1, &camR, sizeof(TransformCamera)); };
+        };
+
+        using TransformCameras = std::vector<Cameras>;
 
         TransformCamera _camera;
         TransformCameras _cameras;
@@ -407,7 +415,7 @@ protected:
         GLuint _cameraBuffer { 0 };
         GLuint _drawCallInfoBuffer { 0 };
         GLuint _objectBufferTexture { 0 };
-        size_t _cameraUboSize { 0 };
+        size_t _cameraUboSize { 0 }; // 2 sizes, one for mono, one for stereo
         Transform _view;
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
