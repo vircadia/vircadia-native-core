@@ -10,6 +10,8 @@
 #ifndef hifi_GLHelpers_h
 #define hifi_GLHelpers_h
 
+#include <QJsonObject>
+
 // 16 bits of depth precision
 #define DEFAULT_GL_DEPTH_BUFFER_BITS 16
 // 8 bits of stencil buffer (typically you really only need 1 bit for functionality
@@ -21,4 +23,6 @@ class QGLFormat;
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 const QGLFormat& getDefaultGLFormat();
+QJsonObject getGLContextData();
+
 #endif

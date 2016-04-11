@@ -4,6 +4,7 @@
 
 #include <QtGui/QSurfaceFormat>
 #include <QtOpenGL/QGL>
+#include <QOpenGLContext>
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
@@ -34,4 +35,22 @@ const QGLFormat& getDefaultGLFormat() {
         glFormat.setStencil(false);
     });
     return glFormat;
+}
+
+QJsonObject getGLContextData() {
+    if (!QOpenGLContext::currentContext()) {
+        return QJsonObject();
+    }
+
+    QString glVersion = QString((const char*)glGetString(GL_VERSION));
+    QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    QString glVendor = QString((const char*) glGetString(GL_VENDOR));
+    QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
+
+    return QJsonObject {
+        { "version", glVersion },
+        { "slVersion", glslVersion },
+        { "vendor", glVendor },
+        { "renderer", glRenderer },
+    };
 }
