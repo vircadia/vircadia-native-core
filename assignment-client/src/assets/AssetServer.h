@@ -60,8 +60,6 @@ private:
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
 
-    void performMappingMigration();
-
     // deletes any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
 

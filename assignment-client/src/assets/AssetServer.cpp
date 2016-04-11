@@ -134,61 +134,9 @@ void AssetServer::completeSetup() {
 
     qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
-    performMappingMigration();
-
     cleanupUnmappedFiles();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-}
-
-void AssetServer::performMappingMigration() {
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}(\\.[\\w]+)+$" };
-
-    auto files = _resourcesDirectory.entryInfoList(QDir::Files);
-
-    for (const auto& fileInfo : files) {
-        if (hashFileRegex.exactMatch(fileInfo.fileName())) {
-            // we have a pre-mapping file that we should migrate to the new mapping system
-            qDebug() << "Migrating pre-mapping file" << fileInfo.fileName();
-
-            // rename the file to the same name with no extension
-            QFile oldFile { fileInfo.absoluteFilePath() };
-
-            auto oldAbsolutePath = fileInfo.absoluteFilePath();
-            auto oldFilename = fileInfo.fileName();
-            auto hash = oldFilename.left(SHA256_HASH_HEX_LENGTH);
-            auto fullExtension = oldFilename.mid(oldFilename.indexOf('.'));
-
-            qDebug() << "\tMoving" << oldAbsolutePath << "to" << oldAbsolutePath.replace(fullExtension, "");
-
-            bool renamed = oldFile.copy(_filesDirectory.filePath(hash));
-            if (!renamed) {
-                qWarning() << "\tCould not migrate pre-mapping file" << fileInfo.fileName();
-            } else {
-                qDebug() << "\tRenamed pre-mapping file" << fileInfo.fileName();
-
-                // add a new mapping with the old extension and a truncated version of the hash
-                const int TRUNCATED_HASH_NUM_CHAR = 16;
-                auto fakeFileName = "/" + hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
-
-                qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
-
-                auto it = _fileMappings.find(fakeFileName);
-                if (it == _fileMappings.end()) {
-                    _fileMappings[fakeFileName] = hash;
-
-                    if (writeMappingsToFile()) {
-                        // mapping added and persisted, we can remove the migrated file
-                        oldFile.remove();
-                        qDebug() << "\tMigration completed for" << oldFilename;
-                    }
-                } else {
-                    qDebug() << "\tCould not add migration mapping for" << hash << "since a mapping for" << fakeFileName
-                        << "already exists.";
-                }
-            }
-        }
-    }
 }
 
 void AssetServer::cleanupUnmappedFiles() {
