@@ -244,6 +244,10 @@ void AnimationPropertyGroup::markAllChanged() {
     _fpsChanged = true;
     _currentFrameChanged = true;
     _runningChanged = true;
+    _loopChanged = true;
+    _firstFrameChanged = true;
+    _lastFrameChanged = true;
+    _holdChanged = true;
 }
 
 EntityPropertyFlags AnimationPropertyGroup::getChangedProperties() const {

@@ -12,6 +12,7 @@
 #ifndef hifi_OffscreenUi_h
 #define hifi_OffscreenUi_h
 
+#include <unordered_map>
 #include <QtCore/QVariant>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
@@ -37,6 +38,7 @@ public:
     void setNavigationFocused(bool focused);
     void unfocusWindows();
     void toggleMenu(const QPoint& screenCoordinates);
+    bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
@@ -131,6 +133,7 @@ private:
 
     QQuickItem* _desktop { nullptr };
     QQuickItem* _toolWindow { nullptr };
+    std::unordered_map<int, bool> _pressedKeys;
 };
 
 #endif
