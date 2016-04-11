@@ -114,7 +114,7 @@
             }
 
             var properties = {
-                name: 'Hifi Tilt Maze Ball',
+                name: 'home_sphere_tiltMazeBall',
                 type: 'Sphere',
                 position: this.getBallStartLocation(),
                 dynamic: true,
@@ -141,7 +141,7 @@
             var results = Entities.findEntities(MyAvatar.position, 10);
             results.forEach(function(result) {
                 var props = Entities.getEntityProperties(result, ['name']);
-                var isAMazeBall = props.name.indexOf('Maze Ball');
+                var isAMazeBall = props.name.indexOf('MazeBall');
                 if (isAMazeBall > -1 && result === _this.ball) {
                     Entities.deleteEntity(result);
                 }
