@@ -25,25 +25,101 @@
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
+#include <thread>
 
 #ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
 #include <BugSplat.h>
+#include <CrashReporter.h>
 #endif
 
+#include <csignal>
 
-int main(int argc, const char* argv[]) {
-    disableQtBearerPoll(); // Fixes wifi ping spikes
+namespace crash {
+
+    void pureVirtualCall() {
+        struct B {
+            B() {
+                qDebug() << "Pure Virtual Function Call crash!";
+                Bar();
+            }
+
+            virtual void Foo() = 0;
+
+            void Bar() {
+                Foo();
+            }
+        };
+
+        struct D : public B {
+            void Foo() {
+                qDebug() << "D:Foo()";
+            }
+        };
+
+        B* b = new D;
+        qDebug() << "About to make a pure virtual call";
+        b->Foo();
+    }
+        
+    void doubleFree() {
+        qDebug() << "About to double delete memory";
+        int* blah = new int(200);
+        delete blah;
+        delete blah;
+    }
+
+    void nullDeref() {
+        qDebug() << "About to dereference a null pointer";
+        int* p = nullptr;
+        *p = 1;
+    }
+
+    void doAbort() {
+        qDebug() << "About to abort";
+        abort();
+    }
+
+    void outOfBoundsVectorCrash() {
+        qDebug() << "std::vector out of bounds crash!";
+        std::vector<int> v;
+        v[0] = 5;
+    }
+
+    void newFault() {
+        qDebug() << "About to crash inside new fault";
+        // Force crash with large allocation
+        int *pi = new int[std::numeric_limits<uint64_t>::max()];
+    }
+}
+//
+//LONG WINAPI TopLevelExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+//    qDebug() << "Got exception";
+//
+//    mpSender.unhandledExceptionHandler(pExceptionInfo);
+//
+//    return EXCEPTION_CONTINUE_SEARCH;
+//}
+
 
 #if HAS_BUGSPLAT
     // Prevent other threads from hijacking the Exception filter, and allocate 4MB up-front that may be useful in
     // low-memory scenarios.
-    static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
-    static const char* BUG_SPLAT_DATABASE = "interface_alpha";
-    static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
-    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, qPrintable(BuildInfo::VERSION),
-                             nullptr, BUG_SPLAT_FLAGS };
+//    static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;// | MDSF_CUSTOMEXCEPTIONFILTER;
+//    static const char* BUG_SPLAT_DATABASE = "interface_alpha";
+//    static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
+//    static MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, qPrintable(BuildInfo::VERSION),
+//                                    nullptr, BUG_SPLAT_FLAGS };
 #endif
+
+int main(int argc, const char* argv[]) {
+#if HAS_BUGSPLAT
+    static QString BUG_SPLAT_DATABASE = "interface_alpha";
+    static QString BUG_SPLAT_APPLICATION_NAME = "Interface";
+    CrashReporter crashReporter { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION };
+#endif
+
+    disableQtBearerPoll(); // Fixes wifi ping spikes
     
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
@@ -160,6 +236,19 @@ int main(int argc, const char* argv[]) {
             }
         }
 
+//        crash::doAbort(); // works
+//        crash::doubleFree();
+
+        std::thread([]() {
+//            crash::pureVirtualCall(); // works
+        crash::newFault(); // works
+        });
+
+//        QThread thread;
+//        QObject::connect(&thread, &QThread::started, &app, []() {
+//        }, Qt::DirectConnection);
+//        thread.start();
+
         // Setup local server
         QLocalServer server { &app };
 
@@ -167,18 +256,18 @@ int main(int argc, const char* argv[]) {
         server.removeServer(applicationName);
         server.listen(applicationName);
 
-        QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
+        QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
 #ifdef HAS_BUGSPLAT
         AccountManager& accountManager = AccountManager::getInstance();
-        mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
-        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
-            mpSender.setDefaultUserName(qPrintable(newUsername));
+        crashReporter.mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
+        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&crashReporter](const QString& newUsername) {
+            crashReporter.mpSender.setDefaultUserName(qPrintable(newUsername));
         });
 
         // BugSplat WILL NOT work with file paths that do not use OS native separators.
         auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
-        mpSender.sendAdditionalFile(qPrintable(logPath));
+        crashReporter.mpSender.sendAdditionalFile(qPrintable(logPath));
 #endif
 
         printSystemInformation();
