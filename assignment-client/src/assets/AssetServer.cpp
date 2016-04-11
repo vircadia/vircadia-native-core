@@ -544,6 +544,8 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
 
+    QSet<QString> hashesToCheck;
+
     // enumerate the paths to delete and remove them all
     for (auto& path : paths) {
 
@@ -557,6 +559,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
 
             while (it != _fileMappings.end()) {
                 if (it.key().startsWith(path)) {
+                    // add this hash to the list we need to check for asset removal from the server
+                    hashesToCheck << it.value().toString();
+
                     it = _fileMappings.erase(it);
                 } else {
                     ++it;
@@ -583,6 +588,30 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
     // deleted the old mappings, attempt to persist to file
     if (writeMappingsToFile()) {
         // persistence succeeded we are good to go
+
+        // grab the current mapped hashes
+        auto mappedHashes = _fileMappings.values();
+
+        // enumerate the mapped hashes and clear the list of hashes to check for anything that's present
+        for (auto& hashVariant : mappedHashes) {
+            auto it = hashesToCheck.find(hashVariant.toString());
+            if (it != hashesToCheck.end()) {
+                hashesToCheck.erase(it);
+            }
+        }
+
+        // we now have a set of hashes that are unmapped - we will delete those asset files
+        for (auto& hash : hashesToCheck) {
+            // remove the unmapped file
+            QFile removeableFile { _filesDirectory.absoluteFilePath(hash) };
+
+            if (removeableFile.remove()) {
+                qDebug() << "\tDeleted" << hash << "from asset files directory since it is now unmapped.";
+            } else {
+                qDebug() << "\tAttempt to delete unmapped file" << hash << "failed";
+            }
+        }
+
         return true;
     } else {
         qWarning() << "Failed to persist deleted mappings, rolling back";
