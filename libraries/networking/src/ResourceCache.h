@@ -62,21 +62,20 @@ class ResourceCacheSharedItems : public Dependency  {
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 public:
-    void appendPendingRequest(Resource* newRequest);
-    void appendActiveRequest(Resource* newRequest);
-    void removeRequest(Resource* doneRequest);
-    QList<QPointer<Resource>> getPendingRequests() const;
+    void appendPendingRequest(QWeakPointer<Resource> newRequest);
+    void appendActiveRequest(QWeakPointer<Resource> newRequest);
+    void removeRequest(QWeakPointer<Resource> doneRequest);
+    QList<QWeakPointer<Resource>> getPendingRequests() const;
     uint32_t getPendingRequestsCount() const;
-    QList<Resource*> getLoadingRequests() const;
-    Resource* getHighestPendingRequest();
+    QList<QWeakPointer<Resource>> getLoadingRequests() const;
+    QSharedPointer<Resource> getHighestPendingRequest();
 
 private:
-    ResourceCacheSharedItems() { }
-    virtual ~ResourceCacheSharedItems() { }
+    ResourceCacheSharedItems() = default;
 
     mutable Mutex _mutex;
-    QList<QPointer<Resource>> _pendingRequests;
-    QList<Resource*> _loadingRequests;
+    QList<QWeakPointer<Resource>> _pendingRequests;
+    QList<QWeakPointer<Resource>> _loadingRequests;
 };
 
 
@@ -89,6 +88,8 @@ class ResourceCache : public QObject {
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
     
 public:
+    virtual ~ResourceCache();
+
     size_t getNumTotalResources() const { return _numTotalResources; }
     size_t getSizeTotalResources() const { return _totalResourcesSize; }
 
@@ -105,14 +106,10 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*> getLoadingRequests() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests(); }
+    static const QList<QWeakPointer<Resource>> getLoadingRequests();
 
-    static int getPendingRequestCount() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount(); }
+    static int getPendingRequestCount();
 
-    ResourceCache(QObject* parent = NULL);
-    virtual ~ResourceCache();
     
     void refreshAll();
     void refresh(const QUrl& url);
@@ -127,6 +124,8 @@ protected slots:
     void updateTotalSize(const qint64& oldSize, const qint64& newSize);
 
 protected:
+    ResourceCache(QObject* parent = nullptr);
+
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
@@ -143,8 +142,8 @@ protected:
     
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
-    static bool attemptRequest(Resource* resource);
-    static void requestCompleted(Resource* resource);
+    static bool attemptRequest(QSharedPointer<Resource> resource);
+    static void requestCompleted(QSharedPointer<Resource> resource);
     static bool attemptHighestPriorityRequest();
 
 private:
