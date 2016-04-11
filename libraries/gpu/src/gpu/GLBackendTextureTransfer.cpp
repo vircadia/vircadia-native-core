@@ -36,7 +36,7 @@ using namespace gpu;
 
 GLTextureTransferHelper::GLTextureTransferHelper() {
 #ifdef THREADED_TEXTURE_TRANSFER
-    _canvas = std::make_shared<OffscreenGLCanvas>();
+    _canvas = QSharedPointer<OffscreenGLCanvas>(new OffscreenGLCanvas(), &QObject::deleteLater);
     _canvas->create(QOpenGLContextWrapper::currentContext());
     if (!_canvas->makeCurrent()) {
         qFatal("Unable to create texture transfer context");
@@ -89,9 +89,11 @@ void GLTextureTransferHelper::setup() {
 }
 
 void GLTextureTransferHelper::shutdown() {
+#ifdef THREADED_TEXTURE_TRANSFER
     _canvas->doneCurrent();
     _canvas->moveToThreadWithContext(qApp->thread());
     _canvas.reset();
+#endif
 }
 
 
