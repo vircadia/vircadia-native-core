@@ -147,7 +147,7 @@ void AssetServer::cleanupUnmappedFiles() {
     // grab the currently mapped hashes
     auto mappedHashes = _fileMappings.values();
 
-    qDebug() << "Performing unmapped asset cleanup.";
+    qInfo() << "Performing unmapped asset cleanup.";
 
     for (const auto& fileInfo : files) {
         if (hashFileRegex.exactMatch(fileInfo.fileName())) {
