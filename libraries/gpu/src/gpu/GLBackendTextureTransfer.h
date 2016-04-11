@@ -23,6 +23,7 @@ struct TextureTransferPackage {
 class GLTextureTransferHelper : public GenericQueueThread<TextureTransferPackage> {
 public:
     GLTextureTransferHelper();
+    ~GLTextureTransferHelper();
     void transferTexture(const gpu::TexturePointer& texturePointer);
     void postTransfer(const gpu::TexturePointer& texturePointer);
 

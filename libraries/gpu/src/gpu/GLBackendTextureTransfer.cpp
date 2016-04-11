@@ -44,6 +44,17 @@ GLTextureTransferHelper::GLTextureTransferHelper() {
     _canvas->doneCurrent();
     initialize(true, QThread::LowPriority);
     _canvas->moveToThreadWithContext(_thread);
+
+    // Clean shutdown on UNIX, otherwise _canvas is freed early
+    connect(qApp, &QCoreApplication::aboutToQuit, [&] { terminate(); });
+#endif
+}
+
+GLTextureTransferHelper::~GLTextureTransferHelper() {
+#ifdef THREADED_TEXTURE_TRANSFER
+    if (isStillRunning()) {
+        terminate();
+    }
 #endif
 }
 
