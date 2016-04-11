@@ -120,7 +120,7 @@ void GLBackend::updateInput() {
                     glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
                     glVertexAttribBinding(slot + locNum, attrib._channel);
                 }
-                glVertexBindingDivisor(attrib._channel, attrib._frequency);
+                glVertexBindingDivisor(attrib._channel, attrib._frequency * (isStereo() ? 2 : 1));
             }
             (void) CHECK_GL_ERROR();
         }
@@ -239,7 +239,7 @@ void GLBackend::updateInput() {
                             for (size_t locNum = 0; locNum < locationCount; ++locNum) {
                                 glVertexAttribPointer(slot + (GLuint)locNum, count, type, isNormalized, stride,
                                     reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
-                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency);
+                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency * (isStereo() ? 2 : 1));
                             }
                             
                             // TODO: Support properly the IAttrib version
