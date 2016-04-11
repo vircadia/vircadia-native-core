@@ -20,6 +20,7 @@
 
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
+#include "NodeList.h"
 
 #include "ResourceCache.h"
 
@@ -27,12 +28,50 @@
                            (((x) > (max)) ? (max) :\
                                             (x)))
 
-ResourceCache::ResourceCache(QObject* parent) :
-    QObject(parent) {    
+ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
+    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
+            this, &ResourceCache::clearATPAssets, Qt::DirectConnection);
 }
 
 ResourceCache::~ResourceCache() {
     clearUnusedResource();
+}
+
+void ResourceCache::clearATPAssets() {
+    {
+        QWriteLocker locker(&_resourcesLock);
+        for (auto& url : _resources.keys()) {
+            // If this is an ATP resource
+            if (url.scheme() == URL_SCHEME_ATP) {
+
+                // Remove it from the resource hash
+                auto resource = _resources.take(url);
+                if (auto strongRef = resource.lock()) {
+                    // Make sure the resource won't reinsert itself
+                    strongRef->setCache(nullptr);
+                }
+            }
+        }
+    }
+    {
+        QWriteLocker locker(&_unusedResourcesLock);
+        for (auto& resource : _unusedResources.values()) {
+            if (resource->getURL().scheme() == URL_SCHEME_ATP) {
+                _unusedResources.remove(resource->getLRUKey());
+            }
+        }
+    }
+    {
+        QWriteLocker locker(&_resourcesToBeGottenLock);
+        for (auto& url : _resourcesToBeGotten) {
+            if (url.scheme() == URL_SCHEME_ATP) {
+                _resourcesToBeGotten.removeAll(url);
+            }
+        }
+    }
+
+
 }
 
 void ResourceCache::refreshAll() {

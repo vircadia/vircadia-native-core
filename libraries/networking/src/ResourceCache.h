@@ -126,6 +126,9 @@ public slots:
 protected slots:
     void updateTotalSize(const qint64& oldSize, const qint64& newSize);
 
+private slots:
+    void clearATPAssets();
+
 protected:
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
