@@ -199,8 +199,6 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
 #endif
 
-QJsonObject Application::_glData {};
-
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
@@ -1321,9 +1319,6 @@ void Application::initializeUi() {
     offscreenUi->create(_offscreenContext->getContext());
 
     auto rootContext = offscreenUi->getRootContext();
-
-    // First set the GL property, so the desktop can use it for graphics workarounds
-    rootContext->setContextProperty("GL", _glData);
 
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));

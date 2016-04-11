@@ -15,6 +15,8 @@
 #include <QtQuick/QQuickWindow>
 #include <QtQml/QtQml>
 
+#include <gl/GLHelpers.h>
+
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 

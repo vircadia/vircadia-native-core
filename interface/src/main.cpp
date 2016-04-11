@@ -140,13 +140,11 @@ int main(int argc, const char* argv[]) {
     // or in the main window ctor, before GL startup.
     Application::initPlugins();
 
-    // GL must be available to the root QML context on startup.
-    Application::setGL(glData);
-
     int exitCode;
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
+
         // If we failed the OpenGLVersion check, log it.
         if (override) {
             auto& accountManager = AccountManager::getInstance();

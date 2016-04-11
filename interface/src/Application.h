@@ -96,9 +96,6 @@ public:
     static void initPlugins();
     static void shutdownPlugins();
 
-    // Expose the gl metadata to QML
-    static void setGL(const QJsonObject& glData) { _glData = glData; }
-
     Application(int& argc, char** argv, QElapsedTimer& startup_time);
     ~Application();
 
@@ -381,8 +378,6 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
-
-    static QJsonObject _glData;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
