@@ -15,11 +15,11 @@
 
 #include <QString>
 #include <QUrl>
-#include <QtNetwork/QNetworkReply>
 
 #include "AnimNode.h"
 
-class Resource;
+#include <ResourceManager.h>
+
 
 class AnimNodeLoader : public QObject {
     Q_OBJECT
@@ -37,11 +37,11 @@ protected:
 
 protected slots:
     void onRequestDone(const QByteArray data);
-    void onRequestError(QNetworkReply::NetworkError error);
+    void onRequestError(ResourceRequest::Result error);
 
 protected:
     QUrl _url;
-    QSharedPointer<Resource> _resource;
+    
 private:
 
     // no copies

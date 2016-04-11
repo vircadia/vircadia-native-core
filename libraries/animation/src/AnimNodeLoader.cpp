@@ -570,11 +570,19 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
     _url(url)
 {
-    _resource = QSharedPointer<Resource>::create(url);
-    _resource->setSelf(_resource);
-    connect(_resource.data(), &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
-    connect(_resource.data(), &Resource::failed, this, &AnimNodeLoader::onRequestError);
-    _resource->ensureLoading();
+    auto request = ResourceManager::createResourceRequest(this, url);
+    if (request) {
+        connect(request, &ResourceRequest::finished, this, [this, request]() {
+            if (request->getResult() == ResourceRequest::Success) {
+                onRequestDone(request->getData());
+            } else {
+                onRequestError(request->getResult());
+            }
+            request->deleteLater();
+        });
+
+        request->send();
+    }
 }
 
 AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& jsonUrl) {
@@ -621,6 +629,6 @@ void AnimNodeLoader::onRequestDone(const QByteArray data) {
     }
 }
 
-void AnimNodeLoader::onRequestError(QNetworkReply::NetworkError netError) {
+void AnimNodeLoader::onRequestError(ResourceRequest::Result netError) {
     emit error((int)netError, "Resource download error");
 }
