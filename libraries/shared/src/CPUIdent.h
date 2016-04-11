@@ -1,5 +1,5 @@
 //
-//  CPUID.h
+//  CPUIdent.h
 //
 //  Adapted from Microsoft's example for using the cpuid intrinsic,
 //  found at https://msdn.microsoft.com/en-us/library/hskdteyh.aspx
@@ -15,8 +15,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CPUID_h
-#define hifi_CPUID_h
+#ifndef hifi_CPUIdent_h
+#define hifi_CPUIdent_h
 
 #include <QtCore/QtGlobal>
 
@@ -209,4 +209,4 @@ private:
 
 #endif
 
-#endif // hifi_CPUID_h
+#endif // hifi_CPUIdent_h

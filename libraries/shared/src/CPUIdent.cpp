@@ -1,5 +1,5 @@
 //
-//  CPUID.cpp
+//  CPUIdent.cpp
 //
 //  Created by Ryan Huffman on 3/25/16.
 //  Copyright 2016 High Fidelity, Inc.
@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CPUID.h"
+#include "CPUIdent.h"
 
 #ifdef Q_OS_WIN
 
