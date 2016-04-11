@@ -151,9 +151,7 @@ void AssetServer::cleanupUnmappedFiles() {
 
     for (const auto& fileInfo : files) {
         if (hashFileRegex.exactMatch(fileInfo.fileName())) {
-            if (mappedHashes.contains(fileInfo.fileName())) {
-                qDebug() << "\tLeaving" << fileInfo.fileName() << "in asset files directory since it is mapped";
-            } else {
+            if (!mappedHashes.contains(fileInfo.fileName())) {
                 // remove the unmapped file
                 QFile removeableFile { fileInfo.absoluteFilePath() };
 
@@ -578,6 +576,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
         } else {
             auto oldMapping = _fileMappings.take(path);
             if (!oldMapping.isNull()) {
+                // add this hash to the list we need to check for asset removal from server
+                hashesToCheck << oldMapping.toString();
+
                 qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
             } else {
                 qDebug() << "Unable to delete a mapping that was not found:" << path;
