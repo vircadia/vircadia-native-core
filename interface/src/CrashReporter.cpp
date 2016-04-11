@@ -122,8 +122,8 @@ CrashReporter::CrashReporter(QString bugSplatDatabase, QString bugSplatApplicati
     _set_new_handler(handleNewError);
 
     // Disable WER popup
-//    SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
-//    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    //SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    //_set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 
     // QtWebEngineCore internally sets its own purecall handler, overriding our own error handling. This disables that.
     if (!redirectLibraryFunctionToFunction("msvcr120.dll", "_set_purecall_handler", &noop_set_purecall_handler)) {
