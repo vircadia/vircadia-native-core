@@ -159,19 +159,6 @@ int main(int argc, const char* argv[]) {
             }
         }
 
-//        crash::doAbort(); // works
-//        crash::doubleFree();
-
-        std::thread([]() {
-//            crash::pureVirtualCall(); // works
-        crash::newFault(); // works
-        });
-
-//        QThread thread;
-//        QObject::connect(&thread, &QThread::started, &app, []() {
-//        }, Qt::DirectConnection);
-//        thread.start();
-
         // Setup local server
         QLocalServer server { &app };
 
