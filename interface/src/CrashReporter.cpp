@@ -23,7 +23,7 @@
 // that the applicaiton can handle it itself.
 // The CAPIHook class referenced in the above article is not openly available, but a similar implementation
 // can be found here: http://blog.kalmbach-software.de/2008/04/02/unhandled-exceptions-in-vc8-and-above-for-x86-and-x64/
-// The below has been adapted to work with different library and funcitons.
+// The below has been adapted to work with different library and functions.
 BOOL redirectLibraryFunctionToFunction(char* library, char* function, void* fn)
 {
     HMODULE lib = LoadLibrary(library);
