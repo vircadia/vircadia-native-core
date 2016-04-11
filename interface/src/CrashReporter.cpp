@@ -12,9 +12,12 @@
 
 #ifdef HAS_BUGSPLAT
 #include "CrashReporter.h"
-#include <Windows.h>
-#include <csignal>
+
 #include <new.h>
+#include <Windows.h>
+
+#include <csignal>
+
 #include <QDebug>
 
 // SetUnhandledExceptionFilter can be overridden by the CRT at the point that an error occurs. More information

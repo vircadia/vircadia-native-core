@@ -33,8 +33,6 @@
 #include <CrashReporter.h>
 #endif
 
-#include <CrashHelpers.h>
-
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
     static QString BUG_SPLAT_DATABASE = "interface_alpha";
