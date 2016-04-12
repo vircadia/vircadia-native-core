@@ -587,7 +587,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
-            console.log("Done", arguments);
+            console.log("Finished unarchiving home content set");
             sendStateUpdate('complete');
         });
 
