@@ -550,7 +550,7 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
 
-    QSet<QString> hashesToCheck;
+    QSet<QString> hashesToCheckForDeletion;
 
     // enumerate the paths to delete and remove them all
     for (auto& path : paths) {
@@ -566,7 +566,7 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
             while (it != _fileMappings.end()) {
                 if (it.key().startsWith(path)) {
                     // add this hash to the list we need to check for asset removal from the server
-                    hashesToCheck << it.value().toString();
+                    hashesToCheckForDeletion << it.value().toString();
 
                     it = _fileMappings.erase(it);
                 } else {
@@ -585,7 +585,7 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
             auto oldMapping = _fileMappings.take(path);
             if (!oldMapping.isNull()) {
                 // add this hash to the list we need to check for asset removal from server
-                hashesToCheck << oldMapping.toString();
+                hashesToCheckForDeletion << oldMapping.toString();
 
                 qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
             } else {
@@ -603,14 +603,14 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
 
         // enumerate the mapped hashes and clear the list of hashes to check for anything that's present
         for (auto& hashVariant : mappedHashes) {
-            auto it = hashesToCheck.find(hashVariant.toString());
-            if (it != hashesToCheck.end()) {
-                hashesToCheck.erase(it);
+            auto it = hashesToCheckForDeletion.find(hashVariant.toString());
+            if (it != hashesToCheckForDeletion.end()) {
+                hashesToCheckForDeletion.erase(it);
             }
         }
 
         // we now have a set of hashes that are unmapped - we will delete those asset files
-        for (auto& hash : hashesToCheck) {
+        for (auto& hash : hashesToCheckForDeletion) {
             // remove the unmapped file
             QFile removeableFile { _filesDirectory.absoluteFilePath(hash) };
 
