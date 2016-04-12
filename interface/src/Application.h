@@ -177,8 +177,7 @@ public:
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
-    DisplayPlugin* getActiveDisplayPlugin();
-    const DisplayPlugin* getActiveDisplayPlugin() const;
+    DisplayPluginPointer getActiveDisplayPlugin() const;
 
     FileLogger* getLogger() const { return _logger; }
 
@@ -388,7 +387,7 @@ private:
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
-    std::mutex _displayPluginLock;
+    mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
