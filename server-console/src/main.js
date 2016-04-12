@@ -582,8 +582,13 @@ function maybeInstallDefaultContentSet(onComplete) {
             });
         }
 
-        var gunzip = zlib.createGunzip();
+        var gunzip = zlib.createGunzip({
+            level: 9
+        });
         gunzip.on('error', extractError);
+        gunzip.on('finish', function(){
+            console.log("GUNZIP DONE");
+        });
 
         req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
