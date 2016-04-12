@@ -30,6 +30,7 @@
 #include "DeviceProxy.h"
 #include "StandardControls.h"
 #include "Actions.h"
+#include "StateController.h"
 
 namespace controller {
 
@@ -55,8 +56,9 @@ namespace controller {
         using uint16 = uint16_t;
         using uint32 = uint32_t;
 
-        static const uint16_t ACTIONS_DEVICE;
         static const uint16_t STANDARD_DEVICE;
+        static const uint16_t ACTIONS_DEVICE;
+        static const uint16_t STATE_DEVICE;
 
         UserInputMapper();
         virtual ~UserInputMapper();
@@ -100,10 +102,11 @@ namespace controller {
         const DevicesMap& getDevices() { return _registeredDevices; }
         uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
         InputDevice::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
+        StateController::Pointer getStateDevice() { return _stateDevice; }
 
         MappingPointer newMapping(const QString& mappingName);
         MappingPointer parseMapping(const QString& json);
-        MappingPointer loadMapping(const QString& jsonFile);
+        MappingPointer loadMapping(const QString& jsonFile, bool enable = false);
         MappingPointer loadMappings(const QStringList& jsonFiles);
 
         void loadDefaultMapping(uint16 deviceID);
@@ -120,6 +123,7 @@ namespace controller {
         // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
         uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
         DevicesMap _registeredDevices;
+        StateController::Pointer _stateDevice;
         uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
 
         std::vector<float> _actionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);

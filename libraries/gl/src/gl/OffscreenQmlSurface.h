@@ -66,7 +66,7 @@ public:
     QQmlContext* getRootContext();
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
-    virtual bool eventFilter(QObject* originalDestination, QEvent* event);
+    bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
 signals:
     void textureUpdated(unsigned int texture);
@@ -75,6 +75,9 @@ public slots:
     void requestUpdate();
     void requestRender();
     void onAboutToQuit();
+
+protected:
+    bool filterEnabled(QObject* originalDestination, QEvent* event) const;
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);

@@ -71,8 +71,8 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a
-    // signal tied to call it's deleteLater on doneRunning
+    // NOTE: We don't need to delete _entitiesScriptEngine because
+    //       it is registered with ScriptEngines, which will call deleteLater for us.
 }
 
 void EntityTreeRenderer::clear() {

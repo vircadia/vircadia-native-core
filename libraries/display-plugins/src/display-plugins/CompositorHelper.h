@@ -176,7 +176,7 @@ private:
 
     bool _reticleOverQml { false };
 
-    bool _allowMouseCapture { true };
+    std::atomic<bool> _allowMouseCapture { true };
 
     bool _fakeMouseEvent { false };
 

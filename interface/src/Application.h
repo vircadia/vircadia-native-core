@@ -255,6 +255,7 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
+    void toggleSuppressDeadlockWatchdogStatus(bool checked);
 
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
@@ -312,7 +313,7 @@ private slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
-    void nodeActivated(SharedNodePointer node) const;
+    void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
@@ -331,7 +332,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
     static void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection() const;
@@ -520,6 +521,10 @@ private:
     std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
 
     bool _keyboardDeviceHasFocus { true };
+
+    bool _recentlyClearedDomain { false };
+
+    QString _returnFromFullScreenMirrorTo;
 };
 
 #endif // hifi_Application_h

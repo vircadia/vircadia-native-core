@@ -1973,9 +1973,16 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     return result;
 }
 
-void EntityItem::locationChanged() {
+void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
-    SpatiallyNestable::locationChanged(); // tell all the children, also
+    if (tellPhysics) {
+        _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
+    }
+    EntityTreePointer tree = getTree();
+    if (tree) {
+        tree->entityChanged(getThisPointer());
+    }
+    SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
 }
 
 void EntityItem::dimensionsChanged() {
@@ -1984,6 +1991,7 @@ void EntityItem::dimensionsChanged() {
 }
 
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
+    // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
     auto globalPosition = getPosition(success);
     if (success) {
