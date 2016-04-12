@@ -29,10 +29,10 @@
 
 #include <intrin.h>
 
-class CPUID
+class CPUIdent
 {
     // forward declarations
-    class CPUID_Internal;
+    class CPUIdent_Internal;
 
 public:
     struct Feature {
@@ -104,12 +104,12 @@ public:
     static bool _3DNOW(void) { return CPU_Rep.isAMD_ && CPU_Rep.f_81_EDX_[31]; }
 
 private:
-    static const CPUID_Internal CPU_Rep;
+    static const CPUIdent_Internal CPU_Rep;
 
-    class CPUID_Internal
+    class CPUIdent_Internal
     {
     public:
-        CPUID_Internal()
+        CPUIdent_Internal()
             : nIds_ { 0 },
             nExIds_ { 0 },
             isIntel_ { false },
