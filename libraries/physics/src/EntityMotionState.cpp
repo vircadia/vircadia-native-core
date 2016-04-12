@@ -94,7 +94,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 // virtual
-bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
+void EntityMotionState::handleEasyChanges(uint32_t& flags) {
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
@@ -137,8 +137,6 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
-
-    return true;
 }
 
 
