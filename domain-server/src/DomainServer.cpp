@@ -1678,10 +1678,12 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
                     QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
                     const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
+
                     QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
                     QString hexHeaderPassword = QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
 
-                    if (settingsUsername == headerUsername && hexHeaderPassword == settingsPassword) {
+                    if (settingsUsername == headerUsername
+                        && (settingsPassword.isEmpty() || hexHeaderPassword == settingsPassword)) {
                         return true;
                     }
                 }
