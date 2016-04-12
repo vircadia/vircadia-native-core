@@ -39,6 +39,7 @@
 #include <StDev.h>
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
+#include <shared/RateCounter.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
@@ -155,10 +156,9 @@ public:
 
     bool isForeground() const { return _isForeground; }
 
-    uint32_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _fps; }
-    float getTargetFrameRate(); // frames/second
-    float getLastInstanteousFps() const { return _lastInstantaneousFps; }
+    size_t getFrameCount() const { return _frameCount; }
+    float getFps() const { return _frameCounter.rate(); }
+    float getTargetFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -216,10 +216,9 @@ public:
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    float getAvatarSimrate();
-    void setAvatarSimrateSample(float sample);
 
-    float getAverageSimsPerSecond();
+    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
+    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -396,12 +395,15 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
+    uint32_t _frameCount { 0 };
+
     // Frame Rate Measurement
-    int _frameCount;
-    float _fps;
+    RateCounter<> _frameCounter;
+    RateCounter<> _avatarSimCounter;
+    RateCounter<> _simCounter;
+
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    float _lastInstantaneousFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
@@ -488,12 +490,6 @@ private:
 
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
-
-    SimpleMovingAverage _framesPerSecond{10};
-    quint64 _lastFramesPerSecondUpdate = 0;
-    SimpleMovingAverage _simsPerSecond{10};
-    int _simsPerSecondReport = 0;
-    quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
     bool _isGLInitialized { false };

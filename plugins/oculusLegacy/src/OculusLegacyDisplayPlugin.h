@@ -28,7 +28,7 @@ public:
     virtual void resetSensors() override;
     virtual void beginFrameRender(uint32_t frameIndex) override;
 
-    virtual float getTargetFrameRate() override;
+    virtual float getTargetFrameRate() const override;
 
 protected:
     virtual bool internalActivate() override;

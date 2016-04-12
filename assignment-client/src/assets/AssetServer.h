@@ -48,7 +48,7 @@ private:
     void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
-    void loadMappingsFromFile();
+    bool loadMappingsFromFile();
     bool writeMappingsToFile();
 
     /// Set the mapping for path to hash
@@ -60,7 +60,8 @@ private:
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
 
-    void performMappingMigration();
+    // deletes any unmapped files from the local asset directory
+    void cleanupUnmappedFiles();
 
     Mappings _fileMappings;
 

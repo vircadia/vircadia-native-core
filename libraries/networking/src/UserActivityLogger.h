@@ -31,7 +31,7 @@ public slots:
     
     void launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime);
 
-    void insufficientGLVersion(QString glVersion);
+    void insufficientGLVersion(const QJsonObject& glData);
     
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);

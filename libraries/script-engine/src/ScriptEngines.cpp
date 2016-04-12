@@ -40,6 +40,19 @@ ScriptEngines::ScriptEngines()
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
     _scriptsModelFilter.setDynamicSortFilter(true);
+
+    static const int SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS = 5000;
+    QTimer* scriptSaveTimer = new QTimer(this);
+    scriptSaveTimer->setSingleShot(true);
+    QMetaObject::Connection timerConnection = connect(scriptSaveTimer, &QTimer::timeout, [] {
+        DependencyManager::get<ScriptEngines>()->saveScripts();
+    });
+    connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        disconnect(timerConnection);
+    });
+    connect(this, &ScriptEngines::scriptCountChanged, this, [scriptSaveTimer] {
+        scriptSaveTimer->start(SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS);
+    }, Qt::QueuedConnection);
 }
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL) {

@@ -511,8 +511,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
-    _frameCount(0),
-    _fps(60.0f),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
@@ -1332,11 +1330,13 @@ void Application::initializeGL() {
     _idleLoopStdev.reset();
 
     // update before the first render
-    update(1.0f / _fps);
+    update(0);
 
     InfoView::show(INFO_HELP_PATH, true);
 }
+
 extern void setupPreferences();
+
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -1348,6 +1348,9 @@ void Application::initializeUi() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
+
+    auto rootContext = offscreenUi->getRootContext();
+
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
@@ -1358,7 +1361,6 @@ void Application::initializeUi() {
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
 
-    auto rootContext = offscreenUi->getRootContext();
     auto engine = rootContext->engine();
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
@@ -1463,7 +1465,6 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
-
     updateHeartbeat();
 
     // Some plugins process message events, potentially leading to
@@ -1481,24 +1482,7 @@ void Application::paintGL() {
         return;
     }
     _frameCount++;
-
-    // update fps moving average
-    uint64_t now = usecTimestampNow();
-    static uint64_t lastPaintBegin{ now };
-    uint64_t diff = now - lastPaintBegin;
-    float instantaneousFps = 0.0f;
-    if (diff != 0) {
-        instantaneousFps = (float)USECS_PER_SECOND / (float)diff;
-        _framesPerSecond.updateAverage(_lastInstantaneousFps);
-    }
-
-    lastPaintBegin = now;
-
-    // update fps once a second
-    if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
-        _fps = _framesPerSecond.getAverage();
-        _lastFramesPerSecondUpdate = now;
-    }
+    _frameCounter.increment();
 
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
@@ -1655,7 +1639,7 @@ void Application::paintGL() {
         }
         // Update camera position
         if (!isHMDMode()) {
-            _myCamera.update(1.0f / _fps);
+            _myCamera.update(1.0f / _frameCounter.rate());
         }
     }
 
@@ -1752,8 +1736,6 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
-
-    _lastInstantaneousFps = instantaneousFps;
 }
 
 void Application::runTests() {
@@ -2625,30 +2607,17 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
-
+    // NOTICE NOTICE NOTICE NOTICE
+    // Do not insert new code between here and the PROFILE_RANGE declaration 
+    // unless you know exactly what you're doing.  This idle function can be 
+    // called thousands per second or more, so any additional work that's done 
+    // here will have a serious impact on CPU usage.  Only add code after all 
+    // the thottling logic, i.e. after PROFILE_RANGE
+    // NOTICE NOTICE NOTICE NOTICE
     updateHeartbeat();
 
     if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
-    }
-
-    // These tasks need to be done on our first idle, because we don't want the showing of
-    // overlay subwindows to do a showDesktop() until after the first time through
-    static bool firstIdle = true;
-    if (firstIdle) {
-        firstIdle = false;
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
-        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
-    }
-
-    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
-        _keyboardMouseDevice->pluginFocusOutEvent();
-        _keyboardDeviceHasFocus = false;
-    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
-        _keyboardDeviceHasFocus = true;
     }
 
     auto displayPlugin = getActiveDisplayPlugin();
@@ -2684,7 +2653,35 @@ void Application::idle(uint64_t now) {
         return;
     }
 
+    // NOTICE NOTICE NOTICE NOTICE
+    // do NOT add new code above this line unless you want it to be executed potentially 
+    // thousands of times per second
+    // NOTICE NOTICE NOTICE NOTICE
+
     PROFILE_RANGE(__FUNCTION__);
+
+    // These tasks need to be done on our first idle, because we don't want the showing of
+    // overlay subwindows to do a showDesktop() until after the first time through
+    static bool firstIdle = true;
+    if (firstIdle) {
+        firstIdle = false;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
+        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
+    }
+
+
+
+    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
+        _keyboardMouseDevice->pluginFocusOutEvent();
+        _keyboardDeviceHasFocus = false;
+    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
+        _keyboardDeviceHasFocus = true;
+    }
+
+
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
@@ -2694,14 +2691,7 @@ void Application::idle(uint64_t now) {
     Stats::getInstance()->updateStats();
     AvatarInputs::getInstance()->update();
 
-    {
-        static uint64_t lastIdleStart{ now };
-        uint64_t idleStartToStartDuration = now - lastIdleStart;
-        if (idleStartToStartDuration != 0) {
-            _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
-        }
-        lastIdleStart = now;
-    }
+    _simCounter.increment();
 
     PerformanceTimer perfTimer("idle");
     // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
@@ -2755,30 +2745,6 @@ void Application::idle(uint64_t now) {
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
-}
-
-float Application::getAverageSimsPerSecond() {
-    uint64_t now = usecTimestampNow();
-
-    if (now - _lastSimsPerSecondUpdate > USECS_PER_SECOND) {
-        _simsPerSecondReport = _simsPerSecond.getAverage();
-        _lastSimsPerSecondUpdate = now;
-    }
-    return _simsPerSecondReport;
-}
-
-void Application::setAvatarSimrateSample(float sample) {
-    _avatarSimsPerSecond.updateAverage(sample);
-}
-
-float Application::getAvatarSimrate() {
-    uint64_t now = usecTimestampNow();
-
-    if (now - _lastAvatarSimsPerSecondUpdate > USECS_PER_SECOND) {
-        _avatarSimsPerSecondReport = _avatarSimsPerSecond.getAverage();
-        _lastAvatarSimsPerSecondUpdate = now;
-    }
-    return _avatarSimsPerSecondReport;
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -3051,7 +3017,7 @@ void Application::updateLOD() const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
+        DependencyManager::get<LODManager>()->autoAdjustLOD(_frameCounter.rate());
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -3482,16 +3448,12 @@ void Application::update(float deltaTime) {
     // AvatarManager update
     {
         PerformanceTimer perfTimer("AvatarManger");
-
-        qApp->setAvatarSimrateSample(1.0f / deltaTime);
+        _avatarSimCounter.increment();
 
         {
             PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
-
-        // update sensorToWorldMatrix for camera and hand controllers
-        getMyAvatar()->updateSensorToWorldMatrix();
 
         qApp->updateMyAvatarLookAtPosition();
 
@@ -3805,7 +3767,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
-float Application::getTargetFrameRate() { return getActiveDisplayPlugin()->getTargetFrameRate(); }
+
+float Application::getTargetFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() const {
     QRect applicationGeometry = getWindow()->geometry();

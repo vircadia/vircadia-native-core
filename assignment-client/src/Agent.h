@@ -69,6 +69,8 @@ private slots:
 
     void processAgentAvatarAndAudio(float deltaTime);
 
+    void nodeActivated(SharedNodePointer activatedNode);
+
 private:
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
@@ -84,6 +86,7 @@ private:
 
     QString _scriptContents;
     QTimer* _scriptRequestTimeout { nullptr };
+    ResourceRequest* _pendingScriptRequest { nullptr };
     bool _isListeningToAudioStream = false;
     SharedSoundPointer _avatarSound;
     int _numAvatarSoundSentBytes = 0;
