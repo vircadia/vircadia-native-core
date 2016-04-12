@@ -571,7 +571,7 @@ function maybeInstallDefaultContentSet(onComplete) {
             }
         });
 
-        req.pipe(zlib.createGunzip()).pipe(tar.extract(getRootHifiDataDirectory())).on('error', function(){
+        function extractError(err) {
             console.log("Aborting request because gunzip/untar failed");
             aborted = true;
             req.abort();
@@ -580,7 +580,12 @@ function maybeInstallDefaultContentSet(onComplete) {
             sendStateUpdate('error', {
                 message: "Error installing resources."
             });
-        }).on('finish', function(){
+        }
+
+        var gunzip = zlib.createGunzip();
+        gunzip.on('error', extractError);
+
+        req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
             console.log("Done", arguments);
             sendStateUpdate('complete');
