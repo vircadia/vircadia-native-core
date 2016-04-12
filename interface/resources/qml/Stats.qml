@@ -48,12 +48,22 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        text: "Render Rate: " + root.renderrate
+                        text: "Render Rate: " + root.renderrate.toFixed(2);
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        text: "Present Rate: " + root.presentrate
+                        text: "Present Rate: " + root.presentrate.toFixed(2);
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "Present New Rate: " + root.presentnewrate.toFixed(2);
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "Present Drop Rate: " + root.presentdroprate.toFixed(2);
                     }
                     Text {
                         color: root.fontColor;

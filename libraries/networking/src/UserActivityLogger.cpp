@@ -85,11 +85,11 @@ void UserActivityLogger::launch(QString applicationVersion, bool previousSession
     logAction(ACTION_NAME, actionDetails);
 }
 
-void UserActivityLogger::insufficientGLVersion(QString glVersion) {
+void UserActivityLogger::insufficientGLVersion(const QJsonObject& glData) {
     const QString ACTION_NAME = "insufficient_gl";
     QJsonObject actionDetails;
-    QString GL_VERSION = "glVersion";
-    actionDetails.insert(GL_VERSION, glVersion);
+    QString GL_DATA = "glData";
+    actionDetails.insert(GL_DATA, glData);
 
     logAction(ACTION_NAME, actionDetails);
 }

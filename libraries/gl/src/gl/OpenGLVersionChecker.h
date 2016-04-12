@@ -19,7 +19,7 @@ class OpenGLVersionChecker : public QApplication {
 public:
     OpenGLVersionChecker(int& argc, char** argv);
 
-    static QString checkVersion(bool& valid, bool& override);
+    static QJsonObject checkVersion(bool& valid, bool& override);
 };
 
 #endif // hifi_OpenGLVersionChecker_h
