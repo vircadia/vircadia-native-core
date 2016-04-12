@@ -25,9 +25,10 @@
 #include "../CompositorHelper.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
+static const QString REPROJECTION = "Allow Reprojection";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
+static const QString DEVELOPER_MENU_PATH = "Developer>" + DisplayPlugin::MENU_PATH();
 static const bool DEFAULT_MONO_VIEW = true;
-
 
 glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
@@ -42,7 +43,13 @@ bool HmdDisplayPlugin::internalActivate() {
         _container->setBoolSetting("monoPreview", _monoPreview);
     }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
-
+    _container->addMenu(DEVELOPER_MENU_PATH);
+    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, DEVELOPER_MENU_PATH, REPROJECTION,
+        [this](bool clicked) {
+            _enableReprojection = clicked;
+            _container->setBoolSetting("enableReprojection", _enableReprojection);
+    }, true, _enableReprojection);
+    
     for_each_eye([&](Eye eye) {
         _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
     });
@@ -70,6 +77,7 @@ static const GLint REPROJECTION_MATRIX_LOCATION = 0;
 static const GLint INVERSE_PROJECTION_MATRIX_LOCATION = 4;
 static const GLint PROJECTION_MATRIX_LOCATION = 12;
 static const char * REPROJECTION_FS = R"FS(#version 450 core
+
 uniform sampler2D sampler;
 layout (location = 0) uniform mat3 reprojection = mat3(1);
 layout (location = 4) uniform mat4 inverseProjections[2];
@@ -81,20 +89,10 @@ in vec3 vPosition;
 out vec4 FragColor;
 
 void main() {
-    
     vec2 uv = vTexCoord;
-    vec3 Z_AXIS = vec3(0.0, 0.0, -1.0);
-    vec3 rotated = reprojection * Z_AXIS;
-    float angle = acos(dot(Z_AXIS, rotated));
-    if (angle < 0.001) {
-        FragColor = texture(sampler, uv);
-        return;
-    }
 
-    
     mat4 eyeInverseProjection;
     mat4 eyeProjection;
-
     
     float xoffset = 1.0;
     vec2 uvmin = vec2(0.0);
@@ -127,10 +125,12 @@ void main() {
 
     // Adjust the ray by the rotation
     ray = reprojection * ray;
-    
+
     // Project back on to the texture plane
-    eyeSpace.xyz = ray * eyeSpace.z;
-    //eyeSpace.xyz = ray;
+    ray *= eyeSpace.z / ray.z;
+
+    // Update the eyespace vector
+    eyeSpace.xyz = ray;
 
     // Reproject back into NDC
     ndcSpace = eyeProjection * eyeSpace;
@@ -148,6 +148,50 @@ void main() {
 }
 )FS";
 
+#ifdef DEBUG_REPROJECTION_SHADER
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QDateTime>
+#include <PathUtils.h>
+
+static const QString REPROJECTION_FS_FILE =  "c:/Users/bdavis/Git/hifi/interface/resources/shaders/reproject.frag";
+
+static ProgramPtr getReprojectionProgram() {
+    static ProgramPtr _currentProgram;
+    uint64_t now = usecTimestampNow();
+    static uint64_t _lastFileCheck = now;
+
+    bool modified = false;
+    if ((now - _lastFileCheck) > USECS_PER_MSEC * 100) {
+        QFileInfo info(REPROJECTION_FS_FILE);
+        QDateTime lastModified = info.lastModified();
+        static QDateTime _lastModified = lastModified;
+        qDebug() << lastModified.toTime_t();
+        qDebug() << _lastModified.toTime_t();
+        if (lastModified > _lastModified) {
+            _lastModified = lastModified;
+            modified = true;
+        }
+    }
+
+    if (!_currentProgram || modified) {
+        _currentProgram.reset();
+        try {
+            QFile shaderFile(REPROJECTION_FS_FILE);
+            shaderFile.open(QIODevice::ReadOnly);
+            QString fragment = shaderFile.readAll();
+            compileProgram(_currentProgram, REPROJECTION_VS, fragment.toLocal8Bit().data());
+        } catch (const std::runtime_error& error) {
+            qDebug() << "Failed to build: " << error.what();
+        }
+        if (!_currentProgram) {
+            _currentProgram = loadDefaultShader();
+        }
+    }
+    return _currentProgram;
+}
+#endif
+
 
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
@@ -161,6 +205,7 @@ void HmdDisplayPlugin::customizeContext() {
 void HmdDisplayPlugin::uncustomizeContext() {
     _sphereSection.reset();
     _compositeFramebuffer.reset();
+    _reprojectionProgram.reset();
     Parent::uncustomizeContext();
 }
 
@@ -169,31 +214,27 @@ void HmdDisplayPlugin::updatePresentPose() {
     _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
 }
 
-glm::mat3 HmdDisplayPlugin::FrameInfo::presentRotation() const {
-    if (renderPose == presentPose) {
-        return glm::mat3();
-    }
-    quat renderRotation = glm::quat_cast(renderPose);
-    quat presentRotation = glm::quat_cast(presentPose);
-    quat reprojection = glm::inverse(renderRotation) * presentRotation;
-    return glm::mat3_cast(reprojection);
-}
-
 void HmdDisplayPlugin::compositeScene() {
     updatePresentPose();
 
-    glm::mat3 reprojection = _currentPresentFrameInfo.presentRotation();
-    if (glm::mat3() == reprojection) {
+    if (!_enableReprojection || glm::mat3() == _currentPresentFrameInfo.presentReprojection) {
         // No reprojection required
         Parent::compositeScene();
         return;
     }
 
+#ifdef DEBUG_REPROJECTION_SHADER
+    _reprojectionProgram = getReprojectionProgram();
+#endif
     useProgram(_reprojectionProgram);
 
     using namespace oglplus;
-    Uniform<glm::mat3>(*_reprojectionProgram, REPROJECTION_MATRIX_LOCATION).Set(reprojection);
-    // FIXME what's the right oglplus mechanism to do this?
+    Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+    Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+    Uniform<glm::mat3>(*_reprojectionProgram, REPROJECTION_MATRIX_LOCATION).Set(_currentPresentFrameInfo.presentReprojection);
+    //Uniform<glm::mat4>(*_reprojectionProgram, PROJECTION_MATRIX_LOCATION).Set(_eyeProjections);
+    //Uniform<glm::mat4>(*_reprojectionProgram, INVERSE_PROJECTION_MATRIX_LOCATION).Set(_eyeInverseProjections);
+    // FIXME what's the right oglplus mechanism to do this?  It's not that ^^^ ... better yet, switch to a uniform buffer
     glUniformMatrix4fv(INVERSE_PROJECTION_MATRIX_LOCATION, 2, GL_FALSE, &(_eyeInverseProjections[0][0][0]));
     glUniformMatrix4fv(PROJECTION_MATRIX_LOCATION, 2, GL_FALSE, &(_eyeProjections[0][0][0]));
     _plane->UseInProgram(*_reprojectionProgram);

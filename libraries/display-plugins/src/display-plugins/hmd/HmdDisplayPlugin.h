@@ -28,13 +28,6 @@ public:
 
     virtual glm::mat4 getHeadPose() const override;
 
-    struct FrameInfo {
-        glm::mat4 renderPose;
-        glm::mat4 presentPose;
-        double sensorSampleTime { 0 };
-        double predictedDisplayTime { 0 };
-        glm::mat3 presentRotation() const;
-    };
 
 
 protected:
@@ -60,6 +53,16 @@ protected:
     glm::uvec2 _renderTargetSize;
     float _ipd { 0.064f };
 
+    struct FrameInfo {
+        glm::mat4 rawRenderPose;
+        glm::mat4 renderPose;
+        glm::mat4 rawPresentPose;
+        glm::mat4 presentPose;
+        double sensorSampleTime { 0 };
+        double predictedDisplayTime { 0 };
+        glm::mat3 presentReprojection;
+    };
+
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
@@ -67,6 +70,7 @@ protected:
 private:
     bool _enablePreview { false };
     bool _monoPreview { true };
+    bool _enableReprojection { true };
     ShapeWrapperPtr _sphereSection;
     ProgramPtr _reprojectionProgram;
 };

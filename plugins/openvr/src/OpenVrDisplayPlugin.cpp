@@ -125,8 +125,8 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
+void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     double displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     double frameDuration = 1.f / displayFrequency;
     double vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
@@ -146,11 +146,12 @@ void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     // copy and process predictedTrackedDevicePoses
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         _trackedDevicePose[i] = predictedTrackedDevicePose[i];
-        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+        _trackedDevicePoseMat4[i] = toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
         _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
         _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
-    _currentRenderFrameInfo.renderPose = _trackedDevicePoseMat4[0];
+    _currentRenderFrameInfo.rawRenderPose = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd];
+    _currentRenderFrameInfo.renderPose = _sensorResetMat * _currentRenderFrameInfo.rawRenderPose;
 
     Lock lock(_mutex);
     _frameInfos[frameIndex] = _currentRenderFrameInfo;
@@ -183,13 +184,20 @@ bool OpenVrDisplayPlugin::isHmdMounted() const {
 }
 
 void OpenVrDisplayPlugin::updatePresentPose() {
-    float fSecondsSinceLastVsync; 
-    _system->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, nullptr);
-    float fDisplayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-    float fFrameDuration = 1.f / fDisplayFrequency;
-    float fVsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
-    float fPredictedSecondsFromNow = fFrameDuration - fSecondsSinceLastVsync + fVsyncToPhotons;
-    vr::TrackedDevicePose_t presentPoseOpenVR;
-    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow, &presentPoseOpenVR, 1);
-    _currentPresentFrameInfo.presentPose = _sensorResetMat * toGlm(presentPoseOpenVR.mDeviceToAbsoluteTracking);
+    {
+        float fSecondsSinceLastVsync;
+        _system->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, nullptr);
+        float fDisplayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+        float fFrameDuration = 1.f / fDisplayFrequency;
+        float fVsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
+        float fPredictedSecondsFromNow = fFrameDuration - fSecondsSinceLastVsync + fVsyncToPhotons;
+        vr::TrackedDevicePose_t pose;
+        _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow, &pose, 1);
+        _currentPresentFrameInfo.rawPresentPose = toGlm(pose.mDeviceToAbsoluteTracking);
+    }
+    _currentPresentFrameInfo.presentPose = _sensorResetMat * _currentPresentFrameInfo.rawPresentPose;
+    mat3 renderRotation(_currentPresentFrameInfo.rawRenderPose);
+    mat3 presentRotation(_currentPresentFrameInfo.rawPresentPose);
+    _currentPresentFrameInfo.presentReprojection = glm::mat3(glm::inverse(renderRotation) * presentRotation);
 }
+
