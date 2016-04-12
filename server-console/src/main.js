@@ -561,14 +561,14 @@ function maybeInstallDefaultContentSet(onComplete) {
                 sendStateUpdate('error', {
                     message: message
                 });
-            } else {
-                sendStateUpdate('installing');
             }
         }), { throttle: 250 }).on('progress', function(state) {
             if (!aborted) {
                 // Update progress popup
                 sendStateUpdate('downloading', state);
             }
+        }).on('end', function(){
+            sendStateUpdate('installing');
         });
 
         function extractError(err) {
@@ -582,13 +582,8 @@ function maybeInstallDefaultContentSet(onComplete) {
             });
         }
 
-        var gunzip = zlib.createGunzip({
-            level: 9
-        });
+        var gunzip = zlib.createGunzip();
         gunzip.on('error', extractError);
-        gunzip.on('finish', function(){
-            console.log("GUNZIP DONE");
-        });
 
         req.pipe(gunzip).pipe(tar.extract(getRootHifiDataDirectory())).on('error', extractError).on('finish', function(){
             // response and decompression complete, return
