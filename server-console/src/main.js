@@ -17,7 +17,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const Tail = require('always-tail');
 const http = require('http');
-const unzip = require('unzip');
+const zlib = require('zlib');
+const tar = require('tar-fs');
 
 const request = require('request');
 const progress = require('request-progress');
@@ -88,6 +89,10 @@ function getRootHifiDataDirectory() {
     } else {
         return path.resolve(osHomeDir(), '.local/share/', organization);
     }
+}
+
+function getDomainServerClientResourcesDirectory() {
+    return path.join(getRootHifiDataDirectory(), '/domain-server');
 }
 
 function getAssignmentClientResourcesDirectory() {
@@ -477,18 +482,34 @@ function updateTrayMenu(serverState) {
 const httpStatusPort = 60332;
 
 function maybeInstallDefaultContentSet(onComplete) {
-    // Check for existing AC data
+    // Check for existing data
     const acResourceDirectory = getAssignmentClientResourcesDirectory();
+
     console.log("Checking for existence of " + acResourceDirectory);
-    var userHasExistingServerData = true;
+
+    var userHasExistingACData = true;
     try {
         fs.accessSync(acResourceDirectory);
+        console.log("Found directory " + acResourceDirectory);
     } catch (e) {
         console.log(e);
-        userHasExistingServerData = false;
+        userHasExistingACData = false;
     }
 
-    if (userHasExistingServerData) {
+    const dsResourceDirectory = getDomainServerClientResourcesDirectory();
+
+    console.log("checking for existence of " + dsResourceDirectory);
+
+    var userHasExistingDSData = true;
+    try {
+        fs.accessSync(dsResourceDirectory);
+        console.log("Found directory " + dsResourceDirectory);
+    } catch (e) {
+        console.log(e);
+        userHasExistingDSData = false;
+    }
+
+    if (userHasExistingACData || userHasExistingDSData) {
         console.log("User has existing data, suppressing downloader");
         onComplete();
         return;
@@ -514,16 +535,19 @@ function maybeInstallDefaultContentSet(onComplete) {
 
     electron.ipcMain.on('ready', function() {
         console.log("got ready");
+        var currentState = '';
+
         function sendStateUpdate(state, args) {
             // console.log(state, window, args);
             window.webContents.send('update', { state: state, args: args });
+            currentState = state;
         }
 
         var aborted = false;
 
         // Start downloading content set
         var req = progress(request.get({
-            url: "https://s3.amazonaws.com/hifi-public/homeset/ContentSet-Lounge.zip"
+            url: "http://cachefly.highfidelity.com/home.tgz"
         }, function(error, responseMessage, responseData) {
             if (aborted) {
                 return;
@@ -546,24 +570,21 @@ function maybeInstallDefaultContentSet(onComplete) {
                 sendStateUpdate('downloading', state);
             }
         });
-        var unzipper = unzip.Extract({
-            path: acResourceDirectory,
-            verbose: true
-        });
-        unzipper.on('close', function() {
-            console.log("Done", arguments);
-            sendStateUpdate('complete');
-        });
-        unzipper.on('error', function (err) {
-            console.log("aborting");
+
+        req.pipe(zlib.createGunzip()).pipe(tar.extract(getRootHifiDataDirectory())).on('error', function(){
+            console.log("Aborting request because gunzip/untar failed");
             aborted = true;
             req.abort();
-            console.log("ERROR");
+            console.log("ERROR" +  err);
+
             sendStateUpdate('error', {
                 message: "Error installing resources."
             });
+        }).on('finish', function(){
+            // response and decompression complete, return
+            console.log("Done", arguments);
+            sendStateUpdate('complete');
         });
-        req.pipe(unzipper);
 
         window.on('closed', function() {
             if (currentState == 'downloading') {

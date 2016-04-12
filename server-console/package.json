@@ -32,7 +32,7 @@
     "os-homedir": "^1.0.1",
     "request": "2.67.0",
     "request-progress": "1.0.2",
-    "unzip": "0.1.11",
+    "tar-fs": "^1.12.0",
     "yargs": "^3.30.0"
   }
 }
