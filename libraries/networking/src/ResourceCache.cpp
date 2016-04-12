@@ -450,7 +450,10 @@ void Resource::reinsert() {
 
 
 void Resource::makeRequest() {
-    Q_ASSERT(!_request);
+    if (_request) {
+        _request->disconnect();
+        _request->deleteLater();
+    }
 
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
