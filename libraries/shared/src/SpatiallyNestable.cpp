@@ -314,7 +314,7 @@ glm::vec3 SpatiallyNestable::getPosition(int jointIndex, bool& success) const {
     return getTransform(jointIndex, success).getTranslation();
 }
 
-void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
+void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(position)) {
         success = false;
@@ -328,7 +328,7 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
         Transform::inverseMult(_transform, parentTransform, myWorldTransform);
     });
     if (success) {
-        locationChanged();
+        locationChanged(tellPhysics);
     } else {
         qDebug() << "setPosition failed for" << getID();
     }
@@ -363,7 +363,7 @@ glm::quat SpatiallyNestable::getOrientation(int jointIndex, bool& success) const
     return getTransform(jointIndex, success).getRotation();
 }
 
-void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success) {
+void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(orientation)) {
         success = false;
@@ -378,7 +378,7 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
         Transform::inverseMult(_transform, parentTransform, myWorldTransform);
     });
     if (success) {
-        locationChanged();
+        locationChanged(tellPhysics);
     }
 }
 
@@ -422,8 +422,18 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
     glm::vec3 parentVelocity = getParentVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _velocityLock.withWriteLock([&] {
-        // TODO: take parent angularVelocity into account.
-        _velocity = glm::inverse(parentTransform.getRotation()) * (velocity - parentVelocity);
+        // HACK: until we are treating _velocity the same way we treat _position (meaning,
+        // _velocity is a vs parent value and any request for a world-frame velocity must
+        // be computed), do this to avoid equipped (parenting-grabbed) things from drifting.
+        // turning a zero velocity into a non-zero _velocity (because the avatar is moving)
+        // causes EntityItem::simulateKinematicMotion to have an effect on the equipped entity,
+        // which causes it to drift from the hand.
+        if (hasAncestorOfType(NestableType::Avatar)) {
+            _velocity = velocity;
+        } else {
+            // TODO: take parent angularVelocity into account.
+            _velocity = glm::inverse(parentTransform.getRotation()) * (velocity - parentVelocity);
+        }
     });
 }
 
@@ -751,9 +761,9 @@ void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePo
     }
 }
 
-void SpatiallyNestable::locationChanged() {
+void SpatiallyNestable::locationChanged(bool tellPhysics) {
     forEachChild([&](SpatiallyNestablePointer object) {
-        object->locationChanged();
+        object->locationChanged(tellPhysics);
     });
 }
 
@@ -848,4 +858,18 @@ AACube SpatiallyNestable::getQueryAACube() const {
         qDebug() << "getQueryAACube failed for" << getID();
     }
     return result;
+}
+
+bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return false;
+    }
+
+    if (parent->_nestableType == nestableType) {
+        return true;
+    }
+
+    return parent->hasAncestorOfType(nestableType);
 }

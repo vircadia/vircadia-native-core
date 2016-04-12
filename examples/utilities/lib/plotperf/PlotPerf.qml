@@ -19,12 +19,8 @@ Item {
     // The title of the graph
     property string title
 
-    // THe object used as the default source object for the prop plots
+    // The object used as the default source object for the prop plots
     property var object
-    
-    // THis is my hack to get a property and assign it to a trigger var in order to get
-    // a signal called whenever the value changed
-    property var trigger
 
     // Plots is an array of plot descriptor
     // a default plot descriptor expects the following object:
@@ -55,45 +51,38 @@ Item {
     property var tick : 0
 
     function createValues() {
-       // print("trigger is: " + JSON.stringify(trigger))
-        if (Array.isArray(plots)) {
-            for (var i =0; i < plots.length; i++) {
-                var plot = plots[i];
-               // print(" a pnew Plot:" + JSON.stringify(plot));
-                _values.push( {
-                    object: (plot["object"] !== undefined ? plot["object"] : root.object),                      
-                    value: plot["prop"],
-                    valueMax: 1,
-                    numSamplesConstantMax: 0,
-                    valueHistory: new Array(),
-                    label: (plot["label"] !== undefined ? plot["label"] : ""),
-                    color: (plot["color"] !== undefined ? plot["color"] : "white"),
-                    scale: (plot["scale"] !== undefined ? plot["scale"] : 1),
-                    unit: (plot["unit"] !== undefined ? plot["unit"] : valueUnit)
-                })
-            }
+        for (var i =0; i < plots.length; i++) {
+            var plot = plots[i];
+            _values.push( {
+                object: (plot["object"] !== undefined ? plot["object"] : root.object),
+                value: plot["prop"],
+                valueMax: 1,
+                numSamplesConstantMax: 0,
+                valueHistory: new Array(),
+                label: (plot["label"] !== undefined ? plot["label"] : ""),
+                color: (plot["color"] !== undefined ? plot["color"] : "white"),
+                scale: (plot["scale"] !== undefined ? plot["scale"] : 1),
+                unit: (plot["unit"] !== undefined ? plot["unit"] : valueUnit)
+            })
         }
-       // print("in creator" + JSON.stringify(_values));
-
+        pullFreshValues();
     }
 
     Component.onCompleted: {
         createValues();   
-        //print(JSON.stringify(_values));
-                    
     }
 
     function pullFreshValues() {
-        //print("pullFreshValues");
+        // Wait until values are created to begin pulling
+        if (!_values) { return; }
+
         var VALUE_HISTORY_SIZE = 100;
-        var UPDATE_CANVAS_RATE = 20;
         tick++;
-        
 
         var currentValueMax = 0
         for (var i = 0; i < _values.length; i++) {
 
-            var currentVal = _values[i].object[_values[i].value] * _values[i].scale;
+            var currentVal = (+_values[i].object[_values[i].value]) * _values[i].scale;
 
             _values[i].valueHistory.push(currentVal)
             _values[i].numSamplesConstantMax++;
@@ -125,11 +114,13 @@ Item {
             valueMax = currentValueMax;
         }
 
-        if (tick % UPDATE_CANVAS_RATE == 0) {
-            mycanvas.requestPaint()
-        }
+        mycanvas.requestPaint()
     }
-    onTriggerChanged: pullFreshValues() 
+
+    Timer {
+        interval: 100; running: true; repeat: true
+        onTriggered: pullFreshValues()
+    }
 
     Canvas {
         id: mycanvas
@@ -165,9 +156,9 @@ Item {
                 ctx.fillStyle = val.color;
                 var bestValue = val.valueHistory[val.valueHistory.length -1];             
                 ctx.textAlign = "right";
-                ctx.fillText(displayValue(bestValue, val.unit), width, (num + 2) * lineHeight * 1.5);
+                ctx.fillText(displayValue(bestValue, val.unit), width, (num + 2) * lineHeight * 1);
                 ctx.textAlign = "left";
-                ctx.fillText(val.label, 0, (num + 2) * lineHeight * 1.5);
+                ctx.fillText(val.label, 0, (num + 2) * lineHeight * 1);
             }
 
             function displayTitle(ctx, text, maxVal) {

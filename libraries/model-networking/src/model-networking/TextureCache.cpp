@@ -13,17 +13,21 @@
 
 #include <mutex>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/random.hpp>
-
 #include <QNetworkReply>
 #include <QPainter>
 #include <QRunnable>
 #include <QThreadPool>
-#include <qimagereader.h>
-#include <PathUtils.h>
+#include <QImageReader>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/random.hpp>
 
 #include <gpu/Batch.h>
+
+#include <shared/NsightHelpers.h>
+
+#include <Finally.h>
+#include <PathUtils.h>
 
 #include "ModelNetworkingLogging.h"
 
@@ -166,12 +170,11 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
     return texture;
 }
 
-
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
-        &Resource::allReferencesCleared);
+        &Resource::deleter);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
@@ -197,7 +200,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& texture
 {
     _textureLoader = textureLoader;
 }
-    
+
 NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
     switch (_type) {
         case CUBE_TEXTURE: {
@@ -241,14 +244,14 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data, const QUrl& url = QUrl());
+    ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data, const QUrl& url = QUrl());
 
     virtual void run();
 
 private:
     static void listSupportedImageFormats();
 
-    QWeakPointer<Resource> _texture;
+    QWeakPointer<Resource> _resource;
     QUrl _url;
     QByteArray _content;
 };
@@ -262,9 +265,9 @@ void NetworkTexture::loadContent(const QByteArray& content) {
     QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url));
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data,
+ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArray& data,
         const QUrl& url) :
-    _texture(texture),
+    _resource(resource),
     _url(url),
     _content(data)
 {
@@ -279,31 +282,34 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void ImageReader::run() {
+    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, nullptr);
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
+    Finally restorePriority([originalPriority]{
+        QThread::currentThread()->setPriority(originalPriority);
+    });
 
-    auto texture = _texture.toStrongRef();
-    if (!texture) {
-        qCWarning(modelnetworking) << "Could not get strong ref";
+    if (!_resource.data()) {
+        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
         return;
     }
 
     listSupportedImageFormats();
 
-    // try to help the QImage loader by extracting the image file format from the url filename ext
-    // Some tga are not created properly for example without it
+    // Help the QImage loader by extracting the image file format from the url filename ext.
+    // Some tga are not created properly without it.
     auto filename = _url.fileName().toStdString();
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
     QImage image = QImage::fromData(_content, filenameExtension.c_str());
 
     // Note that QImage.format is the pixel format which is different from the "format" of the image file...
-    auto imageFormat = image.format(); 
+    auto imageFormat = image.format();
     int originalWidth = image.width();
     int originalHeight = image.height();
-    
+
     if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
         if (filenameExtension.empty()) {
             qCDebug(modelnetworking) << "QImage failed to create from content, no file extension:" << _url;
@@ -313,25 +319,40 @@ void ImageReader::run() {
         return;
     }
 
-    gpu::Texture* theTexture = nullptr;
-    auto ntex = texture.dynamicCast<NetworkTexture>();
-    if (ntex) {
-        theTexture = ntex->getTextureLoader()(image, _url.toString().toStdString());
+    gpu::Texture* texture = nullptr;
+    {
+        // Double-check the resource still exists between long operations.
+        auto resource = _resource.toStrongRef();
+        if (!resource) {
+            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+            return;
+        }
+
+        auto url = _url.toString().toStdString();
+
+        PROFILE_RANGE_EX(__FUNCTION__"::textureLoader", 0xffffff00, nullptr);
+        texture = resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url);
     }
 
-    QMetaObject::invokeMethod(texture.data(), "setImage", 
-        Q_ARG(void*, theTexture),
-        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-    QThread::currentThread()->setPriority(originalPriority);
+    // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+    auto resource = _resource.toStrongRef();
+    if (!resource) {
+        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+        delete texture;
+    } else {
+        QMetaObject::invokeMethod(resource.data(), "setImage", Qt::BlockingQueuedConnection,
+            Q_ARG(void*, texture),
+            Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
+    }
 }
 
 void NetworkTexture::setImage(void* voidTexture, int originalWidth,
                               int originalHeight) {
     _originalWidth = originalWidth;
     _originalHeight = originalHeight;
-    
+
     gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
-    
+
     // Passing ownership
     _textureSource->resetTexture(texture);
     auto gpuTexture = _textureSource->getGPUTexture();
@@ -339,10 +360,13 @@ void NetworkTexture::setImage(void* voidTexture, int originalWidth,
     if (gpuTexture) {
         _width = gpuTexture->getWidth();
         _height = gpuTexture->getHeight();
+        setSize(gpuTexture->getStoredSize());
     } else {
+        // FIXME: If !gpuTexture, we failed to load!
         _width = _height = 0;
+        qWarning() << "Texture did not load";
     }
-    
+
     finishedLoading(true);
 
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));

@@ -1,5 +1,5 @@
 {
-  "version": 1.1,
+  "version": 1.2,
   "settings": [
     {
       "name": "metaverse",
@@ -249,7 +249,7 @@
               "label": "X end",
               "can_set": true,
               "placeholder": "16384.0"
-            },            
+            },
             {
               "name": "y_min",
               "label": "Y start",

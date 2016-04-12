@@ -25,6 +25,14 @@ ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
     _procedural._state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
+void ProceduralSkybox::clear() {
+    // Parse and prepare a procedural with no shaders to release textures
+    parse(QString());
+    _procedural.ready();
+
+    Skybox::clear();
+}
+
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
     if (_procedural.ready()) {
         ProceduralSkybox::render(batch, frustum, (*this));

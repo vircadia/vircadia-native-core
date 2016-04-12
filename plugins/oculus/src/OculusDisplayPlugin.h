@@ -12,20 +12,18 @@
 struct SwapFramebufferWrapper;
 using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 
-const float TARGET_RATE_Oculus = 75.0f;
-
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
     using Parent = OculusBaseDisplayPlugin;
 public:
     const QString& getName() const override { return NAME; }
 
-    float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
+    QString getPreferredAudioInDevice() const override;
+    QString getPreferredAudioOutDevice() const override;
 
 protected:
     bool internalActivate() override;
     void hmdPresent() override;
-    // FIXME update with Oculus API call once it's available in the SDK
-    bool isHmdMounted() const override { return true; }
+    bool isHmdMounted() const override;
     void customizeContext() override;
     void uncustomizeContext() override;
     void cycleDebugOutput() override;

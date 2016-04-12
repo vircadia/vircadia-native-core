@@ -45,7 +45,7 @@ public:
     };
     
     AudioInjector(QObject* parent);
-    AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
+    AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
     bool isFinished() const { return _state == State::Finished; }

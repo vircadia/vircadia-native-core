@@ -98,10 +98,21 @@ function seekToLookAt() {
 }
 
 function autoHideReticle() {
+    var now = Date.now();
+
+    // sometimes we don't actually get mouse move messages (for example, if the focus has been set
+    // to an overlay or web page 'overlay') in but the mouse can still be moving, and we don't want
+    // to autohide in these cases, so we will take this opportunity to also check if the reticle
+    // position has changed.
+    if (lastMouseX != Reticle.position.x || lastMouseY != Reticle.position.y) {
+        lastMouseMoveOrClick = now;
+        lastMouseX = Reticle.position.x;
+        lastMouseY = Reticle.position.y;
+    }
+
     // if we haven't moved in a long period of time, and we're not pointing at some
     // system overlay (like a window), then hide the reticle
     if (Reticle.visible && !Reticle.pointingAtSystemOverlay) {
-        var now = Date.now();
         var timeSinceLastMouseMove = now - lastMouseMoveOrClick;
         if (timeSinceLastMouseMove > HIDE_STATIC_MOUSE_AFTER) {
             Reticle.visible = false;
@@ -112,7 +123,7 @@ function autoHideReticle() {
 function checkReticleDepth() {
     var now = Date.now();
     var timeSinceLastDepthCheck = now - lastDepthCheckTime;
-    if (timeSinceLastDepthCheck > TIME_BETWEEN_DEPTH_CHECKS) {
+    if (timeSinceLastDepthCheck > TIME_BETWEEN_DEPTH_CHECKS && Reticle.visible) {
         var newDesiredDepth = desiredDepth;
         lastDepthCheckTime = now;
         var reticlePosition = Reticle.position;
@@ -160,7 +171,6 @@ function moveToDesiredDepth() {
         } else {
             newDepth = Reticle.depth + distanceToAdjustThisCycle;
         }
-
         Reticle.setDepth(newDepth);
     }
 }

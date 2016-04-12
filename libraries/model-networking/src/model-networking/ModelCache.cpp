@@ -10,6 +10,7 @@
 //
 
 #include "ModelCache.h"
+#include <Finally.h>
 #include <FSTReader.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
@@ -28,6 +29,10 @@ public:
     const QVariantHash& mapping;
     const QUrl& textureBaseUrl;
 };
+
+QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
+    return textureBaseUrl.isValid() ? textureBaseUrl : url;
+}
 
 class GeometryMappingResource : public GeometryResource {
     Q_OBJECT
@@ -52,30 +57,28 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         finishedLoading(false);
     } else {
         QUrl url = _url.resolved(filename);
-        QUrl textureBaseUrl;
 
         QString texdir = mapping.value("texdir").toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
-            textureBaseUrl = _url.resolved(texdir);
+            _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra{ mapping, textureBaseUrl };
+        GeometryExtra extra{ mapping, _textureBaseUrl };
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
-        _geometryResource = modelCache->getResource(url, QUrl(), true, &extra).staticCast<GeometryResource>();
+        _geometryResource = modelCache->getResource(url, QUrl(), false, &extra).staticCast<GeometryResource>();
+        // Avoid caching nested resources - their references will be held by the parent
+        _geometryResource->_isCacheable = false;
 
         if (_geometryResource->isLoaded()) {
             onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
         } else {
             connect(_geometryResource.data(), &Resource::finished, this, &GeometryMappingResource::onGeometryMappingLoaded);
         }
-
-        // Avoid caching nested resources - their references will be held by the parent
-        _geometryResource->_isCacheable = false;
     }
 }
 
@@ -86,6 +89,10 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
     }
+
+    // Avoid holding onto extra references
+    _geometryResource.reset();
+
     finishedLoading(success);
 }
 
@@ -111,11 +118,12 @@ void GeometryReader::run() {
         originalPriority = QThread::NormalPriority;
     }
     QThread::currentThread()->setPriority(QThread::LowPriority);
+    Finally setPriorityBackToNormal([originalPriority]() {
+        QThread::currentThread()->setPriority(originalPriority);
+    });
 
-    // Ensure the resource is still being requested
-    auto resource = _resource.toStrongRef();
-    if (!resource) {
-        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+    if (!_resource.data()) {
+        qCWarning(modelnetworking) << "Abandoning load of" << _url << "; resource was deleted";
         return;
     }
 
@@ -140,24 +148,36 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(void*, fbxGeometry));
+            // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+            auto resource = _resource.toStrongRef();
+            if (!resource) {
+                qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+                delete fbxGeometry;
+            } else {
+                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition", Qt::BlockingQueuedConnection, Q_ARG(void*, fbxGeometry));
+            }
         } else {
             throw QString("url is invalid");
         }
     } catch (const QString& error) {
-        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
-        QMetaObject::invokeMethod(resource.data(), "finishedLoading", Q_ARG(bool, false));
-    }
 
-    QThread::currentThread()->setPriority(originalPriority);
+        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
+
+        auto resource = _resource.toStrongRef();
+        // Ensure the resoruce has not been deleted, and won't be while invokeMethod is in flight.
+        if (!resource) {
+            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
+        } else {
+            QMetaObject::invokeMethod(resource.data(), "finishedLoading", Qt::BlockingQueuedConnection, Q_ARG(bool, false));
+        }
+    }
 }
 
 class GeometryDefinitionResource : public GeometryResource {
     Q_OBJECT
 public:
     GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
-        GeometryResource(url), _mapping(mapping), _textureBaseUrl(textureBaseUrl.isValid() ? textureBaseUrl : url) {}
+        GeometryResource(url, resolveTextureBaseUrl(url, textureBaseUrl)), _mapping(mapping) {}
 
     virtual void downloadFinished(const QByteArray& data) override;
 
@@ -166,7 +186,6 @@ protected:
 
 private:
     QVariantHash _mapping;
-    QUrl _textureBaseUrl;
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
@@ -220,13 +239,20 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
         resource = new GeometryDefinitionResource(url, geometryExtra->mapping, geometryExtra->textureBaseUrl);
     }
 
-    return QSharedPointer<Resource>(resource, &Resource::allReferencesCleared);
+    return QSharedPointer<Resource>(resource, &Resource::deleter);
 }
 
 std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) {
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
     GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
-    return std::make_shared<NetworkGeometry>(resource);
+    if (resource) {
+        if (resource->isLoaded() && resource->shouldSetTextures()) {
+            resource->setTextures();
+        }
+        return std::make_shared<NetworkGeometry>(resource);
+    } else {
+        return NetworkGeometry::Pointer();
+    }
 }
 
 const QVariantMap Geometry::getTextures() const {
@@ -270,6 +296,9 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 
                 material->setTextures(textureMap);
                 _areTexturesLoaded = false;
+
+                // If we only use cached textures, they should all be loaded
+                areTexturesLoaded();
             }
         }
     } else {
@@ -279,8 +308,6 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 
 bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
-        _hasTransparentTextures = false;
-
         for (auto& material : _materials) {
             // Check if material textures are loaded
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
@@ -293,8 +320,6 @@ bool Geometry::areTexturesLoaded() const {
             const auto albedoTexture = material->_textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
             if (albedoTexture.texture && albedoTexture.texture->getGPUTexture()) {
                 material->resetOpacityMap();
-
-                _hasTransparentTextures |= material->getKey().isTranslucent();
             }
         }
 
@@ -311,6 +336,21 @@ const std::shared_ptr<const NetworkMaterial> Geometry::getShapeMaterial(int shap
         }
     }
     return nullptr;
+}
+
+void GeometryResource::deleter() {
+    resetTextures();
+    Resource::deleter();
+}
+
+void GeometryResource::setTextures() {
+    for (const FBXMaterial& material : _geometry->materials) {
+        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+    }
+}
+
+void GeometryResource::resetTextures() {
+    _materials.clear();
 }
 
 NetworkGeometry::NetworkGeometry(const GeometryResource::Pointer& networkGeometry) : _resource(networkGeometry) {

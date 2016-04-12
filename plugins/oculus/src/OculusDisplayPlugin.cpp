@@ -6,7 +6,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusDisplayPlugin.h"
+
+// Odd ordering of header is required to avoid 'macro redinition warnings'
+#include <AudioClient.h>
+
+#include <OVR_CAPI_Audio.h>
+
 #include <shared/NsightHelpers.h>
+
 #include "OculusHelpers.h"
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
@@ -45,6 +52,16 @@ void OculusDisplayPlugin::customizeContext() {
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {
+    using namespace oglplus;
+    
+    // Present a final black frame to the HMD
+    _compositeFramebuffer->Bound(FramebufferTarget::Draw, [] {
+        Context::ClearColor(0, 0, 0, 1);
+        Context::Clear().ColorBuffer();
+    });
+
+    hmdPresent();
+    
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo.reset();
 #endif
@@ -86,3 +103,26 @@ void OculusDisplayPlugin::hmdPresent() {
         }
     }
 }
+
+bool OculusDisplayPlugin::isHmdMounted() const {
+    ovrSessionStatus status;
+    return (OVR_SUCCESS(ovr_GetSessionStatus(_session, &status)) && 
+        (ovrFalse != status.HmdMounted));
+}
+
+QString OculusDisplayPlugin::getPreferredAudioInDevice() const { 
+    WCHAR buffer[OVR_AUDIO_MAX_DEVICE_STR_SIZE];
+    if (!OVR_SUCCESS(ovr_GetAudioDeviceInGuidStr(buffer))) {
+        return QString();
+    }
+    return AudioClient::friendlyNameForAudioDevice(buffer);
+}
+
+QString OculusDisplayPlugin::getPreferredAudioOutDevice() const { 
+    WCHAR buffer[OVR_AUDIO_MAX_DEVICE_STR_SIZE];
+    if (!OVR_SUCCESS(ovr_GetAudioDeviceOutGuidStr(buffer))) {
+        return QString();
+    }
+    return AudioClient::friendlyNameForAudioDevice(buffer);
+}
+

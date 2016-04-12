@@ -26,6 +26,7 @@ public:
     bool create(QOpenGLContext* sharedContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
+    void moveToThreadWithContext(QThread* thread);
     QOpenGLContext* getContext() {
         return _context;
     }

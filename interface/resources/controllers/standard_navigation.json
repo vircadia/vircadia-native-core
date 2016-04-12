@@ -2,9 +2,6 @@
     "name": "Standard to Action",
     "when": "Application.NavigationFocused",
     "channels": [
-        { "disabled_from": { "makeAxis" : [ "Standard.DD", "Standard.DU" ] }, "to": "Actions.UiNavVertical" },
-        { "disabled_from": { "makeAxis" : [ "Standard.DL", "Standard.DR" ] }, "to": "Actions.UiNavLateral" },
-        { "disabled_from": { "makeAxis" : [ "Standard.LB", "Standard.RB" ] }, "to": "Actions.UiNavGroup" },
         { "from": "Standard.DU", "to": "Actions.UiNavVertical" },
         { "from": "Standard.DD", "to": "Actions.UiNavVertical", "filters": "invert" },
         { "from": "Standard.DL", "to": "Actions.UiNavLateral", "filters": "invert" },

@@ -19,13 +19,14 @@ class QSurfaceFormat;
 class QOpenGLContextWrapper {
 public:
     QOpenGLContextWrapper();
-    
     void setFormat(const QSurfaceFormat& format);
     bool create();
     void swapBuffers(QSurface* surface);
     bool makeCurrent(QSurface* surface);
     void doneCurrent();
     void setShareContext(QOpenGLContext* otherContext);
+
+    static QOpenGLContext* currentContext();
 
     QOpenGLContext* getContext() {
         return _context;

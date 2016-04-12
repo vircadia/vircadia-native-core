@@ -11,7 +11,7 @@
 Script.load("away.js");
 Script.load("progress.js");
 Script.load("edit.js");
-Script.load("marketplace.js");
+Script.load("examples.js");
 Script.load("selectAudioDevice.js");
 Script.load("notifications.js");
 Script.load("users.js");
@@ -20,5 +20,5 @@ Script.load("controllers/squeezeHands.js");
 Script.load("grab.js");
 Script.load("directory.js");
 Script.load("dialTone.js");
-Script.load("attachedEntitiesManager.js");
+// Script.load("attachedEntitiesManager.js");
 Script.load("depthReticle.js");

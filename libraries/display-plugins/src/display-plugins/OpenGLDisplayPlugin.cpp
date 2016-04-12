@@ -245,8 +245,10 @@ bool OpenGLDisplayPlugin::activate() {
 
 #if THREADED_PRESENT
     // Start the present thread if necessary
-    auto presentThread = DependencyManager::get<PresentThread>();
-    if (!presentThread) {
+    QSharedPointer<PresentThread> presentThread;
+    if (DependencyManager::isSet<PresentThread>()) {
+        presentThread = DependencyManager::get<PresentThread>();
+    } else {
         auto widget = _container->getPrimaryWidget();
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();

@@ -141,7 +141,7 @@ AABox Avatar::getBounds() const {
     if (!_skeletonModel->isRenderable()) {
         return AABox(getPosition(), getUniformScale()); // approximately 2m tall, scaled to user request.
     }
-    return _skeletonModel->getPartBounds(0, 0, getPosition(), getOrientation());
+    return _skeletonModel->getRenderableMeshBound();
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
@@ -187,9 +187,10 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool avatarPositionInView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool avatarMeshInView = qApp->getDisplayViewFrustum()->boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
 
-    if (_shouldAnimate && !_shouldSkipRender && inView) {
+    if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
             PerformanceTimer perfTimer("skeleton");
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);

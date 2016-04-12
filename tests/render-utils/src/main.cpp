@@ -16,6 +16,7 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/QOpenGLDebugLoggerWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -98,7 +99,7 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 1);
+        setGLFormatVersion(format);
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
