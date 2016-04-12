@@ -1334,7 +1334,9 @@ void Application::initializeGL() {
 
     InfoView::show(INFO_HELP_PATH, true);
 }
+
 extern void setupPreferences();
+
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -1346,6 +1348,9 @@ void Application::initializeUi() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
+
+    auto rootContext = offscreenUi->getRootContext();
+
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
@@ -1356,7 +1361,6 @@ void Application::initializeUi() {
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
 
-    auto rootContext = offscreenUi->getRootContext();
     auto engine = rootContext->engine();
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
