@@ -145,7 +145,7 @@ public:
     Vec4 transform(const Vec4& pos) const;
     Vec3 transform(const Vec3& pos) const;
 
-    bool containsNaN() const;
+    bool containsNaN() const { return isNaN(_rotation) || isNaN(glm::dot(_scale, _translation)); }
 
 protected:
 
