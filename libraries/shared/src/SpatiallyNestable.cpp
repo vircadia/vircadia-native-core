@@ -90,11 +90,9 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         return parent;
     }
 
-    SpatiallyNestablePointer thisPointer = getThisPointer();
-
     if (parent) {
         // we have a parent pointer but our _parentID doesn't indicate this parent.
-        parent->forgetChild(thisPointer);
+        parent->forgetChild(getThisPointer());
         _parentKnowsMe = false;
         _parent.reset();
     }
@@ -112,16 +110,11 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
 
     parent = _parent.lock();
     if (parent) {
-        parent->beParentOfChild(thisPointer);
+        parent->beParentOfChild(getThisPointer());
         _parentKnowsMe = true;
     }
 
-    if (parent || parentID.isNull()) {
-        success = true;
-    } else {
-        success = false;
-    }
-
+    success = (parent || parentID.isNull());
     return parent;
 }
 
@@ -872,4 +865,41 @@ bool SpatiallyNestable::hasAncestorOfType(NestableType nestableType) {
     }
 
     return parent->hasAncestorOfType(nestableType);
+}
+
+void SpatiallyNestable::getLocalTransformAndVelocities(
+        Transform& transform,
+        glm::vec3& velocity,
+        glm::vec3& angularVelocity) const {
+    // transform
+    _transformLock.withReadLock([&] {
+        transform = _transform;
+    });
+    // linear velocity
+    _velocityLock.withReadLock([&] {
+        velocity = _velocity;
+    });
+    // angular velocity
+    _angularVelocityLock.withReadLock([&] {
+        angularVelocity = _angularVelocity;
+    });
+}
+
+void SpatiallyNestable::setLocalTransformAndVelocities(
+        const Transform& localTransform,
+        const glm::vec3& localVelocity,
+        const glm::vec3& localAngularVelocity) {
+    // transform
+    _transformLock.withWriteLock([&] {
+        _transform = localTransform;
+    });
+    // linear velocity
+    _velocityLock.withWriteLock([&] {
+        _velocity = localVelocity;
+    });
+    // angular velocity
+    _angularVelocityLock.withWriteLock([&] {
+        _angularVelocity = localAngularVelocity;
+    });
+    locationChanged();
 }
