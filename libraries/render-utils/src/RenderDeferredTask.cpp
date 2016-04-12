@@ -176,6 +176,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
+    quint64 msecsElapsed = _cpuTimer.restart();
+
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     RenderArgs* args = renderContext->args;
@@ -184,9 +186,6 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         args->_batch = &batch;
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-
-        config->setNumDrawn((int)inItems.size());
-        emit config->numDrawnChanged();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -199,6 +198,10 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
     });
+
+    msecsElapsed = _cpuTimer.elapsed();
+    config->setNumDrawn((int)inItems.size());
+    config->setCPUTiming(msecsElapsed);
 }
 
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
