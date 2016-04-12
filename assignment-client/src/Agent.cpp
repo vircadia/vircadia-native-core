@@ -195,7 +195,7 @@ void Agent::requestScript() {
         // then wait for the nodeConnected signal to fire off the request
 
         auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-        if (!assetServer || assetServer->getActiveSocket()) {
+        if (!assetServer || !assetServer->getActiveSocket()) {
             qDebug() << "Waiting to connect to Asset Server for ATP script download.";
             _pendingScriptRequest = request;
 
