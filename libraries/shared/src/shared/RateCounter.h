@@ -27,6 +27,8 @@ public:
             float currentCount = _count;
             float intervalSeconds = (float)currentIntervalMs / (float)MSECS_PER_SECOND;
             _rate = roundf(currentCount / intervalSeconds * _scale) / _scale;
+            _start = now;
+            _count = 0;
         };
         _count += count;
     }
