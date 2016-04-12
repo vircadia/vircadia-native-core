@@ -65,7 +65,13 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
-    const QString CrashInterface = "Crash Interface";
+//    const QString CrashInterface = "Crash Interface";
+    const QString CrashPureVirtualFunction = "Pure Virtual Function Call";
+    const QString CrashDoubleFree = "Double Free";
+    const QString CrashNullDereference = "Null Dereference";
+    const QString CrashAbort = "Abort";
+    const QString CrashOutOfBoundsVectorAccess = "Out of Bounds Vector Access";
+    const QString CrashNewFault = "New Fault";
     const QString DeadlockInterface = "Deadlock Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";

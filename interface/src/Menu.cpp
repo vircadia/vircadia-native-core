@@ -15,6 +15,7 @@
 
 #include <AddressManager.h>
 #include <AudioClient.h>
+#include <CrashHelpers.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
@@ -582,12 +583,30 @@ Menu::Menu() {
     }
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
 
+    MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
+
     // Developer > Display Crash Options
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
-    // Developer > Crash Application
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::CrashInterface, 0, qApp, SLOT(crashApplication()));
-    // Developer > Deadlock Application
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+
+    addActionToQMenuAndActionHash(crashMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
+    connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFree);
+    connect(action, &QAction::triggered, qApp, []() { crash::doubleFree(); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbort);
+    connect(action, &QAction::triggered, qApp, []() { crash::doAbort(); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereference);
+    connect(action, &QAction::triggered, qApp, []() { crash::nullDeref(); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccess);
+    connect(action, &QAction::triggered, qApp, []() { crash::outOfBoundsVectorCrash(); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFault);
+    connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
 
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
