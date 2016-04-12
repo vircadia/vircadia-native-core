@@ -122,21 +122,27 @@ void AssetServer::completeSetup() {
     }
 
     // load whatever mappings we currently have from the local file
-    loadMappingsFromFile();
+    if (loadMappingsFromFile()) {
+        qInfo() << "Serving files from: " << _filesDirectory.path();
 
-    qInfo() << "Serving files from: " << _filesDirectory.path();
+        // Check the asset directory to output some information about what we have
+        auto files = _filesDirectory.entryList(QDir::Files);
 
-    // Check the asset directory to output some information about what we have
-    auto files = _filesDirectory.entryList(QDir::Files);
+        QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
+        auto hashedFiles = files.filter(hashFileRegex);
 
-    QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
-    auto hashedFiles = files.filter(hashFileRegex);
+        qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
-    qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
+        if (_fileMappings.count() > 0) {
+            cleanupUnmappedFiles();
+        }
 
-    cleanupUnmappedFiles();
+        nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    } else {
+        qCritical() << "Asset Server assignment will not continue because mapping file could not be loaded.";
+        setFinished(true);
+    }
 
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
 
 void AssetServer::cleanupUnmappedFiles() {
@@ -427,7 +433,7 @@ void AssetServer::sendStatsPacket() {
 
 static const QString MAP_FILE_NAME = "map.json";
 
-void AssetServer::loadMappingsFromFile() {
+bool AssetServer::loadMappingsFromFile() {
 
     auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
 
@@ -464,15 +470,17 @@ void AssetServer::loadMappingsFromFile() {
                 }
 
                 qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
-                return;
+                return true;
             }
         }
 
-        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment will not continue.";
-        setFinished(true);
+        qCritical() << "Failed to read mapping file at" << mapFilePath;
+        return false;
     } else {
         qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
     }
+
+    return true;
 }
 
 bool AssetServer::writeMappingsToFile() {

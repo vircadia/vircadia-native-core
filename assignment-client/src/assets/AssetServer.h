@@ -48,7 +48,7 @@ private:
     void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
-    void loadMappingsFromFile();
+    bool loadMappingsFromFile();
     bool writeMappingsToFile();
 
     /// Set the mapping for path to hash
