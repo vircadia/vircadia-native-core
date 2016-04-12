@@ -15,9 +15,7 @@
 
 #include "OffscreenUi.h"
 
-unsigned int USER_DATA_ID() {
-    return DependencyManager::get<OffscreenUi>()->getMenuUserDataId();
-}
+static unsigned int USER_DATA_ID = 0;
 
 // Binds together a Qt Action or Menu with the QML Menu or MenuItem
 //
@@ -27,10 +25,13 @@ unsigned int USER_DATA_ID() {
 class MenuUserData : public QObjectUserData {
 public:
     MenuUserData(QAction* action, QObject* qmlObject) {
+        if (!USER_DATA_ID) {
+            USER_DATA_ID = DependencyManager::get<OffscreenUi>()->getMenuUserDataId();
+        }
         _action = action;
         _qml = qmlObject;
-        action->setUserData(USER_DATA_ID(), this);
-        qmlObject->setUserData(USER_DATA_ID(), this);
+        action->setUserData(USER_DATA_ID, this);
+        qmlObject->setUserData(USER_DATA_ID, this);
         qmlObject->setObjectName(uuid.toString());
         // Make sure we can find it again in the future
         updateQmlItemFromAction();
@@ -43,8 +44,8 @@ public:
     }
 
     ~MenuUserData() {
-        _action->setUserData(USER_DATA_ID(), nullptr);
-        _qml->setUserData(USER_DATA_ID(), nullptr);
+        _action->setUserData(USER_DATA_ID, nullptr);
+        _qml->setUserData(USER_DATA_ID, nullptr);
     }
 
     void updateQmlItemFromAction() {
@@ -65,7 +66,7 @@ public:
             qWarning() << "Attempted to fetch MenuUserData for null object";
             return false;
         }
-        return (nullptr != static_cast<MenuUserData*>(object->userData(USER_DATA_ID())));
+        return (nullptr != static_cast<MenuUserData*>(object->userData(USER_DATA_ID)));
     }
 
     static MenuUserData* forObject(QAction* object) {
@@ -73,7 +74,7 @@ public:
             qWarning() << "Attempted to fetch MenuUserData for null object";
             return nullptr;
         }
-        auto result = static_cast<MenuUserData*>(object->userData(USER_DATA_ID()));
+        auto result = static_cast<MenuUserData*>(object->userData(USER_DATA_ID));
         if (!result) {
             qWarning() << "Unable to find MenuUserData for object " << object;
             if (auto action = dynamic_cast<QAction*>(object)) {
