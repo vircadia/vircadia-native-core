@@ -31,45 +31,23 @@ public:
     using JobModel = render::Job::Model<PrepareDeferred>;
 };
 
-class RenderDeferredConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(quint64 cpuTiming READ getCPUTiming NOTIFY dirty)
-
-public:
-
-    quint64 getCPUTiming() { return _cpuTiming; }
-    void setCPUTiming(quint64 timing) { _cpuTiming = timing; emit dirty(); }
-
-signals:
-    void dirty();
-
-protected:
-    int _cpuTiming{ 0 };
-};
 
 class RenderDeferred {
 public:
-    using Config = RenderDeferredConfig;
-    using JobModel = render::Job::Model<RenderDeferred, RenderDeferredConfig>;
-    void configure(const Config& config) {}
+    using JobModel = render::Job::Model<RenderDeferred>;
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    QElapsedTimer _cpuTimer;
-
 };
 
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
-    Q_PROPERTY(quint64 cpuTiming READ getCPUTiming NOTIFY numDrawnChanged)
 
 public:
 
     int getNumDrawn() { return _numDrawn; }
     void setNumDrawn(int num) { _numDrawn = num; emit numDrawnChanged(); }
-    quint64 getCPUTiming() { return _cpuTiming; }
-    void setCPUTiming(quint64 timing) { _cpuTiming = timing; emit numDrawnChanged(); }
 
     int maxDrawn{ -1 };
 
@@ -79,7 +57,6 @@ signals:
 
 protected:
     int _numDrawn{ 0 };
-    int _cpuTiming{ 0 };
 };
 
 class DrawDeferred {
@@ -95,7 +72,6 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
-    QElapsedTimer _cpuTimer;
 };
 
 class DrawStencilDeferred {

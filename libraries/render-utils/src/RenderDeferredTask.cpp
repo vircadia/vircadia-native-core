@@ -45,12 +45,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    quint64 msecsElapsed = _cpuTimer.restart();
-    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
-
-    config->setCPUTiming(_cpuTimer.elapsed());
 }
 
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
@@ -181,8 +176,6 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    quint64 msecsElapsed = _cpuTimer.restart();
-
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     RenderArgs* args = renderContext->args;
@@ -204,9 +197,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         args->_batch = nullptr;
     });
 
-    msecsElapsed = _cpuTimer.elapsed();
     config->setNumDrawn((int)inItems.size());
-    config->setCPUTiming(msecsElapsed);
 }
 
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
@@ -220,7 +211,6 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     assert(renderContext->args->_viewFrustum);
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
 
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();

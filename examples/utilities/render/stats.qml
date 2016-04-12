@@ -189,28 +189,29 @@ Item {
             height: parent.evalEvenHeight()
             object: parent.drawOpaqueConfig
             valueUnit: "ms"
+            valueScale: 1000
             plots: [
                 {
                     object: Render.getConfig("RenderDeferred"),
-                    prop: "cpuTiming",
+                    prop: "cpuRunTime",
                     label: "Lighting",
                     color: "#E2334D"
                 },
                 {
                     object: Render.getConfig("DrawOpaqueDeferred"),
-                    prop: "cpuTiming",
+                    prop: "cpuRunTime",
                     label: "Opaques",
                     color: "#1AC567"
                 },
                 {
                     object: Render.getConfig("DrawTransparentDeferred"),
-                    prop: "cpuTiming",
+                    prop: "cpuRunTime",
                     label: "Translucents",
                     color: "#00B4EF"
                 },
                 {
                     object: Render.getConfig("RenderDeferred"),
-                    prop: "cpuTiming",
+                    prop: "cpuRunTime",
                     label: "Lighting",
                     color: "#E2334D"
                 }

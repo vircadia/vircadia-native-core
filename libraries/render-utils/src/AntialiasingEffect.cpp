@@ -127,7 +127,6 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         // FXAA step
         getAntialiasingPipeline();
         batch.setResourceTexture(0, framebufferCache->getLightingTexture());
-    //    _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
 
