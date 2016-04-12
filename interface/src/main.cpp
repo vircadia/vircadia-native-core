@@ -178,8 +178,18 @@ int main(int argc, const char* argv[]) {
         });
 
         // BugSplat WILL NOT work with file paths that do not use OS native separators.
-        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        auto logger = app.getLogger();
+        auto logPath = QDir::toNativeSeparators(logger->getFilename());
         mpSender.sendAdditionalFile(qPrintable(logPath));
+
+        QMetaObject::Connection connection;
+        connection = QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&mpSender, &connection](QString newFilename) {
+            // We only want to add the first rolled log file (the "beginning" of the log) to BugSplat to ensure we don't exceed the 2MB
+            // zipped limit, so we disconnect here.
+            QObject::disconnect(connection);
+            auto rolledLogPath = QDir::toNativeSeparators(newFilename);
+            mpSender.sendAdditionalFile(qPrintable(rolledLogPath));
+        });
 #endif
 
         printSystemInformation();
