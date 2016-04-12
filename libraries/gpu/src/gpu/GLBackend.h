@@ -76,15 +76,22 @@ public:
 
     class GLTexture : public GPUObject {
     public:
+        // The public gl texture object
+        GLuint _texture{ 0 };
+
         const Stamp _storageStamp;
         Stamp _contentStamp { 0 };
-        const GLuint _texture;
         const GLenum _target;
 
         GLTexture(const gpu::Texture& gpuTexture);
         ~GLTexture();
 
+        void createTexture();
+
         GLuint size() const { return _size; }
+        GLuint virtualSize() const { return _virtualSize; }
+
+        void updateSize();
 
         enum SyncState {
             // The texture is currently undergoing no processing, although it's content
@@ -119,16 +126,26 @@ public:
 
         static const size_t CUBE_NUM_FACES = 6;
         static const GLenum CUBE_FACE_LAYOUT[6];
-
+        
     private:
+        // at creation the true texture is created in GL
+        // it becomes public only when ready.
+        GLuint _privateTexture{ 0 };
+
+        void setSize(GLuint size);
+        void setVirtualSize(GLuint size);
+
+        GLuint _size; // true size as reported by the gl api
+        GLuint _virtualSize; // theorical size as expected
+        GLuint _numLevels{ 0 };
+
         void transferMip(GLenum target, const Texture::PixelsPointer& mip) const;
 
-        const GLuint _size;
         // The owning texture
         const Texture& _gpuTexture;
         std::atomic<SyncState> _syncState { SyncState::Idle };
     };
-    static GLTexture* syncGPUObject(const TexturePointer& texture);
+    static GLTexture* syncGPUObject(const TexturePointer& texture, bool needTransfer = true);
     static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
 
     // very specific for now
