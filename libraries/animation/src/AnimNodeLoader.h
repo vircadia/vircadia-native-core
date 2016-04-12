@@ -13,13 +13,13 @@
 
 #include <memory>
 
+#include <QNetworkReply>
 #include <QString>
 #include <QUrl>
 
 #include "AnimNode.h"
 
-#include <ResourceManager.h>
-
+class Resource;
 
 class AnimNodeLoader : public QObject {
     Q_OBJECT
@@ -37,11 +37,12 @@ protected:
 
 protected slots:
     void onRequestDone(const QByteArray data);
-    void onRequestError(ResourceRequest::Result error);
+    void onRequestError(QNetworkReply::NetworkError error);
 
 protected:
     QUrl _url;
-    
+    QSharedPointer<Resource> _resource;
+
 private:
 
     // no copies

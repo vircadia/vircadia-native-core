@@ -218,7 +218,6 @@ QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
                 result.append(resource);
             }
         }
-        _pendingRequests.removeAll(QWeakPointer<Resource>());
     }
     return result;
 }
@@ -238,7 +237,6 @@ QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
                 result.append(resource);
             }
         }
-        _loadingRequests.removeAll(QWeakPointer<Resource>());
     }
     return result;
 }
