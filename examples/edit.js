@@ -95,10 +95,6 @@ var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
-var modelURLs = [
-    "Insert the URL to your FBX"
-];
-
 var mode = 0;
 var isActive = false;
 
@@ -432,7 +428,7 @@ var toolBar = (function() {
         }
 
         if (newModelButton === toolBar.clicked(clickedOverlay)) {
-            url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
+            url = Window.prompt("Model URL");
             if (url !== null && url !== "") {
                 addModel(url);
             }
