@@ -4337,7 +4337,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
 
     // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
     // a heuristic to try to decide when we actually know about all of the nearby entities.
-    int nearbyCount = entities.size();
+    uint32_t nearbyCount = entities.size();
     if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
         _nearbyEntitiesStabilityCount++;
     } else {
