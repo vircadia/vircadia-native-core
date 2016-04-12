@@ -294,20 +294,18 @@ void MyAvatar::update(float deltaTime) {
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
-    
-     simulate(deltaTime);
-    
+
+    simulate(deltaTime);
+
     currentEnergy += energyChargeRate;
     currentEnergy -= getAccelerationEnergy();
     currentEnergy -= getAudioEnergy();
-    
+
     if(didTeleport()) {
         currentEnergy = 0.0f;
     }
     currentEnergy = max(0.0f, min(currentEnergy,1.0f));
     emit energyChanged(currentEnergy);
-     
-   
 }
 
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
@@ -332,6 +330,10 @@ void MyAvatar::simulate(float deltaTime) {
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
+
+    // update sensorToWorldMatrix for camera and hand controllers
+    // before we perform rig animations and IK.
+    updateSensorToWorldMatrix();
 
     {
         PerformanceTimer perfTimer("skeleton");
@@ -1975,9 +1977,14 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 }
 
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
-    glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-    return glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+    auto cameraMode = qApp->getCamera()->getMode();
+    if (cameraMode == CAMERA_MODE_THIRD_PERSON) {
+        return false;
+    } else {
+        const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
+        glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+        return glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+    }
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
