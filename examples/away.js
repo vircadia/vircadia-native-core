@@ -45,6 +45,9 @@ var AWAY_INTRO = {
     endFrame: 83.0
 };
 
+// prefetch the kneel animation so it's resident in memory when we need it.
+MyAvatar.prefetchAnimation(AWAY_INTRO.url);
+
 function playAwayAnimation() {
     MyAvatar.overrideAnimation(AWAY_INTRO.url, AWAY_INTRO.playbackRate, AWAY_INTRO.loopFlag, AWAY_INTRO.startFrame, AWAY_INTRO.endFrame);
 }
