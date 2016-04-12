@@ -144,6 +144,9 @@ void Agent::run() {
     connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
     messagesThread->start();
 
+    // make sure we hear about connected nodes so we can grab an ATP script if a request is pending
+    connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &Agent::nodeActivated);
+
     nodeList->addSetOfNodeTypesToNodeInterestSet({
         NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
@@ -164,52 +167,85 @@ void Agent::requestScript() {
         scriptURL = QUrl(_payload);
     }
 
-    // setup a network access manager and
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    // make sure this is not a script request for the file scheme
+    if (scriptURL.scheme() == URL_SCHEME_FILE) {
+        qWarning() << "Cannot load script for Agent from local filesystem.";
+        scriptRequestFinished();
+        return;
+    }
 
-    QNetworkDiskCache* cache = new QNetworkDiskCache();
-    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    networkAccessManager.setCache(cache);
+    auto request = ResourceManager::createResourceRequest(this, scriptURL);
 
-    QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    if (!request) {
+        qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
+        scriptRequestFinished();
+        return;
+    }
 
     // setup a timeout for script request
     static const int SCRIPT_TIMEOUT_MS = 10000;
-    _scriptRequestTimeout = new QTimer(this);
+    _scriptRequestTimeout = new QTimer;
     connect(_scriptRequestTimeout, &QTimer::timeout, this, &Agent::scriptRequestFinished);
     _scriptRequestTimeout->start(SCRIPT_TIMEOUT_MS);
 
-    qDebug() << "Downloading script at" << scriptURL.toString();
-    QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    connect(reply, &QNetworkReply::finished, this, &Agent::scriptRequestFinished);
+    connect(request, &ResourceRequest::finished, this, &Agent::scriptRequestFinished);
+
+    if (scriptURL.scheme() == URL_SCHEME_ATP) {
+        // we have an ATP URL for the script - if we're not currently connected to the AssetServer
+        // then wait for the nodeConnected signal to fire off the request
+
+        auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+        if (!assetServer || !assetServer->getActiveSocket()) {
+            qDebug() << "Waiting to connect to Asset Server for ATP script download.";
+            _pendingScriptRequest = request;
+
+            return;
+        }
+    }
+
+    qInfo() << "Requesting script at URL" << qPrintable(request->getUrl().toString());
+
+    request->send();
+}
+
+void Agent::nodeActivated(SharedNodePointer activatedNode) {
+    if (_pendingScriptRequest) {
+        qInfo() << "Requesting script at URL" << qPrintable(_pendingScriptRequest->getUrl().toString());
+
+        _pendingScriptRequest->send();
+
+        _pendingScriptRequest = nullptr;
+    }
 }
 
 void Agent::scriptRequestFinished() {
-    auto reply = qobject_cast<QNetworkReply*>(sender());
+    auto request = qobject_cast<ResourceRequest*>(sender());
 
-    _scriptRequestTimeout->stop();
+    // stop the script request timeout, if it's running
+    if (_scriptRequestTimeout) {
+        QMetaObject::invokeMethod(_scriptRequestTimeout, "stop");
+        _scriptRequestTimeout->deleteLater();
+    }
 
-    if (reply && reply->error() == QNetworkReply::NoError) {
-        _scriptContents = reply->readAll();
-        qDebug() << "Downloaded script:" << _scriptContents;
+    if (request && request->getResult() == ResourceRequest::Success) {
+        _scriptContents = request->getData();
+        qInfo() << "Downloaded script:" << _scriptContents;
 
         // we could just call executeScript directly - we use a QueuedConnection to allow scriptRequestFinished
         // to return before calling executeScript
         QMetaObject::invokeMethod(this, "executeScript", Qt::QueuedConnection);
     } else {
-        if (reply) {
-            qDebug() << "Failed to download script at" << reply->url().toString() << " - bailing on assignment.";
-            qDebug() << "QNetworkReply error was" << reply->errorString();
+        if (request) {
+            qWarning() << "Failed to download script at" << request->getUrl().toString() << " - bailing on assignment.";
+            qWarning() << "ResourceRequest error was" << request->getResult();
         } else {
-            qDebug() << "Failed to download script - request timed out. Bailing on assignment.";
+            qWarning() << "Failed to download script - request timed out. Bailing on assignment.";
         }
 
         setFinished(true);
     }
 
-    reply->deleteLater();
+    request->deleteLater();
 }
 
 void Agent::executeScript() {
