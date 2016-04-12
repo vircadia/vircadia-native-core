@@ -182,7 +182,40 @@ Item {
                     color: "#E2334D"
                 }
             ]
-        }     
+        }   
+
+        PlotPerf {
+            title: "Timing"
+            height: parent.evalEvenHeight()
+            object: parent.drawOpaqueConfig
+            valueUnit: "ms"
+            plots: [
+                {
+                    object: Render.getConfig("RenderDeferred"),
+                    prop: "cpuTiming",
+                    label: "Lighting",
+                    color: "#E2334D"
+                },
+                {
+                    object: Render.getConfig("DrawOpaqueDeferred"),
+                    prop: "cpuTiming",
+                    label: "Opaques",
+                    color: "#1AC567"
+                },
+                {
+                    object: Render.getConfig("DrawTransparentDeferred"),
+                    prop: "cpuTiming",
+                    label: "Translucents",
+                    color: "#00B4EF"
+                },
+                {
+                    object: Render.getConfig("RenderDeferred"),
+                    prop: "cpuTiming",
+                    label: "Lighting",
+                    color: "#E2334D"
+                }
+            ]
+        }       
     }
 
 }

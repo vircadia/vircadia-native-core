@@ -45,7 +45,12 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    quint64 msecsElapsed = _cpuTimer.restart();
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
+
+    config->setCPUTiming(_cpuTimer.elapsed());
 }
 
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {

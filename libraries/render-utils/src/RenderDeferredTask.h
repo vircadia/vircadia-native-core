@@ -31,12 +31,30 @@ public:
     using JobModel = render::Job::Model<PrepareDeferred>;
 };
 
+class RenderDeferredConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(quint64 cpuTiming READ getCPUTiming NOTIFY dirty)
+
+public:
+
+    quint64 getCPUTiming() { return _cpuTiming; }
+    void setCPUTiming(quint64 timing) { _cpuTiming = timing; emit dirty(); }
+
+signals:
+    void dirty();
+
+protected:
+    int _cpuTiming{ 0 };
+};
 
 class RenderDeferred {
 public:
-    using JobModel = render::Job::Model<RenderDeferred>;
+    using Config = RenderDeferredConfig;
+    using JobModel = render::Job::Model<RenderDeferred, RenderDeferredConfig>;
+    void configure(const Config& config) {}
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    QElapsedTimer _cpuTimer;
 
 };
 
