@@ -187,9 +187,10 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool avatarPositionInView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool avatarMeshInView = qApp->getDisplayViewFrustum()->boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
 
-    if (_shouldAnimate && !_shouldSkipRender && inView) {
+    if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
             PerformanceTimer perfTimer("skeleton");
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
