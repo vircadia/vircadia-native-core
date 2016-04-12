@@ -87,8 +87,6 @@ public:
     void removeAction(const QUuid actionID);
     void forEachAction(std::function<void(EntityActionPointer)> actor);
 
-    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
-
 private:
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
 
@@ -112,7 +110,6 @@ private:
     QHash<QUuid, EntityActionPointer> _objectActions;
 
     glm::vec3 _originOffset;
-    QUuid _sessionID;
 
     CharacterController* _myAvatarController;
 
@@ -121,7 +118,6 @@ private:
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
-
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;

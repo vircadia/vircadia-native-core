@@ -20,7 +20,6 @@
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
-        _sessionID(),
         _myAvatarController(nullptr) {
 }
 
@@ -286,20 +285,20 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
     if (motionStateB &&
-        ((motionStateA && motionStateA->getSimulatorID() == _sessionID && !objectA->isStaticObject()) ||
+        ((motionStateA && motionStateA->getSimulatorID() == Physics::getSessionUUID() && !objectA->isStaticObject()) ||
          (objectA == characterObject))) {
         // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
-        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != _sessionID) {
+        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != Physics::getSessionUUID()) {
             quint8 priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateB->bump(priorityA);
         }
     } else if (motionStateA &&
-               ((motionStateB && motionStateB->getSimulatorID() == _sessionID && !objectB->isStaticObject()) ||
+               ((motionStateB && motionStateB->getSimulatorID() == Physics::getSessionUUID() && !objectB->isStaticObject()) ||
                 (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
-        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != _sessionID) {
+        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != Physics::getSessionUUID()) {
             quint8 priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateA->bump(priorityB);
         }
@@ -333,7 +332,7 @@ void PhysicsEngine::updateContactMap() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
-            if (!_sessionID.isNull()) {
+            if (!Physics::getSessionUUID().isNull()) {
                 doOwnershipInfection(objectA, objectB);
             }
         }

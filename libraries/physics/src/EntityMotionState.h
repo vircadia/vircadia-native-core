@@ -43,10 +43,10 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans) override;
 
-    bool isCandidateForOwnership(const QUuid& sessionID) const;
+    bool isCandidateForOwnership() const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
-    bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
-    void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
+    bool shouldSendUpdate(uint32_t simulationStep);
+    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     virtual uint32_t getIncomingDirtyFlags() override;
     virtual void clearIncomingDirtyFlags() override;
