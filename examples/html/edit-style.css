@@ -63,7 +63,7 @@
 }
 
 body {
-    padding: 24px 12px 24px 12px;
+    padding: 21px 21px 21px 21px;
 
     color: #afafaf;
     background-color: #404040;
@@ -301,7 +301,7 @@ input[type=button] {
     height: 28px;
     min-width: 120px;
     padding: 0px 18px;
-    margin-right: 8px;
+    margin-right: 7px;
     border-radius: 5px;
     border: none;
     color: #fff;
@@ -421,8 +421,8 @@ input[type=checkbox]:checked + label:hover {
 .section-header, .sub-section-header, hr {
     display: table;
     width: 100%;
-    margin: 22px -12px 0 -12px;
-    padding: 14px 12px 0 12px;
+    margin: 21px -21px 0 -21px;
+    padding: 14px 21px 0 21px;
     font-family: Raleway-Regular;
     font-size: 12px;
     color: #afafaf;
@@ -457,11 +457,11 @@ input[type=checkbox]:checked + label:hover {
     float: right;
     position: absolute;
     top: 4px;
-    right: 6px;
+    right: 13px;
 }
 
 .section-header[collapsed="true"] {
-    margin-bottom: -22px;
+    margin-bottom: -21px;
 }
 
 hr {
@@ -485,8 +485,8 @@ hr {
 .property {
     display: table;
     width: 100%;
-    margin-top: 22px;
-    min-height: 29px;
+    margin-top: 21px;
+    min-height: 28px;
 }
 
 .property.checkbox {
@@ -531,13 +531,14 @@ hr {
     float: left;
 }
 .property .number + .number {
-    margin-left: 12px;
+    margin-left: 14px;
 }
 
 .text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
     float: left;
     margin-left: 1px;
     margin-bottom: 3px;
+    margin-top: -2px;
 }
 
 .number > input {
@@ -645,7 +646,7 @@ div.refresh input[type="button"] {
 .color-picker {
     box-sizing: border-box;
     float: left;
-    margin-bottom: 12px;
+    margin-bottom: 21px;
     width: 36px;
     height: 36px;
     border: 4px solid #afafaf;
@@ -665,7 +666,7 @@ div.refresh input[type="button"] {
 .rgb label {
     float: left;
     margin-top: 10px;
-    margin-left: 12px;
+    margin-left: 21px;
 }
 .rgb label + * {
     clear: both;
@@ -678,7 +679,7 @@ div.refresh input[type="button"] {
 .tuple div {
     display: inline-block;
     position: relative;
-    min-width: 120px;
+    min-width: 124px;
     min-height: 1px;
 }
 .tuple div:nth-child(1) {
@@ -688,6 +689,10 @@ div.refresh input[type="button"] {
 }
 .tuple div:nth-child(3) {
     float: right;
+}
+
+.tuple label {
+    margin-right: -7px;
 }
 
 .rgb .tuple input {
@@ -738,7 +743,7 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
 }
 
 .xyz .buttons input {
-    margin-top: 12px;
+    margin-top: 14px;
 }
 .xyz .buttons span {
     word-wrap: nowrap;
@@ -831,7 +836,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     float: right;
     margin-right: -148px;
     position: relative;
-    top: -20px;
+    top: -17px;
 }
 
 
@@ -932,6 +937,10 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     display: table-cell;
     vertical-align: middle;
 }
+#properties-header .checkbox {
+    position: relative;
+    top: -1px;
+}
 
 #properties-header #type-icon {
     font-family: hifi-glyphs;
@@ -982,9 +991,12 @@ input#property-parent-id {
 
 input#dimension-rescale-button {
     min-width: 50px;
-    margin-left: 6px;
+    margin-left: 7px;
+}
+input#reset-to-natural-dimensions {
+    margin-right: 0;
 }
 
 #animation-fps {
-    margin-top: 51px;
+    margin-top: 48px;
 }
