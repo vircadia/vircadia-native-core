@@ -203,6 +203,18 @@ NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& texture
 
 NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
     switch (_type) {
+        case ALBEDO_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createAlbedoTextureFromImage);
+            break;
+        }
+        case EMISSIVE_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createEmissiveTextureFromImage);
+            break;
+        }
+        case LIGHTMAP_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createLightmapTextureFromImage);
+            break;
+        }
         case CUBE_TEXTURE: {
             return TextureLoaderFunc(model::TextureUsage::createCubeTextureFromImage);
             break;
@@ -232,7 +244,6 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
             break;
         }
         case DEFAULT_TEXTURE:
-        case EMISSIVE_TEXTURE:
         default: {
             return TextureLoaderFunc(model::TextureUsage::create2DTextureFromImage);
             break;
