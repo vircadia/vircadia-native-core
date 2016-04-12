@@ -38,7 +38,7 @@ void OculusLegacyDisplayPlugin::resetSensors() {
 void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
-    _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo..predictedDisplayTime);
+    _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
     _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
     Lock lock(_mutex);
     _frameInfos[frameIndex] = _currentRenderFrameInfo;
