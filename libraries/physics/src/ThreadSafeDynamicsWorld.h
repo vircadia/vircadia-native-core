@@ -41,6 +41,7 @@ public:
                                           btScalar fixedTimeStep = btScalar(1.)/btScalar(60.),
                                           SubStepCallback onSubStep = []() { });
     virtual void synchronizeMotionStates() override;
+    virtual void saveKinematicState(btScalar timeStep) override;
 
     // btDiscreteDynamicsWorld::m_localTime is the portion of real-time that has not yet been simulated
     // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide
