@@ -10,6 +10,8 @@
 //
 
 (function() {
+
+    var FAN_SOUND_ENTITY_NAME ="home_sfx_ceiling_fan"
     var SEARCH_RADIUS = 100;
     var _this;
     var utilitiesScript = Script.resolvePath('../utils.js');
@@ -18,7 +20,7 @@
         _this = this;
         this.switchSound = SoundCache.getSound("atp:/switches/lamp_switch_2.wav");
         _this.FAN_VOLUME = 0.1;
-        _this.FAN_SOUND_ENTITY_NAME = "home_sfx_ceiling_fan";
+
     };
 
     Switch.prototype = {
@@ -68,16 +70,20 @@
         },
 
         fanSoundOff: function() {
+            print('HOME FAN OFF 1')
             if (!_this.fanSoundEntity) {
                 return;
             }
+             print('HOME FAN OFF 2')
             var soundUserData = getEntityCustomData("soundKey", _this.fanSoundEntity);
             if (!soundUserData) {
                 print("NO SOUND USER DATA! RETURNING.");
                 return;
             }
+             print('HOME FAN OFF 3')
             soundUserData.volume = 0.0;
             setEntityCustomData("soundKey", _this.fanSoundEntity, soundUserData);
+             print('HOME FAN OFF 4')
         },
 
         findFan: function() {
@@ -93,20 +99,28 @@
         },
 
         findFanSoundEntity: function() {
-            var entities = Entities.findEntities(_this.position, SEARCH_RADIUS);
-            for (var i = 0; i < entities.length; i++) {
-                var name = Entities.getEntityProperties(entities[i], "name").name;
-                if (name === _this.FAN_SOUND_ENTITY_NAME) {
-                    return entities[i];
-                }
-            }
 
-            return null;
+            var myProps = Entities.getEntityProperties(this.entityID);
+            var entities = Entities.findEntities(myProps.position, SEARCH_RADIUS);
+
+            var fan = null;
+            print('HOME LOOKING FOR A FAN')
+            print('HOME TOTAL ENTITIES:: ' +entities.length)
+            entities.forEach(function(entity) {
+                var props = Entities.getEntityProperties(entity);
+                if (props.name === FAN_SOUND_ENTITY_NAME) {
+                    print('HOME FAN FOUND:: ' + props.id)
+                    fan = entity;
+                }
+            });
+
+            return fan;
         },
 
         toggle: function() {
             this.fan = this.findFan();
             _this.fanSoundEntity = _this.findFanSoundEntity();
+
             this._switch = getEntityCustomData('home-switch', this.entityID, {
                 state: 'off'
             });
