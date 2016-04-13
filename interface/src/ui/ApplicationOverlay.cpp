@@ -253,8 +253,6 @@ using Lock = std::unique_lock<std::mutex>;
 std::queue<gpu::TexturePointer> _availableTextures;
 std::mutex _framebufferGuard;
 std::queue<gpu::FramebufferPointer> _availableFramebuffers;
-
-std::mutex _usedFramebufferGuard;
 std::list<gpu::FramebufferPointer> _usedFramebuffers;
 
 void ApplicationOverlay::buildFramebufferObject() {
@@ -332,8 +330,7 @@ gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
         qDebug() << "Missing texture";
     }
     {
-            Lock lockAvailable(_framebufferGuard);
-       // Lock lock(_usedFramebufferGuard);
+        Lock lock(_framebufferGuard);
         _usedFramebuffers.push_back(_overlayFramebuffer);
     }
     _overlayFramebuffer.reset();
@@ -344,7 +341,6 @@ void ApplicationOverlay::releaseOverlay(gpu::TexturePointer texture) {
     if (texture) {
         {
             Lock lockAvailable(_framebufferGuard);
-           // Lock lockUsed(_usedFramebufferGuard);
             auto& fboit = _usedFramebuffers.begin();
             for (; fboit != _usedFramebuffers.end(); fboit++) {
                 _availableFramebuffers.push(*fboit);
@@ -357,7 +353,7 @@ void ApplicationOverlay::releaseOverlay(gpu::TexturePointer texture) {
         }
 
        // Lock lock(_textureGuard);
-      //  _availableTextures.push(texture);
+       //  _availableTextures.push(texture);
     } else {
         qWarning() << "Attempted to release null texture";
     }
