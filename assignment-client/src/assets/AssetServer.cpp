@@ -122,67 +122,49 @@ void AssetServer::completeSetup() {
     }
 
     // load whatever mappings we currently have from the local file
-    loadMappingsFromFile();
+    if (loadMappingsFromFile()) {
+        qInfo() << "Serving files from: " << _filesDirectory.path();
 
-    qInfo() << "Serving files from: " << _filesDirectory.path();
+        // Check the asset directory to output some information about what we have
+        auto files = _filesDirectory.entryList(QDir::Files);
 
-    // Check the asset directory to output some information about what we have
-    auto files = _filesDirectory.entryList(QDir::Files);
+        QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
+        auto hashedFiles = files.filter(hashFileRegex);
 
-    QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
-    auto hashedFiles = files.filter(hashFileRegex);
+        qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
-    qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
+        if (_fileMappings.count() > 0) {
+            cleanupUnmappedFiles();
+        }
 
-    performMappingMigration();
+        nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    } else {
+        qCritical() << "Asset Server assignment will not continue because mapping file could not be loaded.";
+        setFinished(true);
+    }
 
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
 
-void AssetServer::performMappingMigration() {
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}(\\.[\\w]+)+$" };
+void AssetServer::cleanupUnmappedFiles() {
+    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}" };
 
-    auto files = _resourcesDirectory.entryInfoList(QDir::Files);
+    auto files = _filesDirectory.entryInfoList(QDir::Files);
+
+    // grab the currently mapped hashes
+    auto mappedHashes = _fileMappings.values();
+
+    qInfo() << "Performing unmapped asset cleanup.";
 
     for (const auto& fileInfo : files) {
         if (hashFileRegex.exactMatch(fileInfo.fileName())) {
-            // we have a pre-mapping file that we should migrate to the new mapping system
-            qDebug() << "Migrating pre-mapping file" << fileInfo.fileName();
+            if (!mappedHashes.contains(fileInfo.fileName())) {
+                // remove the unmapped file
+                QFile removeableFile { fileInfo.absoluteFilePath() };
 
-            // rename the file to the same name with no extension
-            QFile oldFile { fileInfo.absoluteFilePath() };
-
-            auto oldAbsolutePath = fileInfo.absoluteFilePath();
-            auto oldFilename = fileInfo.fileName();
-            auto hash = oldFilename.left(SHA256_HASH_HEX_LENGTH);
-            auto fullExtension = oldFilename.mid(oldFilename.indexOf('.'));
-
-            qDebug() << "\tMoving" << oldAbsolutePath << "to" << oldAbsolutePath.replace(fullExtension, "");
-
-            bool renamed = oldFile.copy(_filesDirectory.filePath(hash));
-            if (!renamed) {
-                qWarning() << "\tCould not migrate pre-mapping file" << fileInfo.fileName();
-            } else {
-                qDebug() << "\tRenamed pre-mapping file" << fileInfo.fileName();
-
-                // add a new mapping with the old extension and a truncated version of the hash
-                const int TRUNCATED_HASH_NUM_CHAR = 16;
-                auto fakeFileName = "/" + hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
-
-                qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
-
-                auto it = _fileMappings.find(fakeFileName);
-                if (it == _fileMappings.end()) {
-                    _fileMappings[fakeFileName] = hash;
-
-                    if (writeMappingsToFile()) {
-                        // mapping added and persisted, we can remove the migrated file
-                        oldFile.remove();
-                        qDebug() << "\tMigration completed for" << oldFilename;
-                    }
+                if (removeableFile.remove()) {
+                    qDebug() << "\tDeleted" << fileInfo.fileName() << "from asset files directory since it is unmapped.";
                 } else {
-                    qDebug() << "\tCould not add migration mapping for" << hash << "since a mapping for" << fakeFileName
-                        << "already exists.";
+                    qDebug() << "\tAttempt to delete unmapped file" << fileInfo.fileName() << "failed";
                 }
             }
         }
@@ -451,7 +433,7 @@ void AssetServer::sendStatsPacket() {
 
 static const QString MAP_FILE_NAME = "map.json";
 
-void AssetServer::loadMappingsFromFile() {
+bool AssetServer::loadMappingsFromFile() {
 
     auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
 
@@ -488,15 +470,17 @@ void AssetServer::loadMappingsFromFile() {
                 }
 
                 qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
-                return;
+                return true;
             }
         }
 
-        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment will not continue.";
-        setFinished(true);
+        qCritical() << "Failed to read mapping file at" << mapFilePath;
+        return false;
     } else {
         qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
     }
+
+    return true;
 }
 
 bool AssetServer::writeMappingsToFile() {
@@ -566,6 +550,8 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
 
+    QSet<QString> hashesToCheckForDeletion;
+
     // enumerate the paths to delete and remove them all
     for (auto& path : paths) {
 
@@ -579,6 +565,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
 
             while (it != _fileMappings.end()) {
                 if (it.key().startsWith(path)) {
+                    // add this hash to the list we need to check for asset removal from the server
+                    hashesToCheckForDeletion << it.value().toString();
+
                     it = _fileMappings.erase(it);
                 } else {
                     ++it;
@@ -595,6 +584,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
         } else {
             auto oldMapping = _fileMappings.take(path);
             if (!oldMapping.isNull()) {
+                // add this hash to the list we need to check for asset removal from server
+                hashesToCheckForDeletion << oldMapping.toString();
+
                 qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
             } else {
                 qDebug() << "Unable to delete a mapping that was not found:" << path;
@@ -605,6 +597,30 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
     // deleted the old mappings, attempt to persist to file
     if (writeMappingsToFile()) {
         // persistence succeeded we are good to go
+
+        // grab the current mapped hashes
+        auto mappedHashes = _fileMappings.values();
+
+        // enumerate the mapped hashes and clear the list of hashes to check for anything that's present
+        for (auto& hashVariant : mappedHashes) {
+            auto it = hashesToCheckForDeletion.find(hashVariant.toString());
+            if (it != hashesToCheckForDeletion.end()) {
+                hashesToCheckForDeletion.erase(it);
+            }
+        }
+
+        // we now have a set of hashes that are unmapped - we will delete those asset files
+        for (auto& hash : hashesToCheckForDeletion) {
+            // remove the unmapped file
+            QFile removeableFile { _filesDirectory.absoluteFilePath(hash) };
+
+            if (removeableFile.remove()) {
+                qDebug() << "\tDeleted" << hash << "from asset files directory since it is now unmapped.";
+            } else {
+                qDebug() << "\tAttempt to delete unmapped file" << hash << "failed";
+            }
+        }
+
         return true;
     } else {
         qWarning() << "Failed to persist deleted mappings, rolling back";
