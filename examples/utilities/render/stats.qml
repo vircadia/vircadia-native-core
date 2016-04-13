@@ -206,13 +206,8 @@ Item {
             object: parent.drawOpaqueConfig
             valueUnit: "ms"
             valueScale: 1000
+            valueNumDigits: "1"
             plots: [
-                {
-                    object: Render.getConfig("RenderDeferred"),
-                    prop: "cpuRunTime",
-                    label: "Lighting",
-                    color: "#E2334D"
-                },
                 {
                     object: Render.getConfig("DrawOpaqueDeferred"),
                     prop: "cpuRunTime",
@@ -229,6 +224,12 @@ Item {
                     object: Render.getConfig("RenderDeferred"),
                     prop: "cpuRunTime",
                     label: "Lighting",
+                    color: "#FED959"
+                },
+                {
+                    object: Render.getConfig("RenderDeferredTask"),
+                    prop: "cpuRunTime",
+                    label: "RenderFrame",
                     color: "#E2334D"
                 }
             ]
