@@ -140,18 +140,16 @@ void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.predictedDisplayTime = frameDuration + vsyncToPhotons;
 #endif
 
-    vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, _currentRenderFrameInfo.predictedDisplayTime, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, _currentRenderFrameInfo.predictedDisplayTime, _trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
 
     // copy and process predictedTrackedDevicePoses
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-        _trackedDevicePose[i] = predictedTrackedDevicePose[i];
-        _trackedDevicePoseMat4[i] = toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
         _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
         _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
-    _currentRenderFrameInfo.rawRenderPose = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd];
-    _currentRenderFrameInfo.renderPose = _sensorResetMat * _currentRenderFrameInfo.rawRenderPose;
+    _currentRenderFrameInfo.rawRenderPose = toGlm(_trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
+    _currentRenderFrameInfo.renderPose = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd];
 
     Lock lock(_mutex);
     _frameInfos[frameIndex] = _currentRenderFrameInfo;
