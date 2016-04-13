@@ -105,6 +105,7 @@ public:
     void mapJoints(const QStringList& modelJointNames);
     bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
 
+    AnimationPointer getAnimation() const { return _animation; }
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
@@ -114,8 +115,6 @@ public:
     void setTextures(const QString& textures);
 
     virtual bool shouldBePhysical() const;
-
-    static void cleanupLoadedAnimations();
 
     virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
     virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
@@ -156,6 +155,7 @@ protected:
     QUrl _parsedModelURL;
     QString _compoundShapeURL;
 
+    AnimationPointer _animation;
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
 
@@ -168,11 +168,6 @@ protected:
     bool _jointMappingCompleted;
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     QString _jointMappingURL;
-
-    static AnimationPointer getAnimation(const QString& url);
-    static QMap<QString, AnimationPointer> _loadedAnimations;
-    static AnimationCache _animationCache;
-
 };
 
 #endif // hifi_ModelEntityItem_h

@@ -1238,8 +1238,6 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
-    ModelEntityItem::cleanupLoadedAnimations();
-
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;

@@ -274,11 +274,11 @@ bool RenderableModelEntityItem::getAnimationFrame() {
     if (!hasRenderAnimation() || !_jointMappingCompleted) {
         return false;
     }
-    AnimationPointer myAnimation = getAnimation(getRenderAnimationURL()); // FIXME: this could be optimized
-    if (myAnimation && myAnimation->isLoaded()) {
 
-        const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
-        auto& fbxJoints = myAnimation->getGeometry().joints;
+    if (_animation && _animation->isLoaded()) {
+
+        const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = _animation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
