@@ -99,16 +99,11 @@ int handleNewError(size_t size) {
     throw("ERROR: Errors calling new");
 }
 
-LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
-noop_SetUnhandledExceptionFilter(
-    LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
-{
+LPTOP_LEVEL_EXCEPTION_FILTER WINAPI noop_SetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter) {
     return nullptr;
 }
 
-_purecall_handler __cdecl
-noop_set_purecall_handler(_purecall_handler pNew)
-{
+_purecall_handler __cdecl noop_set_purecall_handler(_purecall_handler pNew) {
     return nullptr;
 }
 
