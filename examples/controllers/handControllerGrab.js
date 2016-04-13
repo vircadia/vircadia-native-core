@@ -739,10 +739,6 @@ function MyController(hand) {
     };
 
     this.propsArePhysical = function(props) {
-        if (!props.dynamic && props.parentID != MyAvatar.sessionUUID) {
-            // if we have parented something, don't do this check on dynamic.
-            return false;
-        }
         var isPhysical = (props.shapeType && props.shapeType != 'none');
         return isPhysical;
     }
@@ -1841,12 +1837,12 @@ function MyController(hand) {
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
-                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity"])
+                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity", "dynamic", "shapeType"])
                 var parentID = props.parentID;
                 var forceVelocity = false;
 
                 var doSetVelocity = false;
-                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID) {
+                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID && this.propsArePhysical(props)) {
                     // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
                     // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
                     // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
