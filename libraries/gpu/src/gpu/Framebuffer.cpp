@@ -118,12 +118,14 @@ void Framebuffer::resize(uint16 width, uint16 height, uint16 numSamples) {
                 if (_renderBuffers[i]) {
                     _renderBuffers[i]._texture->resize2D(width, height, numSamples);
                     _numSamples = _renderBuffers[i]._texture->getNumSamples();
+                    ++_colorStamps[i];
                 }
             }
 
             if (_depthStencilBuffer) {
                 _depthStencilBuffer._texture->resize2D(width, height, numSamples);
                 _numSamples = _depthStencilBuffer._texture->getNumSamples();
+                ++_depthStamp; 
             }
 
             _width = width;
