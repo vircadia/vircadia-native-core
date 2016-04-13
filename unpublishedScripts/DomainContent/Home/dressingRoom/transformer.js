@@ -156,6 +156,10 @@
                 }),
             }
 
+            if(bigVersionProps.modelURL.indexOf('simple_robot') > -1){
+                bigVersionProps.position.y+=0.5;
+            }
+
             var bigVersion = Entities.addEntity(bigVersionProps);
             print('transformer created big version: ' + bigVersion);
 
