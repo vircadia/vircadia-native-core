@@ -68,8 +68,15 @@ void outOfBoundsVectorCrash() {
 
 void newFault() {
     qDebug() << "About to crash inside new fault";
+
+    // Disable "array is too large" warning for clang. We are deliberately
+    // choosing a large number so that we will crash!
+#pragma clang diagnostic push
+#pragma clang diagnostic ignore "-Wbad-array-new-length"
     // Force crash with large allocation
     int* data = new int[std::numeric_limits<uint64_t>::max()];
+#pragma clang diagnostic pop
+
     // Use variable to suppress warning
     data[0] = 0;
 }
