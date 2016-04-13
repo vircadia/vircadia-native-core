@@ -81,6 +81,12 @@ private slots:
     void queuedQuit(QString quitMessage, int exitCode);
 
     void handleKeypairChange();
+
+    void updateICEServerAddresses();
+    void handleICEHostInfo(const QHostInfo& hostInfo);
+
+signals:
+    void iceServerChanged();
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
@@ -94,6 +100,8 @@ private:
     void setupAutomaticNetworking();
     void setupICEHeartbeatForFullNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
+
+    void randomizeICEServerAddress();
 
     unsigned int countConnectedUsers();
 
@@ -157,7 +165,12 @@ private:
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
     QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
-    
+
+    QList<QHostAddress> _iceServerAddresses;
+    QSet<QHostAddress> _failedIceServerAddresses;
+    QTimer* _iceAddressLookupTimer { nullptr }; // this looks like a dangling pointer but is parented to the DomainServer
+    int _iceAddressLookupID { -1 };
+
     friend class DomainGatekeeper;
 };
 

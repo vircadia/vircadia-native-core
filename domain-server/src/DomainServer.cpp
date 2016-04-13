@@ -12,6 +12,7 @@
 #include "DomainServer.h"
 
 #include <memory>
+#include <random>
 
 #include <QDir>
 #include <QJsonDocument>
@@ -42,7 +43,7 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -59,8 +60,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
-    _settingsManager(),
-    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
+    _settingsManager()
 {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
@@ -482,6 +482,18 @@ void DomainServer::setupAutomaticNetworking() {
 void DomainServer::setupICEHeartbeatForFullNetworking() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
+    // lookup the available ice-server hosts now
+    updateICEServerAddresses();
+
+    const int ICE_ADDRESS_UPDATE_MSECS = 30 * 1000;
+
+    // hookup a timer to keep those updated every ICE_ADDRESS_UPDATE_MSECS in case of a failure requiring a switchover
+    if (_iceAddressLookupTimer) {
+        _iceAddressLookupTimer = new QTimer { this };
+        connect(_iceAddressLookupTimer, &QTimer::timeout, this, &DomainServer::updateICEServerAddresses);
+        _iceAddressLookupTimer->start(ICE_ADDRESS_UPDATE_MSECS);
+    }
+
     // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
     connect(limitedNodeList.data(), &LimitedNodeList::localSockAddrChanged,
             this, &DomainServer::sendHeartbeatToIceServer);
@@ -509,6 +521,12 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
         _iceHeartbeatTimer = new QTimer { this };
         connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
         _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+    }
+}
+
+void DomainServer::updateICEServerAddresses() {
+    if (_iceAddressLookupID == -1) {
+        _iceAddressLookupID = QHostInfo::lookupHost(ICE_SERVER_DEFAULT_HOSTNAME, this, SLOT(handleICEHostInfo(QHostInfo)));
     }
 }
 
@@ -1135,6 +1153,10 @@ void DomainServer::sendHeartbeatToIceServer() {
 
         // send the heartbeat packet to the ice server now
         limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
+    } else {
+        qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
+        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+
     }
 }
 
@@ -2032,4 +2054,73 @@ void DomainServer::handleKeypairChange() {
         // send a heartbeat to the ice server immediately
         sendHeartbeatToIceServer();
     }
+}
+
+void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
+    // clear the ICE address lookup ID so that it can fire again
+    _iceAddressLookupID = -1;
+
+    if (hostInfo.error() != QHostInfo::NoError) {
+        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+
+        // if we don't have an ICE server to use yet, trigger a retry
+        if (_iceServerSocket.isNull()) {
+            const int ICE_ADDRESS_LOOKUP_RETRY_MS = 1000;
+
+            QTimer::singleShot(ICE_ADDRESS_LOOKUP_RETRY_MS, this, SLOT(updateICEServerAddresses()));
+        }
+
+    } else {
+        int countBefore = _iceServerAddresses.count();
+
+        _iceServerAddresses = hostInfo.addresses();
+
+        if (countBefore == 0) {
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+        }
+
+        if (_iceServerSocket.isNull()) {
+            // we don't have a candidate ice-server yet, pick now
+            randomizeICEServerAddress();
+        }
+    }
+}
+
+void DomainServer::randomizeICEServerAddress() {
+    // create a list by removing the already failed ice-server addresses
+    auto candidateICEAddresses = _iceServerAddresses;
+
+    auto it = candidateICEAddresses.begin();
+
+    while (it != candidateICEAddresses.end()) {
+        if (_failedIceServerAddresses.contains(*it)) {
+            // we already tried this address and it failed, remove it from list of candidates
+            it = candidateICEAddresses.erase(it);
+        } else {
+            // keep this candidate, it hasn't failed yet
+            ++it;
+        }
+    }
+
+    if (candidateICEAddresses.empty()) {
+        // we ended up with an empty list since everything we've tried has failed
+        // so clear the set of failed addresses and start going through them again
+        _failedIceServerAddresses.clear();
+        candidateICEAddresses = _iceServerAddresses;
+    }
+
+    // of the list of available addresses that we haven't tried, pick a random one
+    int maxIndex = candidateICEAddresses.size();
+
+    static std::random_device randomDevice;
+    static std::mt19937 generator;
+    std::uniform_int_distribution<> distribution(0, maxIndex);
+
+    auto indexToTry = distribution(generator);
+
+    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    qInfo() << "Set candidate ice-server socket to" << _iceServerSocket;
+
+    // immediately fire an ICE heartbeat once we've picked a candidate ice-server
+    sendHeartbeatToIceServer();
 }
