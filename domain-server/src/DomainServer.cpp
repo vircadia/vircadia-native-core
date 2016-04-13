@@ -2110,13 +2110,16 @@ void DomainServer::randomizeICEServerAddress() {
     }
 
     // of the list of available addresses that we haven't tried, pick a random one
-    int maxIndex = candidateICEAddresses.size();
+    int maxIndex = candidateICEAddresses.size() - 1;
+    int indexToTry = 0;
 
-    static std::random_device randomDevice;
-    static std::mt19937 generator(randomDevice());
-    std::uniform_int_distribution<> distribution(0, maxIndex);
+    if (maxIndex > 0) {
+        static std::random_device randomDevice;
+        static std::mt19937 generator(randomDevice());
+        std::uniform_int_distribution<> distribution(0, maxIndex);
 
-    auto indexToTry = distribution(generator);
+        indexToTry = distribution(generator);
+    }
 
     _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
     qInfo() << "Set candidate ice-server socket to" << _iceServerSocket;
