@@ -5176,13 +5176,6 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
-void Application::crashApplication() {
-    qCDebug(interfaceapp) << "Intentionally crashed Interface";
-    QObject* object = nullptr;
-    bool value = object->isWindowType();
-    Q_UNUSED(value);
-}
-
 void Application::deadlockApplication() {
     qCDebug(interfaceapp) << "Intentionally deadlocked Interface";
     // Using a loop that will *technically* eventually exit (in ~600 billion years)

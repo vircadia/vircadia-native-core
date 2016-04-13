@@ -276,7 +276,6 @@ public slots:
 
     void updateHeartbeat() const;
 
-    static void crashApplication();
     static void deadlockApplication();
 
     void rotationModeChanged() const;
