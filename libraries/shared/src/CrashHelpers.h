@@ -38,11 +38,8 @@ A::~A() {
 }
 
 void pureVirtualCall() {
-
     qDebug() << "About to make a pure virtual call";
-    {
-        B b;
-    }
+    B b;
 }
     
 void doubleFree() {
