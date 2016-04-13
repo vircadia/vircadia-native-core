@@ -2113,7 +2113,7 @@ void DomainServer::randomizeICEServerAddress() {
     int maxIndex = candidateICEAddresses.size();
 
     static std::random_device randomDevice;
-    static std::mt19937 generator;
+    static std::mt19937 generator(randomDevice());
     std::uniform_int_distribution<> distribution(0, maxIndex);
 
     auto indexToTry = distribution(generator);
