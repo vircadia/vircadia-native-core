@@ -29,6 +29,10 @@ var IDENTITY_QUAT = {
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with handControllerGrab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with handControllerGrab.js
 
+var MSECS_PER_SEC = 1000.0;
+var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
+var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
+
 var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
     invertSolidWhileHeld: false
@@ -335,6 +339,9 @@ Grabber.prototype.pressEvent = function(event) {
 
     mouse.startDrag(event);
 
+    var now = Date.now();
+    this.lastHeartBeat = 0;
+
     var clickedEntity = pickResults.entityID;
     var entityProperties = Entities.getEntityProperties(clickedEntity)
     this.startPosition = entityProperties.position;
@@ -399,11 +406,25 @@ Grabber.prototype.releaseEvent = function(event) {
     }
 }
 
+
+Grabber.prototype.heartBeat = function(entityID) {
+    var now = Date.now();
+    if (now - this.lastHeartBeat > HEART_BEAT_INTERVAL) {
+        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+        data["heartBeat"] = now;
+        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+        this.lastHeartBeat = now;
+    }
+};
+
+
 Grabber.prototype.moveEvent = function(event) {
     if (!this.isGrabbing) {
         return;
     }
     mouse.updateDrag(event);
+
+    this.heartBeat(this.entityID);
 
     // see if something added/restored gravity
     var entityProperties = Entities.getEntityProperties(this.entityID);
