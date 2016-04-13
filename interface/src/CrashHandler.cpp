@@ -49,9 +49,8 @@ bool CrashHandler::checkForResetSettings() {
                 handleCrash(action);
             }
         }
-        return wasLikelyCrash;
     }
-    return false;
+    return wasLikelyCrash;
 }
 
 CrashHandler::Action CrashHandler::promptUserForAction(bool showCrashMessage) {
