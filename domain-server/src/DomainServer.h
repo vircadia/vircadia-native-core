@@ -62,6 +62,7 @@ public slots:
     void processPathQueryPacket(QSharedPointer<ReceivedMessage> packet);
     void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
     
 private slots:
     void aboutToQuit();
@@ -170,6 +171,7 @@ private:
     QSet<QHostAddress> _failedIceServerAddresses;
     QTimer* _iceAddressLookupTimer { nullptr }; // this looks like a dangling pointer but is parented to the DomainServer
     int _iceAddressLookupID { -1 };
+    int _noReplyICEHeartbeats { 0 };
 
     friend class DomainGatekeeper;
 };

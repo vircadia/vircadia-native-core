@@ -369,7 +369,9 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
@@ -1102,6 +1104,25 @@ void DomainServer::sendHeartbeatToIceServer() {
             return;
         }
 
+        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 3 };
+
+        // increase the count of no reply ICE heartbeats and check the current value
+        ++_noReplyICEHeartbeats;
+
+        if (_noReplyICEHeartbeats > FAILOVER_NO_REPLY_ICE_HEARTBEATS) {
+            qWarning() << "There have been" << _noReplyICEHeartbeats - 1 << "heartbeats sent with no reply from the ice-server";
+            qWarning() << "Clearing the current ice-server socket and selecting a new candidate ice-server";
+
+            // if we've failed to hear back for three heartbeats, we clear the current ice-server socket and attempt
+            // to randomize a new one
+            _iceServerSocket.clear();
+
+            // reset the number of no reply ICE hearbeats
+            _noReplyICEHeartbeats = 0;
+
+            randomizeICEServerAddress();
+        }
+
         // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
         // QDataStream and the possibility of IPv6 address for the sockets.
         if (!_iceServerHeartbeatPacket) {
@@ -1153,6 +1174,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 
         // send the heartbeat packet to the ice server now
         limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
+
     } else {
         qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
         qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
@@ -2043,6 +2065,14 @@ void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<Received
         // reset our number of heartbeat denials
         numHeartbeatDenials = 0;
     }
+
+    // even though we can't get into this ice-server it is responding to us, so we reset our number of no-reply heartbeats
+    _noReplyICEHeartbeats = 0;
+}
+
+void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message) {
+    // we don't do anything with this ACK other than use it to tell us to keep talking to the same ice-server
+    _noReplyICEHeartbeats = 0;
 }
 
 void DomainServer::handleKeypairChange() {
@@ -2105,6 +2135,10 @@ void DomainServer::randomizeICEServerAddress() {
     if (candidateICEAddresses.empty()) {
         // we ended up with an empty list since everything we've tried has failed
         // so clear the set of failed addresses and start going through them again
+
+        qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
+            << ICE_SERVER_DEFAULT_HOSTNAME;
+
         _failedIceServerAddresses.clear();
         candidateICEAddresses = _iceServerAddresses;
     }
