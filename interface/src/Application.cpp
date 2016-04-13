@@ -419,7 +419,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    bool previousSessionCrashed = CrashHandler::checkForAndHandleCrash();
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
