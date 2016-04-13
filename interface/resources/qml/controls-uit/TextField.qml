@@ -22,7 +22,7 @@ TextField {
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool isSearchField: false
     property string label: ""
-    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
+    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height + 1 : 0)
 
     placeholderText: textField.placeholderText
 
@@ -30,7 +30,7 @@ TextField {
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     font.italic: textField.text == ""
-    height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
+    height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
 
     y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
 
@@ -69,7 +69,7 @@ TextField {
         colorScheme: textField.colorScheme
         anchors.left: parent.left
         anchors.bottom: parent.top
-        anchors.bottomMargin: 4
+        anchors.bottomMargin: 3
         visible: label != ""
     }
 }

@@ -24,7 +24,7 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
-    implicitWidth: 400; implicitHeight: 695
+    implicitWidth: 400; implicitHeight: 691
     minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
@@ -109,7 +109,9 @@ Window {
                 }
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.Table {
                 tableModel: runningScriptsModel
@@ -120,7 +122,7 @@ Window {
             }
 
             HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Table view draws a little taller than it's height.
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
             }
         }
 
@@ -185,7 +187,9 @@ Window {
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.Tree {
                 id: treeView
@@ -196,7 +200,9 @@ Window {
                 anchors.right: parent.right
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.TextField {
                 id: selectedScript

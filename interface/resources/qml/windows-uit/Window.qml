@@ -215,7 +215,7 @@ Fadable {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footer.height + 2 * hifi.dimensions.contentSpacing.y
+            height: footer.height + 2 * hifi.dimensions.contentSpacing.y + 3
             color: hifi.colors.baseGray
             visible: footer.height > 0
 

@@ -230,6 +230,9 @@ input.search {
 input.search:focus {
     outline: none;
     box-sizing: border-box;
+    height: 26px;
+    margin-top: 1px;
+    margin-bottom: 1px;
     box-shadow: 0 0 0px 1px #00b4ef;
 }
 
@@ -441,7 +444,7 @@ input[type=checkbox]:checked + label:hover {
 }
 
 .section-header:first-child {
-    margin-top: 0;
+    margin-top: -2px;
     padding-top: 0;
     background: none;
     height: auto;
