@@ -72,9 +72,11 @@ void outOfBoundsVectorCrash() {
 void newFault() {
     qDebug() << "About to crash inside new fault";
     // Force crash with large allocation
-    int* crash = new int[std::numeric_limits<uint64_t>::max()];
+    int* data = new int[std::numeric_limits<uint64_t>::max()];
     // Use variable to suppress warning
-    crash[0] = 0;
+    data[0] = 0;
+}
+
 }
 
 #endif // hifi_CrashHelpers_h
