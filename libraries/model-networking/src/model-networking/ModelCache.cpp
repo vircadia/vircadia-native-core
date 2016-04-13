@@ -97,6 +97,8 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
 
         // Avoid holding onto extra references
         _geometryResource.reset();
+        // Make sure connection will not trigger again
+        disconnect(_connection); // FIXME Should not have to do this
     }
 
     finishedLoading(success);
