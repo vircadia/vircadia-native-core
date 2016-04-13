@@ -18,8 +18,8 @@
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
 
-const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0;
-const float DEFAULT_HMD_LOD_DOWN_FPS = 45.0;
+const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 20.0;
+const float DEFAULT_HMD_LOD_DOWN_FPS = 20.0;
 const float MAX_LIKELY_DESKTOP_FPS = 59.0; // this is essentially, V-synch - 1 fps
 const float MAX_LIKELY_HMD_FPS = 74.0; // this is essentially, V-synch - 1 fps
 const float INCREASE_LOD_GAP = 15.0f;
