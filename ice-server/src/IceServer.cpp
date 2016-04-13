@@ -82,6 +82,11 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
             if (peer) {
                 // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
                 peer->activateMatchingOrNewSymmetricSocket(nlPacket->getSenderSockAddr());
+
+                // we have an active and verified heartbeating peer
+                // send them an ACK packet so they know that they are being heard and ready for ICE
+                static auto ackPacket = NLPacket::create(PacketType::ICEServerHeartbeatACK);
+                _serverSocket.writePacket(*ackPacket, nlPacket->getSenderSockAddr());
             } else {
                 // we couldn't verify this peer - respond back to them so they know they may need to perform keypair re-generation
                 static auto deniedPacket = NLPacket::create(PacketType::ICEServerHeartbeatDenied);
