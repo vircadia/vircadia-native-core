@@ -12,8 +12,6 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include <QElapsedTimer>
-
 #include <gpu/Pipeline.h>
 #include <render/CullTask.h>
 
