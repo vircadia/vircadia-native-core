@@ -972,6 +972,19 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background-position-y: 1px;
 }
 
+#properties-header .checkbox label span {
+    font-family: HiFi-Glyphs;
+    font-size: 20px;
+    padding-right: 6px;
+    vertical-align: top;
+    position: relative;
+    top: -4px;
+}
+
+#properties-header input[type=checkbox]:checked + label span {
+    color: #ffffff;
+}
+
 #properties-header + hr {
     margin-top: 12px;
 }
