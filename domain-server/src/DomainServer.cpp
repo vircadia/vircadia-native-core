@@ -1120,6 +1120,9 @@ void DomainServer::sendHeartbeatToIceServer() {
             // reset the number of no reply ICE hearbeats
             _noReplyICEHeartbeats = 0;
 
+            // reset the connection flag for ICE server
+            _connectedToICEServer = false;
+
             randomizeICEServerAddress();
         }
 
@@ -2073,6 +2076,11 @@ void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<Received
 void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message) {
     // we don't do anything with this ACK other than use it to tell us to keep talking to the same ice-server
     _noReplyICEHeartbeats = 0;
+
+    if (!_connectedToICEServer) {
+        _connectedToICEServer = true;
+        qInfo() << "Connected to ice-server at" << _iceServerSocket;
+    }
 }
 
 void DomainServer::handleKeypairChange() {

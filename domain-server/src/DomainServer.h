@@ -172,6 +172,7 @@ private:
     QTimer* _iceAddressLookupTimer { nullptr }; // this looks like a dangling pointer but is parented to the DomainServer
     int _iceAddressLookupID { -1 };
     int _noReplyICEHeartbeats { 0 };
+    bool _connectedToICEServer { false };
 
     friend class DomainGatekeeper;
 };
