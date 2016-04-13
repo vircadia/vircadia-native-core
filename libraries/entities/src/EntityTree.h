@@ -324,6 +324,8 @@ protected:
 
     void fixupMissingParents(); // try to hook members of _missingParent to parent instances
     QVector<EntityItemWeakPointer> _missingParent; // entites with a parentID but no (yet) known parent instance
+    mutable QReadWriteLock _missingParentLock;
+
     // we maintain a list of avatarIDs to notice when an entity is a child of one.
     QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars

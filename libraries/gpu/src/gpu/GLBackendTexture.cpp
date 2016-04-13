@@ -13,7 +13,6 @@
 #include <QtCore/QThread>
 
 #include "GLBackendShared.h"
-#include "GLTexelFormat.h"
 #include "GLBackendTextureTransfer.h"
 
 using namespace gpu;
@@ -49,48 +48,144 @@ const GLenum GLBackend::GLTexture::CUBE_FACE_LAYOUT[6] = {
 
 // Create the texture and allocate storage
 GLBackend::GLTexture::GLTexture(const Texture& texture) : 
-    _storageStamp(texture.getStamp()), _texture(allocateSingleTexture()), 
-    _target(gpuToGLTextureType(texture)), _size((GLuint)texture.getSize()), _gpuTexture(texture) 
+    _storageStamp(texture.getStamp()),
+    _target(gpuToGLTextureType(texture)),
+    _size(0),
+    _virtualSize(0),
+    _numLevels(texture.maxMip() + 1),
+    _gpuTexture(texture) 
 {
     Backend::incrementTextureGPUCount();
-    Backend::updateTextureGPUMemoryUsage(0, _size);
     Backend::setGPUObject(texture, this);
 
-    GLsizei width = texture.getWidth();
-    GLsizei height = texture.getHeight();
-    GLsizei levels = 1;
-    if (texture.maxMip() > 0) {
-        if (texture.isAutogenerateMips()) {
-            while ((width | height) >> levels) {
-                ++levels;
+
+   // updateSize();
+    GLuint virtualSize = _gpuTexture.evalTotalSize();
+    setVirtualSize(virtualSize);
+    setSize(virtualSize);
+}
+
+void GLBackend::GLTexture::createTexture() {
+    _privateTexture = allocateSingleTexture();
+
+    GLsizei width = _gpuTexture.getWidth();
+    GLsizei height = _gpuTexture.getHeight();
+
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuTexture.getTexelFormat());
+
+    GLint boundTex = -1;
+    switch (_target) {
+    case GL_TEXTURE_2D:
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
+        break;
+
+    case GL_TEXTURE_CUBE_MAP:
+        glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
+        break;
+
+    default:
+        qFatal("Unsupported texture type");
+    }
+    (void)CHECK_GL_ERROR();
+
+    glBindTexture(_target, _privateTexture);
+
+    (void)CHECK_GL_ERROR();
+    // Fixme: this usage of TexStorage doesn;t work wtih compressed texture, altuogh it should.
+    // GO through the process of allocating the correct storage 
+    /*  if (GLEW_VERSION_4_2 && !texture.getTexelFormat().isCompressed()) {
+    glTexStorage2D(_target, _numLevels, texelFormat.internalFormat, width, height);
+    (void)CHECK_GL_ERROR();
+    } else*/ 
+    {
+        glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(_target, GL_TEXTURE_MAX_LEVEL, _numLevels - 1);
+
+        // for (int l = 0; l < _numLevels; l++) {
+        { int l = 0;
+        if (_gpuTexture.getType() == gpu::Texture::TEX_CUBE) {
+            for (size_t face = 0; face < CUBE_NUM_FACES; face++) {
+                glTexImage2D(CUBE_FACE_LAYOUT[face], l, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, NULL);
             }
+        } else {
+            glTexImage2D(_target, l, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, NULL);
         }
-        levels = std::max(1, std::min(texture.maxMip() + 1, levels));
+        width = std::max(1, (width / 2));
+        height = std::max(1, (height / 2));
+        }
+        (void)CHECK_GL_ERROR();
     }
 
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat());
-    withPreservedTexture(_target, [&] {
-        glBindTexture(_target, _texture);
-        (void)CHECK_GL_ERROR();
-        // GO through the process of allocating the correct storage 
-        if (GLEW_VERSION_4_2) {
-            glTexStorage2D(_target, levels, texelFormat.internalFormat, width, height);
-        } else {
-            glTexImage2D(_target, 0, texelFormat.internalFormat, width, height, 0, texelFormat.format, texelFormat.type, 0);
-        }
-        (void)CHECK_GL_ERROR();
-        syncSampler(texture.getSampler(), texture.getType(), this);
-        (void)CHECK_GL_ERROR();
-    });
+    syncSampler(_gpuTexture.getSampler(), _gpuTexture.getType(), this);
+    (void)CHECK_GL_ERROR();
+
+
+    glBindTexture(_target, boundTex);
+    (void)CHECK_GL_ERROR();
 }
 
 GLBackend::GLTexture::~GLTexture() {
-    if (_texture != 0) {
-        glDeleteTextures(1, &_texture);
+    if (_privateTexture != 0) {
+        glDeleteTextures(1, &_privateTexture);
     }
+ 
     Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
     Backend::decrementTextureGPUCount();
 }
+
+
+void GLBackend::GLTexture::setSize(GLuint size) {
+    Backend::updateTextureGPUMemoryUsage(_size, size);
+    _size = size;
+}
+
+void GLBackend::GLTexture::setVirtualSize(GLuint size) {
+    Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, size);
+    _virtualSize = size;
+}
+
+void GLBackend::GLTexture::updateSize() {
+    GLuint virtualSize = _gpuTexture.evalTotalSize();
+    setVirtualSize(virtualSize);
+    if (!_texture) {
+        setSize(virtualSize);
+    }
+
+    if (_gpuTexture.getTexelFormat().isCompressed()) {
+        GLenum proxyType = GL_TEXTURE_2D;
+        GLuint numFaces = 1;
+        if (_gpuTexture.getType() == gpu::Texture::TEX_CUBE) {
+            proxyType = CUBE_FACE_LAYOUT[0];
+            numFaces = CUBE_NUM_FACES;
+        }
+        GLint gpuSize{ 0 };
+        glGetTexLevelParameteriv(proxyType, 0, GL_TEXTURE_COMPRESSED, &gpuSize);
+        (void)CHECK_GL_ERROR();
+
+        if (gpuSize) {
+            for (GLuint level = 0; level < _numLevels; level++) {
+                GLint levelSize{ 0 };
+                glGetTexLevelParameteriv(proxyType, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
+                levelSize *= numFaces;
+                
+                if (levelSize <= 0) {
+                    break;
+                }
+                gpuSize += levelSize;
+            }
+            (void)CHECK_GL_ERROR();
+
+            setSize(gpuSize);
+        } else {
+            setSize(virtualSize);
+        }
+
+    } else {
+        setSize(virtualSize);
+    }
+}
+
 
 bool GLBackend::GLTexture::isInvalid() const {
     return _storageStamp < _gpuTexture.getStamp();
@@ -117,44 +212,25 @@ bool GLBackend::GLTexture::isReady() const {
     return Idle == syncState;
 }
 
-//#define USE_PBO
-
 // Move content bits from the CPU to the GPU for a given mip / face
 void GLBackend::GLTexture::transferMip(GLenum target, const Texture::PixelsPointer& mip) const {
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuTexture.getTexelFormat(), mip->getFormat());
-#ifdef USE_PBO
-    GLuint pixelBufferID;
-    glGenBuffers(1, &pixelBufferID);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pixelBufferID);
-    //if (GLEW_VERSION_4_4) {
-    //    glBufferStorage(GL_PIXEL_UNPACK_BUFFER, mip->getSize(), nullptr, GL_STREAM_DRAW);
-    //} else {
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, mip->getSize(), nullptr, GL_STREAM_DRAW);
-    //}
-    void* mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-    memcpy(mappedBuffer, mip->readData(), mip->getSize());
-    //// use while PBO is still bound, assumes GL_TEXTURE_2D and offset 0
-    glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, 0);
-    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-    glDeleteBuffers(1, &pixelBufferID);
-#else
-    //glTexImage2D(target, 0, internalFormat, texture.getWidth(), texture.getHeight(), 0, texelFormat.format, texelFormat.type, bytes);
-    glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());
+    glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());		      glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());
     (void)CHECK_GL_ERROR();
-#endif
 }
 
 // Move content bits from the CPU to the GPU
 void GLBackend::GLTexture::transfer() const {
     PROFILE_RANGE(__FUNCTION__);
-    qDebug() << "Transferring texture: " << _texture;
+    //qDebug() << "Transferring texture: " << _privateTexture;
     // Need to update the content of the GPU object from the source sysmem of the texture
     if (_contentStamp >= _gpuTexture.getDataStamp()) {
         return;
     }
 
-    glBindTexture(_target, _texture);
+    //_secretTexture
+    glBindTexture(_target, _privateTexture);
+    // glBindTexture(_target, _texture);
     // GO through the process of allocating the correct storage and/or update the content
     switch (_gpuTexture.getType()) {
         case Texture::TEX_2D:
@@ -186,6 +262,10 @@ void GLBackend::GLTexture::transfer() const {
 // Do any post-transfer operations that might be required on the main context / rendering thread
 void GLBackend::GLTexture::postTransfer() {
     setSyncState(GLTexture::Idle);
+
+    // The public gltexture becaomes available
+    _texture = _privateTexture;
+
     // At this point the mip pixels have been loaded, we can notify the gpu texture to abandon it's memory
     switch (_gpuTexture.getType()) {
         case Texture::TEX_2D:
@@ -204,7 +284,7 @@ void GLBackend::GLTexture::postTransfer() {
     }
 }
 
-GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer) {
+GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePointer, bool needTransfer) {
     const Texture& texture = *texturePointer;
     if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
@@ -218,7 +298,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePoin
     }
 
     // Object isn't ready, check what we need to do...
-    
+
     // Create the texture if need be (force re-creation if the storage stamp changes
     // for easier use of immutable storage)
     if (!object || object->isInvalid()) {
@@ -226,18 +306,23 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texturePoin
         object = new GLTexture(texture);
     }
 
-    // need to have a gpu object?
-    if (texture.getNumSlices() != 1) {
+    // Object maybe doens't neet to be tranasferred after creation
+    if (!needTransfer) {
+        object->createTexture();
+        object->_contentStamp = texturePointer->getDataStamp();
+        object->postTransfer();
         return object;
     }
 
     // Object might be outdated, if so, start the transfer
     // (outdated objects that are already in transfer will have reported 'true' for ready()
     if (object->isOutdated()) {
+        Backend::incrementTextureGPUTransferCount();
         _textureTransferHelper->transferTexture(texturePointer);
     }
 
     if (GLTexture::Transferred == object->getSyncState()) {
+        Backend::decrementTextureGPUTransferCount();
         object->postTransfer();
     }
 
@@ -338,7 +423,8 @@ void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
         return;
     }
 
-    GLTexture* object = GLBackend::syncGPUObject(resourceTexture);
+    // DO not transfer the texture, this call is expected for rendering texture
+    GLTexture* object = GLBackend::syncGPUObject(resourceTexture, false);
     if (!object) {
         return;
     }

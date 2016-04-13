@@ -46,10 +46,17 @@ uint32_t Texture::getTextureGPUCount() {
 
 Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
-
 }
 
-uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
+Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
+    return Context::getTextureGPUVirtualMemoryUsage();
+}
+
+uint32_t Texture::getTextureGPUTransferCount() {
+    return Context::getTextureGPUTransferCount();
+}
+
+uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _format(format),

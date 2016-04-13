@@ -27,6 +27,7 @@
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
+#include "GLHelpers.h"
 
 
 // Time between receiving a request to render the offscreen UI actually triggering
@@ -221,6 +222,11 @@ void OffscreenQmlRenderThread::init() {
         _quit = true;
         return;
     }
+
+    // Expose GL data to QML
+    auto glData = getGLContextData();
+    auto setGL = [=]{ _surface->getRootContext()->setContextProperty("GL", glData); };
+    _surface->executeOnUiThread(setGL);
 
     _renderControl->initialize(_canvas.getContext());
     setupFbo();

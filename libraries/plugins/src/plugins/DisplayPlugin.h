@@ -66,7 +66,7 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
-    virtual float getTargetFrameRate() { return 0.0f; }
+    virtual float getTargetFrameRate() const { return 0.0f; }
 
     /// Returns a boolean value indicating whether the display is currently visible 
     /// to the user.  For monitor displays, false might indicate that a screensaver,
@@ -142,7 +142,12 @@ public:
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0f; }
-    virtual float presentRate() { return -1.0f; }
+    // Rate at which we present to the display device
+    virtual float presentRate() const { return -1.0f; }
+    // Rate at which new frames are being presented to the display device
+    virtual float newFramePresentRate() const { return -1.0f; }
+    // Rate at which rendered frames are being skipped
+    virtual float droppedFrameRate() const { return -1.0f; }
     uint32_t presentCount() const { return _presentedFrameIndex; }
 
     virtual void cycleDebugOutput() {}

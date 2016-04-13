@@ -34,6 +34,7 @@ public:
     int _ISNumIndexBufferChanges = 0;
 
     int _RSNumTextureBounded = 0;
+    int _RSAmountTextureMemoryBounded = 0;
 
     int _DSNumAPIDrawcalls = 0;
     int _DSNumDrawcalls = 0;
@@ -128,6 +129,9 @@ public:
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+    static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+    static void incrementTextureGPUTransferCount();
+    static void decrementTextureGPUTransferCount();
 
 protected:
     StereoState  _stereo;
@@ -177,6 +181,8 @@ public:
 
     static uint32_t getTextureGPUCount();
     static Size getTextureGPUMemoryUsage();
+    static Size getTextureGPUVirtualMemoryUsage();
+    static uint32_t getTextureGPUTransferCount();
 
 protected:
     Context(const Context& context);
@@ -202,6 +208,9 @@ protected:
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void incrementTextureGPUTransferCount();
+    static void decrementTextureGPUTransferCount();
 
     // Buffer and Texture Counters
     static std::atomic<uint32_t> _bufferGPUCount;
@@ -209,6 +218,9 @@ protected:
 
     static std::atomic<uint32_t> _textureGPUCount;
     static std::atomic<Size> _textureGPUMemoryUsage;
+    static std::atomic<Size> _textureGPUVirtualMemoryUsage;
+    static std::atomic<uint32_t> _textureGPUTransferCount;
+
 
     friend class Backend;
 };
