@@ -1,5 +1,5 @@
 //
-//  CPUID.h
+//  CPUIdent.h
 //
 //  Adapted from Microsoft's example for using the cpuid intrinsic,
 //  found at https://msdn.microsoft.com/en-us/library/hskdteyh.aspx
@@ -15,8 +15,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CPUID_h
-#define hifi_CPUID_h
+#ifndef hifi_CPUIdent_h
+#define hifi_CPUIdent_h
 
 #include <QtCore/QtGlobal>
 
@@ -29,10 +29,10 @@
 
 #include <intrin.h>
 
-class CPUID
+class CPUIdent
 {
     // forward declarations
-    class CPUID_Internal;
+    class CPUIdent_Internal;
 
 public:
     struct Feature {
@@ -104,12 +104,12 @@ public:
     static bool _3DNOW(void) { return CPU_Rep.isAMD_ && CPU_Rep.f_81_EDX_[31]; }
 
 private:
-    static const CPUID_Internal CPU_Rep;
+    static const CPUIdent_Internal CPU_Rep;
 
-    class CPUID_Internal
+    class CPUIdent_Internal
     {
     public:
-        CPUID_Internal()
+        CPUIdent_Internal()
             : nIds_ { 0 },
             nExIds_ { 0 },
             isIntel_ { false },
@@ -209,4 +209,4 @@ private:
 
 #endif
 
-#endif // hifi_CPUID_h
+#endif // hifi_CPUIdent_h

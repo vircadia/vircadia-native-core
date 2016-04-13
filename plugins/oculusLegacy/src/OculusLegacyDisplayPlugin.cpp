@@ -181,7 +181,7 @@ int OculusLegacyDisplayPlugin::getHmdScreen() const {
     return _hmdScreen;
 }
 
-float OculusLegacyDisplayPlugin::getTargetFrameRate() {
+float OculusLegacyDisplayPlugin::getTargetFrameRate() const {
     return TARGET_RATE_OculusLegacy;
 }
 

@@ -56,6 +56,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         auto height = _antialiasingBuffer->getHeight();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -126,7 +127,6 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         // FXAA step
         getAntialiasingPipeline();
         batch.setResourceTexture(0, framebufferCache->getLightingTexture());
-        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
 

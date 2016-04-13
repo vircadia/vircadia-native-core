@@ -27,6 +27,7 @@
 
 #include "OffscreenGLCanvas.h"
 #include "GLEscrow.h"
+#include "GLHelpers.h"
 
 
 // Time between receiving a request to render the offscreen UI actually triggering
@@ -221,6 +222,11 @@ void OffscreenQmlRenderThread::init() {
         _quit = true;
         return;
     }
+
+    // Expose GL data to QML
+    auto glData = getGLContextData();
+    auto setGL = [=]{ _surface->getRootContext()->setContextProperty("GL", glData); };
+    _surface->executeOnUiThread(setGL);
 
     _renderControl->initialize(_canvas.getContext());
     setupFbo();
@@ -569,7 +575,7 @@ QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint, QO
 // Event handling customization
 //
 
-bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* event) {
+bool OffscreenQmlSurface::filterEnabled(QObject* originalDestination, QEvent* event) const {
     if (_renderer->_quickWindow == originalDestination) {
         return false;
     }
@@ -577,7 +583,13 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     if (_paused) {
         return false;
     }
+    return true;
+}
 
+bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* event) {
+    if (!filterEnabled(originalDestination, event)) {
+        return false;
+    }
 #ifdef DEBUG
     // Don't intercept our own events, or we enter an infinite recursion
     QObject* recurseTest = originalDestination;

@@ -432,7 +432,7 @@ protected:
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
-    virtual void locationChanged() override;
+    virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
 
     EntityTypes::EntityType _type;

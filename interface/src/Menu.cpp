@@ -585,10 +585,14 @@ Menu::Menu() {
     }
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
 
-    MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
+    // Developer > Ask to Reset Settings
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AskToResetSettings, 0, false);
 
     // Developer > Display Crash Options
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
+
+    // Developer > Crash >>>
+    MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
     addActionToQMenuAndActionHash(crashMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
 

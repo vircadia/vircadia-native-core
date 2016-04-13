@@ -15,6 +15,8 @@
 #include <QtQuick/QQuickWindow>
 #include <QtQml/QtQml>
 
+#include <gl/GLHelpers.h>
+
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 
@@ -336,6 +338,13 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
 }
 
+void OffscreenUi::addMenuInitializer(std::function<void(VrMenu*)> f) {
+    if (!_vrMenu) {
+        _queuedMenuInitializers.push_back(f);
+        return;
+    }
+    f(_vrMenu);
+}
 
 QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title, const QString& label,
     const QVariant& current) {
@@ -443,7 +452,10 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
-    new VrMenu(this);
+    _vrMenu = new VrMenu(this);
+    for (const auto& menuInitializer : _queuedMenuInitializers) {
+        menuInitializer(_vrMenu);
+    }
 
     new KeyboardFocusHack();
 
@@ -563,5 +575,42 @@ QString OffscreenUi::getSaveFileName(void* ignored, const QString &caption, cons
     return DependencyManager::get<OffscreenUi>()->fileSaveDialog(caption, dir, filter, selectedFilter, options);
 }
 
+bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
+    if (!filterEnabled(originalDestination, event)) {
+        return false;
+    }
+
+    // let the parent class do it's work
+    bool result = OffscreenQmlSurface::eventFilter(originalDestination, event);
+
+    // Check if this is a key press/release event that might need special attention
+    auto type = event->type();
+    if (type != QEvent::KeyPress && type != QEvent::KeyRelease) {
+        return result;
+    }
+
+    QKeyEvent* keyEvent = dynamic_cast<QKeyEvent*>(event);
+    bool& pressed = _pressedKeys[keyEvent->key()];
+
+    // Keep track of which key press events the QML has accepted
+    if (result && QEvent::KeyPress == type) {
+        pressed = true;
+    }
+
+    // QML input elements absorb key press, but apparently not key release.
+    // therefore we want to ensure that key release events for key presses that were 
+    // accepted by the QML layer are suppressed
+    if (!result && type == QEvent::KeyRelease && pressed) {
+        pressed = false;
+        return true;
+    }
+
+    return result;
+}
+
+unsigned int OffscreenUi::getMenuUserDataId() const {
+    return _vrMenu->_userDataId;
+}
 
 #include "OffscreenUi.moc"
+
