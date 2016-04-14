@@ -35,6 +35,7 @@ void EntitySimulation::updateEntities() {
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
     updateEntitiesInternal(now);
+    PerformanceTimer perfTimer("sortingEntities");
     sortEntitiesThatMoved();
 }
 
@@ -133,10 +134,8 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
 
 // protected
 void EntitySimulation::sortEntitiesThatMoved() {
-    QMutexLocker lock(&_mutex);
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
-    PerformanceTimer perfTimer("sortingEntities");
     MovingEntitiesOperator moveOperator(_entityTree);
     AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
