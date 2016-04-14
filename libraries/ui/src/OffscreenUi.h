@@ -13,7 +13,10 @@
 #define hifi_OffscreenUi_h
 
 #include <unordered_map>
+#include <functional>
+
 #include <QtCore/QVariant>
+#include <QtCore/QQueue>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QInputDialog>
@@ -23,10 +26,12 @@
 
 #include "OffscreenQmlElement.h"
 
+class VrMenu;
 
 class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     Q_OBJECT
 
+    friend class VrMenu;
 public:
     OffscreenUi();
     virtual void create(QOpenGLContext* context) override;
@@ -39,6 +44,7 @@ public:
     void unfocusWindows();
     void toggleMenu(const QPoint& screenCoordinates);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
+    void addMenuInitializer(std::function<void(VrMenu*)> f);
 
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
@@ -125,6 +131,8 @@ public:
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
 
+    unsigned int getMenuUserDataId() const;
+
 signals:
     void showDesktop();
 
@@ -134,6 +142,8 @@ private:
     QQuickItem* _desktop { nullptr };
     QQuickItem* _toolWindow { nullptr };
     std::unordered_map<int, bool> _pressedKeys;
+    VrMenu* _vrMenu { nullptr };
+    QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers; 
 };
 
 #endif

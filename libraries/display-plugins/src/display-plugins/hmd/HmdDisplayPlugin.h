@@ -28,22 +28,16 @@ public:
 
     virtual glm::mat4 getHeadPose() const override;
 
-    using EyePoses = std::array<glm::mat4, 2>;
-
-    struct FrameInfo {
-        EyePoses eyePoses;
-        glm::mat4 headPose;
-        double sensorSampleTime { 0 };
-        double predictedDisplayTime { 0 };
-    };
 
 
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
     virtual void postPreview() {};
+    virtual void updatePresentPose();
 
     bool internalActivate() override;
+    void compositeScene() override;
     void compositeOverlay() override;
     void compositePointer() override;
     void internalPresent() override;
@@ -53,17 +47,31 @@ protected:
 
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
+    std::array<glm::mat4, 2> _eyeInverseProjections;
+
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
     float _ipd { 0.064f };
 
+    struct FrameInfo {
+        glm::mat4 rawRenderPose;
+        glm::mat4 renderPose;
+        glm::mat4 rawPresentPose;
+        glm::mat4 presentPose;
+        double sensorSampleTime { 0 };
+        double predictedDisplayTime { 0 };
+        glm::mat3 presentReprojection;
+    };
+
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
-    ThreadSafeValueCache<FrameInfo> _currentRenderFrameInfo;
+    FrameInfo _currentRenderFrameInfo;
 
 private:
     bool _enablePreview { false };
     bool _monoPreview { true };
+    bool _enableReprojection { true };
     ShapeWrapperPtr _sphereSection;
+    ProgramPtr _reprojectionProgram;
 };
 
