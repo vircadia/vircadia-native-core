@@ -440,9 +440,11 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
 
 void glbackend_glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices, GLsizei primcount, GLint basevertex, GLuint baseinstance) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, primcount, basevertex, baseinstance);
+    //glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, primcount, basevertex, baseinstance);
+    glDrawElementsInstanced(mode, count, type, indices, primcount);
+
 #else
-    glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, trueNumInstances);
+    glDrawElementsInstanced(mode, count, type, indices, primcount);
 #endif
 }
 
@@ -459,8 +461,6 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
  
-    GLint trueNumInstances = (isStereo() ? 2 * numInstances : numInstances);
-
     if (isStereo()) {
         GLint trueNumInstances = (isStereo() ? 2 * numInstances : numInstances);
 
