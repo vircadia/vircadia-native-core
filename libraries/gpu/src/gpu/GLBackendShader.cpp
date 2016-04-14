@@ -313,11 +313,14 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
 
     // Versions specific of the shader
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO/n#define GPU_TRANSFORM_STEREO_CAMERA/n#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED/n#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN");
+    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED\n#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN");
 #endif
 #ifdef GPU_STEREO_DRAWCALL_DOUBLED
-    //    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO/n#define GPU_TRANSFORM_STEREO_CAMERA/n#define GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED");
+#ifdef GPU_STEREO_CAMERA_BUFFER
+    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED");
+#else
     const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO");
+#endif
 #endif
     const std::string versionDefines[GLBackend::GLShader::NumVersions] = {
         "",

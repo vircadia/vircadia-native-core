@@ -23,7 +23,7 @@ struct TransformCamera {
 layout(std140) uniform transformCameraBuffer {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
-   TransformCamera _camera[2]
+   TransformCamera _camera[2];
 #else
     TransformCamera _camera;
 #endif
@@ -59,7 +59,8 @@ TransformCamera getTransformCamera() {
         #ifdef VERTEX_SHADER
             #ifdef GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED
                 _stereoSide = _inStereoSide;
-            #else
+            #endif
+            #ifdef GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
                 _stereoSide = gl_InstanceID % 2;
             #endif
         #endif

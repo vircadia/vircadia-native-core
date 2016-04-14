@@ -23,8 +23,26 @@
 
 #include "Context.h"
 
+// PIck one from the 3
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+//#define GPU_STEREO_TECHNIQUE_INSTANCED
+
+
+// Let these be configured by the one define picked above
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 #define GPU_STEREO_DRAWCALL_DOUBLED
-//#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_INSTANCED
+#define GPU_STEREO_DRAWCALL_INSTANCED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
 
 namespace gpu {
 
@@ -186,8 +204,7 @@ public:
         GLuint getProgram(bool isStereo) const {
             if (isStereo && _shaderObjects[Stereo].glprogram) {
                 return _shaderObjects[Stereo].glprogram;
-            } else 
-            {
+            } else {
                 return _shaderObjects[Mono].glprogram;
             }
         }
@@ -332,6 +349,9 @@ public:
     void do_setStateColorWriteMask(uint32 mask);
     
 protected:
+
+    bool _inRenderTransferPass;
+
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
 

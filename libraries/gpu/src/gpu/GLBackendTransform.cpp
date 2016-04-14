@@ -31,8 +31,25 @@ void GLBackend::do_setProjectionTransform(Batch& batch, size_t paramOffset) {
 void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
-    ivec4& vp = _transform._viewport;
-    glViewport(vp.x, vp.y, vp.z, vp.w);
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    {
+        ivec4& vp = _transform._viewport;
+        glViewport(vp.x, vp.y, vp.z, vp.w);
+
+        // Where we assign the GL viewport
+        if (_stereo._enable) {
+            vp.z /= 2;
+            if (_stereo._pass) {
+                vp.x += vp.z;
+            }
+        }
+    } 
+#else
+    if (!_inRenderTransferPass && !isStereo()) {
+        ivec4& vp = _transform._viewport;
+        glViewport(vp.x, vp.y, vp.z, vp.w);
+    }
+#endif
 
     // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and will need update on next drawcall
     _transform._invalidViewport = true;
@@ -184,18 +201,19 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     size_t offset = INVALID_OFFSET;
     while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
         offset = (*_camerasItr).second;
+        _currentCameraOffset = offset;
         ++_camerasItr;
     }
-    _currentCameraOffset = offset;
 
+    if (offset != INVALID_OFFSET) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-    bindCurrentCamera(0);
-#else 
-    if (!stereo._enable) {
         bindCurrentCamera(0);
-    }
+#else 
+        if (!stereo._enable) {
+            bindCurrentCamera(0);
+        }
 #endif
-
+    }
     (void)CHECK_GL_ERROR();
 }
 

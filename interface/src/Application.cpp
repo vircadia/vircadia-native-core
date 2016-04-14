@@ -96,6 +96,7 @@
 #include <UserActivityLogger.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <shared/StringHelpers.h>
 #include <QmlWebWindowClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
@@ -419,7 +420,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    bool previousSessionCrashed = CrashHandler::checkForAndHandleCrash();
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
@@ -4517,18 +4518,36 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
 
     QString modelName = fstMapping["name"].toString();
+    QString modelLicense = fstMapping["license"].toString();
+
+    bool agreeToLicence = true; // assume true
+    if (!modelLicense.isEmpty()) {
+        // word wrap the licence text to fit in a reasonable shaped message box.
+        const int MAX_CHARACTERS_PER_LINE = 90;
+        modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
+
+        agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
+            modelLicense + "\nDo you argee to these terms?",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+    }
+
     bool ok = false;
-    switch (modelType) {
 
-        case FSTReader::HEAD_AND_BODY_MODEL:
-             ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
-                               "Would you like to use '" + modelName + "' for your avatar?",
-                               QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-        break;
+    if (!agreeToLicence) {
+        qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+    } else {
+        switch (modelType) {
 
-        default:
-            OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
-        break;
+            case FSTReader::HEAD_AND_BODY_MODEL:
+                 ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
+                                   "Would you like to use '" + modelName + "' for your avatar?",
+                                   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+            break;
+
+            default:
+                OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
+            break;
+        }
     }
 
     if (ok) {
