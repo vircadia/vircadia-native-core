@@ -489,15 +489,6 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
     // lookup the available ice-server hosts now
     updateICEServerAddresses();
 
-    const int ICE_ADDRESS_UPDATE_MSECS = 30 * 1000;
-
-    // hookup a timer to keep those updated every ICE_ADDRESS_UPDATE_MSECS in case of a failure requiring a switchover
-    if (_iceAddressLookupTimer) {
-        _iceAddressLookupTimer = new QTimer { this };
-        connect(_iceAddressLookupTimer, &QTimer::timeout, this, &DomainServer::updateICEServerAddresses);
-        _iceAddressLookupTimer->start(ICE_ADDRESS_UPDATE_MSECS);
-    }
-
     // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
     connect(limitedNodeList.data(), &LimitedNodeList::localSockAddrChanged,
             this, &DomainServer::sendHeartbeatToIceServer);
@@ -1170,7 +1161,8 @@ void DomainServer::sendHeartbeatToIceServer() {
             // reset the connection flag for ICE server
             _connectedToICEServer = false;
 
-            randomizeICEServerAddress();
+            // randomize our ice-server address (and simultaneously look up any new hostnames for available ice-servers)
+            randomizeICEServerAddress(true);
         }
 
         // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
@@ -2164,13 +2156,17 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
         }
 
         if (_iceServerSocket.isNull()) {
-            // we don't have a candidate ice-server yet, pick now
-            randomizeICEServerAddress();
+            // we don't have a candidate ice-server yet, pick now (without triggering a host lookup since we just did one)
+            randomizeICEServerAddress(false);
         }
     }
 }
 
-void DomainServer::randomizeICEServerAddress() {
+void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
+    if (shouldTriggerHostLookup) {
+        updateICEServerAddresses();
+    }
+
     // create a list by removing the already failed ice-server addresses
     auto candidateICEAddresses = _iceServerAddresses;
 
