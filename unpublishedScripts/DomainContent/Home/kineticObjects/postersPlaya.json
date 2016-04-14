@@ -1,0 +1,95 @@
+{
+    "Entities": [{
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/posters/Poster2.obj",
+        "created": "2016-03-23T17:16:12Z",
+        "dimensions": {
+            "x": 0.047816216945648193,
+            "y": 1.2243480682373047,
+            "z": 0.92656642198562622
+        },
+        "dynamic": 0,
+        "name": "home_model_posterPlaya",
+        "id": "{2b5ca0a0-9115-4916-bee6-63f88d3909b1}",
+        "modelURL": "atp:/kineticObjects/posters/Playa-Poster.fbx",
+        "queryAACube": {
+            "scale": 1.5361770391464233,
+            "x": 1101.1051025390625,
+            "y": 460.42691040039062,
+            "z": -0.76808851957321167
+        },
+        "restitution": 0.10000000149011612,
+        "rotation": {
+            "w": -0.29161518812179565,
+            "x": 0.0086823701858520508,
+            "y": 0.9564812183380127,
+            "z": -0.0002593994140625
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "color": {
+            "blue": 117,
+            "green": 117,
+            "red": 117
+        },
+        "created": "2016-03-23T17:14:01Z",
+        "dimensions": {
+            "x": 0.20582196116447449,
+            "y": 0.032061770558357239,
+            "z": 0.14119282364845276
+        },
+        "id": "{7f060027-2927-4513-bd92-13a98e6fc06c}",
+        "name": "home_model_posterNail",
+        "position": {
+            "x": -0.07,
+            "y": 0.5,
+            "z": 0.07
+        },
+        "queryAACube": {
+            "scale": 0.25164666771888733,
+            "x": 1101.6510009765625,
+            "y": 461.60238647460938,
+            "z": -0.081557586789131165
+        },
+        "rotation": {
+            "w": 0.96362245082855225,
+            "x": -1.52587890625e-05,
+            "y": 0.26723122596740723,
+            "z": -1.52587890625e-05
+        },
+        "type": "Box",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    },
+     {
+        "color": {
+            "blue": 255,
+            "green": 0,
+            "red": 255
+        },
+        "name": "home_sphere_playaPortkey",
+        "href": "hifi://playa",
+        "script": "atp:/switches/portkey.js",
+        "visible": false,
+        "dimensions": {
+            "x": 0.111,
+            "y": 0.111,
+            "z": 0.111
+        },
+        "position": {
+            "x": 0.0,
+            "y": -0.2,
+            "z": 0.0
+        },
+        "queryAACube": {
+            "scale": 0.25831151008605957,
+            "x": -0.12915575504302979,
+            "y": -0.12915575504302979,
+            "z": -0.10074388980865479
+        },
+        "type": "Sphere",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}, \"grabbableKey\": {\"wantsTrigger\": true}}"
+    }],
+    "Version": 57
+}

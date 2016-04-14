@@ -1,0 +1,36 @@
+{
+    "Entities": [{
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "hifi-home-model-chair",
+        "compoundShapeURL": "atp:/kineticObjects/deskChair/simple-chair2.obj",
+        "created": "2016-03-07T21:07:29Z",
+        "dimensions": {
+            "x": 0.66077238321304321,
+            "y": 1.058124303817749,
+            "z": 0.7188611626625061
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{d97c8a4e-9b95-448c-a729-5da9e22b6adc}",
+        "modelURL": "atp:/kineticObjects/deskChair/simple-chair2.fbx",
+        "queryAACube": {
+            "scale": 1.439794659614563,
+            "x": -0.71989732980728149,
+            "y": -0.71989732980728149,
+            "z": -0.71989732980728149
+        },
+        "rotation": {
+            "w": 0.63176929950714111,
+            "x": -0.0003204345703125,
+            "y": 0.77511250972747803,
+            "z": 0.0002593994140625
+        },
+        "shapeType": "compound",
+        "type": "Model"
+    }],
+    "Version": 57
+}

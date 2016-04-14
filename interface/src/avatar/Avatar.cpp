@@ -134,12 +134,9 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 AABox Avatar::getBounds() const {
-    // Our skeleton models are rigged, and this method call safely produces the static bounds of the model.
-    // Except, that getPartBounds produces an infinite, uncentered bounding box when the model is not yet parsed,
-    // and we want a centered one. NOTE: There is code that may never try to render, and thus never load and get the
-    // real model bounds, if this is unrealistically small.
-    if (!_skeletonModel->isRenderable()) {
-        return AABox(getPosition(), getUniformScale()); // approximately 2m tall, scaled to user request.
+    if (!_skeletonModel->isRenderable() || _skeletonModel->needsFixupInScene()) {
+        // approximately 2m tall, scaled to user request.
+        return AABox(getPosition() - glm::vec3(getUniformScale()), getUniformScale() * 2.0f);
     }
     return _skeletonModel->getRenderableMeshBound();
 }
