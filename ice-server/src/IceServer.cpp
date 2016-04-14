@@ -167,39 +167,42 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(NLPacket& packet) {
 }
 
 bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& plaintext, const QByteArray& signature) {
-    // check if we have a public key for this domain ID - if we do not then fire off the request for it
-    auto it = _domainPublicKeys.find(domainID);
-    if (it != _domainPublicKeys.end()) {
+    // make sure we're not already waiting for a public key for this domain-server
+    if (!_pendingPublicKeyRequests.contains(domainID)) {
+        // check if we have a public key for this domain ID - if we do not then fire off the request for it
+        auto it = _domainPublicKeys.find(domainID);
+        if (it != _domainPublicKeys.end()) {
 
-        // attempt to verify the signature for this heartbeat
-        const auto rsaPublicKey = it->second.get();
+            // attempt to verify the signature for this heartbeat
+            const auto rsaPublicKey = it->second.get();
 
-        if (rsaPublicKey) {
-            auto hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
-            int verificationResult = RSA_verify(NID_sha256,
-                                                reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
-                                                hashedPlaintext.size(),
-                                                reinterpret_cast<const unsigned char*>(signature.constData()),
-                                                signature.size(),
-                                                rsaPublicKey);
+            if (rsaPublicKey) {
+                auto hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
+                int verificationResult = RSA_verify(NID_sha256,
+                                                    reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
+                                                    hashedPlaintext.size(),
+                                                    reinterpret_cast<const unsigned char*>(signature.constData()),
+                                                    signature.size(),
+                                                    rsaPublicKey);
 
-            if (verificationResult == 1) {
-                // this is the only success case - we return true here to indicate that the heartbeat is verified
-                return true;
+                if (verificationResult == 1) {
+                    // this is the only success case - we return true here to indicate that the heartbeat is verified
+                    return true;
+                } else {
+                    qDebug() << "Failed to verify heartbeat for" << domainID << "- re-requesting public key from API.";
+                }
+
             } else {
-                qDebug() << "Failed to verify heartbeat for" << domainID << "- re-requesting public key from API.";
+                // we can't let this user in since we couldn't convert their public key to an RSA key we could use
+                qWarning() << "Public key for" << domainID << "is not a usable RSA* public key.";
+                qWarning() << "Re-requesting public key from API";
             }
-
-        } else {
-            // we can't let this user in since we couldn't convert their public key to an RSA key we could use
-            qWarning() << "Public key for" << domainID << "is not a usable RSA* public key.";
-            qWarning() << "Re-requesting public key from API";
         }
-    }
 
-    // we could not verify this heartbeat (missing public key, could not load public key, bad actor)
-    // ask the metaverse API for the right public key and return false to indicate that this is not verified
-    requestDomainPublicKey(domainID);
+        // we could not verify this heartbeat (missing public key, could not load public key, bad actor)
+        // ask the metaverse API for the right public key and return false to indicate that this is not verified
+        requestDomainPublicKey(domainID);
+    }
 
     return false;
 }
@@ -216,6 +219,9 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     publicKeyRequest.setAttribute(QNetworkRequest::User, domainID);
 
     qDebug() << "Requesting public key for domain with ID" << domainID;
+
+    // add this to the set of pending public key requests
+    _pendingPublicKeyRequests.insert(domainID);
 
     networkAccessManager.get(publicKeyRequest);
 }
@@ -268,6 +274,9 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
 
         qWarning() << "Error retreiving public key for domain with ID" << domainID << "-" <<  reply->errorString();
     }
+
+    // remove this domain ID from the list of pending public key requests
+    _pendingPublicKeyRequests.remove(domainID);
 
     reply->deleteLater();
 }
