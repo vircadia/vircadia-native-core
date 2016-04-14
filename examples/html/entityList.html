@@ -18,11 +18,11 @@
         var entities = {};
         var selectedEntities = [];
         var currentSortColumn = 'type';
-        var currentSortOrder = 'asc';
+        var currentSortOrder = 'des';
         var entityList = null;
         var refreshEntityListTimer = null;
-        const ASCENDING_STRING = '&nbsp;&#x25BE;';
-        const DESCENDING_STRING = '&nbsp;&#x25B4;';
+        const ASCENDING_STRING = '&#x25BE;';
+        const DESCENDING_STRING = '&#x25B4;';
         const DELETE = 46; // Key code for the delete key.
         const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
@@ -146,14 +146,14 @@
                   if (currentSortColumn == column) {
                       currentSortOrder = currentSortOrder == "asc" ? "desc" : "asc";
                   } else {
-                      elSortOrder[currentSortColumn].style.display = 'none';
-                      elSortOrder[column].style.display = 'inline';
+                      elSortOrder[currentSortColumn].innerHTML = "";
                       currentSortColumn = column;
                       currentSortOrder = "asc";
                   }
                   elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASCENDING_STRING : DESCENDING_STRING;
                   entityList.sort(currentSortColumn, { order: currentSortOrder });
               }
+              setSortColumn('type');
               
               function refreshEntities() {
                   clearEntities();
@@ -301,9 +301,9 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th id="entity-type" data-sort="type">Type <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
-                        <th id="entity-name" data-sort="type">Name <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
-                        <th id="entity-url" data-sort="url">File <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
+                        <th id="entity-type" data-sort="type">Type <span class="sort-order"></span></th>
+                        <th id="entity-name" data-sort="type">Name <span class="sort-order"></span></th>
+                        <th id="entity-url" data-sort="url">File <span class="sort-order"></span></th>
                     </tr>
                 </thead>
                 <tbody class="list" id="entity-table-body">

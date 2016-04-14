@@ -834,6 +834,12 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     position: relative; /* New positioning context. */
 }
 
+#entity-list .sort-order {
+    display: inline-block;
+    width: 6px;
+    text-align: right;
+}
+
 #search-area {
     padding-right: 148px;
     padding-bottom: 24px;
