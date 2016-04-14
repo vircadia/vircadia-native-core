@@ -20,6 +20,7 @@ void ResourceRequest::send() {
         QMetaObject::invokeMethod(this, "send", Qt::QueuedConnection);
         return;
     }
+    
     Q_ASSERT(_state == NotStarted);
 
     _state = InProgress;

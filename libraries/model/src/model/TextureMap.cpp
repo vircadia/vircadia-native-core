@@ -19,6 +19,9 @@
 using namespace model;
 using namespace gpu;
 
+// FIXME: Declare this to enable compression
+//#define COMPRESS_TEXTURES
+
 
 void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
     _textureSource = textureSource;
@@ -49,12 +52,10 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
     _lightmapOffsetScale.y = scale;
 }
 
-
-// FIXME why is this in the model library?  Move to GPU or GPU_GL
-gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask) {
     QImage image = srcImage;
-    bool validAlpha = false;
-    bool alphaAsMask = true;
+    validAlpha = false;
+    alphaAsMask = true;
     const uint8 OPAQUE_ALPHA = 255;
     const uint8 TRANSPARENT_ALPHA = 0;
     if (image.hasAlphaChannel()) {
@@ -63,7 +64,7 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
-        
+
         // Actual alpha channel? create the histogram
         for (int y = 0; y < image.height(); ++y) {
             const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
@@ -83,23 +84,77 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
 
             alphaAsMask = ((numTranslucents / (double)totalNumPixels) < 0.05);
         }
-    } 
-    
+    }
+
     if (!validAlpha && image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
     }
-    
+
+    return image;
+}
+
+void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip, 
+const QImage& image, bool isLinear, bool doCompress) {
+
+#ifdef COMPRESS_TEXTURES
+#else
+    doCompress = false;
+#endif
+
+    if (image.hasAlphaChannel()) {
+        gpu::Semantic gpuSemantic;
+        gpu::Semantic mipSemantic;
+        if (isLinear) {
+            mipSemantic = gpu::SBGRA;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_SRGBA;
+            } else {
+                gpuSemantic = gpu::SRGBA;
+            }
+        } else {
+            mipSemantic = gpu::BGRA;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_RGBA;
+            } else {
+                gpuSemantic = gpu::RGBA;
+            }
+        }
+        formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
+        formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);
+    } else {
+        gpu::Semantic gpuSemantic;
+        gpu::Semantic mipSemantic;
+        if (isLinear) {
+            mipSemantic = gpu::SRGB;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_SRGB;
+            } else {
+                gpuSemantic = gpu::SRGB;
+            }
+        } else {
+            mipSemantic = gpu::RGB;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_RGB;
+            } else {
+                gpuSemantic = gpu::RGB;
+            }
+        }
+        formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);
+        formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, mipSemantic);
+    }
+}
+
+gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImage, bool isLinear, bool doCompress, bool generateMips) {
+    bool validAlpha = false;
+    bool alphaAsMask = true;
+    QImage image = process2DImageColor(srcImage, validAlpha, alphaAsMask);
+
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
-        }
+        gpu::Element formatGPU;
+        gpu::Element formatMip;
+        defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
 
@@ -113,40 +168,46 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         theTexture->setUsage(usage.build());
 
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
-        
-        // FIXME queue for transfer to GPU and block on completion
 
+        if (generateMips) {
+            theTexture->autoGenerateMips(-1);
+        }
     }
-    
+
     return theTexture;
+}
+
+gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, false, true);
+}
+
+
+gpu::Texture* TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, true, true);
+}
+
+gpu::Texture* TextureUsage::createEmissiveTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, true, true);
+}
+
+gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return process2DTextureColorFromImage(srcImage, true, true, true);
 }
 
 
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
 
-    if (!image.hasAlphaChannel()) {
-        if (image.format() != QImage::Format_RGB888) {
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-    } else {
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
+    if (image.format() != QImage::Format_RGB888) {
+        image = image.convertToFormat(QImage::Format_RGB888);
     }
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
+        
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
 
-        bool isLinearRGB = true;
-
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
-        }
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
@@ -179,7 +240,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     const double pStrength = 2.0;
     int width = image.width();
     int height = image.height();
-    QImage result(width, height, image.format());
+    QImage result(width, height, QImage::Format_RGB888);
     
     for (int i = 0; i < width; i++) {
         const int iNextClamped = clampPixelCoordinate(i + 1, width - 1);
@@ -227,23 +288,16 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
     
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
-        }
-        
-        
+
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+
+
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         theTexture->autoGenerateMips(-1);
     }
-    
+
     return theTexture;
 }
 
@@ -263,8 +317,11 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
+#ifdef COMPRESS_TEXTURES
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::COMPRESSED_R);
+#else
         gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+#endif
         gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -297,9 +354,13 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
         
+#ifdef COMPRESS_TEXTURES
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::COMPRESSED_R);
+#else
         gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+#endif
         gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
-        
+
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         theTexture->autoGenerateMips(-1);
@@ -327,7 +388,11 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
+#ifdef COMPRESS_TEXTURES
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::COMPRESSED_R);
+#else
         gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+#endif
         gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -372,315 +437,181 @@ public:
     _faceYNeg(fYN),
     _faceZPos(fZP),
     _faceZNeg(fZN) {}
+
+
+    static const CubeLayout CUBEMAP_LAYOUTS[];
+    static const int NUM_CUBEMAP_LAYOUTS;
+
+    static int findLayout(int width, int height) {
+        // Find the layout of the cubemap in the 2D image
+        int foundLayout = -1;
+        for (int i = 0; i < NUM_CUBEMAP_LAYOUTS; i++) {
+            if ((height * CUBEMAP_LAYOUTS[i]._widthRatio) == (width * CUBEMAP_LAYOUTS[i]._heightRatio)) {
+                foundLayout = i;
+                break;
+            }
+        }
+        return foundLayout;
+    }
 };
 
-gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
-    
-    int imageArea = image.width() * image.height();
-    
-    
-    qCDebug(modelLog) << "Cube map size:" << QString(srcImageName.c_str()) << image.width() << image.height();
-    
-    int opaquePixels = 0;
-    int translucentPixels = 0;
-    //bool isTransparent = false;
-    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
-    
-    if (!image.hasAlphaChannel()) {
-        if (image.format() != QImage::Format_RGB888) {
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-            }
-        }
-        if (imageArea > 0) {
-            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
-        }
-    } else {
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        
-        // check for translucency/false transparency
-        // int opaquePixels = 0;
-        // int translucentPixels = 0;
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-                int alpha = qAlpha(rgb);
-                alphaTotal += alpha;
-                if (alpha == EIGHT_BIT_MAXIMUM) {
-                    opaquePixels++;
-                } else if (alpha != 0) {
-                    translucentPixels++;
-                }
-            }
-        }
-        if (opaquePixels == imageArea) {
-            qCDebug(modelLog) << "Image with alpha channel is completely opaque:" << QString(srcImageName.c_str());
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-        
-        averageColor = QColor(redTotal / imageArea,
-                              greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
-        
-        //isTransparent = (translucentPixels >= imageArea / 2);
+const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
+    // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
+    //
+    //         WIDTH
+    //       <------>
+    //    ^  +------+
+    //    |  |      |
+    //    |  |  +X  |
+    //    |  |      |
+    //    H  +------+
+    //    E  |      |
+    //    I  |  -X  |
+    //    G  |      |
+    //    H  +------+
+    //    T  |      |
+    //    |  |  +Y  |
+    //    |  |      |
+    //    |  +------+
+    //    |  |      |
+    //    |  |  -Y  |
+    //    |  |      |
+    //    H  +------+
+    //    E  |      |
+    //    I  |  +Z  |
+    //    G  |      |
+    //    H  +------+
+    //    T  |      |
+    //    |  |  -Z  |
+    //    |  |      |
+    //    V  +------+
+    //
+    //    FaceWidth = width = height / 6
+    { 1, 6,
+    { 0, 0, true, false },
+    { 0, 1, true, false },
+    { 0, 2, false, true },
+    { 0, 3, false, true },
+    { 0, 4, true, false },
+    { 0, 5, true, false }
+    },
+
+    // Here is the expected layout for the faces in an image with the 3/4 aspect ratio:
+    //
+    //       <-----------WIDTH----------->
+    //    ^  +------+------+------+------+
+    //    |  |      |      |      |      |
+    //    |  |      |  +Y  |      |      |
+    //    |  |      |      |      |      |
+    //    H  +------+------+------+------+
+    //    E  |      |      |      |      |
+    //    I  |  -X  |  -Z  |  +X  |  +Z  |
+    //    G  |      |      |      |      |
+    //    H  +------+------+------+------+
+    //    T  |      |      |      |      |
+    //    |  |      |  -Y  |      |      |
+    //    |  |      |      |      |      |
+    //    V  +------+------+------+------+
+    //
+    //    FaceWidth = width / 4 = height / 3
+    { 4, 3,
+    { 2, 1, true, false },
+    { 0, 1, true, false },
+    { 1, 0, false, true },
+    { 1, 2, false, true },
+    { 3, 1, true, false },
+    { 1, 1, true, false }
+    },
+
+    // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
+    //
+    //       <-------WIDTH-------->
+    //    ^  +------+------+------+
+    //    |  |      |      |      |
+    //    |  |      |  +Y  |      |
+    //    |  |      |      |      |
+    //    H  +------+------+------+
+    //    E  |      |      |      |
+    //    I  |  -X  |  -Z  |  +X  |
+    //    G  |      |      |      |
+    //    H  +------+------+------+
+    //    T  |      |      |      |
+    //    |  |      |  -Y  |      |
+    //    |  |      |      |      |
+    //    |  +------+------+------+
+    //    |  |      |      |      |
+    //    |  |      |  +Z! |      | <+Z is upside down!
+    //    |  |      |      |      |
+    //    V  +------+------+------+
+    //
+    //    FaceWidth = width / 3 = height / 4
+    { 3, 4,
+    { 2, 1, true, false },
+    { 0, 1, true, false },
+    { 1, 0, false, true },
+    { 1, 2, false, true },
+    { 1, 3, false, true },
+    { 1, 1, true, false }
     }
-    
+};
+const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
+
+gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
+
+    bool validAlpha = false;
+    bool alphaAsMask = true;
+    QImage image = process2DImageColor(srcImage, validAlpha, alphaAsMask);
+
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
+
+        gpu::Element formatGPU;
+        gpu::Element formatMip;
+        defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
+
+        // Find the layout of the cubemap in the 2D image
+        int foundLayout = CubeLayout::findLayout(image.width(), image.height());
         
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+        std::vector<QImage> faces;
+        // If found, go extract the faces as separate images
+        if (foundLayout >= 0) {
+            auto& layout = CubeLayout::CUBEMAP_LAYOUTS[foundLayout];
+            int faceWidth = image.width() / layout._widthRatio;
+
+            faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
+            faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
+            faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
+            faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
+            faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
+            faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
+        } else {
+            qCDebug(modelLog) << "Failed to find a known cube map layout from this image:" << QString(srcImageName.c_str());
+            return nullptr;
         }
-        
 
-            const CubeLayout CUBEMAP_LAYOUTS[] = {
-                // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
-                //
-                //         WIDTH
-                //       <------>
-                //    ^  +------+
-                //    |  |      |
-                //    |  |  +X  |
-                //    |  |      |
-                //    H  +------+
-                //    E  |      |
-                //    I  |  -X  |
-                //    G  |      |
-                //    H  +------+
-                //    T  |      |
-                //    |  |  +Y  |
-                //    |  |      |
-                //    |  +------+
-                //    |  |      |
-                //    |  |  -Y  |
-                //    |  |      |
-                //    H  +------+
-                //    E  |      |
-                //    I  |  +Z  |
-                //    G  |      |
-                //    H  +------+
-                //    T  |      |
-                //    |  |  -Z  |
-                //    |  |      |
-                //    V  +------+
-                //
-                //    FaceWidth = width = height / 6
-                {   1, 6,
-                    {0, 0, true, false},
-                    {0, 1, true, false},
-                    {0, 2, false, true},
-                    {0, 3, false, true},
-                    {0, 4, true, false},
-                    {0, 5, true, false}
-                },
-                
-                // Here is the expected layout for the faces in an image with the 3/4 aspect ratio:
-                //
-                //       <-----------WIDTH----------->
-                //    ^  +------+------+------+------+
-                //    |  |      |      |      |      |
-                //    |  |      |  +Y  |      |      |
-                //    |  |      |      |      |      |
-                //    H  +------+------+------+------+
-                //    E  |      |      |      |      |
-                //    I  |  -X  |  -Z  |  +X  |  +Z  |
-                //    G  |      |      |      |      |
-                //    H  +------+------+------+------+
-                //    T  |      |      |      |      |
-                //    |  |      |  -Y  |      |      |
-                //    |  |      |      |      |      |
-                //    V  +------+------+------+------+
-                //
-                //    FaceWidth = width / 4 = height / 3
-                {   4, 3,
-                    {2, 1, true, false},
-                    {0, 1, true, false},
-                    {1, 0, false, true},
-                    {1, 2, false, true},
-                    {3, 1, true, false},
-                    {1, 1, true, false}
-                },
-                
-                // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
-                //
-                //       <-------WIDTH-------->
-                //    ^  +------+------+------+
-                //    |  |      |      |      |
-                //    |  |      |  +Y  |      |
-                //    |  |      |      |      |
-                //    H  +------+------+------+
-                //    E  |      |      |      |
-                //    I  |  -X  |  -Z  |  +X  |
-                //    G  |      |      |      |
-                //    H  +------+------+------+
-                //    T  |      |      |      |
-                //    |  |      |  -Y  |      |
-                //    |  |      |      |      |
-                //    |  +------+------+------+
-                //    |  |      |      |      |
-                //    |  |      |  +Z! |      | <+Z is upside down!
-                //    |  |      |      |      |
-                //    V  +------+------+------+
-                //
-                //    FaceWidth = width / 3 = height / 4
-                {   3, 4,
-                    {2, 1, true, false},
-                    {0, 1, true, false},
-                    {1, 0, false, true},
-                    {1, 2, false, true},
-                    {1, 3, false, true},
-                    {1, 1, true, false}
-                }
-            };
-            const int NUM_CUBEMAP_LAYOUTS = sizeof(CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
-            
-            // Find the layout of the cubemap in the 2D image
-            int foundLayout = -1;
-            for (int i = 0; i < NUM_CUBEMAP_LAYOUTS; i++) {
-                if ((image.height() * CUBEMAP_LAYOUTS[i]._widthRatio) == (image.width() * CUBEMAP_LAYOUTS[i]._heightRatio)) {
-                    foundLayout = i;
-                    break;
-                }
+        // If the 6 faces have been created go on and define the true Texture
+        if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
+            theTexture = gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+            int f = 0;
+            for (auto& face : faces) {
+                theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
+                f++;
             }
-            
-            std::vector<QImage> faces;
-            // If found, go extract the faces as separate images
-            if (foundLayout >= 0) {
-                auto& layout = CUBEMAP_LAYOUTS[foundLayout];
-                int faceWidth = image.width() / layout._widthRatio;
-                
-                faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
-                faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
-                faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
-                faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
-                faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
-                faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
-            } else {
-                qCDebug(modelLog) << "Failed to find a known cube map layout from this image:" << QString(srcImageName.c_str());
-                return nullptr;
-            }
-            
-            // If the 6 faces have been created go on and define the true Texture
-            if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
-                theTexture = gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+
+            if (generateMips) {
                 theTexture->autoGenerateMips(-1);
-                int f = 0;
-                for (auto& face : faces) {
-                    theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
-                    f++;
-                }
+            }
 
-                // Generate irradiance while we are at it
+            // Generate irradiance while we are at it
+            if (generateIrradiance) {
                 theTexture->generateIrradiance();
             }
+        }
     }
-    
+
     return theTexture;
 }
 
-
-gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    QImage image = srcImage;
-
-    int imageArea = image.width() * image.height();
-
-    int opaquePixels = 0;
-    int translucentPixels = 0;
-    //bool isTransparent = false;
-    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-    const int EIGHT_BIT_MAXIMUM = 255;
-    QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
-
-    if (!image.hasAlphaChannel()) {
-        if (image.format() != QImage::Format_RGB888) {
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-            }
-        }
-        if (imageArea > 0) {
-            averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
-        }
-    } else {
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-
-        // check for translucency/false transparency
-        // int opaquePixels = 0;
-        // int translucentPixels = 0;
-        // int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                QRgb rgb = image.pixel(x, y);
-                redTotal += qRed(rgb);
-                greenTotal += qGreen(rgb);
-                blueTotal += qBlue(rgb);
-                int alpha = qAlpha(rgb);
-                alphaTotal += alpha;
-                if (alpha == EIGHT_BIT_MAXIMUM) {
-                    opaquePixels++;
-                } else if (alpha != 0) {
-                    translucentPixels++;
-                }
-            }
-        }
-        if (opaquePixels == imageArea) {
-            qCDebug(modelLog) << "Image with alpha channel is completely opaque:" << QString(srcImageName.c_str());
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-
-        averageColor = QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
-
-        //isTransparent = (translucentPixels >= imageArea / 2);
-    }
-
-    gpu::Texture* theTexture = nullptr;
-    if ((image.width() > 0) && (image.height() > 0)) {
-
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
-        }
-
-
-        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        theTexture->autoGenerateMips(-1);
-    }
-
-    return theTexture;
+gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    return processCubeTextureColorFromImage(srcImage, srcImageName, false, true, true, true);
 }

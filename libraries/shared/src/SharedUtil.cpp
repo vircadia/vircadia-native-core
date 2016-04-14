@@ -24,7 +24,7 @@
 #endif
 
 #ifdef Q_OS_WIN
-#include "CPUID.h"
+#include "CPUIdent.h"
 #endif
 
 
@@ -758,10 +758,10 @@ void printSystemInformation() {
 
     qDebug() << "CPUID";
 
-    qDebug() << "\tCPU Vendor: " << CPUID::Vendor().c_str();
-    qDebug() << "\tCPU Brand:  " << CPUID::Brand().c_str();
+    qDebug() << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
+    qDebug() << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
 
-    for (auto& feature : CPUID::getAllFeatures()) {
+    for (auto& feature : CPUIdent::getAllFeatures()) {
         qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
     }
 #endif

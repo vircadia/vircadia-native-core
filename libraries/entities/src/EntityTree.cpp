@@ -90,6 +90,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     if (!entity->isParentIDValid()) {
+        QWriteLocker locker(&_missingParentLock);
         _missingParent.append(entity);
     }
 
@@ -256,10 +257,12 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             bool success;
             AACube queryCube = childEntity->getQueryAACube(success);
             if (!success) {
+                QWriteLocker locker(&_missingParentLock);
                 _missingParent.append(childEntity);
                 continue;
             }
             if (!childEntity->isParentIDValid()) {
+                QWriteLocker locker(&_missingParentLock);
                 _missingParent.append(childEntity);
             }
 
@@ -346,6 +349,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         if (result->getAncestorMissing()) {
             // we added the entity, but didn't know about all its ancestors, so it went into the wrong place.
             // add it to a list of entities needing to be fixed once their parents are known.
+            QWriteLocker locker(&_missingParentLock);
             _missingParent.append(result);
         }
 
@@ -1008,10 +1012,27 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 void EntityTree::fixupMissingParents() {
     MovingEntitiesOperator moveOperator(getThisPointer());
 
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
-    while (iter.hasNext()) {
-        EntityItemWeakPointer entityWP = iter.next();
-        EntityItemPointer entity = entityWP.lock();
+    QList<EntityItemPointer> missingParents;
+    {
+        QWriteLocker locker(&_missingParentLock);
+        QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
+        while (iter.hasNext()) {
+            EntityItemWeakPointer entityWP = iter.next();
+            EntityItemPointer entity = entityWP.lock();
+            if (entity) {
+                if (entity->isParentIDValid()) {
+                    iter.remove();
+                } else {
+                    missingParents.append(entity);
+                }
+            } else {
+                // entity was deleted before we found its parent.
+                iter.remove();
+            }
+        }
+    }
+
+    for (EntityItemPointer entity : missingParents) {
         if (entity) {
             bool queryAACubeSuccess;
             AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
@@ -1040,12 +1061,8 @@ void EntityTree::fixupMissingParents() {
 
             if (queryAACubeSuccess && doMove) {
                 moveOperator.addEntityToMoveList(entity, newCube);
-                iter.remove();
                 entity->markAncestorMissing(false);
             }
-        } else {
-            // entity was deleted before we found its parent.
-            iter.remove();
         }
     }
 

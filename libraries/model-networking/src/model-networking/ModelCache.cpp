@@ -417,7 +417,7 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
 {
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
+        auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
         _albedoTransform = material.albedoTexture.transform;
         map->setTextureTransform(_albedoTransform);
 
@@ -488,7 +488,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!albedoName.isEmpty()) {
         auto url = textureMap.contains(albedoName) ? textureMap[albedoName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
+        auto map = fetchTextureMap(url, ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
         map->setTextureTransform(_albedoTransform);
         // when reassigning the albedo texture we also check for the alpha channel used as opacity
         map->setUseAlphaChannel(true);
@@ -497,7 +497,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!normalName.isEmpty()) {
         auto url = textureMap.contains(normalName) ? textureMap[normalName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::NORMAL_MAP);
+        auto map = fetchTextureMap(url, NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
         setTextureMap(MapChannel::NORMAL_MAP, map);
     }
 

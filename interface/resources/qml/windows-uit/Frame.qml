@@ -20,6 +20,8 @@ Item {
 
     default property var decoration
 
+    property bool gradientsSupported: desktop.gradientsSupported
+
     readonly property int iconSize: 22
     readonly property int frameMargin: 9
     readonly property int frameMarginLeft: frameMargin
@@ -59,9 +61,7 @@ Item {
         height: 1.66 * window.height
         x: (window.width - width) / 2
         y: window.height / 2 - 0.375 * height
-        // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX.
-        // Check again when have a later version of QtQuick.
-        visible: window && window.focus && pane.visible && Qt.platform.os != "osx"
+        visible: gradientsSupported && window && window.focus && pane.visible
         gradient: Gradient {
             // GradientStop position 0.5 is at full circumference of circle that fits inside the square.
             GradientStop { position: 0.0; color: "#ff000000" }    // black, 100% opacity

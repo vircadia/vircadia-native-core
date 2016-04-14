@@ -17,7 +17,7 @@
 class CrashHandler {
 
 public:
-    static bool checkForAndHandleCrash();
+    static bool checkForResetSettings();
 
     static void writeRunningMarkerFiler();
     static void deleteRunningMarkerFile();
@@ -29,7 +29,7 @@ private:
         DO_NOTHING
     };
 
-    static Action promptUserForAction();
+    static Action promptUserForAction(bool showCrashMessage);
     static void handleCrash(Action action);
 
     static const QString runningMarkerFilePath();

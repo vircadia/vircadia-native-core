@@ -32,6 +32,8 @@ public:
     int _environmentUsage = 0;
 
     static gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createAlbedoTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createEmissiveTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromNormalImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createRoughnessTextureFromImage(const QImage& image, const std::string& srcImageName);
@@ -39,6 +41,13 @@ public:
     static gpu::Texture* createMetallicTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
+
+
+    static const QImage process2DImageColor(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask);
+    static void defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip,
+        const QImage& srcImage, bool isLinear, bool doCompress);
+    static gpu::Texture* process2DTextureColorFromImage(const QImage& srcImage, bool isLinear, bool doCompress, bool generateMips);
+    static gpu::Texture* processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance);
 
 };
 

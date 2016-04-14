@@ -15,6 +15,8 @@
 #include <QtQuick/QQuickWindow>
 #include <QtQml/QtQml>
 
+#include <gl/GLHelpers.h>
+
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 
@@ -336,6 +338,13 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
 }
 
+void OffscreenUi::addMenuInitializer(std::function<void(VrMenu*)> f) {
+    if (!_vrMenu) {
+        _queuedMenuInitializers.push_back(f);
+        return;
+    }
+    f(_vrMenu);
+}
 
 QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title, const QString& label,
     const QVariant& current) {
@@ -443,7 +452,10 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
-    new VrMenu(this);
+    _vrMenu = new VrMenu(this);
+    for (const auto& menuInitializer : _queuedMenuInitializers) {
+        menuInitializer(_vrMenu);
+    }
 
     new KeyboardFocusHack();
 
@@ -594,6 +606,10 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     }
 
     return result;
+}
+
+unsigned int OffscreenUi::getMenuUserDataId() const {
+    return _vrMenu->_userDataId;
 }
 
 #include "OffscreenUi.moc"
