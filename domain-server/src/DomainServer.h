@@ -86,6 +86,9 @@ private slots:
     void updateICEServerAddresses();
     void handleICEHostInfo(const QHostInfo& hostInfo);
 
+    void sendICEServerAddressToMetaverseAPI();
+    void handleFailedICEServerAddressUpdate(QNetworkReply& requestReply);
+
 signals:
     void iceServerChanged();
     
@@ -172,7 +175,10 @@ private:
     QTimer* _iceAddressLookupTimer { nullptr }; // this looks like a dangling pointer but is parented to the DomainServer
     int _iceAddressLookupID { -1 };
     int _noReplyICEHeartbeats { 0 };
+    int _numHeartbeatDenials { 0 };
     bool _connectedToICEServer { false };
+
+    bool _hasAccessToken { false };
 
     friend class DomainGatekeeper;
 };
