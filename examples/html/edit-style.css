@@ -834,10 +834,9 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     position: relative; /* New positioning context. */
 }
 
-#entity-list .sort-order {
-    display: inline-block;
-    width: 6px;
-    text-align: right;
+#entity-list .glyph {
+    font-family: HiFi-Glyphs;
+    font-size: 14px;
 }
 
 #search-area {
@@ -867,17 +866,39 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     margin-top: 28px;
     border-left: 2px solid #575757;
     border-right: 2px solid #575757;
-}
-
-#entity-table-scroll, #entity-table {
     background-color: #1c1c1c;
 }
+
 
 #entity-table {
     margin-top: -28px;
     margin-bottom: -18px;
     table-layout: fixed;
     border: none;
+    background-color: #1c1c1c;
+}
+
+#col-type {
+    width: 16%;
+}
+#col-name {
+    width: 34%;
+}
+#col-url {
+    width: 34%;
+}
+#col-locked, #col-visible {
+    width: 8%;
+}
+
+#entity-table thead tr, #entity-table thead tr th,
+#entity-table tfoot tr, #entity-table tfoot tr td {
+    background: none;
+}
+
+#entity-table .glyph {
+    margin: 0 -2px 0 -2px;
+    vertical-align: middle;
 }
 
 #entity-table thead {
@@ -886,6 +907,42 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     border-top-left-radius: 7px;
     border-top-right-radius: 7px;
     border-bottom: 1px solid #575757;
+    position: absolute;
+    top: 49px;
+    left: 0;
+    width: 100%;
+}
+
+#entity-table thead th {
+    box-sizing: border-box;
+    padding: 0 0 0 8px;
+    vertical-align: middle;
+}
+
+#entity-table th:focus {
+    outline: none;
+}
+
+#entity-table th .glyph {
+    position: relative;
+    left: 0;
+}
+
+#entity-table thead .sort-order {
+    display: inline-block;
+    width: 8px;
+    margin: -5px 0 -3px 0;
+    text-align: right;
+    vertical-align: middle;
+}
+
+#entity-table td {
+    box-sizing: border-box;
+}
+
+#entity-table td.glyph {
+    text-align: center;
+    padding: 0;
 }
 
 #entity-table tfoot {
@@ -894,39 +951,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     border-bottom-left-radius: 7px;
     border-bottom-right-radius: 7px;
     border-top: 1px solid #575757;
-}
-
-#entity-table thead tr, #entity-table thead tr th,
-#entity-table tfoot tr, #entity-table tfoot tr td {
-    background: none;
-}
-
-#entity-table th:focus {
-    outline: none;
-}
-
-#col-type {
-    width: 16%;
-}
-#col-name {
-    width: 42%;
-}
-#col-url {
-    width: 42%;
-}
-
-#entity-table thead {
-    position: absolute;
-    top: 49px;
-    left: 0;
-    width: 100%;
-}
-
-#entity-table thead th {
-    padding: 0;
-}
-
-#entity-table tfoot {
     position: absolute;
     bottom: -21px;
     left: 0;

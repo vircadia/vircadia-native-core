@@ -59,6 +59,8 @@ EntityListTool = function(opts) {
                 name: properties.name,
                 type: properties.type,
                 url: properties.type == "Model" ? properties.modelURL : "",
+                locked: properties.locked,
+                visible: properties.visible
             });
         }
 
