@@ -140,9 +140,13 @@ protected:
     // they aren't currently updated from data in the model/rig, and they don't have a direct effect
     // on what's rendered.
     ReadWriteLockable _jointDataLock;
+
+    bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
     QVector<glm::quat> _absoluteJointRotationsInObjectFrame;
     QVector<bool> _absoluteJointRotationsInObjectFrameSet; // ever set?
     QVector<bool> _absoluteJointRotationsInObjectFrameDirty; // needs a relay to model/rig?
+    
+    bool _jointTranslationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
     QVector<glm::vec3> _absoluteJointTranslationsInObjectFrame;
     QVector<bool> _absoluteJointTranslationsInObjectFrameSet; // ever set?
     QVector<bool> _absoluteJointTranslationsInObjectFrameDirty; // needs a relay to model/rig?
