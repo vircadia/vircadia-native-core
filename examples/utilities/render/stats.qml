@@ -84,6 +84,11 @@ Item {
                     prop: "frameTextureCount",
                     label: "Frame",
                     color: "#E2334D"
+                },
+                {
+                    prop: "textureGPUTransferCount",
+                    label: "Transfer",
+                    color: "#9495FF"
                 }
             ]
         }
@@ -104,7 +109,18 @@ Item {
                     prop: "textureGPUMemoryUsage",
                     label: "GPU",
                     color: "#1AC567"
+                },
+                {
+                    prop: "textureGPUVirtualMemoryUsage",
+                    label: "GPU Virtual",
+                    color: "#9495FF"
+                },
+                {
+                    prop: "frameTextureMemoryUsage",
+                    label: "Frame",
+                    color: "#E2334D"
                 }
+
             ]
         }
 
@@ -179,7 +195,7 @@ Item {
                     object: Render.getConfig("DrawLight"),
                     prop: "numDrawn",
                     label: "Lights",
-                    color: "#E2334D"
+                    color: "#FED959"
                 }
             ]
         }     

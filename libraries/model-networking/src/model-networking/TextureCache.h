@@ -31,6 +31,7 @@ typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
 enum TextureType {
     DEFAULT_TEXTURE,
+    ALBEDO_TEXTURE,
     NORMAL_TEXTURE,
     BUMP_TEXTURE,
     SPECULAR_TEXTURE,

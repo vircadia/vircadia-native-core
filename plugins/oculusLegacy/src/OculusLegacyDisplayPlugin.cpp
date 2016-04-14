@@ -36,13 +36,12 @@ void OculusLegacyDisplayPlugin::resetSensors() {
 }
 
 void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    FrameInfo frame;
-    frame.predictedDisplayTime = frame.sensorSampleTime = ovr_GetTimeInSeconds();
-    _trackingState = ovrHmd_GetTrackingState(_hmd, frame.predictedDisplayTime);
-    frame.headPose = toGlm(_trackingState.HeadPose.ThePose);
-    _currentRenderFrameInfo.set(frame);
+    _currentRenderFrameInfo = FrameInfo();
+    _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
+    _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
+    _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
     Lock lock(_mutex);
-    _frameInfos[frameIndex] = frame;
+    _frameInfos[frameIndex] = _currentRenderFrameInfo;
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
@@ -181,7 +180,7 @@ int OculusLegacyDisplayPlugin::getHmdScreen() const {
     return _hmdScreen;
 }
 
-float OculusLegacyDisplayPlugin::getTargetFrameRate() {
+float OculusLegacyDisplayPlugin::getTargetFrameRate() const {
     return TARGET_RATE_OculusLegacy;
 }
 

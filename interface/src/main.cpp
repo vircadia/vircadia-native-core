@@ -102,13 +102,14 @@ int main(int argc, const char* argv[]) {
     // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
     // not made more complicated than it already is.
     bool override = false;
-    QString glVersion;
+    QJsonObject glData;
     {
         OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
         bool valid = true;
-        glVersion = openGLVersionChecker.checkVersion(valid, override);
+        glData = openGLVersionChecker.checkVersion(valid, override);
         if (!valid) {
             if (override) {
+                auto glVersion = glData["version"].toString();
                 qCDebug(interfaceapp, "Running on insufficient OpenGL version: %s.", glVersion.toStdString().c_str());
             } else {
                 qCDebug(interfaceapp, "Early exit due to OpenGL version.");
@@ -145,12 +146,12 @@ int main(int argc, const char* argv[]) {
         if (override) {
             auto& accountManager = AccountManager::getInstance();
             if (accountManager.isLoggedIn()) {
-                UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+                UserActivityLogger::getInstance().insufficientGLVersion(glData);
             } else {
-                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glVersion](){
+                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glData](){
                     static bool loggedInsufficientGL = false;
                     if (!loggedInsufficientGL) {
-                        UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+                        UserActivityLogger::getInstance().insufficientGLVersion(glData);
                         loggedInsufficientGL = true;
                     }
                 });
@@ -174,8 +175,18 @@ int main(int argc, const char* argv[]) {
         });
 
         // BugSplat WILL NOT work with file paths that do not use OS native separators.
-        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
+        auto logger = app.getLogger();
+        auto logPath = QDir::toNativeSeparators(logger->getFilename());
         crashReporter.mpSender.sendAdditionalFile(qPrintable(logPath));
+
+        QMetaObject::Connection connection;
+        connection = QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&crashReporter, &connection](QString newFilename) {
+            // We only want to add the first rolled log file (the "beginning" of the log) to BugSplat to ensure we don't exceed the 2MB
+            // zipped limit, so we disconnect here.
+            QObject::disconnect(connection);
+            auto rolledLogPath = QDir::toNativeSeparators(newFilename);
+            crashReporter.mpSender.sendAdditionalFile(qPrintable(rolledLogPath));
+        });
 #endif
 
         printSystemInformation();

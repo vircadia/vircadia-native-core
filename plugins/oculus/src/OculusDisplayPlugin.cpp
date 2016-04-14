@@ -84,7 +84,7 @@ void blit(const SrcFbo& srcFbo, const DstFbo& dstFbo) {
 
 void OculusDisplayPlugin::hmdPresent() {
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentPresentFrameIndex)
 
     if (!_currentSceneTexture) {
         return;
@@ -94,10 +94,10 @@ void OculusDisplayPlugin::hmdPresent() {
     _sceneFbo->Commit();
     {
         _sceneLayer.SensorSampleTime = _currentPresentFrameInfo.sensorSampleTime;
-        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
-        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
+        ovrResult result = ovr_SubmitFrame(_session, _currentPresentFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }

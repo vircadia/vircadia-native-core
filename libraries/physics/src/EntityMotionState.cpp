@@ -161,7 +161,12 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         }
         return MOTION_TYPE_DYNAMIC;
     }
-    return (_entity->isMovingRelativeToParent() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
+    if (_entity->isMovingRelativeToParent() ||
+        _entity->hasActions() ||
+        _entity->hasAncestorOfType(NestableType::Avatar)) {
+        return MOTION_TYPE_KINEMATIC;
+    }
+    return MOTION_TYPE_STATIC;
 }
 
 bool EntityMotionState::isMoving() const {
@@ -202,8 +207,16 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
-    _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
-    _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
+    bool positionSuccess;
+    _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
+    if (!positionSuccess) {
+        qDebug() << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
+    }
+    bool orientationSuccess;
+    _entity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
+    if (!orientationSuccess) {
+        qDebug() << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
+    }
     _entity->setVelocity(getBodyLinearVelocity());
     _entity->setAngularVelocity(getBodyAngularVelocity());
     _entity->setLastSimulated(usecTimestampNow());

@@ -10,43 +10,50 @@
 
 @font-face {
     font-family: Raleway-Regular;
-    src: url(../../resources/fonts/Raleway-Regular.ttf),  /* Production */
-         url(../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development */
+    src: url(../../resources/fonts/Raleway-Regular.ttf),  /* Windows production */
+         url(../../fonts/Raleway-Regular.ttf),  /* OSX production */
+         url(../../interface/resources/fonts/Raleway-Regular.ttf);  /* Development, running script in /HiFi/examples */
 }
 
 @font-face {
     font-family: Raleway-Light;
     src: url(../../resources/fonts/Raleway-Light.ttf),
+         url(../../fonts/Raleway-Light.ttf),
          url(../../interface/resources/fonts/Raleway-Light.ttf);
 }
 
 @font-face {
     font-family: Raleway-Bold;
     src: url(../../resources/fonts/Raleway-Bold.ttf),
+         url(../../fonts/Raleway-Bold.ttf),
          url(../../interface/resources/fonts/Raleway-Bold.ttf);
 }
 
 @font-face {
     font-family: Raleway-SemiBold;
     src: url(../../resources/fonts/Raleway-SemiBold.ttf),
+         url(../../fonts/Raleway-SemiBold.ttf),
          url(../../interface/resources/fonts/Raleway-SemiBold.ttf);
 }
 
 @font-face {
     font-family: FiraSans-SemiBold;
     src: url(../../resources/fonts/FiraSans-SemiBold.ttf),
+         url(../../fonts/FiraSans-SemiBold.ttf),
          url(../../interface/resources/fonts/FiraSans-SemiBold.ttf);
 }
 
 @font-face {
     font-family: AnonymousPro-Regular;
-    src: url(../../resources/fonts/AnonymousPro-Regular.ttf), 
+    src: url(../../resources/fonts/AnonymousPro-Regular.ttf),
+         url(../../fonts/AnonymousPro-Regular.ttf),
          url(../../interface/resources/fonts/AnonymousPro-Regular.ttf);
 }
 
 @font-face {
     font-family: HiFi-Glyphs;
-    src: url(../../resources/fonts/hifi-glyphs.ttf), 
+    src: url(../../resources/fonts/hifi-glyphs.ttf),
+         url(../../fonts/hifi-glyphs.ttf),
          url(../../interface/resources/fonts/hifi-glyphs.ttf);
 }
 
@@ -69,8 +76,10 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-}
 
+    overflow-x: hidden;
+    overflow-y: auto;
+}
 
 table {
     font-family: FiraSans-SemiBold;
@@ -231,11 +240,11 @@ input[type="text"] {
 input[type="number"] {
     position: relative;
     height: 28px;
-    width: 120px;
+    width: 124px;
 }
 
 input[type=number] {
-    padding-right: 6px;
+    padding-right: 3px;
 }
 input[type=number]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -243,6 +252,7 @@ input[type=number]::-webkit-inner-spin-button {
     display: block;
     position: relative;
     width: 10px;
+    height: 100%;
     overflow: hidden;
     font-family: hifi-glyphs;
     font-size: 50px;
@@ -452,6 +462,10 @@ input[type=checkbox]:checked + label:hover {
     min-height: 29px;
 }
 
+.property.checkbox {
+    width: auto;
+}
+
 .property label {
     display: table-cell;
     vertical-align: middle;
@@ -657,7 +671,7 @@ div.refresh input[type="button"] {
     padding-left: 25px;
 }
 .pyr .tuple input {
-    padding-left: 45px;
+    padding-left: 40px;
 }
 
 .tuple div > label:first-child {
@@ -779,6 +793,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     width: 100%;
     overflow-x: hidden;
     overflow-y: auto;
+    box-sizing: border-box;
     padding-top: 28px; /* Space for header and footer outside of scroll region. */
     margin-top: 28px;
     border-left: 2px solid #575757;
@@ -797,6 +812,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #entity-table thead {
+    box-sizing: border-box;
     border: 2px solid #575757;
     border-top-left-radius: 7px;
     border-top-right-radius: 7px;
@@ -804,6 +820,7 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 #entity-table tfoot {
+    box-sizing: border-box;
     border: 2px solid #575757;
     border-bottom-left-radius: 7px;
     border-bottom-right-radius: 7px;

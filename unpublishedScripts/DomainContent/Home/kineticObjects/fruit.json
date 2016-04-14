@@ -1,0 +1,276 @@
+{
+    "Entities": [{
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_fruitBowl",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/fruit/Fruit-Bowl.obj",
+        "created": "2016-03-15T23:11:03Z",
+        "dimensions": {
+            "x": 0.35241550207138062,
+            "y": 0.08979363739490509,
+            "z": 0.35241544246673584
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{fa981882-c38f-4413-88f2-255a06aacf08}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Bowl.fbx",
+        "position": {
+            "x": 0.1168212890625,
+            "y": 0,
+            "z": 0.11590576171875
+        },
+        "queryAACube": {
+            "scale": 0.50641506910324097,
+            "x": -0.13638624548912048,
+            "y": -0.25320753455162048,
+            "z": -0.13730177283287048
+        },
+        "rotation": {
+            "w": 0.49941253662109375,
+            "x": -4.57763671875e-05,
+            "y": 0.86633098125457764,
+            "z": -0.0001068115234375
+        },
+        "shapeType": "compound",
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
+        "collisionsWillMove": 1,
+        "created": "2016-03-15T21:26:11Z",
+        "dimensions": {
+            "x": 0.083729811012744904,
+            "y": 0.092105500400066376,
+            "z": 0.08111707866191864
+        },
+        "dynamic": 1,
+        "friction": 0.33000001311302185,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{ed04b516-3c66-42d9-99af-c4425765df27}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple-2.fbx",
+        "position": {
+            "x": 0.1728515625,
+            "y": 0.040313720703125,
+            "z": 0.08847808837890625
+        },
+        "queryAACube": {
+            "scale": 0.14857350289821625,
+            "x": 0.098564811050891876,
+            "y": -0.033973030745983124,
+            "z": 0.014191336929798126
+        },
+        "restitution": 0.33000001311302185,
+        "rotation": {
+            "w": 0.74630355834960938,
+            "x": -0.5419546365737915,
+            "y": 0.080125093460083008,
+            "z": -0.37801176309585571
+        },
+        "shapeType": "sphere",
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
+        "collisionsWillMove": 1,
+        "created": "2016-03-15T21:26:11Z",
+        "dimensions": {
+            "x": 0.089192003011703491,
+            "y": 0.098114080727100372,
+            "z": 0.086408823728561401
+        },
+        "dynamic": 1,
+        "friction": 0.33000001311302185,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{031f883a-6d7f-447a-96b1-c3ea75f938e1}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple.fbx",
+        "position": {
+            "x": 0.146240234375,
+            "y": 0.083740234375,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.15826581418514252,
+            "x": 0.067107327282428741,
+            "y": 0.0046073272824287415,
+            "z": -0.079132907092571259
+        },
+        "restitution": 0.30000001192092896,
+        "rotation": {
+            "w": -0.2233462929725647,
+            "x": 0.81002521514892578,
+            "y": -0.071244359016418457,
+            "z": 0.5374685525894165
+        },
+        "shapeType": "sphere",
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
+        "collisionsWillMove": 1,
+        "created": "2016-03-16T00:27:30Z",
+        "dimensions": {
+            "x": 0.083729811012744904,
+            "y": 0.092105500400066376,
+            "z": 0.08111707866191864
+        },
+        "dynamic": 1,
+        "friction": 0.33000001311302185,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{e3d77c1e-1fcf-4dc2-8799-001046934df8}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple-2.fbx",
+        "position": {
+            "x": 0.08203125,
+            "y": 0.042266845703125,
+            "z": 0.05945587158203125
+        },
+        "queryAACube": {
+            "scale": 0.14857350289821625,
+            "x": 0.0077444985508918762,
+            "y": -0.032019905745983124,
+            "z": -0.014830879867076874
+        },
+        "restitution": 0.33000001311302185,
+        "rotation": {
+            "w": 0.82665753364562988,
+            "x": -0.32744336128234863,
+            "y": 0.10566878318786621,
+            "z": 0.44527351856231689
+        },
+        "shapeType": "sphere",
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
+        "collisionsWillMove": 1,
+        "created": "2016-03-16T00:27:30Z",
+        "dimensions": {
+            "x": 0.089192003011703491,
+            "y": 0.098114080727100372,
+            "z": 0.086408823728561401
+        },
+        "dynamic": 1,
+        "friction": 0.33000001311302185,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{34c224cf-d5f5-4cf3-9bf6-55857bf08e43}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple.fbx",
+        "position": {
+            "x": 0,
+            "y": 0.082916259765625,
+            "z": 0.0829925537109375
+        },
+        "queryAACube": {
+            "scale": 0.15826581418514252,
+            "x": -0.079132907092571259,
+            "y": 0.0037833526730537415,
+            "z": 0.0038596466183662415
+        },
+        "restitution": 0.30000001192092896,
+        "rotation": {
+            "w": 0.075150728225708008,
+            "x": 0.60289919376373291,
+            "y": 0.78295564651489258,
+            "z": -0.13344013690948486
+        },
+        "shapeType": "sphere",
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
+        "collisionsWillMove": 1,
+        "created": "2016-03-16T00:27:30Z",
+        "dimensions": {
+            "x": 0.083729811012744904,
+            "y": 0.092105500400066376,
+            "z": 0.08111707866191864
+        },
+        "dynamic": 1,
+        "friction": 0.33000001311302185,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{0eab5380-2358-4bcd-b53e-a071d50e1475}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple-2.fbx",
+        "position": {
+            "x": 0.0596923828125,
+            "y": 0.04351806640625,
+            "z": 0.15406036376953125
+        },
+        "queryAACube": {
+            "scale": 0.14857350289821625,
+            "x": -0.014594368636608124,
+            "y": -0.030768685042858124,
+            "z": 0.079773612320423126
+        },
+        "restitution": 0.33000001311302185,
+        "rotation": {
+            "w": -0.047714948654174805,
+            "x": 0.91860842704772949,
+            "y": -0.33046466112136841,
+            "z": -0.21126115322113037
+        },
+        "shapeType": "sphere",
+        "type": "Model"
+    }, {
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "name": "home_model_apple",
+        "collisionsWillMove": 1,
+        "created": "2016-03-16T00:27:30Z",
+        "dimensions": {
+            "x": 0.089192003011703491,
+            "y": 0.098114080727100372,
+            "z": 0.086408823728561401
+        },
+        "dynamic": 1,
+        "friction": 0.33000001311302185,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{c8140643-23fb-4827-b708-e87103f9e438}",
+        "modelURL": "atp:/kineticObjects/fruit/Fruit-Apple.fbx",
+        "position": {
+            "x": 0.1519775390625,
+            "y": 0.046356201171875,
+            "z": 0.16817474365234375
+        },
+        "queryAACube": {
+            "scale": 0.15826581418514252,
+            "x": 0.072844631969928741,
+            "y": -0.032776705920696259,
+            "z": 0.089041836559772491
+        },
+        "restitution": 0.30000001192092896,
+        "rotation": {
+            "w": 0.59276723861694336,
+            "x": 0.56038761138916016,
+            "y": 0.10734724998474121,
+            "z": -0.56835281848907471
+        },
+        "shapeType": "sphere",
+        "type": "Model"
+    }],
+    "Version": 57
+}

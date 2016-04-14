@@ -116,7 +116,7 @@ Column {
 
         LinearGradient {
             id: bottomBar
-            visible: isCollapsible
+            visible: desktop.gradientsSupported && isCollapsible
             width: frame.width
             height: visible ? 4 : 0
             x: -hifi.dimensions.contentMargin.x
