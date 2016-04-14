@@ -205,37 +205,18 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 }
 
 
-QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-
-void ModelEntityItem::cleanupLoadedAnimations() {
-    foreach(AnimationPointer animation, _loadedAnimations) {
-        animation.clear();
-    }
-    _loadedAnimations.clear();
-}
-
-AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
-    AnimationPointer animation;
-
-    // if we don't already have this model then create it and initialize it
-    if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
-        animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
-        _loadedAnimations[url] = animation;
-    } else {
-        animation = _loadedAnimations[url];
-    }
-    return animation;
-}
-
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
     if (!hasAnimation() || jointsMapped()) {
         return;
     }
 
-    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL());
-    if (myAnimation && myAnimation->isLoaded()) {
-        QStringList animationJointNames = myAnimation->getJointNames();
+    if (!_animation || _animation->getURL().toString() != getAnimationURL()) {
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(getAnimationURL());
+    }
+
+    if (_animation && _animation->isLoaded()) {
+        QStringList animationJointNames = _animation->getJointNames();
 
         if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
             _jointMapping.resize(modelJointNames.size());
