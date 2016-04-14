@@ -105,7 +105,7 @@ private:
     void setupICEHeartbeatForFullNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
 
-    void randomizeICEServerAddress();
+    void randomizeICEServerAddress(bool shouldTriggerHostLookup);
 
     unsigned int countConnectedUsers();
 
@@ -172,7 +172,6 @@ private:
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
-    QTimer* _iceAddressLookupTimer { nullptr }; // this looks like a dangling pointer but is parented to the DomainServer
     int _iceAddressLookupID { -1 };
     int _noReplyICEHeartbeats { 0 };
     int _numHeartbeatDenials { 0 };
