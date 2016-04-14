@@ -251,44 +251,15 @@ static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPT
 std::mutex _textureGuard;
 using Lock = std::unique_lock<std::mutex>;
 std::queue<gpu::TexturePointer> _availableTextures;
-std::mutex _framebufferGuard;
-std::queue<gpu::FramebufferPointer> _availableFramebuffers;
-std::list<gpu::FramebufferPointer> _usedFramebuffers;
 
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
     auto uiSize = qApp->getUiSize();
-    auto width = uiSize.x;
-    auto height = uiSize.y;
-    if (!_overlayDepthTexture) {
-        _overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(DEPTH_FORMAT, width, height, DEFAULT_SAMPLER));
+    if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
+        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     }
 
-    if (!_overlayFramebuffer) {
-        {
-            Lock lock(_framebufferGuard);
-            if (!_availableFramebuffers.empty()) {
-                _overlayFramebuffer = _availableFramebuffers.front();
-                _availableFramebuffers.pop();
-            }
-        }
-        
-        if (!_overlayFramebuffer) {
-            _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
-            const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
-            auto colorBuffer = gpu::TexturePointer(gpu::Texture::create2D(COLOR_FORMAT, width, height, OVERLAY_SAMPLER));
-            _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
-            _overlayFramebuffer->setDepthStencilBuffer(_overlayDepthTexture, DEPTH_FORMAT);
-        }
-    }
-
-
-    if (_overlayFramebuffer && (uiSize != _overlayFramebuffer->getSize())) {
-        _overlayFramebuffer->resize(width, height);
-    }
-
-    /*
     auto width = uiSize.x;
     auto height = uiSize.y;
     if (!_overlayFramebuffer->getDepthStencilBuffer()) {
@@ -310,14 +281,13 @@ void ApplicationOverlay::buildFramebufferObject() {
             _overlayFramebuffer->setRenderBuffer(0, newColorAttachment);
         }
     }
-    
+
     // If the overlay framebuffer still has no color attachment, no textures were available for rendering, so build a new one
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
         auto colorBuffer = gpu::TexturePointer(gpu::Texture::create2D(COLOR_FORMAT, width, height, OVERLAY_SAMPLER));
         _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
     }
-    */
 }
 
 gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
@@ -329,31 +299,14 @@ gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
     if (!textureId) {
         qDebug() << "Missing texture";
     }
-    {
-        Lock lock(_framebufferGuard);
-        _usedFramebuffers.push_back(_overlayFramebuffer);
-    }
-    _overlayFramebuffer.reset();
+    _overlayFramebuffer->setRenderBuffer(0, gpu::TexturePointer());
     return result;
 }
 
 void ApplicationOverlay::releaseOverlay(gpu::TexturePointer texture) {
     if (texture) {
-        {
-            Lock lockAvailable(_framebufferGuard);
-            auto& fboit = _usedFramebuffers.begin();
-            for (; fboit != _usedFramebuffers.end(); fboit++) {
-                _availableFramebuffers.push(*fboit);
-                if ((*fboit)->getRenderBuffer(0) == texture) {
-                    fboit++;
-                    break;
-                }
-            }
-            _usedFramebuffers.erase(_usedFramebuffers.begin(), fboit);
-        }
-
-       // Lock lock(_textureGuard);
-       //  _availableTextures.push(texture);
+        Lock lock(_textureGuard);
+        _availableTextures.push(texture);
     } else {
         qWarning() << "Attempted to release null texture";
     }

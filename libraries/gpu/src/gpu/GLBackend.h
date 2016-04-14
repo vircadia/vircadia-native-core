@@ -23,6 +23,9 @@
 
 #include "Context.h"
 
+#define GPU_STEREO_DRAWCALL_DOUBLED
+//#define GPU_STEREO_CAMERA_BUFFER
+
 namespace gpu {
 
 class GLTextureTransferHelper;
@@ -183,7 +186,8 @@ public:
         GLuint getProgram(bool isStereo) const {
             if (isStereo && _shaderObjects[Stereo].glprogram) {
                 return _shaderObjects[Stereo].glprogram;
-            } else {
+            } else 
+            {
                 return _shaderObjects[Mono].glprogram;
             }
         }
@@ -331,6 +335,10 @@ protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
 
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
+    void setupStereoSide(int side);
+#endif
+
     void initTextureTransferHelper();
     static void transferGPUObject(const TexturePointer& texture);
 
@@ -413,6 +421,7 @@ protected:
     void resetTransformStage();
 
     struct TransformStageState {
+#ifdef GPU_STEREO_CAMERA_BUFFER
         struct Cameras {
             TransformCamera _cams[2];
 
@@ -421,7 +430,11 @@ protected:
             Cameras(const TransformCamera& camL, const TransformCamera& camR) { memcpy(_cams, &camL, sizeof(TransformCamera)); memcpy(_cams + 1, &camR, sizeof(TransformCamera)); };
         };
 
-        using TransformCameras = std::vector<Cameras>;
+        using CameraBufferElement = Cameras;
+#else
+        using CameraBufferElement = TransformCamera;
+#endif
+        using TransformCameras = std::vector<CameraBufferElement>;
 
         TransformCamera _camera;
         TransformCameras _cameras;
@@ -432,7 +445,7 @@ protected:
         GLuint _cameraBuffer { 0 };
         GLuint _drawCallInfoBuffer { 0 };
         GLuint _objectBufferTexture { 0 };
-        size_t _cameraUboSize { 0 }; // 2 sizes, one for mono, one for stereo
+        size_t _cameraUboSize { 0 };
         Transform _view;
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
@@ -445,9 +458,11 @@ protected:
         using List = std::list<Pair>;
         List _cameraOffsets;
         mutable List::const_iterator _camerasItr;
+        mutable size_t _currentCameraOffset;
 
         void preUpdate(size_t commandIndex, const StereoState& stereo);
         void update(size_t commandIndex, const StereoState& stereo) const;
+        void bindCurrentCamera(int stereoSide) const;
         void transfer(const Batch& batch) const;
     } _transform;
 

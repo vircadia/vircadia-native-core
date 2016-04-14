@@ -34,16 +34,6 @@ void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
     ivec4& vp = _transform._viewport;
     glViewport(vp.x, vp.y, vp.z, vp.w);
 
-    // Where we assign the GL viewport
-    if (_stereo._enable) {
-        vp.z /= 2;
-        if (_stereo._pass) {
-            vp.x += vp.z;
-        }
-    } 
-
-//    glViewport(vp.x, vp.y, vp.z, vp.w);
-
     // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and will need update on next drawcall
     _transform._invalidViewport = true;
 }
@@ -66,7 +56,7 @@ void GLBackend::initTransform() {
 #ifndef GPU_SSBO_DRAW_CALL_INFO
     glGenTextures(1, &_transform._objectBufferTexture);
 #endif
-    size_t cameraSize = sizeof(TransformStageState::Cameras);
+    size_t cameraSize = sizeof(TransformStageState::CameraBufferElement);
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
     }
@@ -114,10 +104,20 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
         if (stereo._enable) {
-            _cameras.push_back(Cameras(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)) );
+#ifdef GPU_STEREO_CAMERA_BUFFER
+            _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)));
+#else
+            _cameras.push_back((_camera.getEyeCamera(0, stereo, _view)));
+            _cameras.push_back((_camera.getEyeCamera(1, stereo, _view)));
+#endif
         } else {
-            _cameras.push_back(Cameras(_camera.recomputeDerived(_view)));
+#ifdef GPU_STEREO_CAMERA_BUFFER
+            _cameras.push_back(CameraBufferElement(_camera.recomputeDerived(_view)));
+#else
+            _cameras.push_back((_camera.recomputeDerived(_view)));
+#endif
         }
+
     }
 
     // Flags are clean
@@ -130,7 +130,7 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
     if (!_cameras.empty()) {
         bufferData.resize(_cameraUboSize * _cameras.size());
         for (size_t i = 0; i < _cameras.size(); ++i) {
-            memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(Cameras));
+            memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(CameraBufferElement));
         }
         glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
@@ -178,21 +178,31 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
 
     CHECK_GL_ERROR();
 }
+static const size_t INVALID_OFFSET = (size_t)-1;
 
 void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
-    static const size_t INVALID_OFFSET = (size_t)-1;
     size_t offset = INVALID_OFFSET;
     while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
         offset = (*_camerasItr).second;
         ++_camerasItr;
     }
-    if (offset != INVALID_OFFSET) {
-        // We include both camera offsets for stereo
-        GLuint rangeSize = sizeof(Cameras);
-        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, offset, rangeSize);
+    _currentCameraOffset = offset;
+
+#ifdef GPU_STEREO_CAMERA_BUFFER
+    bindCurrentCamera(0);
+#else 
+    if (!stereo._enable) {
+        bindCurrentCamera(0);
     }
+#endif
 
     (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
+    if (_currentCameraOffset != INVALID_OFFSET) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, _currentCameraOffset + eye * _cameraUboSize, sizeof(CameraBufferElement));
+    }
 }
 
 void GLBackend::updateTransform(const Batch& batch) {
@@ -208,7 +218,12 @@ void GLBackend::updateTransform(const Batch& batch) {
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
                                _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2: 1));
+
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
+#else
+        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+#endif
     }
     
     (void)CHECK_GL_ERROR();
