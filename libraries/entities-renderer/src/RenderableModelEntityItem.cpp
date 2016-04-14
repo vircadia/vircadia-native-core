@@ -748,6 +748,7 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
 bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
+        _jointRotationsExplicitlySet = true;
         resizeJointArrays();
         if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() &&
             _absoluteJointRotationsInObjectFrame[index] != rotation) {
@@ -764,6 +765,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
 bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
+        _jointTranslationsExplicitlySet = true;
         resizeJointArrays();
         if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() &&
             _absoluteJointTranslationsInObjectFrame[index] != translation) {
