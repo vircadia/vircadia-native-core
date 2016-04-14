@@ -33,9 +33,7 @@ IceServer::IceServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
     _serverSocket(),
-    _activePeers(),
-    _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _lastInactiveCheckTimestamp(QDateTime::currentMSecsSinceEpoch())
+    _activePeers()
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
@@ -287,8 +285,6 @@ void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSoc
 void IceServer::clearInactivePeers() {
     NetworkPeerHash::iterator peerItem = _activePeers.begin();
 
-    _lastInactiveCheckTimestamp = QDateTime::currentMSecsSinceEpoch();
-
     while (peerItem != _activePeers.end()) {
         SharedNetworkPeer peer = peerItem.value();
 
@@ -305,26 +301,4 @@ void IceServer::clearInactivePeers() {
             ++peerItem;
         }
     }
-}
-
-bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
-    // We need an HTTP handler in order to monitor the health of the ice server
-    // The correct functioning of the ICE server will be determined by its HTTP availability,
-
-    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        if (url.path() == "/status") {
-            // figure out if we respond with 0 (we're good) or 1 (we think we're in trouble)
-
-            const quint64 MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET = 10 * 1000;
-
-            auto sinceLastInactiveCheck = QDateTime::currentMSecsSinceEpoch() - _lastInactiveCheckTimestamp;
-            int statusNumber = (sinceLastInactiveCheck > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET) ? 1 : 0;
-
-            connection->respond(HTTPConnection::StatusCode200, QByteArray::number(statusNumber));
-
-            return true;
-        }
-    }
-
-    return false;
 }
