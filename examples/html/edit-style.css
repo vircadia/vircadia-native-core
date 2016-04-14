@@ -694,23 +694,13 @@ div.refresh input[type="button"] {
     clear: both;
 }
 
-.tuple {
-    width: 100%;
-    text-align: center;
-}
 .tuple div {
     display: inline-block;
     position: relative;
-    min-width: 124px;
-    min-height: 1px;
+    margin-right: 7px;
 }
-.tuple div:nth-child(1) {
-    float: left;
-}
-.tuple div:nth-child(2) {
-}
-.tuple div:nth-child(3) {
-    float: right;
+.tuple div:last-child {
+    margin-right: 0;
 }
 
 .tuple label {
@@ -775,8 +765,7 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
 .row .property {
     width: auto;
     display: inline-block;
-
-    margin-right: 12px;
+    margin-right: 7px;
 }
 .row .property:last-child {
     margin-right: 0;
