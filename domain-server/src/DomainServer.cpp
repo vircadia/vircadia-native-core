@@ -1046,6 +1046,7 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     // setup the domain object to send to the data server
     const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
     const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
+    const QString ICE_SERVER_ADDRESS = "ice_server_address";
 
     QJsonObject domainObject;
     if (!networkAddress.isEmpty()) {
@@ -1053,6 +1054,11 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     }
 
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
+
+    // if we're using full automatic networking and we have a current ice-server socket, use that now
+    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE && !_iceServerSocket.isNull()) {
+        domainObject[ICE_SERVER_ADDRESS] = _iceServerSocket.getAddress().toString();
+    }
 
     // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
     const QString RESTRICTED_ACCESS_FLAG = "restricted";
@@ -1079,7 +1085,7 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
 
     AccountManager::getInstance().sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
-                                              AccountManagerAuth::Required,
+                                              AccountManagerAuth::Optional,
                                               QNetworkAccessManager::PutOperation,
                                               JSONCallbackParameters(),
                                               domainUpdateJSON.toUtf8());
