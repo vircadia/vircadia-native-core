@@ -153,6 +153,7 @@ private:
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
     void resetResourceCounters();
+    void removeResource(const QUrl& url, qint64 size = 0);
 
     QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
