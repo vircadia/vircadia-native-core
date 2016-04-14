@@ -54,9 +54,6 @@ TextRenderer3D::TextRenderer3D(const char* family, float pointSize, int weight, 
     }
 }
 
-TextRenderer3D::~TextRenderer3D() {
-}
-
 glm::vec2 TextRenderer3D::computeExtent(const QString& str) const {
     if (_font) {
         return _font->computeExtent(str);
