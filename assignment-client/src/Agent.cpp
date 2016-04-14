@@ -195,6 +195,7 @@ void Agent::requestScript() {
         // then wait for the nodeConnected signal to fire off the request
 
         auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
         if (!assetServer || !assetServer->getActiveSocket()) {
             qDebug() << "Waiting to connect to Asset Server for ATP script download.";
             _pendingScriptRequest = request;
@@ -209,7 +210,7 @@ void Agent::requestScript() {
 }
 
 void Agent::nodeActivated(SharedNodePointer activatedNode) {
-    if (_pendingScriptRequest) {
+    if (_pendingScriptRequest && activatedNode->getType() == NodeType::AssetServer) {
         qInfo() << "Requesting script at URL" << qPrintable(_pendingScriptRequest->getUrl().toString());
 
         _pendingScriptRequest->send();
