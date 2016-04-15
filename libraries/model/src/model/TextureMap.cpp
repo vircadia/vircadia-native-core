@@ -150,8 +150,8 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
     QImage image = process2DImageColor(srcImage, validAlpha, alphaAsMask);
 
     gpu::Texture* theTexture = nullptr;
-    if ((image.width() > 0) && (image.height() > 0)) {
 
+    if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatGPU;
         gpu::Element formatMip;
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
@@ -171,6 +171,14 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 
         if (generateMips) {
             theTexture->autoGenerateMips(-1);
+            auto levels = theTexture->maxMip();
+            uvec2 size(image.width(), image.height());
+            for (uint8_t i = 1; i <= levels; ++i) {
+                size >>= 1;
+                size = glm::max(size, uvec2(1));
+                image = image.scaled(size.x, size.y, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+                theTexture->assignStoredMip(i, formatMip, image.byteCount(), image.constBits());
+            }
         }
     }
 
@@ -290,7 +298,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
