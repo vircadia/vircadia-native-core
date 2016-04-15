@@ -404,6 +404,10 @@ var toolBar = (function() {
             Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
 
+        selectionManager.clearSelections();
+        entityListTool.sendUpdate();
+        selectionManager.setSelections([entityID]);
+
         return entityID;
     }
 
