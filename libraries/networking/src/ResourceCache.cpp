@@ -255,7 +255,7 @@ void ResourceCache::resetResourceCounters() {
 }
 
 void ResourceCache::removeResource(const QUrl& url, qint64 size) {
-    QWriteLocker locker(&_unusedResourcesLock);
+    QWriteLocker locker(&_resourcesLock);
     _resources.remove(url);
     _totalResourcesSize -= size;
 }
