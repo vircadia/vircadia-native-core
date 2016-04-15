@@ -15,6 +15,8 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <PortableHighResolutionClock.h>
+
 #include <ThreadedAssignment.h>
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
@@ -44,15 +46,15 @@ private:
     
     QThread _broadcastThread;
     
-    quint64 _lastFrameTimestamp;
+    p_high_resolution_clock::time_point _lastFrameTimestamp;
     
-    float _trailingSleepRatio;
-    float _performanceThrottlingRatio;
+    float _trailingSleepRatio { 1.0f };
+    float _performanceThrottlingRatio { 0.0f };
     
-    int _sumListeners;
-    int _numStatFrames;
-    int _sumBillboardPackets;
-    int _sumIdentityPackets;
+    int _sumListeners { 0 };
+    int _numStatFrames { 0 };
+    int _sumBillboardPackets { 0 };
+    int _sumIdentityPackets { 0 };
 
     float _maxKbpsPerNode = 0.0f;
 
