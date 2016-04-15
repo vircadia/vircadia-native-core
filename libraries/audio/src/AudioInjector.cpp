@@ -365,17 +365,9 @@ void AudioInjector::stopAndDeleteLater() {
     QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
 }
 
-AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position) {
-    if (soundUrl.isEmpty()) {
-        return NULL;
-    }
-    auto soundCache = DependencyManager::get<SoundCache>();
-    if (soundCache.isNull()) {
-        return NULL;
-    }
-    SharedSoundPointer sound = soundCache->getSound(QUrl(soundUrl));
-    if (sound.isNull() || !sound->isReady()) {
-        return NULL;
+AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position) {
+    if (!sound || !sound->isReady()) {
+        return nullptr;
     }
 
     AudioInjectorOptions options;
@@ -385,7 +377,7 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
 
     QByteArray samples = sound->getByteArray();
     if (stretchFactor == 1.0f) {
-        return playSoundAndDelete(samples, options, NULL);
+        return playSoundAndDelete(samples, options, nullptr);
     }
 
     const int standardRate = AudioConstants::SAMPLE_RATE;

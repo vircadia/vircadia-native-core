@@ -16,6 +16,7 @@
 
 #include <SettingHandle.h>
 #include <Rig.h>
+#include <Sound.h>
 
 #include <controllers/Pose.h>
 
@@ -222,6 +223,8 @@ public:
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
 
+    SharedSoundPointer getCollisionSound();
+
     void clearScriptableSettings();
 
     float getBoomLength() const { return _boomLength; }
@@ -361,6 +364,8 @@ private:
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
+
+    SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
 
