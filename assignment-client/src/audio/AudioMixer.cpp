@@ -694,10 +694,8 @@ void AudioMixer::broadcastMixes() {
                     nodeList->sendPacket(std::move(mixPacket), *node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
-                    static const int FRAMES_PER_SECOND = int(ceilf(1.0f / AudioConstants::NETWORK_FRAME_SECS));
-
                     // send an audio stream stats packet to the client approximately every second
-                    if (nextFrame % FRAMES_PER_SECOND == 0) {
+                    if (nodeData->shouldSendStats(currentFrame++)) {
                         nodeData->sendAudioStreamStatsPackets(node);
                     }
 

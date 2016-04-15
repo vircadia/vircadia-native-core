@@ -58,6 +58,9 @@ public:
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
+    // uses randomization to have the AudioMixer send a stats packet to this node around every second
+    bool shouldSendStats(int frameNumber) { return frameNumber % _frameToSendStats == 0; }
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
@@ -72,6 +75,8 @@ private:
     quint16 _outgoingMixedAudioSequenceNumber;
 
     AudioStreamStats _downstreamAudioStreamStats;
+
+    int _frameToSendStats { 0 };
 };
 
 #endif // hifi_AudioMixerClientData_h
