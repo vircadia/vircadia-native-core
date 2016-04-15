@@ -29,7 +29,7 @@ void FrameTimingsScriptingInterface::finish() {
     _min = std::numeric_limits<uint64_t>::max();
     _max = std::numeric_limits<uint64_t>::lowest();
     size_t count = _values.size();
-    for (auto i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i) {
         const uint64_t& value = _values[i];
         _max = std::max(_max, value);
         _min = std::min(_min, value);
@@ -37,7 +37,7 @@ void FrameTimingsScriptingInterface::finish() {
     }
     _mean = (float)total / (float)count;
     float deviationTotal = 0;
-    for (auto i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i) {
         float deviation = _values[i] - _mean;
         deviationTotal += deviation*deviation;
     }
@@ -46,8 +46,8 @@ void FrameTimingsScriptingInterface::finish() {
 
 QVariantList FrameTimingsScriptingInterface::getValues() const {
     QVariantList result;
-    for (const auto& v : _values) {
-        result << v;
+    for (quint64 v : _values) {
+        result << QVariant(v);
     }
     return result;
 }

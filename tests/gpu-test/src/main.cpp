@@ -422,11 +422,10 @@ public:
             static const uint SHAPE_TEXTURES_OFFSET = sizeof(glm::vec4);
             static const gpu::Element POSITION_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
             static const gpu::Element TEXTURE_ELEMENT { gpu::VEC2, gpu::FLOAT, gpu::UV };
-            static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT16;
-            static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint16);
             std::vector<vec4> vertices;
             const int MINX = -1000;
             const int MAXX = 1000;
+
             // top
             vertices.push_back(vec4(MAXX, 0, MAXX, 1));
             vertices.push_back(vec4(MAXX, MAXX, 0, 0));
@@ -456,7 +455,6 @@ public:
             pipeline = gpu::Pipeline::create(shader, state);
             vertexFormat->setAttribute(gpu::Stream::POSITION);
             vertexFormat->setAttribute(gpu::Stream::TEXCOORD);
-
         });
         batch.setPipeline(pipeline);
         batch.setInputBuffer(gpu::Stream::POSITION, positionView);
