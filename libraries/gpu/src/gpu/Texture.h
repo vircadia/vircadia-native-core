@@ -260,7 +260,7 @@ public:
         Stamp bumpStamp() { return ++_stamp; }
     protected:
         Stamp _stamp = 0;
-        Texture* _texture = nullptr;
+        Texture* _texture = nullptr; // Points to the parent texture (not owned)
         Texture::Type _type = Texture::TEX_2D; // The type of texture is needed to know the number of faces to expect
         std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
 
