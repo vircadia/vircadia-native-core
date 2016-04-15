@@ -235,7 +235,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         image = image.convertToFormat(QImage::Format_RGB888);
     }
 
-    #if 1
     // PR 5540 by AlessandroSigna integrated here as a specialized TextureLoader for bumpmaps
     // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
     const double pStrength = 2.0;
@@ -285,8 +284,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             result.setPixel(i, j, qRgbValue);
         }
     }
-    #endif
-    
+
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
