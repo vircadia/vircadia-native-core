@@ -271,11 +271,12 @@ public slots:
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
 
+    void resetPhysicsReadyInformation();
+
     void reloadResourceCaches();
 
     void updateHeartbeat() const;
 
-    static void crashApplication();
     static void deadlockApplication();
 
     void rotationModeChanged() const;
@@ -514,7 +515,11 @@ private:
     std::map<void*, std::function<void()>> _preRenderLambdas;
     std::mutex _preRenderLambdasLock;
 
-    std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
+    std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
+    uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
+    uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
+    uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
 

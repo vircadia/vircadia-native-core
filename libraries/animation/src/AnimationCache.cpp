@@ -22,6 +22,7 @@ AnimationCache::AnimationCache(QObject* parent) :
 {
     const qint64 ANIMATION_DEFAULT_UNUSED_MAX_SIZE = 50 * BYTES_PER_MEGABYTES;
     setUnusedResourceCacheSize(ANIMATION_DEFAULT_UNUSED_MAX_SIZE);
+    setObjectName("AnimationCache");
 }
 
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
