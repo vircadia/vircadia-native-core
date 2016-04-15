@@ -20,6 +20,7 @@
 
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
+#include "NodeList.h"
 
 #include "ResourceCache.h"
 
@@ -27,21 +28,63 @@
                            (((x) > (max)) ? (max) :\
                                             (x)))
 
-ResourceCache::ResourceCache(QObject* parent) :
-    QObject(parent) {    
+ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
+    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
+            this, &ResourceCache::clearATPAssets, Qt::DirectConnection);
 }
 
 ResourceCache::~ResourceCache() {
     clearUnusedResource();
 }
 
+void ResourceCache::clearATPAssets() {
+    {
+        QWriteLocker locker(&_resourcesLock);
+        for (auto& url : _resources.keys()) {
+            // If this is an ATP resource
+            if (url.scheme() == URL_SCHEME_ATP) {
+
+                // Remove it from the resource hash
+                auto resource = _resources.take(url);
+                if (auto strongRef = resource.lock()) {
+                    // Make sure the resource won't reinsert itself
+                    strongRef->setCache(nullptr);
+                }
+            }
+        }
+    }
+    {
+        QWriteLocker locker(&_unusedResourcesLock);
+        for (auto& resource : _unusedResources.values()) {
+            if (resource->getURL().scheme() == URL_SCHEME_ATP) {
+                _unusedResources.remove(resource->getLRUKey());
+            }
+        }
+    }
+    {
+        QWriteLocker locker(&_resourcesToBeGottenLock);
+        for (auto& url : _resourcesToBeGotten) {
+            if (url.scheme() == URL_SCHEME_ATP) {
+                _resourcesToBeGotten.removeAll(url);
+            }
+        }
+    }
+
+
+}
+
 void ResourceCache::refreshAll() {
     // Clear all unused resources so we don't have to reload them
     clearUnusedResource();
     resetResourceCounters();
-    
+
+    _resourcesLock.lockForRead();
+    auto resourcesCopy = _resources;
+    _resourcesLock.unlock();
+
     // Refresh all remaining resources in use
-    foreach (QSharedPointer<Resource> resource, _resources) {
+    foreach (QSharedPointer<Resource> resource, resourcesCopy) {
         if (resource) {
             resource->refresh();
         }
@@ -49,10 +92,16 @@ void ResourceCache::refreshAll() {
 }
 
 void ResourceCache::refresh(const QUrl& url) {
-    QSharedPointer<Resource> resource = _resources.value(url);
-    if (!resource.isNull()) {
+    QSharedPointer<Resource> resource;
+    {
+        QReadLocker locker(&_resourcesLock);
+        resource = _resources.value(url).lock();
+    }
+
+    if (resource) {
         resource->refresh();
     } else {
+        QWriteLocker locker(&_resourcesLock);
         _resources.remove(url);
         resetResourceCounters();
     }
@@ -103,8 +152,12 @@ void ResourceCache::checkAsynchronousGets() {
 
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
                                                     bool delayLoad, void* extra) {
-    QSharedPointer<Resource> resource = _resources.value(url);
-    if (!resource.isNull()) {
+    QSharedPointer<Resource> resource;
+    {
+        QReadLocker locker(&_resourcesLock);
+        resource = _resources.value(url).lock();
+    }
+    if (resource) {
         removeUnusedResource(resource);
         return resource;
     }
@@ -123,7 +176,10 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
                               getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
     resource->setSelf(resource);
     resource->setCache(this);
-    _resources.insert(url, resource);
+    {
+        QWriteLocker locker(&_resourcesLock);
+        _resources.insert(url, resource);
+    }
     removeUnusedResource(resource);
     resource->ensureLoading();
 
@@ -150,13 +206,16 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     reserveUnusedResource(resource->getBytes());
     
     resource->setLRUKey(++_lastLRUKey);
-    _unusedResources.insert(resource->getLRUKey(), resource);
     _unusedResourcesSize += resource->getBytes();
 
     resetResourceCounters();
+
+    QWriteLocker locker(&_unusedResourcesLock);
+    _unusedResources.insert(resource->getLRUKey(), resource);
 }
 
 void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resource) {
+    QWriteLocker locker(&_unusedResourcesLock);
     if (_unusedResources.contains(resource->getLRUKey())) {
         _unusedResources.remove(resource->getLRUKey());
         _unusedResourcesSize -= resource->getBytes();
@@ -165,6 +224,7 @@ void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resourc
 }
 
 void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
+    QWriteLocker locker(&_unusedResourcesLock);
     while (!_unusedResources.empty() &&
            _unusedResourcesSize + resourceSize > _unusedResourcesMaxSize) {
         // unload the oldest resource
@@ -184,6 +244,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
 void ResourceCache::clearUnusedResource() {
     // the unused resources may themselves reference resources that will be added to the unused
     // list on destruction, so keep clearing until there are no references left
+    QWriteLocker locker(&_unusedResourcesLock);
     while (!_unusedResources.isEmpty()) {
         foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
             resource->setCache(nullptr);
@@ -450,6 +511,7 @@ void Resource::setSize(const qint64& bytes) {
 }
 
 void Resource::reinsert() {
+    QWriteLocker locker(&_cache->_resourcesLock);
     _cache->_resources.insert(_url, _self);
 }
 

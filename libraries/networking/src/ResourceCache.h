@@ -123,6 +123,9 @@ public slots:
 protected slots:
     void updateTotalSize(const qint64& oldSize, const qint64& newSize);
 
+private slots:
+    void clearATPAssets();
+
 protected:
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
@@ -151,6 +154,7 @@ private:
     void clearUnusedResource();
     void resetResourceCounters();
 
+    QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
     QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
     
@@ -158,7 +162,7 @@ private:
     static int _requestsActive;
 
     void getResourceAsynchronously(const QUrl& url);
-    QReadWriteLock _resourcesToBeGottenLock;
+    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
     QQueue<QUrl> _resourcesToBeGotten;
     
     std::atomic<size_t> _numTotalResources { 0 };
@@ -168,6 +172,7 @@ private:
     std::atomic<qint64> _unusedResourcesSize { 0 };
 
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
+    QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
     QMap<int, QSharedPointer<Resource>> _unusedResources;
 };
 
