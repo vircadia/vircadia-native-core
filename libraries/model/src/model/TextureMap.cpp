@@ -198,18 +198,8 @@ gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImag
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
 
-  /*  if (image.format() != QImage::Format_RGB888) {
+    if (image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
-    }*/
-
-    if (!image.hasAlphaChannel()) {
-        if (image.format() != QImage::Format_RGB888) {
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
-    } else {
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
     }
 
     gpu::Texture* theTexture = nullptr;
@@ -217,11 +207,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-
-        if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::BGRA);
-        }
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
@@ -246,10 +231,12 @@ double mapComponent(double sobelValue) {
 gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     
+    if (image.format() != QImage::Format_RGB888) {
+        image = image.convertToFormat(QImage::Format_RGB888);
+    }
 
-    #if 0
-    // PR 5540 by AlessandroSigna
-    // integrated here as a specialized TextureLoader for bumpmaps
+    #if 1
+    // PR 5540 by AlessandroSigna integrated here as a specialized TextureLoader for bumpmaps
     // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
     const double pStrength = 2.0;
     int width = image.width();
