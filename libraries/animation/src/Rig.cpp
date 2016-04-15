@@ -20,6 +20,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
+#include <ScriptValueUtils.h>
 #include <shared/NsightHelpers.h>
 
 #include "AnimationLogging.h"
@@ -781,24 +782,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastFront = front;
     _lastPosition = worldPosition;
     _lastVelocity = workingVelocity;
-}
-
-static bool isListOfStrings(const QScriptValue& arg) {
-    if (!arg.isArray())
-        return false;
-
-    auto lengthProperty = arg.property("length");
-    if (!lengthProperty.isNumber())
-        return false;
-
-    int length = lengthProperty.toInt32();
-    for (int i = 0; i < length; i++) {
-        if (!arg.property(i).isString()) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 // Allow script to add/remove handlers and report results, from within their thread.
