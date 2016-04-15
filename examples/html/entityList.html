@@ -281,13 +281,21 @@
                   // Take up available window space
                   elEntityTableScroll.style.height = window.innerHeight - 207;
 
-                  // Update the widths of the header cells to match the body
                   var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
                   var ths = document.querySelectorAll("#entity-table thead th");
                   if (tds.length >= ths.length) {
+                      // Update the widths of the header cells to match the body
                       for (var i = 0; i < ths.length; i++) {
                           ths[i].width = tds[i].offsetWidth;
                       }
+                  } else {
+                      // Reasonable widths if nothing is displayed
+                      var tableWidth = document.getElementById("entity-table").offsetWidth;
+                      ths[0].width = 0.16 * tableWidth;
+                      ths[1].width = 0.34 * tableWidth;
+                      ths[2].width = 0.34 * tableWidth;
+                      ths[3].width = 0.08 * tableWidth;
+                      ths[4].width = 0.08 * tableWidth;
                   }
               };
 
