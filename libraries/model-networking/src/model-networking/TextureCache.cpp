@@ -34,6 +34,7 @@
 TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
+    setObjectName("TextureCache");
 }
 
 TextureCache::~TextureCache() {
