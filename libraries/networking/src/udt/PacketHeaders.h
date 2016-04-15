@@ -93,7 +93,8 @@ public:
         MessagesUnsubscribe,
         ICEServerHeartbeatDenied,
         AssetMappingOperation,
-        AssetMappingOperationReply
+        AssetMappingOperationReply,
+        ICEServerHeartbeatACK
     };
 };
 

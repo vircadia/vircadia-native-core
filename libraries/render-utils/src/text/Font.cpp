@@ -47,15 +47,15 @@ struct QuadBuilder {
 
 
 
-static QHash<QString, Font*> LOADED_FONTS;
+static QHash<QString, Font::Pointer> LOADED_FONTS;
 
-Font* Font::load(QIODevice& fontFile) {
-    Font* result = new Font();
-    result->read(fontFile);
-    return result;
+Font::Pointer Font::load(QIODevice& fontFile) {
+    Pointer font = std::make_shared<Font>();
+    font->read(fontFile);
+    return font;
 }
 
-Font* Font::load(const QString& family) {
+Font::Pointer Font::load(const QString& family) {
     if (!LOADED_FONTS.contains(family)) {
 
         static const QString SDFF_COURIER_PRIME_FILENAME{ ":/CourierPrime.sdff" };

@@ -289,13 +289,28 @@ public:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
-    enum class UserAnimState {
-        None = 0,
-        A,
-        B
+
+    struct UserAnimState {
+        enum ClipNodeEnum {
+            None = 0,
+            A,
+            B
+        };
+
+        UserAnimState() : clipNodeEnum(UserAnimState::None) {}
+        UserAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
     };
-    UserAnimState _userAnimState { UserAnimState::None };
-    QString _currentUserAnimURL;
+
+    UserAnimState _userAnimState;
+
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
 

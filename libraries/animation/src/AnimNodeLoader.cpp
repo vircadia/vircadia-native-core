@@ -568,12 +568,13 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 }
 
 AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
-    _url(url),
-    _resource(nullptr) {
-
-    _resource = new Resource(url);
-    connect(_resource, &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
-    connect(_resource, &Resource::failed, this, &AnimNodeLoader::onRequestError);
+    _url(url)
+{
+    _resource = QSharedPointer<Resource>::create(url);
+    _resource->setSelf(_resource);
+    connect(_resource.data(), &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
+    connect(_resource.data(), &Resource::failed, this, &AnimNodeLoader::onRequestError);
+    _resource->ensureLoading();
 }
 
 AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& jsonUrl) {
