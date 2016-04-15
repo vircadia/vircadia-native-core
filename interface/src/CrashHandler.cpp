@@ -27,33 +27,45 @@
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 
-bool CrashHandler::checkForAndHandleCrash() {
+bool CrashHandler::checkForResetSettings() {
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings settings;
+    settings.beginGroup("Developer");
+    QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
+    QVariant askToResetSettingsOption = settings.value(MenuOption::AskToResetSettings);
+    settings.endGroup();
+    bool askToResetSettings = askToResetSettingsOption.isValid() && askToResetSettingsOption.toBool();
+
+    // If option does not exist in Interface.ini so assume default behavior.
+    bool displaySettingsResetOnCrash = !displayCrashOptions.isValid() || displayCrashOptions.toBool();
+
     QFile runningMarkerFile(runningMarkerFilePath());
-    if (runningMarkerFile.exists()) {
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings settings;
-        settings.beginGroup("Developer");
-        QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
-        settings.endGroup();
-        if (!displayCrashOptions.isValid()  // Option does not exist in Interface.ini so assume default behavior.
-            || displayCrashOptions.toBool()) {
-            Action action = promptUserForAction();
+    bool wasLikelyCrash = runningMarkerFile.exists();
+
+    if (wasLikelyCrash || askToResetSettings) {
+        if (displaySettingsResetOnCrash || askToResetSettings) {
+            Action action = promptUserForAction(wasLikelyCrash);
             if (action != DO_NOTHING) {
                 handleCrash(action);
             }
         }
-        return true;
     }
-    return false;
+    return wasLikelyCrash;
 }
 
-CrashHandler::Action CrashHandler::promptUserForAction() {
+CrashHandler::Action CrashHandler::promptUserForAction(bool showCrashMessage) {
     QDialog crashDialog;
-    crashDialog.setWindowTitle("Interface Crashed Last Run");
+    QLabel* label;
+    if (showCrashMessage) {
+        crashDialog.setWindowTitle("Interface Crashed Last Run");
+        label = new QLabel("If you are having trouble starting would you like to reset your settings?");
+    } else {
+        crashDialog.setWindowTitle("Reset Settings");
+        label = new QLabel("Would you like to reset your settings?");
+    }
 
     QVBoxLayout* layout = new QVBoxLayout;
 
-    QLabel* label = new QLabel("If you are having trouble starting would you like to reset your settings?");
     layout->addWidget(label);
 
     QRadioButton* option1 = new QRadioButton("Reset all my settings");

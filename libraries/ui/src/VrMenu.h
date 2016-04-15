@@ -24,8 +24,7 @@
 class VrMenu : public QObject {
     Q_OBJECT
 public:
-    static void executeOrQueue(std::function<void(VrMenu*)> f);
-    VrMenu(QObject* parent = nullptr);
+    VrMenu(OffscreenUi* parent = nullptr);
     void addMenu(QMenu* menu);
     void addAction(QMenu* parent, QAction* action);
     void addSeparator(QMenu* parent);
@@ -36,8 +35,9 @@ protected:
     QObject* _rootMenu{ nullptr };
     QObject* findMenuObject(const QString& name);
 
-    static VrMenu* _instance;
     friend class MenuUserData;
+    friend class OffscreenUi;
+    const unsigned int _userDataId { QObject::registerUserData() };
 };
 
 #endif // hifi_VrMenu_h

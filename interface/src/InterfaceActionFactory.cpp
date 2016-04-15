@@ -14,6 +14,7 @@
 #include <avatar/AvatarActionHold.h>
 #include <ObjectActionOffset.h>
 #include <ObjectActionSpring.h>
+#include <LogHandler.h>
 
 #include "InterfaceActionFactory.h"
 
@@ -66,6 +67,8 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEnt
     if (action) {
         action->deserialize(data);
         if (action->lifetimeIsOver()) {
+            static QString repeatedMessage =
+                LogHandler::getInstance().addRepeatedMessageRegex(".*factoryBA lifetimeIsOver during action creation.*");
             qDebug() << "InterfaceActionFactory::factoryBA lifetimeIsOver during action creation --"
                      << action->getExpires() << "<" << usecTimestampNow();
             return nullptr;

@@ -110,6 +110,9 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     }
     Q_ASSERT(request);
 
+    if (parent) {
+        QObject::connect(parent, &QObject::destroyed, request, &QObject::deleteLater);
+    }
     request->moveToThread(&_thread);
     return request;
 }

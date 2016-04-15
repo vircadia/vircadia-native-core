@@ -229,8 +229,8 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
 glm::vec2 getFacingDir2D(const glm::quat& rot);
 glm::vec2 getFacingDir2D(const glm::mat4& m);
 
-bool isNaN(glm::vec3 value);
-bool isNaN(glm::quat value);
+inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
+inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
 
 glm::mat4 orthoInverse(const glm::mat4& m);
 

@@ -62,21 +62,20 @@ class ResourceCacheSharedItems : public Dependency  {
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 public:
-    void appendPendingRequest(Resource* newRequest);
-    void appendActiveRequest(Resource* newRequest);
-    void removeRequest(Resource* doneRequest);
-    QList<QPointer<Resource>> getPendingRequests() const;
+    void appendPendingRequest(QWeakPointer<Resource> newRequest);
+    void appendActiveRequest(QWeakPointer<Resource> newRequest);
+    void removeRequest(QWeakPointer<Resource> doneRequest);
+    QList<QSharedPointer<Resource>> getPendingRequests();
     uint32_t getPendingRequestsCount() const;
-    QList<Resource*> getLoadingRequests() const;
-    Resource* getHighestPendingRequest();
+    QList<QSharedPointer<Resource>> getLoadingRequests();
+    QSharedPointer<Resource> getHighestPendingRequest();
 
 private:
-    ResourceCacheSharedItems() { }
-    virtual ~ResourceCacheSharedItems() { }
+    ResourceCacheSharedItems() = default;
 
     mutable Mutex _mutex;
-    QList<QPointer<Resource>> _pendingRequests;
-    QList<Resource*> _loadingRequests;
+    QList<QWeakPointer<Resource>> _pendingRequests;
+    QList<QWeakPointer<Resource>> _loadingRequests;
 };
 
 
@@ -105,13 +104,11 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*> getLoadingRequests() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests(); }
+    static QList<QSharedPointer<Resource>> getLoadingRequests();
 
-    static int getPendingRequestCount() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount(); }
+    static int getPendingRequestCount();
 
-    ResourceCache(QObject* parent = NULL);
+    ResourceCache(QObject* parent = nullptr);
     virtual ~ResourceCache();
     
     void refreshAll();
@@ -146,8 +143,8 @@ protected:
     
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
-    static bool attemptRequest(Resource* resource);
-    static void requestCompleted(Resource* resource);
+    static bool attemptRequest(QSharedPointer<Resource> resource);
+    static void requestCompleted(QWeakPointer<Resource> resource);
     static bool attemptHighestPriorityRequest();
 
 private:

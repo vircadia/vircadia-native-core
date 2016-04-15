@@ -46,6 +46,7 @@ private slots:
 
 private:
     GeometryResource::Pointer _geometryResource;
+    QMetaObject::Connection _connection;
 };
 
 void GeometryMappingResource::downloadFinished(const QByteArray& data) {
@@ -77,21 +78,28 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         if (_geometryResource->isLoaded()) {
             onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
         } else {
-            connect(_geometryResource.data(), &Resource::finished, this, &GeometryMappingResource::onGeometryMappingLoaded);
+            if (_connection) {
+                disconnect(_connection);
+            }
+
+            _connection = connect(_geometryResource.data(), &Resource::finished,
+                                  this, &GeometryMappingResource::onGeometryMappingLoaded);
         }
     }
 }
 
 void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
-    if (success) {
+    if (success && _geometryResource) {
         _geometry = _geometryResource->_geometry;
         _shapes = _geometryResource->_shapes;
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
-    }
 
-    // Avoid holding onto extra references
-    _geometryResource.reset();
+        // Avoid holding onto extra references
+        _geometryResource.reset();
+        // Make sure connection will not trigger again
+        disconnect(_connection); // FIXME Should not have to do this
+    }
 
     finishedLoading(success);
 }

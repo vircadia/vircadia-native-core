@@ -28,11 +28,10 @@
 
 class QNetworkReply;
 
-class IceServer : public QCoreApplication, public HTTPRequestHandler {
+class IceServer : public QCoreApplication {
     Q_OBJECT
 public:
     IceServer(int argc, char* argv[]);
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
 private slots:
     void clearInactivePeers();
     void publicKeyReplyFinished(QNetworkReply* reply);
@@ -52,13 +51,11 @@ private:
     using NetworkPeerHash = QHash<QUuid, SharedNetworkPeer>;
     NetworkPeerHash _activePeers;
 
-    HTTPManager _httpManager;
-
     using RSAUniquePtr = std::unique_ptr<RSA, std::function<void(RSA*)>>;
     using DomainPublicKeyHash = std::unordered_map<QUuid, RSAUniquePtr>;
     DomainPublicKeyHash _domainPublicKeys;
 
-    quint64 _lastInactiveCheckTimestamp;
+    QSet<QUuid> _pendingPublicKeyRequests;
 };
 
 #endif // hifi_IceServer_h
