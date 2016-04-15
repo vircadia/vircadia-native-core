@@ -23,6 +23,7 @@ var OVERLAY_DATA = {
     color: {red: 255, green: 255, blue: 255},
     alpha: 1
 };
+var AVATAR_MOVE_FOR_ACTIVE_DISTANCE = 0.8; // meters -- no longer away if avatar moves this far while away
 
 var lastOverlayPosition = { x: 0, y: 0, z: 0};
 var OVERLAY_DATA_HMD = {
@@ -150,11 +151,18 @@ function maybeMoveOverlay() {
     }
 }
 
+function ifAvatarMovedGoActive() {
+    if (Vec3.distance(MyAvatar.position, avatarPosition) > AVATAR_MOVE_FOR_ACTIVE_DISTANCE) {
+        goActive();
+    }
+}
+
 // MAIN CONTROL
 var wasMuted, isAway;
 var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
 var eventMapping = Controller.newMapping(eventMappingName);
+var avatarPosition = MyAvatar.position;
 
 // backward compatible version of getting HMD.mounted, so it works in old clients
 function safeGetHMDMounted() {
@@ -169,6 +177,7 @@ function goAway() {
     if (isAway) {
         return;
     }
+
     isAway = true;
     print('going "away"');
     wasMuted = AudioDevice.getMuted();
@@ -191,6 +200,9 @@ function goAway() {
         Reticle.visible = false;
     }
     wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+
+    avatarPosition = MyAvatar.position;
+    Script.update.connect(ifAvatarMovedGoActive);
 }
 
 function goActive() {
@@ -216,6 +228,8 @@ function goActive() {
         Reticle.position = HMD.getHUDLookAtPosition2D();
     }
     wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+
+    Script.update.disconnect(ifAvatarMovedGoActive);
 }
 
 function maybeGoActive(event) {
