@@ -1522,7 +1522,8 @@ PropertiesTool = function(opts) {
                         data.properties.keyLight.direction.x * DEGREES_TO_RADIANS, data.properties.keyLight.direction.y * DEGREES_TO_RADIANS);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
-                if (data.properties.name != undefined) {
+                if (data.properties.name !== undefined || data.properties.modelURL !== undefined
+                    || data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
             }

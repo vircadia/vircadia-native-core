@@ -114,10 +114,10 @@
               }
               
               function addEntity(id, name, type, url, locked, visible) {
+                  var urlParts = url.split('/');
+                  var filename = urlParts[urlParts.length - 1];
+
                   if (entities[id] === undefined) {
-                      var urlParts = url.split('/');
-                      var filename = urlParts[urlParts.length - 1];
-              
                       entityList.add([{ id: id, name: name, type: type, url: filename, locked: locked, visible: visible }],
                           function (items) {
                               var currentElement = items[0].elm;
@@ -141,7 +141,7 @@
                       refreshEntityListTimer = setTimeout(refreshEntityListObject, 50);
                   } else {
                       var item = entities[id].item;
-                      item.values({ name: name, url: url, locked: locked, visible: visible });
+                      item.values({ name: name, url: filename, locked: locked, visible: visible });
                   }
               }
               
