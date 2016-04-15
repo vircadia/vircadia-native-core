@@ -64,9 +64,12 @@ void ResourceCache::clearATPAssets() {
     }
     {
         QWriteLocker locker(&_resourcesToBeGottenLock);
-        for (auto& url : _resourcesToBeGotten) {
-            if (url.scheme() == URL_SCHEME_ATP) {
-                _resourcesToBeGotten.removeAll(url);
+        auto it = _resourcesToBeGotten.begin();
+        while (it != _resourcesToBeGotten.end()) {
+            if (it->scheme() == URL_SCHEME_ATP) {
+                it = _resourcesToBeGotten.erase(it);
+            } else {
+                ++it;
             }
         }
     }
