@@ -497,7 +497,8 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!normalName.isEmpty()) {
         auto url = textureMap.contains(normalName) ? textureMap[normalName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
+      //  auto map = fetchTextureMap(url, NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
+        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::NORMAL_MAP);
         setTextureMap(MapChannel::NORMAL_MAP, map);
     }
 
