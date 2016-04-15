@@ -20,7 +20,6 @@
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
-        _sessionID(),
         _myAvatarController(nullptr) {
 }
 
@@ -50,6 +49,13 @@ void PhysicsEngine::init() {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+
+        // By default Bullet will update the Aabb's of all objects every frame, even statics.
+        // This can waste CPU cycles so we configure Bullet to only update ACTIVE objects here.
+        // However, this means when a static object is moved we must manually update its Aabb
+        // in order for its broadphase collision queries to work correctly. Look at how we use
+        // _activeStaticBodies to track and update the Aabb's of moved static objects.
+        _dynamicsWorld->setForceUpdateAllAabbs(false);
     }
 }
 
@@ -189,12 +195,18 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
                 stillNeedChange.push_back(object);
             }
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleEasyChanges(flags)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                stillNeedChange.push_back(object);
-            }
+            object->handleEasyChanges(flags);
+            object->clearIncomingDirtyFlags();
         }
+        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
+            _activeStaticBodies.push_back(object->getRigidBody());
+        }
+    }
+    // active static bodies have changed (in an Easy way) and need their Aabbs updated
+    // but we've configured Bullet to NOT update them automatically (for improved performance)
+    // so we must do it ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
     }
     return stillNeedChange;
 }
@@ -286,20 +298,20 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
     if (motionStateB &&
-        ((motionStateA && motionStateA->getSimulatorID() == _sessionID && !objectA->isStaticObject()) ||
+        ((motionStateA && motionStateA->getSimulatorID() == Physics::getSessionUUID() && !objectA->isStaticObject()) ||
          (objectA == characterObject))) {
         // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
-        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != _sessionID) {
+        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != Physics::getSessionUUID()) {
             quint8 priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateB->bump(priorityA);
         }
     } else if (motionStateA &&
-               ((motionStateB && motionStateB->getSimulatorID() == _sessionID && !objectB->isStaticObject()) ||
+               ((motionStateB && motionStateB->getSimulatorID() == Physics::getSessionUUID() && !objectB->isStaticObject()) ||
                 (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
-        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != _sessionID) {
+        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != Physics::getSessionUUID()) {
             quint8 priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateA->bump(priorityB);
         }
@@ -333,7 +345,7 @@ void PhysicsEngine::updateContactMap() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
-            if (!_sessionID.isNull()) {
+            if (!Physics::getSessionUUID().isNull()) {
                 doOwnershipInfection(objectA, objectB);
             }
         }
@@ -388,6 +400,12 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
 
 const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
+    // Bullet will not deactivate static objects (it doesn't expect them to be active)
+    // so we must deactivate them ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _activeStaticBodies[i]->forceActivationState(ISLAND_SLEEPING);
+    }
+    _activeStaticBodies.clear();
     _dynamicsWorld->synchronizeMotionStates();
     _hasOutgoingChanges = false;
     return _dynamicsWorld->getChangedMotionStates();
