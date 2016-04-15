@@ -35,49 +35,26 @@ var OVERLAY_DATA_HMD = {
     alpha: 1,
     scale: 2,
     isFacingAvatar: true,
-    drawInFront: true   
+    drawInFront: true
 };
 
-// ANIMATION
-// We currently don't have play/stopAnimation integrated with the animation graph, but we can get the same effect
-// using an animation graph with a state that we turn on and off through the animation var defined with that state.
-var awayAnimationHandlerId, activeAnimationHandlerId, stopper;
+var AWAY_INTRO = {
+    url: "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/kneel.fbx",
+    playbackRate: 30.0,
+    loopFlag: false,
+    startFrame: 0.0,
+    endFrame: 83.0
+};
+
+// prefetch the kneel animation so it's resident in memory when we need it.
+MyAvatar.prefetchAnimation(AWAY_INTRO.url);
+
 function playAwayAnimation() {
-    function animateAway() {
-        return {isAway: true, isNotAway: false, isNotMoving: false, ikOverlayAlpha: 0.0};
-    }
-    if (stopper) {
-        stopper = false;
-        MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); // do it now, before making new assignment
-    }
-    awayAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateAway, null);
+    MyAvatar.overrideAnimation(AWAY_INTRO.url, AWAY_INTRO.playbackRate, AWAY_INTRO.loopFlag, AWAY_INTRO.startFrame, AWAY_INTRO.endFrame);
 }
+
 function stopAwayAnimation() {
-    MyAvatar.removeAnimationStateHandler(awayAnimationHandlerId);
-    if (stopper) {
-        print('WARNING: unexpected double stop');
-        return;
-    }
-    // How do we know when to turn ikOverlayAlpha back on?
-    // It cannot be as soon as we want to stop the away animation, because then things will look goofy as we come out of that animation.
-    // (Imagine an away animation that sits or kneels, and then stands back up when coming out of it. If head is at the HMD, then it won't
-    //  want to track the standing up animation.)
-    // The anim graph will trigger awayOutroOnDone when awayOutro is finished.
-    var backToNormal = false;
-    stopper = true;
-    function animateActive(state) {
-        if (state.awayOutroOnDone) {
-            backToNormal = true;
-            stopper = false;
-        } else if (state.ikOverlayAlpha) {
-            // Once the right state gets reflected back to us, we don't need the hander any more.
-            // But we are locked against handler changes during the execution of a handler, so remove asynchronously.
-            Script.setTimeout(function () { MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); }, 0);
-        }
-        // It might be cool to "come back to life" by fading the ik overlay back in over a short time. But let's see how this goes.
-        return {isAway: false, isNotAway: true, ikOverlayAlpha: backToNormal ? 1.0 : 0.0}; // IWBNI we had a way of deleting an anim var.
-    }
-    activeAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateActive, ['ikOverlayAlpha', 'awayOutroOnDone']);
+    MyAvatar.restoreAnimation();
 }
 
 // OVERLAY
@@ -113,15 +90,17 @@ function showOverlay() {
         var screen = Controller.getViewportDimensions();
 
         // keep the overlay it's natural size and always center it...
-        Overlays.editOverlay(overlay, { visible: true, 
-                    x: ((screen.x - OVERLAY_WIDTH) / 2), 
+        Overlays.editOverlay(overlay, { visible: true,
+                    x: ((screen.x - OVERLAY_WIDTH) / 2),
                     y: ((screen.y - OVERLAY_HEIGHT) / 2) });
     }
 }
+
 function hideOverlay() {
     Overlays.editOverlay(overlay, {visible: false});
     Overlays.editOverlay(overlayHMD, {visible: false});
 }
+
 hideOverlay();
 
 function maybeMoveOverlay() {
@@ -171,6 +150,7 @@ function safeGetHMDMounted() {
     }
     return HMD.mounted;
 }
+
 var wasHmdMounted = safeGetHMDMounted();
 
 function goAway() {
@@ -277,7 +257,7 @@ Script.update.connect(maybeGoAway);
 Controller.mousePressEvent.connect(goActive);
 Controller.keyPressEvent.connect(maybeGoActive);
 // Note peek() so as to not interfere with other mappings.
-eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive); 
+eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(goActive);
