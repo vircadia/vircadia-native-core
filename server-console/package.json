@@ -9,8 +9,8 @@
   ],
   "devDependencies": {
     "electron-compilers": "^1.0.1",
-    "electron-packager": "^5.2.1",
-    "electron-prebuilt": "0.35.4"
+    "electron-packager": "^6.0.2",
+    "electron-prebuilt": "0.37.5"
   },
   "repository": {
     "type": "git",
@@ -30,9 +30,9 @@
     "fs-extra": "^0.26.4",
     "node-notifier": "^4.4.0",
     "os-homedir": "^1.0.1",
-    "request": "2.67.0",
+    "request": "^2.67.0",
     "request-progress": "1.0.2",
-    "unzip": "0.1.11",
+    "tar-fs": "^1.12.0",
     "yargs": "^3.30.0"
   }
 }

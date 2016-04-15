@@ -386,6 +386,11 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 }
 
 void OpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
+    if (_lockCurrentTexture) {
+        _container->releaseSceneTexture(sceneTexture);
+        return;
+    }
+
     {
         Lock lock(_mutex);
         _sceneTextureToFrameIndexMap[sceneTexture] = frameIndex;
@@ -424,9 +429,9 @@ void OpenGLDisplayPlugin::updateTextures() {
 
 void OpenGLDisplayPlugin::updateFrameData() {
     Lock lock(_mutex);
-    auto previousFrameIndex = _currentRenderFrameIndex;
-    _currentRenderFrameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
-    auto skippedCount = (_currentRenderFrameIndex - previousFrameIndex) - 1;
+    auto previousFrameIndex = _currentPresentFrameIndex;
+    _currentPresentFrameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
+    auto skippedCount = (_currentPresentFrameIndex - previousFrameIndex) - 1;
     _droppedFrameRate.increment(skippedCount);
 }
 
@@ -435,6 +440,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
+    useProgram(_program);
     // check the alpha
     auto overlayAlpha = compositorHelper->getAlpha();
     if (overlayAlpha > 0.0f) {
@@ -461,6 +467,7 @@ void OpenGLDisplayPlugin::compositePointer() {
     using namespace oglplus;
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
+    useProgram(_program);
     // check the alpha
     auto overlayAlpha = compositorHelper->getAlpha();
     if (overlayAlpha > 0.0f) {
@@ -481,6 +488,13 @@ void OpenGLDisplayPlugin::compositePointer() {
     Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
+void OpenGLDisplayPlugin::compositeScene() {
+    using namespace oglplus;
+    useProgram(_program);
+    Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+    drawUnitQuad();
+}
+
 void OpenGLDisplayPlugin::compositeLayers() {
     using namespace oglplus;
     auto targetRenderSize = getRecommendedRenderSize();
@@ -492,9 +506,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
         Context::Viewport(targetRenderSize.x, targetRenderSize.y);
         Context::Clear().DepthBuffer();
         glBindTexture(GL_TEXTURE_2D, getSceneTextureId());
-        _program->Bind();
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
-        drawUnitQuad();
+        compositeScene();
         auto overlayTextureId = getOverlayTextureId();
         if (overlayTextureId) {
             glEnable(GL_BLEND);
@@ -540,6 +552,7 @@ void OpenGLDisplayPlugin::present() {
         // Take the composite framebuffer and send it to the output device
         internalPresent();
         _presentRate.increment();
+        _activeProgram.reset();
     }
 }
 
@@ -556,7 +569,7 @@ float OpenGLDisplayPlugin::presentRate() const {
 }
 
 void OpenGLDisplayPlugin::drawUnitQuad() {
-    _program->Bind();
+    useProgram(_program);
     _plane->Use();
     _plane->Draw();
 }
@@ -654,4 +667,11 @@ glm::uvec2 OpenGLDisplayPlugin::getSurfaceSize() const {
 bool OpenGLDisplayPlugin::hasFocus() const {
     auto window = _container->getPrimaryWidget();
     return window ? window->hasFocus() : false;
+}
+
+void OpenGLDisplayPlugin::useProgram(const ProgramPtr& program) {
+    if (_activeProgram != program) {
+        program->Bind();
+        _activeProgram = program;
+    }
 }

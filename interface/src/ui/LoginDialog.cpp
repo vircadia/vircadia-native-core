@@ -34,16 +34,19 @@ void LoginDialog::toggleAction() {
     AccountManager& accountManager = AccountManager::getInstance();
     QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
     Q_CHECK_PTR(loginAction);
-    disconnect(loginAction, 0, 0, 0);
+    static QMetaObject::Connection connection;
+    if (connection) {
+        disconnect(connection);
+    }
 
     if (accountManager.isLoggedIn()) {
         // change the menu item to logout
         loginAction->setText("Logout " + accountManager.getAccountInfo().getUsername());
-        connect(loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+        connection = connect(loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
     } else {
         // change the menu item to login
         loginAction->setText("Login");
-        connect(loginAction, &QAction::triggered, [] {
+        connection = connect(loginAction, &QAction::triggered, [] {
             LoginDialog::show();
         });
     }

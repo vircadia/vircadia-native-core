@@ -122,7 +122,7 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
 
 DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
     DownloadInfoResult result;
-    foreach(Resource* resource, ResourceCache::getLoadingRequests()) {
+    foreach(const auto& resource, ResourceCache::getLoadingRequests()) {
         result.downloading.append(resource->getProgress() * 100.0f);
     }
     result.pending = ResourceCache::getPendingRequestCount();

@@ -33,6 +33,7 @@ namespace MenuOption {
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
+    const QString AskToResetSettings = "Ask To Reset Settings";
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
@@ -65,7 +66,18 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
-    const QString CrashInterface = "Crash Interface";
+    const QString CrashPureVirtualFunction = "Pure Virtual Function Call";
+    const QString CrashPureVirtualFunctionThreaded = "Pure Virtual Function Call (threaded)";
+    const QString CrashDoubleFree = "Double Free";
+    const QString CrashDoubleFreeThreaded = "Double Free (threaded)";
+    const QString CrashNullDereference = "Null Dereference";
+    const QString CrashNullDereferenceThreaded = "Null Dereference (threaded)";
+    const QString CrashAbort = "Abort";
+    const QString CrashAbortThreaded = "Abort (threaded)";
+    const QString CrashOutOfBoundsVectorAccess = "Out of Bounds Vector Access";
+    const QString CrashOutOfBoundsVectorAccessThreaded = "Out of Bounds Vector Access (threaded)";
+    const QString CrashNewFault = "New Fault";
+    const QString CrashNewFaultThreaded = "New Fault (threaded)";
     const QString DeadlockInterface = "Deadlock Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";

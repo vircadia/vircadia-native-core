@@ -17,7 +17,7 @@ var iconName = argv.production ? "console" : "console-beta";
 var options = {
     dir: __dirname,
     name: "server-console",
-    version: "0.35.4",
+    version: "0.37.5",
     overwrite: true,
     prune: true,
     arch: "x64",

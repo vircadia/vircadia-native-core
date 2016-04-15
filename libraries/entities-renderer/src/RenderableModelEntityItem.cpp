@@ -274,11 +274,11 @@ bool RenderableModelEntityItem::getAnimationFrame() {
     if (!hasRenderAnimation() || !_jointMappingCompleted) {
         return false;
     }
-    AnimationPointer myAnimation = getAnimation(getRenderAnimationURL()); // FIXME: this could be optimized
-    if (myAnimation && myAnimation->isLoaded()) {
 
-        const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
-        auto& fbxJoints = myAnimation->getGeometry().joints;
+    if (_animation && _animation->isLoaded()) {
+
+        const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = _animation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -748,6 +748,7 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
 bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
+        _jointRotationsExplicitlySet = true;
         resizeJointArrays();
         if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() &&
             _absoluteJointRotationsInObjectFrame[index] != rotation) {
@@ -764,6 +765,7 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
 bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
+        _jointTranslationsExplicitlySet = true;
         resizeJointArrays();
         if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() &&
             _absoluteJointTranslationsInObjectFrame[index] != translation) {
