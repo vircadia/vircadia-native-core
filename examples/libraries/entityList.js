@@ -101,6 +101,10 @@ EntityListTool = function(opts) {
             }
         } else if (data.type == "delete") {
             deleteSelectedEntities();
+        } else if (data.type == "toggleLocked") {
+            toggleSelectedEntitiesLocked();
+        } else if (data.type == "toggleVisible") {
+            toggleSelectedEntitiesVisible();
         } else if (data.type === "radius") {
             searchRadius = data.radius;
             that.sendUpdate();

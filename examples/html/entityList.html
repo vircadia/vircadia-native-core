@@ -39,6 +39,8 @@
               elEntityTable = document.getElementById("entity-table");
               elEntityTableBody = document.getElementById("entity-table-body");
               elRefresh = document.getElementById("refresh");
+              elToggleLocked = document.getElementById("locked");
+              elToggleVisible = document.getElementById("visible");
               elDelete = document.getElementById("delete");
               elTeleport = document.getElementById("teleport");
               elRadius = document.getElementById("radius");
@@ -212,7 +214,13 @@
               elRefresh.onclick = function() {
                   refreshEntities();
               }
-              elTeleport.onclick = function() {
+              elToggleLocked.onclick = function () {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
+              }
+              elToggleVisible.onclick = function () {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
+              }
+              elTeleport.onclick = function () {
                   EventBridge.emitWebEvent(JSON.stringify({ type: 'teleport' }));
               }
               elDelete.onclick = function() {
@@ -297,6 +305,10 @@
 <body onload='loaded();'>
     <div id="entity-list-header">
         <input type="button" class="glyph" id="refresh" value="F" />
+        <div>
+            <input type="button" id="locked" class="glyph" value="&#xe006;" />
+            <input type="button" id="visible" class="glyph" value="&#xe007;" />
+        </div>
         <input type="button" id="teleport" value="Jump To Selection" />
         <input type="button" class="red" id="delete" value="Delete" />
     </div>

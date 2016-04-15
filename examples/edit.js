@@ -1194,6 +1194,30 @@ function deleteSelectedEntities() {
     }
 }
 
+function toggleSelectedEntitiesLocked() {
+    if (SelectionManager.hasSelection()) {
+        var locked = !Entities.getEntityProperties(SelectionManager.selections[0], ["locked"]).locked;
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            Entities.editEntity(entityID, { locked: locked });
+        }
+        entityListTool.sendUpdate();
+        selectionManager._update();
+    }
+}
+
+function toggleSelectedEntitiesVisible() {
+    if (SelectionManager.hasSelection()) {
+        var visible = !Entities.getEntityProperties(SelectionManager.selections[0], ["visible"]).visible;
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            Entities.editEntity(entityID, { visible: visible });
+        }
+        entityListTool.sendUpdate();
+        selectionManager._update();
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem == "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");

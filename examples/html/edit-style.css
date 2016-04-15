@@ -304,7 +304,7 @@ input[type=button] {
     height: 28px;
     min-width: 120px;
     padding: 0px 18px;
-    margin-right: 7px;
+    margin-right: 6px;
     border-radius: 5px;
     border: none;
     color: #fff;
@@ -534,7 +534,7 @@ hr {
     float: left;
 }
 .property .number + .number {
-    margin-left: 14px;
+    margin-left: 10px;
 }
 
 .text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
@@ -697,14 +697,14 @@ div.refresh input[type="button"] {
 .tuple div {
     display: inline-block;
     position: relative;
-    margin-right: 7px;
+    margin-right: 6px;
 }
 .tuple div:last-child {
     margin-right: 0;
 }
 
 .tuple label {
-    margin-right: -7px;
+    margin-right: -6px;
 }
 
 .rgb .tuple input {
@@ -765,7 +765,7 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
 .row .property {
     width: auto;
     display: inline-block;
-    margin-right: 7px;
+    margin-right: 6px;
 }
 .row .property:last-child {
     margin-right: 0;
@@ -822,6 +822,27 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 
 #entity-list-header {
     margin-bottom: 36px;
+}
+
+#entity-list-header div {
+    display: inline-block;
+    width: 65px;
+    margin-right: 6px;
+}
+
+#entity-list-header div input:first-child {
+    margin-right: 0;
+    float: left;
+    width: 33px;
+    border-right: 1px solid #808080;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+#entity-list-header div input:last-child {
+    margin-right: 0;
+    float: right;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 #delete {
@@ -1045,9 +1066,13 @@ input#property-parent-id {
 
 input#dimension-rescale-button {
     min-width: 50px;
-    margin-left: 7px;
+    margin-left: 6px;
 }
 input#reset-to-natural-dimensions {
+    margin-right: 0;
+}
+input#preview-camera-button {
+    margin-left: 1px;
     margin-right: 0;
 }
 
