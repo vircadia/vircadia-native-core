@@ -141,7 +141,7 @@ protected:
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
     static bool attemptRequest(QSharedPointer<Resource> resource);
-    static void requestCompleted(QSharedPointer<Resource> resource);
+    static void requestCompleted(QWeakPointer<Resource> resource);
     static bool attemptHighestPriorityRequest();
 
 private:

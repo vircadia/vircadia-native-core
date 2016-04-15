@@ -214,7 +214,7 @@ void Stats::updateStats(bool force) {
         // If the urls have changed, update the list
         if (shouldUpdateUrls) {
             _downloadUrls.clear();
-            foreach (auto resource, loadingRequests) {
+            foreach (const auto& resource, loadingRequests) {
                 _downloadUrls << resource->getURL().toString();
             }
             emit downloadUrlsChanged();

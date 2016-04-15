@@ -295,7 +295,7 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     return true;
 }
 
-void ResourceCache::requestCompleted(QSharedPointer<Resource> resource) {
+void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->removeRequest(resource);
     --_requestsActive;
