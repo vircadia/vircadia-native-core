@@ -26,6 +26,8 @@ public:
     void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
+    glm::uvec4 getRecommendedOverlayRect() const override final;
+
     virtual glm::mat4 getHeadPose() const override;
 
 

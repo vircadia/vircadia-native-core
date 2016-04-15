@@ -117,6 +117,7 @@ public:
     QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
+    glm::uvec4 getRecommendedOverlayRect() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
 

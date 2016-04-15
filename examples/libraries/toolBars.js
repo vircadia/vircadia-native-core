@@ -355,20 +355,52 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
             });
         }
     };
-    that.windowDimensions = Controller.getViewportDimensions();
+
+    var recommendedRect = Controller.getRecommendedOverlayRect();
+    var recommendedDimmensions = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
+    print("recommendedDimmensions:"+JSON.stringify(recommendedDimmensions));
+    that.windowDimensions = recommendedDimmensions; // Controller.getViewportDimensions();
+    that.origin = { x: recommendedRect.x, y: recommendedRect.y };
     // Maybe fixme: Keeping the same percent of the window size isn't always the right thing.
     // For example, maybe we want "keep the same percentage to whatever two edges are closest to the edge of screen".
     // If we change that, the places to do so are onResizeViewport, save (maybe), and the initial move based on Settings, below.
     that.onResizeViewport = function (newSize) { // Can be overridden or extended by clients.
-        var fractionX = that.x / that.windowDimensions.x;
-        var fractionY = that.y / that.windowDimensions.y;
-        that.windowDimensions = newSize || Controller.getViewportDimensions();
-        that.move(fractionX * that.windowDimensions.x, fractionY * that.windowDimensions.y);
+        print("that.onResizeViewport().... newSize:"+JSON.stringify(newSize));
+
+        var recommendedRect = Controller.getRecommendedOverlayRect();
+        print("that.onResizeViewport().... recommendedRect:"+JSON.stringify(recommendedRect));
+        var recommendedDimmensions = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
+        print("that.onResizeViewport().... recommendedDimmensions:"+JSON.stringify(recommendedDimmensions));
+
+        print("that.onResizeViewport().... that.x/that.y:"+that.x+","+that.y);
+        var originRelativeX = (that.x - that.origin.x);
+        var originRelativeY = (that.y - that.origin.y);
+        print("that.onResizeViewport().... originRelativeX/originRelativeY:"+originRelativeX+","+originRelativeY);
+
+        var fractionX = originRelativeX / that.windowDimensions.x;
+        var fractionY = originRelativeY / that.windowDimensions.y;
+        print("that.onResizeViewport().... fractionX/fractionY:"+fractionX+","+fractionY);
+
+        that.windowDimensions = newSize || recommendedDimmensions;
+        print("that.onResizeViewport().... that.windowDimensions:"+JSON.stringify(that.windowDimensions));
+
+        that.origin = { x: recommendedRect.x, y: recommendedRect.y };
+        print("that.onResizeViewport().... that.origin:"+JSON.stringify(that.origin));
+
+        var newX = (fractionX * that.windowDimensions.x) + recommendedRect.x;
+        var newY = (fractionY * that.windowDimensions.y) + recommendedRect.y;
+        print("that.onResizeViewport().... newX/newY:"+newX+","+newY);
+
+        that.move(newX, newY);
     };
     if (optionalPersistenceKey) {
         this.fractionKey = optionalPersistenceKey + '.fraction';
         this.save = function () {
-            var screenSize = Controller.getViewportDimensions();
+            //var screenSize = Controller.getViewportDimensions();
+            var recommendedRect = Controller.getRecommendedOverlayRect();
+            var screenSize = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
+            print("screenSize:"+JSON.stringify(screenSize));
+
             if (screenSize.x > 0 && screenSize.y > 0) {
                 // Guard against invalid screen size that can occur at shut-down.
                 var fraction = {x: that.x / screenSize.x, y: that.y / screenSize.y};
@@ -411,7 +443,9 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         that.move(that.dragOffsetX + event.x, that.dragOffsetY + event.y);
     };
     that.checkResize = function () { // Can be overriden or extended, but usually not. See onResizeViewport.
-        var currentWindowSize = Controller.getViewportDimensions();
+        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var currentWindowSize = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
+
         if ((currentWindowSize.x !== that.windowDimensions.x) || (currentWindowSize.y !== that.windowDimensions.y)) {
             that.onResizeViewport(currentWindowSize);            
         }
@@ -434,7 +468,10 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     }
     if (this.fractionKey || optionalInitialPositionFunction) {
         var savedFraction = JSON.parse(Settings.getValue(this.fractionKey) || '0'); // getValue can answer empty string
-        var screenSize = Controller.getViewportDimensions();
+        //var screenSize = Controller.getViewportDimensions();
+        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var screenSize = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
+        print("screenSize:"+JSON.stringify(screenSize));
         if (savedFraction) {
             // If we have saved data, keep the toolbar at the same proportion of the screen width/height.
             that.move(savedFraction.x * screenSize.x, savedFraction.y * screenSize.y);

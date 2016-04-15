@@ -80,6 +80,11 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
 }
 
+glm::vec4 ControllerScriptingInterface::getRecommendedOverlayRect() const {
+    auto rect = qApp->getRecommendedOverlayRect();
+    return vec4(rect.x, rect.y, rect.z, rect.w);
+}
+
 controller::InputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
     // This is where we retrieve the Device Tracker category and then the sub tracker within it
     auto icIt = _inputControllers.find(0);

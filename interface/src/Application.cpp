@@ -4885,6 +4885,10 @@ glm::uvec2 Application::getUiSize() const {
     return getActiveDisplayPlugin()->getRecommendedUiSize();
 }
 
+glm::uvec4 Application::getRecommendedOverlayRect() const {
+    return getActiveDisplayPlugin()->getRecommendedOverlayRect();
+}
+
 QSize Application::getDeviceSize() const {
     return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
 }
