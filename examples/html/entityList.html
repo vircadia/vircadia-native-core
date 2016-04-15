@@ -261,6 +261,7 @@
                           var newEntities = data.entities;
                           if (newEntities.length == 0) {
                               elNoEntitiesMessage.style.display = "block";
+                              elFooter.firstChild.nodeValue = "0 entities found";
                           } else {
                               elNoEntitiesMessage.style.display = "none";
                               for (var i = 0; i < newEntities.length; i++) {
@@ -359,7 +360,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td id="footer-text" colspan="5">Footer text</td>
+                        <td id="footer-text" colspan="5"> </td>
                     </tr>
                 </tfoot>
             </table>
