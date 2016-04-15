@@ -11,7 +11,6 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <AnimNodeLoader.h>
 #include <AnimInverseKinematics.h>
 #include <AnimBlendLinear.h>
 #include <AnimationLogging.h>

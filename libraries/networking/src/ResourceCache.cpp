@@ -41,9 +41,9 @@ void ResourceCache::refreshAll() {
     resetResourceCounters();
     
     // Refresh all remaining resources in use
-    foreach (auto resource, _resources) {
-        if (!resource.isNull()) {
-            resource.data()->refresh();
+    foreach (QSharedPointer<Resource> resource, _resources) {
+        if (resource) {
+            resource->refresh();
         }
     }
 }
@@ -203,19 +203,28 @@ void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize
     emit dirty();
 }
 
-void ResourceCacheSharedItems::appendActiveRequest(Resource* resource) {
+void ResourceCacheSharedItems::appendActiveRequest(QWeakPointer<Resource> resource) {
     Lock lock(_mutex);
     _loadingRequests.append(resource);
 }
 
-void ResourceCacheSharedItems::appendPendingRequest(Resource* resource) {
+void ResourceCacheSharedItems::appendPendingRequest(QWeakPointer<Resource> resource) {
     Lock lock(_mutex);
     _pendingRequests.append(resource);
 }
 
-QList<QPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() const {
-    Lock lock(_mutex);
-    return _pendingRequests;
+QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
+    QList<QSharedPointer<Resource>> result;
+
+    {
+        Lock lock(_mutex);
+        foreach(QSharedPointer<Resource> resource, _pendingRequests) {
+            if (resource) {
+                result.append(resource);
+            }
+        }
+    }
+    return result;
 }
 
 uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
@@ -223,23 +232,33 @@ uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
     return _pendingRequests.size();
 }
 
-QList<Resource*> ResourceCacheSharedItems::getLoadingRequests() const {
-    Lock lock(_mutex);
-    return _loadingRequests;
+QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
+    QList<QSharedPointer<Resource>> result;
+
+    {
+        Lock lock(_mutex);
+        foreach(QSharedPointer<Resource> resource, _loadingRequests) {
+            if (resource) {
+                result.append(resource);
+            }
+        }
+    }
+    return result;
 }
 
-void ResourceCacheSharedItems::removeRequest(Resource* resource) {
+void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     Lock lock(_mutex);
-    _loadingRequests.removeOne(resource);
+    _loadingRequests.removeAll(resource);
 }
 
-Resource* ResourceCacheSharedItems::getHighestPendingRequest() {
+QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     Lock lock(_mutex);
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
+    QSharedPointer<Resource> highestResource;
     for (int i = 0; i < _pendingRequests.size();) {
-        Resource* resource = _pendingRequests.at(i).data();
+        auto resource = _pendingRequests.at(i).lock();
         if (!resource) {
             _pendingRequests.removeAt(i);
             continue;
@@ -248,16 +267,25 @@ Resource* ResourceCacheSharedItems::getHighestPendingRequest() {
         if (priority >= highestPriority) {
             highestPriority = priority;
             highestIndex = i;
+            highestResource = resource;
         }
         i++;
     }
     if (highestIndex >= 0) {
-        return _pendingRequests.takeAt(highestIndex);
+        _pendingRequests.takeAt(highestIndex);
     }
-    return nullptr;
+    return highestResource;
 }
 
-bool ResourceCache::attemptRequest(Resource* resource) {
+QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
+    return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
+}
+
+int ResourceCache::getPendingRequestCount() {
+    return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount();
+}
+
+bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
 
     if (_requestsActive >= _requestLimit) {
@@ -272,7 +300,7 @@ bool ResourceCache::attemptRequest(Resource* resource) {
     return true;
 }
 
-void ResourceCache::requestCompleted(Resource* resource) {
+void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->removeRequest(resource);
     --_requestsActive;
@@ -296,11 +324,6 @@ Resource::Resource(const QUrl& url, bool delayLoad) :
     _request(nullptr) {
     
     init();
-    
-    // start loading immediately unless instructed otherwise
-    if (!(_startedLoading || delayLoad)) {    
-        QTimer::singleShot(0, this, &Resource::ensureLoading);
-    }
 }
 
 Resource::~Resource() {
@@ -308,7 +331,7 @@ Resource::~Resource() {
         _request->disconnect(this);
         _request->deleteLater();
         _request = nullptr;
-        ResourceCache::requestCompleted(this);
+        ResourceCache::requestCompleted(_self);
     }
 }
 
@@ -361,7 +384,7 @@ void Resource::refresh() {
         _request->disconnect(this);
         _request->deleteLater();
         _request = nullptr;
-        ResourceCache::requestCompleted(this);
+        ResourceCache::requestCompleted(_self);
     }
     
     init();
@@ -406,7 +429,7 @@ void Resource::init() {
 
 void Resource::attemptRequest() {
     _startedLoading = true;
-    ResourceCache::attemptRequest(this);
+    ResourceCache::attemptRequest(_self);
 }
 
 void Resource::finishedLoading(bool success) {
@@ -432,13 +455,16 @@ void Resource::reinsert() {
 
 
 void Resource::makeRequest() {
-    Q_ASSERT(!_request);
+    if (_request) {
+        _request->disconnect();
+        _request->deleteLater();
+    }
 
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
     if (!_request) {
         qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
-        ResourceCache::requestCompleted(this);
+        ResourceCache::requestCompleted(_self);
         finishedLoading(false);
         return;
     }
@@ -470,7 +496,7 @@ void Resource::handleReplyFinished() {
         return;
     }
     
-    ResourceCache::requestCompleted(this);
+    ResourceCache::requestCompleted(_self);
     
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
