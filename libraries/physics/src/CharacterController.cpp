@@ -72,6 +72,17 @@ CharacterController::CharacterController() {
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
 }
 
+CharacterController::~CharacterController() {
+    if (_rigidBody) {
+        btCollisionShape* shape = _rigidBody->getCollisionShape();
+        if (shape) {
+            delete shape;
+        }
+        delete _rigidBody;
+        _rigidBody = nullptr;
+    }
+}
+
 bool CharacterController::needsRemoval() const {
     return ((_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION) == PENDING_FLAG_REMOVE_FROM_SIMULATION);
 }
