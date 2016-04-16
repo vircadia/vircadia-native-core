@@ -20,6 +20,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
+#include <ScriptValueUtils.h>
 #include <shared/NsightHelpers.h>
 
 #include "AnimationLogging.h"
@@ -48,36 +49,47 @@ const glm::vec3 DEFAULT_NECK_POS(0.0f, 0.70f, 0.0f);
 
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
-    // find an unused AnimClip clipNode
-    std::shared_ptr<AnimClip> clip;
-    if (_userAnimState == UserAnimState::None || _userAnimState == UserAnimState::B) {
-        _userAnimState = UserAnimState::A;
-        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->findByName("userAnimA"));
-    } else if (_userAnimState == UserAnimState::A) {
-        _userAnimState = UserAnimState::B;
-        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->findByName("userAnimB"));
+    UserAnimState::ClipNodeEnum clipNodeEnum;
+    if (_userAnimState.clipNodeEnum == UserAnimState::None || _userAnimState.clipNodeEnum == UserAnimState::B) {
+        clipNodeEnum = UserAnimState::A;
+    } else {
+        clipNodeEnum = UserAnimState::B;
     }
 
-    // set parameters
-    clip->setLoopFlag(loop);
-    clip->setStartFrame(firstFrame);
-    clip->setEndFrame(lastFrame);
-    const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-    float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
-    clip->setTimeScale(timeScale);
-    clip->loadURL(url);
+    if (_animNode) {
+        // find an unused AnimClip clipNode
+        std::shared_ptr<AnimClip> clip;
+        if (clipNodeEnum == UserAnimState::A) {
+            clip = std::dynamic_pointer_cast<AnimClip>(_animNode->findByName("userAnimA"));
+        } else {
+            clip = std::dynamic_pointer_cast<AnimClip>(_animNode->findByName("userAnimB"));
+        }
 
-    _currentUserAnimURL = url;
+        if (clip) {
+            // set parameters
+            clip->setLoopFlag(loop);
+            clip->setStartFrame(firstFrame);
+            clip->setEndFrame(lastFrame);
+            const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+            float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
+            clip->setTimeScale(timeScale);
+            clip->loadURL(url);
+        }
+    }
+
+    // store current user anim state.
+    _userAnimState = { clipNodeEnum, url, fps, loop, firstFrame, lastFrame };
 
     // notify the userAnimStateMachine the desired state.
     _animVars.set("userAnimNone", false);
-    _animVars.set("userAnimA", _userAnimState == UserAnimState::A);
-    _animVars.set("userAnimB", _userAnimState == UserAnimState::B);
+    _animVars.set("userAnimA", clipNodeEnum == UserAnimState::A);
+    _animVars.set("userAnimB", clipNodeEnum == UserAnimState::B);
 }
 
 void Rig::restoreAnimation() {
-    if (_currentUserAnimURL != "") {
-        _currentUserAnimURL = "";
+    if (_userAnimState.clipNodeEnum != UserAnimState::None) {
+        _userAnimState.clipNodeEnum = UserAnimState::None;
+
         // notify the userAnimStateMachine the desired state.
         _animVars.set("userAnimNone", true);
         _animVars.set("userAnimA", false);
@@ -785,23 +797,35 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
 // Allow script to add/remove handlers and report results, from within their thread.
 QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
-    QMutexLocker locker(&_stateMutex);
-    // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
-    while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
-      _nextStateHandlerId++;
+
+    // validate argument types
+    if (handler.isFunction() && (isListOfStrings(propertiesList) || propertiesList.isUndefined() || propertiesList.isNull())) {
+        QMutexLocker locker(&_stateMutex);
+        // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
+        while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
+            _nextStateHandlerId++;
+        }
+        StateHandler& data = _stateHandlers[_nextStateHandlerId];
+        data.function = handler;
+        data.useNames = propertiesList.isArray();
+        if (data.useNames) {
+            data.propertyNames = propertiesList.toVariant().toStringList();
+        }
+        return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
+    } else {
+        qCWarning(animation) << "Rig::addAnimationStateHandler invalid arguments, expected (function, string[])";
+        return QScriptValue(QScriptValue::UndefinedValue);
     }
-    StateHandler& data = _stateHandlers[_nextStateHandlerId];
-    data.function = handler;
-    data.useNames = propertiesList.isArray();
-    if (data.useNames) {
-        data.propertyNames = propertiesList.toVariant().toStringList();
-    }
-    return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
 }
 
 void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
-    QMutexLocker locker(&_stateMutex);
-    _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present. 0 is unused
+    // validate arguments
+    if (identifier.isNumber()) {
+        QMutexLocker locker(&_stateMutex);
+        _stateHandlers.remove(identifier.toInt32()); // silently continues if handler not present. 0 is unused
+    } else {
+        qCWarning(animation) << "Rig::removeAnimationStateHandler invalid argument, expected a number";
+    }
 }
 
 void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
@@ -1129,6 +1153,14 @@ void Rig::initAnimGraph(const QUrl& url) {
     connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
         _animNode = nodeIn;
         _animNode->setSkeleton(_animSkeleton);
+
+        if (_userAnimState.clipNodeEnum != UserAnimState::None) {
+            // restore the user animation we had before reset.
+            UserAnimState origState = _userAnimState;
+            _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
+            overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
+        }
+
     });
     connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
