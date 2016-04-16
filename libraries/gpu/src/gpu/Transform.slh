@@ -37,7 +37,7 @@ struct TransformObject {
 
 layout(location=15) in ivec2 _drawCallInfo;
 
-<@if FALSE @>
+<!<@if  @>!>
 // Disable SSBOs for now
 layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
@@ -45,7 +45,7 @@ layout(std140) buffer transformObjectBuffer {
 TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
 }
-<@else@>
+<! <@else@>
 uniform samplerBuffer transformObjectBuffer;
 
 TransformObject getTransformObject() {
@@ -63,7 +63,7 @@ TransformObject getTransformObject() {
 
     return object;
 }
-<@endif@>
+<@endif@> !>
 <@endfunc@>
 
 
