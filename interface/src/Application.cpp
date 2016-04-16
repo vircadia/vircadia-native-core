@@ -1156,6 +1156,9 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+    qDebug() << __FUNCTION__ << "----- START -----";
+
+
     // add a logline indicating if QTWEBENGINE_REMOTE_DEBUGGING is set or not
     QString webengineRemoteDebugging = QProcessEnvironment::systemEnvironment().value("QTWEBENGINE_REMOTE_DEBUGGING", "false");
     qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebugging;
@@ -1178,8 +1181,6 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    getEntities()->clear(); // this will allow entity scripts to properly shutdown
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -1189,10 +1190,18 @@ void Application::cleanupBeforeQuit() {
     // tell the packet receiver we're shutting down, so it can drop packets
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
+    qDebug() << __FUNCTION__ << "about to call getEntities()->shutdown();";
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+
+    getEntities()->clear(); // this will allow entity scripts to properly shutdown
+    //DependencyManager::destroy<EntityTreeRenderer>();
+    qDebug() << __FUNCTION__ << "AFTER call to getEntities()->shutdown();";
+
+    qDebug() << __FUNCTION__ << "about to shutdown ScriptEngines...";
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
+    qDebug() << __FUNCTION__ << "AFTER shutdown ScriptEngines...";
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1202,10 +1211,14 @@ void Application::cleanupBeforeQuit() {
     pingTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
+    qDebug() << __FUNCTION__ << " line:" << __LINE__;
+
     // save state
     _settingsThread.quit();
     saveSettings();
     _window->saveGeometry();
+
+    qDebug() << __FUNCTION__ << " line:" << __LINE__;
 
     // stop the AudioClient
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
@@ -1214,9 +1227,13 @@ void Application::cleanupBeforeQuit() {
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
 
+    qDebug() << __FUNCTION__ << " line:" << __LINE__;
+
     // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
     // this will also stop any ongoing network injectors
     DependencyManager::destroy<AudioInjectorManager>();
+
+    qDebug() << __FUNCTION__ << " line:" << __LINE__;
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -1226,7 +1243,11 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<EyeTracker>();
 #endif
 
+    qDebug() << __FUNCTION__ << " line:" << __LINE__;
+
     DependencyManager::destroy<OffscreenUi>();
+
+    qDebug() << __FUNCTION__ << " ----- END -----";
 }
 
 Application::~Application() {
@@ -4174,6 +4195,14 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
+
+    // if we're about to quit, we really don't need to do any of these things...
+    if (_aboutToQuit) {
+        qCDebug(interfaceapp) << "No need to clear domain octree details we are shutting down...";
+        return;
+    }
+
+
     qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
 
@@ -4189,7 +4218,9 @@ void Application::clearDomainOctreeDetails() {
     });
 
     // reset the model renderer
+    qCDebug(interfaceapp) << __FUNCTION__ << " --- BEFORE getEntities()->clear() --- _aboutToQuit:" << _aboutToQuit;
     getEntities()->clear();
+    qCDebug(interfaceapp) << __FUNCTION__ << " --- AFTER getEntities()->clear() ---";
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
@@ -4198,10 +4229,13 @@ void Application::clearDomainOctreeDetails() {
 }
 
 void Application::domainChanged(const QString& domainHostname) {
+    qCDebug(interfaceapp) << __FUNCTION__ << " --- BEGIN --- domainHostname:" << domainHostname;
+
     updateWindowTitle();
-    clearDomainOctreeDetails();
+    //clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
+    qCDebug(interfaceapp) << __FUNCTION__ << " --- END ---";
 }
 
 

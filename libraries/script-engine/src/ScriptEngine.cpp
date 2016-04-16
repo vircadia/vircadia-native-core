@@ -142,14 +142,18 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
+    qCDebug(scriptengine) << __FUNCTION__ << "--- BEGIN --- script:" << getFilename();
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
+        qCDebug(scriptengine) << "About to remove ScriptEngine [" << getFilename() << "] from ScriptEngines!";
         scriptEngines->removeScriptEngine(this);
+        qCDebug(scriptengine) << "AFTER remove ScriptEngine [" << getFilename() << "] from ScriptEngines!";
     } else {
         qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
     }
+    qCDebug(scriptengine) << __FUNCTION__ << "--- END --- script:" << getFilename();
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
@@ -1197,6 +1201,8 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
     }
 }
 
+#include <QScriptValueIterator>
+
 void ScriptEngine::unloadAllEntityScripts() {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
@@ -1213,6 +1219,16 @@ void ScriptEngine::unloadAllEntityScripts() {
         callEntityScriptMethod(entityID, "unload");
     }
     _entityScripts.clear();
+
+#ifdef DEBUG_ENGINE_STATE
+    qDebug() << "---- CURRENT STATE OF ENGINE: --------------------------";
+    QScriptValueIterator it(globalObject());
+    while (it.hasNext()) {
+        it.next();
+        qDebug() << it.name() << ":" << it.value().toString();
+    }
+    qDebug() << "--------------------------------------------------------";
+#endif // DEBUG_ENGINE_STATE
 }
 
 void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {

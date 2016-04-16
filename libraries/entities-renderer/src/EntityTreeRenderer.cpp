@@ -71,13 +71,46 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
+    qDebug() << __FUNCTION__ << "---- BEGIN ----";
     // NOTE: We don't need to delete _entitiesScriptEngine because
     //       it is registered with ScriptEngines, which will call deleteLater for us.
+
+    /*
+    if (_entitiesScriptEngine) { 
+        qDebug() << __FUNCTION__ << "about to stop entity script engine.";
+        _entitiesScriptEngine->stop();
+        qDebug() << __FUNCTION__ << "about to delete entity script engine.";
+        delete _entitiesScriptEngine;
+        _entitiesScriptEngine = nullptr;
+    }
+    */
+    qDebug() << __FUNCTION__ << "---- END ----";
 }
 
+static int entititesScriptEngineCount = 0;
+
 void EntityTreeRenderer::clear() {
+    qDebug() << __FUNCTION__ << "---- BEGIN ----";
     leaveAllEntities();
-    _entitiesScriptEngine->unloadAllEntityScripts();
+    if (_entitiesScriptEngine) {
+        _entitiesScriptEngine->unloadAllEntityScripts();
+    }
+
+    // this would be a good place to actuall delete and recreate the _entitiesScriptEngine
+    qDebug() << __FUNCTION__ << "_shuttingDown:" << _shuttingDown;
+    if (_wantScripts && !_shuttingDown) {
+        qDebug() << __FUNCTION__ << " about to stop/delete current _entitiesScriptEngine";
+        _entitiesScriptEngine->stop();
+        _entitiesScriptEngine->deleteLater();
+        qDebug() << __FUNCTION__ << " AFTER stop/delete current _entitiesScriptEngine";
+
+        qDebug() << __FUNCTION__ << " about to create new _entitiesScriptEngine";
+        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount));
+        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+        _entitiesScriptEngine->runInThread();
+        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
+        qDebug() << __FUNCTION__ << " AFTER create new _entitiesScriptEngine";
+    }
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
@@ -88,6 +121,7 @@ void EntityTreeRenderer::clear() {
     _entitiesInScene.clear();
 
     OctreeRenderer::clear();
+    qDebug() << __FUNCTION__ << "---- END ----";
 }
 
 void EntityTreeRenderer::reloadEntityScripts() {
@@ -105,7 +139,7 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities");
+        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount));
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
         _entitiesScriptEngine->runInThread();
         DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
