@@ -20,6 +20,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
+#include <ScriptValueUtils.h>
 #include <shared/NsightHelpers.h>
 
 #include "AnimationLogging.h"
@@ -796,23 +797,35 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
 // Allow script to add/remove handlers and report results, from within their thread.
 QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
-    QMutexLocker locker(&_stateMutex);
-    // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
-    while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
-      _nextStateHandlerId++;
+
+    // validate argument types
+    if (handler.isFunction() && (isListOfStrings(propertiesList) || propertiesList.isUndefined() || propertiesList.isNull())) {
+        QMutexLocker locker(&_stateMutex);
+        // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
+        while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
+            _nextStateHandlerId++;
+        }
+        StateHandler& data = _stateHandlers[_nextStateHandlerId];
+        data.function = handler;
+        data.useNames = propertiesList.isArray();
+        if (data.useNames) {
+            data.propertyNames = propertiesList.toVariant().toStringList();
+        }
+        return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
+    } else {
+        qCWarning(animation) << "Rig::addAnimationStateHandler invalid arguments, expected (function, string[])";
+        return QScriptValue(QScriptValue::UndefinedValue);
     }
-    StateHandler& data = _stateHandlers[_nextStateHandlerId];
-    data.function = handler;
-    data.useNames = propertiesList.isArray();
-    if (data.useNames) {
-        data.propertyNames = propertiesList.toVariant().toStringList();
-    }
-    return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
 }
 
 void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
-    QMutexLocker locker(&_stateMutex);
-    _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present. 0 is unused
+    // validate arguments
+    if (identifier.isNumber()) {
+        QMutexLocker locker(&_stateMutex);
+        _stateHandlers.remove(identifier.toInt32()); // silently continues if handler not present. 0 is unused
+    } else {
+        qCWarning(animation) << "Rig::removeAnimationStateHandler invalid argument, expected a number";
+    }
 }
 
 void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
