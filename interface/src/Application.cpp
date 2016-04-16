@@ -4880,7 +4880,8 @@ QRect Application::getRenderingGeometry() const {
 }
 
 glm::uvec2 Application::getUiSize() const {
-    glm::uvec2 result;
+    static const uint MIN_SIZE = 1;
+    glm::uvec2 result(MIN_SIZE);
     if (_displayPlugin) {
         result = getActiveDisplayPlugin()->getRecommendedUiSize();
     }
@@ -4888,7 +4889,7 @@ glm::uvec2 Application::getUiSize() const {
 }
 
 glm::uvec4 Application::getRecommendedOverlayRect() const {
-    glm::uvec4 result;
+    glm::uvec4 result(glm::uvec2(0), getUiSize());
     if (_displayPlugin) {
         result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
     }
@@ -4896,7 +4897,8 @@ glm::uvec4 Application::getRecommendedOverlayRect() const {
 }
 
 QSize Application::getDeviceSize() const {
-    QSize result;
+    static const int MIN_SIZE = 1;
+    QSize result(MIN_SIZE, MIN_SIZE);
     if (_displayPlugin) {
         result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
     }
@@ -4914,7 +4916,7 @@ bool Application::hasFocus() const {
     if (_displayPlugin) {
         return getActiveDisplayPlugin()->hasFocus();
     }
-    return false;
+    return (QApplication::activeWindow() != nullptr);
 }
 
 glm::vec2 Application::getViewportDimensions() const {

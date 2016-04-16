@@ -356,6 +356,10 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         }
     };
 
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
     var recommendedRect = Controller.getRecommendedOverlayRect();
     var recommendedDimmensions = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
     that.windowDimensions = recommendedDimmensions; // Controller.getViewportDimensions();
@@ -368,8 +372,8 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         var recommendedDimmensions = { x: recommendedRect.z - recommendedRect.x, y: recommendedRect.w - recommendedRect.y };
         var originRelativeX = (that.x - that.origin.x);
         var originRelativeY = (that.y - that.origin.y);
-        var fractionX = originRelativeX / that.windowDimensions.x;
-        var fractionY = originRelativeY / that.windowDimensions.y;
+        var fractionX = clamp(originRelativeX / that.windowDimensions.x, 0, 1);
+        var fractionY = clamp(originRelativeY / that.windowDimensions.y, 0, 1);
         that.windowDimensions = newSize || recommendedDimmensions;
         that.origin = { x: recommendedRect.x, y: recommendedRect.y };
         var newX = (fractionX * that.windowDimensions.x) + recommendedRect.x;
