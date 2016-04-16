@@ -4,7 +4,6 @@ if (ANDROID)
   set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=19")
 endif ()
 
-#message ("Foo  ${CMAKE_CURRENT_BINARY_DIR}/project/src/glew/build/cmake")
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}

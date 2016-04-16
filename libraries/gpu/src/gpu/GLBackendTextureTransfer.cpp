@@ -11,11 +11,8 @@
 #include "GLBackendShared.h"
 
 #ifdef THREADED_TEXTURE_TRANSFER
-
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/QOpenGLContextWrapper.h>
-
-
 #endif
 
 using namespace gpu;
@@ -46,12 +43,20 @@ GLTextureTransferHelper::~GLTextureTransferHelper() {
 
 void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texturePointer) {
     GLBackend::GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texturePointer);
+    Backend::incrementTextureGPUTransferCount();
 #ifdef THREADED_TEXTURE_TRANSFER
-    TextureTransferPackage package{ texturePointer, 0};
+    GLsync fence { 0 };
+    //fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    //glFlush();
+
+    TextureTransferPackage package { texturePointer, fence };
     object->setSyncState(GLBackend::GLTexture::Pending);
     queueItem(package);
 #else
-    object->transfer();
+    object->withPreservedTexture([&] {
+        do_transfer(*object);
+    });
+    object->_contentStamp = texturePointer->getDataStamp();
     object->setSyncState(GLBackend::GLTexture::Transferred);
 #endif
 }
@@ -70,6 +75,12 @@ void GLTextureTransferHelper::shutdown() {
 #endif
 }
 
+void GLTextureTransferHelper::do_transfer(GLBackend::GLTexture& texture) {
+    texture.createTexture();
+    texture.transfer();
+    texture.updateSize();
+    Backend::decrementTextureGPUTransferCount();
+}
 
 bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
     for (auto package : messages) {
@@ -79,14 +90,16 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
             continue;
         }
 
+        if (package.fence) {
+            glClientWaitSync(package.fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+            glDeleteSync(package.fence);
+            package.fence = 0;
+        }
+
         GLBackend::GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texturePointer);
-        object->createTexture();
-
-        object->transfer();
-
-        object->updateSize();
-
+        do_transfer(*object);
         glBindTexture(object->_target, 0);
+
         auto writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         glClientWaitSync(writeSync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
         glDeleteSync(writeSync);

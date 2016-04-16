@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <memory>
 
-#include <glm/glm.hpp>
+#include "Forward.h"
 
 namespace gpu {
 
@@ -36,28 +36,6 @@ private:
 
     friend class Backend;
 };
-
-typedef int  Stamp;
-
-typedef unsigned int uint32;
-typedef int int32;
-typedef unsigned short uint16;
-typedef short int16;
-typedef unsigned char uint8;
-typedef char int8;
-
-typedef unsigned char Byte;
-    
-typedef size_t Offset;
-
-typedef glm::mat4 Mat4;
-typedef glm::mat3 Mat3;
-typedef glm::vec4 Vec4;
-typedef glm::ivec4 Vec4i;
-typedef glm::vec3 Vec3;
-typedef glm::vec2 Vec2;
-typedef glm::ivec2 Vec2i;
-typedef glm::uvec2 Vec2u;
 
 // Description of a scalar type
 enum Type {

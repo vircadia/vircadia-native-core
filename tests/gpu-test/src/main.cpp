@@ -445,7 +445,7 @@ public:
             positionView = gpu::BufferView(vertexBuffer, 0, vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
             textureView = gpu::BufferView(vertexBuffer, SHAPE_TEXTURES_OFFSET, vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, TEXTURE_ELEMENT);
             texture = DependencyManager::get<TextureCache>()->getImageTexture("C:/Users/bdavis/Git/openvr/samples/bin/cube_texture.png");
-            //texture = DependencyManager::get<TextureCache>()->getImageTexture("H:/test.png");
+            // texture = DependencyManager::get<TextureCache>()->getImageTexture("H:/test.png");
             //texture = DependencyManager::get<TextureCache>()->getImageTexture("H:/crate_blue.fbm/lambert8SG_Normal_OpenGL.png");
 
             auto shader = makeShader(VERTEX_SHADER, FRAGMENT_SHADER, gpu::Shader::BindingSet {});
@@ -456,6 +456,14 @@ public:
             vertexFormat->setAttribute(gpu::Stream::POSITION);
             vertexFormat->setAttribute(gpu::Stream::TEXCOORD);
         });
+
+        static auto start = usecTimestampNow();
+        auto now = usecTimestampNow();
+        if ((now - start) > USECS_PER_SECOND * 1) {
+            start = now;
+            texture->incremementMinMip();
+        }
+
         batch.setPipeline(pipeline);
         batch.setInputBuffer(gpu::Stream::POSITION, positionView);
         batch.setInputBuffer(gpu::Stream::TEXCOORD, textureView);
@@ -493,7 +501,7 @@ public:
 
         //drawFloorGrid(batch);
         //drawSimpleShapes(batch);
-        drawCenterShape(batch);
+        //drawCenterShape(batch);
         drawTerrain(batch);
 
         _context->render(batch);
