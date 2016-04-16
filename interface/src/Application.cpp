@@ -2669,8 +2669,6 @@ void Application::idle(uint64_t now) {
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
-
-
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
@@ -4882,23 +4880,41 @@ QRect Application::getRenderingGeometry() const {
 }
 
 glm::uvec2 Application::getUiSize() const {
-    return getActiveDisplayPlugin()->getRecommendedUiSize();
+    glm::uvec2 result;
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedUiSize();
+    }
+    return result;
 }
 
 glm::uvec4 Application::getRecommendedOverlayRect() const {
-    return getActiveDisplayPlugin()->getRecommendedOverlayRect();
+    glm::uvec4 result;
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+    }
+    return result;
 }
 
 QSize Application::getDeviceSize() const {
-    return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    QSize result;
+    if (_displayPlugin) {
+        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    }
+    return result;
 }
 
 bool Application::isThrottleRendering() const {
-    return getActiveDisplayPlugin()->isThrottled();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->isThrottled();
+    }
+    return false;
 }
 
 bool Application::hasFocus() const {
-    return getActiveDisplayPlugin()->hasFocus();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->hasFocus();
+    }
+    return false;
 }
 
 glm::vec2 Application::getViewportDimensions() const {

@@ -128,7 +128,7 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.z = object.property("z").toVariant().toFloat();
 }
 
-QVariant vec3toVariant(const glm::vec3 &vec3) {
+QVariant vec3toVariant(const glm::vec3& vec3) {
     if (vec3.x != vec3.x || vec3.y != vec3.y || vec3.z != vec3.z) {
         // if vec3 contains a NaN don't try to convert it
         return QVariant();
@@ -140,6 +140,18 @@ QVariant vec3toVariant(const glm::vec3 &vec3) {
     return result;
 }
 
+QVariant vec4toVariant(const glm::vec4& vec4) {
+    if (isNaN(vec4.x) || isNaN(vec4.y) || isNaN(vec4.z) || isNaN(vec4.w)) {
+        // if vec4 contains a NaN don't try to convert it
+        return QVariant();
+    }
+    QVariantMap result;
+    result["x"] = vec4.x;
+    result["y"] = vec4.y;
+    result["z"] = vec4.z;
+    result["w"] = vec4.w;
+    return result;
+}
 
 QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector) {
     QScriptValue array = engine->newArray();
@@ -192,6 +204,46 @@ glm::vec3 vec3FromVariant(const QVariant &object, bool& valid) {
 glm::vec3 vec3FromVariant(const QVariant &object) {
     bool valid = false;
     return vec3FromVariant(object, valid);
+}
+
+glm::vec4 vec4FromVariant(const QVariant &object, bool& valid) {
+    glm::vec4 v;
+    valid = false;
+    if (!object.isValid() || object.isNull()) {
+        return v;
+    }
+    else if (object.canConvert<float>()) {
+        v = glm::vec4(object.toFloat());
+        valid = true;
+    }
+    else if (object.canConvert<QVector4D>()) {
+        auto qvec4 = qvariant_cast<QVector4D>(object);
+        v.x = qvec4.x();
+        v.y = qvec4.y();
+        v.z = qvec4.z();
+        v.w = qvec4.w();
+        valid = true;
+    }
+    else {
+        auto map = object.toMap();
+        auto x = map["x"];
+        auto y = map["y"];
+        auto z = map["z"];
+        auto w = map["w"];
+        if (x.canConvert<float>() && y.canConvert<float>() && z.canConvert<float>() && w.canConvert<float>()) {
+            v.x = x.toFloat();
+            v.y = y.toFloat();
+            v.z = z.toFloat();
+            v.w = w.toFloat();
+            valid = true;
+        }
+    }
+    return v;
+}
+
+glm::vec4 vec4FromVariant(const QVariant &object) {
+    bool valid = false;
+    return vec4FromVariant(object, valid);
 }
 
 QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat &quat) {

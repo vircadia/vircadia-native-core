@@ -43,12 +43,15 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 // Vec4
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);
 void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4);
+QVariant vec4toVariant(const glm::vec4& vec4);
+glm::vec4 vec4FromVariant(const QVariant &object, bool& valid);
+glm::vec4 vec4FromVariant(const QVariant &object);
 
 // Vec3
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
 void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
 
-QVariant vec3toVariant(const glm::vec3 &vec3);
+QVariant vec3toVariant(const glm::vec3& vec3);
 glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
 glm::vec3 vec3FromVariant(const QVariant &object);
 
