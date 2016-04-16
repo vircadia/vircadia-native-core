@@ -388,7 +388,7 @@ void SwingTwistConstraint::dynamicallyAdjustLimits(const glm::quat& rotation) {
         glm::vec3 swungY = swingRotation * Vectors::UNIT_Y;
         glm::vec3 swingAxis = glm::cross(Vectors::UNIT_Y, swungY);
         float theta = atan2f(-swingAxis.z, swingAxis.x);
-        if (isnan(theta)) {
+        if (glm::isnan(theta)) {
             // atan2f() will only return NaN if either of its arguments is NaN, which can only
             // happen if we've been given a bad rotation.  Since a NaN value here could potentially
             // cause a crash (we use the value of theta to compute indices into a std::vector)
