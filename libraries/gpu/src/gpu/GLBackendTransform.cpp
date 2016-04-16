@@ -67,7 +67,9 @@ void GLBackend::do_setDepthRangeTransform(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::initTransform() {
-    glGenBuffers(1, &_transform._objectBuffer);
+
+    glGenBuffers(2, _transform._objectBuffer);
+//    glGenBuffers(1, &_transform._objectBuffer);
     glGenBuffers(1, &_transform._cameraBuffer);
     glGenBuffers(1, &_transform._drawCallInfoBuffer);
 #ifndef GPU_SSBO_DRAW_CALL_INFO
@@ -80,7 +82,8 @@ void GLBackend::initTransform() {
 }
 
 void GLBackend::killTransform() {
-    glDeleteBuffers(1, &_transform._objectBuffer);
+    glDeleteBuffers(2, _transform._objectBuffer);
+    // glDeleteBuffers(1, &_transform._objectBuffer);
     glDeleteBuffers(1, &_transform._cameraBuffer);
     glDeleteBuffers(1, &_transform._drawCallInfoBuffer);
 #ifndef GPU_SSBO_DRAW_CALL_INFO
@@ -160,7 +163,10 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
         memcpy(bufferData.data(), batch._objects.data(), byteSize);
 
 #ifdef GPU_SSBO_DRAW_CALL_INFO
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer);
+        batchNum++;
+        //   glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer[batchNum % 2]);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 #else
@@ -186,7 +192,8 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
     }
 
 #ifdef GPU_SSBO_DRAW_CALL_INFO
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer[batchNum % 2]);
+  //  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
 #else
     glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
     glBindTexture(GL_TEXTURE_BUFFER, _objectBufferTexture);

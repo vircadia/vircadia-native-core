@@ -43,7 +43,7 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
 
     // Assign the source
     const int NUM_SOURCE_STRINGS = 3;
-    const GLchar* srcstr[] = { "#version 410 core\n", defines.c_str(), shaderSource.c_str() };
+    const GLchar* srcstr[] = { "#version 430 core\n", defines.c_str(), shaderSource.c_str() };
     glShaderSource(glshader, NUM_SOURCE_STRINGS, srcstr, NULL);
 
     // Compile !

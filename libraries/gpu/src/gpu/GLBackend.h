@@ -23,7 +23,7 @@
 
 #include "Context.h"
 
-// PIck one from the 3
+// Pick one from the 3: THis version is the most efficient as of now
 #define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
 //#define GPU_STEREO_TECHNIQUE_INSTANCED
@@ -461,7 +461,8 @@ protected:
 
         mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
 
-        GLuint _objectBuffer { 0 };
+        mutable int batchNum{ 0 };
+        GLuint _objectBuffer[2];
         GLuint _cameraBuffer { 0 };
         GLuint _drawCallInfoBuffer { 0 };
         GLuint _objectBufferTexture { 0 };
