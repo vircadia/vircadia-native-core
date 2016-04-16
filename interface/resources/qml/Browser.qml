@@ -4,7 +4,7 @@ import QtWebEngine 1.1
 
 import "controls"
 import "styles"
-import "windows-uit"
+import "windows"
 
 Window {
     id: root
