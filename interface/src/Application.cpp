@@ -4888,8 +4888,9 @@ glm::uvec2 Application::getUiSize() const {
     return result;
 }
 
-glm::uvec4 Application::getRecommendedOverlayRect() const {
-    glm::uvec4 result(glm::uvec2(0), getUiSize());
+QRect Application::getRecommendedOverlayRect() const {
+    auto uiSize = getUiSize();
+    QRect result(0, 0, uiSize.x, uiSize.y);
     if (_displayPlugin) {
         result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
     }

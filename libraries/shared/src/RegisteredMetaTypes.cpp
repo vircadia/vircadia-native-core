@@ -162,7 +162,7 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
 }
 
 
-glm::vec3 vec3FromVariant(const QVariant &object, bool& valid) {
+glm::vec3 vec3FromVariant(const QVariant& object, bool& valid) {
     glm::vec3 v;
     valid = false;
     if (!object.isValid() || object.isNull()) {
@@ -201,30 +201,27 @@ glm::vec3 vec3FromVariant(const QVariant &object, bool& valid) {
     return v;
 }
 
-glm::vec3 vec3FromVariant(const QVariant &object) {
+glm::vec3 vec3FromVariant(const QVariant& object) {
     bool valid = false;
     return vec3FromVariant(object, valid);
 }
 
-glm::vec4 vec4FromVariant(const QVariant &object, bool& valid) {
+glm::vec4 vec4FromVariant(const QVariant& object, bool& valid) {
     glm::vec4 v;
     valid = false;
     if (!object.isValid() || object.isNull()) {
         return v;
-    }
-    else if (object.canConvert<float>()) {
+    } else if (object.canConvert<float>()) {
         v = glm::vec4(object.toFloat());
         valid = true;
-    }
-    else if (object.canConvert<QVector4D>()) {
+    } else if (object.canConvert<QVector4D>()) {
         auto qvec4 = qvariant_cast<QVector4D>(object);
         v.x = qvec4.x();
         v.y = qvec4.y();
         v.z = qvec4.z();
         v.w = qvec4.w();
         valid = true;
-    }
-    else {
+    } else {
         auto map = object.toMap();
         auto x = map["x"];
         auto y = map["y"];
@@ -241,12 +238,12 @@ glm::vec4 vec4FromVariant(const QVariant &object, bool& valid) {
     return v;
 }
 
-glm::vec4 vec4FromVariant(const QVariant &object) {
+glm::vec4 vec4FromVariant(const QVariant& object) {
     bool valid = false;
     return vec4FromVariant(object, valid);
 }
 
-QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat &quat) {
+QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat& quat) {
     QScriptValue obj = engine->newObject();
     if (quat.x != quat.x || quat.y != quat.y || quat.z != quat.z || quat.w != quat.w) {
         // if quat contains a NaN don't try to convert it
@@ -259,7 +256,7 @@ QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat &quat) {
     return obj;
 }
 
-void quatFromScriptValue(const QScriptValue &object, glm::quat &quat) {
+void quatFromScriptValue(const QScriptValue& object, glm::quat &quat) {
     quat.x = object.property("x").toVariant().toFloat();
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
@@ -297,12 +294,12 @@ glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
     return q;
 }
 
-glm::quat quatFromVariant(const QVariant &object) {
+glm::quat quatFromVariant(const QVariant& object) {
     bool valid = false;
     return quatFromVariant(object, valid);
 }
 
-QVariant quatToVariant(const glm::quat &quat) {
+QVariant quatToVariant(const glm::quat& quat) {
     if (quat.x != quat.x || quat.y != quat.y || quat.z != quat.z) {
         // if vec3 contains a NaN don't try to convert it
         return QVariant();

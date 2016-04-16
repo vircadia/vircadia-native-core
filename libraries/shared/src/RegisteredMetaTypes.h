@@ -74,9 +74,10 @@ glm::quat quatFromVariant(const QVariant &object);
 // Rect
 QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect);
 void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
-
-QVariant qRectToVariant(const QRect& rect);
 QRect qRectFromVariant(const QVariant& object, bool& isValid);
+QRect qRectFromVariant(const QVariant& object);
+QVariant qRectToVariant(const QRect& rect);
+
 
 // xColor
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);

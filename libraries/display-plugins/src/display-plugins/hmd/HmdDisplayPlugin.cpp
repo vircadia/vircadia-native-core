@@ -34,7 +34,7 @@ glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
 
-glm::uvec4 HmdDisplayPlugin::getRecommendedOverlayRect() const {
+QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
     return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
 

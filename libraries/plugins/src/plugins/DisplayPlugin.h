@@ -106,9 +106,9 @@ public:
     }
 
     // The recommended bounds for primary overlay placement
-    virtual glm::uvec4 getRecommendedOverlayRect() const {
+    virtual QRect getRecommendedOverlayRect() const {
         auto recommendedSize = getRecommendedUiSize();
-        return glm::uvec4(0, 0, recommendedSize.x, recommendedSize.y);
+        return QRect(0, 0, recommendedSize.x, recommendedSize.y);
     }
 
     // Stereo specific methods

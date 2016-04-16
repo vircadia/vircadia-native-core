@@ -82,7 +82,7 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
 
 QVariant ControllerScriptingInterface::getRecommendedOverlayRect() const {
     auto rect = qApp->getRecommendedOverlayRect();
-    return vec4toVariant(vec4(rect.x, rect.y, rect.z, rect.w));
+    return qRectToVariant(rect);
 }
 
 controller::InputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
