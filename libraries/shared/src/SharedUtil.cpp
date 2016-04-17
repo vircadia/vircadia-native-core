@@ -752,12 +752,13 @@ void printSystemInformation() {
     }
 #endif
     GPUIdent* gpu = GPUIdent::getInstance();
-    if (gpu->isValid()) {
+    /*if (gpu->isValid()) {
         qDebug() << "GPU:";
         qDebug() << "\tcard:" << gpu->getName();
         qDebug() << "\tdriver:" << gpu->getDriver();
         qDebug() << "\tdedicated memory:" << gpu->getMemory() << "MB";
     }
+    */
 
     qDebug() << "Environment Variables";
     // List of env variables to include in the log. For privacy reasons we don't send all env variables.
