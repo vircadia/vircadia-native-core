@@ -699,7 +699,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
 
         // if the sphere doesn't intersect with our world frame AABox, we don't need to consider the more complex case
         glm::vec3 penetration;
-        if (success && entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
+        if (!success || entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
 
             glm::vec3 dimensions = entity->getDimensions();
 
@@ -764,7 +764,7 @@ void EntityTreeElement::getEntities(const AACube& cube, QVector<EntityItemPointe
         //
 
         // If the entities AABox touches the search cube then consider it to be found
-        if (success && entityBox.touches(cube)) {
+        if (!success || entityBox.touches(cube)) {
             foundEntities.push_back(entity);
         }
     });
@@ -790,7 +790,7 @@ void EntityTreeElement::getEntities(const AABox& box, QVector<EntityItemPointer>
         //
 
         // If the entities AABox touches the search cube then consider it to be found
-        if (success && entityBox.touches(box)) {
+        if (!success || entityBox.touches(box)) {
             foundEntities.push_back(entity);
         }
     });

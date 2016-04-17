@@ -17,6 +17,8 @@
 
 class Font {
 public:
+    using Pointer = std::shared_ptr<Font>;
+
     Font();
 
     void read(QIODevice& path);
@@ -29,8 +31,8 @@ public:
         const glm::vec4* color, EffectType effectType,
         const glm::vec2& bound, bool layered = false);
 
-    static Font* load(QIODevice& fontFile);
-    static Font* load(const QString& family);
+    static Pointer load(QIODevice& fontFile);
+    static Pointer load(const QString& family);
 
 private:
     QStringList tokenizeForWrapping(const QString& str) const;

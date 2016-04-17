@@ -23,6 +23,7 @@ var OVERLAY_DATA = {
     color: {red: 255, green: 255, blue: 255},
     alpha: 1
 };
+var AVATAR_MOVE_FOR_ACTIVE_DISTANCE = 0.8; // meters -- no longer away if avatar moves this far while away
 
 var lastOverlayPosition = { x: 0, y: 0, z: 0};
 var OVERLAY_DATA_HMD = {
@@ -34,49 +35,26 @@ var OVERLAY_DATA_HMD = {
     alpha: 1,
     scale: 2,
     isFacingAvatar: true,
-    drawInFront: true   
+    drawInFront: true
 };
 
-// ANIMATION
-// We currently don't have play/stopAnimation integrated with the animation graph, but we can get the same effect
-// using an animation graph with a state that we turn on and off through the animation var defined with that state.
-var awayAnimationHandlerId, activeAnimationHandlerId, stopper;
+var AWAY_INTRO = {
+    url: "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/kneel.fbx",
+    playbackRate: 30.0,
+    loopFlag: false,
+    startFrame: 0.0,
+    endFrame: 83.0
+};
+
+// prefetch the kneel animation so it's resident in memory when we need it.
+MyAvatar.prefetchAnimation(AWAY_INTRO.url);
+
 function playAwayAnimation() {
-    function animateAway() {
-        return {isAway: true, isNotAway: false, isNotMoving: false, ikOverlayAlpha: 0.0};
-    }
-    if (stopper) {
-        stopper = false;
-        MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); // do it now, before making new assignment
-    }
-    awayAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateAway, null);
+    MyAvatar.overrideAnimation(AWAY_INTRO.url, AWAY_INTRO.playbackRate, AWAY_INTRO.loopFlag, AWAY_INTRO.startFrame, AWAY_INTRO.endFrame);
 }
+
 function stopAwayAnimation() {
-    MyAvatar.removeAnimationStateHandler(awayAnimationHandlerId);
-    if (stopper) {
-        print('WARNING: unexpected double stop');
-        return;
-    }
-    // How do we know when to turn ikOverlayAlpha back on?
-    // It cannot be as soon as we want to stop the away animation, because then things will look goofy as we come out of that animation.
-    // (Imagine an away animation that sits or kneels, and then stands back up when coming out of it. If head is at the HMD, then it won't
-    //  want to track the standing up animation.)
-    // The anim graph will trigger awayOutroOnDone when awayOutro is finished.
-    var backToNormal = false;
-    stopper = true;
-    function animateActive(state) {
-        if (state.awayOutroOnDone) {
-            backToNormal = true;
-            stopper = false;
-        } else if (state.ikOverlayAlpha) {
-            // Once the right state gets reflected back to us, we don't need the hander any more.
-            // But we are locked against handler changes during the execution of a handler, so remove asynchronously.
-            Script.setTimeout(function () { MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); }, 0);
-        }
-        // It might be cool to "come back to life" by fading the ik overlay back in over a short time. But let's see how this goes.
-        return {isAway: false, isNotAway: true, ikOverlayAlpha: backToNormal ? 1.0 : 0.0}; // IWBNI we had a way of deleting an anim var.
-    }
-    activeAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateActive, ['ikOverlayAlpha', 'awayOutroOnDone']);
+    MyAvatar.restoreAnimation();
 }
 
 // OVERLAY
@@ -112,15 +90,17 @@ function showOverlay() {
         var screen = Controller.getViewportDimensions();
 
         // keep the overlay it's natural size and always center it...
-        Overlays.editOverlay(overlay, { visible: true, 
-                    x: ((screen.x - OVERLAY_WIDTH) / 2), 
+        Overlays.editOverlay(overlay, { visible: true,
+                    x: ((screen.x - OVERLAY_WIDTH) / 2),
                     y: ((screen.y - OVERLAY_HEIGHT) / 2) });
     }
 }
+
 function hideOverlay() {
     Overlays.editOverlay(overlay, {visible: false});
     Overlays.editOverlay(overlayHMD, {visible: false});
 }
+
 hideOverlay();
 
 function maybeMoveOverlay() {
@@ -150,11 +130,18 @@ function maybeMoveOverlay() {
     }
 }
 
+function ifAvatarMovedGoActive() {
+    if (Vec3.distance(MyAvatar.position, avatarPosition) > AVATAR_MOVE_FOR_ACTIVE_DISTANCE) {
+        goActive();
+    }
+}
+
 // MAIN CONTROL
 var wasMuted, isAway;
 var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
 var eventMapping = Controller.newMapping(eventMappingName);
+var avatarPosition = MyAvatar.position;
 
 // backward compatible version of getting HMD.mounted, so it works in old clients
 function safeGetHMDMounted() {
@@ -163,12 +150,14 @@ function safeGetHMDMounted() {
     }
     return HMD.mounted;
 }
+
 var wasHmdMounted = safeGetHMDMounted();
 
 function goAway() {
     if (isAway) {
         return;
     }
+
     isAway = true;
     print('going "away"');
     wasMuted = AudioDevice.getMuted();
@@ -191,6 +180,9 @@ function goAway() {
         Reticle.visible = false;
     }
     wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+
+    avatarPosition = MyAvatar.position;
+    Script.update.connect(ifAvatarMovedGoActive);
 }
 
 function goActive() {
@@ -216,6 +208,8 @@ function goActive() {
         Reticle.position = HMD.getHUDLookAtPosition2D();
     }
     wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
+
+    Script.update.disconnect(ifAvatarMovedGoActive);
 }
 
 function maybeGoActive(event) {
@@ -263,7 +257,7 @@ Script.update.connect(maybeGoAway);
 Controller.mousePressEvent.connect(goActive);
 Controller.keyPressEvent.connect(maybeGoActive);
 // Note peek() so as to not interfere with other mappings.
-eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive); 
+eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(goActive);
