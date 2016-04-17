@@ -1077,13 +1077,21 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() on thread ["
         << QThread::currentThread() << "] expected thread [" << thread() << "]";
 #endif
-    DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [=](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
+
+    QPointer<ScriptEngine> theEngine(this);
+
+    DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [theEngine, entityID](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
             << QThread::currentThread() << "] expected thread [" << thread() << "]";
 #endif
 
-        this->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
+        if (!theEngine.isNull()) {
+            qDebug() << "ScriptCache::getScriptContents() returned ScriptEngine still active calling ... entityScriptContentAvailable()";
+            theEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
+        } else {
+            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted...";
+        }
     }, forceRedownload);
 }
 
