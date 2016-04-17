@@ -120,9 +120,12 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 }
 
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
-    auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (nodeList) {
+        auto& domainHandler = nodeList->getDomainHandler();
+        connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
             this, &ResourceCache::clearATPAssets, Qt::DirectConnection);
+    }
 }
 
 ResourceCache::~ResourceCache() {
