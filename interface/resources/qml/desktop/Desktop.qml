@@ -21,7 +21,7 @@ FocusScope {
     objectName: "desktop"
     anchors.fill: parent
 
-    property vector4d recommendedRect: vector4d(0,0,0,0);
+    property rect recommendedRect: rect(0,0,0,0);
 
     onHeightChanged: d.handleSizeChanged();
     
@@ -56,10 +56,11 @@ FocusScope {
         function handleSizeChanged() {
             var oldRecommendedRect = recommendedRect;
             var newRecommendedRectJS = Controller.getRecommendedOverlayRect();
-            var newRecommendedRect = Qt.vector4d(newRecommendedRectJS.x, newRecommendedRectJS.y, 
-                                    newRecommendedRectJS.x + newRecommendedRectJS.width, 
-                                    newRecommendedRectJS.y + newRecommendedRectJS.height);
-            if (oldRecommendedRect != Qt.vector4d(0,0,0,0)
+            var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
+                                    newRecommendedRectJS.width, 
+                                    newRecommendedRectJS.height);
+
+            if (oldRecommendedRect != Qt.rect(0,0,0,0)
                   && oldRecommendedRect != newRecommendedRect) {
                 d.repositionAll();
             }
@@ -237,10 +238,9 @@ FocusScope {
         function repositionAll() {
 
             var oldRecommendedRect = recommendedRect;
-            var oldRecommendedDimmensions = { x: oldRecommendedRect.z - oldRecommendedRect.x, y: oldRecommendedRect.w - oldRecommendedRect.y };
+            var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
             var newRecommendedRect = Controller.getRecommendedOverlayRect();
             var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
-
             var windows = d.getTopLevelWindows();
             for (var i = 0; i < windows.length; ++i) {
                 var targetWindow = windows[i];
@@ -279,7 +279,7 @@ FocusScope {
         }
 
         var oldRecommendedRect = recommendedRect;
-        var oldRecommendedDimmensions = { x: oldRecommendedRect.z - oldRecommendedRect.x, y: oldRecommendedRect.w - oldRecommendedRect.y };
+        var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
         var newRecommendedRect = Controller.getRecommendedOverlayRect();
         var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
         repositionWindow(targetWindow, false, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
