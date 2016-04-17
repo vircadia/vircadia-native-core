@@ -17,20 +17,20 @@
 class GPUIdent
 {
 public:
-	unsigned int getMemory() { return _dedicatedMemoryMB; }
-	QString getName() { return _name; }
-	QString getDriver() { return _driver; }
-	bool isValid() { return _isValid; }
-	// E.g., GPUIdent::getInstance()->getMemory();
-	static GPUIdent* getInstance() { return _instance.ensureQuery(); }
+    unsigned int getMemory() { return _dedicatedMemoryMB; }
+    QString getName() { return _name; }
+    QString getDriver() { return _driver; }
+    bool isValid() { return _isValid; }
+    // E.g., GPUIdent::getInstance()->getMemory();
+    static GPUIdent* getInstance() { return _instance.ensureQuery(); }
 private:
-	uint _dedicatedMemoryMB { 0 };
-	QString _name { "" };
-	QString _driver { "" };
-	bool _isQueried { false };
-	bool _isValid { false };
-	static GPUIdent _instance;
-	GPUIdent* ensureQuery();
+    uint _dedicatedMemoryMB { 0 };
+    QString _name { "" };
+    QString _driver { "" };
+    bool _isQueried { false };
+    bool _isValid { false };
+    static GPUIdent _instance;
+    GPUIdent* ensureQuery();
 };
 
 #endif // hifi_GPUIdent_h

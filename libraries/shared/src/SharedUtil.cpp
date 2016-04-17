@@ -751,13 +751,13 @@ void printSystemInformation() {
         qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
     }
 #endif
-	GPUIdent* gpu = GPUIdent::getInstance();
-	if (gpu->isValid()) {
-		qDebug() << "GPU:";
-		qDebug() << "\tcard:" << gpu->getName();
-		qDebug() << "\tdriver:" << gpu->getDriver();
-		qDebug() << "\tdedicated memory:" << gpu->getMemory() << "MB";
-	}
+    GPUIdent* gpu = GPUIdent::getInstance();
+    if (gpu->isValid()) {
+        qDebug() << "GPU:";
+        qDebug() << "\tcard:" << gpu->getName();
+        qDebug() << "\tdriver:" << gpu->getDriver();
+        qDebug() << "\tdedicated memory:" << gpu->getMemory() << "MB";
+    }
 
     qDebug() << "Environment Variables";
     // List of env variables to include in the log. For privacy reasons we don't send all env variables.
