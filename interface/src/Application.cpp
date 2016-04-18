@@ -1235,6 +1235,9 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
+    _entityClipboard->eraseAllOctreeElements();
+    _entityClipboard.reset();
+
     EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(nullptr);
 
@@ -1244,7 +1247,7 @@ Application::~Application() {
     _physicsEngine->setCharacterController(nullptr);
 
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    DependencyManager::get<AvatarManager>()->clearAllAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
