@@ -88,12 +88,11 @@ void EntityTreeRenderer::clear() {
     leaveAllEntities();
     if (_entitiesScriptEngine) {
         _entitiesScriptEngine->unloadAllEntityScripts();
+        _entitiesScriptEngine->stop();
     }
 
     // this would be a good place to actuall delete and recreate the _entitiesScriptEngine
     if (_wantScripts && !_shuttingDown) {
-        _entitiesScriptEngine->stop();
-
         // NOTE: you can't actually need to delete it here because when we call setupEntitiesScriptEngine it will
         //       assign a new instance to our shared pointer, which will deref the old instance and ultimately call
         //       the custom deleter which calls deleteLater

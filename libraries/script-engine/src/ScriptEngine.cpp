@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
+#include <QtScript/QScriptValueIterator>
 #include <QtCore/QStringList>
 
 #include <AudioConstants.h>
@@ -1072,7 +1073,6 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
-
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::entityScriptContentAvailable() called on wrong thread ["
@@ -1183,8 +1183,6 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
         stopAllTimersForEntityScript(entityID);
     }
 }
-
-#include <QScriptValueIterator>
 
 void ScriptEngine::unloadAllEntityScripts() {
     if (QThread::currentThread() != thread()) {
