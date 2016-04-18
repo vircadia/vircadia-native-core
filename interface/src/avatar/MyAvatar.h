@@ -469,8 +469,6 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
-private slots:
-    void onRigLoadComplete();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
