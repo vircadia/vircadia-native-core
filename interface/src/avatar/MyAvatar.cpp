@@ -340,8 +340,8 @@ void MyAvatar::simulate(float deltaTime) {
         _skeletonModel->simulate(deltaTime);
     }
 
-    // we've achived our final adjusted our position & rotation for the avatar
-    // and all joints, we can now update our attachements.
+    // we've achived our final adjusted position and rotation for the avatar
+    // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
 
     if (!_skeletonModel->hasSkeleton()) {
