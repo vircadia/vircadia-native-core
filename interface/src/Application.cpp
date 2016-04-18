@@ -96,6 +96,7 @@
 #include <UserActivityLogger.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <shared/StringHelpers.h>
 #include <QmlWebWindowClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
@@ -419,7 +420,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    bool previousSessionCrashed = CrashHandler::checkForAndHandleCrash();
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
@@ -1149,6 +1150,9 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
+    DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
+
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
@@ -1236,8 +1240,6 @@ Application::~Application() {
     _entityEditSender.terminate();
 
     _physicsEngine->setCharacterController(nullptr);
-
-    ModelEntityItem::cleanupLoadedAnimations();
 
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
@@ -3197,7 +3199,19 @@ void Application::cameraMenuChanged() {
     }
 }
 
+void Application::resetPhysicsReadyInformation() {
+    // we've changed domains or cleared out caches or something.  we no longer know enough about the
+    // collision information of nearby entities to make running bullet be safe.
+    _fullSceneReceivedCounter = 0;
+    _fullSceneCounterAtLastPhysicsCheck = 0;
+    _nearbyEntitiesCountAtLastPhysicsCheck = 0;
+    _nearbyEntitiesStabilityCount = 0;
+    _physicsEnabled = false;
+}
+
+
 void Application::reloadResourceCaches() {
+    resetPhysicsReadyInformation();
     // Clear entities out of view frustum
     _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
     _viewFrustum.setOrientation(glm::quat());
@@ -3254,21 +3268,34 @@ void Application::update(float deltaTime) {
 
     updateLOD();
 
-    if (!_physicsEnabled && _processOctreeStatsCounter > 0) {
+    if (!_physicsEnabled) {
+        // we haven't yet enabled physics.  we wait until we think we have all the collision information
+        // for nearby entities before starting bullet up.
+        quint64 now = usecTimestampNow();
+        bool timeout = false;
+        const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
+        if (_lastPhysicsCheckTime > 0 && now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT) {
+            timeout = true;
+        }
 
-        // process octree stats packets are sent in between full sends of a scene.
-        // We keep physics disabled until we've received a full scene and everything near the avatar in that
-        // scene is ready to compute its collision shape.
+        if (timeout || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+            // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
+            _lastPhysicsCheckTime = now;
+            _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
 
-        if (nearbyEntitiesAreReadyForPhysics()) {
-            _physicsEnabled = true;
-            getMyAvatar()->updateMotionBehaviorFromMenu();
-        } else {
-            auto characterController = getMyAvatar()->getCharacterController();
-            if (characterController) {
-                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                // a non-loading collision hull.
-                characterController->setEnabled(false);
+            // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+            // We keep physics disabled until we've received a full scene and everything near the avatar in that
+            // scene is ready to compute its collision shape.
+            if (nearbyEntitiesAreReadyForPhysics()) {
+                _physicsEnabled = true;
+                getMyAvatar()->updateMotionBehaviorFromMenu();
+            } else {
+                auto characterController = getMyAvatar()->getCharacterController();
+                if (characterController) {
+                    // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                    // a non-loading collision hull.
+                    characterController->setEnabled(false);
+                }
             }
         }
     }
@@ -3420,7 +3447,7 @@ void Application::update(float deltaTime) {
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
-                    _entitySimulation.handleOutgoingChanges(outgoingChanges, Physics::getSessionUUID());
+                    _entitySimulation.handleOutgoingChanges(outgoingChanges);
                     avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
@@ -4153,7 +4180,7 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
 
-    _physicsEnabled = false;
+    resetPhysicsReadyInformation();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {
@@ -4177,7 +4204,7 @@ void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
-    _physicsEnabled = false;
+    resetPhysicsReadyInformation();
 }
 
 
@@ -4310,15 +4337,31 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         entityTree->findEntities(box, entities);
     });
 
-    foreach (EntityItemPointer entity, entities) {
-        if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-            static QString repeatedMessage =
-                LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
-            qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
-            return false;
-        }
+    // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
+    // a heuristic to try to decide when we actually know about all of the nearby entities.
+    uint32_t nearbyCount = entities.size();
+    if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
+        _nearbyEntitiesStabilityCount++;
+    } else {
+        _nearbyEntitiesStabilityCount = 0;
     }
-    return true;
+    _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
+
+    const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
+    if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
+        // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
+        // the local entities.
+        foreach (EntityItemPointer entity, entities) {
+            if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
+                static QString repeatedMessage =
+                    LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
+                qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
@@ -4334,6 +4377,10 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
     _octreeServerSceneStats.withWriteLock([&] {
         OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
         statsMessageLength = octreeStats.unpackFromPacket(message);
+
+        if (octreeStats.isFullScene()) {
+            _fullSceneReceivedCounter++;
+        }
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = nullptr;
@@ -4365,8 +4412,6 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
             (*jurisdiction)[nodeUUID] = jurisdictionMap;
         });
     });
-
-    _processOctreeStatsCounter++;
 
     return statsMessageLength;
 }
@@ -4498,10 +4543,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) const {
-    // HACK: until we swap the library dependency order between physics and entities
-    // we cache the sessionID in two distinct places for physics.
-    Physics::setSessionUUID(sessionUUID); // TODO: remove this one
-    _physicsEngine->setSessionUUID(sessionUUID);
+    Physics::setSessionUUID(sessionUUID);
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {
@@ -4517,18 +4559,36 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
 
     QString modelName = fstMapping["name"].toString();
+    QString modelLicense = fstMapping["license"].toString();
+
+    bool agreeToLicence = true; // assume true
+    if (!modelLicense.isEmpty()) {
+        // word wrap the licence text to fit in a reasonable shaped message box.
+        const int MAX_CHARACTERS_PER_LINE = 90;
+        modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
+
+        agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
+            modelLicense + "\nDo you argee to these terms?",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+    }
+
     bool ok = false;
-    switch (modelType) {
 
-        case FSTReader::HEAD_AND_BODY_MODEL:
-             ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
-                               "Would you like to use '" + modelName + "' for your avatar?",
-                               QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-        break;
+    if (!agreeToLicence) {
+        qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+    } else {
+        switch (modelType) {
 
-        default:
-            OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
-        break;
+            case FSTReader::HEAD_AND_BODY_MODEL:
+                 ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
+                                   "Would you like to use '" + modelName + "' for your avatar?",
+                                   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+            break;
+
+            default:
+                OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
+            break;
+        }
     }
 
     if (ok) {
@@ -5137,13 +5197,6 @@ mat4 Application::getHMDSensorPose() const {
         return getActiveDisplayPlugin()->getHeadPose();
     }
     return mat4();
-}
-
-void Application::crashApplication() {
-    qCDebug(interfaceapp) << "Intentionally crashed Interface";
-    QObject* object = nullptr;
-    bool value = object->isWindowType();
-    Q_UNUSED(value);
 }
 
 void Application::deadlockApplication() {

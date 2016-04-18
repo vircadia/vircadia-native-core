@@ -246,7 +246,6 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -266,7 +265,6 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -285,7 +283,6 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -304,7 +301,6 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -323,7 +319,6 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -342,7 +337,6 @@
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -361,7 +355,6 @@
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -380,7 +373,6 @@
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -389,36 +381,10 @@
                                                             ]
                                                         },
                                                         {
-                                                            "id": "awayIntro",
-                                                            "interpTarget": 30,
-                                                            "interpDuration": 30,
-                                                            "transitions": [
-                                                                { "var": "isNotAway", "state": "awayOutro" },
-                                                                { "var": "awayIntroOnDone", "state": "away"}
-                                                            ]
-                                                        },
-                                                        {
-                                                            "id": "away",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "isNotAway", "state": "awayOutro" }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "id": "awayOutro",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "awayOutroOnDone", "state": "idle" }
-                                                            ]
-                                                        },
-                                                        {
                                                             "id": "fly",
                                                             "interpTarget": 6,
                                                             "interpDuration": 6,
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotFlying", "state": "idle" }
                                                             ]
                                                         },
@@ -427,7 +393,6 @@
                                                             "interpTarget": 0,
                                                             "interpDuration": 6,
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotTakeoff", "state": "inAirStand" }
                                                             ]
                                                         },
@@ -436,7 +401,6 @@
                                                             "interpTarget": 0,
                                                             "interpDuration": 6,
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotTakeoff", "state": "inAirRun" }
                                                             ]
                                                         },
@@ -446,7 +410,6 @@
                                                             "interpDuration": 6,
                                                             "interpType": "snapshotPrev",
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotInAir", "state": "landStandImpact" }
                                                             ]
                                                         },
@@ -456,7 +419,6 @@
                                                             "interpDuration": 6,
                                                             "interpType": "snapshotPrev",
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotInAir", "state": "landRun" }
                                                             ]
                                                         },
@@ -465,7 +427,6 @@
                                                             "interpTarget": 6,
                                                             "interpDuration": 4,
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -483,7 +444,6 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -497,7 +457,6 @@
                                                             "interpTarget": 1,
                                                             "interpDuration": 7,
                                                             "transitions": [
-                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isFlying", "state": "fly" },
                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                 { "var": "isTakeoffRun", "state": "takeoffRun" },
@@ -753,42 +712,6 @@
                                                                 "children": []
                                                             }
                                                         ]
-                                                    },
-                                                    {
-                                                        "id": "awayIntro",
-                                                        "type": "clip",
-                                                        "data": {
-                                                            "url": "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/kneel.fbx",
-                                                            "startFrame": 0.0,
-                                                            "endFrame": 83.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": false
-                                                        },
-                                                        "children": []
-                                                    },
-                                                    {
-                                                        "id": "away",
-                                                        "type": "clip",
-                                                        "data": {
-                                                            "url": "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/kneel.fbx",
-                                                            "startFrame": 83.0,
-                                                            "endFrame": 84.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": true
-                                                        },
-                                                        "children": []
-                                                    },
-                                                    {
-                                                        "id": "awayOutro",
-                                                        "type": "clip",
-                                                        "data": {
-                                                            "url": "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/kneel.fbx",
-                                                            "startFrame": 84.0,
-                                                            "endFrame": 167.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": false
-                                                        },
-                                                        "children": []
                                                     },
                                                     {
                                                         "id": "fly",

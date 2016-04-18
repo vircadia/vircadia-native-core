@@ -208,7 +208,6 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
 
-
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         theTexture->autoGenerateMips(-1);
@@ -232,10 +231,11 @@ double mapComponent(double sobelValue) {
 gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     
+    if (image.format() != QImage::Format_RGB888) {
+        image = image.convertToFormat(QImage::Format_RGB888);
+    }
 
-    #if 0
-    // PR 5540 by AlessandroSigna
-    // integrated here as a specialized TextureLoader for bumpmaps
+    // PR 5540 by AlessandroSigna integrated here as a specialized TextureLoader for bumpmaps
     // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
     const double pStrength = 2.0;
     int width = image.width();
@@ -284,8 +284,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             result.setPixel(i, j, qRgbValue);
         }
     }
-    #endif
-    
+
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 

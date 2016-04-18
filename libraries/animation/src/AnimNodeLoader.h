@@ -13,9 +13,9 @@
 
 #include <memory>
 
+#include <QNetworkReply>
 #include <QString>
 #include <QUrl>
-#include <QtNetwork/QNetworkReply>
 
 #include "AnimNode.h"
 
@@ -41,7 +41,8 @@ protected slots:
 
 protected:
     QUrl _url;
-    Resource* _resource;
+    QSharedPointer<Resource> _resource;
+
 private:
 
     // no copies

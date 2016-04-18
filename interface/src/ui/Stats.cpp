@@ -196,7 +196,7 @@ void Stats::updateStats(bool force) {
             STAT_UPDATE(audioMixerPps, -1);
         }
 
-        QList<Resource*> loadingRequests = ResourceCache::getLoadingRequests();
+        auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
         STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
@@ -214,7 +214,7 @@ void Stats::updateStats(bool force) {
         // If the urls have changed, update the list
         if (shouldUpdateUrls) {
             _downloadUrls.clear();
-            foreach (Resource* resource, loadingRequests) {
+            foreach (const auto& resource, loadingRequests) {
                 _downloadUrls << resource->getURL().toString();
             }
             emit downloadUrlsChanged();

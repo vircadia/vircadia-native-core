@@ -215,7 +215,7 @@ bool GLBackend::GLTexture::isReady() const {
 // Move content bits from the CPU to the GPU for a given mip / face
 void GLBackend::GLTexture::transferMip(GLenum target, const Texture::PixelsPointer& mip) const {
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuTexture.getTexelFormat(), mip->getFormat());
-    glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());		      glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());
+    glTexSubImage2D(target, 0, 0, 0, _gpuTexture.getWidth(), _gpuTexture.getHeight(), texelFormat.format, texelFormat.type, mip->readData());
     (void)CHECK_GL_ERROR();
 }
 

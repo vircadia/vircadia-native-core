@@ -784,7 +784,13 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
     callingArguments << javascriptParameters;
     assert(currentEntityIdentifier.isInvalidID()); // No animation state handlers from entity scripts.
     QScriptValue result = callback.call(QScriptValue(), callingArguments);
-    resultHandler(result);
+
+    // validate result from callback function.
+    if (result.isValid() && result.isObject()) {
+        resultHandler(result);
+    } else {
+        qCWarning(scriptengine) << "ScriptEngine::callAnimationStateHandler invalid return argument from callback, expected an object";
+    }
 }
 
 void ScriptEngine::timerFired() {

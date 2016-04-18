@@ -211,6 +211,10 @@ if (WIN32)
   add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
 endif()
 
+if (UNIX)
+    target_link_libraries(${TARGET_NAME} pthread)
+endif(UNIX)
+
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
 

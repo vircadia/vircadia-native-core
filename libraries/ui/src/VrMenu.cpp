@@ -9,8 +9,13 @@
 //
 
 #include "VrMenu.h"
+
 #include <QtQml>
 #include <QMenuBar>
+
+#include "OffscreenUi.h"
+
+static unsigned int USER_DATA_ID = 0;
 
 // Binds together a Qt Action or Menu with the QML Menu or MenuItem
 //
@@ -18,24 +23,53 @@
 // simply creating the bidirectional link pointing to both the widget
 // and qml object and inject the pointer into both objects
 class MenuUserData : public QObjectUserData {
-    static const int USER_DATA_ID;
-
 public:
     MenuUserData(QAction* action, QObject* qmlObject) {
-        init(action, qmlObject);
-    }
-    MenuUserData(QMenu* menu, QObject* qmlObject) {
-        init(menu, qmlObject);
+        if (!USER_DATA_ID) {
+            USER_DATA_ID = DependencyManager::get<OffscreenUi>()->getMenuUserDataId();
+        }
+        _action = action;
+        _qml = qmlObject;
+        action->setUserData(USER_DATA_ID, this);
+        qmlObject->setUserData(USER_DATA_ID, this);
+        qmlObject->setObjectName(uuid.toString());
+        // Make sure we can find it again in the future
+        updateQmlItemFromAction();
+        auto connection = QObject::connect(action, &QAction::changed, [=] {
+            updateQmlItemFromAction();
+        });
+        QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+            QObject::disconnect(connection);
+        });
     }
 
     ~MenuUserData() {
-        _widget->setUserData(USER_DATA_ID, nullptr);
+        _action->setUserData(USER_DATA_ID, nullptr);
         _qml->setUserData(USER_DATA_ID, nullptr);
     }
 
+    void updateQmlItemFromAction() {
+        _qml->setProperty("checkable", _action->isCheckable());
+        _qml->setProperty("enabled", _action->isEnabled());
+        QString text = _action->text();
+        _qml->setProperty("text", text);
+        _qml->setProperty("shortcut", _action->shortcut().toString());
+        _qml->setProperty("checked", _action->isChecked());
+        _qml->setProperty("visible", _action->isVisible());
+    }
+
+
     const QUuid uuid{ QUuid::createUuid() };
 
-    static MenuUserData* forObject(QObject* object) {
+    static bool hasData(QAction* object) {
+        if (!object) {
+            qWarning() << "Attempted to fetch MenuUserData for null object";
+            return false;
+        }
+        return (nullptr != static_cast<MenuUserData*>(object->userData(USER_DATA_ID)));
+    }
+
+    static MenuUserData* forObject(QAction* object) {
         if (!object) {
             qWarning() << "Attempted to fetch MenuUserData for null object";
             return nullptr;
@@ -55,46 +89,15 @@ public:
 
 private:
     MenuUserData(const MenuUserData&);
-    void init(QObject* widgetObject, QObject* qmlObject) {
-        _widget = widgetObject;
-        _qml = qmlObject;
-        widgetObject->setUserData(USER_DATA_ID, this);
-        qmlObject->setUserData(USER_DATA_ID, this);
-        qmlObject->setObjectName(uuid.toString());
-        // Make sure we can find it again in the future
-        Q_ASSERT(VrMenu::_instance->findMenuObject(uuid.toString()));
-    }
 
-    QObject* _widget { nullptr };
+    QAction* _action { nullptr };
     QObject* _qml { nullptr };
 };
 
-const int MenuUserData::USER_DATA_ID = QObject::registerUserData();
 
-VrMenu* VrMenu::_instance{ nullptr };
-static QQueue<std::function<void(VrMenu*)>> queuedLambdas;
-
-void VrMenu::executeOrQueue(std::function<void(VrMenu*)> f) {
-    if (_instance) {
-        foreach(std::function<void(VrMenu*)> priorLambda, queuedLambdas) {
-            priorLambda(_instance);
-        }
-        f(_instance);
-    } else {
-        queuedLambdas.push_back(f);
-    }
-}
-
-
-VrMenu::VrMenu(QObject* parent) : QObject(parent) {
-    _instance = this;
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    _rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-    offscreenUi->getRootContext()->setContextProperty("rootMenu", _rootMenu);
-    foreach(std::function<void(VrMenu*)> f, queuedLambdas) {
-        f(this);
-    }
-    queuedLambdas.clear();
+VrMenu::VrMenu(OffscreenUi* parent) : QObject(parent) {
+    _rootMenu = parent->getRootItem()->findChild<QObject*>("rootMenu");
+    parent->getRootContext()->setContextProperty("rootMenu", _rootMenu);
 }
 
 QObject* VrMenu::findMenuObject(const QString& menuOption) {
@@ -105,21 +108,14 @@ QObject* VrMenu::findMenuObject(const QString& menuOption) {
     return result;
 }
 
-void updateQmlItemFromAction(QObject* target, QAction* source) {
-    target->setProperty("checkable", source->isCheckable());
-    target->setProperty("enabled", source->isEnabled());
-    target->setProperty("text", source->text());
-    target->setProperty("shortcut", source->shortcut().toString());
-    target->setProperty("checked", source->isChecked());
-    target->setProperty("visible", source->isVisible());
-}
 
 void VrMenu::addMenu(QMenu* menu) {
-    Q_ASSERT(!MenuUserData::forObject(menu));
+    Q_ASSERT(!MenuUserData::hasData(menu->menuAction()));
     QObject* parent = menu->parent();
     QObject* qmlParent = nullptr;
-    if (dynamic_cast<QMenu*>(parent)) {
-        MenuUserData* userData = MenuUserData::forObject(parent);
+    QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
+    if (parentMenu) {
+        MenuUserData* userData = MenuUserData::forObject(parentMenu->menuAction());
         if (!userData) {
             return;
         }
@@ -143,28 +139,16 @@ void VrMenu::addMenu(QMenu* menu) {
     }
 
     // Bind the QML and Widget together
-    new MenuUserData(menu, result);
-    auto menuAction = menu->menuAction();
-    updateQmlItemFromAction(result, menuAction);
-    auto connection = QObject::connect(menuAction, &QAction::changed, [=] {
-        updateQmlItemFromAction(result, menuAction);
-    });
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
-        QObject::disconnect(connection);
-    });
-
+    new MenuUserData(menu->menuAction(), result);
 }
 
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
-    new MenuUserData(action, qmlAction);
-    updateQmlItemFromAction(qmlAction, action);
-    auto connection = QObject::connect(action, &QAction::changed, [=] {
-        updateQmlItemFromAction(qmlAction, action);
-    });
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
-        QObject::disconnect(connection);
-    });
+    auto text = action->text();
+    if (text == "Login") {
+        qDebug() << "Login action " << action;
+    }
 
+    new MenuUserData(action, qmlAction);
     QObject::connect(action, &QAction::toggled, [=](bool checked) {
         qmlAction->setProperty("checked", checked);
     });
@@ -174,9 +158,10 @@ void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
 class QQuickMenuItem;
 
 void VrMenu::addAction(QMenu* menu, QAction* action) {
-    Q_ASSERT(!MenuUserData::forObject(action));
-    Q_ASSERT(MenuUserData::forObject(menu));
-    MenuUserData* userData = MenuUserData::forObject(menu);
+    Q_ASSERT(!MenuUserData::hasData(action));
+
+    Q_ASSERT(MenuUserData::hasData(menu->menuAction()));
+    MenuUserData* userData = MenuUserData::forObject(menu->menuAction());
     if (!userData) {
         return;
     }
@@ -197,8 +182,8 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
 }
 
 void VrMenu::addSeparator(QMenu* menu) {
-    Q_ASSERT(MenuUserData::forObject(menu));
-    MenuUserData* userData = MenuUserData::forObject(menu);
+    Q_ASSERT(MenuUserData::hasData(menu->menuAction()));
+    MenuUserData* userData = MenuUserData::forObject(menu->menuAction());
     if (!userData) {
         return;
     }

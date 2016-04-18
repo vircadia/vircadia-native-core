@@ -22,10 +22,10 @@ class RateCounter {
 public:
     void increment(size_t count = 1) {
         auto now = usecTimestampNow();
-        auto currentIntervalMs = (uint32_t)((now - _start) / USECS_PER_MSEC);
-        if (currentIntervalMs > INTERVAL) {
+        float currentIntervalMs = (now - _start) / (float) USECS_PER_MSEC;
+        if (currentIntervalMs > (float) INTERVAL) {
             float currentCount = _count;
-            float intervalSeconds = (float)currentIntervalMs / (float)MSECS_PER_SECOND;
+            float intervalSeconds = currentIntervalMs / (float) MSECS_PER_SECOND;
             _rate = roundf(currentCount / intervalSeconds * _scale) / _scale;
             _start = now;
             _count = 0;

@@ -82,7 +82,7 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    // These operate on a copy of the renderAnimationProperties, so they can be accessed
+    // These operate on a copy of the animationProperties, so they can be accessed
     // without having the entityTree lock.
     bool hasRenderAnimation() const { return !_renderAnimationProperties.getURL().isEmpty(); }
     const QString& getRenderAnimationURL() const { return _renderAnimationProperties.getURL(); }

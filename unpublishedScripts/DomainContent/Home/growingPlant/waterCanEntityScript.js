@@ -12,15 +12,16 @@
 
 (function() {
 
-    Script.include('../../../../libraries/utils.js');
+    Script.include('../utils.js');
 
     var _this;
-    WaterSpout = function() {
+
+    function WaterSpout() {
         _this = this;
-        _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
-        _this.POUR_ANGLE_THRESHOLD = 0;
+        _this.waterSound = SoundCache.getSound("atp:/growingPlant/watering_can_pour.L.wav");
+        _this.POUR_ANGLE_THRESHOLD = -0.1;
         _this.waterPouring = false;
-        _this.WATER_SPOUT_NAME = "hifi-water-spout";
+        _this.WATER_SPOUT_NAME = "home_box_waterSpout";
         _this.GROWABLE_ENTITIES_SEARCH_RANGE = 100;
 
     };
@@ -36,9 +37,22 @@
         },
 
         startHold: function() {
+            print("EBL START HOLD")
+            var entities = Entities.findEntities(_this.position, 2);
+            print("EBL SEARCHING FOR SPOUT");
+            entities.forEach(function(entity) {
+                var name = Entities.getEntityProperties(entity, "name").name;
+                if (name === _this.WATER_SPOUT_NAME) {
+                    print("EBL FOUND SPOUT");
+                    _this.waterSpout = entity;
+                    _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
+                    _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
+                    _this.createWaterEffect();
+                }
+            });
+
             _this.findGrowableEntities();
         },
-
         releaseEquip: function() {
             _this.releaseHold();
         },
@@ -49,19 +63,12 @@
 
         releaseHold: function() {
             _this.stopPouring();
+            var waterEffectToDelete = _this.waterEffect;
+            Script.setTimeout(function() {
+                Entities.deleteEntity(waterEffectToDelete);
+            }, 2000);
         },
 
-        stopPouring: function() {
-            Entities.editEntity(_this.waterEffect, {
-                isEmitting: false
-            });
-            _this.waterPouring = false;
-            //water no longer pouring...
-            if (_this.waterInjector) {
-              _this.waterInjector.stop();  
-            }
-            Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
-        },
         continueEquip: function() {
             _this.continueHolding();
         },
@@ -75,35 +82,57 @@
                 return;
             }
             // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
-            _this.castRay();
             var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
-            var pitch = Quat.safeEulerAngles(rotation).x;
-            if (pitch < _this.POUR_ANGLE_THRESHOLD) {
+            var forwardVec = Quat.getFront(rotation);
+            if (forwardVec.y < _this.POUR_ANGLE_THRESHOLD) {
                 // Water is pouring
-                var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
+                _this.spoutProps= Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
+                _this.castRay();
                 if (!_this.waterPouring) {
-                    Entities.editEntity(_this.waterEffect, {
-                        isEmitting: true
-                    });
-                    _this.waterPouring = true;
-                    if (!_this.waterInjector) {
-                        _this.waterInjector = Audio.playSound(_this.waterSound, {
-                            position: spoutProps.position,
-                            loop: true
-                        });
-
-                    } else {
-                        _this.waterInjector.restart();
-                    }
+                    _this.startPouring();
                 }
-                _this.waterSpoutRotation = spoutProps.rotation;
+                _this.waterSpoutRotation = _this.spoutProps.rotation;
                 var waterEmitOrientation = Quat.multiply(_this.waterSpoutRotation, Quat.fromPitchYawRollDegrees(0, 180, 0));
                 Entities.editEntity(_this.waterEffect, {
                     emitOrientation: waterEmitOrientation
                 });
-            } else if (pitch > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
+            } else if (forwardVec.y > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
                 _this.stopPouring();
             }
+        },
+
+
+        stopPouring: function() {
+            print("EBL STOP POURING")
+            Entities.editEntity(_this.waterEffect, {
+                isEmitting: false
+            });
+            _this.waterPouring = false;
+            //water no longer pouring...
+            if (_this.waterInjector) {
+                _this.waterInjector.stop();
+            }
+            Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
+        },
+
+        startPouring: function() {
+            print("EBL START POURING")                
+            Script.setTimeout(function() {
+                Entities.editEntity(_this.waterEffect, {
+                    isEmitting: true
+                });
+            }, 100);
+            _this.waterPouring = true;
+            if (!_this.waterInjector) {
+                _this.waterInjector = Audio.playSound(_this.waterSound, {
+                    position: _this.spoutProps.position,
+                    loop: true
+                });
+
+            } else {
+                _this.waterInjector.restart();
+            }
+
         },
 
         castRay: function() {
@@ -128,8 +157,6 @@
             }
 
         },
-
-
 
         createWaterEffect: function() {
             var waterEffectPosition = Vec3.sum(_this.waterSpoutPosition, Vec3.multiply(Quat.getFront(_this.waterSpoutRotation), -0.04));
@@ -156,7 +183,7 @@
                 },
                 maxParticles: 20000,
                 lifespan: 2,
-                lifetime: 10000,
+                lifetime: 5000, //Doubtful anyone will hold water can longer than this
                 emitRate: 2000,
                 emitSpeed: .3,
                 speedSpread: 0.1,
@@ -187,7 +214,12 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
+                textures: "atp:/growingPlant/raindrop.png",
+                userData: JSON.stringify({
+                    'hifiHomeKey': {
+                        'reset': true
+                    }
+                }),
             });
 
         },
@@ -205,26 +237,9 @@
         },
 
         preload: function(entityID) {
+            print("EBL PRELOADING WATER CAN")
             _this.entityID = entityID;
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-            // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
-            Script.setTimeout(function() {
-                var entities = Entities.findEntities(_this.position, 1);
-                entities.forEach(function(entity) {
-                    var name = Entities.getEntityProperties(entity, "name").name;
-                    if (name === _this.WATER_SPOUT_NAME) {
-                        _this.waterSpout = entity;
-                    }
-                });
-
-                if (_this.waterSpout) {
-                    _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
-                    _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
-                    _this.createWaterEffect();
-                }
-
-            }, 3000);
-
         },
 
 
