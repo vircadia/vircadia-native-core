@@ -309,6 +309,8 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (glm::length2(_serverVelocity) > 0.0f) {
         _serverVelocity += _serverAcceleration * dt;
         _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+        // NOTE: we ignore the second-order acceleration term when integrating
+        // the position forward because Bullet also does this.
         _serverPosition += dt * _serverVelocity;
     }
 

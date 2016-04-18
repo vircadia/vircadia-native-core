@@ -947,9 +947,10 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
                     && glm::length2(linearVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
                 linearVelocity = Vectors::ZERO;
             } else {
-                // position's acceleration term uses deltaVelocity rather than raw gravity
-                // for more accuracy (includes damping effects)
-                position += timeElapsed * (linearVelocity + 0.5f * deltaVelocity);
+                // NOTE: we do NOT include the second-order acceleration term (0.5 * a * dt^2)
+                // when computing the displacement because Bullet also ignores that term.  Yes,
+                // this is an approximation and it works best when dt is small.
+                position += timeElapsed * linearVelocity;
                 linearVelocity += deltaVelocity;
             }
         } else {
