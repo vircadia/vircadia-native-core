@@ -901,5 +901,5 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
     _angularVelocityLock.withWriteLock([&] {
         _angularVelocity = localAngularVelocity;
     });
-    locationChanged();
+    locationChanged(false);
 }
