@@ -250,6 +250,17 @@ void AvatarManager::clearOtherAvatars() {
     _myAvatar->clearLookAtTargetAvatar();
 }
 
+void AvatarManager::clearAllAvatars() {
+    clearOtherAvatars();
+
+    QWriteLocker (locker&_hashLock);
+
+    _myAvatar->die();
+    _myAvatar.reset();
+
+    _avatarHash.clear();
+}
+
 void AvatarManager::setLocalLights(const QVector<AvatarManager::LocalLight>& localLights) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setLocalLights", Q_ARG(const QVector<AvatarManager::LocalLight>&, localLights));
