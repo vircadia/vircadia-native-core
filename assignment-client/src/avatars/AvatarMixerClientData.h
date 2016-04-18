@@ -86,7 +86,7 @@ private:
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
-    p_high_resolution_clock::time_point _identityChangeTimestamp;
+    HRCTime _identityChangeTimestamp;
 
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;

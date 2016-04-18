@@ -190,7 +190,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {
-    return (frameNumber % (int) ceil(1.0f / AudioConstants::NETWORK_FRAME_SECS)) == _frameToSendStats;
+    return frameNumber == _frameToSendStats;
 }
 
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) {

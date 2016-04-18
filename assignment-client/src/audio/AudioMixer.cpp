@@ -585,6 +585,7 @@ void AudioMixer::broadcastMixes() {
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
 
     int currentFrame { 1 };
+    int numFramesPerSecond { (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC) };
 
     while (!_isFinished) {
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
@@ -695,7 +696,10 @@ void AudioMixer::broadcastMixes() {
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet to the client approximately every second
-                    if (nodeData->shouldSendStats(currentFrame++)) {
+                    ++currentFrame;
+                    currentFrame %= numFramesPerSecond;
+
+                    if (nodeData->shouldSendStats(currentFrame)) {
                         nodeData->sendAudioStreamStatsPackets(node);
                     }
 
