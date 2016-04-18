@@ -1065,7 +1065,7 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
             // FIXME - I'm leaving this in for testing, so that QA can confirm that sometimes the script contents
             //         returns after the ScriptEngine has been deleted, we can remove this after QA verifies the
             //         repro case.
-            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted...";
+            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted... script:" << scriptOrURL;
         }
     }, forceRedownload);
 }
