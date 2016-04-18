@@ -758,7 +758,6 @@ void ScriptEngine::stop() {
             QMetaObject::invokeMethod(this, "stop");
             return;
         }
-        abortEvaluation(); // abort any script evaluation that may be active
         _isFinished = true;
         if (_wantSignals) {
             emit runningStateChanged();
