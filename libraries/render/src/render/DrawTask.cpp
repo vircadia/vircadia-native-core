@@ -75,11 +75,11 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
         numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
     }
 
-    using SortedPipelines = std::vector< render::ShapeKey >;
-    using SortedShapes = std::unordered_map< render::ShapeKey, std::vector< Item >, render::ShapeKey::Hash, render::ShapeKey::KeyEqual >;
+    using SortedPipelines = std::vector<render::ShapeKey>;
+    using SortedShapes = std::unordered_map<render::ShapeKey, std::vector<Item>, render::ShapeKey::Hash, render::ShapeKey::KeyEqual>;
     SortedPipelines sortedPipelines;
     SortedShapes sortedShapes;
-    std::vector< Item > ownPipelineBucket;
+    std::vector<Item> ownPipelineBucket;
 
 
     for (auto i = 0; i < numItemsToDraw; ++i) {
