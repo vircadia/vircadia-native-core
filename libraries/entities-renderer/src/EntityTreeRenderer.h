@@ -126,6 +126,8 @@ protected:
     }
 
 private:
+    void setupEntitiesScriptEngine();
+
     void addEntityToScene(EntityItemPointer entity);
     bool findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar);
 
@@ -196,6 +198,8 @@ private:
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
+
+    static int _entititesScriptEngineCount;
 };
 
 

@@ -71,23 +71,21 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    qDebug() << __FUNCTION__ << "---- BEGIN ----";
+    qDebug() << __FUNCTION__;
     // NOTE: We don't need to delete _entitiesScriptEngine because
     //       it is registered with ScriptEngines, which will call deleteLater for us.
-
-    /*
-    if (_entitiesScriptEngine) { 
-        qDebug() << __FUNCTION__ << "about to stop entity script engine.";
-        _entitiesScriptEngine->stop();
-        qDebug() << __FUNCTION__ << "about to delete entity script engine.";
-        delete _entitiesScriptEngine;
-        _entitiesScriptEngine = nullptr;
-    }
-    */
-    qDebug() << __FUNCTION__ << "---- END ----";
 }
 
-static int entititesScriptEngineCount = 0;
+int EntityTreeRenderer::_entititesScriptEngineCount = 0;
+
+void EntityTreeRenderer::setupEntitiesScriptEngine() {
+    qDebug() << __FUNCTION__ << "---- BEGIN ----";
+    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
+    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
+    _entitiesScriptEngine->runInThread();
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
+    qDebug() << __FUNCTION__ << "---- END ----";
+}
 
 void EntityTreeRenderer::clear() {
     qDebug() << __FUNCTION__ << "---- BEGIN ----";
@@ -103,21 +101,10 @@ void EntityTreeRenderer::clear() {
         _entitiesScriptEngine->stop();
         qDebug() << __FUNCTION__ << " AFTER _entitiesScriptEngine->stop()";
 
-        qDebug() << __FUNCTION__ << " about to _entitiesScriptEngine->deleteLater()";
-        // NOTE: you can't actually delete it here we need to let Qt unwind and delete the object safely when ready
-        qDebug() << __FUNCTION__ << " about to call _entitiesScriptEngine->deleteLater() on thread[" << QThread::currentThread() << "], _entitiesScriptEngine's thread [" << _entitiesScriptEngine->thread() << "]";
-        _entitiesScriptEngine->deleteLater();
-        //QMetaObject::invokeMethod(_entitiesScriptEngine, "deleteLater");
-        qDebug() << __FUNCTION__ << " AFTER _entitiesScriptEngine->deleteLater()";
-
-        qDebug() << __FUNCTION__ << " about to create new _entitiesScriptEngine";
-        _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
-
-
-        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
-        _entitiesScriptEngine->runInThread();
-        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
-        qDebug() << __FUNCTION__ << " AFTER create new _entitiesScriptEngine";
+        // NOTE: you can't actually need to delete it here because when we call setupEntitiesScriptEngine it will
+        //       assign a new instance to our shared pointer, which will deref the old instance and ultimately call
+        //       the custom deleter which calls deleteLater
+        setupEntitiesScriptEngine();
     }
 
     auto scene = _viewState->getMain3DScene();
@@ -147,10 +134,7 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
-        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
-        _entitiesScriptEngine->runInThread();
-        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
+        setupEntitiesScriptEngine();
     }
 
     forceRecheckEntities(); // setup our state to force checking our inside/outsideness of entities
