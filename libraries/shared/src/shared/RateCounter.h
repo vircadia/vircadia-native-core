@@ -11,6 +11,7 @@
 #define hifi_Shared_RateCounter_h
 
 #include <stdint.h>
+#include <atomic>
 #include <functional>
 #include <QtCore/QElapsedTimer>
 
@@ -42,7 +43,7 @@ public:
 private:
     uint64_t _start { usecTimestampNow() };
     size_t _count { 0 };
-    float _rate { 0 };
+    std::atomic<float> _rate { 0 };
     const float _scale { powf(10, PRECISION) };
 };
 
