@@ -189,6 +189,10 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
     }
 }
 
+bool AudioMixerClientData::shouldSendStats(int frameNumber) {
+    return (frameNumber % (int) ceil(1.0f / AudioConstants::NETWORK_FRAME_SECS)) == _frameToSendStats;
+}
+
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) {
 
     auto nodeList = DependencyManager::get<NodeList>();

@@ -59,7 +59,7 @@ public:
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
     // uses randomization to have the AudioMixer send a stats packet to this node around every second
-    bool shouldSendStats(int frameNumber) { return frameNumber % _frameToSendStats == 0; }
+    bool shouldSendStats(int frameNumber);
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
