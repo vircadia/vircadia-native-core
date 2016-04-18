@@ -30,9 +30,9 @@
             print("preload - entityID:" + entityID);
             this.entityID = entityID;
 
-            Script.setTimeout(function() {
+            Script.setInterval(function() {
                     var entityID = _this.entityID;
-                    print("timer timeout in entityID:" + entityID);
+                    print("timer interval in entityID:" + entityID);
                 }, 3000);
         },
 
