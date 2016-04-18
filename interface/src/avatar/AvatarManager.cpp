@@ -253,7 +253,7 @@ void AvatarManager::clearOtherAvatars() {
 void AvatarManager::clearAllAvatars() {
     clearOtherAvatars();
 
-    QWriteLocker (locker&_hashLock);
+    QWriteLocker locker(&_hashLock);
 
     _myAvatar->die();
     _myAvatar.reset();
