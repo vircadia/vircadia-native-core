@@ -71,7 +71,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    qDebug() << __FUNCTION__;
     // NOTE: We don't need to delete _entitiesScriptEngine because
     //       it is registered with ScriptEngines, which will call deleteLater for us.
 }
@@ -79,27 +78,21 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 int EntityTreeRenderer::_entititesScriptEngineCount = 0;
 
 void EntityTreeRenderer::setupEntitiesScriptEngine() {
-    qDebug() << __FUNCTION__ << "---- BEGIN ----";
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
     _entitiesScriptEngine->runInThread();
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
-    qDebug() << __FUNCTION__ << "---- END ----";
 }
 
 void EntityTreeRenderer::clear() {
-    qDebug() << __FUNCTION__ << "---- BEGIN ----";
     leaveAllEntities();
     if (_entitiesScriptEngine) {
         _entitiesScriptEngine->unloadAllEntityScripts();
     }
 
     // this would be a good place to actuall delete and recreate the _entitiesScriptEngine
-    qDebug() << __FUNCTION__ << "_shuttingDown:" << _shuttingDown;
     if (_wantScripts && !_shuttingDown) {
-        qDebug() << __FUNCTION__ << " about to _entitiesScriptEngine->stop()";
         _entitiesScriptEngine->stop();
-        qDebug() << __FUNCTION__ << " AFTER _entitiesScriptEngine->stop()";
 
         // NOTE: you can't actually need to delete it here because when we call setupEntitiesScriptEngine it will
         //       assign a new instance to our shared pointer, which will deref the old instance and ultimately call
@@ -116,7 +109,6 @@ void EntityTreeRenderer::clear() {
     _entitiesInScene.clear();
 
     OctreeRenderer::clear();
-    qDebug() << __FUNCTION__ << "---- END ----";
 }
 
 void EntityTreeRenderer::reloadEntityScripts() {
