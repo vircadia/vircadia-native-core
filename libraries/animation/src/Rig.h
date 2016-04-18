@@ -228,7 +228,6 @@ signals:
     void onLoadComplete();
 
 protected:
-    void emitOnLoadComplete() { emit onLoadComplete(); }
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
