@@ -114,9 +114,14 @@ Fadable {
 
     children: [ swallower, frame, content, activator ]
 
-    Component.onCompleted: raise();
-    Component.onDestruction: windowDestroyed();
-    onParentChanged: raise();
+    Component.onCompleted: {
+        window.parentChanged.connect(raise);
+        raise();
+    }
+    Component.onDestruction: {
+        window.parentChanged.disconnect(raise);  // Prevent warning on shutdown
+        windowDestroyed();
+    }
 
     onVisibleChanged: {
         if (!visible && destroyOnInvisible) {

@@ -1150,6 +1150,9 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
+    DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
+
     _aboutToQuit = true;
 
     cleanupBeforeQuit();

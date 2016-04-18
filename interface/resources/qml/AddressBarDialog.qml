@@ -17,7 +17,7 @@ import "windows"
 Window {
     id: root
     HifiConstants { id: hifi }
-    anchors.centerIn: parent
+
     objectName: "AddressBarDialog"
     frame: HiddenFrame {}
 
@@ -28,6 +28,19 @@ Window {
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
+
+    Component.onCompleted: {
+        root.parentChanged.connect(center);
+        center();
+    }
+    Component.onDestruction: {
+        root.parentChanged.disconnect(center);
+    }
+
+    function center() {
+        // Explicitly center in order to avoid warnings at shutdown
+        anchors.centerIn = parent;
+    }
 
     AddressBarDialog {
         id: addressBarDialog
