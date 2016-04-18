@@ -1049,8 +1049,8 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
-    // NOTE: If the script content is not currently in the caceh, The LAMBDA here, will be called on the Main Thread
-    //       which means we're guarenteed that it's not the correct thread for the ScriptEngine. This means
+    // NOTE: If the script content is not currently in the cache, the LAMBDA here will be called on the Main Thread
+    //       which means we're guaranteed that it's not the correct thread for the ScriptEngine. This means
     //       when we get into entityScriptContentAvailable() we will likely invokeMethod() to get it over
     //       to the "Entities" ScriptEngine thread.
     DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [theEngine, entityID](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
