@@ -77,7 +77,6 @@ AvatarManager::AvatarManager(QObject* parent) :
 }
 
 AvatarManager::~AvatarManager() {
-    _myAvatar->die();
 }
 
 void AvatarManager::init() {
