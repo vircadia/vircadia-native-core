@@ -198,6 +198,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
             _headData->setLookAtPosition(headData->getLookAtPosition());
         }
     });
+
+    connect(rig.get(), SIGNAL(onLoadComplete()), SLOT(onRigLoadComplete()));
 }
 
 MyAvatar::~MyAvatar() {
@@ -2080,7 +2082,7 @@ float MyAvatar::getAccelerationEnergy() {
     int changeInVelocity = abs(velocity.length() - priorVelocity.length());
     float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     priorVelocity = velocity;
-    
+
     return changeInEnergy;
 }
 
@@ -2103,3 +2105,6 @@ bool MyAvatar::didTeleport() {
     return (changeInPosition.length() > MAX_AVATAR_MOVEMENT_PER_FRAME);
 }
 
+void MyAvatar::onRigLoadComplete() {
+    emit onLoadComplete();
+}

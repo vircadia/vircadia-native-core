@@ -295,7 +295,7 @@ signals:
     void collisionWithEntity(const Collision& collision);
     void energyChanged(float newEnergy);
     void positionGoneTo();
-
+    void onLoadComplete();
 
 private:
 
@@ -469,6 +469,8 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
+private slots:
+    void onRigLoadComplete();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

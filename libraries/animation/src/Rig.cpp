@@ -1161,6 +1161,7 @@ void Rig::initAnimGraph(const QUrl& url) {
             overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
         }
 
+        emitOnLoadComplete();
     });
     connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
         qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
