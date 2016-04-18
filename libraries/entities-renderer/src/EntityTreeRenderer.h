@@ -199,7 +199,7 @@ private:
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 
-    static int _entititesScriptEngineCount;
+    static int _entitiesScriptEngineCount;
 };
 
 

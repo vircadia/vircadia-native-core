@@ -75,11 +75,11 @@ EntityTreeRenderer::~EntityTreeRenderer() {
     //       it is registered with ScriptEngines, which will call deleteLater for us.
 }
 
-int EntityTreeRenderer::_entititesScriptEngineCount = 0;
+int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 
 void EntityTreeRenderer::setupEntitiesScriptEngine() {
     QSharedPointer<ScriptEngine> oldEngine = _entitiesScriptEngine; // save the old engine through this function, so the EntityScriptingInterface doesn't have problems with it.
-    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
+    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount)), &QObject::deleteLater);
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
     _entitiesScriptEngine->runInThread();
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
