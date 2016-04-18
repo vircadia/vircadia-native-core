@@ -19,7 +19,7 @@
 
 GPUIdent GPUIdent::_instance {};
 
-GPUIdent* GPUIdent::ensureQuery() {
+GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) {
     if (_isQueried) {
         return this;
     }
@@ -44,7 +44,7 @@ GPUIdent* GPUIdent::ensureQuery() {
     }
 
     // Switch the security level to IMPERSONATE so that provider will grant access to system-level objects.
-    hr = CoSetProxyBlanket(spServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, /*EOAC_NONE*/EOAC_DEFAULT);
+    hr = CoSetProxyBlanket(spServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_DEFAULT);
     if (hr != S_OK) {
         qCDebug(shared) << "Unable to authorize access to system objects.";
         return this;
@@ -57,52 +57,66 @@ GPUIdent* GPUIdent::ensureQuery() {
         qCDebug(shared) << "Unable to reach video controller.";
         return this;
     }
-    // alternative. We shouldn't need both this and the above.
-    IEnumWbemClassObject* pEnum;
-    hr = spServices->ExecQuery(CComBSTR("WQL"), CComBSTR("select * from Win32_VideoController"), WBEM_FLAG_FORWARD_ONLY, NULL, &pEnum);
-    if (hr != S_OK) {
-        qCDebug(shared) << "Unable to query video controller";
-        return this;
-    }
+
+    // I'd love to find a better way to learn which graphics adapter is the one we're using.
+    // Alas, no combination of vendor, renderer, and adapter name seems to be a substring of the others.
+    // Here we get a list of words that we'll match adapter names against. Most matches wins.
+    QRegExp wordMatcher{ "\\W" };
+    QStringList words;
+    words << vendor.toUpper().split(wordMatcher) << renderer.toUpper().split(wordMatcher);
+    words.removeAll("");
+    words.removeDuplicates();
+    int bestCount = 0;
 
     ULONG uNumOfInstances = 0;
     CComPtr<IWbemClassObject> spInstance = NULL;
     hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
-
-    if (hr == S_OK && spInstance) {
+    while (hr == S_OK && spInstance && uNumOfInstances) {
         // Get properties from the object
         CComVariant var;
-        CIMTYPE type;
-
-        hr = spInstance->Get(CComBSTR(_T("AdapterRAM")), 0, &var, 0, 0);
-        if (hr == S_OK) {
-            var.ChangeType(CIM_UINT32);  // We're going to receive some integral type, but it might not be uint.
-            _dedicatedMemoryMB = var.uintVal / (1024 * 1024);
-        } else {
-            qCDebug(shared) << "Unable to get video AdapterRAM";
-        }
 
         hr = spInstance->Get(CComBSTR(_T("Name")), 0, &var, 0, 0);
-        if (hr == S_OK) {
-            char sString[256];
-            WideCharToMultiByte(CP_ACP, 0, var.bstrVal, -1, sString, sizeof(sString), NULL, NULL);
-            _name = sString;
-        } else {
+        if (hr != S_OK) {
             qCDebug(shared) << "Unable to get video name";
+            continue;
         }
-
-        hr = spInstance->Get(CComBSTR(_T("DriverVersion")), 0, &var, 0, 0);
-        if (hr == S_OK) {
-            char sString[256];
-            WideCharToMultiByte(CP_ACP, 0, var.bstrVal, -1, sString, sizeof(sString), NULL, NULL);
-            _driver = sString;
-        } else {
-            qCDebug(shared) << "Unable to get video driver";
+        char sString[256];
+        WideCharToMultiByte(CP_ACP, 0, var.bstrVal, -1, sString, sizeof(sString), NULL, NULL);
+        QStringList adapterWords = QString(sString).toUpper().split(wordMatcher);
+        adapterWords.removeAll("");
+        adapterWords.removeDuplicates();
+        int count = 0;
+        for (const QString& adapterWord : adapterWords) {
+            if (words.contains(adapterWord)) {
+                count++;
+            }
         }
+        if (count > bestCount) {
+            bestCount = count;
+            _name = sString;
 
-        _isValid = true;
-    } else {
-        qCDebug(shared) << "Unable to enerate video adapters";
+            hr = spInstance->Get(CComBSTR(_T("DriverVersion")), 0, &var, 0, 0);
+            if (hr == S_OK) {
+                char sString[256];
+                WideCharToMultiByte(CP_ACP, 0, var.bstrVal, -1, sString, sizeof(sString), NULL, NULL);
+                _driver = sString;
+            }
+            else {
+                qCDebug(shared) << "Unable to get video driver";
+            }
+
+            hr = spInstance->Get(CComBSTR(_T("AdapterRAM")), 0, &var, 0, 0);
+            if (hr == S_OK) {
+                var.ChangeType(CIM_UINT32);  // We're going to receive some integral type, but it might not be uint.
+                _dedicatedMemoryMB = var.uintVal / (1024 * 1024);
+            }
+            else {
+                qCDebug(shared) << "Unable to get video AdapterRAM";
+            }
+
+            _isValid = true;
+        }
+        hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
     }
 #endif
     return this;

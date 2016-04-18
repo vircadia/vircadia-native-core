@@ -22,7 +22,7 @@ public:
     QString getDriver() { return _driver; }
     bool isValid() { return _isValid; }
     // E.g., GPUIdent::getInstance()->getMemory();
-    static GPUIdent* getInstance() { return _instance.ensureQuery(); }
+    static GPUIdent* getInstance(const QString& vendor = "", const QString& renderer = "") { return _instance.ensureQuery(vendor, renderer); }
 private:
     uint _dedicatedMemoryMB { 0 };
     QString _name { "" };
@@ -30,7 +30,7 @@ private:
     bool _isQueried { false };
     bool _isValid { false };
     static GPUIdent _instance;
-    GPUIdent* ensureQuery();
+    GPUIdent* ensureQuery(const QString& vendor, const QString& renderer);
 };
 
 #endif // hifi_GPUIdent_h

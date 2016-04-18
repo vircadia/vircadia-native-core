@@ -14,6 +14,7 @@
 #include <queue>
 #include <list>
 #include <glm/gtc/type_ptr.hpp>
+#include <GPUIdent.h>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -86,10 +87,18 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
+        QString vendor{ (const char*)glGetString(GL_VENDOR) };
+        QString renderer{ (const char*)glGetString(GL_RENDERER) };
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-        qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+        qCDebug(gpulogging) << "GL Vendor: " << vendor;
+        qCDebug(gpulogging) << "GL Renderer: " << renderer;
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
+        // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
+        qCDebug(gpulogging) << "GPU:";
+        qCDebug(gpulogging) << "\tcard:" << gpu->getName();
+        qCDebug(gpulogging) << "\tdriver:" << gpu->getDriver();
+        qCDebug(gpulogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
 
         glewExperimental = true;
         GLenum err = glewInit();
