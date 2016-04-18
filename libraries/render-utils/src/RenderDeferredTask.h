@@ -41,6 +41,7 @@ class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+    Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
 
 public:
 
@@ -48,6 +49,7 @@ public:
     void setNumDrawn(int num) { _numDrawn = num; emit numDrawnChanged(); }
 
     int maxDrawn{ -1 };
+    bool stateSort{ true };
 
 signals:
     void numDrawnChanged();
@@ -70,6 +72,22 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
+};
+
+class DrawStateSortDeferred {
+public:
+    using Config = DrawConfig;
+    using JobModel = render::Job::ModelI<DrawStateSortDeferred, render::ItemBounds, Config>;
+
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; }
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
+    int _maxDrawn; // initialized by Config
+    bool _stateSort;
 };
 
 class DrawStencilDeferred {

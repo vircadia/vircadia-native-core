@@ -246,8 +246,8 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Texcoord transforms ?
     if (locations->texcoordMatrices >= 0) {
-        //batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*)&texcoordTransform);
-        batch._glUniformMatrix4fv(locations->texcoordMatrices, (materialKey.isLightmapMap() ? 2 : 1), false, (const float*)&texcoordTransform);
+        batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*)&texcoordTransform);
+       // batch._glUniformMatrix4fv(locations->texcoordMatrices, (materialKey.isLightmapMap() ? 2 : 1), false, (const float*)&texcoordTransform);
     }
 }
 
