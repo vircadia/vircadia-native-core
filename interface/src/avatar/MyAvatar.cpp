@@ -204,6 +204,15 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
+void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
+    Avatar::setOrientation(quatFromVariant(newOrientationVar));
+}
+
+QVariant MyAvatar::getOrientationVar() const {
+    return quatToVariant(Avatar::getOrientation());
+}
+
+
 // virtual
 void MyAvatar::simulateAttachments(float deltaTime) {
     // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
