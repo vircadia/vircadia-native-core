@@ -36,7 +36,6 @@ public slots:
 private slots:
     void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void domainSettingsRequestComplete();
     
@@ -53,7 +52,6 @@ private:
     
     int _sumListeners { 0 };
     int _numStatFrames { 0 };
-    int _sumBillboardPackets { 0 };
     int _sumIdentityPackets { 0 };
 
     float _maxKbpsPerNode = 0.0f;

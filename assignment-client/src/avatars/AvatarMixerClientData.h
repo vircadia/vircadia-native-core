@@ -48,9 +48,6 @@ public:
 
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
-    HRCTime getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
-    void flagBillboardChange() { _billboardChangeTimestamp = p_high_resolution_clock::now(); }
-
     HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
 
@@ -89,7 +86,6 @@ private:
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
-    p_high_resolution_clock::time_point _billboardChangeTimestamp;
     p_high_resolution_clock::time_point _identityChangeTimestamp;
 
     float _fullRateDistance = FLT_MAX;

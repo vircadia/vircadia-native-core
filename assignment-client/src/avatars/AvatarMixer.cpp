@@ -44,7 +44,6 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "handleAvatarBillboardPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 }
 
@@ -59,7 +58,7 @@ AvatarMixer::~AvatarMixer() {
 
 // An 80% chance of sending a identity packet within a 5 second interval.
 // assuming 60 htz update rate.
-const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
+const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
 
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
@@ -243,32 +242,13 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
-                    // make sure we send out identity and billboard packets to and from new arrivals.
+                    // make sure we send out identity packets to and from new arrivals.
                     bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
-
-                    // we will also force a send of billboard or identity packet
-                    // if either has changed in the last frame
-                    if (otherNodeData->getBillboardChangeTimestamp().time_since_epoch().count() > 0
-                        && (forceSend
-                            || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
-                            || distribution(generator) < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-
-                        QByteArray rfcUUID = otherNode->getUUID().toRfc4122();
-                        QByteArray billboard = otherNodeData->getAvatar().getBillboard();
-
-                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, rfcUUID.size() + billboard.size());
-                        billboardPacket->write(rfcUUID);
-                        billboardPacket->write(billboard);
-
-                        nodeList->sendPacket(std::move(billboardPacket), *node);
-
-                        ++_sumBillboardPackets;
-                    }
 
                     if (otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
                         && (forceSend
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                            || distribution(generator) < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+                            || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
 
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
 
@@ -442,20 +422,6 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
-void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-    if (nodeData) {
-        AvatarData& avatar = nodeData->getAvatar();
-
-        // parse the billboard packet and update the change timestamp if appropriate
-        if (avatar.hasBillboardChangedAfterParsing(message->getMessage())) {
-            QMutexLocker nodeDataLocker(&nodeData->getMutex());
-            nodeData->flagBillboardChange();
-        }
-
-    }
-}
-
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message) {
     DependencyManager::get<NodeList>()->processKillNode(*message);
 }
@@ -464,7 +430,6 @@ void AvatarMixer::sendStatsPacket() {
     QJsonObject statsObject;
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
 
-    statsObject["average_billboard_packets_per_frame"] = (float) _sumBillboardPackets / (float) _numStatFrames;
     statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
 
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
@@ -505,7 +470,6 @@ void AvatarMixer::sendStatsPacket() {
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 
     _sumListeners = 0;
-    _sumBillboardPackets = 0;
     _sumIdentityPackets = 0;
     _numStatFrames = 0;
 }
