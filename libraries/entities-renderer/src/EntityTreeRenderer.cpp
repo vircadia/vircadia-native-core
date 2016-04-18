@@ -140,6 +140,8 @@ void EntityTreeRenderer::init() {
 void EntityTreeRenderer::shutdown() {
     _entitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
     _shuttingDown = true;
+
+    clear(); // always clear() on shutdown
 }
 
 void EntityTreeRenderer::setTree(OctreePointer newTree) {
