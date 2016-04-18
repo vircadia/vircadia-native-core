@@ -71,7 +71,7 @@ public:
     ~ScriptEngine();
 
     // Useful for QSharePointer<ScriptEngine>
-    static void doDeleteLater(ScriptEngine* obj) { obj->deleteLater(); }
+    static void doDeleteLater(ScriptEngine* engine) { engine->deleteLater(); }
 
     /// run the script in a dedicated thread. This will have the side effect of evalulating
     /// the current script contents and calling run(). Callers will likely want to register the script with external
