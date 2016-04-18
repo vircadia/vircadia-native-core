@@ -187,7 +187,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         // of the physics simulation.
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-        _entity->simulateKinematicMotion(dt);
+        _entity->stepKinematicMotion(dt);
 
         // bypass const-ness so we can remember the step
         const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;

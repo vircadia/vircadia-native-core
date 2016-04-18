@@ -731,7 +731,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // we want to extrapolate the motion forward to compensate for packet travel time, but
         // we don't want the side effect of flag setting.
-        simulateKinematicMotion(skipTimeForward, false);
+        stepKinematicMotion(skipTimeForward);
     }
 
     if (overwriteLocalData) {
@@ -872,130 +872,104 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
     #endif
 
-    simulateKinematicMotion(timeElapsed);
+    if (!hasActions()) {
+        if (!stepKinematicMotion(timeElapsed)) {
+            // this entity is no longer moving
+            // flag it to transition from KINEMATIC to STATIC
+            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        }
+    }
     _lastSimulated = now;
 }
 
-void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
-#ifdef WANT_DEBUG
-    qCDebug(entities) << "EntityItem::simulateKinematicMotion timeElapsed" << timeElapsed;
-#endif
-
-    const float MIN_TIME_SKIP = 0.0f;
-    const float MAX_TIME_SKIP = 1.0f; // in seconds
-
-    timeElapsed = glm::clamp(timeElapsed, MIN_TIME_SKIP, MAX_TIME_SKIP);
-
-    if (hasActions()) {
-        return;
+bool EntityItem::stepKinematicMotion(float timeElapsed) {
+    if (timeElapsed < 0.0f) {
+        return true;
     }
 
-    if (hasLocalAngularVelocity()) {
-        glm::vec3 localAngularVelocity = getLocalAngularVelocity();
+    const float MAX_TIME_ELAPSED = 1.0f; // seconds
+    timeElapsed = glm::min(timeElapsed, MAX_TIME_ELAPSED);
 
+    Transform transform;
+    glm::vec3 linearVelocity;
+    glm::vec3 angularVelocity;
+    getLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
+
+    bool moving = false;
+    if (glm::length2(angularVelocity) > 0.0f) {
         // angular damping
         if (_angularDamping > 0.0f) {
-            localAngularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "    angularDamping :" << _angularDamping;
-                qCDebug(entities) << "    newAngularVelocity:" << localAngularVelocity;
-            #endif
+            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
         }
 
-        float angularSpeed = glm::length(localAngularVelocity);
-
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
-        if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            if (setFlags && angularSpeed > 0.0f) {
-                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
-            }
-            localAngularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        const float MIN_KINEMATIC_ANGULAR_SPEED_SQUARED = 0.0017453f * 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
+        if (glm::length2(angularVelocity) < MIN_KINEMATIC_ANGULAR_SPEED_SQUARED) {
+            angularVelocity = Vectors::ZERO;
         } else {
             // for improved agreement with the way Bullet integrates rotations we use an approximation
             // and break the integration into bullet-sized substeps
-            glm::quat rotation = getRotation();
+            glm::quat rotation = transform.getRotation();
             float dt = timeElapsed;
-            while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
-                glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+            while (dt > 0.0f) {
+                glm::quat  dQ = computeBulletRotationStep(angularVelocity, glm::min(dt, PHYSICS_ENGINE_FIXED_SUBSTEP));
                 rotation = glm::normalize(dQ * rotation);
                 dt -= PHYSICS_ENGINE_FIXED_SUBSTEP;
             }
-            // NOTE: this final partial substep can drift away from a real Bullet simulation however
-            // it only becomes significant for rapidly rotating objects
-            // (e.g. around PI/4 radians per substep, or 7.5 rotations/sec at 60 substeps/sec).
-            glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, dt);
-            rotation = glm::normalize(dQ * rotation);
-
-            bool success;
-            setOrientation(rotation, success, false);
+            transform.setRotation(rotation);
         }
-
-        setLocalAngularVelocity(localAngularVelocity);
+        moving = true;
     }
 
-    if (hasLocalVelocity()) {
-
-        // acceleration is in the global frame, so transform it into the local frame.
-        // TODO: Move this into SpatiallyNestable.
-        bool success;
-        Transform transform = getParentTransform(success);
-        glm::vec3 localAcceleration(glm::vec3::_null);
-        if (success) {
-            localAcceleration = glm::inverse(transform.getRotation()) * getAcceleration();
-        } else {
-            localAcceleration = getAcceleration();
-        }
+    glm::vec3 position = transform.getTranslation();
+    float linearSpeedSquared = glm::length2(linearVelocity);
+    if (linearSpeedSquared > 0.0f) {
+        glm::vec3 deltaVelocity = Vectors::ZERO;
 
         // linear damping
-        glm::vec3 localVelocity = getLocalVelocity();
         if (_damping > 0.0f) {
-            localVelocity *= powf(1.0f - _damping, timeElapsed);
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "    damping:" << _damping;
-                qCDebug(entities) << "    velocity AFTER dampingResistance:" << localVelocity;
-                qCDebug(entities) << "    glm::length(velocity):" << glm::length(localVelocity);
-            #endif
+            deltaVelocity = (powf(1.0f - _damping, timeElapsed) - 1.0f) * linearVelocity;
         }
 
-        // integrate position forward
-        glm::vec3 localPosition = getLocalPosition();
-        glm::vec3 newLocalPosition = localPosition + (localVelocity * timeElapsed) + 0.5f * localAcceleration * timeElapsed * timeElapsed;
+        const float MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED = 1.0e-4f; // 0.01 m/sec^2
+        const float MIN_KINEMATIC_LINEAR_SPEED_SQUARED = 1.0e-6f; // 0.001 m/sec^2
+        if (glm::length2(_gravity) > MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED) {
+            // yes gravity
+            // acceleration is in world-frame but we need it in local-frame
+            glm::vec3 linearAcceleration = _gravity;
+            bool success;
+            Transform parentTransform = getParentTransform(success);
+            if (success) {
+                linearAcceleration = glm::inverse(parentTransform.getRotation()) * linearAcceleration;
+            }
+            deltaVelocity += linearAcceleration * timeElapsed;
 
-        #ifdef WANT_DEBUG
-            qCDebug(entities) << "  EntityItem::simulate()....";
-            qCDebug(entities) << "    timeElapsed:" << timeElapsed;
-            qCDebug(entities) << "    old AACube:" << getMaximumAACube();
-            qCDebug(entities) << "    old position:" << localPosition;
-            qCDebug(entities) << "    old velocity:" << localVelocity;
-            qCDebug(entities) << "    old getAABox:" << getAABox();
-            qCDebug(entities) << "    newPosition:" << newPosition;
-            qCDebug(entities) << "    glm::distance(newPosition, position):" << glm::distance(newLocalPosition, localPosition);
-        #endif
-
-        localPosition = newLocalPosition;
-
-        // apply effective acceleration, which will be the same as gravity if the Entity isn't at rest.
-        localVelocity += localAcceleration * timeElapsed;
-
-        float speed = glm::length(localVelocity);
-        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
-        if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
-            setVelocity(ENTITY_ITEM_ZERO_VEC3);
-            if (setFlags && speed > 0.0f) {
-                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            if (glm::length2(deltaVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED
+                    && glm::length2(linearVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
+                linearVelocity = Vectors::ZERO;
+            } else {
+                // position's acceleration term uses deltaVelocity rather than raw gravity
+                // for more accuracy (includes damping effects)
+                position += timeElapsed * (linearVelocity + 0.5f * deltaVelocity);
+                linearVelocity += deltaVelocity;
             }
         } else {
-            setLocalPosition(localPosition);
-            setLocalVelocity(localVelocity);
+            // no gravity
+            if (linearSpeedSquared < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
+                linearVelocity = Vectors::ZERO;
+            } else {
+                // NOTE: don't use acceleration term for linear displacement
+                position += timeElapsed * linearVelocity;
+                linearVelocity += deltaVelocity;
+            }
         }
-
-        #ifdef WANT_DEBUG
-            qCDebug(entities) << "    new position:" << position;
-            qCDebug(entities) << "    new velocity:" << velocity;
-            qCDebug(entities) << "    new AACube:" << getMaximumAACube();
-            qCDebug(entities) << "    old getAABox:" << getAABox();
-        #endif
+        moving = true;
     }
+
+    if (moving) {
+        transform.setTranslation(position);
+        setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
+    }
+    return moving;
 }
 
 bool EntityItem::isMoving() const {

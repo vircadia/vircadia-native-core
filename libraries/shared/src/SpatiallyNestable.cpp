@@ -419,7 +419,7 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
         // _velocity is a vs parent value and any request for a world-frame velocity must
         // be computed), do this to avoid equipped (parenting-grabbed) things from drifting.
         // turning a zero velocity into a non-zero _velocity (because the avatar is moving)
-        // causes EntityItem::simulateKinematicMotion to have an effect on the equipped entity,
+        // causes EntityItem::stepKinematicMotion to have an effect on the equipped entity,
         // which causes it to drift from the hand.
         if (hasAncestorOfType(NestableType::Avatar)) {
             _velocity = velocity;

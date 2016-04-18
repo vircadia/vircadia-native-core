@@ -152,7 +152,7 @@ public:
 
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
-    void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
+    bool stepKinematicMotion(float timeElapsed); // return 'true' if moving
 
     virtual bool needsToCallUpdate() const { return false; }
 
