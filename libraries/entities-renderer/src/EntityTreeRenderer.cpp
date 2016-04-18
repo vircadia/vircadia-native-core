@@ -99,16 +99,24 @@ void EntityTreeRenderer::clear() {
     // this would be a good place to actuall delete and recreate the _entitiesScriptEngine
     qDebug() << __FUNCTION__ << "_shuttingDown:" << _shuttingDown;
     if (_wantScripts && !_shuttingDown) {
-        qDebug() << __FUNCTION__ << " about to stop/delete current _entitiesScriptEngine";
+        qDebug() << __FUNCTION__ << " about to _entitiesScriptEngine->stop()";
         _entitiesScriptEngine->stop();
+        qDebug() << __FUNCTION__ << " AFTER _entitiesScriptEngine->stop()";
+
+        qDebug() << __FUNCTION__ << " about to _entitiesScriptEngine->deleteLater()";
+        // NOTE: you can't actually delete it here we need to let Qt unwind and delete the object safely when ready
+        qDebug() << __FUNCTION__ << " about to call _entitiesScriptEngine->deleteLater() on thread[" << QThread::currentThread() << "], _entitiesScriptEngine's thread [" << _entitiesScriptEngine->thread() << "]";
         _entitiesScriptEngine->deleteLater();
-        qDebug() << __FUNCTION__ << " AFTER stop/delete current _entitiesScriptEngine";
+        //QMetaObject::invokeMethod(_entitiesScriptEngine, "deleteLater");
+        qDebug() << __FUNCTION__ << " AFTER _entitiesScriptEngine->deleteLater()";
 
         qDebug() << __FUNCTION__ << " about to create new _entitiesScriptEngine";
-        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount));
-        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+        _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
+
+
+        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
         _entitiesScriptEngine->runInThread();
-        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
+        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
         qDebug() << __FUNCTION__ << " AFTER create new _entitiesScriptEngine";
     }
 
@@ -128,7 +136,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
     _entitiesScriptEngine->unloadAllEntityScripts();
     foreach(auto entity, _entitiesInScene) {
         if (!entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+            ScriptEngine::loadEntityScript(_entitiesScriptEngine, entity->getEntityItemID(), entity->getScript(), true);
         }
     }
 }
@@ -139,10 +147,10 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount));
-        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+        _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
+        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
         _entitiesScriptEngine->runInThread();
-        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
+        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
     }
 
     forceRecheckEntities(); // setup our state to force checking our inside/outsideness of entities
@@ -797,7 +805,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         if (entity && entity->shouldPreloadScript()) {
             QString scriptUrl = entity->getScript();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
-            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
+            ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();
         }
     }

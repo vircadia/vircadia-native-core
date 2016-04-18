@@ -143,6 +143,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << __FUNCTION__ << "--- BEGIN --- script:" << getFilename();
+    qCDebug(scriptengine) << __FUNCTION__ << "called on thread[" << QThread::currentThread() << "], object's thread [" << thread() << "] script:" << getFilename();
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
@@ -1051,7 +1052,10 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
 
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
-void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
+void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
+
+
+/*****
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::loadEntityScript() called on wrong thread ["
@@ -1070,25 +1074,30 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
         "entityID:" << entityID << "entityScript:" << entityScript << "forceRedownload:" << forceRedownload;
 #endif
 
-    // If we've been called our known entityScripts should not know about us..
-    assert(!_entityScripts.contains(entityID));
+        // If we've been called our known entityScripts should not know about us..
+        assert(!_entityScripts.contains(entityID));
 
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() on thread ["
         << QThread::currentThread() << "] expected thread [" << thread() << "]";
 #endif
+******/
 
-    QPointer<ScriptEngine> theEngine(this);
-
+    // NOTE: If the script content is not currently in the caceh, The LAMBDA here, will be called on the Main Thread
+    //       which means we're guarenteed that it's not the correct thread for the ScriptEngine. This means
+    //       when we get into entityScriptContentAvailable() we will likely invokeMethod() to get it over
+    //       to the "Entities" ScriptEngine thread.
     DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [theEngine, entityID](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
-#ifdef THREAD_DEBUGGING
-        qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
-            << QThread::currentThread() << "] expected thread [" << thread() << "]";
+        QSharedPointer<ScriptEngine> strongEngine = theEngine.toStrongRef();
+        if (strongEngine) {
+            qDebug() << "ScriptCache::getScriptContents() returned ScriptEngine still active calling ... entityScriptContentAvailable()";
+#if 1//def THREAD_DEBUGGING
+            qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
+                << QThread::currentThread() << "] expected thread [" << strongEngine->thread() << "]";
 #endif
 
-        if (!theEngine.isNull()) {
-            qDebug() << "ScriptCache::getScriptContents() returned ScriptEngine still active calling ... entityScriptContentAvailable()";
-            theEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
+
+            strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
         } else {
             qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted...";
         }
@@ -1098,6 +1107,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
+
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::entityScriptContentAvailable() called on wrong thread ["

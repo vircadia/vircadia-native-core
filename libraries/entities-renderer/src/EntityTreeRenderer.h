@@ -155,7 +155,7 @@ private:
     NetworkTexturePointer _ambientTexture;
 
     bool _wantScripts;
-    ScriptEngine* _entitiesScriptEngine;
+    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
 
     bool isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
                           const EntityItemID& id, const Collision& collision);
