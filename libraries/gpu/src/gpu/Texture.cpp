@@ -221,13 +221,6 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
     return tex;
 }
 
-Texture* Texture::createFromStorage(Storage* storage) {
-   Texture* tex = new Texture();
-   tex->_storage.reset(storage);
-   storage->assignTexture(tex);
-   return tex;
-}
-
 Texture::Texture():
     Resource()
 {

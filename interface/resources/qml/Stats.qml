@@ -3,9 +3,23 @@ import QtQuick 2.3
 import QtQuick.Controls 1.2
 
 Item {
-    anchors.fill: parent
+    id: stats
+
     anchors.leftMargin: 300
     objectName: "StatsItem"
+
+    Component.onCompleted: {
+        stats.parentChanged.connect(fill);
+        fill();
+    }
+    Component.onDestruction: {
+        stats.parentChanged.disconnect(fill);
+    }
+
+    function fill() {
+        // Explicitly fill in order to avoid warnings at shutdown
+        anchors.fill = parent;
+    }
 
     Hifi.Stats {
         id: root
