@@ -132,3 +132,12 @@ void SimpleEntitySimulation::clearEntitiesInternal() {
     _entitiesThatNeedSimulationOwner.clear();
 }
 
+void SimpleEntitySimulation::sortEntitiesThatMoved() {
+    SetOfEntities::iterator itemItr = _entitiesToSort.begin();
+    while (itemItr != _entitiesToSort.end()) {
+        EntityItemPointer entity = *itemItr;
+        entity->computePuffedQueryAACube();
+        ++itemItr;
+    }
+    EntitySimulation::sortEntitiesThatMoved();
+}
