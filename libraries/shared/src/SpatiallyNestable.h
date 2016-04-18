@@ -102,7 +102,7 @@ public:
     virtual void setLocalTransform(const Transform& transform);
 
     virtual glm::vec3 getLocalPosition() const;
-    virtual void setLocalPosition(const glm::vec3& position);
+    virtual void setLocalPosition(const glm::vec3& position, bool tellPhysics = true);
 
     virtual glm::quat getLocalOrientation() const;
     virtual void setLocalOrientation(const glm::quat& orientation);

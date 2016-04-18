@@ -399,11 +399,9 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 break;
             case gpu::SRGB:
-                texel.format = GL_RGB;
                 texel.internalFormat = GL_SRGB8;
                 break;
             case gpu::SRGBA:
-                texel.format = GL_RGBA;
                 texel.internalFormat = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
                 break;
             case gpu::COMPRESSED_RGBA:

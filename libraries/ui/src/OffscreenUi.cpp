@@ -143,6 +143,13 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     }
 }
 
+void OffscreenUi::hide(const QString& name) {
+    QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
+    if (item) {
+        item->setVisible(false);
+    }
+}
+
 class ModalDialogListener : public QObject {
     Q_OBJECT
     friend class OffscreenUi;

@@ -926,7 +926,8 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, dt);
             rotation = glm::normalize(dQ * rotation);
 
-            setRotation(rotation);
+            bool success;
+            setOrientation(rotation, success, false);
         }
 
         setLocalAngularVelocity(localAngularVelocity);
@@ -1983,10 +1984,10 @@ void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
     if (tellPhysics) {
         _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
-    }
-    EntityTreePointer tree = getTree();
-    if (tree) {
-        tree->entityChanged(getThisPointer());
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
     }
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
 }
