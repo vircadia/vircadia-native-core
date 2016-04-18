@@ -78,6 +78,7 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 int EntityTreeRenderer::_entititesScriptEngineCount = 0;
 
 void EntityTreeRenderer::setupEntitiesScriptEngine() {
+    QSharedPointer<ScriptEngine> oldEngine = _entitiesScriptEngine; // save the old engine through this function, so the EntityScriptingInterface doesn't have problems with it.
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entititesScriptEngineCount)), ScriptEngine::doDeleteLater);
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
     _entitiesScriptEngine->runInThread();
