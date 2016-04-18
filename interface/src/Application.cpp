@@ -4177,14 +4177,12 @@ void Application::clearDomainOctreeDetails() {
 
     // if we're about to quit, we really don't need to do any of these things...
     if (_aboutToQuit) {
-        qCDebug(interfaceapp) << "No need to clear domain octree details we are shutting down...";
         return;
     }
 
-
     qCDebug(interfaceapp) << "Clearing domain octree details...";
-    // reset the environment so that we don't erroneously end up with multiple
 
+    // reset the environment so that we don't erroneously end up with multiple
     resetPhysicsReadyInformation();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...

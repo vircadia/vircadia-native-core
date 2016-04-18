@@ -145,9 +145,7 @@ ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
-        qCDebug(scriptengine) << "About to remove ScriptEngine [" << getFilename() << "] from ScriptEngines!";
         scriptEngines->removeScriptEngine(this);
-        qCDebug(scriptengine) << "AFTER remove ScriptEngine [" << getFilename() << "] from ScriptEngines!";
     } else {
         qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
     }
@@ -759,6 +757,7 @@ void ScriptEngine::stop() {
             QMetaObject::invokeMethod(this, "stop");
             return;
         }
+        abortEvaluation(); // abort any script evaluation that may be active
         _isFinished = true;
         if (_wantSignals) {
             emit runningStateChanged();

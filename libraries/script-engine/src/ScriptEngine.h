@@ -127,10 +127,7 @@ public:
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
 
     // Entity Script Related methods
-    //Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload = false); // will call the preload method once loaded
-
     static void loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
-
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList());
@@ -229,12 +226,5 @@ protected:
     friend class ScriptEngines;
     static std::atomic<bool> _stoppingAllScripts;
 };
-
-/*
-class ScriptEngine : public QObject {
-    Q_OBJECT
-};
-*/
-
 
 #endif // hifi_ScriptEngine_h
