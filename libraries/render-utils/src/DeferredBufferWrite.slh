@@ -46,6 +46,7 @@ const float DEFAULT_METALLIC = 0;
 const vec3 DEFAULT_SPECULAR = vec3(0.1);
 const vec3 DEFAULT_EMISSIVE = vec3(0.0);
 const float DEFAULT_OCCLUSION = 1.0;
+const vec3 DEFAULT_FRESNEL = DEFAULT_EMISSIVE;
 
 
 void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness, float metallic, vec3 emissive, float occlusion) {

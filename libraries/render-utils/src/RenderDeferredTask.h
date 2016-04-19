@@ -22,6 +22,7 @@ public:
     using JobModel = render::Job::Model<SetupDeferred>;
 };
 
+
 class PrepareDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -29,32 +30,31 @@ public:
     using JobModel = render::Job::Model<PrepareDeferred>;
 };
 
-
 class RenderDeferred {
 public:
     using JobModel = render::Job::Model<RenderDeferred>;
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
 };
 
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
+
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
 
-    int getNumDrawn() { return numDrawn; }
-    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+    int getNumDrawn() { return _numDrawn; }
+    void setNumDrawn(int numDrawn) { _numDrawn = numDrawn;  emit newStats(); }
 
     int maxDrawn{ -1 };
 
 signals:
-    void numDrawnChanged();
+    void newStats();
     void dirty();
 
 protected:
-    int numDrawn{ 0 };
+    int _numDrawn{ 0 };
 };
 
 class DrawDeferred {

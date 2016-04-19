@@ -42,6 +42,7 @@ class CompositorHelper : public QObject, public Dependency {
     Q_PROPERTY(bool reticleOverDesktop READ getReticleOverDesktop WRITE setReticleOverDesktop)
 public:
     static const uvec2 VIRTUAL_SCREEN_SIZE;
+    static const QRect VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
     static const float VIRTUAL_UI_ASPECT_RATIO;
     static const vec2 VIRTUAL_UI_TARGET_FOV;
     static const vec2 MOUSE_EXTENTS_ANGULAR_SIZE;
