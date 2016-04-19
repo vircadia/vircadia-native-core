@@ -253,22 +253,10 @@ void GLBackend::render(Batch& batch) {
         renderPassTransfer(batch);
     }
 
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    if (_stereo._enable) {
-        glEnable(GL_CLIP_DISTANCE0);
-    }
-#endif
-
     {
         PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
-
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    if (_stereo._enable) {
-        glDisable(GL_CLIP_DISTANCE0);
-    }
-#endif
 
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
@@ -325,23 +313,13 @@ void GLBackend::syncCache() {
     glEnable(GL_LINE_SMOOTH);
 }
 
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
 void GLBackend::setupStereoSide(int side) {
     ivec4 vp = _transform._viewport;
     vp.z /= 2;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
-
-#ifdef GPU_STEREO_CAMERA_BUFFER
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
-    glVertexAttribI1i(14, side);
-#endif
-#else
     _transform.bindCurrentCamera(side);
-#endif
-
 }
-#endif
 
 
 void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
@@ -351,15 +329,11 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
 
     if (isStereo()) {
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glDrawArraysInstanced(mode, startVertex, numVertices, 2);
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
         setupStereoSide(0);
         glDrawArrays(mode, startVertex, numVertices);
         setupStereoSide(1);
         glDrawArrays(mode, startVertex, numVertices);
-#endif
+
         _stats._DSNumTriangles += 2 * numVertices / 3;
         _stats._DSNumDrawcalls += 2;
 
@@ -385,15 +359,11 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
     if (isStereo()) {
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, 2);
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
         setupStereoSide(0);
         glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
         setupStereoSide(1);
         glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
-#endif
+
         _stats._DSNumTriangles += 2 * numIndices / 3;
         _stats._DSNumDrawcalls += 2;
     } else {
@@ -417,15 +387,11 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     if (isStereo()) {
         GLint trueNumInstances = (isStereo() ? 2 * numInstances : numInstances);
 
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glDrawArraysInstancedARB(mode, startVertex, numVertices, trueNumInstances);
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
         setupStereoSide(0);
         glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
         setupStereoSide(1);
         glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
-#endif
+
         _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
@@ -464,23 +430,15 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     if (isStereo()) {
         GLint trueNumInstances = (isStereo() ? 2 * numInstances : numInstances);
 
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, trueNumInstances, 0, startInstance);
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
         setupStereoSide(0);
         glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
         setupStereoSide(1);
         glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
-#endif
+
         _stats._DSNumTriangles += (trueNumInstances * numIndices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
-#if (GPU_INPUT_PROFILE == GPU_CORE_43)
-        glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
-#else
-        glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, numInstances);
-#endif
+        glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
         _stats._DSNumTriangles += (numInstances * numIndices) / 3;
         _stats._DSNumDrawcalls += numInstances;
     }

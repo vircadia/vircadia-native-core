@@ -23,27 +23,6 @@
 
 #include "Context.h"
 
-// Pick one from the 3: THis version is the most efficient as of now
-#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
-//#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
-//#define GPU_STEREO_TECHNIQUE_INSTANCED
-
-
-// Let these be configured by the one define picked above
-#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
-#define GPU_STEREO_DRAWCALL_DOUBLED
-#endif
-
-#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
-#define GPU_STEREO_DRAWCALL_DOUBLED
-#define GPU_STEREO_CAMERA_BUFFER
-#endif
-
-#ifdef GPU_STEREO_TECHNIQUE_INSTANCED
-#define GPU_STEREO_DRAWCALL_INSTANCED
-#define GPU_STEREO_CAMERA_BUFFER
-#endif
-
 namespace gpu {
 
 class GLTextureTransferHelper;
@@ -177,7 +156,6 @@ public:
     public:
         enum Version {
             Mono = 0,
-            Stereo,
 
             NumVersions
         };
@@ -205,7 +183,7 @@ public:
         }
 
         GLint getUniformLocation(GLint srcLoc, Version version = Mono) {
-            // THIS will be used in the next PR
+            // THIS will be used in the future PR as we grow the number of versions
             // return _uniformMappings[version][srcLoc];
             return srcLoc;
         }
@@ -348,9 +326,7 @@ protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
 
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
     void setupStereoSide(int side);
-#endif
 
     void initTextureTransferHelper();
     static void transferGPUObject(const TexturePointer& texture);
@@ -434,19 +410,7 @@ protected:
     void resetTransformStage();
 
     struct TransformStageState {
-#ifdef GPU_STEREO_CAMERA_BUFFER
-        struct Cameras {
-            TransformCamera _cams[2];
-
-            Cameras() {};
-            Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
-            Cameras(const TransformCamera& camL, const TransformCamera& camR) { memcpy(_cams, &camL, sizeof(TransformCamera)); memcpy(_cams + 1, &camR, sizeof(TransformCamera)); };
-        };
-
-        using CameraBufferElement = Cameras;
-#else
         using CameraBufferElement = TransformCamera;
-#endif
         using TransformCameras = std::vector<CameraBufferElement>;
 
         TransformCamera _camera;

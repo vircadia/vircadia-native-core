@@ -312,24 +312,13 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
 
     // Domain specific defines
     const std::string domainDefines[NUM_SHADER_DOMAINS] = {
-        "#define VERTEX_SHADER",
-        "#define PIXEL_SHADER"
+        "#define GPU_VERTEX_SHADER",
+        "#define GPU_PIXEL_SHADER"
     };
 
     // Versions specific of the shader
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED\n#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN");
-#endif
-#ifdef GPU_STEREO_DRAWCALL_DOUBLED
-#ifdef GPU_STEREO_CAMERA_BUFFER
-    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO\n#define GPU_TRANSFORM_STEREO_CAMERA\n#define GPU_TRANSFORM_STEREO_CAMERA_ATTRIBUTED");
-#else
-    const std::string stereoVersion("#define GPU_TRANSFORM_IS_STEREO");
-#endif
-#endif
     const std::string versionDefines[GLBackend::GLShader::NumVersions] = {
-        "",
-        stereoVersion
+        ""
     };
 
     GLBackend::GLShader::ShaderObjects shaderObjects;
