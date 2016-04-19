@@ -349,6 +349,10 @@ void MyAvatar::simulate(float deltaTime) {
         _skeletonModel->simulate(deltaTime);
     }
 
+    // we've achived our final adjusted position and rotation for the avatar
+    // and all of its joints, now update our attachements.
+    Avatar::simulateAttachments(deltaTime);
+
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
         return;
@@ -1169,9 +1173,6 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
     setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-
-    // now that physics has adjusted our position, we can update attachements.
-    Avatar::simulateAttachments(deltaTime);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
