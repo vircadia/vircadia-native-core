@@ -402,7 +402,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 
     if (_entity->getSimulatorID() != Physics::getSessionUUID()) {
         // we don't own the simulation
-        bool shouldBid = _outgoingPriority > 0 && // but we would like to own it and
+
+        // NOTE: we do not volunteer to own kinematic or static objects
+        uint8_t insufficientPriority = _body->isStaticOrKinematicObject() ? VOLUNTEER_SIMULATION_PRIORITY : 0;
+
+        bool shouldBid = _outgoingPriority > insufficientPriority && // but we would like to own it AND
                 usecTimestampNow() > _nextOwnershipBid; // it is time to bid again
         if (shouldBid && _outgoingPriority < _entity->getSimulationPriority()) {
             // we are insufficiently interested so clear our interest
@@ -461,7 +465,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
         bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == glm::vec3(0.0f);
 
-        if (movingSlowly) {
+        if (!_body->isStaticOrKinematicObject() && movingSlowly) {
             // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
             // other simulating observers to deactivate their own copies
             glm::vec3 zero(0.0f);

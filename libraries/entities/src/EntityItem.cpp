@@ -883,7 +883,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::stepKinematicMotion(float timeElapsed) {
-    if (timeElapsed < 0.0f) {
+    if (timeElapsed <= 0.0f) {
         return true;
     }
 
@@ -902,7 +902,8 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
             angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
         }
 
-        const float MIN_KINEMATIC_ANGULAR_SPEED_SQUARED = 0.0017453f * 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
+        const float MIN_KINEMATIC_ANGULAR_SPEED_SQUARED =
+            KINEMATIC_ANGULAR_SPEED_THRESHOLD * KINEMATIC_ANGULAR_SPEED_THRESHOLD;
         if (glm::length2(angularVelocity) < MIN_KINEMATIC_ANGULAR_SPEED_SQUARED) {
             angularVelocity = Vectors::ZERO;
         } else {
@@ -922,6 +923,8 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
 
     glm::vec3 position = transform.getTranslation();
     float linearSpeedSquared = glm::length2(linearVelocity);
+    const float MIN_KINEMATIC_LINEAR_SPEED_SQUARED =
+        KINEMATIC_LINEAR_SPEED_THRESHOLD * KINEMATIC_LINEAR_SPEED_THRESHOLD;
     if (linearSpeedSquared > 0.0f) {
         glm::vec3 deltaVelocity = Vectors::ZERO;
 
@@ -931,7 +934,6 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
         }
 
         const float MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED = 1.0e-4f; // 0.01 m/sec^2
-        const float MIN_KINEMATIC_LINEAR_SPEED_SQUARED = 1.0e-6f; // 0.001 m/sec^2
         if (glm::length2(_gravity) > MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED) {
             // yes gravity
             // acceleration is in world-frame but we need it in local-frame
@@ -943,8 +945,9 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
             }
             deltaVelocity += linearAcceleration * timeElapsed;
 
-            if (glm::length2(deltaVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED
-                    && glm::length2(linearVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
+            if (linearSpeedSquared < MIN_KINEMATIC_LINEAR_SPEED_SQUARED
+                    && glm::length2(deltaVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED
+                    && glm::length2(linearVelocity + deltaVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
                 linearVelocity = Vectors::ZERO;
             } else {
                 // NOTE: we do NOT include the second-order acceleration term (0.5 * a * dt^2)
@@ -958,7 +961,8 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
             if (linearSpeedSquared < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
                 linearVelocity = Vectors::ZERO;
             } else {
-                // NOTE: don't use acceleration term for linear displacement
+                // NOTE: we don't use second-order acceleration term for linear displacement
+                // because Bullet doesn't use it.
                 position += timeElapsed * linearVelocity;
                 linearVelocity += deltaVelocity;
             }
