@@ -42,15 +42,12 @@ class DrawConfig : public render::Job::Config {
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
 
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
-    Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
-
 public:
 
     int getNumDrawn() { return _numDrawn; }
     void setNumDrawn(int numDrawn) { _numDrawn = numDrawn;  emit newStats(); }
 
     int maxDrawn{ -1 };
-    bool stateSort{ true };
 
 signals:
     void newStats();
