@@ -167,7 +167,7 @@ public:
         };
 
         using ShaderObjects = std::array< ShaderObject, NumVersions >;
-        using UniformMapping = std::vector<GLint>;
+        using UniformMapping = std::map<GLint, GLint>;
         using UniformMappingVersions = std::vector<UniformMapping>;
 
 
