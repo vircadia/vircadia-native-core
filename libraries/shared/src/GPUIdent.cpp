@@ -20,6 +20,8 @@
 GPUIdent GPUIdent::_instance {};
 
 GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) {
+    // Expects vendor and render to be supplied on first call. Results are cached and the arguments can then be dropped.
+    // Too bad OpenGL doesn't seem to have a way to get the specific device id.
     if (_isQueried) {
         return this;
     }
@@ -61,6 +63,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     // I'd love to find a better way to learn which graphics adapter is the one we're using.
     // Alas, no combination of vendor, renderer, and adapter name seems to be a substring of the others.
     // Here we get a list of words that we'll match adapter names against. Most matches wins.
+    // Alas, this won't work when someone has multiple variants of the same card installed.
     QRegExp wordMatcher{ "\\W" };
     QStringList words;
     words << vendor.toUpper().split(wordMatcher) << renderer.toUpper().split(wordMatcher);
@@ -107,8 +110,10 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
             hr = spInstance->Get(CComBSTR(_T("AdapterRAM")), 0, &var, 0, 0);
             if (hr == S_OK) {
-                var.ChangeType(CIM_UINT32);  // We're going to receive some integral type, but it might not be uint.
-                _dedicatedMemoryMB = var.uintVal / (1024 * 1024);
+                var.ChangeType(CIM_UINT64);  // We're going to receive some integral type, but it might not be uint.
+                // We might be hosed here. The parameter is documented to be UINT32, but that's only 4 GB!
+                const ULONGLONG BYTES_PER_MEGABYTE = 1024 * 1024;
+                _dedicatedMemoryMB = (uint) (var.ullVal / BYTES_PER_MEGABYTE);
             }
             else {
                 qCDebug(shared) << "Unable to get video AdapterRAM";
