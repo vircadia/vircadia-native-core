@@ -198,25 +198,18 @@ public:
         ~GLShader();
 
         ShaderObjects _shaderObjects;
-
         UniformMappingVersions _uniformMappings;
 
-        GLuint getProgram(bool isStereo) const {
-            if (isStereo && _shaderObjects[Stereo].glprogram) {
-                return _shaderObjects[Stereo].glprogram;
-            } else {
-                return _shaderObjects[Mono].glprogram;
-            }
+        GLuint getProgram(Version version = Mono) const {
+            return _shaderObjects[version].glprogram;
         }
 
-        GLint getUniformLocation(bool isStereo, GLint srcLoc) {
-            if (isStereo) {
-                if (srcLoc >= 0) {
-                    return _uniformMappings[0][srcLoc];
-                }
-            }
+        GLint getUniformLocation(GLint srcLoc, Version version = Mono) {
+            // THIS will be used in the next PR
+            // return _uniformMappings[version][srcLoc];
             return srcLoc;
         }
+
     };
     static GLShader* syncGPUObject(const Shader& shader);
 

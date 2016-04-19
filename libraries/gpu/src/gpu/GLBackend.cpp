@@ -560,7 +560,7 @@ void GLBackend::resetStages() {
 #define ADD_COMMAND_GL(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
 #ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(isStereo(), shaderUniformLoc)
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo())
 #else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
 #endif
@@ -577,7 +577,7 @@ void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
 void GLBackend::do_glActiveBindTexture(Batch& batch, size_t paramOffset) {
     glActiveTexture(batch._params[paramOffset + 2]._uint);
     glBindTexture(
-        batch._params[paramOffset + 1]._uint,
+        GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._uint),
         batch._params[paramOffset + 0]._uint);
 
     (void) CHECK_GL_ERROR();

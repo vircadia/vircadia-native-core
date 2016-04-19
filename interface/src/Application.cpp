@@ -1178,8 +1178,6 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    getEntities()->clear(); // this will allow entity scripts to properly shutdown
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -1190,6 +1188,7 @@ void Application::cleanupBeforeQuit() {
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
@@ -4184,8 +4183,13 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
+
+    // if we're about to quit, we really don't need to do any of these things...
+    if (_aboutToQuit) {
+        return;
+    }
+
     qCDebug(interfaceapp) << "Clearing domain octree details...";
-    // reset the environment so that we don't erroneously end up with multiple
 
     resetPhysicsReadyInformation();
 
@@ -4209,7 +4213,6 @@ void Application::clearDomainOctreeDetails() {
 
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
-    clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
 }

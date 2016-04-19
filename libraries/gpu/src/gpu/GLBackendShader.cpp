@@ -42,8 +42,8 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     }
 
     // Assign the source
-    const int NUM_SOURCE_STRINGS = 3;
-    const GLchar* srcstr[] = { "#version 430 core\n", defines.c_str(), shaderSource.c_str() };
+    const int NUM_SOURCE_STRINGS = 2;
+    const GLchar* srcstr[] = { defines.c_str(), shaderSource.c_str() };
     glShaderSource(glshader, NUM_SOURCE_STRINGS, srcstr, NULL);
 
     // Compile !
@@ -297,6 +297,11 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
 
+    // GLSL version
+    const std::string glslVersion = {
+        "#version 410 core"
+    };
+
     // Shader domain
     const int NUM_SHADER_DOMAINS = 2;
     const GLenum SHADER_DOMAINS[NUM_SHADER_DOMAINS] = {
@@ -327,13 +332,12 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
         stereoVersion
     };
 
-
     GLBackend::GLShader::ShaderObjects shaderObjects;
 
     for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
-        std::string shaderDefines = domainDefines[shader.getType()] + "\n" + versionDefines[version];
+        std::string shaderDefines = glslVersion + "\n" + domainDefines[shader.getType()] + "\n" + versionDefines[version];
 
         bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
         if (!result) {
@@ -349,7 +353,7 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
 }
 
 GLBackend::GLShader* compileBackendProgram(const Shader& program) {
-    if(!program.isProgram()) {
+    if (!program.isProgram()) {
         return nullptr;
     }
 
@@ -380,7 +384,6 @@ GLBackend::GLShader* compileBackendProgram(const Shader& program) {
         makeProgramBindings(programObject);
     }
 
-
     // So far so good, the program versions have all been created successfully
     GLBackend::GLShader* object = new GLBackend::GLShader();
     object->_shaderObjects = programObjects;
@@ -397,14 +400,14 @@ GLBackend::GLShader* GLBackend::syncGPUObject(const Shader& shader) {
     }
     // need to have a gpu object?
     if (shader.isProgram()) {
-         GLShader* tempObject = compileBackendProgram(shader);
-         if (tempObject) {
+        GLShader* tempObject = compileBackendProgram(shader);
+        if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
         }
     } else if (shader.isDomain()) {
-         GLShader* tempObject = compileBackendShader(shader);
-         if (tempObject) {
+        GLShader* tempObject = compileBackendShader(shader);
+        if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
         }
@@ -765,7 +768,7 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
         return false;
     }
 
-    // APply bindings to all program versions and generate list of slots from default version
+    // Apply bindings to all program versions and generate list of slots from default version
     for (int version = 0; version < GLBackend::GLShader::NumVersions; version++) {
         auto& shaderObject = object->_shaderObjects[version];
         if (shaderObject.glprogram) {
@@ -795,6 +798,7 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
             }
         }
     }
+
 
     return true;
 }
