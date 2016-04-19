@@ -178,11 +178,13 @@ bool EntityMotionState::isMoving() const {
 // (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
+    BT_PROFILE("getWorldTransform");
     if (!_entity) {
         return;
     }
     assert(entityTreeIsLocked());
     if (_motionType == MOTION_TYPE_KINEMATIC) {
+        BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation.
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
@@ -270,6 +272,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
         _serverVelocity = getBodyLinearVelocityGTSigma();
+        _serverAcceleration = Vectors::ZERO;
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
@@ -336,19 +339,23 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
 
     float dx2 = glm::distance2(position, _serverPosition);
-
-    const float MAX_POSITION_ERROR_SQUARED = 0.000004f; //  Sqrt() - corresponds to 2 millimeters
+    const float MAX_POSITION_ERROR_SQUARED = 0.000004f; // corresponds to 2mm
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
-
-        #ifdef WANT_DEBUG
-            qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
-            qCDebug(physics) << "wasPosition:" << wasPosition;
-            qCDebug(physics) << "bullet position:" << position;
-            qCDebug(physics) << "_serverPosition:" << _serverPosition;
-            qCDebug(physics) << "dx2:" << dx2;
-        #endif
-
-        return true;
+        // we don't mind larger position error when the object has high speed
+        // so we divide by speed and check again
+        float speed2 = glm::length2(_serverVelocity);
+        const float MIN_ERROR_RATIO_SQUARED = 0.0025f; // corresponds to 5% error in 1 second
+        const float MIN_SPEED_SQUARED = 1.0e-6f; // corresponds to 1mm/sec
+        if (speed2 < MIN_SPEED_SQUARED || dx2 / speed2 > MIN_ERROR_RATIO_SQUARED) {
+            #ifdef WANT_DEBUG
+                qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
+                qCDebug(physics) << "wasPosition:" << wasPosition;
+                qCDebug(physics) << "bullet position:" << position;
+                qCDebug(physics) << "_serverPosition:" << _serverPosition;
+                qCDebug(physics) << "dx2:" << dx2;
+            #endif
+            return true;
+        }
     }
 
     if (glm::length2(_serverAngularVelocity) > 0.0f) {
