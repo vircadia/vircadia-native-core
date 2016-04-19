@@ -105,6 +105,12 @@ public:
         return aspect(getRecommendedRenderSize());
     }
 
+    // The recommended bounds for primary overlay placement
+    virtual QRect getRecommendedOverlayRect() const {
+        auto recommendedSize = getRecommendedUiSize();
+        return QRect(0, 0, recommendedSize.x, recommendedSize.y);
+    }
+
     // Stereo specific methods
     virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
         return baseProjection;

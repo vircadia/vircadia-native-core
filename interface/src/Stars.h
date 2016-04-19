@@ -12,21 +12,37 @@
 #ifndef hifi_Stars_h
 #define hifi_Stars_h
 
+#include <gpu/Context.h>
+
 class RenderArgs;
 
 // Starfield rendering component. 
 class Stars  {
 public:
-    Stars();
-    ~Stars();
+    Stars() = default;
+    ~Stars() = default;
+
+    Stars(Stars const&) = delete;
+    Stars& operator=(Stars const&) = delete;
 
     // Renders the starfield from a local viewer's perspective.
     // The parameters specifiy the field of view.
     void render(RenderArgs* args, float alpha);
+
 private:
-    // don't copy/assign
-    Stars(Stars const&); // = delete;
-    Stars& operator=(Stars const&); // delete;
+    // Pipelines
+    static gpu::PipelinePointer _gridPipeline;
+    static gpu::PipelinePointer _starsPipeline;
+    static int32_t _timeSlot;
+
+    // Buffers
+    gpu::BufferPointer vertexBuffer;
+    gpu::Stream::FormatPointer streamFormat;
+    gpu::BufferView positionView;
+    gpu::BufferView colorView;
+    std::once_flag once;
+
+    void init();
 };
 
 
