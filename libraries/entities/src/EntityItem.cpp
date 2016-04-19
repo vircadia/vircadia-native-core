@@ -877,6 +877,10 @@ void EntityItem::simulate(const quint64& now) {
             // this entity is no longer moving
             // flag it to transition from KINEMATIC to STATIC
             _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            setAcceleration(Vectors::ZERO);
+        } else {
+            // this object is moving kinematically, so make sure its "measured acceleration" is "gravity"
+            setAcceleration(_gravity);
         }
     }
     _lastSimulated = now;
