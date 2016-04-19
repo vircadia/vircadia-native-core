@@ -428,7 +428,7 @@ public:
     Stamp getSamplerStamp() const { return _samplerStamp; }
 
     // Only callable by the Backend
-    void notifyMipFaceGPULoaded(uint16 level, uint8 face) const { return _storage->notifyMipFaceGPULoaded(level, face); }
+    void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     const GPUObjectPointer gpuObject {};
 

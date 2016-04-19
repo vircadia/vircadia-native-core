@@ -620,7 +620,7 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
     return result;
 }
 
-void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
+void SpatiallyNestable::setLocalPosition(const glm::vec3& position, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(position)) {
         qDebug() << "SpatiallyNestable::setLocalPosition -- position contains NaN";
@@ -629,7 +629,7 @@ void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
     _transformLock.withWriteLock([&] {
         _transform.setTranslation(position);
     });
-    locationChanged();
+    locationChanged(tellPhysics);
 }
 
 glm::quat SpatiallyNestable::getLocalOrientation() const {
