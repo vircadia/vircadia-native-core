@@ -91,6 +91,7 @@
 #include <ScriptCache.h>
 #include <SoundCache.h>
 #include <ScriptEngines.h>
+#include <ShutdownEventListener.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -717,6 +718,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
+    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
+#ifdef _WIN32
+    installNativeEventFilter(&ShutdownEventListener::getInstance());
+#else
+    ShutdownEventListener::getInstance();
+#endif
 
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,
