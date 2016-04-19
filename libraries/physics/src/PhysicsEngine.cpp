@@ -87,9 +87,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             body->updateInertiaTensor();
             motionState->updateBodyVelocities();
             motionState->updateLastKinematicStep();
-            const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
-            const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
-            body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
+            body->setSleepingThresholds(KINEMATIC_LINEAR_SPEED_THRESHOLD, KINEMATIC_ANGULAR_SPEED_THRESHOLD);
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
@@ -110,9 +108,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
 
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-            body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            body->setSleepingThresholds(DYNAMIC_LINEAR_SPEED_THRESHOLD, DYNAMIC_ANGULAR_SPEED_THRESHOLD);
             if (!motionState->isMoving()) {
                 // try to initialize this object as inactive
                 body->forceActivationState(ISLAND_SLEEPING);
