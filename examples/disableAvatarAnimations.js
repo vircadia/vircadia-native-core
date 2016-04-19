@@ -1,3 +1,15 @@
+//
+//  disableAvatarAnimations.js
+//  examples
+//
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  When launched, it will replace all of the avatars animations with a single frame idle pose.
+//  full body IK and hand grabbing animations will still continue to function, but all other
+//  animations will be replaced.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 var skeletonModelURL = "";
 var jointCount = 0;
