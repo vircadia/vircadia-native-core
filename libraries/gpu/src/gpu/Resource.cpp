@@ -325,3 +325,26 @@ Buffer::Size Buffer::append(Size size, const Byte* data) {
     return newSize;
 }
 
+const Element BufferView::DEFAULT_ELEMENT = Element( gpu::SCALAR, gpu::UINT8, gpu::RAW );
+
+BufferView::BufferView() :
+BufferView(DEFAULT_ELEMENT) {}
+
+BufferView::BufferView(const Element& element) :
+    BufferView(BufferPointer(), element) {}
+
+BufferView::BufferView(Buffer* newBuffer, const Element& element) :
+    BufferView(BufferPointer(newBuffer), element) {}
+
+BufferView::BufferView(const BufferPointer& buffer, const Element& element) :
+    BufferView(buffer, DEFAULT_OFFSET, buffer ? buffer->getSize() : 0, element.getSize(), element) {}
+
+BufferView::BufferView(const BufferPointer& buffer, Size offset, Size size, const Element& element) :
+    BufferView(buffer, offset, size, element.getSize(), element) {}
+
+BufferView::BufferView(const BufferPointer& buffer, Size offset, Size size, uint16 stride, const Element& element) :
+    _buffer(buffer),
+    _offset(offset),
+    _size(size),
+    _element(element),
+    _stride(stride) {}
