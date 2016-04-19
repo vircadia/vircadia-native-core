@@ -873,14 +873,12 @@ void EntityItem::simulate(const quint64& now) {
     #endif
 
     if (!hasActions()) {
+        setAcceleration(_gravity);
         if (!stepKinematicMotion(timeElapsed)) {
             // this entity is no longer moving
             // flag it to transition from KINEMATIC to STATIC
             _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
             setAcceleration(Vectors::ZERO);
-        } else {
-            // this object is moving kinematically, so make sure its "measured acceleration" is "gravity"
-            setAcceleration(_gravity);
         }
     }
     _lastSimulated = now;
@@ -938,10 +936,10 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
         }
 
         const float MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED = 1.0e-4f; // 0.01 m/sec^2
-        if (glm::length2(_gravity) > MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED) {
+        if (glm::length2(_acceleration) > MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED) {
             // yes gravity
             // acceleration is in world-frame but we need it in local-frame
-            glm::vec3 linearAcceleration = _gravity;
+            glm::vec3 linearAcceleration = _acceleration;
             bool success;
             Transform parentTransform = getParentTransform(success);
             if (success) {
