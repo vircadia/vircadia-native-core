@@ -208,6 +208,11 @@
                       elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
                   }
 
+                  // HACK: Fixes the footer and header text sometimes not displaying after adding or deleting entities.
+                  // The problem appears to be a bug in the Qt HTML/CSS rendering (Qt 5.5).
+                  document.getElementById("radius").focus();
+                  document.getElementById("radius").blur();
+
                   return notFound;
               }
               
