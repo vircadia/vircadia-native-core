@@ -32,6 +32,7 @@ typedef std::shared_ptr<Rig> RigPointer;
 // However only specific methods thread-safe.  Noted below.
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
+    Q_OBJECT
 public:
     struct StateHandler {
         AnimVariantMap results;
@@ -223,7 +224,10 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
- protected:
+signals:
+    void onLoadComplete();
+
+protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();

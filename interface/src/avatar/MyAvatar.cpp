@@ -198,6 +198,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
             _headData->setLookAtPosition(headData->getLookAtPosition());
         }
     });
+
+    connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
 }
 
 MyAvatar::~MyAvatar() {
@@ -1576,6 +1578,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
                 float speedIncreaseFactor = 1.8f;
                 motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
                 const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
+
                 if (motorSpeed < maxBoostSpeed) {
                     // an active keyboard motor should never be slower than this
                     float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
@@ -2090,7 +2093,7 @@ float MyAvatar::getAccelerationEnergy() {
     int changeInVelocity = abs(velocity.length() - priorVelocity.length());
     float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     priorVelocity = velocity;
-    
+
     return changeInEnergy;
 }
 
@@ -2112,4 +2115,3 @@ bool MyAvatar::didTeleport() {
     lastPosition = pos;
     return (changeInPosition.length() > MAX_AVATAR_MOVEMENT_PER_FRAME);
 }
-
