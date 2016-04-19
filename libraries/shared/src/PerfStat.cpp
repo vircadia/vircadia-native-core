@@ -147,4 +147,3 @@ void PerformanceTimer::dumpAllTimerRecords() {
             << "usecs over" << i.value().getCount() << "calls";
     }
 }
-

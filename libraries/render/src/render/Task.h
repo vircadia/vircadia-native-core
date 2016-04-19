@@ -267,7 +267,6 @@ public:
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
-                
             }
             renderContext->jobConfig.reset();
         }

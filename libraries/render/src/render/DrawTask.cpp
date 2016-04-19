@@ -107,10 +107,9 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
         args->_pipeline = shapeContext->pickPipeline(args, pipelineKey);
         for (auto& item : bucket) {
             item.render(args);
-        } 
-    }    
+        }
+    }
     args->_pipeline = nullptr;
-
     for (auto& item : ownPipelineBucket) {
         item.render(args);
     }
