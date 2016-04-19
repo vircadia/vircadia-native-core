@@ -49,5 +49,7 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     config->frameTextureRate = config->frameTextureCount * frequency;
     config->frameTextureMemoryUsage = _gpuStats._RSAmountTextureMemoryBounded - gpuStats._RSAmountTextureMemoryBounded;
 
+    config->frameSetPipelineCount = _gpuStats._PSNumSetPipelines - gpuStats._PSNumSetPipelines;
+
     config->emitDirty();
 }
