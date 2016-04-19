@@ -36,7 +36,7 @@ class btDynamicsWorld;
 class CharacterController : public btCharacterControllerInterface {
 public:
     CharacterController();
-    virtual ~CharacterController() {}
+    virtual ~CharacterController();
 
     bool needsRemoval() const;
     bool needsAddition() const;

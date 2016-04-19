@@ -414,7 +414,13 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 }
 
+void EntityScriptingInterface::setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) {
+    std::lock_guard<std::mutex> lock(_entitiesScriptEngineLock);
+    _entitiesScriptEngine = engine;
+}
+
 void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
+    std::lock_guard<std::mutex> lock(_entitiesScriptEngineLock);
     if (_entitiesScriptEngine) {
         EntityItemID entityID{ id };
         _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);

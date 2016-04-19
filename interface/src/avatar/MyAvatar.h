@@ -299,7 +299,7 @@ signals:
     void collisionWithEntity(const Collision& collision);
     void energyChanged(float newEnergy);
     void positionGoneTo();
-
+    void onLoadComplete();
 
 private:
 

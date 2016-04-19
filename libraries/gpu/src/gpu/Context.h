@@ -39,6 +39,8 @@ public:
     int _DSNumAPIDrawcalls = 0;
     int _DSNumDrawcalls = 0;
     int _DSNumTriangles = 0;
+
+    int _PSNumSetPipelines = 0;
  
     ContextStats() {}
     ContextStats(const ContextStats& stats) = default;

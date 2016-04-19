@@ -195,12 +195,7 @@ static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
-#ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-#else
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
-#endif
 
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
@@ -1183,8 +1178,6 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    getEntities()->clear(); // this will allow entity scripts to properly shutdown
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -1195,6 +1188,7 @@ void Application::cleanupBeforeQuit() {
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
@@ -2685,8 +2679,6 @@ void Application::idle(uint64_t now) {
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
-
-
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -4191,8 +4183,13 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
+
+    // if we're about to quit, we really don't need to do any of these things...
+    if (_aboutToQuit) {
+        return;
+    }
+
     qCDebug(interfaceapp) << "Clearing domain octree details...";
-    // reset the environment so that we don't erroneously end up with multiple
 
     resetPhysicsReadyInformation();
 
@@ -4216,7 +4213,6 @@ void Application::clearDomainOctreeDetails() {
 
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
-    clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
 }
@@ -4899,19 +4895,44 @@ QRect Application::getRenderingGeometry() const {
 }
 
 glm::uvec2 Application::getUiSize() const {
-    return getActiveDisplayPlugin()->getRecommendedUiSize();
+    static const uint MIN_SIZE = 1;
+    glm::uvec2 result(MIN_SIZE);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedUiSize();
+    }
+    return result;
+}
+
+QRect Application::getRecommendedOverlayRect() const {
+    auto uiSize = getUiSize();
+    QRect result(0, 0, uiSize.x, uiSize.y);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+    }
+    return result;
 }
 
 QSize Application::getDeviceSize() const {
-    return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    static const int MIN_SIZE = 1;
+    QSize result(MIN_SIZE, MIN_SIZE);
+    if (_displayPlugin) {
+        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    }
+    return result;
 }
 
 bool Application::isThrottleRendering() const {
-    return getActiveDisplayPlugin()->isThrottled();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->isThrottled();
+    }
+    return false;
 }
 
 bool Application::hasFocus() const {
-    return getActiveDisplayPlugin()->hasFocus();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->hasFocus();
+    }
+    return (QApplication::activeWindow() != nullptr);
 }
 
 glm::vec2 Application::getViewportDimensions() const {

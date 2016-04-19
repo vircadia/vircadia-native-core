@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
+#include <QtScript/QScriptValueIterator>
 #include <QtCore/QStringList>
 
 #include <AudioConstants.h>
@@ -143,7 +144,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
-
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
         scriptEngines->removeScriptEngine(this);
@@ -1047,39 +1047,25 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
 
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
-void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
-    if (QThread::currentThread() != thread()) {
+void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
+    // NOTE: If the script content is not currently in the cache, the LAMBDA here will be called on the Main Thread
+    //       which means we're guaranteed that it's not the correct thread for the ScriptEngine. This means
+    //       when we get into entityScriptContentAvailable() we will likely invokeMethod() to get it over
+    //       to the "Entities" ScriptEngine thread.
+    DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [theEngine, entityID](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
+        QSharedPointer<ScriptEngine> strongEngine = theEngine.toStrongRef();
+        if (strongEngine) {
 #ifdef THREAD_DEBUGGING
-        qDebug() << "*** WARNING *** ScriptEngine::loadEntityScript() called on wrong thread ["
-            << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-            "entityID:" << entityID << "entityScript:" << entityScript <<"forceRedownload:" << forceRedownload;
+            qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
+                << QThread::currentThread() << "] expected thread [" << strongEngine->thread() << "]";
 #endif
-
-        QMetaObject::invokeMethod(this, "loadEntityScript",
-                                  Q_ARG(const EntityItemID&, entityID),
-                                  Q_ARG(const QString&, entityScript),
-                                  Q_ARG(bool, forceRedownload));
-        return;
-    }
-#ifdef THREAD_DEBUGGING
-    qDebug() << "ScriptEngine::loadEntityScript() called on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "entityScript:" << entityScript << "forceRedownload:" << forceRedownload;
-#endif
-
-    // If we've been called our known entityScripts should not know about us..
-    assert(!_entityScripts.contains(entityID));
-
-#ifdef THREAD_DEBUGGING
-    qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() on thread ["
-        << QThread::currentThread() << "] expected thread [" << thread() << "]";
-#endif
-    DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [=](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
-#ifdef THREAD_DEBUGGING
-        qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
-            << QThread::currentThread() << "] expected thread [" << thread() << "]";
-#endif
-
-        this->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
+            strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
+        } else {
+            // FIXME - I'm leaving this in for testing, so that QA can confirm that sometimes the script contents
+            //         returns after the ScriptEngine has been deleted, we can remove this after QA verifies the
+            //         repro case.
+            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted... script:" << scriptOrURL;
+        }
     }, forceRedownload);
 }
 
@@ -1213,6 +1199,16 @@ void ScriptEngine::unloadAllEntityScripts() {
         callEntityScriptMethod(entityID, "unload");
     }
     _entityScripts.clear();
+
+#ifdef DEBUG_ENGINE_STATE
+    qDebug() << "---- CURRENT STATE OF ENGINE: --------------------------";
+    QScriptValueIterator it(globalObject());
+    while (it.hasNext()) {
+        it.next();
+        qDebug() << it.name() << ":" << it.value().toString();
+    }
+    qDebug() << "--------------------------------------------------------";
+#endif // DEBUG_ENGINE_STATE
 }
 
 void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
