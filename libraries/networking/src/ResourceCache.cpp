@@ -28,6 +28,97 @@
                            (((x) > (max)) ? (max) :\
                                             (x)))
 
+void ResourceCacheSharedItems::appendActiveRequest(QWeakPointer<Resource> resource) {
+    Lock lock(_mutex);
+    _loadingRequests.append(resource);
+}
+
+void ResourceCacheSharedItems::appendPendingRequest(QWeakPointer<Resource> resource) {
+    Lock lock(_mutex);
+    _pendingRequests.append(resource);
+}
+
+QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
+    QList<QSharedPointer<Resource>> result;
+
+    {
+        Lock lock(_mutex);
+        foreach(QSharedPointer<Resource> resource, _pendingRequests) {
+            if (resource) {
+                result.append(resource);
+            }
+        }
+    }
+    return result;
+}
+
+uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
+    Lock lock(_mutex);
+    return _pendingRequests.size();
+}
+
+QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
+    QList<QSharedPointer<Resource>> result;
+
+    {
+        Lock lock(_mutex);
+        foreach(QSharedPointer<Resource> resource, _loadingRequests) {
+            if (resource) {
+                result.append(resource);
+            }
+        }
+    }
+    return result;
+}
+
+void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
+    Lock lock(_mutex);
+    // resource can only be removed if it still has a ref-count, as
+    // QWeakPointer has no operator== implementation for two weak ptrs, so
+    // manually loop in case resource has been freed.
+    for (int i = 0; i < _loadingRequests.size();) {
+        auto request = _loadingRequests.at(i);
+        // Clear our resource and any freed resources
+        if (!request || request.data() == resource.data()) {
+            _loadingRequests.removeAt(i);
+            continue;
+        }
+        i++;
+    }
+}
+
+QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
+    Lock lock(_mutex);
+    // look for the highest priority pending request
+    int highestIndex = -1;
+    float highestPriority = -FLT_MAX;
+    QSharedPointer<Resource> highestResource;
+
+    for (int i = 0; i < _pendingRequests.size();) {
+        // Clear any freed resources
+        auto resource = _pendingRequests.at(i).lock();
+        if (!resource) {
+            _pendingRequests.removeAt(i);
+            continue;
+        }
+
+        // Check load priority
+        float priority = resource->getLoadPriority();
+        if (priority >= highestPriority) {
+            highestPriority = priority;
+            highestIndex = i;
+            highestResource = resource;
+        }
+        i++;
+    }
+
+    if (highestIndex >= 0) {
+        _pendingRequests.takeAt(highestIndex);
+    }
+
+    return highestResource;
+}
+
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
@@ -101,8 +192,7 @@ void ResourceCache::refresh(const QUrl& url) {
     if (resource) {
         resource->refresh();
     } else {
-        QWriteLocker locker(&_resourcesLock);
-        _resources.remove(url);
+        removeResource(url);
         resetResourceCounters();
     }
 }
@@ -196,11 +286,8 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     // If it doesn't fit or its size is unknown, remove it from the cache.
     if (resource->getBytes() == 0 || resource->getBytes() > _unusedResourcesMaxSize) {
         resource->setCache(nullptr);
-
-        _totalResourcesSize -= resource->getBytes();
-        _resources.remove(resource->getURL());
+        removeResource(resource->getURL(), resource->getBytes());
         resetResourceCounters();
-
         return;
     }
     reserveUnusedResource(resource->getBytes());
@@ -233,8 +320,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         it.value()->setCache(nullptr);
         auto size = it.value()->getBytes();
 
-        _totalResourcesSize -= size;
-        _resources.remove(it.value()->getURL());
+        removeResource(it.value()->getURL(), size);
 
         _unusedResourcesSize -= size;
         _unusedResources.erase(it);
@@ -259,85 +345,17 @@ void ResourceCache::resetResourceCounters() {
     emit dirty();
 }
 
+void ResourceCache::removeResource(const QUrl& url, qint64 size) {
+    QWriteLocker locker(&_resourcesLock);
+    _resources.remove(url);
+    _totalResourcesSize -= size;
+}
+
 void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
     _totalResourcesSize += (newSize - oldSize);
     emit dirty();
 }
-
-void ResourceCacheSharedItems::appendActiveRequest(QWeakPointer<Resource> resource) {
-    Lock lock(_mutex);
-    _loadingRequests.append(resource);
-}
-
-void ResourceCacheSharedItems::appendPendingRequest(QWeakPointer<Resource> resource) {
-    Lock lock(_mutex);
-    _pendingRequests.append(resource);
-}
-
-QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
-    QList<QSharedPointer<Resource>> result;
-
-    {
-        Lock lock(_mutex);
-        foreach(QSharedPointer<Resource> resource, _pendingRequests) {
-            if (resource) {
-                result.append(resource);
-            }
-        }
-    }
-    return result;
-}
-
-uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
-    Lock lock(_mutex);
-    return _pendingRequests.size();
-}
-
-QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
-    QList<QSharedPointer<Resource>> result;
-
-    {
-        Lock lock(_mutex);
-        foreach(QSharedPointer<Resource> resource, _loadingRequests) {
-            if (resource) {
-                result.append(resource);
-            }
-        }
-    }
-    return result;
-}
-
-void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
-    Lock lock(_mutex);
-    _loadingRequests.removeAll(resource);
-}
-
-QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
-    Lock lock(_mutex);
-    // look for the highest priority pending request
-    int highestIndex = -1;
-    float highestPriority = -FLT_MAX;
-    QSharedPointer<Resource> highestResource;
-    for (int i = 0; i < _pendingRequests.size();) {
-        auto resource = _pendingRequests.at(i).lock();
-        if (!resource) {
-            _pendingRequests.removeAt(i);
-            continue;
-        }
-        float priority = resource->getLoadPriority();
-        if (priority >= highestPriority) {
-            highestPriority = priority;
-            highestIndex = i;
-            highestResource = resource;
-        }
-        i++;
-    }
-    if (highestIndex >= 0) {
-        _pendingRequests.takeAt(highestIndex);
-    }
-    return highestResource;
-}
-
+ 
 QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
 }
@@ -454,12 +472,12 @@ void Resource::refresh() {
 }
 
 void Resource::allReferencesCleared() {
-    if (_cache && isCacheable()) {
-        if (QThread::currentThread() != thread()) {
-            QMetaObject::invokeMethod(this, "allReferencesCleared");
-            return;
-        }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "allReferencesCleared");
+        return;
+    }
 
+    if (_cache && isCacheable()) {
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
         setSelf(self);
@@ -467,8 +485,13 @@ void Resource::allReferencesCleared() {
 
         // add to the unused list
         _cache->addUnusedResource(self);
-
     } else {
+        if (_cache) {
+            // remove from the cache
+            _cache->removeResource(getURL(), getBytes());
+            _cache->resetResourceCounters();
+        }
+
         deleteLater();
     }
 }

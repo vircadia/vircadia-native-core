@@ -126,7 +126,7 @@ ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect) {
 }
 
 ShapeWrapperPtr loadSkybox(ProgramPtr program) {
-    return ShapeWrapperPtr(new shapes::ShapeWrapper({ { "Position" } }, shapes::SkyBox(), *program));
+    return ShapeWrapperPtr(new shapes::ShapeWrapper(std::initializer_list<std::string>{ "Position" }, shapes::SkyBox(), *program));
 }
 
 // Return a point's cartesian coordinates on a sphere from pitch and yaw
