@@ -236,7 +236,6 @@ FocusScope {
         }
 
         function repositionAll() {
-
             var oldRecommendedRect = recommendedRect;
             var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
             var newRecommendedRect = Controller.getRecommendedOverlayRect();
@@ -244,7 +243,9 @@ FocusScope {
             var windows = d.getTopLevelWindows();
             for (var i = 0; i < windows.length; ++i) {
                 var targetWindow = windows[i];
-                repositionWindow(targetWindow, true, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
+                if (targetWindow.visible) {
+                    repositionWindow(targetWindow, true, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
+                }
             }
 
             // also reposition the other children that aren't top level windows but want to be repositioned
