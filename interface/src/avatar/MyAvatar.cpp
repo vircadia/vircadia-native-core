@@ -1311,23 +1311,8 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
 }
 
 void MyAvatar::initAnimGraph() {
-    // avatar.json
-    // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-    //
-    // ik-avatar.json
-    // https://gist.github.com/hyperlogic/e58e0a24cc341ad5d060
-    //
-    // ik-avatar-hands.json
-    // https://gist.githubusercontent.com/hyperlogic/04a02c47eb56d8bfaebb
-    //
-    // ik-avatar-hands-idle.json
-    // https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad
-    //
-    // or run a local web-server
-    // python -m SimpleHTTPServer&
-    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
     auto graphUrl =_animGraphUrl.isEmpty() ?
-        QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+        QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json") :
         QUrl(_animGraphUrl);
     _rig->initAnimGraph(graphUrl);
 
