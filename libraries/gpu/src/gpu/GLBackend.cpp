@@ -517,11 +517,9 @@ void GLBackend::resetStages() {
 
 #define ADD_COMMAND_GL(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
-#ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo())
-#else
+// As long as we don;t use several versions of shaders we can avoid this more complex code path
+// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
-#endif
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
     // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
