@@ -39,6 +39,7 @@
 #include <StDev.h>
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
+#include <shared/RateCounter.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
@@ -116,6 +117,7 @@ public:
     QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
+    QRect getRecommendedOverlayRect() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
@@ -155,10 +157,9 @@ public:
 
     bool isForeground() const { return _isForeground; }
 
-    uint32_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _fps; }
-    float getTargetFrameRate(); // frames/second
-    float getLastInstanteousFps() const { return _lastInstantaneousFps; }
+    size_t getFrameCount() const { return _frameCount; }
+    float getFps() const { return _frameCounter.rate(); }
+    float getTargetFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -216,10 +217,9 @@ public:
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    float getAvatarSimrate();
-    void setAvatarSimrateSample(float sample);
 
-    float getAverageSimsPerSecond();
+    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
+    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -255,6 +255,7 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
+    void toggleSuppressDeadlockWatchdogStatus(bool checked);
 
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
@@ -271,11 +272,12 @@ public slots:
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
 
+    void resetPhysicsReadyInformation();
+
     void reloadResourceCaches();
 
     void updateHeartbeat() const;
 
-    static void crashApplication();
     static void deadlockApplication();
 
     void rotationModeChanged() const;
@@ -312,7 +314,7 @@ private slots:
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
-    void nodeActivated(SharedNodePointer node) const;
+    void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
@@ -331,7 +333,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
     static void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection() const;
@@ -395,12 +397,15 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
+    uint32_t _frameCount { 0 };
+
     // Frame Rate Measurement
-    int _frameCount;
-    float _fps;
+    RateCounter<> _frameCounter;
+    RateCounter<> _avatarSimCounter;
+    RateCounter<> _simCounter;
+
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    float _lastInstantaneousFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
@@ -487,12 +492,6 @@ private:
 
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
-
-    SimpleMovingAverage _framesPerSecond{10};
-    quint64 _lastFramesPerSecondUpdate = 0;
-    SimpleMovingAverage _simsPerSecond{10};
-    int _simsPerSecondReport = 0;
-    quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
     bool _isGLInitialized { false };
@@ -517,9 +516,17 @@ private:
     std::map<void*, std::function<void()>> _preRenderLambdas;
     std::mutex _preRenderLambdasLock;
 
-    std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
+    std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
+    uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
+    uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
+    uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
+
+    bool _recentlyClearedDomain { false };
+
+    QString _returnFromFullScreenMirrorTo;
 };
 
 #endif // hifi_Application_h

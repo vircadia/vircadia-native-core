@@ -31,6 +31,7 @@ typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
 enum TextureType {
     DEFAULT_TEXTURE,
+    ALBEDO_TEXTURE,
     NORMAL_TEXTURE,
     BUMP_TEXTURE,
     SPECULAR_TEXTURE,
@@ -71,7 +72,7 @@ public:
     const gpu::TexturePointer& getNormalFittingTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path);
+    static gpu::TexturePointer getImageTexture(const QString& path, TextureType type = DEFAULT_TEXTURE);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE,

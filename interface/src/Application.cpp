@@ -96,6 +96,7 @@
 #include <UserActivityLogger.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <shared/StringHelpers.h>
 #include <QmlWebWindowClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
@@ -146,6 +147,8 @@
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
+#include "FrameTimingsScriptingInterface.h"
+
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -192,12 +195,7 @@ static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
-#ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-#else
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
-#endif
 
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
@@ -241,6 +239,8 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void setSuppressStatus(bool suppress) { _suppressStatus = suppress; }
+
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
@@ -252,35 +252,45 @@ public:
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
-                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsedAverage:"
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "maxElapsed:" << _maxElapsed
                     << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
-                    << "NEW maxElapsedAverage:" << elapsedMovingAverage
+                    << "NEW maxElapsedAverage:" << elapsedMovingAverage << "** NEW MAX ELAPSED AVERAGE **"
                     << "samples:" << _movingAverage.getSamples();
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
-                qDebug() << "DEADLOCK WATCHDOG NEW maxElapsed:"
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
                     << "PREVIOUS maxElapsed:" << _maxElapsed
-                    << "NEW maxElapsed:" << lastHeartbeatAge
+                    << "NEW maxElapsed:" << lastHeartbeatAge << "** NEW MAX ELAPSED **"
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
                 _maxElapsed = lastHeartbeatAge;
             }
-            if ((sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) || (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT)) {
-                qDebug() << "DEADLOCK WATCHDOG STATUS -- lastHeartbeatAge:" << lastHeartbeatAge
-                         << "elapsedMovingAverage:" << elapsedMovingAverage
-                         << "maxElapsed:" << _maxElapsed
-                         << "maxElapsedAverage:" << _maxElapsedAverage
-                         << "samples:" << _movingAverage.getSamples();
+            if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
+                qDebug() << "DEADLOCK WATCHDOG WARNING:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE**"
+                    << "maxElapsed:" << _maxElapsed
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
                 _lastReport = now;
             }
 
-#ifdef NDEBUG
+            if (!_suppressStatus && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
+                qDebug() << "DEADLOCK WATCHDOG STATUS:"
+                    << "lastHeartbeatAge:" << lastHeartbeatAge
+                    << "elapsedMovingAverage:" << elapsedMovingAverage
+                    << "maxElapsed:" << _maxElapsed
+                    << "maxElapsedAverage:" << _maxElapsedAverage
+                    << "samples:" << _movingAverage.getSamples();
+                _lastReport = now;
+            }
+
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qDebug() << "DEADLOCK DETECTED -- "
                          << "lastHeartbeatAge:" << lastHeartbeatAge
@@ -290,12 +300,17 @@ public:
                          << "maxElapsed:" << _maxElapsed
                          << "maxElapsedAverage:" << _maxElapsedAverage
                          << "samples:" << _movingAverage.getSamples();
-                deadlockDetectionCrash();
+
+                // Don't actually crash in debug builds, in case this apparent deadlock is simply from
+                // the developer actively debugging code
+                #ifdef NDEBUG
+                    deadlockDetectionCrash();
+                #endif
             }
-#endif
         }
     }
 
+    static std::atomic<bool> _suppressStatus;
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _lastReport;
     static std::atomic<uint64_t> _maxElapsed;
@@ -305,11 +320,16 @@ public:
     bool _quit { false };
 };
 
+std::atomic<bool> DeadlockWatchdogThread::_suppressStatus;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
+
+void Application::toggleSuppressDeadlockWatchdogStatus(bool checked) {
+    DeadlockWatchdogThread::setSuppressStatus(checked);
+}
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -380,6 +400,11 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+static const QString STATE_IN_HMD = "InHMD";
+static const QString STATE_SNAP_TURN = "SnapTurn";
+static const QString STATE_GROUNDED = "Grounded";
+static const QString STATE_NAV_FOCUSED = "NavigationFocused";
+
 bool setupEssentials(int& argc, char** argv) {
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -392,7 +417,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    bool previousSessionCrashed = CrashHandler::checkForAndHandleCrash();
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
@@ -449,6 +474,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
+    controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -483,8 +509,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
-    _frameCount(0),
-    _fps(60.0f),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
@@ -895,9 +919,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 DependencyManager::get<AudioClient>()->toggleMute();
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
+            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
+                if (!offscreenUi->navigationFocused()) {
+                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
+                    offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 auto reticlePosition = getApplicationCompositor().getReticlePosition();
                 offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
+                if (!offscreenUi->navigationFocused()) {
+                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
+                    offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                }
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
                 getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
@@ -910,28 +944,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
     });
 
-    // A new controllerInput device used to reflect current values from the application state
-    _applicationStateDevice = std::make_shared<controller::StateController>();
+    _applicationStateDevice = userInputMapper->getStateDevice();
 
-    _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->isHMDMode();
-    }));
-    _applicationStateDevice->addInputVariant(QString("SnapTurn"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->getMyAvatar()->getSnapTurn();
-    }));
-    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-    }));
-    _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        return offscreenUi->navigationFocused() ? 1.0 : 0.0;
-    }));
-
-    userInputMapper->registerDevice(_applicationStateDevice);
+    _applicationStateDevice->setInputVariant(STATE_IN_HMD, []() -> float {
+        return qApp->isHMDMode() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
+        return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
+        return qApp->getMyAvatar()->getCharacterController()->onGround() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_NAV_FOCUSED, []() -> float {
+        return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
+    });
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
-    userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
@@ -1118,6 +1147,9 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
+    DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
+
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
@@ -1146,8 +1178,6 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    getEntities()->clear(); // this will allow entity scripts to properly shutdown
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -1158,6 +1188,7 @@ void Application::cleanupBeforeQuit() {
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
@@ -1198,6 +1229,9 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
+    _entityClipboard->eraseAllOctreeElements();
+    _entityClipboard.reset();
+
     EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(nullptr);
 
@@ -1206,10 +1240,8 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
-    ModelEntityItem::cleanupLoadedAnimations();
-
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    DependencyManager::get<AvatarManager>()->clearAllAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
@@ -1299,11 +1331,15 @@ void Application::initializeGL() {
     _idleLoopStdev.reset();
 
     // update before the first render
-    update(1.0f / _fps);
+    update(0);
 
     InfoView::show(INFO_HELP_PATH, true);
 }
+
+FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
+
 extern void setupPreferences();
+
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -1315,6 +1351,9 @@ void Application::initializeUi() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
+
+    auto rootContext = offscreenUi->getRootContext();
+
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
@@ -1325,7 +1364,6 @@ void Application::initializeUi() {
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
 
-    auto rootContext = offscreenUi->getRootContext();
     auto engine = rootContext->engine();
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
@@ -1344,6 +1382,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
     rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+    rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+    rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -1387,6 +1427,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+    
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1429,10 +1470,9 @@ void Application::initializeUi() {
     });
 }
 
+
 void Application::paintGL() {
-
     updateHeartbeat();
-
     // Some plugins process message events, potentially leading to
     // re-entering a paint event.  don't allow further processing if this
     // happens
@@ -1448,25 +1488,9 @@ void Application::paintGL() {
         return;
     }
     _frameCount++;
+    _frameCounter.increment();
 
-    // update fps moving average
-    uint64_t now = usecTimestampNow();
-    static uint64_t lastPaintBegin{ now };
-    uint64_t diff = now - lastPaintBegin;
-    float instantaneousFps = 0.0f;
-    if (diff != 0) {
-        instantaneousFps = (float)USECS_PER_SECOND / (float)diff;
-        _framesPerSecond.updateAverage(_lastInstantaneousFps);
-    }
-
-    lastPaintBegin = now;
-
-    // update fps once a second
-    if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
-        _fps = _framesPerSecond.getAverage();
-        _lastFramesPerSecondUpdate = now;
-    }
-
+    auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
@@ -1622,7 +1646,7 @@ void Application::paintGL() {
         }
         // Update camera position
         if (!isHMDMode()) {
-            _myCamera.update(1.0f / _fps);
+            _myCamera.update(1.0f / _frameCounter.rate());
         }
     }
 
@@ -1720,7 +1744,8 @@ void Application::paintGL() {
         });
     }
 
-    _lastInstantaneousFps = instantaneousFps;
+    uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
+    _frameTimingsScriptingInterface.addValue(lastPaintDuration);
 }
 
 void Application::runTests() {
@@ -2152,10 +2177,43 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
                 } else {
+                    // whenever switching to/from full screen mirror from the keyboard, remember
+                    // the state you were in before full screen mirror, and return to that.
+                    auto previousMode = _myCamera.getMode();
+                    if (previousMode != CAMERA_MODE_MIRROR) {
+                        switch (previousMode) {
+                            case CAMERA_MODE_FIRST_PERSON:
+                                _returnFromFullScreenMirrorTo = MenuOption::FirstPerson;
+                                break;
+                            case CAMERA_MODE_THIRD_PERSON:
+                                _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                                break;
+
+                            // FIXME - it's not clear that these modes make sense to return to...
+                            case CAMERA_MODE_INDEPENDENT:
+                                _returnFromFullScreenMirrorTo = MenuOption::IndependentMode;
+                                break;
+                            case CAMERA_MODE_ENTITY:
+                                _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
+                                break;
+
+                            default:
+                                _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                                break;
+                        }
+                    }
+
                     bool isMirrorChecked = Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
                     Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !isMirrorChecked);
                     if (isMirrorChecked) {
-                        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+
+                        // if we got here without coming in from a non-Full Screen mirror case, then our
+                        // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old 
+                        // behavior of returning to ThirdPerson
+                        if (_returnFromFullScreenMirrorTo.isEmpty()) {
+                            _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
+                        }
+                        Menu::getInstance()->setIsOptionChecked(_returnFromFullScreenMirrorTo, true);
                     }
                     cameraMenuChanged();
                 }
@@ -2559,30 +2617,17 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
-
+    // NOTICE NOTICE NOTICE NOTICE
+    // Do not insert new code between here and the PROFILE_RANGE declaration 
+    // unless you know exactly what you're doing.  This idle function can be 
+    // called thousands per second or more, so any additional work that's done 
+    // here will have a serious impact on CPU usage.  Only add code after all 
+    // the thottling logic, i.e. after PROFILE_RANGE
+    // NOTICE NOTICE NOTICE NOTICE
     updateHeartbeat();
 
     if (_aboutToQuit || _inPaint) {
         return; // bail early, nothing to do here.
-    }
-
-    // These tasks need to be done on our first idle, because we don't want the showing of
-    // overlay subwindows to do a showDesktop() until after the first time through
-    static bool firstIdle = true;
-    if (firstIdle) {
-        firstIdle = false;
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
-        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
-    }
-
-    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
-        _keyboardMouseDevice->pluginFocusOutEvent();
-        _keyboardDeviceHasFocus = false;
-    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
-        _keyboardDeviceHasFocus = true;
     }
 
     auto displayPlugin = getActiveDisplayPlugin();
@@ -2618,7 +2663,33 @@ void Application::idle(uint64_t now) {
         return;
     }
 
+    // NOTICE NOTICE NOTICE NOTICE
+    // do NOT add new code above this line unless you want it to be executed potentially 
+    // thousands of times per second
+    // NOTICE NOTICE NOTICE NOTICE
+
     PROFILE_RANGE(__FUNCTION__);
+
+    // These tasks need to be done on our first idle, because we don't want the showing of
+    // overlay subwindows to do a showDesktop() until after the first time through
+    static bool firstIdle = true;
+    if (firstIdle) {
+        firstIdle = false;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
+        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
+    }
+
+    // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
+        _keyboardMouseDevice->pluginFocusOutEvent();
+        _keyboardDeviceHasFocus = false;
+    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
+        _keyboardDeviceHasFocus = true;
+    }
+
+
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
@@ -2628,14 +2699,7 @@ void Application::idle(uint64_t now) {
     Stats::getInstance()->updateStats();
     AvatarInputs::getInstance()->update();
 
-    {
-        static uint64_t lastIdleStart{ now };
-        uint64_t idleStartToStartDuration = now - lastIdleStart;
-        if (idleStartToStartDuration != 0) {
-            _simsPerSecond.updateAverage((float)USECS_PER_SECOND / (float)idleStartToStartDuration);
-        }
-        lastIdleStart = now;
-    }
+    _simCounter.increment();
 
     PerformanceTimer perfTimer("idle");
     // Drop focus from _keyboardFocusedItem if no keyboard messages for 30 seconds
@@ -2689,30 +2753,6 @@ void Application::idle(uint64_t now) {
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
-}
-
-float Application::getAverageSimsPerSecond() {
-    uint64_t now = usecTimestampNow();
-
-    if (now - _lastSimsPerSecondUpdate > USECS_PER_SECOND) {
-        _simsPerSecondReport = _simsPerSecond.getAverage();
-        _lastSimsPerSecondUpdate = now;
-    }
-    return _simsPerSecondReport;
-}
-
-void Application::setAvatarSimrateSample(float sample) {
-    _avatarSimsPerSecond.updateAverage(sample);
-}
-
-float Application::getAvatarSimrate() {
-    uint64_t now = usecTimestampNow();
-
-    if (now - _lastAvatarSimsPerSecondUpdate > USECS_PER_SECOND) {
-        _avatarSimsPerSecondReport = _avatarSimsPerSecond.getAverage();
-        _lastAvatarSimsPerSecondUpdate = now;
-    }
-    return _avatarSimsPerSecondReport;
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -2985,7 +3025,7 @@ void Application::updateLOD() const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        DependencyManager::get<LODManager>()->autoAdjustLOD(_fps);
+        DependencyManager::get<LODManager>()->autoAdjustLOD(_frameCounter.rate());
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -3165,7 +3205,19 @@ void Application::cameraMenuChanged() {
     }
 }
 
+void Application::resetPhysicsReadyInformation() {
+    // we've changed domains or cleared out caches or something.  we no longer know enough about the
+    // collision information of nearby entities to make running bullet be safe.
+    _fullSceneReceivedCounter = 0;
+    _fullSceneCounterAtLastPhysicsCheck = 0;
+    _nearbyEntitiesCountAtLastPhysicsCheck = 0;
+    _nearbyEntitiesStabilityCount = 0;
+    _physicsEnabled = false;
+}
+
+
 void Application::reloadResourceCaches() {
+    resetPhysicsReadyInformation();
     // Clear entities out of view frustum
     _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
     _viewFrustum.setOrientation(glm::quat());
@@ -3222,21 +3274,34 @@ void Application::update(float deltaTime) {
 
     updateLOD();
 
-    if (!_physicsEnabled && _processOctreeStatsCounter > 0) {
+    if (!_physicsEnabled) {
+        // we haven't yet enabled physics.  we wait until we think we have all the collision information
+        // for nearby entities before starting bullet up.
+        quint64 now = usecTimestampNow();
+        bool timeout = false;
+        const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
+        if (_lastPhysicsCheckTime > 0 && now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT) {
+            timeout = true;
+        }
 
-        // process octree stats packets are sent in between full sends of a scene.
-        // We keep physics disabled until we've received a full scene and everything near the avatar in that
-        // scene is ready to compute its collision shape.
+        if (timeout || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+            // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
+            _lastPhysicsCheckTime = now;
+            _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
 
-        if (nearbyEntitiesAreReadyForPhysics()) {
-            _physicsEnabled = true;
-            getMyAvatar()->updateMotionBehaviorFromMenu();
-        } else {
-            auto characterController = getMyAvatar()->getCharacterController();
-            if (characterController) {
-                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                // a non-loading collision hull.
-                characterController->setEnabled(false);
+            // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+            // We keep physics disabled until we've received a full scene and everything near the avatar in that
+            // scene is ready to compute its collision shape.
+            if (nearbyEntitiesAreReadyForPhysics()) {
+                _physicsEnabled = true;
+                getMyAvatar()->updateMotionBehaviorFromMenu();
+            } else {
+                auto characterController = getMyAvatar()->getCharacterController();
+                if (characterController) {
+                    // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                    // a non-loading collision hull.
+                    characterController->setEnabled(false);
+                }
             }
         }
     }
@@ -3388,7 +3453,7 @@ void Application::update(float deltaTime) {
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
-                    _entitySimulation.handleOutgoingChanges(outgoingChanges, Physics::getSessionUUID());
+                    _entitySimulation.handleOutgoingChanges(outgoingChanges);
                     avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
@@ -3416,16 +3481,12 @@ void Application::update(float deltaTime) {
     // AvatarManager update
     {
         PerformanceTimer perfTimer("AvatarManger");
-
-        qApp->setAvatarSimrateSample(1.0f / deltaTime);
+        _avatarSimCounter.increment();
 
         {
             PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
-
-        // update sensorToWorldMatrix for camera and hand controllers
-        getMyAvatar()->updateSensorToWorldMatrix();
 
         qApp->updateMyAvatarLookAtPosition();
 
@@ -3462,11 +3523,9 @@ void Application::update(float deltaTime) {
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
         bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
-
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
-
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
             }
@@ -3561,7 +3620,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend) {
 
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
@@ -3648,7 +3707,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     auto queryPacket = NLPacket::create(packetType);
 
-    nodeList->eachNode([&](const SharedNodePointer& node){
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
 
@@ -3717,6 +3776,16 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
 
+            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner 
+            // that will cause our next query to be guarenteed to be different and the server will resend to us
+            if (forceResend) {
+                _octreeQuery.setCameraPosition(glm::vec3(-0.1, -0.1, -0.1));
+                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
+                _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
+                _octreeQuery.setCameraNearClip(0.1f);
+                _octreeQuery.setCameraFarClip(0.1f);
+            }
+
             // encode the query data
             int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
             queryPacket->setPayloadSize(packetSize);
@@ -3731,7 +3800,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
-float Application::getTargetFrameRate() { return getActiveDisplayPlugin()->getTargetFrameRate(); }
+
+float Application::getTargetFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() const {
     QRect applicationGeometry = getWindow()->geometry();
@@ -4113,10 +4183,15 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
-    qCDebug(interfaceapp) << "Clearing domain octree details...";
-    // reset the environment so that we don't erroneously end up with multiple
 
-    _physicsEnabled = false;
+    // if we're about to quit, we really don't need to do any of these things...
+    if (_aboutToQuit) {
+        return;
+    }
+
+    qCDebug(interfaceapp) << "Clearing domain octree details...";
+
+    resetPhysicsReadyInformation();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {
@@ -4133,13 +4208,13 @@ void Application::clearDomainOctreeDetails() {
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
 
+    _recentlyClearedDomain = true;
 }
 
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
-    clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
-    _physicsEnabled = false;
+    resetPhysicsReadyInformation();
 }
 
 
@@ -4154,7 +4229,7 @@ void Application::nodeAdded(SharedNodePointer node) const {
     }
 }
 
-void Application::nodeActivated(SharedNodePointer node) const {
+void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::AssetServer) {
         // asset server just connected - check if we have the asset browser showing
 
@@ -4173,10 +4248,20 @@ void Application::nodeActivated(SharedNodePointer node) const {
             }
         }
     }
+
+    // If we get a new EntityServer activated, do a "forceRedraw" query. This will send a degenerate
+    // query so that the server will think our next non-degenerate query is "different enough" to send
+    // us a full scene
+    if (_recentlyClearedDomain && node->getType() == NodeType::EntityServer) {
+        _recentlyClearedDomain = false;
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+            queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions, true);
+        }
+    }
+
 }
 
 void Application::nodeKilled(SharedNodePointer node) {
-
     // These are here because connecting NodeList::nodeKilled to OctreePacketProcessor::nodeKilled doesn't work:
     // OctreePacketProcessor::nodeKilled is not being called when NodeList::nodeKilled is emitted.
     // This may have to do with GenericThread::threadRoutine() blocking the QThread event loop
@@ -4262,15 +4347,31 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         entityTree->findEntities(box, entities);
     });
 
-    foreach (EntityItemPointer entity, entities) {
-        if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-            static QString repeatedMessage =
-                LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
-            qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
-            return false;
-        }
+    // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
+    // a heuristic to try to decide when we actually know about all of the nearby entities.
+    uint32_t nearbyCount = entities.size();
+    if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
+        _nearbyEntitiesStabilityCount++;
+    } else {
+        _nearbyEntitiesStabilityCount = 0;
     }
-    return true;
+    _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
+
+    const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
+    if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
+        // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
+        // the local entities.
+        foreach (EntityItemPointer entity, entities) {
+            if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
+                static QString repeatedMessage =
+                    LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
+                qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
@@ -4286,6 +4387,10 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
     _octreeServerSceneStats.withWriteLock([&] {
         OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
         statsMessageLength = octreeStats.unpackFromPacket(message);
+
+        if (octreeStats.isFullScene()) {
+            _fullSceneReceivedCounter++;
+        }
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = nullptr;
@@ -4317,8 +4422,6 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
             (*jurisdiction)[nodeUUID] = jurisdictionMap;
         });
     });
-
-    _processOctreeStatsCounter++;
 
     return statsMessageLength;
 }
@@ -4450,10 +4553,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) const {
-    // HACK: until we swap the library dependency order between physics and entities
-    // we cache the sessionID in two distinct places for physics.
-    Physics::setSessionUUID(sessionUUID); // TODO: remove this one
-    _physicsEngine->setSessionUUID(sessionUUID);
+    Physics::setSessionUUID(sessionUUID);
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {
@@ -4469,18 +4569,36 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
 
     QString modelName = fstMapping["name"].toString();
+    QString modelLicense = fstMapping["license"].toString();
+
+    bool agreeToLicence = true; // assume true
+    if (!modelLicense.isEmpty()) {
+        // word wrap the licence text to fit in a reasonable shaped message box.
+        const int MAX_CHARACTERS_PER_LINE = 90;
+        modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
+
+        agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
+            modelLicense + "\nDo you argee to these terms?",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+    }
+
     bool ok = false;
-    switch (modelType) {
 
-        case FSTReader::HEAD_AND_BODY_MODEL:
-             ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
-                               "Would you like to use '" + modelName + "' for your avatar?",
-                               QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-        break;
+    if (!agreeToLicence) {
+        qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+    } else {
+        switch (modelType) {
 
-        default:
-            OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
-        break;
+            case FSTReader::HEAD_AND_BODY_MODEL:
+                 ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
+                                   "Would you like to use '" + modelName + "' for your avatar?",
+                                   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+            break;
+
+            default:
+                OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
+            break;
+        }
     }
 
     if (ok) {
@@ -4777,19 +4895,44 @@ QRect Application::getRenderingGeometry() const {
 }
 
 glm::uvec2 Application::getUiSize() const {
-    return getActiveDisplayPlugin()->getRecommendedUiSize();
+    static const uint MIN_SIZE = 1;
+    glm::uvec2 result(MIN_SIZE);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedUiSize();
+    }
+    return result;
+}
+
+QRect Application::getRecommendedOverlayRect() const {
+    auto uiSize = getUiSize();
+    QRect result(0, 0, uiSize.x, uiSize.y);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+    }
+    return result;
 }
 
 QSize Application::getDeviceSize() const {
-    return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    static const int MIN_SIZE = 1;
+    QSize result(MIN_SIZE, MIN_SIZE);
+    if (_displayPlugin) {
+        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    }
+    return result;
 }
 
 bool Application::isThrottleRendering() const {
-    return getActiveDisplayPlugin()->isThrottled();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->isThrottled();
+    }
+    return false;
 }
 
 bool Application::hasFocus() const {
-    return getActiveDisplayPlugin()->hasFocus();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->hasFocus();
+    }
+    return (QApplication::activeWindow() != nullptr);
 }
 
 glm::vec2 Application::getViewportDimensions() const {
@@ -5089,13 +5232,6 @@ mat4 Application::getHMDSensorPose() const {
         return getActiveDisplayPlugin()->getHeadPose();
     }
     return mat4();
-}
-
-void Application::crashApplication() {
-    qCDebug(interfaceapp) << "Intentionally crashed Interface";
-    QObject* object = nullptr;
-    bool value = object->isWindowType();
-    Q_UNUSED(value);
 }
 
 void Application::deadlockApplication() {

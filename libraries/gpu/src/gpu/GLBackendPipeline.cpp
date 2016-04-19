@@ -64,11 +64,15 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         return;
     }
 
+    // A true new Pipeline
+    _stats._PSNumSetPipelines++;
+
     // null pipeline == reset
     if (!pipeline) {
         _pipeline._pipeline.reset();
 
         _pipeline._program = 0;
+        _pipeline._programShader = nullptr;
         _pipeline._invalidProgram = true;
 
         _pipeline._state = nullptr;
@@ -80,8 +84,10 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         }
 
         // check the program cache
-        if (_pipeline._program != pipelineObject->_program->_program) {
-            _pipeline._program = pipelineObject->_program->_program;
+        GLuint glprogram = pipelineObject->_program->getProgram();
+        if (_pipeline._program != glprogram) {
+            _pipeline._program = glprogram;
+            _pipeline._programShader = pipelineObject->_program;
             _pipeline._invalidProgram = true;
         }
 
@@ -142,6 +148,7 @@ void GLBackend::resetPipelineStage() {
     // Second the shader side
     _pipeline._invalidProgram = false;
     _pipeline._program = 0;
+    _pipeline._programShader = nullptr;
     _pipeline._pipeline.reset();
     glUseProgram(0);
 }
@@ -265,6 +272,8 @@ void GLBackend::do_setResourceTexture(Batch& batch, size_t paramOffset) {
         (void) CHECK_GL_ERROR();
 
         _resource._textures[slot] = resourceTexture;
+
+        _stats._RSAmountTextureMemoryBounded += object->size();
 
     } else {
         releaseResourceTexture(slot);

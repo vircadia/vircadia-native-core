@@ -30,8 +30,6 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
             }
         }, true, false);
 
-    updateFramerate();
-
     return Parent::internalActivate();
 }
 

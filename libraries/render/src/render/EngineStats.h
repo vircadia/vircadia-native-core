@@ -33,6 +33,8 @@ namespace render {
         Q_PROPERTY(quint32 textureGPUCount MEMBER textureGPUCount NOTIFY dirty)
         Q_PROPERTY(qint64 textureCPUMemoryUsage MEMBER textureCPUMemoryUsage NOTIFY dirty)
         Q_PROPERTY(qint64 textureGPUMemoryUsage MEMBER textureGPUMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(qint64 textureGPUVirtualMemoryUsage MEMBER textureGPUVirtualMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(quint32 textureGPUTransferCount MEMBER textureGPUTransferCount NOTIFY dirty)
 
         Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
@@ -43,6 +45,9 @@ namespace render {
 
         Q_PROPERTY(quint32 frameTextureCount MEMBER frameTextureCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameTextureRate MEMBER frameTextureRate NOTIFY dirty)
+        Q_PROPERTY(quint32 frameTextureMemoryUsage MEMBER frameTextureMemoryUsage NOTIFY dirty)
+
+        Q_PROPERTY(quint32 frameSetPipelineCount MEMBER frameSetPipelineCount NOTIFY dirty)
 
 
     public:
@@ -57,6 +62,8 @@ namespace render {
         quint32 textureGPUCount{ 0 };
         qint64 textureCPUMemoryUsage{ 0 };
         qint64 textureGPUMemoryUsage{ 0 };
+        qint64 textureGPUVirtualMemoryUsage{ 0 };
+        quint32 textureGPUTransferCount{ 0 };
 
         quint32 frameAPIDrawcallCount{ 0 };
         quint32 frameDrawcallCount{ 0 };
@@ -67,6 +74,11 @@ namespace render {
 
         quint32 frameTextureCount{ 0 };
         quint32 frameTextureRate{ 0 };
+        qint64 frameTextureMemoryUsage{ 0 };
+
+        quint32 frameSetPipelineCount{ 0 };
+
+
 
         void emitDirty() { emit dirty(); }
 

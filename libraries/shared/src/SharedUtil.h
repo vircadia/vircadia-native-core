@@ -180,11 +180,11 @@ private:
     static int DEADBEEF_SIZE;
 };
 
-bool isBetween(int64_t value, int64_t max, int64_t min);
-
+/// \return true when value is between max and min
+inline bool isBetween(int64_t value, int64_t max, int64_t min) { return ((value <= max) && (value >= min)); }
 
 /// \return bool is the float NaN
-bool isNaN(float value);
+inline bool isNaN(float value) { return value != value; }
 
 QString formatUsecTime(float usecs, int prec = 3);
 QString formatSecondsElapsed(float seconds);

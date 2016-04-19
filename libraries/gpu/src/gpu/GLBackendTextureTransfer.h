@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QSharedPointer>
 #include <GenericQueueThread.h>
 #include "GLBackendShared.h"
 
@@ -23,16 +24,18 @@ struct TextureTransferPackage {
 class GLTextureTransferHelper : public GenericQueueThread<TextureTransferPackage> {
 public:
     GLTextureTransferHelper();
+    ~GLTextureTransferHelper();
     void transferTexture(const gpu::TexturePointer& texturePointer);
     void postTransfer(const gpu::TexturePointer& texturePointer);
 
 protected:
     void setup() override;
+    void shutdown() override;
     bool processQueueItems(const Queue& messages) override;
     void transferTextureSynchronous(const gpu::Texture& texture);
 
 private:
-    std::shared_ptr<OffscreenGLCanvas> _canvas;
+    QSharedPointer<OffscreenGLCanvas> _canvas;
 };
 
 template <typename F>

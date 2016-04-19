@@ -21,17 +21,19 @@ public:
     virtual bool isSupported() const override;
     virtual const QString& getName() const override { return NAME; }
 
-    virtual float getTargetFrameRate() override { return TARGET_RATE_OpenVr; }
+    virtual float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
 
     virtual void customizeContext() override;
 
     // Stereo specific methods
     virtual void resetSensors() override;
     virtual void beginFrameRender(uint32_t frameIndex) override;
+    void cycleDebugOutput() override { _lockCurrentTexture = !_lockCurrentTexture; }
 
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
+    void updatePresentPose() override;
 
     void hmdPresent() override;
     bool isHmdMounted() const override;

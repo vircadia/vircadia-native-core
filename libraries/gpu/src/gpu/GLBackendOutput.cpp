@@ -83,7 +83,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
                 for (auto& b : framebuffer.getRenderBuffers()) {
                     surface = b._texture;
                     if (surface) {
-                        gltexture = GLBackend::syncGPUObject(surface);
+                        gltexture = GLBackend::syncGPUObject(surface, false); // Grab the gltexture and don't transfer
                     } else {
                         gltexture = nullptr;
                     }
@@ -123,7 +123,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
         if (framebuffer.getDepthStamp() != object->_depthStamp) {
             auto surface = framebuffer.getDepthStencilBuffer();
             if (framebuffer.hasDepthStencil() && surface) {
-                gltexture = GLBackend::syncGPUObject(surface);
+                gltexture = GLBackend::syncGPUObject(surface, false); // Grab the gltexture and don't transfer
             }
     
             if (gltexture) {

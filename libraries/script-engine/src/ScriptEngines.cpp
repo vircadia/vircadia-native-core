@@ -22,12 +22,7 @@
 #define __STR1__(x) __STR2__(x)
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
-#ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-#else
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
-#endif
 
 ScriptsModel& getScriptsModel() {
     static ScriptsModel scriptsModel;
@@ -40,6 +35,19 @@ ScriptEngines::ScriptEngines()
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
     _scriptsModelFilter.setDynamicSortFilter(true);
+
+    static const int SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS = 5000;
+    QTimer* scriptSaveTimer = new QTimer(this);
+    scriptSaveTimer->setSingleShot(true);
+    QMetaObject::Connection timerConnection = connect(scriptSaveTimer, &QTimer::timeout, [] {
+        DependencyManager::get<ScriptEngines>()->saveScripts();
+    });
+    connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        disconnect(timerConnection);
+    });
+    connect(this, &ScriptEngines::scriptCountChanged, this, [scriptSaveTimer] {
+        scriptSaveTimer->start(SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS);
+    }, Qt::QueuedConnection);
 }
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL) {

@@ -24,6 +24,7 @@
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
 #include <SoundCache.h>
+#include <LogHandler.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
@@ -516,8 +517,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     EntityTreePointer tree = getTree();
     if (tree && tree->isDeletedEntity(_id)) {
         #ifdef WANT_DEBUG
-            qDebug() << "Received packet for previously deleted entity [" << _id << "] ignoring. "
-                        "(inside " << __FUNCTION__ << ")";
+            qCDebug(entities) << "Received packet for previously deleted entity [" << _id << "] ignoring. "
+                "(inside " << __FUNCTION__ << ")";
         #endif
         ignoreServerPacket = true;
     }
@@ -925,7 +926,8 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, dt);
             rotation = glm::normalize(dQ * rotation);
 
-            setRotation(rotation);
+            bool success;
+            setOrientation(rotation, success, false);
         }
 
         setLocalAngularVelocity(localAngularVelocity);
@@ -1685,7 +1687,7 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
     } else {
-        qDebug() << "EntityItem::addActionInternal -- serializeActions failed";
+        qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
     return success;
 }
@@ -1706,7 +1708,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         } else {
-            qDebug() << "EntityItem::updateAction failed";
+            qCDebug(entities) << "EntityItem::updateAction failed";
         }
     });
     return success;
@@ -1777,7 +1779,7 @@ void EntityItem::deserializeActionsInternal() {
     quint64 now = usecTimestampNow();
 
     if (!_element) {
-        qDebug() << "EntityItem::deserializeActionsInternal -- no _element";
+        qCDebug(entities) << "EntityItem::deserializeActionsInternal -- no _element";
         return;
     }
 
@@ -1805,14 +1807,13 @@ void EntityItem::deserializeActionsInternal() {
             continue;
         }
 
-        updated << actionID;
-
         if (_objectActions.contains(actionID)) {
             EntityActionPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
             action->deserialize(serializedAction);
             action->locallyAddedButNotYetReceived = false;
+            updated << actionID;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
             EntityItemPointer entity = getThisPointer();
@@ -1820,8 +1821,13 @@ void EntityItem::deserializeActionsInternal() {
             if (action) {
                 entity->addActionInternal(simulation, action);
                 action->locallyAddedButNotYetReceived = false;
+                updated << actionID;
             } else {
-                qDebug() << "EntityItem::deserializeActionsInternal -- action creation failed";
+                static QString repeatedMessage =
+                    LogHandler::getInstance().addRepeatedMessageRegex(".*action creation failed for.*");
+                qCDebug(entities) << "EntityItem::deserializeActionsInternal -- action creation failed for"
+                                  << getID() << getName();
+                removeActionInternal(actionID, nullptr);
             }
         }
     }
@@ -1897,7 +1903,8 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     serializedActionsStream << serializedActions;
 
     if (result.size() >= _maxActionsDataSize) {
-        qDebug() << "EntityItem::serializeActions size is too large -- " << result.size() << ">=" << _maxActionsDataSize;
+        qCDebug(entities) << "EntityItem::serializeActions size is too large -- "
+                          << result.size() << ">=" << _maxActionsDataSize;
         success = false;
         return;
     }
@@ -1973,9 +1980,16 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     return result;
 }
 
-void EntityItem::locationChanged() {
+void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
-    SpatiallyNestable::locationChanged(); // tell all the children, also
+    if (tellPhysics) {
+        _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
+    }
+    SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
 }
 
 void EntityItem::dimensionsChanged() {
@@ -1984,6 +1998,7 @@ void EntityItem::dimensionsChanged() {
 }
 
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
+    // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
     auto globalPosition = getPosition(success);
     if (success) {

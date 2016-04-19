@@ -46,6 +46,7 @@ private slots:
 
 private:
     GeometryResource::Pointer _geometryResource;
+    QMetaObject::Connection _connection;
 };
 
 void GeometryMappingResource::downloadFinished(const QByteArray& data) {
@@ -77,21 +78,28 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         if (_geometryResource->isLoaded()) {
             onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
         } else {
-            connect(_geometryResource.data(), &Resource::finished, this, &GeometryMappingResource::onGeometryMappingLoaded);
+            if (_connection) {
+                disconnect(_connection);
+            }
+
+            _connection = connect(_geometryResource.data(), &Resource::finished,
+                                  this, &GeometryMappingResource::onGeometryMappingLoaded);
         }
     }
 }
 
 void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
-    if (success) {
+    if (success && _geometryResource) {
         _geometry = _geometryResource->_geometry;
         _shapes = _geometryResource->_shapes;
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
-    }
 
-    // Avoid holding onto extra references
-    _geometryResource.reset();
+        // Avoid holding onto extra references
+        _geometryResource.reset();
+        // Make sure connection will not trigger again
+        disconnect(_connection); // FIXME Should not have to do this
+    }
 
     finishedLoading(success);
 }
@@ -226,6 +234,7 @@ void GeometryDefinitionResource::setGeometryDefinition(void* fbxGeometry) {
 ModelCache::ModelCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
+    setObjectName("ModelCache");
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -417,7 +426,7 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
 {
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
+        auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
         _albedoTransform = material.albedoTexture.transform;
         map->setTextureTransform(_albedoTransform);
 
@@ -488,7 +497,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!albedoName.isEmpty()) {
         auto url = textureMap.contains(albedoName) ? textureMap[albedoName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::ALBEDO_MAP);
+        auto map = fetchTextureMap(url, ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
         map->setTextureTransform(_albedoTransform);
         // when reassigning the albedo texture we also check for the alpha channel used as opacity
         map->setUseAlphaChannel(true);
@@ -497,7 +506,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!normalName.isEmpty()) {
         auto url = textureMap.contains(normalName) ? textureMap[normalName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, DEFAULT_TEXTURE, MapChannel::NORMAL_MAP);
+        auto map = fetchTextureMap(url, NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
         setTextureMap(MapChannel::NORMAL_MAP, map);
     }
 

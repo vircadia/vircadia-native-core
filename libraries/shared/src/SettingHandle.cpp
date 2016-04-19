@@ -18,7 +18,7 @@ void Settings::getFloatValueIfValid(const QString& name, float& floatValue) {
     const QVariant badDefaultValue = NAN;
     bool ok = true;
     float tempFloat = value(name, badDefaultValue).toFloat(&ok);
-    if (ok && !isnan(tempFloat)) {
+    if (ok && !glm::isnan(tempFloat)) {
         floatValue = tempFloat;
     }
 }
@@ -47,7 +47,7 @@ void Settings::getVec3ValueIfValid(const QString& name, glm::vec3& vecValue) {
         float x = value(QString("x"), badDefaultValue).toFloat(&ok);
         float y = value(QString("y"), badDefaultValue).toFloat(&ok);
         float z = value(QString("z"), badDefaultValue).toFloat(&ok);
-        if (ok && (!isnan(x) && !isnan(y) && !isnan(z))) {
+        if (ok && (!glm::isnan(x) && !glm::isnan(y) && !glm::isnan(z))) {
             vecValue = glm::vec3(x, y, z);
         }
     }
@@ -74,7 +74,7 @@ void Settings::getQuatValueIfValid(const QString& name, glm::quat& quatValue) {
         float y = value(QString("y"), badDefaultValue).toFloat(&ok);
         float z = value(QString("z"), badDefaultValue).toFloat(&ok);
         float w = value(QString("w"), badDefaultValue).toFloat(&ok);
-        if (ok && (!isnan(x) && !isnan(y) && !isnan(z) && !isnan(w))) {
+        if (ok && (!glm::isnan(x) && !glm::isnan(y) && !glm::isnan(z) && !glm::isnan(w))) {
             quatValue = glm::quat(w, x, y, z);
         }
     }

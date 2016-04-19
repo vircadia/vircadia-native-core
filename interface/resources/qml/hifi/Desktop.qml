@@ -21,7 +21,7 @@ Desktop {
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
         WebEngine.settings.javascriptCanAccessClipboard = false;
-        WebEngine.settings.spatialNavigationEnabled = true;
+        WebEngine.settings.spatialNavigationEnabled = false;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
     }
 

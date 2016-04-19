@@ -46,10 +46,17 @@ uint32_t Texture::getTextureGPUCount() {
 
 Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
-
 }
 
-uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
+Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
+    return Context::getTextureGPUVirtualMemoryUsage();
+}
+
+uint32_t Texture::getTextureGPUTransferCount() {
+    return Context::getTextureGPUTransferCount();
+}
+
+uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _format(format),
@@ -212,13 +219,6 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
     tex->_sampler = sampler;
 
     return tex;
-}
-
-Texture* Texture::createFromStorage(Storage* storage) {
-   Texture* tex = new Texture();
-   tex->_storage.reset(storage);
-   storage->assignTexture(tex);
-   return tex;
 }
 
 Texture::Texture():

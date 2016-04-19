@@ -27,19 +27,14 @@
 const int CLEAR_INACTIVE_PEERS_INTERVAL_MSECS = 1 * 1000;
 const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
-const quint16 ICE_SERVER_MONITORING_PORT = 40110;
-
 IceServer::IceServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
     _serverSocket(),
-    _activePeers(),
-    _httpManager(QHostAddress::AnyIPv4, ICE_SERVER_MONITORING_PORT, QString("%1/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _lastInactiveCheckTimestamp(QDateTime::currentMSecsSinceEpoch())
+    _activePeers()
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
-    qDebug() << "monitoring http endpoint is listening on " << ICE_SERVER_MONITORING_PORT;
     _serverSocket.bind(QHostAddress::AnyIPv4, ICE_SERVER_DEFAULT_PORT);
 
     // set processPacket as the verified packet callback for the udt::Socket
@@ -82,6 +77,11 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
             if (peer) {
                 // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
                 peer->activateMatchingOrNewSymmetricSocket(nlPacket->getSenderSockAddr());
+
+                // we have an active and verified heartbeating peer
+                // send them an ACK packet so they know that they are being heard and ready for ICE
+                static auto ackPacket = NLPacket::create(PacketType::ICEServerHeartbeatACK);
+                _serverSocket.writePacket(*ackPacket, nlPacket->getSenderSockAddr());
             } else {
                 // we couldn't verify this peer - respond back to them so they know they may need to perform keypair re-generation
                 static auto deniedPacket = NLPacket::create(PacketType::ICEServerHeartbeatDenied);
@@ -164,39 +164,42 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(NLPacket& packet) {
 }
 
 bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& plaintext, const QByteArray& signature) {
-    // check if we have a public key for this domain ID - if we do not then fire off the request for it
-    auto it = _domainPublicKeys.find(domainID);
-    if (it != _domainPublicKeys.end()) {
+    // make sure we're not already waiting for a public key for this domain-server
+    if (!_pendingPublicKeyRequests.contains(domainID)) {
+        // check if we have a public key for this domain ID - if we do not then fire off the request for it
+        auto it = _domainPublicKeys.find(domainID);
+        if (it != _domainPublicKeys.end()) {
 
-        // attempt to verify the signature for this heartbeat
-        const auto rsaPublicKey = it->second.get();
+            // attempt to verify the signature for this heartbeat
+            const auto rsaPublicKey = it->second.get();
 
-        if (rsaPublicKey) {
-            auto hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
-            int verificationResult = RSA_verify(NID_sha256,
-                                                reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
-                                                hashedPlaintext.size(),
-                                                reinterpret_cast<const unsigned char*>(signature.constData()),
-                                                signature.size(),
-                                                rsaPublicKey);
+            if (rsaPublicKey) {
+                auto hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
+                int verificationResult = RSA_verify(NID_sha256,
+                                                    reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
+                                                    hashedPlaintext.size(),
+                                                    reinterpret_cast<const unsigned char*>(signature.constData()),
+                                                    signature.size(),
+                                                    rsaPublicKey);
 
-            if (verificationResult == 1) {
-                // this is the only success case - we return true here to indicate that the heartbeat is verified
-                return true;
+                if (verificationResult == 1) {
+                    // this is the only success case - we return true here to indicate that the heartbeat is verified
+                    return true;
+                } else {
+                    qDebug() << "Failed to verify heartbeat for" << domainID << "- re-requesting public key from API.";
+                }
+
             } else {
-                qDebug() << "Failed to verify heartbeat for" << domainID << "- re-requesting public key from API.";
+                // we can't let this user in since we couldn't convert their public key to an RSA key we could use
+                qWarning() << "Public key for" << domainID << "is not a usable RSA* public key.";
+                qWarning() << "Re-requesting public key from API";
             }
-
-        } else {
-            // we can't let this user in since we couldn't convert their public key to an RSA key we could use
-            qWarning() << "Public key for" << domainID << "is not a usable RSA* public key.";
-            qWarning() << "Re-requesting public key from API";
         }
-    }
 
-    // we could not verify this heartbeat (missing public key, could not load public key, bad actor)
-    // ask the metaverse API for the right public key and return false to indicate that this is not verified
-    requestDomainPublicKey(domainID);
+        // we could not verify this heartbeat (missing public key, could not load public key, bad actor)
+        // ask the metaverse API for the right public key and return false to indicate that this is not verified
+        requestDomainPublicKey(domainID);
+    }
 
     return false;
 }
@@ -213,6 +216,9 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     publicKeyRequest.setAttribute(QNetworkRequest::User, domainID);
 
     qDebug() << "Requesting public key for domain with ID" << domainID;
+
+    // add this to the set of pending public key requests
+    _pendingPublicKeyRequests.insert(domainID);
 
     networkAccessManager.get(publicKeyRequest);
 }
@@ -266,6 +272,9 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
         qWarning() << "Error retreiving public key for domain with ID" << domainID << "-" <<  reply->errorString();
     }
 
+    // remove this domain ID from the list of pending public key requests
+    _pendingPublicKeyRequests.remove(domainID);
+
     reply->deleteLater();
 }
 
@@ -281,8 +290,6 @@ void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSoc
 
 void IceServer::clearInactivePeers() {
     NetworkPeerHash::iterator peerItem = _activePeers.begin();
-
-    _lastInactiveCheckTimestamp = QDateTime::currentMSecsSinceEpoch();
 
     while (peerItem != _activePeers.end()) {
         SharedNetworkPeer peer = peerItem.value();
@@ -300,26 +307,4 @@ void IceServer::clearInactivePeers() {
             ++peerItem;
         }
     }
-}
-
-bool IceServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
-    // We need an HTTP handler in order to monitor the health of the ice server
-    // The correct functioning of the ICE server will be determined by its HTTP availability,
-
-    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        if (url.path() == "/status") {
-            // figure out if we respond with 0 (we're good) or 1 (we think we're in trouble)
-
-            const quint64 MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET = 10 * 1000;
-
-            auto sinceLastInactiveCheck = QDateTime::currentMSecsSinceEpoch() - _lastInactiveCheckTimestamp;
-            int statusNumber = (sinceLastInactiveCheck > MAX_PACKET_GAP_MS_FOR_STUCK_SOCKET) ? 1 : 0;
-
-            connection->respond(HTTPConnection::StatusCode200, QByteArray::number(statusNumber));
-
-            return true;
-        }
-    }
-
-    return false;
 }

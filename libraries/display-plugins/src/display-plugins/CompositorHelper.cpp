@@ -34,6 +34,7 @@ static const float reticleSize = TWO_PI / 100.0f;
 static QString _tooltipId;
 
 const uvec2 CompositorHelper::VIRTUAL_SCREEN_SIZE = uvec2(3960, 1188); // ~10% more pixel density than old version, 72dx240d FOV
+const QRect CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT = QRect(956, 0, 2048, 1188); // don't include entire width only center 2048
 const float CompositorHelper::VIRTUAL_UI_ASPECT_RATIO = (float)VIRTUAL_SCREEN_SIZE.x / (float)VIRTUAL_SCREEN_SIZE.y;
 const vec2 CompositorHelper::VIRTUAL_UI_TARGET_FOV = vec2(PI * 3.0f / 2.0f, PI * 3.0f / 2.0f / VIRTUAL_UI_ASPECT_RATIO);
 const vec2 CompositorHelper::MOUSE_EXTENTS_ANGULAR_SIZE = vec2(PI * 2.0f, PI * 0.95f); // horizontal: full sphere,  vertical: ~5deg from poles
@@ -467,8 +468,6 @@ void CompositorHelper::toggle() {
     }
 }
 
-
-
 glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::vec3& headPosition) const {
     glm::mat4 result;
     if (isHMD()) {
@@ -487,7 +486,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
             pointerTransform[3] = vec4(cursorRay + headPosition, 1);
             // Scale up the cursor because of distance
             reticleScale *= reticleDepth;
-        } 
+        }
         glm::mat4 overlayXfm;
         _modelTransform.getMatrix(overlayXfm);
         pointerTransform = overlayXfm * pointerTransform;
@@ -503,7 +502,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         mousePosition.y *= -1.0f;
 
         vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-        return glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
+        result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
     return result;
 }

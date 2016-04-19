@@ -12,6 +12,7 @@
 #include "DomainServer.h"
 
 #include <memory>
+#include <random>
 
 #include <QDir>
 #include <QJsonDocument>
@@ -42,7 +43,7 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -59,8 +60,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
-    _settingsManager(),
-    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
+    _settingsManager()
 {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
@@ -241,7 +241,7 @@ void DomainServer::optionallyGetTemporaryName(const QStringList& arguments) {
         // so fire off that request now
         auto& accountManager = AccountManager::getInstance();
 
-        // ask our auth endpoint for our balance
+        // get callbacks for temporary domain result
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleTempDomainSuccess";
@@ -369,7 +369,9 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
@@ -432,7 +434,9 @@ void DomainServer::setupAutomaticNetworking() {
         setupICEHeartbeatForFullNetworking();
     }
 
-    if (!resetAccountManagerAccessToken()) {
+    _hasAccessToken = resetAccountManagerAccessToken();
+
+    if (!_hasAccessToken) {
         qDebug() << "Will not send heartbeat to Metaverse API without an access token.";
         qDebug() << "If this is not a temporary domain add an access token to your config file or via the web interface.";
 
@@ -482,6 +486,9 @@ void DomainServer::setupAutomaticNetworking() {
 void DomainServer::setupICEHeartbeatForFullNetworking() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
+    // lookup the available ice-server hosts now
+    updateICEServerAddresses();
+
     // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
     connect(limitedNodeList.data(), &LimitedNodeList::localSockAddrChanged,
             this, &DomainServer::sendHeartbeatToIceServer);
@@ -509,6 +516,12 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
         _iceHeartbeatTimer = new QTimer { this };
         connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
         _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+    }
+}
+
+void DomainServer::updateICEServerAddresses() {
+    if (_iceAddressLookupID == -1) {
+        _iceAddressLookupID = QHostInfo::lookupHost(ICE_SERVER_DEFAULT_HOSTNAME, this, SLOT(handleICEHostInfo(QHostInfo)));
     }
 }
 
@@ -1018,8 +1031,10 @@ void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr)
     sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
 }
 
+
 void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     const QUuid& domainID = nodeList->getSessionUUID();
 
@@ -1065,6 +1080,46 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
                                               domainUpdateJSON.toUtf8());
 }
 
+void DomainServer::sendICEServerAddressToMetaverseAPI() {
+    if (!_iceServerSocket.isNull()) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        const QUuid& domainID = nodeList->getSessionUUID();
+
+        const QString ICE_SERVER_ADDRESS = "ice_server_address";
+
+        QJsonObject domainObject;
+
+        // we're using full automatic networking and we have a current ice-server socket, use that now
+        domainObject[ICE_SERVER_ADDRESS] = _iceServerSocket.getAddress().toString();
+
+        QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+
+        // make sure we hear about failure so we can retry
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.errorCallbackReceiver = this;
+        callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
+
+        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to" << _iceServerSocket.getAddress().toString();
+
+        static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
+
+        AccountManager::getInstance().sendRequest(DOMAIN_ICE_ADDRESS_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+                                                  AccountManagerAuth::Optional,
+                                                  QNetworkAccessManager::PutOperation,
+                                                  callbackParameters,
+                                                  domainUpdateJSON.toUtf8());
+    }
+}
+
+void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
+    const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
+
+    qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was" << requestReply.errorString();
+    qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
+
+    QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
+}
+
 void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
 
@@ -1082,6 +1137,32 @@ void DomainServer::sendHeartbeatToIceServer() {
             }
 
             return;
+        }
+
+        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 3 };
+
+        // increase the count of no reply ICE heartbeats and check the current value
+        ++_noReplyICEHeartbeats;
+
+        if (_noReplyICEHeartbeats > FAILOVER_NO_REPLY_ICE_HEARTBEATS) {
+            qWarning() << "There have been" << _noReplyICEHeartbeats - 1 << "heartbeats sent with no reply from the ice-server";
+            qWarning() << "Clearing the current ice-server socket and selecting a new candidate ice-server";
+
+            // add the current address to our list of failed addresses
+            _failedIceServerAddresses << _iceServerSocket.getAddress();
+
+            // if we've failed to hear back for three heartbeats, we clear the current ice-server socket and attempt
+            // to randomize a new one
+            _iceServerSocket.clear();
+
+            // reset the number of no reply ICE hearbeats
+            _noReplyICEHeartbeats = 0;
+
+            // reset the connection flag for ICE server
+            _connectedToICEServer = false;
+
+            // randomize our ice-server address (and simultaneously look up any new hostnames for available ice-servers)
+            randomizeICEServerAddress(true);
         }
 
         // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
@@ -1135,6 +1216,11 @@ void DomainServer::sendHeartbeatToIceServer() {
 
         // send the heartbeat packet to the ice server now
         limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
+
+    } else {
+        qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
+        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+
     }
 }
 
@@ -1678,9 +1764,12 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
                     QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
                     const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
-                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
 
-                    if (settingsUsername == headerUsername && headerPassword == settingsPassword) {
+                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
+                    QString hexHeaderPassword = QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
+
+                    if (settingsUsername == headerUsername
+                        && (settingsPassword.isEmpty() || hexHeaderPassword == settingsPassword)) {
                         return true;
                     }
                 }
@@ -2006,8 +2095,7 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMes
 void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {
     static const int NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN = 3;
 
-    static int numHeartbeatDenials = 0;
-    if (++numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
+    if (++_numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
         qDebug() << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
             << "- re-generating keypair now";
 
@@ -2016,7 +2104,20 @@ void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<Received
         AccountManager::getInstance().generateNewDomainKeypair(limitedNodeList->getSessionUUID());
 
         // reset our number of heartbeat denials
-        numHeartbeatDenials = 0;
+        _numHeartbeatDenials = 0;
+    }
+
+    // even though we can't get into this ice-server it is responding to us, so we reset our number of no-reply heartbeats
+    _noReplyICEHeartbeats = 0;
+}
+
+void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message) {
+    // we don't do anything with this ACK other than use it to tell us to keep talking to the same ice-server
+    _noReplyICEHeartbeats = 0;
+
+    if (!_connectedToICEServer) {
+        _connectedToICEServer = true;
+        qInfo() << "Connected to ice-server at" << _iceServerSocket;
     }
 }
 
@@ -2029,4 +2130,90 @@ void DomainServer::handleKeypairChange() {
         // send a heartbeat to the ice server immediately
         sendHeartbeatToIceServer();
     }
+}
+
+void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
+    // clear the ICE address lookup ID so that it can fire again
+    _iceAddressLookupID = -1;
+
+    if (hostInfo.error() != QHostInfo::NoError) {
+        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+
+        // if we don't have an ICE server to use yet, trigger a retry
+        if (_iceServerSocket.isNull()) {
+            const int ICE_ADDRESS_LOOKUP_RETRY_MS = 1000;
+
+            QTimer::singleShot(ICE_ADDRESS_LOOKUP_RETRY_MS, this, SLOT(updateICEServerAddresses()));
+        }
+
+    } else {
+        int countBefore = _iceServerAddresses.count();
+
+        _iceServerAddresses = hostInfo.addresses();
+
+        if (countBefore == 0) {
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+        }
+
+        if (_iceServerSocket.isNull()) {
+            // we don't have a candidate ice-server yet, pick now (without triggering a host lookup since we just did one)
+            randomizeICEServerAddress(false);
+        }
+    }
+}
+
+void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
+    if (shouldTriggerHostLookup) {
+        updateICEServerAddresses();
+    }
+
+    // create a list by removing the already failed ice-server addresses
+    auto candidateICEAddresses = _iceServerAddresses;
+
+    auto it = candidateICEAddresses.begin();
+
+    while (it != candidateICEAddresses.end()) {
+        if (_failedIceServerAddresses.contains(*it)) {
+            // we already tried this address and it failed, remove it from list of candidates
+            it = candidateICEAddresses.erase(it);
+        } else {
+            // keep this candidate, it hasn't failed yet
+            ++it;
+        }
+    }
+
+    if (candidateICEAddresses.empty()) {
+        // we ended up with an empty list since everything we've tried has failed
+        // so clear the set of failed addresses and start going through them again
+
+        qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
+            << ICE_SERVER_DEFAULT_HOSTNAME;
+
+        _failedIceServerAddresses.clear();
+        candidateICEAddresses = _iceServerAddresses;
+    }
+
+    // of the list of available addresses that we haven't tried, pick a random one
+    int maxIndex = candidateICEAddresses.size() - 1;
+    int indexToTry = 0;
+
+    if (maxIndex > 0) {
+        static std::random_device randomDevice;
+        static std::mt19937 generator(randomDevice());
+        std::uniform_int_distribution<> distribution(0, maxIndex);
+
+        indexToTry = distribution(generator);
+    }
+
+    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    qInfo() << "Set candidate ice-server socket to" << _iceServerSocket;
+
+    // clear our number of hearbeat denials, this should be re-set on ice-server change
+    _numHeartbeatDenials = 0;
+
+    // immediately fire an ICE heartbeat once we've picked a candidate ice-server
+    sendHeartbeatToIceServer();
+
+    // immediately send an update to the metaverse API when our ice-server changes
+    sendICEServerAddressToMetaverseAPI();
 }

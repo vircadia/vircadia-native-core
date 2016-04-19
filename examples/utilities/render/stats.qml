@@ -81,9 +81,9 @@ Item {
                     color: "#1AC567"
                 },
                 {
-                    prop: "frameTextureCount",
-                    label: "Frame",
-                    color: "#E2334D"
+                    prop: "textureGPUTransferCount",
+                    label: "Transfer",
+                    color: "#9495FF"
                 }
             ]
         }
@@ -104,6 +104,11 @@ Item {
                     prop: "textureGPUMemoryUsage",
                     label: "GPU",
                     color: "#1AC567"
+                },
+                {
+                    prop: "textureGPUVirtualMemoryUsage",
+                    label: "GPU Virtual",
+                    color: "#9495FF"
                 }
             ]
         }
@@ -154,6 +159,24 @@ Item {
             ]
         }
  
+        PlotPerf {
+            title: "State Changes"
+            height: parent.evalEvenHeight()
+            object: stats.config
+            plots: [
+                {
+                    prop: "frameTextureCount",
+                    label: "Textures",
+                    color: "#00B4EF"
+                },
+                {
+                    prop: "frameSetPipelineCount",
+                    label: "Pipelines",
+                    color: "#E2334D"
+                }
+            ]
+        }  
+
         property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred")
         property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred")
         property var drawLightConfig: Render.getConfig("DrawLight")
@@ -162,9 +185,10 @@ Item {
             title: "Items"
             height: parent.evalEvenHeight()
             object: parent.drawOpaqueConfig
+
             plots: [
                 {
-                    object: Render.getConfig("DrawOpaqueDeferred"),
+                    object: parent.drawOpaqueConfig,
                     prop: "numDrawn",
                     label: "Opaques",
                     color: "#1AC567"
@@ -179,10 +203,45 @@ Item {
                     object: Render.getConfig("DrawLight"),
                     prop: "numDrawn",
                     label: "Lights",
-                    color: "#E2334D"
+                    color: "#FED959"
                 }
             ]
-        }     
+        } 
+
+        PlotPerf {
+           title: "Timing"
+           height: parent.evalEvenHeight()
+           object: parent.drawOpaqueConfig
+           valueUnit: "ms"
+           valueScale: 1000
+           valueNumDigits: "1"
+           plots: [
+               {
+                   object: Render.getConfig("DrawOpaqueDeferred"),
+                   prop: "cpuRunTime",
+                   label: "Opaques",
+                   color: "#1AC567"
+               },
+               {
+                   object: Render.getConfig("DrawTransparentDeferred"),
+                   prop: "cpuRunTime",
+                   label: "Translucents",
+                   color: "#00B4EF"
+               },
+               {
+                   object: Render.getConfig("RenderDeferred"),
+                   prop: "cpuRunTime",
+                   label: "Lighting",
+                   color: "#FED959"
+               },
+               {
+                   object: Render.getConfig("RenderDeferredTask"),
+                   prop: "cpuRunTime",
+                   label: "RenderFrame",
+                   color: "#E2334D"
+               }
+           ]
+       }           
     }
 
 }

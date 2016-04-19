@@ -76,15 +76,22 @@ public:
 
     class GLTexture : public GPUObject {
     public:
+        // The public gl texture object
+        GLuint _texture{ 0 };
+
         const Stamp _storageStamp;
         Stamp _contentStamp { 0 };
-        const GLuint _texture;
         const GLenum _target;
 
         GLTexture(const gpu::Texture& gpuTexture);
         ~GLTexture();
 
+        void createTexture();
+
         GLuint size() const { return _size; }
+        GLuint virtualSize() const { return _virtualSize; }
+
+        void updateSize();
 
         enum SyncState {
             // The texture is currently undergoing no processing, although it's content
@@ -119,16 +126,26 @@ public:
 
         static const size_t CUBE_NUM_FACES = 6;
         static const GLenum CUBE_FACE_LAYOUT[6];
-
+        
     private:
-        void transferMip(GLenum target, const Texture::PixelsPointer& mip) const;
+        // at creation the true texture is created in GL
+        // it becomes public only when ready.
+        GLuint _privateTexture{ 0 };
 
-        const GLuint _size;
+        void setSize(GLuint size);
+        void setVirtualSize(GLuint size);
+
+        GLuint _size; // true size as reported by the gl api
+        GLuint _virtualSize; // theorical size as expected
+        GLuint _numLevels{ 0 };
+
+        void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
+
         // The owning texture
         const Texture& _gpuTexture;
         std::atomic<SyncState> _syncState { SyncState::Idle };
     };
-    static GLTexture* syncGPUObject(const TexturePointer& texture);
+    static GLTexture* syncGPUObject(const TexturePointer& texture, bool needTransfer = true);
     static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
 
     // very specific for now
@@ -136,17 +153,42 @@ public:
 
     class GLShader : public GPUObject {
     public:
-        GLuint _shader;
-        GLuint _program;
+        enum Version {
+            Mono = 0,
 
-        GLint _transformCameraSlot = -1;
-        GLint _transformObjectSlot = -1;
+            NumVersions
+        };
+
+        struct ShaderObject {
+            GLuint glshader{ 0 };
+            GLuint glprogram{ 0 };
+            GLint transformCameraSlot{ -1 };
+            GLint transformObjectSlot{ -1 };
+        };
+
+        using ShaderObjects = std::array< ShaderObject, NumVersions >;
+        using UniformMapping = std::map<GLint, GLint>;
+        using UniformMappingVersions = std::vector<UniformMapping>;
+
 
         GLShader();
         ~GLShader();
+
+        ShaderObjects _shaderObjects;
+        UniformMappingVersions _uniformMappings;
+
+        GLuint getProgram() const {
+            return _shaderObjects[Mono].glprogram;
+        }
+
+        GLint getUniformLocation(GLint srcLoc) {
+            return srcLoc;
+            // THIS will be used in the next PR
+            // return _uniformMappings[Mono][srcLoc];
+        }
+
     };
     static GLShader* syncGPUObject(const Shader& shader);
-    static GLuint getShaderID(const ShaderPointer& shader);
 
     class GLState : public GPUObject {
     public:
@@ -447,6 +489,7 @@ protected:
         PipelinePointer _pipeline;
 
         GLuint _program;
+        GLShader* _programShader;
         bool _invalidProgram;
 
         State::Data _stateCache;
@@ -458,6 +501,7 @@ protected:
         PipelineStageState() :
             _pipeline(),
             _program(0),
+            _programShader(nullptr),
             _invalidProgram(false),
             _stateCache(State::DEFAULT),
             _stateSignatureCache(0),
