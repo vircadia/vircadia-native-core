@@ -106,6 +106,7 @@ public:
 
         bool hasAttribute(Slot slot) const { return (_attributes.find(slot) != _attributes.end()); }
 
+        const GPUObjectPointer gpuObject{};
     protected:
         AttributeMap _attributes;
         ChannelMap _channels;

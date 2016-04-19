@@ -151,6 +151,15 @@ public:
     // very specific for now
     static void syncSampler(const Sampler& sampler, Texture::Type type, const GLTexture* object);
 
+    class GLInputFormat : public GPUObject {
+    public:
+        
+
+        GLInputFormat();
+        ~GLInputFormat();
+    };
+    GLInputFormat* syncGPUObject(const Stream::Format& inputFormat);
+
     class GLShader : public GPUObject {
     public:
         enum Version {
