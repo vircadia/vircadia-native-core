@@ -386,7 +386,7 @@ protected:
 
         mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
 
-        GLuint _objectBuffer{ 0 };
+        GLuint _objectBuffer { 0 };
         GLuint _cameraBuffer { 0 };
         GLuint _drawCallInfoBuffer { 0 };
         GLuint _objectBufferTexture { 0 };
