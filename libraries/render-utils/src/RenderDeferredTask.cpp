@@ -185,9 +185,6 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        config->setNumDrawn((int)inItems.size());
-        emit config->numDrawnChanged();
-
         glm::mat4 projMat;
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
@@ -199,6 +196,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
     });
+
+    config->setNumDrawn((int)inItems.size());
 }
 
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
