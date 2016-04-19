@@ -12,12 +12,33 @@
 
 using namespace gpu;
 
+
+GLBackend::GLInputFormat::GLInputFormat() {
+}
+
+GLBackend::GLInputFormat:: ~GLInputFormat() {
+
+}
+
+GLBackend::GLInputFormat* GLBackend::syncGPUObject(const Stream::Format& inputFormat) {
+    GLInputFormat* object = Backend::getGPUObject<GLBackend::GLInputFormat>(inputFormat);
+
+    if (object) {
+        return object;
+    }
+
+    object = new GLInputFormat();
+    Backend::setGPUObject(inputFormat, object);
+}
+
 void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
-
-    if (format != _input._format) {
-        _input._format = format;
-        _input._invalidFormat = true;
+    GLInputFormat* ifo = GLBackend::syncGPUObject(*format);
+    if (ifo) {
+        if (format != _input._format) {
+            _input._format = format;
+            _input._invalidFormat = true;
+        }
     }
 }
 
@@ -89,7 +110,7 @@ void GLBackend::syncInputStateCache() {
 // Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
 // Core 43 does :)
 // FIXME crashing problem with glVertexBindingDivisor / glVertexAttribFormat
-#if 1 || (GPU_INPUT_PROFILE == GPU_CORE_41)
+#if(GPU_INPUT_PROFILE == GPU_CORE_41)
 #define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
 #else
 #define SUPPORT_VERTEX_ATTRIB_FORMAT

@@ -50,6 +50,7 @@ void EngineStats::run(const SceneContextPointer& sceneContext, const RenderConte
     config->frameTextureMemoryUsage = _gpuStats._RSAmountTextureMemoryBounded - gpuStats._RSAmountTextureMemoryBounded;
 
     config->frameSetPipelineCount = _gpuStats._PSNumSetPipelines - gpuStats._PSNumSetPipelines;
+    config->frameSetInputFormatCount = _gpuStats._ISNumFormatChanges - gpuStats._ISNumFormatChanges;
 
     config->emitDirty();
 }
