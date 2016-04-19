@@ -153,17 +153,40 @@ public:
 
     class GLShader : public GPUObject {
     public:
-        GLuint _shader;
-        GLuint _program;
+        enum Version {
+            Mono = 0,
 
-        GLint _transformCameraSlot = -1;
-        GLint _transformObjectSlot = -1;
+            NumVersions
+        };
+
+        struct ShaderObject {
+            GLuint glshader{ 0 };
+            GLuint glprogram{ 0 };
+            GLint transformCameraSlot{ -1 };
+            GLint transformObjectSlot{ -1 };
+        };
+
+        using ShaderObjects = std::array< ShaderObject, NumVersions >;
+        using UniformMapping = std::vector<GLint>;
+        using UniformMappingVersions = std::vector<UniformMapping>;
+
 
         GLShader();
         ~GLShader();
+
+        ShaderObjects _shaderObjects;
+        UniformMappingVersions _uniformMappings;
+
+        GLuint getProgram() const {
+            return _shaderObjects[Mono].glprogram;
+        }
+
+        GLint getUniformLocation(GLint srcLoc) {
+            return _uniformMappings[Mono][srcLoc];
+        }
+
     };
     static GLShader* syncGPUObject(const Shader& shader);
-    static GLuint getShaderID(const ShaderPointer& shader);
 
     class GLState : public GPUObject {
     public:
@@ -464,6 +487,7 @@ protected:
         PipelinePointer _pipeline;
 
         GLuint _program;
+        GLShader* _programShader;
         bool _invalidProgram;
 
         State::Data _stateCache;
@@ -475,6 +499,7 @@ protected:
         PipelineStageState() :
             _pipeline(),
             _program(0),
+            _programShader(nullptr),
             _invalidProgram(false),
             _stateCache(State::DEFAULT),
             _stateSignatureCache(0),

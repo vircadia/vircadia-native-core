@@ -18,7 +18,7 @@
 //
 
 
-const QString SHADER_COMMON = R"SHADER(#version 410 core
+const QString SHADER_COMMON = R"SHADER(
 layout(location = 0) out vec4 _fragColor0;
 layout(location = 1) out vec4 _fragColor1;
 layout(location = 2) out vec4 _fragColor2;
