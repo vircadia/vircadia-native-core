@@ -161,7 +161,7 @@ public:
         GLuint _virtualSize; // theorical size as expected
         GLuint _numLevels{ 0 };
 
-        void transferMip(GLenum target, const Texture::PixelsPointer& mip) const;
+        void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
 
         // The owning texture
         const Texture& _gpuTexture;

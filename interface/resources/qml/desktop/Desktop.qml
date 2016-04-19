@@ -21,8 +21,11 @@ FocusScope {
     objectName: "desktop"
     anchors.fill: parent
 
-    onHeightChanged: d.repositionAll();
-    onWidthChanged: d.repositionAll();
+    property rect recommendedRect: rect(0,0,0,0);
+
+    onHeightChanged: d.handleSizeChanged();
+    
+    onWidthChanged: d.handleSizeChanged();
 
     // Controls and windows can trigger this signal to ensure the desktop becomes visible
     // when they're opened.
@@ -49,6 +52,20 @@ FocusScope {
 
     QtObject {
         id: d
+
+        function handleSizeChanged() {
+            var oldRecommendedRect = recommendedRect;
+            var newRecommendedRectJS = Controller.getRecommendedOverlayRect();
+            var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
+                                    newRecommendedRectJS.width, 
+                                    newRecommendedRectJS.height);
+
+            if (oldRecommendedRect != Qt.rect(0,0,0,0)
+                  && oldRecommendedRect != newRecommendedRect) {
+                d.repositionAll();
+            }
+            recommendedRect = newRecommendedRect;
+        }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -202,12 +219,42 @@ FocusScope {
 //            }
         }
 
+        function getRepositionChildren(predicate) {
+            var currentWindows = [];
+            if (!desktop) {
+                console.log("Could not find desktop");
+                return currentWindows;
+            }
+
+            for (var i = 0; i < desktop.children.length; ++i) {
+                var child = desktop.children[i];
+                if (child.shouldReposition === true && (!predicate || predicate(child))) {
+                    currentWindows.push(child)
+                }
+            }
+            return currentWindows;
+        }
 
         function repositionAll() {
+            var oldRecommendedRect = recommendedRect;
+            var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
+            var newRecommendedRect = Controller.getRecommendedOverlayRect();
+            var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
             var windows = d.getTopLevelWindows();
             for (var i = 0; i < windows.length; ++i) {
-                reposition(windows[i]);
+                var targetWindow = windows[i];
+                if (targetWindow.visible) {
+                    repositionWindow(targetWindow, true, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
+                }
             }
+
+            // also reposition the other children that aren't top level windows but want to be repositioned
+            var otherChildren = d.getRepositionChildren();
+            for (var i = 0; i < otherChildren.length; ++i) {
+                var child = otherChildren[i];
+                repositionWindow(child, true, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
+            }
+
         }
     }
 
@@ -232,38 +279,56 @@ FocusScope {
             targetWindow.focus = true;
         }
 
-        reposition(targetWindow);
+        var oldRecommendedRect = recommendedRect;
+        var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
+        var newRecommendedRect = Controller.getRecommendedOverlayRect();
+        var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
+        repositionWindow(targetWindow, false, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
 
         showDesktop();
     }
 
-    function reposition(item) {
+    function repositionWindow(targetWindow, forceReposition, 
+                    oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions) {
+
         if (desktop.width === 0 || desktop.height === 0) {
             return;
         }
 
-        var targetWindow = d.getDesktopWindow(item);
         if (!targetWindow) {
             console.warn("Could not find top level window for " + item);
             return;
         }
 
+        var recommended = Controller.getRecommendedOverlayRect();
+        var maxX = recommended.x + recommended.width;
+        var maxY = recommended.y + recommended.height;
         var newPosition = Qt.vector2d(targetWindow.x, targetWindow.y);
-        // If the window is completely offscreen, reposition it
-        if ((targetWindow.x > desktop.width || (targetWindow.x + targetWindow.width)  < 0) ||
-            (targetWindow.y > desktop.height || (targetWindow.y + targetWindow.height)  < 0))  {
+
+        // if we asked to force reposition, or if the window is completely outside of the recommended rectangle, reposition it
+        if (forceReposition || (targetWindow.x > maxX || (targetWindow.x + targetWindow.width) < recommended.x) ||
+            (targetWindow.y > maxY || (targetWindow.y + targetWindow.height) < recommended.y))  {
             newPosition.x = -1
             newPosition.y = -1
         }
 
+
         if (newPosition.x === -1 && newPosition.y === -1) {
-            // Set initial window position
-            // var minPosition = Qt.vector2d(-windowRect.x, -windowRect.y);
-            // var maxPosition = Qt.vector2d(desktop.width - windowRect.width, desktop.height - windowRect.height);
-            // newPosition = Utils.clampVector(newPosition, minPosition, maxPosition);
-            // newPosition = Utils.randomPosition(minPosition, maxPosition);
-            newPosition = Qt.vector2d(desktop.width / 2 - targetWindow.width / 2,
-                                      desktop.height / 2 - targetWindow.height / 2);
+            var originRelativeX = (targetWindow.x - oldRecommendedRect.x);
+            var originRelativeY = (targetWindow.y - oldRecommendedRect.y);
+            if (isNaN(originRelativeX)) {
+                originRelativeX = 0;
+            }
+            if (isNaN(originRelativeY)) {
+                originRelativeY = 0;
+            }
+            var fractionX = Utils.clamp(originRelativeX / oldRecommendedDimmensions.x, 0, 1);
+            var fractionY = Utils.clamp(originRelativeY / oldRecommendedDimmensions.y, 0, 1);
+
+            var newX = (fractionX * newRecommendedDimmensions.x) + newRecommendedRect.x;
+            var newY = (fractionY * newRecommendedDimmensions.y) + newRecommendedRect.y;
+
+            newPosition = Qt.vector2d(newX, newY);
         }
         targetWindow.x = newPosition.x;
         targetWindow.y = newPosition.y;

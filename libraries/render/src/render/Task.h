@@ -127,10 +127,9 @@ protected:
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
-        Q_PROPERTY(quint64 cpuRunTime READ getCPUTRunTime NOTIFY dirty())
+    Q_PROPERTY(quint64 cpuRunTime READ getCPUTRunTime NOTIFY newStats())
 
     quint64 _CPURunTime{ 0 };
-
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
@@ -156,7 +155,8 @@ public:
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
     // Running Time measurement 
-    void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; }
+    // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
+    void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; emit newStats(); }
     quint64 getCPUTRunTime() const { return _CPURunTime; }
 
 public slots:
@@ -164,7 +164,7 @@ public slots:
 
 signals:
     void loaded();
-    void dirty();
+    void newStats();
 };
 
 class TaskConfig : public JobConfig {
@@ -233,6 +233,7 @@ public:
 
     protected:
         void setCPURunTime(quint64 ustime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(ustime); }
+
         QConfigPointer _config;
 
         friend class Job;

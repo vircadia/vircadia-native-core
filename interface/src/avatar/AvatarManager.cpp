@@ -77,7 +77,6 @@ AvatarManager::AvatarManager(QObject* parent) :
 }
 
 AvatarManager::~AvatarManager() {
-    _myAvatar->die();
 }
 
 void AvatarManager::init() {
@@ -248,6 +247,17 @@ void AvatarManager::clearOtherAvatars() {
         }
     }
     _myAvatar->clearLookAtTargetAvatar();
+}
+
+void AvatarManager::clearAllAvatars() {
+    clearOtherAvatars();
+
+    QWriteLocker locker(&_hashLock);
+
+    _myAvatar->die();
+    _myAvatar.reset();
+
+    _avatarHash.clear();
 }
 
 void AvatarManager::setLocalLights(const QVector<AvatarManager::LocalLight>& localLights) {

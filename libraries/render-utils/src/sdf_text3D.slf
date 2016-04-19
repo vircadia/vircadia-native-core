@@ -41,20 +41,15 @@ void main() {
     float w = clamp( s, 0.0, 0.5);
     float a = smoothstep(0.5 - w, 0.5 + w, sdf);
     
-    // gamma correction for linear attenuation
-    a = pow(a, 1.0 / gamma);
-    
     // discard if unvisible
     if (a < 0.01) {
         discard;
     }
     
-    packDeferredFragmentLightmap(
-         normalize(_normal),
-         1.0,
-         vec3(1.0),
-         DEFAULT_ROUGHNESS,
-         DEFAULT_METALLIC,
-         DEFAULT_SPECULAR,
-         Color.rgb);
+    packDeferredFragmentTranslucent(
+        normalize(_normal),
+        a,
+        Color.rgb,
+        DEFAULT_FRESNEL,
+        DEFAULT_ROUGHNESS);
 }

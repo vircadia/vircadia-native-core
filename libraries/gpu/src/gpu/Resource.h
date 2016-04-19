@@ -174,72 +174,29 @@ typedef std::vector< BufferPointer > Buffers;
 
 
 class BufferView {
-protected: 
-    void initFromBuffer(const BufferPointer& buffer) {
-        _buffer = (buffer);
-        if (_buffer) {
-            _size = (buffer->getSize());
-        }
-    }
+protected:
+    static const Resource::Size DEFAULT_OFFSET{ 0 };
+    static const Element DEFAULT_ELEMENT;
+
 public:
-    typedef Resource::Size Size;
-    typedef int Index;
+    using Size = Resource::Size;
+    using Index = int;
 
     BufferPointer _buffer;
-    Size _offset{ 0 };
-    Size _size{ 0 };
+    Size _offset;
+    Size _size;
     Element _element;
-    uint16 _stride{ 1 };
+    uint16 _stride;
 
-    BufferView() :
-        _buffer(NULL),
-        _offset(0),
-        _size(0),
-        _element(gpu::SCALAR, gpu::UINT8, gpu::RAW),
-        _stride(1)
-    {};
-
-    BufferView(const Element& element) :
-        _buffer(NULL),
-        _offset(0),
-        _size(0),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {};
-
-    // create the BufferView and own the Buffer
-    BufferView(Buffer* newBuffer, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
-        _offset(0),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {
-        initFromBuffer(BufferPointer(newBuffer));
-    };
-    BufferView(const BufferPointer& buffer, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
-        _offset(0),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {
-        initFromBuffer(buffer);
-    };
-    BufferView(const BufferPointer& buffer, Size offset, Size size, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
-        _buffer(buffer),
-        _offset(offset),
-        _size(size),
-        _element(element),
-        _stride(uint16(element.getSize()))
-    {};
-    BufferView(const BufferPointer& buffer, Size offset, Size size, uint16 stride, const Element& element = Element(gpu::SCALAR, gpu::UINT8, gpu::RAW)) :
-        _buffer(buffer),
-        _offset(offset),
-        _size(size),
-        _element(element),
-        _stride(stride)
-    {};
-
-    ~BufferView() {}
     BufferView(const BufferView& view) = default;
     BufferView& operator=(const BufferView& view) = default;
+
+    BufferView();
+    BufferView(const Element& element);
+    BufferView(Buffer* newBuffer, const Element& element = DEFAULT_ELEMENT);
+    BufferView(const BufferPointer& buffer, const Element& element = DEFAULT_ELEMENT);
+    BufferView(const BufferPointer& buffer, Size offset, Size size, const Element& element = DEFAULT_ELEMENT);
+    BufferView(const BufferPointer& buffer, Size offset, Size size, uint16 stride, const Element& element = DEFAULT_ELEMENT);
 
     Size getNumElements() const { return _size / _element.getSize(); }
 

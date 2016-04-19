@@ -30,6 +30,8 @@ protected:
     virtual void changeEntityInternal(EntityItemPointer entity) override;
     virtual void clearEntitiesInternal() override;
 
+    virtual void sortEntitiesThatMoved() override;
+
     SetOfEntities _entitiesWithSimulationOwner;
     SetOfEntities _entitiesThatNeedSimulationOwner;
     quint64 _nextOwnerlessExpiry { 0 };

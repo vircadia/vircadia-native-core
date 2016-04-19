@@ -66,21 +66,20 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
 }
 
 void render::renderStateSortShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-                          const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems) {
+    const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
-    
+
     int numItemsToDraw = (int)inItems.size();
     if (maxDrawnItems != -1) {
         numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
     }
 
-    using SortedPipelines = std::vector< render::ShapeKey >;
-    using SortedShapes = std::unordered_map< render::ShapeKey, std::vector< Item >, render::ShapeKey::Hash, render::ShapeKey::KeyEqual >;
+    using SortedPipelines = std::vector<render::ShapeKey>;
+    using SortedShapes = std::unordered_map<render::ShapeKey, std::vector<Item>, render::ShapeKey::Hash, render::ShapeKey::KeyEqual>;
     SortedPipelines sortedPipelines;
     SortedShapes sortedShapes;
-    std::vector< Item > ownPipelineBucket;
-
+    std::vector<Item> ownPipelineBucket;
 
     for (auto i = 0; i < numItemsToDraw; ++i) {
         auto item = scene->getItem(inItems[i].id);
@@ -102,7 +101,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
         }
     }
 
-    // THen render
+    // Then render
     for (auto& pipelineKey : sortedPipelines) {
         auto& bucket = sortedShapes[pipelineKey];
         args->_pipeline = shapeContext->pickPipeline(args, pipelineKey);
@@ -111,6 +110,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
         } 
     }    
     args->_pipeline = nullptr;
+
     for (auto& item : ownPipelineBucket) {
         item.render(args);
     }

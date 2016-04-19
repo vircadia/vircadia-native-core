@@ -147,6 +147,8 @@
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
+#include "FrameTimingsScriptingInterface.h"
+
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -193,12 +195,7 @@ static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
-#ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-#else
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
-#endif
 
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
@@ -1150,6 +1147,9 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
+    DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
+
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
@@ -1230,6 +1230,9 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
+    _entityClipboard->eraseAllOctreeElements();
+    _entityClipboard.reset();
+
     EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(nullptr);
 
@@ -1239,7 +1242,7 @@ Application::~Application() {
     _physicsEngine->setCharacterController(nullptr);
 
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    DependencyManager::get<AvatarManager>()->clearAllAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
@@ -1334,6 +1337,8 @@ void Application::initializeGL() {
     InfoView::show(INFO_HELP_PATH, true);
 }
 
+FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
+
 extern void setupPreferences();
 
 void Application::initializeUi() {
@@ -1378,6 +1383,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
     rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+    rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+    rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -1421,6 +1428,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+    
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1463,9 +1471,9 @@ void Application::initializeUi() {
     });
 }
 
+
 void Application::paintGL() {
     updateHeartbeat();
-
     // Some plugins process message events, potentially leading to
     // re-entering a paint event.  don't allow further processing if this
     // happens
@@ -1483,6 +1491,7 @@ void Application::paintGL() {
     _frameCount++;
     _frameCounter.increment();
 
+    auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
@@ -1735,6 +1744,9 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
+
+    uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
+    _frameTimingsScriptingInterface.addValue(lastPaintDuration);
 }
 
 void Application::runTests() {
@@ -2668,8 +2680,6 @@ void Application::idle(uint64_t now) {
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
-
-
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -4882,19 +4892,44 @@ QRect Application::getRenderingGeometry() const {
 }
 
 glm::uvec2 Application::getUiSize() const {
-    return getActiveDisplayPlugin()->getRecommendedUiSize();
+    static const uint MIN_SIZE = 1;
+    glm::uvec2 result(MIN_SIZE);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedUiSize();
+    }
+    return result;
+}
+
+QRect Application::getRecommendedOverlayRect() const {
+    auto uiSize = getUiSize();
+    QRect result(0, 0, uiSize.x, uiSize.y);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+    }
+    return result;
 }
 
 QSize Application::getDeviceSize() const {
-    return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    static const int MIN_SIZE = 1;
+    QSize result(MIN_SIZE, MIN_SIZE);
+    if (_displayPlugin) {
+        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    }
+    return result;
 }
 
 bool Application::isThrottleRendering() const {
-    return getActiveDisplayPlugin()->isThrottled();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->isThrottled();
+    }
+    return false;
 }
 
 bool Application::hasFocus() const {
-    return getActiveDisplayPlugin()->hasFocus();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->hasFocus();
+    }
+    return (QApplication::activeWindow() != nullptr);
 }
 
 glm::vec2 Application::getViewportDimensions() const {

@@ -200,7 +200,6 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     config->setNumDrawn((int)inItems.size());
 }
 
-
 void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);

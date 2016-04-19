@@ -64,6 +64,9 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         return;
     }
 
+    // A true new Pipeline
+    _stats._PSNumSetPipelines++;
+
     // null pipeline == reset
     if (!pipeline) {
         _pipeline._pipeline.reset();
