@@ -462,6 +462,9 @@ void GLBackend::resetStages() {
 #define ADD_COMMAND_GL(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
+// THis will be used in the next PR
+// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc)
+
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
     // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine

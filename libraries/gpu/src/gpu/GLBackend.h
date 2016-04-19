@@ -182,7 +182,9 @@ public:
         }
 
         GLint getUniformLocation(GLint srcLoc) {
-            return _uniformMappings[Mono][srcLoc];
+            return srcLoc;
+            // THIS will be used in the next PR
+            // return _uniformMappings[Mono][srcLoc];
         }
 
     };
