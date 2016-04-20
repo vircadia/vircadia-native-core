@@ -385,7 +385,7 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
 
 
     if (isStereo()) {
-        GLint trueNumInstances = (isStereo() ? 2 * numInstances : numInstances);
+        GLint trueNumInstances = 2 * numInstances;
 
         setupStereoSide(0);
         glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
@@ -428,7 +428,7 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
  
     if (isStereo()) {
-        GLint trueNumInstances = (isStereo() ? 2 * numInstances : numInstances);
+        GLint trueNumInstances = 2 * numInstances;
 
         setupStereoSide(0);
         glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);

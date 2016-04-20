@@ -120,11 +120,7 @@ void GLBackend::updateInput() {
                     glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
                     glVertexAttribBinding(slot + locNum, attrib._channel);
                 }
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-                glVertexBindingDivisor(attrib._channel, attrib._frequency * (isStereo() ? 2 : 1));
-#else
                 glVertexBindingDivisor(attrib._channel, attrib._frequency);
-#endif
             }
             (void) CHECK_GL_ERROR();
         }
