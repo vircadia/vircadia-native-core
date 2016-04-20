@@ -17,6 +17,7 @@
     <script src="colpick.js"></script>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="spinButtons.js"></script>
     <script>
         var PI = 3.14159265358979;
         var DEGREES_TO_RADIANS = PI / 180.0;
@@ -1293,6 +1294,8 @@
                 el.parentNode.removeChild(el);
                 elDropdowns = document.getElementsByTagName("select");
             }
+
+            augmentSpinButtons();
 
             // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
             document.addEventListener("contextmenu", function (event) {

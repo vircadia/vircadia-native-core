@@ -16,6 +16,7 @@
     <script src="colpick.js"></script>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="spinButtons.js"></script>
     <script>
         function loaded() {
             openEventBridge(function() {
@@ -134,8 +135,10 @@
                         $(el).colpickHide();
                         colorPickFunction(rgb.r, rgb.g, rgb.b);
                     }
-                })
-    
+                });
+
+                augmentSpinButtons();
+
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
             });
 

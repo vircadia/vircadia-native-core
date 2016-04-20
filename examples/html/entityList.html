@@ -14,6 +14,7 @@
     <script src="list.min.js"></script>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="spinButtons.js"></script>
     <script>
         var entities = {};
         var selectedEntities = [];
@@ -308,6 +309,8 @@
               window.onresize = resize;
               resize();
           });
+
+          augmentSpinButtons();
 
           // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
           document.addEventListener("contextmenu", function (event) {

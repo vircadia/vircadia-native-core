@@ -284,7 +284,9 @@ input[type=number]::-webkit-inner-spin-button:after {
     content: "5";
     bottom: 6px;
 }
-input[type="number"]::-webkit-inner-spin-button:hover {
+
+input[type=number].hover-up::-webkit-inner-spin-button:before, 
+input[type=number].hover-down::-webkit-inner-spin-button:after {
     color: #ffffff;
 }
 
