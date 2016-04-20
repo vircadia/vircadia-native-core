@@ -444,9 +444,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _numInactiveUpdates++;
     } else {
         glm::vec3 gravity = _entity->getGravity();
-        glm::vec3 error = _measuredAcceleration - gravity;
-        float errorLength = glm::length(error);
-        int numSteps = (int)(step - _lastStep);
 
         // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
