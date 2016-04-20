@@ -38,7 +38,7 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     GLuint glshader = glCreateShader(shaderDomain);
     if (!glshader) {
         qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader object";
-        return nullptr;
+        return false;
     }
 
     // Assign the source
