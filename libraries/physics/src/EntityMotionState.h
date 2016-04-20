@@ -51,10 +51,6 @@ public:
     virtual uint32_t getIncomingDirtyFlags() override;
     virtual void clearIncomingDirtyFlags() override;
 
-    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
-    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    uint8_t getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
-
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }
     virtual float getObjectLinearDamping() const override { return _entity->getDamping(); }
@@ -123,7 +119,7 @@ protected:
     uint32_t _lastStep; // last step of server extrapolation
 
     uint8_t _loopsWithoutOwner;
-    uint8_t _accelerationNearlyGravityCount;
+    mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _outgoingPriority { 0 };
 };

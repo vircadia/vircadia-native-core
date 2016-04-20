@@ -873,7 +873,6 @@ void EntityItem::simulate(const quint64& now) {
     #endif
 
     if (!hasActions()) {
-        setAcceleration(_gravity);
         if (!stepKinematicMotion(timeElapsed)) {
             // this entity is no longer moving
             // flag it to transition from KINEMATIC to STATIC
@@ -937,7 +936,7 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
 
         const float MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED = 1.0e-4f; // 0.01 m/sec^2
         if (glm::length2(_acceleration) > MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED) {
-            // yes gravity
+            // yes acceleration
             // acceleration is in world-frame but we need it in local-frame
             glm::vec3 linearAcceleration = _acceleration;
             bool success;
@@ -959,7 +958,7 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
                 linearVelocity += deltaVelocity;
             }
         } else {
-            // no gravity
+            // no acceleration
             if (linearSpeedSquared < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
                 linearVelocity = Vectors::ZERO;
             } else {

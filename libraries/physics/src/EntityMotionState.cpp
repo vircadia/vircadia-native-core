@@ -56,8 +56,8 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _serverGravity(0.0f),
     _serverAcceleration(0.0f),
     _serverActionData(QByteArray()),
-    _lastVelocity(glm::vec3(0.0f)),
-    _measuredAcceleration(glm::vec3(0.0f)),
+    _lastVelocity(0.0f),
+    _measuredAcceleration(0.0f),
     _nextOwnershipBid(0),
     _measuredDeltaTime(0.0f),
     _lastMeasureStep(0),
@@ -186,13 +186,18 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     if (_motionType == MOTION_TYPE_KINEMATIC) {
         BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
-        // of the physics simulation.
+        // of the physics simulation and uses full gravity for acceleration.
+        _entity->setAcceleration(_entity->getGravity());
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->stepKinematicMotion(dt);
 
         // bypass const-ness so we can remember the step
         const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
+
+        // and set the acceleration-matches-gravity count high so that if we send an update
+        // it will use the correct acceleration for remote simulations
+        _accelerationNearlyGravityCount = (uint8_t)(-1);
     }
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
@@ -433,51 +438,42 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
     if (!_body->isActive()) {
         // make sure all derivatives are zero
-        glm::vec3 zero(0.0f);
-        _entity->setVelocity(zero);
-        _entity->setAngularVelocity(zero);
-        _entity->setAcceleration(zero);
+        _entity->setVelocity(Vectors::ZERO);
+        _entity->setAngularVelocity(Vectors::ZERO);
+        _entity->setAcceleration(Vectors::ZERO);
         _numInactiveUpdates++;
     } else {
-        const uint8_t STEPS_TO_DECIDE_BALLISTIC = 4;
-        float gravityLength = glm::length(_entity->getGravity());
-        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
-        const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
-        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
-            // acceleration measured during the most recent simulation step was close to gravity.
-            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
-                // only increment this if we haven't reached the threshold yet.  this is to avoid
-                // overflowing the counter.
-                incrementAccelerationNearlyGravityCount();
-            }
-        } else {
-            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
-            resetAccelerationNearlyGravityCount();
-        }
+        glm::vec3 gravity = _entity->getGravity();
+        glm::vec3 error = _measuredAcceleration - gravity;
+        float errorLength = glm::length(error);
+        int numSteps = (int)(step - _lastStep);
 
         // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
-        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
-            _entity->setAcceleration(_entity->getGravity());
+        const uint8_t STEPS_TO_DECIDE_BALLISTIC = 4;
+        if (_accelerationNearlyGravityCount >= STEPS_TO_DECIDE_BALLISTIC) {
+            _entity->setAcceleration(gravity);
         } else {
-            _entity->setAcceleration(glm::vec3(0.0f));
+            _entity->setAcceleration(Vectors::ZERO);
         }
 
-        const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-        const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
+        if (!_body->isStaticOrKinematicObject()) {
+            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
+            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
 
-        bool movingSlowlyLinear =
-            glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
-        bool movingSlowlyAngular = glm::length2(_entity->getAngularVelocity()) <
-                (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
-        bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == glm::vec3(0.0f);
+            bool movingSlowlyLinear =
+                glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
+            bool movingSlowlyAngular = glm::length2(_entity->getAngularVelocity()) <
+                    (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == Vectors::ZERO;
 
-        if (!_body->isStaticOrKinematicObject() && movingSlowly) {
-            // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
-            // other simulating observers to deactivate their own copies
-            glm::vec3 zero(0.0f);
-            _entity->setVelocity(zero);
-            _entity->setAngularVelocity(zero);
+            if (movingSlowly) {
+                // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
+                // other simulating observers to deactivate their own copies
+                glm::vec3 zero(0.0f);
+                _entity->setVelocity(zero);
+                _entity->setAngularVelocity(zero);
+            }
         }
         _numInactiveUpdates = 0;
     }
@@ -625,9 +621,9 @@ void EntityMotionState::resetMeasuredBodyAcceleration() {
     if (_body) {
         _lastVelocity = getBodyLinearVelocityGTSigma();
     } else {
-        _lastVelocity = glm::vec3(0.0f);
+        _lastVelocity = Vectors::ZERO;
     }
-    _measuredAcceleration = glm::vec3(0.0f);
+    _measuredAcceleration = Vectors::ZERO;
 }
 
 void EntityMotionState::measureBodyAcceleration() {
@@ -651,8 +647,23 @@ void EntityMotionState::measureBodyAcceleration() {
             _lastStep = ObjectMotionState::getWorldSimulationStep();
             _numInactiveUpdates = 0;
         }
+
+        glm::vec3 gravity = _entity->getGravity();
+        float gravityLength = glm::length(gravity);
+        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
+        const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
+        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
+            // acceleration measured during the most recent simulation step was close to gravity.
+            if (_accelerationNearlyGravityCount < (uint8_t)(-2)) {
+                ++_accelerationNearlyGravityCount;
+            }
+        } else {
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            _accelerationNearlyGravityCount = 0;
+        }
     }
 }
+
 glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
     // This is the dampened change in linear velocity, as calculated in measureBodyAcceleration: dv = a * dt
     // It is generally only meaningful during the lifespan of collision. In particular, it is not meaningful
