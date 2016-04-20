@@ -40,11 +40,10 @@ const int UP_SHIFT_SAMPLES_OF_FRAMES = ASSUMED_FPS * UP_SHIFT_WINDOW_IN_SECS;
 const float ADJUST_LOD_DOWN_BY = 0.9f;
 const float ADJUST_LOD_UP_BY = 1.1f;
 
-// This controls how low the auto-adjust LOD will go a value of 1 means it will adjust to a point where you must be 0.25
-// meters away from an object of TREE_SCALE before you can see it (which is effectively completely blind). The default value
-// DEFAULT_OCTREE_SIZE_SCALE means you can be 400 meters away from a 1 meter object in order to see it (which is ~20:20 vision).
-const float ADJUST_LOD_MIN_SIZE_SCALE = 1.0f;
+// The default value DEFAULT_OCTREE_SIZE_SCALE means you can be 400 meters away from a 1 meter object in order to see it (which is ~20:20 vision).
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
+// This controls how low the auto-adjust LOD will go. We want a minimum vision of ~20:500 or 0.04 of default
+const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.04f;
 
 class RenderArgs;
 class AABox;

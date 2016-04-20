@@ -329,9 +329,20 @@ void SendQueue::run() {
         auto nextPacketDelta = (newPacketCount == 2 ? 2 : 1) * _packetSendPeriod;
         nextPacketTimestamp += std::chrono::microseconds(nextPacketDelta);
 
-        // sleep as long as we need until next packet send, if we can
+        // sleep as long as we need for next packet send, if we can
         auto now = p_high_resolution_clock::now();
+
         auto timeToSleep = duration_cast<microseconds>(nextPacketTimestamp - now);
+
+        // we use nextPacketTimestamp so that we don't fall behind, not to force long sleeps
+        // we'll never allow nextPacketTimestamp to force us to sleep for more than nextPacketDelta
+        // so cap it to that value
+        if (timeToSleep > std::chrono::microseconds(nextPacketDelta)) {
+            // reset the nextPacketTimestamp so that it is correct next time we come around
+            nextPacketTimestamp = now + std::chrono::microseconds(nextPacketDelta);
+
+            timeToSleep = std::chrono::microseconds(nextPacketDelta);
+        }
 
         // we're seeing SendQueues sleep for a long period of time here,
         // which can lock the NodeList if it's attempting to clear connections
