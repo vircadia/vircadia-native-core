@@ -292,7 +292,8 @@ public:
 
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
-    static const int MAX_NUM_INPUT_BUFFERS = 16;
+    // The drawcall Info attribute  channel is reserved and is the upper bound for the number of availables Input buffers
+    static const int MAX_NUM_INPUT_BUFFERS = Stream::DRAW_CALL_INFO;
 
     size_t getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 
@@ -434,6 +435,8 @@ protected:
         bool _invalidView { false };
         bool _invalidProj { false };
         bool _invalidViewport { false };
+
+        bool _enabledDrawcallInfoBuffer{ false };
 
         using Pair = std::pair<size_t, size_t>;
         using List = std::list<Pair>;
