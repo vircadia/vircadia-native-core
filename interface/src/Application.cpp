@@ -131,6 +131,7 @@
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/RatesScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -508,26 +509,6 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-class Rates : public QObject {
-    Q_OBJECT
-
-    Q_PROPERTY(float render READ getRenderRate)
-    Q_PROPERTY(float present READ getPresentRate)
-    Q_PROPERTY(float newFrame READ getNewFrameRate)
-    Q_PROPERTY(float dropped READ getDropRate)
-    Q_PROPERTY(float simulation READ getSimulationRate)
-    Q_PROPERTY(float avatar READ getAvatarRate)
-
-public:
-    Rates(QObject* parent) : QObject(parent) {}
-    float getRenderRate() { return qApp->getFps(); }
-    float getPresentRate() { return qApp->getActiveDisplayPlugin()->presentRate(); }
-    float getNewFrameRate() { return qApp->getActiveDisplayPlugin()->newFramePresentRate(); }
-    float getDropRate() { return qApp->getActiveDisplayPlugin()->droppedFrameRate(); }
-    float getSimulationRate() { return qApp->getAverageSimsPerSecond(); }
-    float getAvatarRate() { return qApp->getAvatarSimrate(); }
-};
-
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
@@ -551,7 +532,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
-
 {
     // FIXME this may be excessively conservative.  On the other hand
     // maybe I'm used to having an 8-core machine
@@ -786,8 +766,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
     ResourceCache::setRequestLimit(3);
-
-    _rates = new Rates(this);
 
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
@@ -1413,7 +1391,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
     rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
     rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
-    rootContext->setContextProperty("Rates", _rates);
+    rootContext->setContextProperty("Rates", new RatesScriptingInterface(this));
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -4467,7 +4445,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
 
-    scriptEngine->registerGlobalObject("Rates", _rates);
+    scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar());
@@ -5296,5 +5274,3 @@ void Application::showDesktop() {
 CompositorHelper& Application::getApplicationCompositor() const {
     return *DependencyManager::get<CompositorHelper>();
 }
-
-#include "Application.moc"

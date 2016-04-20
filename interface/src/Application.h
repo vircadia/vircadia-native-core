@@ -399,7 +399,6 @@ private:
     uint32_t _frameCount { 0 };
 
     // Frame Rate Measurement
-    QObject* _rates;
     RateCounter<> _frameCounter;
     RateCounter<> _avatarSimCounter;
     RateCounter<> _simCounter;
