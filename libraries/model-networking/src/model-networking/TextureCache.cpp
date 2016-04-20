@@ -155,7 +155,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
 }
 
 
-TextureCache::TextureLoaderFunc getTextureLoaderForType(TextureType type) {
+NetworkTexture::TextureLoaderFunc getTextureLoaderForType(TextureType type) {
     switch (type) {
         case ALBEDO_TEXTURE: {
             return model::TextureUsage::createAlbedoTextureFromImage;
@@ -195,7 +195,7 @@ TextureCache::TextureLoaderFunc getTextureLoaderForType(TextureType type) {
         }
         case CUSTOM_TEXTURE: {
             Q_ASSERT(false);
-            return TextureCache::TextureLoaderFunc();
+            return NetworkTexture::TextureLoaderFunc();
             break;
         }
         case DEFAULT_TEXTURE:

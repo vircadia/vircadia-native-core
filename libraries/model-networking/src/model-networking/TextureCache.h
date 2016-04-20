@@ -25,9 +25,6 @@
 namespace gpu {
 class Batch;
 }
-class NetworkTexture;
-
-typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
 enum TextureType {
     DEFAULT_TEXTURE,
@@ -44,6 +41,56 @@ enum TextureType {
     LIGHTMAP_TEXTURE,
     CUSTOM_TEXTURE
 };
+
+/// A simple object wrapper for an OpenGL texture.
+class Texture {
+public:
+    gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
+    gpu::TextureSourcePointer _textureSource;
+};
+
+/// A texture loaded from the network.
+
+class NetworkTexture : public Resource, public Texture {
+    Q_OBJECT
+
+public:
+    
+    typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
+    using TextureLoaderFunc = std::function<TextureLoader>;
+    
+    NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
+    NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
+
+    int getOriginalWidth() const { return _originalWidth; }
+    int getOriginalHeight() const { return _originalHeight; }
+    int getWidth() const { return _width; }
+    int getHeight() const { return _height; }
+    
+    TextureLoaderFunc getTextureLoader() const;
+
+signals:
+    void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
+
+protected:
+
+    virtual bool isCacheable() const override { return _loaded; }
+
+    virtual void downloadFinished(const QByteArray& data) override;
+          
+    Q_INVOKABLE void loadContent(const QByteArray& content);
+    Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
+
+private:
+    TextureType _type;
+    TextureLoaderFunc _textureLoader;
+    int _originalWidth { 0 };
+    int _originalHeight { 0 };
+    int _width { 0 };
+    int _height { 0 };
+};
+
+using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -78,9 +125,6 @@ public:
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray());
     
-    typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
-    
-    typedef std::function<TextureLoader> TextureLoaderFunc;
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -97,53 +141,6 @@ private:
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
     gpu::TexturePointer _normalFittingTexture;
-};
-
-/// A simple object wrapper for an OpenGL texture.
-class Texture {
-public:
-    gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
-    gpu::TextureSourcePointer _textureSource;
-};
-
-/// A texture loaded from the network.
-
-class NetworkTexture : public Resource, public Texture {
-    Q_OBJECT
-
-public:
-    
-    typedef TextureCache::TextureLoaderFunc TextureLoaderFunc;
-    
-    NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content);
-    NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content);
-
-    int getOriginalWidth() const { return _originalWidth; }
-    int getOriginalHeight() const { return _originalHeight; }
-    int getWidth() const { return _width; }
-    int getHeight() const { return _height; }
-    
-    TextureLoaderFunc getTextureLoader() const;
-
-signals:
-    void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
-
-protected:
-
-    virtual bool isCacheable() const override { return _loaded; }
-
-    virtual void downloadFinished(const QByteArray& data) override;
-          
-    Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
-
-private:
-    TextureType _type;
-    TextureLoaderFunc _textureLoader;
-    int _originalWidth { 0 };
-    int _originalHeight { 0 };
-    int _width { 0 };
-    int _height { 0 };
 };
 
 #endif // hifi_TextureCache_h
