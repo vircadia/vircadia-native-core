@@ -23,7 +23,7 @@ class RatesScriptingInterface : public QObject {
     Q_PROPERTY(float avatar READ getAvatarRate)
 
 public:
-    Rates(QObject* parent) : QObject(parent) {}
+    RatesScriptingInterface(QObject* parent) : QObject(parent) {}
     float getRenderRate() { return qApp->getFps(); }
     float getPresentRate() { return qApp->getActiveDisplayPlugin()->presentRate(); }
     float getNewFrameRate() { return qApp->getActiveDisplayPlugin()->newFramePresentRate(); }
