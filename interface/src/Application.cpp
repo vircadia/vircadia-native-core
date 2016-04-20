@@ -91,7 +91,6 @@
 #include <ScriptCache.h>
 #include <SoundCache.h>
 #include <ScriptEngines.h>
-#include <ShutdownEventListener.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
