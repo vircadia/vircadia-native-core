@@ -55,8 +55,11 @@ public:
     }
     ~Counter() { log(); }
 
-    // Increase the count for key.
-    void add(const K& key);
+    // Increase the count for key (by inc).
+    void add(const K& key, size_t inc = 1);
+
+    // Decrease the count for key (by dec).
+    void sub(const K& key, size_t dec = 1);
 
     // Log current counts (called on destruction).
     void log();
@@ -123,18 +126,23 @@ private:
 };
 
 template<class K>
-void Counter<K>::add(const K& k) {
+void Counter<K>::add(const K& k, size_t inc) {
     std::lock_guard<std::mutex> lock(_mutex);
 
     auto& it = _map.find(k);
 
     if (it == _map.end()) {
         // No entry for k; add it
-        _map.insert(std::pair<K, size_t>(k, 1));
+        _map.insert(std::pair<K, size_t>(k, inc));
     } else {
         // Entry for k; update it
-        it->second++;
+        it->second += inc;
     }
+}
+
+template<class K>
+void Counter<K>::sub(const K& k, size_t dec) {
+    add(k, -dec);
 }
 
 template <class K>

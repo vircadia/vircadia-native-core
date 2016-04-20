@@ -127,6 +127,9 @@ protected:
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
+    Q_PROPERTY(quint64 cpuRunTime READ getCPUTRunTime NOTIFY newStats())
+
+    quint64 _CPURunTime{ 0 };
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
@@ -151,11 +154,17 @@ public:
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
+    // Running Time measurement 
+    // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
+    void setCPURunTime(quint64 ustime) { _CPURunTime = ustime; emit newStats(); }
+    quint64 getCPUTRunTime() const { return _CPURunTime; }
+
 public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
 signals:
     void loaded();
+    void newStats();
 };
 
 class TaskConfig : public JobConfig {
@@ -223,7 +232,11 @@ public:
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
 
     protected:
+        void setCPURunTime(quint64 ustime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(ustime); }
+
         QConfigPointer _config;
+
+        friend class Job;
     };
     using ConceptPointer = std::shared_ptr<Concept>;
 
@@ -278,8 +291,11 @@ public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
         PerformanceTimer perfTimer(_name.c_str());
         PROFILE_RANGE(_name.c_str());
+        auto start = usecTimestampNow();
 
         _concept->run(sceneContext, renderContext);
+
+        _concept->setCPURunTime(usecTimestampNow() - start);
     }
 
     protected:

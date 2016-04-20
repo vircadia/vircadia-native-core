@@ -105,6 +105,10 @@ public:
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
 
+    Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
+    Q_INVOKABLE QVariant getOrientationVar() const;
+
+
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
     // as it moves through the world.
@@ -295,7 +299,7 @@ signals:
     void collisionWithEntity(const Collision& collision);
     void energyChanged(float newEnergy);
     void positionGoneTo();
-
+    void onLoadComplete();
 
 private:
 

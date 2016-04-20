@@ -260,7 +260,7 @@ public:
         Stamp bumpStamp() { return ++_stamp; }
     protected:
         Stamp _stamp = 0;
-        Texture* _texture = nullptr;
+        Texture* _texture = nullptr; // Points to the parent texture (not owned)
         Texture::Type _type = Texture::TEX_2D; // The type of texture is needed to know the number of faces to expect
         std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
 
@@ -279,8 +279,6 @@ public:
     static Texture* create2D(const Element& texelFormat, uint16 width, uint16 height, const Sampler& sampler = Sampler());
     static Texture* create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, const Sampler& sampler = Sampler());
     static Texture* createCube(const Element& texelFormat, uint16 width, const Sampler& sampler = Sampler());
-
-    static Texture* createFromStorage(Storage* storage);
 
     Texture();
     Texture(const Texture& buf); // deep copy of the sysmem texture
@@ -430,7 +428,7 @@ public:
     Stamp getSamplerStamp() const { return _samplerStamp; }
 
     // Only callable by the Backend
-    void notifyMipFaceGPULoaded(uint16 level, uint8 face) const { return _storage->notifyMipFaceGPULoaded(level, face); }
+    void notifyMipFaceGPULoaded(uint16 level, uint8 face = 0) const { return _storage->notifyMipFaceGPULoaded(level, face); }
 
     const GPUObjectPointer gpuObject {};
 

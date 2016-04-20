@@ -71,7 +71,7 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) { _entitiesScriptEngine = engine; }
+    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
     float calculateCost(float mass, float oldVelocity, float newVelocity);
 public slots:
 
@@ -214,6 +214,8 @@ private:
         bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     EntityTreePointer _entityTree;
+
+    std::mutex _entitiesScriptEngineLock;
     EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
     
     bool _bidOnSimulationOwnership { false };

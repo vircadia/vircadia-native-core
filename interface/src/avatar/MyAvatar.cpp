@@ -198,11 +198,22 @@ MyAvatar::MyAvatar(RigPointer rig) :
             _headData->setLookAtPosition(headData->getLookAtPosition());
         }
     });
+
+    connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
 }
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
+
+void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
+    Avatar::setOrientation(quatFromVariant(newOrientationVar));
+}
+
+QVariant MyAvatar::getOrientationVar() const {
+    return quatToVariant(Avatar::getOrientation());
+}
+
 
 // virtual
 void MyAvatar::simulateAttachments(float deltaTime) {
@@ -339,6 +350,10 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime);
     }
+
+    // we've achived our final adjusted position and rotation for the avatar
+    // and all of its joints, now update our attachements.
+    Avatar::simulateAttachments(deltaTime);
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -1160,9 +1175,6 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
     setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-
-    // now that physics has adjusted our position, we can update attachements.
-    Avatar::simulateAttachments(deltaTime);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1566,6 +1578,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
                 float speedIncreaseFactor = 1.8f;
                 motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
                 const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
+
                 if (motorSpeed < maxBoostSpeed) {
                     // an active keyboard motor should never be slower than this
                     float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
@@ -2080,7 +2093,7 @@ float MyAvatar::getAccelerationEnergy() {
     int changeInVelocity = abs(velocity.length() - priorVelocity.length());
     float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     priorVelocity = velocity;
-    
+
     return changeInEnergy;
 }
 
@@ -2102,4 +2115,3 @@ bool MyAvatar::didTeleport() {
     lastPosition = pos;
     return (changeInPosition.length() > MAX_AVATAR_MOVEMENT_PER_FRAME);
 }
-
