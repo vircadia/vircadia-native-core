@@ -28,6 +28,7 @@ GLBackend::GLInputFormat* GLBackend::syncGPUObject(const Stream::Format& inputFo
     }
 
     object = new GLInputFormat();
+    object->key = inputFormat.getKey();
     Backend::setGPUObject(inputFormat, object);
 }
 
@@ -37,7 +38,15 @@ void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     if (ifo) {
         if (format != _input._format) {
             _input._format = format;
-            _input._invalidFormat = true;
+            if (format) {
+                if (_input._formatKey != format->getKey()) {
+                    _input._formatKey = format->getKey();
+                    _input._invalidFormat = true;
+                }
+            } else {
+                _input._invalidFormat = true;
+                _input._formatKey.clear();
+            }
         }
     }
 }
@@ -295,6 +304,7 @@ void GLBackend::resetInputStage() {
 
     // Reset vertex buffer and format
     _input._format.reset();
+    _input._formatKey.clear();
     _input._invalidFormat = false;
     _input._attributeActivation.reset();
 

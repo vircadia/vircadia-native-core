@@ -153,7 +153,7 @@ public:
 
     class GLInputFormat : public GPUObject {
     public:
-        
+        std::string key;
 
         GLInputFormat();
         ~GLInputFormat();
@@ -358,6 +358,7 @@ protected:
     struct InputStageState {
         bool _invalidFormat = true;
         Stream::FormatPointer _format;
+        std::string _formatKey;
 
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
         ActivationCache _attributeActivation;
@@ -385,6 +386,7 @@ protected:
         InputStageState() :
             _invalidFormat(true),
             _format(0),
+            _formatKey(),
             _attributeActivation(0),
             _invalidBuffers(0),
             _buffers(_invalidBuffers.size(), BufferPointer(0)),
