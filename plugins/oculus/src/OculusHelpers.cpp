@@ -10,6 +10,7 @@
 
 #include <atomic>
 
+#include <Windows.h>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
@@ -41,23 +42,28 @@ void logFatal(const char* what) {
     qFatal(error.c_str());
 }
 
-static const QString OCULUS_RUNTIME_PATH { "C:\\Program Files (x86)\\Oculus\\Support\\oculus-runtime" };
-static const QString GOOD_OCULUS_RUNTIME_FILE { OCULUS_RUNTIME_PATH + "\\LibOVRRT64_1.dll" };
+
+static wchar_t* REQUIRED_OCULUS_DLL = L"LibOVRRT64_1.dll";
+static wchar_t FOUND_PATH[MAX_PATH];
 
 bool oculusAvailable() {
-    ovrDetectResult detect = ovr_Detect(0);
-    if (!detect.IsOculusServiceRunning || !detect.IsOculusHMDConnected) {
-        return false;
-    }
+    static std::once_flag once;
+    static bool result { false };
+    std::call_once(once, [&] {
+        ovrDetectResult detect = ovr_Detect(0);
+        if (!detect.IsOculusServiceRunning || !detect.IsOculusHMDConnected) {
+            return;
+        }
 
-    // HACK Explicitly check for the presence of the 1.0 runtime DLL, and fail if it 
-    // doesn't exist
-    if (!QFile(GOOD_OCULUS_RUNTIME_FILE).exists()) {
-        qCWarning(oculus) << "Oculus Runtime detected, but no 1.x DLL present: \"" + GOOD_OCULUS_RUNTIME_FILE + "\"";
-        return false;
-    }
+        DWORD searchResult = SearchPathW(NULL, REQUIRED_OCULUS_DLL, NULL, MAX_PATH, FOUND_PATH, NULL);
+        if (searchResult <= 0) {
+            return;
+        }
 
-    return true;
+        result = true;
+    });
+
+    return result;
 }
 
 ovrSession acquireOculusSession() {
@@ -67,10 +73,6 @@ ovrSession acquireOculusSession() {
     }
 
     if (!session) {
-        ovrInitParams init = {};
-        init.Flags = 0;
-        init.ConnectionTimeoutMS = 0;
-        init.LogCallback = nullptr;
         if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
             logWarning("Failed to initialize Oculus SDK");
             return session;
