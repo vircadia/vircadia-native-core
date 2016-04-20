@@ -366,6 +366,12 @@ public:
                     return true;
                 }
             }
+
+            if (message->message == WM_CLOSE) {
+                // tell our registered application to quit
+                QMetaObject::invokeMethod(qApp, "quit");
+                return true; // Don't zombify the application by OS-exitting. Let the application quit in the normal quit-signal way.
+            }
         }
         return false;
     }
@@ -718,12 +724,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
-    // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
-#ifdef _WIN32
-    installNativeEventFilter(&ShutdownEventListener::getInstance());
-#else
-    ShutdownEventListener::getInstance();
-#endif
 
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,

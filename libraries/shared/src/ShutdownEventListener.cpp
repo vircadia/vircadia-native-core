@@ -47,7 +47,6 @@ bool ShutdownEventListener::nativeEventFilter(const QByteArray &eventType, void*
         if (message->message == WM_CLOSE) {
             // tell our registered application to quit
             QMetaObject::invokeMethod(qApp, "quit");
-            return true; // Don't zombify the application by OS-exitting. Let the application quit in the normal quit-signal way.
         }
     }
 #endif
