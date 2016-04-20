@@ -12,6 +12,8 @@
 #ifndef HIFI_RATES_SCRIPTING_INTERFACE_H
 #define HIFI_RATES_SCRIPTING_INTERFACE_H
 
+#include <display-plugins/DisplayPlugin.h>
+
 class RatesScriptingInterface : public QObject {
     Q_OBJECT
 
