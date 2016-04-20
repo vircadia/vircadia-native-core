@@ -78,6 +78,40 @@ private:
     QList<QWeakPointer<Resource>> _loadingRequests;
 };
 
+/// Wrapper to expose resources to JS/QML
+class ScriptableResource : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool loaded READ isLoaded NOTIFY loadedChanged)
+    Q_PROPERTY(bool failed READ isFailed NOTIFY failedChanged)
+public:
+    ScriptableResource(const QSharedPointer<Resource>& resource = QSharedPointer<Resource>());
+    virtual ~ScriptableResource() = default;
+
+    bool isLoaded() const { return _isLoaded; }
+    bool isFailed() const { return _isFailed; }
+
+signals:
+    void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
+    void loadedChanged(bool loaded); // analogous to &Resource::finished
+    void failedChanged(bool failed);
+
+private slots:
+    void finished(bool success);
+
+private:
+    friend class ResourceCache;
+
+    // Holds a ref to the resource to keep it in scope
+    QSharedPointer<Resource> _resource;
+
+    QMetaObject::Connection _progressConnection;
+    QMetaObject::Connection _finishedConnection;
+
+    bool _isLoaded{ false };
+    bool _isFailed{ false };
+};
+
+Q_DECLARE_METATYPE(ScriptableResource*);
 
 /// Base class for resource caches.
 class ResourceCache : public QObject {
@@ -96,7 +130,8 @@ public:
 
     Q_INVOKABLE QVariantList getResourceList();
 
-    Q_INVOKABLE void prefetch(const QUrl& url);
+    // This must be exposed as a ptr so the ScriptEngine may take ownership
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url);
 
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
@@ -177,9 +212,6 @@ private:
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
     QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
     QMap<int, QSharedPointer<Resource>> _unusedResources;
-
-    QMutex _prefetchingResourcesLock{ QMutex::Recursive };
-    QMap<QUrl, QSharedPointer<Resource>> _prefetchingResources;
 };
 
 /// Base class for resources.
@@ -292,6 +324,7 @@ private:
     void reinsert();
     
     friend class ResourceCache;
+    friend class ScriptableResource;
     
     ResourceRequest* _request = nullptr;
     int _lruKey = 0;

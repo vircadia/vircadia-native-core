@@ -270,6 +270,20 @@ static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantR
     assert(false);
 }
 
+// Templated qScriptRegisterMetaType fails to compile with raw pointers
+using ScriptableResourceRawPtr = ScriptableResource*;
+
+static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const ScriptableResourceRawPtr& resource) {
+    auto object = engine->newQObject(
+        const_cast<ScriptableResourceRawPtr>(resource),
+        QScriptEngine::ScriptOwnership);
+    return object;
+}
+
+static void scriptableResourceFromScriptValue(const QScriptValue& value, ScriptableResourceRawPtr& resource) {
+    resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
+}
+
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -331,6 +345,8 @@ void ScriptEngine::init() {
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
+
+    qScriptRegisterMetaType(this, scriptableResourceToScriptValue, scriptableResourceFromScriptValue);
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));

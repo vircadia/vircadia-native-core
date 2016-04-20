@@ -119,6 +119,57 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     return highestResource;
 }
 
+ScriptableResource::ScriptableResource(const QSharedPointer<Resource>& resource) :
+    QObject(nullptr),
+    _resource(resource) {}
+
+void ScriptableResource::finished(bool success) {
+    if (_progressConnection) {
+        disconnect(_progressConnection);
+    }
+    if (_finishedConnection) {
+        disconnect(_finishedConnection);
+    }
+
+    _isLoaded = true;
+    _isFailed = !success;
+
+    if (_isFailed) {
+        emit failedChanged(_isFailed);
+    }
+    emit loadedChanged(_isLoaded);
+}
+
+ScriptableResource* ResourceCache::prefetch(const QUrl& url) {
+    auto result = new ScriptableResource();
+
+    if (QThread::currentThread() != thread()) {
+        // Must be called in thread to ensure getResource returns a valid pointer
+        QMetaObject::invokeMethod(this, "prefetch", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(ScriptableResource*, result), Q_ARG(QUrl, url));
+        return result;
+    }
+
+
+    auto resource = getResource(url);
+    result->_resource = resource;
+    result->setObjectName(url.toString());
+
+    result->_resource = resource;
+    if (resource->isLoaded()) {
+        result->finished(!resource->_failedToLoad);
+    } else {
+        result->_progressConnection = connect(
+            resource.data(), &Resource::handleDownloadProgress,
+            result, &ScriptableResource::progressChanged);
+        result->_finishedConnection = connect(
+            resource.data(), &Resource::finished,
+            result, &ScriptableResource::finished);
+    }
+
+    return result;
+}
+
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
@@ -169,11 +220,6 @@ void ResourceCache::clearATPAssets() {
 }
 
 void ResourceCache::refreshAll() {
-    // Remove refs to prefetching resources
-    _prefetchingResourcesLock.lock();
-    _prefetchingResources.clear();
-    _prefetchingResourcesLock.unlock();
-
     // Clear all unused resources so we don't have to reload them
     clearUnusedResource();
     resetResourceCounters();
@@ -221,24 +267,7 @@ QVariantList ResourceCache::getResourceList() {
 
     return list;
 }
-
-void ResourceCache::prefetch(const QUrl& url) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "prefetch", Q_ARG(QUrl, url));
-    } else {
-        auto resource = getResource(url);
-        // If it is not loaded, hold a ref until it is
-        if (!resource->isLoaded()) {
-            QMutexLocker lock(&_prefetchingResourcesLock);
-            _prefetchingResources.insert(url, resource);
-            connect(resource.data(), &Resource::finishedLoading, [this, url]{
-                QMutexLocker lock(&_prefetchingResourcesLock);
-                this->_prefetchingResources.remove(url);
-            });
-        }
-    }
-}
-
+ 
 void ResourceCache::setRequestLimit(int limit) {
     _requestLimit = limit;
 
