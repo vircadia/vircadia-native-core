@@ -1,6 +1,5 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-#line __LINE__
 //  Generated on <$_SCRIBE_DATE$>
 //  stars.frag
 //  fragment shader
