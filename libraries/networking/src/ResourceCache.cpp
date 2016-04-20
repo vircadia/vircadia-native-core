@@ -169,6 +169,11 @@ void ResourceCache::clearATPAssets() {
 }
 
 void ResourceCache::refreshAll() {
+    // Remove refs to prefetching resources
+    _prefetchingResourcesLock.lock();
+    _prefetchingResources.clear();
+    _prefetchingResourcesLock.unlock();
+
     // Clear all unused resources so we don't have to reload them
     clearUnusedResource();
     resetResourceCounters();
@@ -215,6 +220,23 @@ QVariantList ResourceCache::getResourceList() {
     }
 
     return list;
+}
+
+void ResourceCache::prefetch(const QUrl& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "prefetch", Q_ARG(QUrl, url));
+    } else {
+        auto resource = getResource(url);
+        // If it is not loaded, hold a ref until it is
+        if (!resource->isLoaded()) {
+            QMutexLocker lock(&_prefetchingResourcesLock);
+            _prefetchingResources.insert(url, resource);
+            connect(resource.data(), &Resource::finishedLoading, [this, url]{
+                QMutexLocker lock(&_prefetchingResourcesLock);
+                this->_prefetchingResources.remove(url);
+            });
+        }
+    }
 }
 
 void ResourceCache::setRequestLimit(int limit) {

@@ -96,6 +96,8 @@ public:
 
     Q_INVOKABLE QVariantList getResourceList();
 
+    Q_INVOKABLE void prefetch(const QUrl& url);
+
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
 
@@ -175,6 +177,9 @@ private:
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
     QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
     QMap<int, QSharedPointer<Resource>> _unusedResources;
+
+    QMutex _prefetchingResourcesLock{ QMutex::Recursive };
+    QMap<QUrl, QSharedPointer<Resource>> _prefetchingResources;
 };
 
 /// Base class for resources.
