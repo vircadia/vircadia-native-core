@@ -94,7 +94,6 @@ public:
     QStringList getAnimationRoles() const;
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);
-    void prefetchAnimation(const QString& url);
 
     void initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset);
     void reset(const FBXGeometry& geometry);
@@ -322,7 +321,6 @@ protected:
     SimpleMovingAverage _averageLateralSpeed { 10 };
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
-    std::vector<AnimNode::Pointer> _prefetchedAnimations;
 
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
