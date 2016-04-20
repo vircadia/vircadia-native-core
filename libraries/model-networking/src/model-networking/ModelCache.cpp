@@ -237,13 +237,14 @@ ModelCache::ModelCache() {
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
                                                     bool delayLoad, const void* extra) {
-    const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
-
     Resource* resource = nullptr;
     if (url.path().toLower().endsWith(".fst")) {
         resource = new GeometryMappingResource(url);
     } else {
-        resource = new GeometryDefinitionResource(url, geometryExtra->mapping, geometryExtra->textureBaseUrl);
+        const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
+        auto mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
+        auto textureBaseUrl = geometryExtra ? geometryExtra->textureBaseUrl : QUrl();
+        resource = new GeometryDefinitionResource(url, mapping, textureBaseUrl);
     }
 
     return QSharedPointer<Resource>(resource, &Resource::deleter);
