@@ -131,6 +131,8 @@ public:
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
+    Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
     Q_INVOKABLE void stop();
