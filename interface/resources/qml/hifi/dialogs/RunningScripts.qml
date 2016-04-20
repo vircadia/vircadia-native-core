@@ -24,7 +24,7 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
-    implicitWidth: 400; implicitHeight: 695
+    implicitWidth: 400; implicitHeight: 742
     minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
@@ -234,6 +234,15 @@ Window {
                     enabled: selectedScript.text != ""
                     onClicked: root.loadScript(selectedScript.text)
                 }
+            }
+
+            HifiControls.VerticalSpacer { }
+
+            HifiControls.Button {
+                id: directoryButton
+                text: "Reveal Scripts Folder"
+                width: 200
+                onClicked: fileDialogHelper.openScriptsDirectory()
             }
 
             HifiControls.VerticalSpacer { }
