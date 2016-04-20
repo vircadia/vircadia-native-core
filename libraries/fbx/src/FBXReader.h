@@ -270,6 +270,7 @@ inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
+    using Pointer = std::shared_ptr<FBXGeometry>;
 
     QString author;
     QString applicationName; ///< the name of the application that generated the model
@@ -330,6 +331,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
+Q_DECLARE_METATYPE(FBXGeometry::Pointer)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
