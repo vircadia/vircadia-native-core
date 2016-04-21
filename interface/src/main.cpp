@@ -127,7 +127,7 @@ int main(int argc, const char* argv[]) {
     const char* CLOCK_SKEW = "--clockSkew";
     const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
     if (clockSkewOption) {
-        quint64 clockSkew = atoll(clockSkewOption);
+        qint64 clockSkew = atoll(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
         qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
     }
