@@ -236,5 +236,5 @@ void VrMenu::removeAction(QAction* action) {
     QQuickMenuBase* qmlItem = reinterpret_cast<QQuickMenuBase*>(item);
     bool invokeResult = QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection,
         Q_ARG(QQuickMenuBase*, qmlItem));
-    Q_ASSERT(invokeResult);
+    //Q_ASSERT(invokeResult);
 }
