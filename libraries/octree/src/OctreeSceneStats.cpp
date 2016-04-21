@@ -747,7 +747,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
 }
 
 void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, qint64 nodeClockSkewUsec) {
-    const bool wantExtraDebugging = true;
+    const bool wantExtraDebugging = false;
 
     // skip past the flags
     message.seek(sizeof(OCTREE_PACKET_FLAGS));

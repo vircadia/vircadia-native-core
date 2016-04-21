@@ -158,7 +158,7 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->updateClockSkewUsec(clockSkew);
 
-    const bool wantDebug = true;
+    const bool wantDebug = false;
 
     if (wantDebug) {
         auto averageClockSkew = sendingNode->getClockSkewUsec();

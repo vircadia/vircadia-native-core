@@ -624,9 +624,10 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
 QString formatUsecTime(quint64 usecs, int prec) {
     static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * 60;
     static const quint64 USECS_PER_HOUR = USECS_PER_MINUTE * 60;
+    static const quint64 TWO_HOURS = USECS_PER_HOUR * 2;
 
     QString result;
-    if (usecs > USECS_PER_HOUR) {
+    if (usecs > TWO_HOURS) {
         result = QString::number(usecs / USECS_PER_HOUR) + "hrs";
     } else if (usecs > USECS_PER_MINUTE) {
         result = QString::number(usecs / USECS_PER_MINUTE) + "min";
@@ -645,8 +646,9 @@ QString formatUsecTime(qint64 usecs, int prec) {
     static const qint64 USECS_PER_SECOND = 1000 * USECS_PER_MSEC;
     static const qint64 USECS_PER_MINUTE = USECS_PER_SECOND * 60;
     static const qint64 USECS_PER_HOUR = USECS_PER_MINUTE * 60;
+    static const qint64 TWO_HOURS = USECS_PER_HOUR * 2;
     QString result;
-    if (usecs > USECS_PER_HOUR) {
+    if (usecs > TWO_HOURS || usecs < -TWO_HOURS) {
         result = QString::number(usecs / USECS_PER_HOUR) + "hrs";
     } else if (usecs > USECS_PER_MINUTE || usecs < -USECS_PER_MINUTE) {
         result = QString::number(usecs / USECS_PER_MINUTE) + "min";
@@ -669,8 +671,9 @@ QString formatUsecTime(double usecs, int prec) {
     static const double USECS_PER_SECOND = 1000.0 * USECS_PER_MSEC;
     static const double USECS_PER_MINUTE = USECS_PER_SECOND * 60.0;
     static const double USECS_PER_HOUR = USECS_PER_MINUTE * 60.0;
+    static const double TWO_HOURS = USECS_PER_HOUR * 2;
     QString result;
-    if (usecs > USECS_PER_HOUR || usecs < -USECS_PER_HOUR) {
+    if (usecs > TWO_HOURS || usecs < -TWO_HOURS) {
         result = QString::number(usecs / USECS_PER_HOUR, 'f', prec) + "hrs";
     } else if (usecs > USECS_PER_MINUTE || usecs < -USECS_PER_MINUTE) {
         result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
