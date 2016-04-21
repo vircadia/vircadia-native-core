@@ -960,8 +960,7 @@ bool OctreeServer::readOptionInt64(const QString& optionName, const QJsonObject&
         optionAvailable = true;
         result = atoll(argValue);
         qDebug() << "From payload arguments: " << qPrintable(argName) << ":" << result;
-    }
-    else if (settingsSectionObject.contains(optionName)) {
+    } else if (settingsSectionObject.contains(optionName)) {
         optionAvailable = true;
         result = settingsSectionObject[optionName].toString().toLongLong(&optionAvailable);
         if (optionAvailable) {
