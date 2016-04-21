@@ -176,7 +176,7 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
         result->finished(!resource->_failedToLoad);
     } else {
         result->_progressConnection = connect(
-            resource.data(), &Resource::handleDownloadProgress,
+            resource.data(), &Resource::onProgress,
             result, &ScriptableResource::progressChanged);
         result->_finishedConnection = connect(
             resource.data(), &Resource::finished,
@@ -627,7 +627,9 @@ void Resource::makeRequest() {
     
     qCDebug(networking).noquote() << "Starting request for:" << _url.toDisplayString();
 
-    connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
+    connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
+    connect(this, &Resource::onProgress, this, &Resource::handleDownloadProgress);
+
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
 
     _bytesReceived = _bytesTotal = _bytes = 0;

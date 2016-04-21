@@ -294,6 +294,9 @@ signals:
     /// Fired when the resource is refreshed.
     void onRefresh();
 
+    /// Fired on progress updates.
+    void onProgress(uint64_t bytesReceived, uint64_t bytesTotal);
+
     /// Fired when the size changes (through setSize).
     void updateSize(qint64 deltaSize);
 
