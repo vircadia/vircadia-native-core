@@ -26,7 +26,6 @@
 #ifdef Q_OS_WIN
 #include "CPUIdent.h"
 #endif
-#include "GPUIdent.h"
 
 
 #ifdef __APPLE__

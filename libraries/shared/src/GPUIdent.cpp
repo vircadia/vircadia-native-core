@@ -9,9 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 #include <QtCore/QtGlobal>
+
 #ifdef Q_OS_WIN
 #include <atlbase.h>
 #include <Wbemidl.h>
+
+#elif defined(Q_OS_MAC)
+#include <OpenGL/OpenGL.h>
 #endif
 
 #include "SharedLogging.h"
@@ -26,7 +30,28 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         return this;
     }
     _isQueried = true;  // Don't try again, even if not _isValid;
-#ifdef Q_OS_WIN
+#if (defined Q_OS_MAC)
+    GLuint cglDisplayMask = -1; // Iterate over all of them.
+    CGLRendererInfoObj rendererInfo;
+    GLint rendererInfoCount;
+    CGLError err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &rendererInfoCount);
+    GLint j, numRenderers = 0, deviceVRAM, bestVRAM = 0;
+    err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &numRenderers);
+    if (0 == err) {
+        // Iterate over all of them and use the figure for the one with the most VRAM,
+        // on the assumption that this is the one that will actually be used.
+        CGLDescribeRenderer(rendererInfo, 0, kCGLRPRendererCount, &numRenderers);
+        for (j = 0; j < numRenderers; j++) {
+            CGLDescribeRenderer(rendererInfo, j, kCGLRPVideoMemoryMegabytes, &deviceVRAM);
+            if (deviceVRAM > bestVRAM) {
+                bestVRAM = deviceVRAM;
+            }
+        }
+    }
+    _dedicatedMemoryMB = bestVRAM;
+    CGLDestroyRendererInfo(rendererInfo);
+
+#elif defined(Q_OS_WIN)
     // COM must be initialized already using CoInitialize. E.g., by the audio subsystem.
     CComPtr<IWbemLocator> spLoc = NULL;
     HRESULT hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
