@@ -76,12 +76,6 @@ namespace Setting {
 
         // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
         qAddPostRoutine(cleanupPrivateInstance);
-    }    
-    
-    Interface::~Interface() {
-        if (privateInstance) {
-            privateInstance->removeHandle(_key);
-        }
     }
     
     void Interface::init() {
@@ -101,6 +95,16 @@ namespace Setting {
             load();
         }
     }
+
+    void Interface::deinit() {
+        if (privateInstance) {
+            // Save value to disk
+            save();
+
+            privateInstance->removeHandle(_key);
+        }
+    }
+
     
     void Interface::maybeInit() {
         if (!_isInitialized) {
