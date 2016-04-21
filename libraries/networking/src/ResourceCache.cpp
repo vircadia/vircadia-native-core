@@ -128,6 +128,13 @@ void ScriptableResource::release() {
     _resource.reset();
 }
 
+void ScriptableResource::updateMemoryCost(const QObject* engine) {
+    if (_resource && !_resource->isInScript()) {
+        _resource->setInScript(true);
+        connect(_resource.data(), SIGNAL(updateSize(qint64)), engine, SLOT(updateMemoryCost(qint64)));
+    }
+}
+
 void ScriptableResource::finished(bool success) {
     disconnectHelper();
 
@@ -329,6 +336,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
                               getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
     resource->setSelf(resource);
     resource->setCache(this);
+    connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
     {
         QWriteLocker locker(&_resourcesLock);
         _resources.insert(url, resource);
@@ -414,8 +422,8 @@ void ResourceCache::removeResource(const QUrl& url, qint64 size) {
     _totalResourcesSize -= size;
 }
 
-void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
-    _totalResourcesSize += (newSize - oldSize);
+void ResourceCache::updateTotalSize(const qint64& deltaSize) {
+    _totalResourcesSize += deltaSize;
     emit dirty();
 }
  
@@ -592,7 +600,7 @@ void Resource::finishedLoading(bool success) {
 }
 
 void Resource::setSize(const qint64& bytes) {
-    QMetaObject::invokeMethod(_cache.data(), "updateTotalSize", Q_ARG(qint64, _bytes), Q_ARG(qint64, bytes));
+    emit updateSize(bytes - _bytes);
     _bytes = bytes;
 }
 

@@ -158,6 +158,7 @@ public:
 
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
+    void updateMemoryCost(const qint64&);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);

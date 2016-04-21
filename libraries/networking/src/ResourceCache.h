@@ -95,6 +95,9 @@ public:
     bool isLoaded() const { return _isLoaded; }
     bool isFailed() const { return _isFailed; }
 
+    // Connects to a SLOT(updateMemoryCost(qint64) on the given engine
+    void updateMemoryCost(const QObject* engine);
+
 signals:
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
     void loadedChanged(bool loaded); // analogous to &Resource::finished
@@ -166,7 +169,7 @@ public slots:
     void checkAsynchronousGets();
 
 protected slots:
-    void updateTotalSize(const qint64& oldSize, const qint64& newSize);
+    void updateTotalSize(const qint64& deltaSize);
 
 private slots:
     void clearATPAssets();
@@ -291,6 +294,9 @@ signals:
     /// Fired when the resource is refreshed.
     void onRefresh();
 
+    /// Fired when the size changes (through setSize).
+    void updateSize(qint64 deltaSize);
+
 protected slots:
     void attemptRequest();
 
@@ -332,17 +338,21 @@ private:
     void makeRequest();
     void retry();
     void reinsert();
+
+    bool isInScript() const { return _isInScript; }
+    void setInScript(bool isInScript) { _isInScript = isInScript; }
     
     friend class ResourceCache;
     friend class ScriptableResource;
     
-    ResourceRequest* _request = nullptr;
-    int _lruKey = 0;
-    QTimer* _replyTimer = nullptr;
-    qint64 _bytesReceived = 0;
-    qint64 _bytesTotal = 0;
-    qint64 _bytes = 0;
-    int _attempts = 0;
+    ResourceRequest* _request{ nullptr };
+    int _lruKey{ 0 };
+    QTimer* _replyTimer{ nullptr };
+    qint64 _bytesReceived{ 0 };
+    qint64 _bytesTotal{ 0 };
+    qint64 _bytes{ 0 };
+    int _attempts{ 0 };
+    bool _isInScript{ false };
 };
 
 uint qHash(const QPointer<QObject>& value, uint seed = 0);

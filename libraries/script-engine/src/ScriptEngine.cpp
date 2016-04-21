@@ -274,6 +274,7 @@ static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantR
 using ScriptableResourceRawPtr = ScriptableResource*;
 
 static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const ScriptableResourceRawPtr& resource) {
+    resource->updateMemoryCost(engine);
     auto object = engine->newQObject(
         const_cast<ScriptableResourceRawPtr>(resource),
         QScriptEngine::ScriptOwnership);
@@ -806,6 +807,12 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
         resultHandler(result);
     } else {
         qCWarning(scriptengine) << "ScriptEngine::callAnimationStateHandler invalid return argument from callback, expected an object";
+    }
+}
+
+void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
+    if (deltaSize > 0) {
+        reportAdditionalMemoryCost(deltaSize);
     }
 }
 
