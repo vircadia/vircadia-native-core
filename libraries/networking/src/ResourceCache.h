@@ -81,12 +81,15 @@ private:
 /// Wrapper to expose resources to JS/QML
 class ScriptableResource : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QUrl url READ getUrl)
     Q_PROPERTY(bool loaded READ isLoaded NOTIFY loadedChanged)
     Q_PROPERTY(bool failed READ isFailed NOTIFY failedChanged)
+
 public:
-    ScriptableResource(const QSharedPointer<Resource>& resource = QSharedPointer<Resource>());
+    ScriptableResource(const QUrl& url);
     virtual ~ScriptableResource() = default;
 
+    const QUrl& getUrl() const { return _url; }
     bool isLoaded() const { return _isLoaded; }
     bool isFailed() const { return _isFailed; }
 
@@ -107,6 +110,7 @@ private:
     QMetaObject::Connection _progressConnection;
     QMetaObject::Connection _finishedConnection;
 
+    QUrl _url;
     bool _isLoaded{ false };
     bool _isFailed{ false };
 };

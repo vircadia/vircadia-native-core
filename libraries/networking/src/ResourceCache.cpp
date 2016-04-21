@@ -119,9 +119,9 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     return highestResource;
 }
 
-ScriptableResource::ScriptableResource(const QSharedPointer<Resource>& resource) :
+ScriptableResource::ScriptableResource(const QUrl& url) :
     QObject(nullptr),
-    _resource(resource) {}
+    _url(url) {}
 
 void ScriptableResource::finished(bool success) {
     if (_progressConnection) {
@@ -141,7 +141,7 @@ void ScriptableResource::finished(bool success) {
 }
 
 ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
-    auto result = new ScriptableResource();
+    auto result = new ScriptableResource(url);
 
     if (QThread::currentThread() != thread()) {
         // Must be called in thread to ensure getResource returns a valid pointer
