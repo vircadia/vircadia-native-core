@@ -24,7 +24,7 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
-    implicitWidth: 400; implicitHeight: 742
+    implicitWidth: 400; implicitHeight: 728
     minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
@@ -236,16 +236,23 @@ Window {
                 }
             }
 
-            HifiControls.VerticalSpacer { }
-
-            HifiControls.Button {
-                id: directoryButton
-                text: "Reveal Scripts Folder"
-                width: 200
-                onClicked: fileDialogHelper.openScriptsDirectory()
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight - 3
             }
 
-            HifiControls.VerticalSpacer { }
+            HifiControls.TextAction {
+                id: directoryButton
+                icon: hifi.glyphs.script
+                iconSize: 24
+                text: "Reveal Scripts Folder"
+                onClicked: fileDialogHelper.openScriptsDirectory()
+                colorScheme: hifi.colorSchemes.dark
+                anchors.left: parent.left
+            }
+
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight - 3
+            }
         }
     }
 }
