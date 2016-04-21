@@ -127,26 +127,6 @@ void GLBackend::init() {
     });
 }
 
-
-
-//Information on the current memory resources available can be queried
-//by specifying VBO_FREE_MEMORY_ATI, , or
-//RENDERBUFFER_FREE_MEMORY_ATI as the value parameter to  GetIntergerv.
-//These return the memory status for pools of memory used for vertex
-//buffer objects, textures, and render buffers respectively.The
-//memory status is not meant to be an exact measurement of the system's
-//current status(though it may be in some implementations), but it is
-//instead meant to represent the present load such that an application
-//can make decisions on how aggressive it can be on the allocation of
-//resources without overloading the system.The query returns a 4 - tuple
-//integer where the values are in Kbyte and have the following meanings :
-//
-//param[0] - total memory free in the pool
-//param[1] - largest available free block in the pool
-//param[2] - total auxiliary memory free
-//param[3] - largest auxiliary free block
-
-
 Context::Size GLBackend::getDedicatedMemory() {
     static Context::Size dedicatedMemory { 0 };
     static std::once_flag once;
@@ -180,14 +160,12 @@ Context::Size GLBackend::getDedicatedMemory() {
             }
         }
 
-        // FIXME Pending Howard's PR
-        //if (!dedicatedMemory) {
-        //    auto gpuIdent = GPUIdent::getInstance();
-        //    if (gpuIdent && gpuIdent->isValid()) {
-        //        auto gpuMb = gpuIdent->getMemory();
-        //        maxMemory = ((size_t)gpuMb) << MB_TO_BYTES_SHIFT;
-        //    }
-        //}
+        if (!dedicatedMemory) {
+            auto gpuIdent = GPUIdent::getInstance();
+            if (gpuIdent && gpuIdent->isValid()) {
+                dedicatedMemory = MB_TO_BYTES(gpuIdent->getMemory());
+            }
+        }
     });
 
     return dedicatedMemory;
