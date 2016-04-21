@@ -35,7 +35,7 @@ const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default materia
 
 namespace {
 template<class T>
-T& checked_at(QVector<T> vector, int i) {
+T& checked_at(QVector<T>& vector, int i) {
     if (i < 0 || i >= vector.size()) {
         throw std::out_of_range("index " + std::to_string(i) + "is out of range");
     }
