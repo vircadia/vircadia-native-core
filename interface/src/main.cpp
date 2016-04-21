@@ -127,9 +127,9 @@ int main(int argc, const char* argv[]) {
     const char* CLOCK_SKEW = "--clockSkew";
     const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
     if (clockSkewOption) {
-        int clockSkew = atoi(clockSkewOption);
+        quint64 clockSkew = atoll(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
+        qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
     }
 
     // Oculus initialization MUST PRECEDE OpenGL context creation.

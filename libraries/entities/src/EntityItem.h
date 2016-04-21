@@ -144,7 +144,7 @@ public:
 
     static int expectedBytes();
 
-    static void adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew);
+    static void adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew);
 
     // perform update
     virtual void update(const quint64& now) { _lastUpdated = now; }

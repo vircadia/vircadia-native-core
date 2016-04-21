@@ -515,7 +515,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingLikelyLostString = locale.toString((uint)seqStats.getLost());
                             QString incomingRecovered = locale.toString((uint)seqStats.getRecovered());
 
-                            int clockSkewInMS = node->getClockSkewUsec() / (int)USECS_PER_MSEC;
+                            qint64 clockSkewInMS = node->getClockSkewUsec() / USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
                             QString incomingClockSkewString = locale.toString(clockSkewInMS);

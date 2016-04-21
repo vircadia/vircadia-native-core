@@ -43,8 +43,8 @@
 #include "OctalCode.h"
 #include "SharedLogging.h"
 
-static int usecTimestampNowAdjust = 0; // in usec
-void usecTimestampNowForceClockSkew(int clockSkew) {
+static qint64 usecTimestampNowAdjust = 0; // in usec
+void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 

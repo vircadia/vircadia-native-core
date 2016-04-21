@@ -70,7 +70,7 @@ protected:
     quint64 _expires { 0 }; // in seconds since epoch
 
 private:
-    int getEntityServerClockSkew() const;
+    qint64 getEntityServerClockSkew() const;
 };
 
 #endif // hifi_ObjectAction_h

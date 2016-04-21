@@ -32,7 +32,7 @@ public:
 
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew);
+    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew);
 
 public slots:
     void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);

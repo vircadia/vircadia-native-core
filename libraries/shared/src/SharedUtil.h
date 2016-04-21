@@ -121,7 +121,7 @@ const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)
 
 // Equivalent to time_t but in usecs instead of secs
 quint64 usecTimestampNow(bool wantDebug = false);
-void usecTimestampNowForceClockSkew(int clockSkew);
+void usecTimestampNowForceClockSkew(qint64 clockSkew);
 
 // Number of seconds expressed since the first call to this function, expressed as a float
 // Maximum accuracy in msecs
