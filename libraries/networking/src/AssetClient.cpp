@@ -330,19 +330,25 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
 
             if (message->isComplete()) {
                 callbacks.completeCallback(true, error, message->readAll());
+                messageCallbackMap.erase(requestIt);
             } else {
-                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks]() {
+                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, &callbacks]() {
                     callbacks.progressCallback(message->getSize(), length);
                 });
-                connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks]() {
+                connect(message.data(), &ReceivedMessage::completed, this, [this, messageID, message, &messageCallbackMap, &callbacks]() {
                     if (message->failed()) {
                         callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
                     } else {
-                        callbacks.completeCallback(true, error, message->readAll());
+                        callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());
                     }
+
+                    // We should never get to this point without the associated senderNode and messageID
+                    // in our list of pending requests. If the senderNode had disconnected or the message
+                    // had been canceled, we should have been disconnected from the ReceivedMessage
+                    // signals and thus never had this lambda called.
+                    messageCallbackMap.erase(messageID);
                 });
             }
-            messageCallbackMap.erase(requestIt);
         }
 
         // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
