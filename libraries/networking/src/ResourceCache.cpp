@@ -424,6 +424,11 @@ void ResourceCache::removeResource(const QUrl& url, qint64 size) {
 
 void ResourceCache::updateTotalSize(const qint64& deltaSize) {
     _totalResourcesSize += deltaSize;
+
+    // Sanity checks
+    assert(_totalResourcesSize >= 0);
+    assert(_totalResourcesSize < (1024 * BYTES_PER_GIGABYTES));
+
     emit dirty();
 }
  

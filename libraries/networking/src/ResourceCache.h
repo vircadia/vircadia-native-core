@@ -50,7 +50,7 @@ static const qint64 DEFAULT_UNUSED_MAX_SIZE = 100 * BYTES_PER_MEGABYTES;
 static const qint64 DEFAULT_UNUSED_MAX_SIZE = 1024 * BYTES_PER_MEGABYTES;
 #endif
 static const qint64 MIN_UNUSED_MAX_SIZE = 0;
-static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
+static const qint64 MAX_UNUSED_MAX_SIZE = MAXIMUM_CACHE_SIZE;
 
 // We need to make sure that these items are available for all instances of
 // ResourceCache derived classes. Since we can't count on the ordering of
