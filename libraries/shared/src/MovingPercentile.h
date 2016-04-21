@@ -18,21 +18,19 @@ class MovingPercentile {
 public:
     MovingPercentile(int numSamples, float percentile = 0.5f);
 
-    // FIXME - this class is only currently used in calculating the clockSkew, which is a signed 64bit int, not a double
-    // I am somewhat tempted to make this a type sensitive template and/or swith to using qint64's internally
-    void updatePercentile(quint64 sample);
-    quint64 getValueAtPercentile() const { return _valueAtPercentile; }
+    void updatePercentile(qint64 sample);
+    qint64 getValueAtPercentile() const { return _valueAtPercentile; }
 
 private:
     const int _numSamples;
     const float _percentile;
 
-    QList<quint64> _samplesSorted;
+    QList<qint64> _samplesSorted;
     QList<int> _sampleIds;      // incrementally assigned, is cyclic
     int _newSampleId;
 
     int _indexOfPercentile;
-    quint64 _valueAtPercentile;
+    qint64 _valueAtPercentile;
 };
 
 #endif

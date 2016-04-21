@@ -21,7 +21,7 @@ MovingPercentile::MovingPercentile(int numSamples, float percentile)
 {
 }
 
-void MovingPercentile::updatePercentile(quint64 sample) {
+void MovingPercentile::updatePercentile(qint64 sample) {
 
     // insert the new sample into _samplesSorted
     int newSampleIndex;

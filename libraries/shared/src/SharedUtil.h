@@ -186,10 +186,10 @@ inline bool isBetween(int64_t value, int64_t max, int64_t min) { return ((value 
 /// \return bool is the float NaN
 inline bool isNaN(float value) { return value != value; }
 
-QString formatUsecTime(float usecs, int prec = 3);
-QString formatUsecTime(double usecs, int prec = 3);
-QString formatUsecTime(quint64 usecs, int prec = 3);
-QString formatUsecTime(qint64 usecs, int prec = 3);
+QString formatUsecTime(float usecs);
+QString formatUsecTime(double usecs);
+QString formatUsecTime(quint64 usecs);
+QString formatUsecTime(qint64 usecs);
 
 QString formatSecondsElapsed(float seconds);
 bool similarStrings(const QString& stringA, const QString& stringB);

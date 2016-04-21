@@ -74,7 +74,7 @@ void Node::setType(char type) {
 }
 
 void Node::updateClockSkewUsec(qint64 clockSkewSample) {
-    _clockSkewMovingPercentile.updatePercentile((double)clockSkewSample);
+    _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
