@@ -16,6 +16,9 @@ var FRAME_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/
 // A folder full of individual frames.
 var MOVIE_URL = "http://hifi-content.s3.amazonaws.com/james/vidtest/";
 
+var NUM_FRAMES = 158; // 158 available
+var FRAME_RATE = 30;  // 30  default
+
 var center = Vec3.sum(
     Vec3.sum(MyAvatar.position, { x: 0, y: 0.5, z: 0 }),
     Vec3.multiply(1, Quat.getFront(Camera.getOrientation()))
@@ -41,7 +44,7 @@ var frames = [];
 
 // Preload
 var numLoading = 0;
-for (var i = 0; i < 159; i++) {
+for (var i = 1; i <= NUM_FRAMES + 1; i++) {
     var padded = pad(i, 3);
     var filepath = MOVIE_URL + padded + '.jpg';
     var texture = TextureCache.prefetch(filepath);
@@ -60,7 +63,7 @@ function play() {
     var movieInterval = Script.setInterval(function() {
         Entities.editEntity(pictureFrame, { textures: JSON.stringify({ Picture: frames[frame].url }) })
         frame += 1;
-        if (frame == 159) {
+        if (frame > NUM_FRAMES) {
             Script.clearInterval(movieInterval);
             Entities.deleteEntity(pictureFrame);
             // free the textures at the next garbage collection
@@ -69,5 +72,5 @@ function play() {
             // frames.forEach(function(texture) { texture.release(); });
             Script.requestGarbageCollection();
         }
-    }, 33.3);
+    }, 1000 / FRAME_RATE);
 }
