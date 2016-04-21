@@ -141,9 +141,6 @@ public:
 
     Q_INVOKABLE QVariantList getResourceList();
 
-    // This must be exposed as a ptr so the ScriptEngine may take ownership
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
-
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
 
@@ -175,6 +172,16 @@ private slots:
     void clearATPAssets();
 
 protected:
+    // Prefetches a resource to be held by the QScriptEngine.
+    // Pointers created through this method should be owned by the caller,
+    // which should be a QScriptEngine with ScriptableResource registered, so that
+    // the QScriptEngine will delete the pointer when it is garbage collected.
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
+
+
+    // Prefetches a resource to be held by the QScriptEngine.
+    // Left as a protected member so subclasses can overload prefetch
+    // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
     ScriptableResource* prefetch(const QUrl& url, void* extra);
 
     /// Loads a resource from the specified URL.

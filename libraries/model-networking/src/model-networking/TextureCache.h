@@ -100,9 +100,6 @@ class TextureCache : public ResourceCache, public Dependency {
     using Type = NetworkTexture::Type;
 
 public:
-    // Overload ResourceCache::prefetch to allow specifying texture type for loads
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type);
-
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
@@ -131,6 +128,8 @@ public:
         const QByteArray& content = QByteArray());
     
 protected:
+    // Overload ResourceCache::prefetch to allow specifying texture type for loads
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type);
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
         const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
