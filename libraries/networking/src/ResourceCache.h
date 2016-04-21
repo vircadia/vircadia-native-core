@@ -89,6 +89,8 @@ public:
     ScriptableResource(const QUrl& url);
     virtual ~ScriptableResource() = default;
 
+    Q_INVOKABLE void release();
+
     const QUrl& getUrl() const { return _url; }
     bool isLoaded() const { return _isLoaded; }
     bool isFailed() const { return _isFailed; }
@@ -102,6 +104,8 @@ private slots:
     void finished(bool success);
 
 private:
+    void disconnectHelper();
+
     friend class ResourceCache;
 
     // Holds a ref to the resource to keep it in scope

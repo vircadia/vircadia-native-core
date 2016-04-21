@@ -123,13 +123,13 @@ ScriptableResource::ScriptableResource(const QUrl& url) :
     QObject(nullptr),
     _url(url) {}
 
+void ScriptableResource::release() {
+    disconnectHelper();
+    _resource.reset();
+}
+
 void ScriptableResource::finished(bool success) {
-    if (_progressConnection) {
-        disconnect(_progressConnection);
-    }
-    if (_finishedConnection) {
-        disconnect(_finishedConnection);
-    }
+    disconnectHelper();
 
     _isLoaded = true;
     _isFailed = !success;
@@ -138,6 +138,15 @@ void ScriptableResource::finished(bool success) {
         emit failedChanged(_isFailed);
     }
     emit loadedChanged(_isLoaded);
+}
+
+void ScriptableResource::disconnectHelper() {
+    if (_progressConnection) {
+        disconnect(_progressConnection);
+    }
+    if (_finishedConnection) {
+        disconnect(_finishedConnection);
+    }
 }
 
 ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
