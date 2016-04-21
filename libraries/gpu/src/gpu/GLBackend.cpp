@@ -406,9 +406,7 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
 
 void glbackend_glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices, GLsizei primcount, GLint basevertex, GLuint baseinstance) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    //glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, primcount, basevertex, baseinstance);
-    glDrawElementsInstanced(mode, count, type, indices, primcount);
-
+    glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, primcount, basevertex, baseinstance);
 #else
     glDrawElementsInstanced(mode, count, type, indices, primcount);
 #endif
