@@ -330,7 +330,7 @@ void ImageReader::run() {
         return;
     }
 
-    gpu::Texture* texture = nullptr;
+    gpu::TexturePointer texture = nullptr;
     {
         // Double-check the resource still exists between long operations.
         auto resource = _resource.toStrongRef();
@@ -342,36 +342,32 @@ void ImageReader::run() {
         auto url = _url.toString().toStdString();
 
         PROFILE_RANGE_EX(__FUNCTION__"::textureLoader", 0xffffff00, nullptr);
-        texture = resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url);
+        texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
     }
 
-    // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+    // Ensure the resource has not been deleted
     auto resource = _resource.toStrongRef();
     if (!resource) {
         qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-        delete texture;
     } else {
-        QMetaObject::invokeMethod(resource.data(), "setImage", Qt::BlockingQueuedConnection,
-            Q_ARG(void*, texture),
+        QMetaObject::invokeMethod(resource.data(), "setImage",
+            Q_ARG(gpu::TexturePointer, texture),
             Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
     }
 }
 
-void NetworkTexture::setImage(void* voidTexture, int originalWidth,
+void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
                               int originalHeight) {
     _originalWidth = originalWidth;
     _originalHeight = originalHeight;
 
-    gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
-
     // Passing ownership
     _textureSource->resetTexture(texture);
-    auto gpuTexture = _textureSource->getGPUTexture();
 
-    if (gpuTexture) {
-        _width = gpuTexture->getWidth();
-        _height = gpuTexture->getHeight();
-        setSize(gpuTexture->getStoredSize());
+    if (texture) {
+        _width = texture->getWidth();
+        _height = texture->getHeight();
+        setSize(texture->getStoredSize());
     } else {
         // FIXME: If !gpuTexture, we failed to load!
         _width = _height = 0;

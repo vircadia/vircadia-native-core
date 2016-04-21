@@ -201,7 +201,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload-01.svg",
+            imageURL: toolIconUrl + "model-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
