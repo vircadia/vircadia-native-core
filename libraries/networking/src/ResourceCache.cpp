@@ -140,7 +140,7 @@ void ScriptableResource::finished(bool success) {
     emit loadedChanged(_isLoaded);
 }
 
-ScriptableResource* ResourceCache::prefetch(const QUrl& url) {
+ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
     auto result = new ScriptableResource();
 
     if (QThread::currentThread() != thread()) {
@@ -151,7 +151,7 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url) {
     }
 
 
-    auto resource = getResource(url);
+    auto resource = getResource(url, QUrl(), false, extra);
     result->_resource = resource;
     result->setObjectName(url.toString());
 

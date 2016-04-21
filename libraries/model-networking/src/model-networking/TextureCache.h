@@ -17,6 +17,7 @@
 #include <QImage>
 #include <QMap>
 #include <QColor>
+#include <QMetaEnum>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
@@ -34,7 +35,6 @@ public:
 };
 
 /// A texture loaded from the network.
-
 class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
@@ -98,8 +98,11 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
 
     using Type = NetworkTexture::Type;
-    
+
 public:
+    // Overload ResourceCache::prefetch to allow specifying texture type for loads
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type);
+
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.

@@ -131,7 +131,7 @@ public:
     Q_INVOKABLE QVariantList getResourceList();
 
     // This must be exposed as a ptr so the ScriptEngine may take ownership
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url);
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
 
     static void setRequestLimit(int limit);
     static int getRequestLimit() { return _requestLimit; }
@@ -164,6 +164,8 @@ private slots:
     void clearATPAssets();
 
 protected:
+    ScriptableResource* prefetch(const QUrl& url, void* extra);
+
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested

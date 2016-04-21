@@ -35,6 +35,12 @@ TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
     setObjectName("TextureCache");
+
+    // Expose enum Type to JS/QML via properties
+    auto metaEnum = QMetaEnum::fromType<Type>();
+    for (int i = 0; i < metaEnum.keyCount(); ++i) {
+        setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
 }
 
 TextureCache::~TextureCache() {
@@ -148,6 +154,12 @@ public:
     NetworkTexture::Type type;
     const QByteArray& content;
 };
+
+ScriptableResource* TextureCache::prefetch(const QUrl& url, int type) {
+    auto byteArray = QByteArray();
+    TextureExtra extra = { (Type)type, byteArray };
+    return ResourceCache::prefetch(url, &extra);
+}
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content) {
     TextureExtra extra = { type, content };
