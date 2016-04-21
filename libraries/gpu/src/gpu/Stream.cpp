@@ -55,6 +55,7 @@ void Stream::Format::evaluateCache() {
     _key.clear();
     _channels.clear();
     _elementTotalSize = 0;
+
     for(AttributeMap::iterator it = _attributes.begin(); it != _attributes.end(); it++) {
         Attribute& attrib = (*it).second;
         ChannelInfo& channel = _channels[attrib._channel];

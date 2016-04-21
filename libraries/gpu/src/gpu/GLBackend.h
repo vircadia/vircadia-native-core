@@ -366,6 +366,7 @@ protected:
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
         BuffersState _invalidBuffers;
+        BuffersState _attribBindingBuffers;
 
         Buffers _buffers;
         Offsets _bufferOffsets;
@@ -383,7 +384,7 @@ protected:
         Offset _indirectBufferStride{ 0 };
 
         GLuint _defaultVAO;
-
+        
         InputStageState() :
             _invalidFormat(true),
             _format(0),

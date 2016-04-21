@@ -106,7 +106,7 @@ public:
         batch.setInputBuffer(0, _particleBuffer, 0, sizeof(ParticlePrimitive));
 
         auto numParticles = _particleBuffer->getSize() / sizeof(ParticlePrimitive);
-        batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
+     //   batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
     }
 
 protected:

@@ -92,6 +92,9 @@ void GLBackend::syncTransformStateCache() {
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
+
+    glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
+    _transform._enabledDrawcallInfoBuffer = false;
 }
 
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
@@ -200,6 +203,12 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     (void)CHECK_GL_ERROR();
 }
 
+#if(GPU_INPUT_PROFILE == GPU_CORE_41)
+#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
+#else
+#define SUPPORT_VERTEX_ATTRIB_FORMAT
+#endif
+
 void GLBackend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
 
@@ -212,22 +221,26 @@ void GLBackend::updateTransform(const Batch& batch) {
         }
         glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
     } else {
+#if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
         if (!_transform._enabledDrawcallInfoBuffer) {
             glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-            //   glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
-            /*    glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
-                                       _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-                                       glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
-                                       */
-
             glVertexAttribIFormat(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0);
             glVertexAttribBinding(gpu::Stream::DRAW_CALL_INFO, gpu::Stream::DRAW_CALL_INFO);
             glVertexBindingDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
             _transform._enabledDrawcallInfoBuffer = true;
         }
-        glBindVertexBuffer(gpu::Stream::DRAW_CALL_INFO, _transform._drawCallInfoBuffer, (GLintptr) _transform._drawCallInfoOffsets[batch._currentNamedCall], 0);
-      //  _transform._drawCallInfoOffsets[batch._currentNamedCall]);
- 
+        glBindVertexBuffer(gpu::Stream::DRAW_CALL_INFO, _transform._drawCallInfoBuffer, (GLintptr)_transform._drawCallInfoOffsets[batch._currentNamedCall], 0);
+
+#else 
+        if (!_transform._enabledDrawcallInfoBuffer) {
+            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
+            glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
+            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+            _transform._enabledDrawcallInfoBuffer = true;
+        }
+        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
+#endif
+
     }
     
     (void)CHECK_GL_ERROR();
