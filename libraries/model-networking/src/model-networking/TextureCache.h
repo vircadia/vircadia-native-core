@@ -83,7 +83,7 @@ protected:
 
 private:
     Type _type;
-    TextureLoaderFunc _textureLoader;
+    TextureLoaderFunc _textureLoader { [](const QImage&, const std::string&){ return nullptr; } };
     int _originalWidth { 0 };
     int _originalHeight { 0 };
     int _width { 0 };
