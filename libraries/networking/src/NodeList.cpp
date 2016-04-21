@@ -158,9 +158,10 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->updateClockSkewUsec(clockSkew);
 
-    const bool wantDebug = false;
+    const bool wantDebug = true;
 
     if (wantDebug) {
+        auto averageClockSkew = sendingNode->getClockSkewUsec();
         qCDebug(networking) << "PING_REPLY from node " << *sendingNode << "\n" <<
         "                     now: " << now << "\n" <<
         "                 ourTime: " << ourOriginalTime << "\n" <<
@@ -168,8 +169,8 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
         "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExpectedReply << "\n" <<
-        "               clockSkew: " << clockSkew  << "\n" <<
-        "       average clockSkew: " << sendingNode->getClockSkewUsec();
+        "               clockSkew: " << clockSkew << "[" << formatUsecTime(clockSkew) << "]" << "\n" <<
+        "       average clockSkew: " << averageClockSkew << "[" << formatUsecTime(averageClockSkew) << "]";
     }
 }
 

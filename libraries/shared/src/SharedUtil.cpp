@@ -621,16 +621,62 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-QString formatUsecTime(float usecs, int prec) {
-    static const quint64 SECONDS_PER_MINUTE = 60;
-    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
+QString formatUsecTime(quint64 usecs, int prec) {
+    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * 60;
+    static const quint64 USECS_PER_HOUR = USECS_PER_MINUTE * 60;
 
     QString result;
-    if (usecs > USECS_PER_MINUTE) {
-        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
+    if (usecs > USECS_PER_HOUR) {
+        result = QString::number(usecs / USECS_PER_HOUR) + "hrs";
+    } else if (usecs > USECS_PER_MINUTE) {
+        result = QString::number(usecs / USECS_PER_MINUTE) + "min";
     } else if (usecs > USECS_PER_SECOND) {
-        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
+        result = QString::number(usecs / USECS_PER_SECOND) + 's';
     } else if (usecs > USECS_PER_MSEC) {
+        result = QString::number(usecs / USECS_PER_MSEC) + "ms";
+    } else {
+        result = QString::number(usecs) + "us";
+    }
+    return result;
+}
+
+QString formatUsecTime(qint64 usecs, int prec) {
+    static const qint64 USECS_PER_MSEC = 1000;
+    static const qint64 USECS_PER_SECOND = 1000 * USECS_PER_MSEC;
+    static const qint64 USECS_PER_MINUTE = USECS_PER_SECOND * 60;
+    static const qint64 USECS_PER_HOUR = USECS_PER_MINUTE * 60;
+    QString result;
+    if (usecs > USECS_PER_HOUR) {
+        result = QString::number(usecs / USECS_PER_HOUR) + "hrs";
+    } else if (usecs > USECS_PER_MINUTE || usecs < -USECS_PER_MINUTE) {
+        result = QString::number(usecs / USECS_PER_MINUTE) + "min";
+    } else if (usecs > USECS_PER_SECOND || usecs < -USECS_PER_SECOND) {
+        result = QString::number(usecs / USECS_PER_SECOND) + 's';
+    } else if (usecs > USECS_PER_MSEC || usecs < -USECS_PER_MSEC) {
+        result = QString::number(usecs / USECS_PER_MSEC) + "ms";
+    } else {
+        result = QString::number(usecs) + "us";
+    }
+    return result;
+}
+
+QString formatUsecTime(float usecs, int prec) {
+    return formatUsecTime((double)usecs, prec);
+}
+
+QString formatUsecTime(double usecs, int prec) {
+    static const double USECS_PER_MSEC = 1000.0;
+    static const double USECS_PER_SECOND = 1000.0 * USECS_PER_MSEC;
+    static const double USECS_PER_MINUTE = USECS_PER_SECOND * 60.0;
+    static const double USECS_PER_HOUR = USECS_PER_MINUTE * 60.0;
+    QString result;
+    if (usecs > USECS_PER_HOUR || usecs < -USECS_PER_HOUR) {
+        result = QString::number(usecs / USECS_PER_HOUR, 'f', prec) + "hrs";
+    } else if (usecs > USECS_PER_MINUTE || usecs < -USECS_PER_MINUTE) {
+        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
+    } else if (usecs > USECS_PER_SECOND || usecs < -USECS_PER_SECOND) {
+        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
+    } else if (usecs > USECS_PER_MSEC || usecs < -USECS_PER_MSEC) {
         result = QString::number(usecs / USECS_PER_MSEC, 'f', prec) + "ms";
     } else {
         result = QString::number(usecs, 'f', prec) + "us";

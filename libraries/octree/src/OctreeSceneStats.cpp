@@ -747,7 +747,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
 }
 
 void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, qint64 nodeClockSkewUsec) {
-    const bool wantExtraDebugging = false;
+    const bool wantExtraDebugging = true;
 
     // skip past the flags
     message.seek(sizeof(OCTREE_PACKET_FLAGS));
@@ -768,6 +768,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool 
         qCDebug(octree) << "sentAt:" << sentAt << " usecs";
         qCDebug(octree) << "arrivedAt:" << arrivedAt << " usecs";
         qCDebug(octree) << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
+        qCDebug(octree) << "node Clock Skew:" << formatUsecTime(nodeClockSkewUsec);
         qCDebug(octree) << "flightTime:" << flightTime << " usecs";
     }
 

@@ -515,7 +515,9 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             QString incomingLikelyLostString = locale.toString((uint)seqStats.getLost());
                             QString incomingRecovered = locale.toString((uint)seqStats.getRecovered());
 
-                            qint64 clockSkewInMS = node->getClockSkewUsec() / USECS_PER_MSEC;
+                            qint64 clockSkewInUsecs = node->getClockSkewUsec();
+                            QString formattedClockSkewString = formatUsecTime(clockSkewInUsecs);
+                            qint64 clockSkewInMS = clockSkewInUsecs / (qint64)USECS_PER_MSEC;
                             QString incomingFlightTimeString = locale.toString((int)stats.getIncomingFlightTimeAverage());
                             QString incomingPingTimeString = locale.toString(node->getPingMs());
                             QString incomingClockSkewString = locale.toString(clockSkewInMS);
@@ -536,7 +538,9 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                                 " Average Ping Time: " << qPrintable(incomingPingTimeString) << " msecs";
 
                             serverDetails << "<br/>" <<
-                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs";
+                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs" << 
+                                " [" << qPrintable(formattedClockSkewString) << "]";
+
 
                             serverDetails << "<br/>" << "Incoming" <<
                                 " Bytes: " << qPrintable(incomingBytesString) <<
