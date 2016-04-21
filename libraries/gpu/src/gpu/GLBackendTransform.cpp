@@ -171,8 +171,10 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
 #endif
 
     CHECK_GL_ERROR();
+
+    // Make sure the current Camera offset is unknown before render Draw
+    _currentCameraOffset = INVALID_OFFSET;
 }
-static const size_t INVALID_OFFSET = (size_t)-1;
 
 void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
     size_t offset = INVALID_OFFSET;

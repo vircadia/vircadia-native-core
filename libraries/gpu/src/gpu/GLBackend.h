@@ -320,6 +320,7 @@ public:
     void do_setStateColorWriteMask(uint32 mask);
     
 protected:
+    static const size_t INVALID_OFFSET = (size_t)-1;
 
     bool _inRenderTransferPass;
 
@@ -435,7 +436,7 @@ protected:
         using List = std::list<Pair>;
         List _cameraOffsets;
         mutable List::const_iterator _camerasItr;
-        mutable size_t _currentCameraOffset;
+        mutable size_t _currentCameraOffset{ INVALID_OFFSET };
 
         void preUpdate(size_t commandIndex, const StereoState& stereo);
         void update(size_t commandIndex, const StereoState& stereo) const;
