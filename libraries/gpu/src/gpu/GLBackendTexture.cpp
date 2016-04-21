@@ -160,7 +160,9 @@ GLBackend::GLTexture::~GLTexture() {
     if (_transferrable) {
         uint16 mipCount = usedMipLevels();
         Q_ASSERT(_textureCountByMips.count(mipCount));
-        if (0 == --_textureCountByMips[mipCount]) {
+        auto& numTexturesForMipCount = _textureCountByMips[mipCount];
+        --numTexturesForMipCount;
+        if (0 == numTexturesForMipCount) {
             _textureCountByMips.erase(mipCount);
             if (mipCount == _currentMaxMipCount) {
                 _currentMaxMipCount = _textureCountByMips.rbegin()->first;
