@@ -37,6 +37,8 @@ class GLBackend : public Backend {
     explicit GLBackend(bool syncCache);
     GLBackend();
 public:
+    static Context::Size getDedicatedMemory();
+
     virtual ~GLBackend();
 
     virtual void render(Batch& batch);
@@ -82,11 +84,35 @@ public:
         const Stamp _storageStamp;
         Stamp _contentStamp { 0 };
         const GLenum _target;
+        const uint16 _maxMip;
+        const uint16 _minMip;
+        const bool _transferrable;
 
-        GLTexture(const gpu::Texture& gpuTexture);
+        struct DownsampleSource {
+            using Pointer = std::shared_ptr<DownsampleSource>;
+            DownsampleSource(GLTexture& oldTexture);
+            ~DownsampleSource();
+            const GLuint _texture;
+            const uint16 _minMip;
+            const uint16 _maxMip;
+        };
+
+        DownsampleSource::Pointer _downsampleSource;
+
+        GLTexture(bool transferrable, const gpu::Texture& gpuTexture);
+        GLTexture(GLTexture& originalTexture, const gpu::Texture& gpuTexture);
         ~GLTexture();
 
+        // Return a floating point value indicating how much of the allowed 
+        // texture memory we are currently consuming.  A value of 0 indicates 
+        // no texture memory usage, while a value of 1 indicates all available / allowed memory
+        // is consumed.  A value above 1 indicates that there is a problem.
+        static float getMemoryPressure();
+
+        void withPreservedTexture(std::function<void()> f);
+
         void createTexture();
+        void allocateStorage();
 
         GLuint size() const { return _size; }
         GLuint virtualSize() const { return _virtualSize; }
@@ -118,26 +144,34 @@ public:
         // Is the texture in a state where it can be rendered with no work?
         bool isReady() const;
 
+        // Is this texture pushing us over the memory limit?
+        bool isOverMaxMemory() const;
+
         // Move the image bits from the CPU to the GPU
         void transfer() const;
 
         // Execute any post-move operations that must occur only on the main thread
         void postTransfer();
 
+        uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
+
         static const size_t CUBE_NUM_FACES = 6;
         static const GLenum CUBE_FACE_LAYOUT[6];
         
     private:
+        friend class GLTextureTransferHelper;
+
+        GLTexture(bool transferrable, const gpu::Texture& gpuTexture, bool init);
         // at creation the true texture is created in GL
         // it becomes public only when ready.
         GLuint _privateTexture{ 0 };
 
-        void setSize(GLuint size);
-        void setVirtualSize(GLuint size);
+        const std::vector<GLenum>& getFaceTargets() const;
 
-        GLuint _size; // true size as reported by the gl api
-        GLuint _virtualSize; // theorical size as expected
-        GLuint _numLevels{ 0 };
+        void setSize(GLuint size);
+
+        const GLuint _virtualSize; // theorical size as expected
+        GLuint _size { 0 }; // true size as reported by the gl api
 
         void transferMip(uint16_t mipLevel, uint8_t face = 0) const;
 

@@ -32,33 +32,10 @@ protected:
     void setup() override;
     void shutdown() override;
     bool processQueueItems(const Queue& messages) override;
-    void transferTextureSynchronous(const gpu::Texture& texture);
+    void do_transfer(GLBackend::GLTexture& texturePointer);
 
 private:
     QSharedPointer<OffscreenGLCanvas> _canvas;
 };
-
-template <typename F>
-void withPreservedTexture(GLenum target, F f) {
-    GLint boundTex = -1;
-    switch (target) {
-    case GL_TEXTURE_2D:
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-        break;
-
-    case GL_TEXTURE_CUBE_MAP:
-        glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-        break;
-
-    default:
-        qFatal("Unsupported texture type");
-    }
-    (void)CHECK_GL_ERROR();
-
-    f();
-
-    glBindTexture(target, boundTex);
-    (void)CHECK_GL_ERROR();
-}
 
 }

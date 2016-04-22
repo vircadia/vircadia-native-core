@@ -14,6 +14,8 @@
 #include <queue>
 #include <list>
 #include <glm/gtc/type_ptr.hpp>
+#include <GPUIdent.h>
+#include <NumericalConstants.h>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -86,10 +88,18 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
+        QString vendor{ (const char*)glGetString(GL_VENDOR) };
+        QString renderer{ (const char*)glGetString(GL_RENDERER) };
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-        qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+        qCDebug(gpulogging) << "GL Vendor: " << vendor;
+        qCDebug(gpulogging) << "GL Renderer: " << renderer;
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
+        // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
+        qCDebug(gpulogging) << "GPU:";
+        qCDebug(gpulogging) << "\tcard:" << gpu->getName();
+        qCDebug(gpulogging) << "\tdriver:" << gpu->getDriver();
+        qCDebug(gpulogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
 
         glewExperimental = true;
         GLenum err = glewInit();
@@ -115,6 +125,50 @@ void GLBackend::init() {
         }*/
 #endif
     });
+}
+
+Context::Size GLBackend::getDedicatedMemory() {
+    static Context::Size dedicatedMemory { 0 };
+    static std::once_flag once;
+    std::call_once(once, [&] {
+#ifdef Q_OS_WIN
+        if (!dedicatedMemory && wglGetGPUIDsAMD && wglGetGPUInfoAMD) {
+            UINT maxCount = wglGetGPUIDsAMD(0, 0);
+            std::vector<UINT> ids;
+            ids.resize(maxCount);
+            wglGetGPUIDsAMD(maxCount, &ids[0]);
+            GLuint memTotal;
+            wglGetGPUInfoAMD(ids[0], WGL_GPU_RAM_AMD, GL_UNSIGNED_INT, sizeof(GLuint), &memTotal);
+            dedicatedMemory = MB_TO_BYTES(memTotal);
+        }
+#endif
+
+        if (!dedicatedMemory) {
+            GLint atiGpuMemory[4];
+            // not really total memory, but close enough if called early enough in the application lifecycle
+            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
+            if (GL_NO_ERROR == glGetError()) {
+                dedicatedMemory = KB_TO_BYTES(atiGpuMemory[0]);
+            }
+        }
+
+        if (!dedicatedMemory) {
+            GLint nvGpuMemory { 0 };
+            glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &nvGpuMemory);
+            if (GL_NO_ERROR == glGetError()) {
+                dedicatedMemory = KB_TO_BYTES(nvGpuMemory);
+            }
+        }
+
+        if (!dedicatedMemory) {
+            auto gpuIdent = GPUIdent::getInstance();
+            if (gpuIdent && gpuIdent->isValid()) {
+                dedicatedMemory = MB_TO_BYTES(gpuIdent->getMemory());
+            }
+        }
+    });
+
+    return dedicatedMemory;
 }
 
 Backend* GLBackend::createBackend() {
