@@ -615,6 +615,9 @@ void Resource::handleReplyFinished() {
                 if (_attempts++ < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
 
+                    qCDebug(networking) << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
+                        << "if resource is still needed";
+
                     QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
                     break;
                 }
