@@ -519,10 +519,9 @@ const int MAX_ATTEMPTS = 8;
 void Resource::attemptRequest() {
     _startedLoading = true;
 
-    auto timer = qobject_cast<QTimer*>(sender());
-    if (timer) {
-        qCDebug(networking).nospace() << "Server unavailable for" << _url
-            << "- retrying asset load after" << timer->interval() << "ms - attempt" << _attempts << " of " << MAX_ATTEMPTS;
+    if (_attempts > 0) {
+        qCDebug(networking) << "Server unavailable for" << _url
+            << "- retrying asset load - attempt" << _attempts << " of " << MAX_ATTEMPTS;
     }
 
     ResourceCache::attemptRequest(_self);
