@@ -514,8 +514,16 @@ void Resource::init() {
     }
 }
 
+const int MAX_ATTEMPTS = 8;
+
 void Resource::attemptRequest() {
     _startedLoading = true;
+
+    if (_attempts > 0) {
+        qCDebug(networking).noquote() << "Server unavailable for" << _url
+            << "- retrying asset load - attempt" << _attempts << " of " << MAX_ATTEMPTS;
+    }
+
     ResourceCache::attemptRequest(_self);
 }
 
@@ -602,13 +610,13 @@ void Resource::handleReplyFinished() {
             }
             case ResourceRequest::Result::ServerUnavailable: {
                 // retry with increasing delays
-                const int MAX_ATTEMPTS = 8;
                 const int BASE_DELAY_MS = 1000;
                 if (_attempts++ < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
-                    qCDebug(networking) << "Server unavailable for" << _url <<
-                        "retrying in " << waitTime << "ms," <<
-                        "attempt " << _attempts + 1 << "of" << MAX_ATTEMPTS;
+
+                    qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
+                        << "if resource is still needed";
+
                     QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
                     break;
                 }

@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import Qt.labs.settings 1.0
 
 Rectangle {
     id: root
@@ -8,67 +9,68 @@ Rectangle {
             
     signal sendToScript(var message);
     property var values: [];
-    property var host: AddressManager.hostname
+    property alias destination: addressLine.text
+    readonly property string nullDestination: "169.254.0.1"
+    property bool running: false
 
-
-    Component.onCompleted: {
-        Window.domainChanged.connect(function(newDomain){
-            if (newDomain !== root.host) {
-                root.host = AddressManager.hostname;
-            }
-        });
+    function statusReport() {
+        console.log("PERF status connected: " + AddressManager.isConnected);
     }
-
-    onHostChanged: {
-        if (root.running) {
-            if (host !== "Dreaming" && host !== "Playa") {
+    
+    Timer {
+        id: readyStateTimer
+        interval: 500
+        repeat: true
+        running: false
+        onTriggered: {
+            if (!root.running) {
+                stop();
                 return;
             }
 
-            console.log("PERF new domain " + host)
-            if (host === "Dreaming") {
-                AddressManager.handleLookupString("Playa");
+            if (AddressManager.isConnected) {
+                console.log("PERF already connected, disconnecting");
+                AddressManager.handleLookupString(root.nullDestination);
                 return;
             }
+            
+            stop();
+            console.log("PERF disconnected, moving to target " + root.destination);
+            AddressManager.handleLookupString(root.destination);
 
-            if (host === "Playa") {
-                console.log("PERF starting timers and frame timing");
-                // If we've arrived, start running the test
-                FrameTimings.start();
-                rotationTimer.start();
-                stopTimer.start();
-            }
+            // If we've arrived, start running the test
+            console.log("PERF starting timers and frame timing");
+            FrameTimings.start();
+            rotationTimer.start();
+            stopTimer.start();
         }
     }
 
+
     function startTest() {
         console.log("PERF startTest()");
-        root.running = true
-        console.log("PERF current host: " + AddressManager.hostname)
-        // If we're already in playa, we need to go somewhere else...
-        if ("Playa" === AddressManager.hostname) {
-            console.log("PERF Navigating to dreaming")
-            AddressManager.handleLookupString("Dreaming/0,0,0");
-        } else {
-            console.log("PERF Navigating to playa")
-            AddressManager.handleLookupString("Playa");
+        if (!root.running) {
+            root.running = true
+            readyStateTimer.start();
         }
     }
 
     function stopTest() {
         console.log("PERF stopTest()");
-        root.running = false;
-        stopTimer.stop();
-        rotationTimer.stop();
-        FrameTimings.finish();
-        root.values = FrameTimings.getValues();
-        AddressManager.handleLookupString("Dreaming/0,0,0");
-        resultGraph.requestPaint();
-        console.log("PERF Value Count: " + root.values.length);
-        console.log("PERF Max: " + FrameTimings.max);
-        console.log("PERF Min: " + FrameTimings.min);
-        console.log("PERF Avg: " + FrameTimings.mean);
-        console.log("PERF StdDev: " + FrameTimings.standardDeviation);
+        if (root.running) {
+            root.running = false;
+            stopTimer.stop();
+            rotationTimer.stop();
+            FrameTimings.finish();
+            root.values = FrameTimings.getValues();
+            AddressManager.handleLookupString(root.nullDestination);
+            resultGraph.requestPaint();
+            console.log("PERF Value Count: " + root.values.length);
+            console.log("PERF Max: " + FrameTimings.max);
+            console.log("PERF Min: " + FrameTimings.min);
+            console.log("PERF Avg: " + FrameTimings.mean);
+            console.log("PERF StdDev: " + FrameTimings.standardDeviation);
+        }
     }
 
     function yaw(a) {
@@ -82,7 +84,6 @@ Rectangle {
         MyAvatar.setOrientationVar(yaw(Date.now() / 1000));
     }
 
-    property bool running: false
 
     Timer {
         id: stopTimer
@@ -102,13 +103,42 @@ Rectangle {
 
     Row {
         id: row
-        anchors { left: parent.left; right: parent.right; }
+        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 16 }
         spacing: 8
         Button {
             text: root.running ? "Stop" : "Run"
             onClicked: root.running ? stopTest() : startTest();
         }
+        Button {
+            text: "Disconnect"
+            onClicked: AddressManager.handleLookupString(root.nullDestination);
+        }
+        Button {
+            text: "Connect"
+            onClicked: AddressManager.handleLookupString(root.destination);
+        }
+        Button {
+            text: "Status"
+            onClicked: statusReport();
+        }
     }
+
+    TextField {
+        id: addressLine
+        focus: true
+        anchors { 
+            left: parent.left; right: parent.right;
+            top: row.bottom; margins: 16; 
+        }
+        text: "Playa"
+        onTextChanged: console.log("PERF new target " + text);
+    }
+
+    Settings {
+        category: "Qml.Performance.RenderTest"
+        property alias destination: addressLine.text
+    }
+
 
 //    Rectangle {
 //        anchors { left: parent.left; right: parent.right; top: row.bottom; topMargin: 8; bottom: parent.bottom; }
@@ -130,7 +160,7 @@ Rectangle {
 
     Canvas {
         id: resultGraph
-        anchors { left: parent.left; right: parent.right; top: row.bottom; margins: 16; bottom: parent.bottom; }
+        anchors { left: parent.left; right: parent.right; top: addressLine.bottom; margins: 16; bottom: parent.bottom; }
         property real maxValue: 200;
         property real perFrame: 10000;
         property real k1: (5 / maxValue) * height;
