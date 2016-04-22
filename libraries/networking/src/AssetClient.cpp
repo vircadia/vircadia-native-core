@@ -99,6 +99,8 @@ void AssetClient::clearCache() {
 }
 
 void AssetClient::handleAssetMappingOperationReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     MessageID messageID;
     message->readPrimitive(&messageID);
     
@@ -201,6 +203,8 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data) {
 
 MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end,
                            ReceivedAssetCallback callback, ProgressCallback progressCallback) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
         return false;
@@ -239,6 +243,8 @@ MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffse
 }
 
 MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callback) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -263,6 +269,8 @@ MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callbac
 }
 
 void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     MessageID messageID;
     message->readPrimitive(&messageID);
     auto assetHash = message->read(SHA256_HASH_LENGTH);
@@ -297,6 +305,8 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
 }
 
 void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     auto assetHash = message->read(SHA256_HASH_LENGTH);
     qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
@@ -330,19 +340,25 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
 
             if (message->isComplete()) {
                 callbacks.completeCallback(true, error, message->readAll());
+                messageCallbackMap.erase(requestIt);
             } else {
-                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks]() {
+                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, &callbacks]() {
                     callbacks.progressCallback(message->getSize(), length);
                 });
-                connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks]() {
+                connect(message.data(), &ReceivedMessage::completed, this, [this, messageID, message, &messageCallbackMap, &callbacks]() {
                     if (message->failed()) {
                         callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
                     } else {
-                        callbacks.completeCallback(true, error, message->readAll());
+                        callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());
                     }
+
+                    // We should never get to this point without the associated senderNode and messageID
+                    // in our list of pending requests. If the senderNode had disconnected or the message
+                    // had been canceled, we should have been disconnected from the ReceivedMessage
+                    // signals and thus never had this lambda called.
+                    messageCallbackMap.erase(messageID);
                 });
             }
-            messageCallbackMap.erase(requestIt);
         }
 
         // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
@@ -351,6 +367,8 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
 }
 
 MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -376,6 +394,8 @@ MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCa
 }
 
 MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -428,6 +448,8 @@ MessageID AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOp
 }
 
 MessageID AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -481,6 +503,8 @@ MessageID AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetP
 }
 
 bool AssetClient::cancelMappingRequest(MessageID id) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     for (auto& kv : _pendingMappingRequests) {
         if (kv.second.erase(id)) {
             return true;
@@ -490,6 +514,8 @@ bool AssetClient::cancelMappingRequest(MessageID id) {
 }
 
 bool AssetClient::cancelGetAssetInfoRequest(MessageID id) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     for (auto& kv : _pendingInfoRequests) {
         if (kv.second.erase(id)) {
             return true;
@@ -499,6 +525,8 @@ bool AssetClient::cancelGetAssetInfoRequest(MessageID id) {
 }
 
 bool AssetClient::cancelGetAssetRequest(MessageID id) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     // Search through each pending mapping request for id `id`
     for (auto& kv : _pendingRequests) {
         auto& messageCallbackMap = kv.second;
@@ -520,6 +548,8 @@ bool AssetClient::cancelGetAssetRequest(MessageID id) {
 }
 
 bool AssetClient::cancelUploadAssetRequest(MessageID id) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     // Search through each pending mapping request for id `id`
     for (auto& kv : _pendingUploads) {
         if (kv.second.erase(id)) {
@@ -530,6 +560,8 @@ bool AssetClient::cancelUploadAssetRequest(MessageID id) {
 }
 
 MessageID AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback callback) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -555,6 +587,8 @@ MessageID AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback 
 }
 
 void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     MessageID messageID;
     message->readPrimitive(&messageID);
 
@@ -593,6 +627,8 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message
 }
 
 void AssetClient::handleNodeKilled(SharedNodePointer node) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     if (node->getType() != NodeType::AssetServer) {
         return;
     }
