@@ -520,7 +520,7 @@ void Resource::attemptRequest() {
     _startedLoading = true;
 
     if (_attempts > 0) {
-        qCDebug(networking) << "Server unavailable for" << _url
+        qCDebug(networking).noquote() << "Server unavailable for" << _url
             << "- retrying asset load - attempt" << _attempts << " of " << MAX_ATTEMPTS;
     }
 
@@ -614,7 +614,7 @@ void Resource::handleReplyFinished() {
                 if (_attempts++ < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
 
-                    qCDebug(networking) << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
+                    qCDebug(networking).noquote() << "Server unavailable for" << _url << "- may retry in" << waitTime << "ms"
                         << "if resource is still needed";
 
                     QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
