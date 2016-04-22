@@ -51,8 +51,9 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter) {
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_BUFFER));
+    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_BUFFER));
+    slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::TEXMAPARRAY_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::ALBEDO_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("roughnessMap"), Slot::ROUGHNESS_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::NORMAL_MAP));
@@ -65,7 +66,6 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     gpu::Shader::makeProgram(*program, slotBindings);
 
     auto locations = std::make_shared<Locations>();
-    locations->texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations->emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
     locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
@@ -76,6 +76,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->occlusionTextureUnit = program->getTextures().findLocation("occlusionMap");
     locations->skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
+    locations->texMapArrayBufferUnit = program->getBuffers().findLocation("texMapArrayBuffer");
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
 
     ShapeKey key{filter._flags};
