@@ -16,8 +16,6 @@
 #include <QtCore/QRegularExpression>
 #include <QDesktopServices>
 
-#include "PathUtils.h"
-
 
 QUrl FileDialogHelper::home() {
     return pathToUrl(QStandardPaths::standardLocations(QStandardPaths::HomeLocation)[0]);
@@ -107,6 +105,6 @@ QStringList FileDialogHelper::drives() {
     return result;
 }
 
-void FileDialogHelper::openScriptsDirectory() {
-    QDesktopServices::openUrl(defaultScriptsLocation());
+void FileDialogHelper::openDirectory(const QString& path) {
+    QDesktopServices::openUrl(path);
 }
