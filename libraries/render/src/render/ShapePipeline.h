@@ -215,7 +215,6 @@ public:
         int metallicTextureUnit;
         int emissiveTextureUnit;
         int occlusionTextureUnit;
-        int emissiveParams;
         int normalFittingMapUnit;
         int skinClusterBufferUnit;
         int materialBufferUnit;

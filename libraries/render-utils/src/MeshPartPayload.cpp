@@ -218,10 +218,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
         if (lightmapMap && lightmapMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, lightmapMap->getTextureView());
-
-            auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
-            batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
-
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getGrayTexture());
         }
