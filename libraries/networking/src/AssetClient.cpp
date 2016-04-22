@@ -32,7 +32,6 @@
 MessageID AssetClient::_currentID = 0;
 
 AssetClient::AssetClient() {
-    
     setCustomDeleter([](Dependency* dependency){
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
@@ -502,7 +501,18 @@ bool AssetClient::cancelGetAssetInfoRequest(MessageID id) {
 bool AssetClient::cancelGetAssetRequest(MessageID id) {
     // Search through each pending mapping request for id `id`
     for (auto& kv : _pendingRequests) {
-        if (kv.second.erase(id)) {
+        auto& messageCallbackMap = kv.second;
+        auto requestIt = messageCallbackMap.find(id);
+        if (requestIt != kv.second.end()) {
+
+            auto& message = requestIt->second.message;
+            if (message) {
+                // disconnect from all signals emitting from the pending message
+                disconnect(message.data(), nullptr, this, nullptr);
+            }
+
+            messageCallbackMap.erase(requestIt);
+
             return true;
         }
     }

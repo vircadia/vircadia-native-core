@@ -14,6 +14,9 @@
 #include <QtCore/QFile>
 #include <QtCore/QDebug>
 #include <QtCore/QRegularExpression>
+#include <QDesktopServices>
+
+#include "PathUtils.h"
 
 
 QUrl FileDialogHelper::home() {
@@ -102,4 +105,8 @@ QStringList FileDialogHelper::drives() {
         result << drive.absolutePath();
     }
     return result;
+}
+
+void FileDialogHelper::openScriptsDirectory() {
+    QDesktopServices::openUrl(defaultScriptsLocation());
 }

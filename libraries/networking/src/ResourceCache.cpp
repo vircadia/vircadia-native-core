@@ -606,8 +606,9 @@ void Resource::handleReplyFinished() {
                 const int BASE_DELAY_MS = 1000;
                 if (_attempts++ < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
-                    qCDebug(networking).nospace() << "Retrying to load the asset in " << waitTime
-                                       << "ms, attempt " << _attempts << " of " << MAX_ATTEMPTS;
+                    qCDebug(networking) << "Server unavailable for" << _url <<
+                        "retrying in " << waitTime << "ms," <<
+                        "attempt " << _attempts + 1 << "of" << MAX_ATTEMPTS;
                     QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
                     break;
                 }
