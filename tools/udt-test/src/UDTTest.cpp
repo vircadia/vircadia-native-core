@@ -25,8 +25,8 @@ const QCommandLineOption TARGET_OPTION {
     "IP:PORT or HOSTNAME:PORT"
 };
 const QCommandLineOption PACKET_SIZE {
-    "packet-size", "size for sent packets in bytes (defaults to 1500)", "bytes",
-    QString(udt::MAX_PACKET_SIZE_WITH_UDP_HEADER)
+    "packet-size", "size for sent packets in bytes (defaults to " + QString(MAX_PACKET_SIZE) + ")", "bytes",
+    QString(udt::MAX_PACKET_SIZE)
 };
 const QCommandLineOption MIN_PACKET_SIZE {
     "min-packet-size", "min size for sent packets in bytes", "min bytes"
@@ -366,7 +366,7 @@ void UDTTest::sampleStats() {
     static const double USECS_PER_MSEC = 1000.0;
     static const double MEGABITS_PER_BYTE = 8.0 / 1000000.0;
     static const double MS_PER_SECOND = 1000.0;
-    static const double PPS_TO_MBPS = 1500.0 * MEGABITS_PER_BYTE;
+    static const double PPS_TO_MBPS = udt::MAX_PACKET_SIZE * MEGABITS_PER_BYTE;
 
 
     if (!_target.isNull()) {
