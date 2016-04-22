@@ -24,7 +24,8 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
-    implicitWidth: 400; implicitHeight: 728
+    implicitWidth: 400
+    implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
@@ -32,6 +33,7 @@ Window {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property bool isHMD: false
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -44,7 +46,10 @@ Window {
         onScriptCountChanged: updateRunningScripts();
     }
 
-    Component.onCompleted: updateRunningScripts()
+    Component.onCompleted: {
+        isHMD = HMD.active;
+        updateRunningScripts();
+    }
 
     function setDefaultFocus() {
         // Work around FocusScope of scrollable window.
@@ -237,7 +242,7 @@ Window {
             }
 
             HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight - 3
+                height: hifi.dimensions.controlInterlineHeight - (!isHMD ? 3 : 0)
             }
 
             HifiControls.TextAction {
@@ -248,10 +253,12 @@ Window {
                 onClicked: fileDialogHelper.openScriptsDirectory()
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
+                visible: !isHMD
             }
 
             HifiControls.VerticalSpacer {
                 height: hifi.dimensions.controlInterlineHeight - 3
+                visible: !isHMD
             }
         }
     }
