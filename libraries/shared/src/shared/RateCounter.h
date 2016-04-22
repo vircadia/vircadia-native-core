@@ -11,6 +11,7 @@
 #define hifi_Shared_RateCounter_h
 
 #include <stdint.h>
+#include <atomic>
 #include <functional>
 #include <QtCore/QElapsedTimer>
 
@@ -20,6 +21,8 @@
 template <uint32_t INTERVAL = MSECS_PER_SECOND, uint8_t PRECISION = 2>
 class RateCounter {
 public:
+    RateCounter() { _rate = 0; } // avoid use of std::atomic copy ctor
+
     void increment(size_t count = 1) {
         auto now = usecTimestampNow();
         float currentIntervalMs = (now - _start) / (float) USECS_PER_MSEC;
@@ -42,8 +45,8 @@ public:
 private:
     uint64_t _start { usecTimestampNow() };
     size_t _count { 0 };
-    float _rate { 0 };
     const float _scale { powf(10, PRECISION) };
+    std::atomic<float> _rate;
 };
 
 #endif
