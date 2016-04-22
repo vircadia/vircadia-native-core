@@ -162,7 +162,8 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
     if (QThread::currentThread() != thread()) {
         // Must be called in thread to ensure getResource returns a valid pointer
         QMetaObject::invokeMethod(this, "prefetch", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(ScriptableResource*, result), Q_ARG(QUrl, url));
+            Q_RETURN_ARG(ScriptableResource*, result),
+            Q_ARG(QUrl, url), Q_ARG(void*, extra));
         return result;
     }
 
