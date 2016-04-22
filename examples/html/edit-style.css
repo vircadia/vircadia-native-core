@@ -164,6 +164,10 @@ tr.selected {
     background-color: #00b4ef;
 }
 
+tr.selected + tr.selected {
+    border-top: 1px solid #2e2e2e;
+}
+
 th {
     text-align: center;
     word-wrap: nowrap;
