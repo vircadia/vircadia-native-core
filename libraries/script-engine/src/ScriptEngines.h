@@ -50,6 +50,8 @@ public:
     ScriptsModel* scriptsModel() { return &_scriptsModel; };
     ScriptsModelFilter* scriptsModelFilter() { return &_scriptsModelFilter; };
 
+    QString getDefaultScriptsLocation() const;
+
     Q_INVOKABLE void loadOneScript(const QString& scriptFilename);
     Q_INVOKABLE ScriptEngine* loadScript(const QUrl& scriptFilename = QString(),
         bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
@@ -61,6 +63,8 @@ public:
     Q_INVOKABLE QVariantList getRunning();
     Q_INVOKABLE QVariantList getPublic();
     Q_INVOKABLE QVariantList getLocal();
+
+    Q_PROPERTY(QString defaultScriptsPath READ getDefaultScriptsLocation)
 
     // Called at shutdown time
     void shutdownScripting();

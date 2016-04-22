@@ -250,7 +250,7 @@ Window {
                 icon: hifi.glyphs.script
                 iconSize: 24
                 text: "Reveal Scripts Folder"
-                onClicked: fileDialogHelper.openScriptsDirectory()
+                onClicked: fileDialogHelper.openDirectory(scripts.defaultScriptsPath)
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
                 visible: !isHMD
