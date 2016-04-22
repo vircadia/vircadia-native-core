@@ -16,6 +16,7 @@
 #include <algorithm> //min max and more
 #include <bitset>
 
+#include <QMetaType>
 #include <QUrl>
 
 namespace gpu {
@@ -469,7 +470,6 @@ protected:
 typedef std::shared_ptr<Texture> TexturePointer;
 typedef std::vector< TexturePointer > Textures;
 
-
  // TODO: For now TextureView works with Texture as a place holder for the Texture.
  // The overall logic should be about the same except that the Texture will be a real GL Texture under the hood
 class TextureView {
@@ -526,7 +526,7 @@ public:
 
     void reset(const QUrl& url);
 
-    void resetTexture(gpu::Texture* texture);
+    void resetTexture(gpu::TexturePointer texture);
 
     bool isDefined() const;
 
@@ -538,5 +538,6 @@ typedef std::shared_ptr< TextureSource > TextureSourcePointer;
 
 };
 
+Q_DECLARE_METATYPE(gpu::TexturePointer)
 
 #endif

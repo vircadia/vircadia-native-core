@@ -17,6 +17,7 @@
 
 using namespace gpu;
 
+static int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
 std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
@@ -857,8 +858,8 @@ void TextureSource::reset(const QUrl& url) {
     _imageUrl = url;
 }
 
-void TextureSource::resetTexture(gpu::Texture* texture) {
-    _gpuTexture.reset(texture);
+void TextureSource::resetTexture(gpu::TexturePointer texture) {
+    _gpuTexture = texture;
 }
 
 bool TextureSource::isDefined() const {
