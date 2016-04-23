@@ -61,9 +61,12 @@ var toolBar = (function() {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.HORIXONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x / 2 - toolbar.height / 2,  // Use toolbar.height to match edit.js
-                y: windowDimensions.y - TOOLBAR_MARGIN_Y - toolHeight
+                x: windowDimensions.x / 2,
+                y: windowDimensions.y
             };
+        }, {
+            x: -toolWidth / 2,
+            y: -TOOLBAR_MARGIN_Y - toolHeight
         });
         browseExamplesButton = toolBar.addTool({
             imageURL: toolIconUrl + "examples-01.svg",

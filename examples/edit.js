@@ -182,9 +182,12 @@ var toolBar = (function() {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x / 2 + 2 * toolbar.height,  // Use toolbar.height as a proxy for width of a single button
-                y: windowDimensions.y - TOOLBAR_MARGIN_Y - toolHeight
+                x: windowDimensions.x / 2,
+                y: windowDimensions.y
             };
+        }, {
+            x: toolWidth,
+            y: -TOOLBAR_MARGIN_Y - toolHeight
         });
 
         activeButton = toolBar.addTool({

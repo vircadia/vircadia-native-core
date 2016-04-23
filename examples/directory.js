@@ -56,9 +56,12 @@ var toolBar = (function() {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.directory.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x / 2 - 3 * toolbar.height,  // Use toolbar.height to match edit.js
-                y: windowDimensions.y - TOOLBAR_MARGIN_Y - toolHeight
+                x: windowDimensions.x / 2,  
+                y: windowDimensions.y
             };
+        }, {
+            x: -2 * toolWidth,
+            y: -TOOLBAR_MARGIN_Y - toolHeight
         });
         browseDirectoryButton = toolBar.addTool({
             imageURL: toolIconUrl + "directory-01.svg",
