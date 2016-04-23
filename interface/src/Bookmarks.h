@@ -31,6 +31,7 @@ public:
 
 private slots:
     void bookmarkLocation();
+    void setHomeLocation();
     void teleportToBookmark();
     void deleteBookmark();
     

@@ -95,6 +95,8 @@ void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // Add menus/actions
     auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation);
     QObject::connect(bookmarkAction, SIGNAL(triggered()), this, SLOT(bookmarkLocation()), Qt::QueuedConnection);
+    auto setHomeAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::SetHomeLocation);
+    QObject::connect(setHomeAction, SIGNAL(triggered()), this, SLOT(setHomeLocation()), Qt::QueuedConnection);
     _bookmarksMenu = menu->addMenu(MenuOption::Bookmarks);
     _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
@@ -143,6 +145,18 @@ void Bookmarks::bookmarkLocation() {
     addLocationToMenu(menubar, bookmarkName, bookmarkAddress);
     insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
     
+    enableMenuItems(true);
+}
+
+void Bookmarks::setHomeLocation() {
+    Menu* menubar = Menu::getInstance();
+    QString bookmarkName = "Home";
+    auto addressManager = DependencyManager::get<AddressManager>();
+    QString bookmarkAddress = addressManager->currentAddress().toString();
+
+    addLocationToMenu(menubar, bookmarkName, bookmarkAddress);
+    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
+
     enableMenuItems(true);
 }
 
