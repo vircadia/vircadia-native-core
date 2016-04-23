@@ -413,9 +413,15 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
 
 class CubeLayout {
 public:
+
+    enum SourceProjection {
+        FLAT = 0,
+        EQUIRECTANGULAR,
+    };
+    int _type = FLAT;
     int _widthRatio = 1;
     int _heightRatio = 1;
-    
+
     class Face {
     public:
         int _x = 0;
@@ -435,6 +441,7 @@ public:
     Face _faceZNeg;
     
     CubeLayout(int wr, int hr, Face fXP, Face fXN, Face fYP, Face fYN, Face fZP, Face fZN) :
+    _type(FLAT),
     _widthRatio(wr),
     _heightRatio(hr),
     _faceXPos(fXP),
@@ -443,6 +450,11 @@ public:
     _faceYNeg(fYN),
     _faceZPos(fZP),
     _faceZNeg(fZN) {}
+
+    CubeLayout(int wr, int hr) :
+        _type(EQUIRECTANGULAR),
+        _widthRatio(wr),
+        _heightRatio(hr) {}
 
 
     static const CubeLayout CUBEMAP_LAYOUTS[];
@@ -459,9 +471,127 @@ public:
         }
         return foundLayout;
     }
+
+    static QImage extractEquirectangularFace(const QImage& source, gpu::Texture::CubeFace face, int faceWidth) {
+        QImage image(faceWidth, faceWidth, source.format());
+        glm::vec2 dstInvSize(1.0 / (float)image.width(), 1.0 / (float)image.height());
+        float RAD_TO_SRC = 4.0f / glm::pi<float>();
+
+
+        if (face == gpu::Texture::CubeFace::CUBE_FACE_BOTTOM_NEG_Y || face == gpu::Texture::CubeFace::CUBE_FACE_TOP_POS_Y) {
+            int isTopFace = (face == gpu::Texture::CubeFace::CUBE_FACE_TOP_POS_Y);
+            int isBottomFace = (1 - isTopFace);
+
+            const int SOURCE_FACE_X_OFFSET[] = {
+                2, // Right +X
+                0, // Left -X
+                0, // top not used
+                0, // bottom not used
+                3, // Back +Z
+                1 // Front -Z
+            };
+
+            int srcFaceHeight = source.height() / 4;
+            int srcYOffset = 0 + isBottomFace * source.height();
+
+            int srcFaceWidth = source.width();
+            int srcXOffset = 0;
+
+            glm::vec2 dstCoord;
+            glm::vec2 srcCoord;
+            glm::ivec2 srcPixel;
+            for (int y = 0; y < image.height(); ++y) {
+                auto data = reinterpret_cast<QRgb*>(image.scanLine(y));
+                dstCoord.y = -1.0 + 2.0 * (y + 0.5) * dstInvSize.y;
+
+                for (int x = 0; x < image.width(); ++x) {
+                    dstCoord.x = -1.0 + 2.0 * (x + 0.5) * dstInvSize.x;
+
+                    glm::vec2 dstCoordPol(atan2(dstCoord.y, dstCoord.x), glm::length(dstCoord));
+
+                    srcCoord.x = dstCoordPol.y * RAD_TO_SRC / 8.0f;
+                    srcCoord.y = atan(dstCoordPol.y) * RAD_TO_SRC;
+                    if (isBottomFace) {
+                        srcCoord.y -= srcCoord.y;
+                    }
+
+                    srcPixel.x = floor(srcCoord.x * srcFaceHeight + srcXOffset);
+                    srcPixel.y = floor(srcCoord.y * srcFaceWidth + srcYOffset);
+
+                    if (srcPixel.x >= source.width() || srcPixel.y >= source.height()) {
+                        data[x] = QRgb(0);
+                    } else {
+                        data[x] = source.pixel(QPoint(srcPixel.x, srcPixel.y));
+                    }
+                }
+            }
+            
+        } else {
+            const int SOURCE_FACE_X_OFFSET[] = {
+                2, // Right +X
+                0, // Left -X
+                0, // top not used
+                0, // bottom not used
+                3, // Back +Z
+                1 // Front -Z
+            };
+
+            int srcFaceHeight = source.height() / 2;
+            int srcYOffset = srcFaceHeight;
+            
+            int srcFaceWidth = source.width() / 4;
+            int srcXOffset = SOURCE_FACE_X_OFFSET[face] * srcFaceWidth;
+
+            glm::vec2 dstCoord;
+            glm::vec2 srcCoord;
+            glm::ivec2 srcPixel;
+            for (int y = 0; y < image.height(); ++y) {
+                auto data = reinterpret_cast<QRgb*>(image.scanLine(y));
+                dstCoord.y = (y + 0.5) * dstInvSize.y;
+
+                srcCoord.y = 0.5f + 0.5f * atan(-1.0 + 2.0 * dstCoord.y) * RAD_TO_SRC;
+
+                srcPixel.y = floor(srcCoord.y * srcFaceHeight) + srcYOffset;
+
+                for (int x = 0; x < image.width(); ++x) {
+                    dstCoord.x = (x + 0.5) * dstInvSize.x;
+
+                    srcCoord.x = 0.5f + 0.5f * atan(-1.0 + 2.0 * dstCoord.x) * RAD_TO_SRC;
+
+                    srcPixel.x = floor(srcCoord.x * srcFaceWidth) + srcXOffset;
+
+                    if (srcPixel.x >= source.width() || srcPixel.y >= source.height()) {
+                        data[x] = 0xff000011;
+                    } else {
+                        data[x] = 0xff000000 | source.pixel(QPoint(srcPixel.x, srcPixel.y));
+                    }
+                }
+            }
+        }
+
+        return image;
+    }
 };
 
 const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
+
+    // Here is the expected layout for the faces in an image with the 2/1 aspect ratio:
+    // THis is detected as an Equirectangular projection
+    //                   WIDTH
+    //       <--------------------------->
+    //    ^  +------+------+------+------+
+    //    H  |      |      |      |      |
+    //    E  |      |      |      |      |
+    //    I  |      |      |      |      |
+    //    G  +------+------+------+------+
+    //    H  |      |      |      |      |
+    //    T  |      |      |      |      |
+    //    |  |      |      |      |      |
+    //    v  +------+------+------+------+
+    //
+    //    FaceWidth = width = height / 6
+    { 2, 1 },
+
     // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
     //
     //         WIDTH
@@ -582,14 +712,22 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
         // If found, go extract the faces as separate images
         if (foundLayout >= 0) {
             auto& layout = CubeLayout::CUBEMAP_LAYOUTS[foundLayout];
-            int faceWidth = image.width() / layout._widthRatio;
+            if (layout._type == CubeLayout::FLAT) {
+                int faceWidth = image.width() / layout._widthRatio;
 
-            faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
-            faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
-            faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
-            faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
-            faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
-            faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
+            } else if (layout._type == CubeLayout::EQUIRECTANGULAR) {
+                int faceWidth = image.width() / 4;
+                for (int face = gpu::Texture::CUBE_FACE_RIGHT_POS_X; face < gpu::Texture::NUM_CUBE_FACES; face++) {
+                    faces.push_back(CubeLayout::extractEquirectangularFace(image, (gpu::Texture::CubeFace) face, faceWidth));
+                }
+                
+            }
         } else {
             qCDebug(modelLog) << "Failed to find a known cube map layout from this image:" << QString(srcImageName.c_str());
             return nullptr;
