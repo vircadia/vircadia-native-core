@@ -370,7 +370,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+    qint64 clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
     BufferParser parser(data, bytesLeftToRead);
 
@@ -485,7 +485,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "                                    now:" << now;
         qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
         qCDebug(entities) << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
-        qCDebug(entities) << "                              clockSkew:" << debugTimeOnly(clockSkew);
+        qCDebug(entities) << "                              clockSkew:" << clockSkew;
         qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
         qCDebug(entities) << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
         qCDebug(entities) << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
@@ -760,7 +760,7 @@ void EntityItem::debugDump() const {
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew) {
+void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew) {
     unsigned char* dataAt = reinterpret_cast<unsigned char*>(buffer.data());
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = (int)bytesRequiredForCodeLength(octets);
