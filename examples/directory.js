@@ -27,6 +27,7 @@ var directoryWindow = new OverlayWebWindow({
 
 var toolHeight = 50;
 var toolWidth = 50;
+var TOOLBAR_MARGIN_Y = 25;
 
 
 function showDirectory() {
@@ -53,10 +54,10 @@ var toolBar = (function() {
         browseDirectoryButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.directory.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.directory.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x - 8 - toolbar.width,
-                y: 50
+                x: windowDimensions.x / 2 - 3 * toolbar.height,  // Use toolbar.height to match edit.js
+                y: windowDimensions.y - TOOLBAR_MARGIN_Y - toolHeight
             };
         });
         browseDirectoryButton = toolBar.addTool({

@@ -53,6 +53,7 @@ selectionManager.addEventListener(function() {
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
+var TOOLBAR_MARGIN_Y = 25;
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
@@ -179,10 +180,10 @@ var toolBar = (function() {
         newParticleButton
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x - 8 - toolbar.width,
-                y: (windowDimensions.y - toolbar.height) / 2
+                x: windowDimensions.x / 2 + 2 * toolbar.height,  // Use toolbar.height as a proxy for width of a single button
+                y: windowDimensions.y - TOOLBAR_MARGIN_Y - toolHeight
             };
         });
 
