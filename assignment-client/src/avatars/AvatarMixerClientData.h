@@ -24,6 +24,7 @@
 #include <NodeData.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
+#include <PortableHighResolutionClock.h>
 #include <SimpleMovingAverage.h>
 #include <UUIDHasher.h>
 
@@ -33,6 +34,8 @@ const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
+    using HRCTime = p_high_resolution_clock::time_point;
+
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
 
@@ -45,11 +48,8 @@ public:
 
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
-    quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
-    void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }
-
-    quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
-    void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
+    HRCTime getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
+    void flagIdentityChange() { _identityChangeTimestamp = p_high_resolution_clock::now(); }
 
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
     float getFullRateDistance() const { return _fullRateDistance; }
@@ -86,8 +86,7 @@ private:
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
-    quint64 _billboardChangeTimestamp = 0;
-    quint64 _identityChangeTimestamp = 0;
+    HRCTime _identityChangeTimestamp;
 
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;

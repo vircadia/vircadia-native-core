@@ -102,7 +102,7 @@ public:
     virtual void setLocalTransform(const Transform& transform);
 
     virtual glm::vec3 getLocalPosition() const;
-    virtual void setLocalPosition(const glm::vec3& position);
+    virtual void setLocalPosition(const glm::vec3& position, bool tellPhysics = true);
 
     virtual glm::quat getLocalOrientation() const;
     virtual void setLocalOrientation(const glm::quat& orientation);
@@ -150,6 +150,13 @@ protected:
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer(bool& success) const;
+
+    void getLocalTransformAndVelocities(Transform& localTransform, glm::vec3& localVelocity, glm::vec3& localAngularVelocity) const;
+
+    void setLocalTransformAndVelocities(
+            const Transform& localTransform,
+            const glm::vec3& localVelocity,
+            const glm::vec3& localAngularVelocity);
 
     mutable SpatiallyNestableWeakPointer _parent;
 

@@ -29,7 +29,7 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual bool handleEasyChanges(uint32_t& flags) override;
+    virtual void handleEasyChanges(uint32_t& flags) override;
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
     /// \return PhysicsMotionType based on params set in EntityItem
@@ -43,17 +43,13 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans) override;
 
-    bool isCandidateForOwnership(const QUuid& sessionID) const;
+    bool isCandidateForOwnership() const;
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
-    bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
-    void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
+    bool shouldSendUpdate(uint32_t simulationStep);
+    void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     virtual uint32_t getIncomingDirtyFlags() override;
     virtual void clearIncomingDirtyFlags() override;
-
-    void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
-    void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    uint8_t getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }
@@ -123,7 +119,7 @@ protected:
     uint32_t _lastStep; // last step of server extrapolation
 
     uint8_t _loopsWithoutOwner;
-    uint8_t _accelerationNearlyGravityCount;
+    mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _outgoingPriority { 0 };
 };

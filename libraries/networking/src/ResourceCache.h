@@ -62,21 +62,20 @@ class ResourceCacheSharedItems : public Dependency  {
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 public:
-    void appendPendingRequest(Resource* newRequest);
-    void appendActiveRequest(Resource* newRequest);
-    void removeRequest(Resource* doneRequest);
-    QList<QPointer<Resource>> getPendingRequests() const;
+    void appendPendingRequest(QWeakPointer<Resource> newRequest);
+    void appendActiveRequest(QWeakPointer<Resource> newRequest);
+    void removeRequest(QWeakPointer<Resource> doneRequest);
+    QList<QSharedPointer<Resource>> getPendingRequests();
     uint32_t getPendingRequestsCount() const;
-    QList<Resource*> getLoadingRequests() const;
-    Resource* getHighestPendingRequest();
+    QList<QSharedPointer<Resource>> getLoadingRequests();
+    QSharedPointer<Resource> getHighestPendingRequest();
 
 private:
-    ResourceCacheSharedItems() { }
-    virtual ~ResourceCacheSharedItems() { }
+    ResourceCacheSharedItems() = default;
 
     mutable Mutex _mutex;
-    QList<QPointer<Resource>> _pendingRequests;
-    QList<Resource*> _loadingRequests;
+    QList<QWeakPointer<Resource>> _pendingRequests;
+    QList<QWeakPointer<Resource>> _loadingRequests;
 };
 
 
@@ -105,13 +104,11 @@ public:
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
-    static const QList<Resource*> getLoadingRequests() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests(); }
+    static QList<QSharedPointer<Resource>> getLoadingRequests();
 
-    static int getPendingRequestCount() 
-        { return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount(); }
+    static int getPendingRequestCount();
 
-    ResourceCache(QObject* parent = NULL);
+    ResourceCache(QObject* parent = nullptr);
     virtual ~ResourceCache();
     
     void refreshAll();
@@ -125,6 +122,9 @@ public slots:
 
 protected slots:
     void updateTotalSize(const qint64& oldSize, const qint64& newSize);
+
+private slots:
+    void clearATPAssets();
 
 protected:
     /// Loads a resource from the specified URL.
@@ -143,8 +143,8 @@ protected:
     
     /// Attempt to load a resource if requests are below the limit, otherwise queue the resource for loading
     /// \return true if the resource began loading, otherwise false if the resource is in the pending queue
-    static bool attemptRequest(Resource* resource);
-    static void requestCompleted(Resource* resource);
+    static bool attemptRequest(QSharedPointer<Resource> resource);
+    static void requestCompleted(QWeakPointer<Resource> resource);
     static bool attemptHighestPriorityRequest();
 
 private:
@@ -153,7 +153,9 @@ private:
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
     void resetResourceCounters();
+    void removeResource(const QUrl& url, qint64 size = 0);
 
+    QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
     QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
     
@@ -161,7 +163,7 @@ private:
     static int _requestsActive;
 
     void getResourceAsynchronously(const QUrl& url);
-    QReadWriteLock _resourcesToBeGottenLock;
+    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
     QQueue<QUrl> _resourcesToBeGotten;
     
     std::atomic<size_t> _numTotalResources { 0 };
@@ -171,6 +173,7 @@ private:
     std::atomic<qint64> _unusedResourcesSize { 0 };
 
     qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
+    QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
     QMap<int, QSharedPointer<Resource>> _unusedResources;
 };
 

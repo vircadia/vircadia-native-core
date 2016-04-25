@@ -32,6 +32,7 @@ typedef std::shared_ptr<Rig> RigPointer;
 // However only specific methods thread-safe.  Noted below.
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
+    Q_OBJECT
 public:
     struct StateHandler {
         AnimVariantMap results;
@@ -223,7 +224,10 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
- protected:
+signals:
+    void onLoadComplete();
+
+protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
@@ -289,13 +293,28 @@ public:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
-    enum class UserAnimState {
-        None = 0,
-        A,
-        B
+
+    struct UserAnimState {
+        enum ClipNodeEnum {
+            None = 0,
+            A,
+            B
+        };
+
+        UserAnimState() : clipNodeEnum(UserAnimState::None) {}
+        UserAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
     };
-    UserAnimState _userAnimState { UserAnimState::None };
-    QString _currentUserAnimURL;
+
+    UserAnimState _userAnimState;
+
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
 

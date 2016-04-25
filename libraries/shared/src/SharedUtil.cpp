@@ -19,6 +19,9 @@
 #include <time.h>
 #include <mutex>
 
+#include <glm/glm.hpp>
+
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -43,8 +46,8 @@
 #include "OctalCode.h"
 #include "SharedLogging.h"
 
-static int usecTimestampNowAdjust = 0; // in usec
-void usecTimestampNowForceClockSkew(int clockSkew) {
+static qint64 usecTimestampNowAdjust = 0; // in usec
+void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
@@ -247,12 +250,6 @@ int getNthBit(unsigned char byte, int ordinal) {
     return ERROR_RESULT;
 }
 
-bool isBetween(int64_t value, int64_t max, int64_t min) {
-    return ((value <= max) && (value >= min));
-}
-
-
-
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
     byte |= ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
@@ -260,12 +257,7 @@ void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
 
 bool isInEnvironment(const char* environment) {
     char* environmentString = getenv("HIFI_ENVIRONMENT");
-
-    if (environmentString && strcmp(environmentString, environment) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return (environmentString && strcmp(environmentString, environment) == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -632,26 +624,74 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-bool isNaN(float value) {
-    return value != value;
-}
 
-QString formatUsecTime(float usecs, int prec) {
-    static const quint64 SECONDS_PER_MINUTE = 60;
-    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
+// glm::abs() works for signed or unsigned types
+template <typename T>
+QString formatUsecTime(T usecs) {
+    static const int PRECISION = 3;
+    static const int FRACTION_MASK = pow(10, PRECISION);
+
+    static const T USECS_PER_MSEC = 1000;
+    static const T USECS_PER_SECOND = 1000 * USECS_PER_MSEC;
+    static const T USECS_PER_MINUTE = USECS_PER_SECOND * 60;
+    static const T USECS_PER_HOUR = USECS_PER_MINUTE * 60;
 
     QString result;
-    if (usecs > USECS_PER_MINUTE) {
-        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
-    } else if (usecs > USECS_PER_SECOND) {
-        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
-    } else if (usecs > USECS_PER_MSEC) {
-        result = QString::number(usecs / USECS_PER_MSEC, 'f', prec) + "ms";
+    if (glm::abs(usecs) > USECS_PER_HOUR) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_HOUR);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_HOUR)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_HOUR, 'f', PRECISION);
+        }
+        result += " hrs";
+    } else if (glm::abs(usecs) > USECS_PER_MINUTE) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_MINUTE);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_MINUTE)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_MINUTE, 'f', PRECISION);
+        }
+        result += " mins";
+    } else if (glm::abs(usecs) > USECS_PER_SECOND) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_SECOND);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_SECOND)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_SECOND, 'f', PRECISION);
+        }
+        result += " secs";
+    } else if (glm::abs(usecs) > USECS_PER_MSEC) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_MSEC);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_MSEC)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_MSEC, 'f', PRECISION);
+        }
+        result += " msecs";
     } else {
-        result = QString::number(usecs, 'f', prec) + "us";
+        result = QString::number(usecs) + " usecs";
     }
     return result;
 }
+
+
+QString formatUsecTime(quint64 usecs) {
+    return formatUsecTime<quint64>(usecs);
+}
+
+QString formatUsecTime(qint64 usecs) {
+    return formatUsecTime<qint64>(usecs);
+}
+
+QString formatUsecTime(float usecs) {
+    return formatUsecTime<float>(usecs);
+}
+
+QString formatUsecTime(double usecs) {
+    return formatUsecTime<double>(usecs);
+}
+
 
 QString formatSecondsElapsed(float seconds) {
     QString result;

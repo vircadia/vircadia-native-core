@@ -22,12 +22,7 @@
 #define __STR1__(x) __STR2__(x)
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
-#ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-#else
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
-#endif
 
 ScriptsModel& getScriptsModel() {
     static ScriptsModel scriptsModel;
@@ -515,4 +510,8 @@ void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* 
 void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
     qCDebug(scriptengine) << "Application::loadScript(), script failed to load...";
     emit scriptLoadError(scriptFilename, "");
+}
+
+QString ScriptEngines::getDefaultScriptsLocation() const {
+    return defaultScriptsLocation().toString();
 }

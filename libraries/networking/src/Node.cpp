@@ -73,9 +73,9 @@ void Node::setType(char type) {
     _symmetricSocket.setObjectName(typeString);
 }
 
-void Node::updateClockSkewUsec(int clockSkewSample) {
-    _clockSkewMovingPercentile.updatePercentile((float)clockSkewSample);
-    _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
+void Node::updateClockSkewUsec(qint64 clockSkewSample) {
+    _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
+    _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
 

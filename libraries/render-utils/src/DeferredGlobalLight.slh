@@ -90,6 +90,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
     // Specular highlight from ambient
     vec3 direction = -reflect(fragEyeDir, fragNormal);
+
     float levels = getLightAmbientMapNumMips(light);
     float lod = min(floor((roughness) * levels), levels);
     vec4 skyboxLight = evalSkyboxLight(direction, lod);

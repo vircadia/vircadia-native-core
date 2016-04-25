@@ -201,7 +201,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload-01.svg",
+            imageURL: toolIconUrl + "model-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -403,6 +403,10 @@ var toolBar = (function() {
         } else {
             Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
+
+        selectionManager.clearSelections();
+        entityListTool.sendUpdate();
+        selectionManager.setSelections([entityID]);
 
         return entityID;
     }
@@ -1194,6 +1198,30 @@ function deleteSelectedEntities() {
     }
 }
 
+function toggleSelectedEntitiesLocked() {
+    if (SelectionManager.hasSelection()) {
+        var locked = !Entities.getEntityProperties(SelectionManager.selections[0], ["locked"]).locked;
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            Entities.editEntity(entityID, { locked: locked });
+        }
+        entityListTool.sendUpdate();
+        selectionManager._update();
+    }
+}
+
+function toggleSelectedEntitiesVisible() {
+    if (SelectionManager.hasSelection()) {
+        var visible = !Entities.getEntityProperties(SelectionManager.selections[0], ["visible"]).visible;
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            Entities.editEntity(entityID, { visible: visible });
+        }
+        entityListTool.sendUpdate();
+        selectionManager._update();
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem == "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1522,7 +1550,8 @@ PropertiesTool = function(opts) {
                         data.properties.keyLight.direction.x * DEGREES_TO_RADIANS, data.properties.keyLight.direction.y * DEGREES_TO_RADIANS);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
-                if (data.properties.name != undefined) {
+                if (data.properties.name !== undefined || data.properties.modelURL !== undefined
+                    || data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
             }

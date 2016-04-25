@@ -24,6 +24,7 @@
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
 #include <SoundCache.h>
+#include <LogHandler.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
@@ -369,7 +370,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+    qint64 clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
     BufferParser parser(data, bytesLeftToRead);
 
@@ -484,7 +485,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "                                    now:" << now;
         qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
         qCDebug(entities) << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
-        qCDebug(entities) << "                              clockSkew:" << debugTimeOnly(clockSkew);
+        qCDebug(entities) << "                              clockSkew:" << clockSkew;
         qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
         qCDebug(entities) << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
         qCDebug(entities) << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
@@ -516,8 +517,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     EntityTreePointer tree = getTree();
     if (tree && tree->isDeletedEntity(_id)) {
         #ifdef WANT_DEBUG
-            qDebug() << "Received packet for previously deleted entity [" << _id << "] ignoring. "
-                        "(inside " << __FUNCTION__ << ")";
+            qCDebug(entities) << "Received packet for previously deleted entity [" << _id << "] ignoring. "
+                "(inside " << __FUNCTION__ << ")";
         #endif
         ignoreServerPacket = true;
     }
@@ -730,7 +731,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // we want to extrapolate the motion forward to compensate for packet travel time, but
         // we don't want the side effect of flag setting.
-        simulateKinematicMotion(skipTimeForward, false);
+        stepKinematicMotion(skipTimeForward);
     }
 
     if (overwriteLocalData) {
@@ -759,7 +760,7 @@ void EntityItem::debugDump() const {
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew) {
+void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew) {
     unsigned char* dataAt = reinterpret_cast<unsigned char*>(buffer.data());
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = (int)bytesRequiredForCodeLength(octets);
@@ -871,129 +872,120 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
     #endif
 
-    simulateKinematicMotion(timeElapsed);
+    if (!hasActions()) {
+        if (!stepKinematicMotion(timeElapsed)) {
+            // this entity is no longer moving
+            // flag it to transition from KINEMATIC to STATIC
+            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            setAcceleration(Vectors::ZERO);
+        }
+    }
     _lastSimulated = now;
 }
 
-void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
-#ifdef WANT_DEBUG
-    qCDebug(entities) << "EntityItem::simulateKinematicMotion timeElapsed" << timeElapsed;
-#endif
+bool EntityItem::stepKinematicMotion(float timeElapsed) {
+    // get all the data
+    Transform transform;
+    glm::vec3 linearVelocity;
+    glm::vec3 angularVelocity;
+    getLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
 
-    const float MIN_TIME_SKIP = 0.0f;
-    const float MAX_TIME_SKIP = 1.0f; // in seconds
-
-    timeElapsed = glm::clamp(timeElapsed, MIN_TIME_SKIP, MAX_TIME_SKIP);
-
-    if (hasActions()) {
-        return;
+    // find out if it is moving
+    bool isSpinning = (glm::length2(angularVelocity) > 0.0f);
+    float linearSpeedSquared = glm::length2(linearVelocity);
+    bool isTranslating = linearSpeedSquared > 0.0f;
+    bool moving = isTranslating || isSpinning;
+    if (!moving) {
+        return false;
     }
 
-    if (hasLocalAngularVelocity()) {
-        glm::vec3 localAngularVelocity = getLocalAngularVelocity();
+    if (timeElapsed <= 0.0f) {
+        // someone gave us a useless time value so bail early
+        // but return 'true' because it is moving
+        return true;
+    }
 
+    const float MAX_TIME_ELAPSED = 1.0f; // seconds
+    if (timeElapsed > MAX_TIME_ELAPSED) {
+        qCWarning(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
+    }
+    timeElapsed = glm::min(timeElapsed, MAX_TIME_ELAPSED);
+
+    if (isSpinning) {
         // angular damping
         if (_angularDamping > 0.0f) {
-            localAngularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "    angularDamping :" << _angularDamping;
-                qCDebug(entities) << "    newAngularVelocity:" << localAngularVelocity;
-            #endif
+            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
         }
 
-        float angularSpeed = glm::length(localAngularVelocity);
-
-        const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
-        if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
-            if (setFlags && angularSpeed > 0.0f) {
-                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
-            }
-            localAngularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        const float MIN_KINEMATIC_ANGULAR_SPEED_SQUARED =
+            KINEMATIC_ANGULAR_SPEED_THRESHOLD * KINEMATIC_ANGULAR_SPEED_THRESHOLD;
+        if (glm::length2(angularVelocity) < MIN_KINEMATIC_ANGULAR_SPEED_SQUARED) {
+            angularVelocity = Vectors::ZERO;
         } else {
             // for improved agreement with the way Bullet integrates rotations we use an approximation
             // and break the integration into bullet-sized substeps
-            glm::quat rotation = getRotation();
+            glm::quat rotation = transform.getRotation();
             float dt = timeElapsed;
-            while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
-                glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+            while (dt > 0.0f) {
+                glm::quat  dQ = computeBulletRotationStep(angularVelocity, glm::min(dt, PHYSICS_ENGINE_FIXED_SUBSTEP));
                 rotation = glm::normalize(dQ * rotation);
                 dt -= PHYSICS_ENGINE_FIXED_SUBSTEP;
             }
-            // NOTE: this final partial substep can drift away from a real Bullet simulation however
-            // it only becomes significant for rapidly rotating objects
-            // (e.g. around PI/4 radians per substep, or 7.5 rotations/sec at 60 substeps/sec).
-            glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, dt);
-            rotation = glm::normalize(dQ * rotation);
-
-            setRotation(rotation);
+            transform.setRotation(rotation);
         }
-
-        setLocalAngularVelocity(localAngularVelocity);
     }
 
-    if (hasLocalVelocity()) {
-
-        // acceleration is in the global frame, so transform it into the local frame.
-        // TODO: Move this into SpatiallyNestable.
-        bool success;
-        Transform transform = getParentTransform(success);
-        glm::vec3 localAcceleration(glm::vec3::_null);
-        if (success) {
-            localAcceleration = glm::inverse(transform.getRotation()) * getAcceleration();
-        } else {
-            localAcceleration = getAcceleration();
-        }
+    glm::vec3 position = transform.getTranslation();
+    const float MIN_KINEMATIC_LINEAR_SPEED_SQUARED =
+        KINEMATIC_LINEAR_SPEED_THRESHOLD * KINEMATIC_LINEAR_SPEED_THRESHOLD;
+    if (isTranslating) {
+        glm::vec3 deltaVelocity = Vectors::ZERO;
 
         // linear damping
-        glm::vec3 localVelocity = getLocalVelocity();
         if (_damping > 0.0f) {
-            localVelocity *= powf(1.0f - _damping, timeElapsed);
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "    damping:" << _damping;
-                qCDebug(entities) << "    velocity AFTER dampingResistance:" << localVelocity;
-                qCDebug(entities) << "    glm::length(velocity):" << glm::length(localVelocity);
-            #endif
+            deltaVelocity = (powf(1.0f - _damping, timeElapsed) - 1.0f) * linearVelocity;
         }
 
-        // integrate position forward
-        glm::vec3 localPosition = getLocalPosition();
-        glm::vec3 newLocalPosition = localPosition + (localVelocity * timeElapsed) + 0.5f * localAcceleration * timeElapsed * timeElapsed;
+        const float MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED = 1.0e-4f; // 0.01 m/sec^2
+        if (glm::length2(_acceleration) > MIN_KINEMATIC_LINEAR_ACCELERATION_SQUARED) {
+            // yes acceleration
+            // acceleration is in world-frame but we need it in local-frame
+            glm::vec3 linearAcceleration = _acceleration;
+            bool success;
+            Transform parentTransform = getParentTransform(success);
+            if (success) {
+                linearAcceleration = glm::inverse(parentTransform.getRotation()) * linearAcceleration;
+            }
+            deltaVelocity += linearAcceleration * timeElapsed;
 
-        #ifdef WANT_DEBUG
-            qCDebug(entities) << "  EntityItem::simulate()....";
-            qCDebug(entities) << "    timeElapsed:" << timeElapsed;
-            qCDebug(entities) << "    old AACube:" << getMaximumAACube();
-            qCDebug(entities) << "    old position:" << localPosition;
-            qCDebug(entities) << "    old velocity:" << localVelocity;
-            qCDebug(entities) << "    old getAABox:" << getAABox();
-            qCDebug(entities) << "    newPosition:" << newPosition;
-            qCDebug(entities) << "    glm::distance(newPosition, position):" << glm::distance(newLocalPosition, localPosition);
-        #endif
-
-        localPosition = newLocalPosition;
-
-        // apply effective acceleration, which will be the same as gravity if the Entity isn't at rest.
-        localVelocity += localAcceleration * timeElapsed;
-
-        float speed = glm::length(localVelocity);
-        const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
-        if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
-            setVelocity(ENTITY_ITEM_ZERO_VEC3);
-            if (setFlags && speed > 0.0f) {
-                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            if (linearSpeedSquared < MIN_KINEMATIC_LINEAR_SPEED_SQUARED
+                    && glm::length2(deltaVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED
+                    && glm::length2(linearVelocity + deltaVelocity) < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
+                linearVelocity = Vectors::ZERO;
+            } else {
+                // NOTE: we do NOT include the second-order acceleration term (0.5 * a * dt^2)
+                // when computing the displacement because Bullet also ignores that term.  Yes,
+                // this is an approximation and it works best when dt is small.
+                position += timeElapsed * linearVelocity;
+                linearVelocity += deltaVelocity;
             }
         } else {
-            setLocalPosition(localPosition);
-            setLocalVelocity(localVelocity);
+            // no acceleration
+            if (linearSpeedSquared < MIN_KINEMATIC_LINEAR_SPEED_SQUARED) {
+                linearVelocity = Vectors::ZERO;
+            } else {
+                // NOTE: we don't use second-order acceleration term for linear displacement
+                // because Bullet doesn't use it.
+                position += timeElapsed * linearVelocity;
+                linearVelocity += deltaVelocity;
+            }
         }
-
-        #ifdef WANT_DEBUG
-            qCDebug(entities) << "    new position:" << position;
-            qCDebug(entities) << "    new velocity:" << velocity;
-            qCDebug(entities) << "    new AACube:" << getMaximumAACube();
-            qCDebug(entities) << "    old getAABox:" << getAABox();
-        #endif
     }
+
+    transform.setTranslation(position);
+    setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
+
+    return true;
 }
 
 bool EntityItem::isMoving() const {
@@ -1685,7 +1677,7 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
     } else {
-        qDebug() << "EntityItem::addActionInternal -- serializeActions failed";
+        qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
     return success;
 }
@@ -1706,7 +1698,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         } else {
-            qDebug() << "EntityItem::updateAction failed";
+            qCDebug(entities) << "EntityItem::updateAction failed";
         }
     });
     return success;
@@ -1777,7 +1769,7 @@ void EntityItem::deserializeActionsInternal() {
     quint64 now = usecTimestampNow();
 
     if (!_element) {
-        qDebug() << "EntityItem::deserializeActionsInternal -- no _element";
+        qCDebug(entities) << "EntityItem::deserializeActionsInternal -- no _element";
         return;
     }
 
@@ -1805,14 +1797,13 @@ void EntityItem::deserializeActionsInternal() {
             continue;
         }
 
-        updated << actionID;
-
         if (_objectActions.contains(actionID)) {
             EntityActionPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
             action->deserialize(serializedAction);
             action->locallyAddedButNotYetReceived = false;
+            updated << actionID;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
             EntityItemPointer entity = getThisPointer();
@@ -1820,8 +1811,13 @@ void EntityItem::deserializeActionsInternal() {
             if (action) {
                 entity->addActionInternal(simulation, action);
                 action->locallyAddedButNotYetReceived = false;
+                updated << actionID;
             } else {
-                qDebug() << "EntityItem::deserializeActionsInternal -- action creation failed";
+                static QString repeatedMessage =
+                    LogHandler::getInstance().addRepeatedMessageRegex(".*action creation failed for.*");
+                qCDebug(entities) << "EntityItem::deserializeActionsInternal -- action creation failed for"
+                                  << getID() << getName();
+                removeActionInternal(actionID, nullptr);
             }
         }
     }
@@ -1897,7 +1893,8 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     serializedActionsStream << serializedActions;
 
     if (result.size() >= _maxActionsDataSize) {
-        qDebug() << "EntityItem::serializeActions size is too large -- " << result.size() << ">=" << _maxActionsDataSize;
+        qCDebug(entities) << "EntityItem::serializeActions size is too large -- "
+                          << result.size() << ">=" << _maxActionsDataSize;
         success = false;
         return;
     }
@@ -1977,10 +1974,10 @@ void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
     if (tellPhysics) {
         _dirtyFlags |= Simulation::DIRTY_TRANSFORM;
-    }
-    EntityTreePointer tree = getTree();
-    if (tree) {
-        tree->entityChanged(getThisPointer());
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
     }
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
 }

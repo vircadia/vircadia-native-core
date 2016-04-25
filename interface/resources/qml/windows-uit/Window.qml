@@ -215,7 +215,7 @@ Fadable {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footer.height + 2 * hifi.dimensions.contentSpacing.y
+            height: footer.height + 2 * hifi.dimensions.contentSpacing.y + 3
             color: hifi.colors.baseGray
             visible: footer.height > 0
 
@@ -248,9 +248,15 @@ Fadable {
 
     children: [ swallower, frame, pane, activator ]
 
-    Component.onCompleted: { raise(); setDefaultFocus(); }
-    Component.onDestruction: windowDestroyed();
-    onParentChanged: raise();
+    Component.onCompleted: {
+        window.parentChanged.connect(raise);
+        raise();
+        setDefaultFocus();
+    }
+    Component.onDestruction: {
+        window.parentChanged.disconnect(raise);  // Prevent warning on shutdown
+        windowDestroyed();
+    }
 
     onVisibleChanged: {
         if (!visible && destroyOnInvisible) {

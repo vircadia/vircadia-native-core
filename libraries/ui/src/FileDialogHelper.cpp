@@ -14,6 +14,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QDebug>
 #include <QtCore/QRegularExpression>
+#include <QDesktopServices>
 
 
 QUrl FileDialogHelper::home() {
@@ -102,4 +103,8 @@ QStringList FileDialogHelper::drives() {
         result << drive.absolutePath();
     }
     return result;
+}
+
+void FileDialogHelper::openDirectory(const QString& path) {
+    QDesktopServices::openUrl(path);
 }

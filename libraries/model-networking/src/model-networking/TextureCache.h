@@ -72,7 +72,7 @@ public:
     const gpu::TexturePointer& getNormalFittingTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path);
+    static gpu::TexturePointer getImageTexture(const QString& path, TextureType type = DEFAULT_TEXTURE);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE,
@@ -128,7 +128,6 @@ public:
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
-
 protected:
 
     virtual bool isCacheable() const override { return _loaded; }
@@ -136,9 +135,7 @@ protected:
     virtual void downloadFinished(const QByteArray& data) override;
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
-    Q_INVOKABLE void setImage(void* texture, int originalWidth, int originalHeight);
-
+    Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
 private:
     TextureType _type;

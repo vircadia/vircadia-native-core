@@ -230,7 +230,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     
     _leftEyePosition = _rightEyePosition = getPosition();
-    _eyePosition = calculateAverageEyePosition();
+    _eyePosition = getPosition();
 
     if (!billboard && _owningAvatar) {
         auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
@@ -238,6 +238,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             skeletonModel->getEyePositions(_leftEyePosition, _rightEyePosition);
         }
     }
+
+    _eyePosition = calculateAverageEyePosition();
 }
 
 void Head::calculateMouthShapes() {

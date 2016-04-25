@@ -51,7 +51,11 @@ Item {
         function getRunning() {
             return _runningScripts;
         }
+    }
 
+    Item {
+        objectName: "HMD"
+        property bool active: false
     }
 
     Item {

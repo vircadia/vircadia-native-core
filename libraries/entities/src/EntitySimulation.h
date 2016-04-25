@@ -92,7 +92,7 @@ protected:
 
     void expireMortalEntities(const quint64& now);
     void callUpdateOnEntitiesThatNeedIt(const quint64& now);
-    void sortEntitiesThatMoved();
+    virtual void sortEntitiesThatMoved();
 
     QMutex _mutex{ QMutex::Recursive };
 

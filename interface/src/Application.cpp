@@ -131,6 +131,7 @@
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/RatesScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -146,6 +147,8 @@
 #include "ui/UpdateDialog.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
+
+#include "FrameTimingsScriptingInterface.h"
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -193,12 +196,7 @@ static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
-#ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-#else
-// Temporary fix to Qt bug: http://stackoverflow.com/questions/16194475
-static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).append("/script.js");
-#endif
 
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
@@ -1150,6 +1148,9 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
+    DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
+
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
@@ -1178,8 +1179,6 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    getEntities()->clear(); // this will allow entity scripts to properly shutdown
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -1190,6 +1189,7 @@ void Application::cleanupBeforeQuit() {
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
@@ -1230,6 +1230,9 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
+    _entityClipboard->eraseAllOctreeElements();
+    _entityClipboard.reset();
+
     EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(nullptr);
 
@@ -1238,10 +1241,8 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
-    ModelEntityItem::cleanupLoadedAnimations();
-
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
+    DependencyManager::get<AvatarManager>()->clearAllAvatars();
     VectorOfMotionStates motionStates;
     DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
     _physicsEngine->removeObjects(motionStates);
@@ -1336,6 +1337,8 @@ void Application::initializeGL() {
     InfoView::show(INFO_HELP_PATH, true);
 }
 
+FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
+
 extern void setupPreferences();
 
 void Application::initializeUi() {
@@ -1380,6 +1383,9 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
     rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+    rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+    rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
+    rootContext->setContextProperty("Rates", new RatesScriptingInterface(this));
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -1423,6 +1429,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+    
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1465,9 +1472,9 @@ void Application::initializeUi() {
     });
 }
 
+
 void Application::paintGL() {
     updateHeartbeat();
-
     // Some plugins process message events, potentially leading to
     // re-entering a paint event.  don't allow further processing if this
     // happens
@@ -1485,6 +1492,7 @@ void Application::paintGL() {
     _frameCount++;
     _frameCounter.increment();
 
+    auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
@@ -1737,6 +1745,9 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
+
+    uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
+    _frameTimingsScriptingInterface.addValue(lastPaintDuration);
 }
 
 void Application::runTests() {
@@ -2671,8 +2682,6 @@ void Application::idle(uint64_t now) {
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
-
-
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
@@ -3095,10 +3104,8 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
-                glm::mat4 headPose = myAvatar->getHMDSensorMatrix();
-                glm::quat headRotation = glm::quat_cast(headPose);
-                lookAtSpot = myAvatar->getPosition() +
-                    myAvatar->getOrientation() * (headRotation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                lookAtSpot = transformPoint(worldHMDMat, glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -3198,7 +3205,19 @@ void Application::cameraMenuChanged() {
     }
 }
 
+void Application::resetPhysicsReadyInformation() {
+    // we've changed domains or cleared out caches or something.  we no longer know enough about the
+    // collision information of nearby entities to make running bullet be safe.
+    _fullSceneReceivedCounter = 0;
+    _fullSceneCounterAtLastPhysicsCheck = 0;
+    _nearbyEntitiesCountAtLastPhysicsCheck = 0;
+    _nearbyEntitiesStabilityCount = 0;
+    _physicsEnabled = false;
+}
+
+
 void Application::reloadResourceCaches() {
+    resetPhysicsReadyInformation();
     // Clear entities out of view frustum
     _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
     _viewFrustum.setOrientation(glm::quat());
@@ -3255,21 +3274,34 @@ void Application::update(float deltaTime) {
 
     updateLOD();
 
-    if (!_physicsEnabled && _processOctreeStatsCounter > 0) {
+    if (!_physicsEnabled) {
+        // we haven't yet enabled physics.  we wait until we think we have all the collision information
+        // for nearby entities before starting bullet up.
+        quint64 now = usecTimestampNow();
+        bool timeout = false;
+        const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
+        if (_lastPhysicsCheckTime > 0 && now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT) {
+            timeout = true;
+        }
 
-        // process octree stats packets are sent in between full sends of a scene.
-        // We keep physics disabled until we've received a full scene and everything near the avatar in that
-        // scene is ready to compute its collision shape.
+        if (timeout || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+            // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
+            _lastPhysicsCheckTime = now;
+            _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
 
-        if (nearbyEntitiesAreReadyForPhysics()) {
-            _physicsEnabled = true;
-            getMyAvatar()->updateMotionBehaviorFromMenu();
-        } else {
-            auto characterController = getMyAvatar()->getCharacterController();
-            if (characterController) {
-                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
-                // a non-loading collision hull.
-                characterController->setEnabled(false);
+            // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+            // We keep physics disabled until we've received a full scene and everything near the avatar in that
+            // scene is ready to compute its collision shape.
+            if (nearbyEntitiesAreReadyForPhysics()) {
+                _physicsEnabled = true;
+                getMyAvatar()->updateMotionBehaviorFromMenu();
+            } else {
+                auto characterController = getMyAvatar()->getCharacterController();
+                if (characterController) {
+                    // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                    // a non-loading collision hull.
+                    characterController->setEnabled(false);
+                }
             }
         }
     }
@@ -3421,7 +3453,7 @@ void Application::update(float deltaTime) {
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
-                    _entitySimulation.handleOutgoingChanges(outgoingChanges, Physics::getSessionUUID());
+                    _entitySimulation.handleOutgoingChanges(outgoingChanges);
                     avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
@@ -4151,10 +4183,15 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
-    qCDebug(interfaceapp) << "Clearing domain octree details...";
-    // reset the environment so that we don't erroneously end up with multiple
 
-    _physicsEnabled = false;
+    // if we're about to quit, we really don't need to do any of these things...
+    if (_aboutToQuit) {
+        return;
+    }
+
+    qCDebug(interfaceapp) << "Clearing domain octree details...";
+
+    resetPhysicsReadyInformation();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {
@@ -4176,9 +4213,8 @@ void Application::clearDomainOctreeDetails() {
 
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
-    clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
-    _physicsEnabled = false;
+    resetPhysicsReadyInformation();
 }
 
 
@@ -4311,15 +4347,31 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         entityTree->findEntities(box, entities);
     });
 
-    foreach (EntityItemPointer entity, entities) {
-        if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-            static QString repeatedMessage =
-                LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
-            qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
-            return false;
-        }
+    // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
+    // a heuristic to try to decide when we actually know about all of the nearby entities.
+    uint32_t nearbyCount = entities.size();
+    if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
+        _nearbyEntitiesStabilityCount++;
+    } else {
+        _nearbyEntitiesStabilityCount = 0;
     }
-    return true;
+    _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
+
+    const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
+    if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
+        // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
+        // the local entities.
+        foreach (EntityItemPointer entity, entities) {
+            if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
+                static QString repeatedMessage =
+                    LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
+                qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
@@ -4335,6 +4387,10 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
     _octreeServerSceneStats.withWriteLock([&] {
         OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
         statsMessageLength = octreeStats.unpackFromPacket(message);
+
+        if (octreeStats.isFullScene()) {
+            _fullSceneReceivedCounter++;
+        }
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = nullptr;
@@ -4367,8 +4423,6 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-    _processOctreeStatsCounter++;
-
     return statsMessageLength;
 }
 
@@ -4384,6 +4438,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
+
+    scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar());
@@ -4499,10 +4555,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) const {
-    // HACK: until we swap the library dependency order between physics and entities
-    // we cache the sessionID in two distinct places for physics.
-    Physics::setSessionUUID(sessionUUID); // TODO: remove this one
-    _physicsEngine->setSessionUUID(sessionUUID);
+    Physics::setSessionUUID(sessionUUID);
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {
@@ -4844,19 +4897,44 @@ QRect Application::getRenderingGeometry() const {
 }
 
 glm::uvec2 Application::getUiSize() const {
-    return getActiveDisplayPlugin()->getRecommendedUiSize();
+    static const uint MIN_SIZE = 1;
+    glm::uvec2 result(MIN_SIZE);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedUiSize();
+    }
+    return result;
+}
+
+QRect Application::getRecommendedOverlayRect() const {
+    auto uiSize = getUiSize();
+    QRect result(0, 0, uiSize.x, uiSize.y);
+    if (_displayPlugin) {
+        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+    }
+    return result;
 }
 
 QSize Application::getDeviceSize() const {
-    return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    static const int MIN_SIZE = 1;
+    QSize result(MIN_SIZE, MIN_SIZE);
+    if (_displayPlugin) {
+        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+    }
+    return result;
 }
 
 bool Application::isThrottleRendering() const {
-    return getActiveDisplayPlugin()->isThrottled();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->isThrottled();
+    }
+    return false;
 }
 
 bool Application::hasFocus() const {
-    return getActiveDisplayPlugin()->hasFocus();
+    if (_displayPlugin) {
+        return getActiveDisplayPlugin()->hasFocus();
+    }
+    return (QApplication::activeWindow() != nullptr);
 }
 
 glm::vec2 Application::getViewportDimensions() const {
@@ -5156,13 +5234,6 @@ mat4 Application::getHMDSensorPose() const {
         return getActiveDisplayPlugin()->getHeadPose();
     }
     return mat4();
-}
-
-void Application::crashApplication() {
-    qCDebug(interfaceapp) << "Intentionally crashed Interface";
-    QObject* object = nullptr;
-    bool value = object->isWindowType();
-    Q_UNUSED(value);
 }
 
 void Application::deadlockApplication() {

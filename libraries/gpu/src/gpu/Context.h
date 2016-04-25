@@ -39,6 +39,8 @@ public:
     int _DSNumAPIDrawcalls = 0;
     int _DSNumDrawcalls = 0;
     int _DSNumTriangles = 0;
+
+    int _PSNumSetPipelines = 0;
  
     ContextStats() {}
     ContextStats(const ContextStats& stats) = default;
@@ -205,6 +207,7 @@ protected:
     static void incrementBufferGPUCount();
     static void decrementBufferGPUCount();
     static void updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);

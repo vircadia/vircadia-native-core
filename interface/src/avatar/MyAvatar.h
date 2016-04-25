@@ -105,6 +105,10 @@ public:
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
 
+    Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
+    Q_INVOKABLE QVariant getOrientationVar() const;
+
+
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
     // as it moves through the world.
@@ -295,7 +299,7 @@ signals:
     void collisionWithEntity(const Collision& collision);
     void energyChanged(float newEnergy);
     void positionGoneTo();
-
+    void onLoadComplete();
 
 private:
 
@@ -326,6 +330,8 @@ private:
                         bool allowDuplicates = false, bool useSaved = true) override;
 
     bool cameraInsideHead() const;
+
+    void updateEyeContactTarget(float deltaTime);
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
@@ -367,6 +373,7 @@ private:
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
+    float _eyeContactTargetTimer { 0.0f };
 
     glm::vec3 _trackedHeadPosition;
 

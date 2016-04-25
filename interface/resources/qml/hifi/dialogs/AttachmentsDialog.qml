@@ -51,7 +51,11 @@ Window {
 
             Rectangle {
                 id: attachmentsBackground
-                anchors { left: parent.left; right: parent.right; top: parent.top; bottom: newAttachmentButton.top; margins: 8 }
+                anchors {
+                    left: parent.left; right: parent.right; top: parent.top; bottom: newAttachmentButton.top;
+                    margins: hifi.dimensions.contentMargin.x
+                    bottomMargin: hifi.dimensions.contentSpacing.y
+                }
                 color: hifi.colors.baseGrayShadow
                 radius: 4
 
@@ -129,7 +133,14 @@ Window {
 
             HifiControls.Button {
                 id: newAttachmentButton
-                anchors { left: parent.left; right: parent.right; bottom: buttonRow.top; margins: 8 }
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: buttonRow.top
+                    margins: hifi.dimensions.contentMargin.x;
+                    topMargin: hifi.dimensions.contentSpacing.y
+                    bottomMargin: hifi.dimensions.contentSpacing.y
+                }
                 text: "New Attachment"
                 color: hifi.buttons.black
                 colorScheme: hifi.colorSchemes.dark
@@ -151,7 +162,13 @@ Window {
             Row {
                 id: buttonRow
                 spacing: 8
-                anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
+                anchors {
+                    right: parent.right
+                    bottom: parent.bottom
+                    margins: hifi.dimensions.contentMargin.x
+                    topMargin: hifi.dimensions.contentSpacing.y
+                    bottomMargin: hifi.dimensions.contentSpacing.y
+                }
                 HifiControls.Button {
                     action: okAction
                     color: hifi.buttons.black

@@ -198,11 +198,22 @@ MyAvatar::MyAvatar(RigPointer rig) :
             _headData->setLookAtPosition(headData->getLookAtPosition());
         }
     });
+
+    connect(rig.get(), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
 }
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
+
+void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
+    Avatar::setOrientation(quatFromVariant(newOrientationVar));
+}
+
+QVariant MyAvatar::getOrientationVar() const {
+    return quatToVariant(Avatar::getOrientation());
+}
+
 
 // virtual
 void MyAvatar::simulateAttachments(float deltaTime) {
@@ -306,6 +317,37 @@ void MyAvatar::update(float deltaTime) {
     }
     currentEnergy = max(0.0f, min(currentEnergy,1.0f));
     emit energyChanged(currentEnergy);
+
+    updateEyeContactTarget(deltaTime);
+}
+
+void MyAvatar::updateEyeContactTarget(float deltaTime) {
+
+    _eyeContactTargetTimer -= deltaTime;
+    if (_eyeContactTargetTimer < 0.0f) {
+
+        const float CHANCE_OF_CHANGING_TARGET = 0.01f;
+        if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
+
+            float const FIFTY_FIFTY_CHANCE = 0.5f;
+            float const EYE_TO_MOUTH_CHANCE = 0.25f;
+            switch (_eyeContactTarget) {
+                case LEFT_EYE:
+                    _eyeContactTarget = (randFloat() < EYE_TO_MOUTH_CHANCE) ? MOUTH : RIGHT_EYE;
+                    break;
+                case RIGHT_EYE:
+                    _eyeContactTarget = (randFloat() < EYE_TO_MOUTH_CHANCE) ? MOUTH : LEFT_EYE;
+                    break;
+                case MOUTH:
+                default:
+                    _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
+                    break;
+            }
+
+            const float EYE_TARGET_DELAY_TIME = 0.33f;
+            _eyeContactTargetTimer = EYE_TARGET_DELAY_TIME;
+        }
+    }
 }
 
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
@@ -339,6 +381,10 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel->simulate(deltaTime);
     }
+
+    // we've achived our final adjusted position and rotation for the avatar
+    // and all of its joints, now update our attachements.
+    Avatar::simulateAttachments(deltaTime);
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -929,22 +975,6 @@ void MyAvatar::clearLookAtTargetAvatar() {
 }
 
 eyeContactTarget MyAvatar::getEyeContactTarget() {
-    float const CHANCE_OF_CHANGING_TARGET = 0.01f;
-    if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
-        float const FIFTY_FIFTY_CHANCE = 0.5f;
-        switch (_eyeContactTarget) {
-            case LEFT_EYE:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? MOUTH : RIGHT_EYE;
-                break;
-            case RIGHT_EYE:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? LEFT_EYE : MOUTH;
-                break;
-            case MOUTH:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
-                break;
-        }
-    }
-
     return _eyeContactTarget;
 }
 
@@ -1160,9 +1190,6 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
     setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-
-    // now that physics has adjusted our position, we can update attachements.
-    Avatar::simulateAttachments(deltaTime);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1311,23 +1338,8 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
 }
 
 void MyAvatar::initAnimGraph() {
-    // avatar.json
-    // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
-    //
-    // ik-avatar.json
-    // https://gist.github.com/hyperlogic/e58e0a24cc341ad5d060
-    //
-    // ik-avatar-hands.json
-    // https://gist.githubusercontent.com/hyperlogic/04a02c47eb56d8bfaebb
-    //
-    // ik-avatar-hands-idle.json
-    // https://gist.githubusercontent.com/hyperlogic/d951c78532e7a20557ad
-    //
-    // or run a local web-server
-    // python -m SimpleHTTPServer&
-    //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
     auto graphUrl =_animGraphUrl.isEmpty() ?
-        QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+        QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json") :
         QUrl(_animGraphUrl);
     _rig->initAnimGraph(graphUrl);
 
@@ -1566,6 +1578,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
                 float speedIncreaseFactor = 1.8f;
                 motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
                 const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
+
                 if (motorSpeed < maxBoostSpeed) {
                     // an active keyboard motor should never be slower than this
                     float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
@@ -2080,7 +2093,7 @@ float MyAvatar::getAccelerationEnergy() {
     int changeInVelocity = abs(velocity.length() - priorVelocity.length());
     float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     priorVelocity = velocity;
-    
+
     return changeInEnergy;
 }
 
@@ -2102,4 +2115,3 @@ bool MyAvatar::didTeleport() {
     lastPosition = pos;
     return (changeInPosition.length() > MAX_AVATAR_MOVEMENT_PER_FRAME);
 }
-

@@ -96,6 +96,7 @@ public slots:
     virtual void releaseJoystick(int joystickIndex);
 
     virtual glm::vec2 getViewportDimensions() const;
+    virtual QVariant getRecommendedOverlayRect() const;
 
     /// Factory to create an InputController
     virtual controller::InputController* createInputController(const QString& deviceName, const QString& tracker);

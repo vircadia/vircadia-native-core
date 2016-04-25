@@ -952,6 +952,24 @@ bool OctreeServer::readOptionInt(const QString& optionName, const QJsonObject& s
     return optionAvailable;
 }
 
+bool OctreeServer::readOptionInt64(const QString& optionName, const QJsonObject& settingsSectionObject, qint64& result) {
+    bool optionAvailable = false;
+    QString argName = "--" + optionName;
+    const char* argValue = getCmdOption(_argc, _argv, qPrintable(argName));
+    if (argValue) {
+        optionAvailable = true;
+        result = atoll(argValue);
+        qDebug() << "From payload arguments: " << qPrintable(argName) << ":" << result;
+    } else if (settingsSectionObject.contains(optionName)) {
+        optionAvailable = true;
+        result = settingsSectionObject[optionName].toString().toLongLong(&optionAvailable);
+        if (optionAvailable) {
+            qDebug() << "From domain settings: " << qPrintable(optionName) << ":" << result;
+        }
+    }
+    return optionAvailable;
+}
+
 bool OctreeServer::readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result) {
     bool optionAvailable = false;
     QString argName = "--" + optionName;
@@ -1055,10 +1073,10 @@ void OctreeServer::readConfiguration() {
     // Debug option to demonstrate that the server's local time does not
     // need to be in sync with any other network node. This forces clock
     // skew for the individual server node
-    int clockSkew;
-    if (readOptionInt(QString("clockSkew"), settingsSectionObject, clockSkew)) {
+    qint64 clockSkew;
+    if (readOptionInt64(QString("clockSkew"), settingsSectionObject, clockSkew)) {
         usecTimestampNowForceClockSkew(clockSkew);
-        qDebug("clockSkew=%d", clockSkew);
+        qDebug() << "clockSkew=" << clockSkew;
     }
 
     // Check to see if the user passed in a command line option for setting packet send rate

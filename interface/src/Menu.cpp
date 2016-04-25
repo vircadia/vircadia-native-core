@@ -13,8 +13,11 @@
 #include <QMenuBar>
 #include <QShortcut>
 
+#include <thread>
+
 #include <AddressManager.h>
 #include <AudioClient.h>
+#include <CrashHelpers.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
@@ -357,6 +360,41 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
+    //const QString  = "Automatic Texture Memory";
+    //const QString  = "64 MB";
+    //const QString  = "256 MB";
+    //const QString  = "512 MB";
+    //const QString  = "1024 MB";
+    //const QString  = "2048 MB";
+
+    // Developer > Render > Resolution
+    MenuWrapper* textureMenu = renderOptionsMenu->addMenu(MenuOption::RenderMaxTextureMemory);
+    QActionGroup* textureGroup = new QActionGroup(textureMenu);
+    textureGroup->setExclusive(true);
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTextureAutomatic, 0, true));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture64MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture256MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture512MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture1024MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture2048MB, 0, false));
+    connect(textureGroup, &QActionGroup::triggered, [textureGroup] {
+        auto checked = textureGroup->checkedAction();
+        auto text = checked->text();
+        gpu::Context::Size newMaxTextureMemory { 0 };
+        if (MenuOption::RenderMaxTexture64MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(64);
+        } else if (MenuOption::RenderMaxTexture256MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(256);
+        } else if (MenuOption::RenderMaxTexture512MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(512);
+        } else if (MenuOption::RenderMaxTexture1024MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(1024);
+        } else if (MenuOption::RenderMaxTexture2048MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(2048);
+        }
+        gpu::Texture::setAllowedGPUMemoryUsage(newMaxTextureMemory);
+    });
+
     // Developer > Render > LOD Tools
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
 
@@ -587,10 +625,41 @@ Menu::Menu() {
 
     // Developer > Display Crash Options
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
-    // Developer > Crash Application
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::CrashInterface, 0, qApp, SLOT(crashApplication()));
-    // Developer > Deadlock Application
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+
+    // Developer > Crash >>>
+    MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
+
+    addActionToQMenuAndActionHash(crashMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
+    connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunctionThreaded);
+    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::pureVirtualCall(); }); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFree);
+    connect(action, &QAction::triggered, qApp, []() { crash::doubleFree(); });
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFreeThreaded);
+    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::doubleFree(); }); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbort);
+    connect(action, &QAction::triggered, qApp, []() { crash::doAbort(); });
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbortThreaded);
+    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::doAbort(); }); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereference);
+    connect(action, &QAction::triggered, qApp, []() { crash::nullDeref(); });
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereferenceThreaded);
+    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::nullDeref(); }); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccess);
+    connect(action, &QAction::triggered, qApp, []() { crash::outOfBoundsVectorCrash(); });
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccessThreaded);
+    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::outOfBoundsVectorCrash(); }); });
+
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFault);
+    connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
+    action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
+    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::newFault(); }); });
 
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,

@@ -34,6 +34,7 @@
 TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
+    setObjectName("TextureCache");
 }
 
 TextureCache::~TextureCache() {
@@ -153,21 +154,63 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
     return ResourceCache::getResource(url, QUrl(), content.isEmpty(), &extra).staticCast<NetworkTexture>();
 }
 
-/// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
-    QImage image = QImage(path).mirrored(false, true);
-    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
-    if (image.hasAlphaChannel()) {
-        formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::BGRA);
+
+TextureCache::TextureLoaderFunc getTextureLoaderForType(TextureType type) {
+    switch (type) {
+        case ALBEDO_TEXTURE: {
+            return model::TextureUsage::createAlbedoTextureFromImage;
+            break;
+        }
+        case EMISSIVE_TEXTURE: {
+            return model::TextureUsage::createEmissiveTextureFromImage;
+            break;
+        }
+        case LIGHTMAP_TEXTURE: {
+            return model::TextureUsage::createLightmapTextureFromImage;
+            break;
+        }
+        case CUBE_TEXTURE: {
+            return model::TextureUsage::createCubeTextureFromImage;
+            break;
+        }
+        case BUMP_TEXTURE: {
+            return model::TextureUsage::createNormalTextureFromBumpImage;
+            break;
+        }
+        case NORMAL_TEXTURE: {
+            return model::TextureUsage::createNormalTextureFromNormalImage;
+            break;
+        }
+        case ROUGHNESS_TEXTURE: {
+            return model::TextureUsage::createRoughnessTextureFromImage;
+            break;
+        }
+        case GLOSS_TEXTURE: {
+            return model::TextureUsage::createRoughnessTextureFromGlossImage;
+            break;
+        }
+        case SPECULAR_TEXTURE: {
+            return model::TextureUsage::createMetallicTextureFromImage;
+            break;
+        }
+        case CUSTOM_TEXTURE: {
+            Q_ASSERT(false);
+            return TextureCache::TextureLoaderFunc();
+            break;
+        }
+        case DEFAULT_TEXTURE:
+        default: {
+            return model::TextureUsage::create2DTextureFromImage;
+            break;
+        }
     }
-    gpu::TexturePointer texture = gpu::TexturePointer(
-        gpu::Texture::create2D(formatGPU, image.width(), image.height(), 
-            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-    texture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-    texture->autoGenerateMips(-1);
-    return texture;
+}
+
+/// Returns a texture version of an image file
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, TextureType type) {
+    QImage image = QImage(path);
+    auto loader = getTextureLoaderForType(type);
+    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
@@ -202,53 +245,10 @@ NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& texture
 }
 
 NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
-    switch (_type) {
-        case ALBEDO_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createAlbedoTextureFromImage);
-            break;
-        }
-        case EMISSIVE_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createEmissiveTextureFromImage);
-            break;
-        }
-        case LIGHTMAP_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createLightmapTextureFromImage);
-            break;
-        }
-        case CUBE_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createCubeTextureFromImage);
-            break;
-        }
-        case BUMP_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createNormalTextureFromBumpImage);
-            break;
-        }
-        case NORMAL_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createNormalTextureFromNormalImage);
-            break;
-        }
-        case ROUGHNESS_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createRoughnessTextureFromImage);
-            break;
-        }
-        case GLOSS_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createRoughnessTextureFromGlossImage);
-            break;
-        }
-        case SPECULAR_TEXTURE: {
-            return TextureLoaderFunc(model::TextureUsage::createMetallicTextureFromImage);
-            break;
-        }
-        case CUSTOM_TEXTURE: {
-            return _textureLoader;
-            break;
-        }
-        case DEFAULT_TEXTURE:
-        default: {
-            return TextureLoaderFunc(model::TextureUsage::create2DTextureFromImage);
-            break;
-        }
+    if (_type == CUSTOM_TEXTURE) {
+        return _textureLoader;
     }
+    return getTextureLoaderForType(_type);
 }
 
 
@@ -330,7 +330,7 @@ void ImageReader::run() {
         return;
     }
 
-    gpu::Texture* texture = nullptr;
+    gpu::TexturePointer texture = nullptr;
     {
         // Double-check the resource still exists between long operations.
         auto resource = _resource.toStrongRef();
@@ -342,36 +342,32 @@ void ImageReader::run() {
         auto url = _url.toString().toStdString();
 
         PROFILE_RANGE_EX(__FUNCTION__"::textureLoader", 0xffffff00, nullptr);
-        texture = resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url);
+        texture.reset(resource.dynamicCast<NetworkTexture>()->getTextureLoader()(image, url));
     }
 
-    // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+    // Ensure the resource has not been deleted
     auto resource = _resource.toStrongRef();
     if (!resource) {
         qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-        delete texture;
     } else {
-        QMetaObject::invokeMethod(resource.data(), "setImage", Qt::BlockingQueuedConnection,
-            Q_ARG(void*, texture),
+        QMetaObject::invokeMethod(resource.data(), "setImage",
+            Q_ARG(gpu::TexturePointer, texture),
             Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
     }
 }
 
-void NetworkTexture::setImage(void* voidTexture, int originalWidth,
+void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
                               int originalHeight) {
     _originalWidth = originalWidth;
     _originalHeight = originalHeight;
 
-    gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
-
     // Passing ownership
     _textureSource->resetTexture(texture);
-    auto gpuTexture = _textureSource->getGPUTexture();
 
-    if (gpuTexture) {
-        _width = gpuTexture->getWidth();
-        _height = gpuTexture->getHeight();
-        setSize(gpuTexture->getStoredSize());
+    if (texture) {
+        _width = texture->getWidth();
+        _height = texture->getHeight();
+        setSize(texture->getStoredSize());
     } else {
         // FIXME: If !gpuTexture, we failed to load!
         _width = _height = 0;

@@ -68,12 +68,12 @@ protected:
     virtual void downloadFinished(const QByteArray& data) override;
 
 protected slots:
-    void animationParseSuccess(FBXGeometry* geometry);
+    void animationParseSuccess(FBXGeometry::Pointer geometry);
     void animationParseError(int error, QString str);
 
 private:
     
-    std::unique_ptr<FBXGeometry> _geometry;
+    FBXGeometry::Pointer _geometry;
 };
 
 /// Reads geometry in a worker thread.
@@ -85,7 +85,7 @@ public:
     virtual void run();
 
 signals:
-    void onSuccess(FBXGeometry* geometry);
+    void onSuccess(FBXGeometry::Pointer geometry);
     void onError(int error, QString str);
 
 private:
