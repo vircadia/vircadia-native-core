@@ -56,8 +56,8 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _serverGravity(0.0f),
     _serverAcceleration(0.0f),
     _serverActionData(QByteArray()),
-    _lastVelocity(glm::vec3(0.0f)),
-    _measuredAcceleration(glm::vec3(0.0f)),
+    _lastVelocity(0.0f),
+    _measuredAcceleration(0.0f),
     _nextOwnershipBid(0),
     _measuredDeltaTime(0.0f),
     _lastMeasureStep(0),
@@ -178,19 +178,26 @@ bool EntityMotionState::isMoving() const {
 // (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
+    BT_PROFILE("getWorldTransform");
     if (!_entity) {
         return;
     }
     assert(entityTreeIsLocked());
     if (_motionType == MOTION_TYPE_KINEMATIC) {
+        BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
-        // of the physics simulation.
+        // of the physics simulation and uses full gravity for acceleration.
+        _entity->setAcceleration(_entity->getGravity());
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-        _entity->simulateKinematicMotion(dt);
+        _entity->stepKinematicMotion(dt);
 
         // bypass const-ness so we can remember the step
         const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
+
+        // and set the acceleration-matches-gravity count high so that if we send an update
+        // it will use the correct acceleration for remote simulations
+        _accelerationNearlyGravityCount = (uint8_t)(-1);
     }
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(_entity->getRotation()));
@@ -270,6 +277,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
         _serverVelocity = getBodyLinearVelocityGTSigma();
+        _serverAcceleration = Vectors::ZERO;
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
@@ -309,6 +317,8 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (glm::length2(_serverVelocity) > 0.0f) {
         _serverVelocity += _serverAcceleration * dt;
         _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+        // NOTE: we ignore the second-order acceleration term when integrating
+        // the position forward because Bullet also does this.
         _serverPosition += dt * _serverVelocity;
     }
 
@@ -334,19 +344,23 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
 
     float dx2 = glm::distance2(position, _serverPosition);
-
-    const float MAX_POSITION_ERROR_SQUARED = 0.000004f; //  Sqrt() - corresponds to 2 millimeters
+    const float MAX_POSITION_ERROR_SQUARED = 0.000004f; // corresponds to 2mm
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
-
-        #ifdef WANT_DEBUG
-            qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
-            qCDebug(physics) << "wasPosition:" << wasPosition;
-            qCDebug(physics) << "bullet position:" << position;
-            qCDebug(physics) << "_serverPosition:" << _serverPosition;
-            qCDebug(physics) << "dx2:" << dx2;
-        #endif
-
-        return true;
+        // we don't mind larger position error when the object has high speed
+        // so we divide by speed and check again
+        float speed2 = glm::length2(_serverVelocity);
+        const float MIN_ERROR_RATIO_SQUARED = 0.0025f; // corresponds to 5% error in 1 second
+        const float MIN_SPEED_SQUARED = 1.0e-6f; // corresponds to 1mm/sec
+        if (speed2 < MIN_SPEED_SQUARED || dx2 / speed2 > MIN_ERROR_RATIO_SQUARED) {
+            #ifdef WANT_DEBUG
+                qCDebug(physics) << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
+                qCDebug(physics) << "wasPosition:" << wasPosition;
+                qCDebug(physics) << "bullet position:" << position;
+                qCDebug(physics) << "_serverPosition:" << _serverPosition;
+                qCDebug(physics) << "dx2:" << dx2;
+            #endif
+            return true;
+        }
     }
 
     if (glm::length2(_serverAngularVelocity) > 0.0f) {
@@ -400,7 +414,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 
     if (_entity->getSimulatorID() != Physics::getSessionUUID()) {
         // we don't own the simulation
-        bool shouldBid = _outgoingPriority > 0 && // but we would like to own it and
+
+        // NOTE: we do not volunteer to own kinematic or static objects
+        uint8_t insufficientPriority = _body->isStaticOrKinematicObject() ? VOLUNTEER_SIMULATION_PRIORITY : 0;
+
+        bool shouldBid = _outgoingPriority > insufficientPriority && // but we would like to own it AND
                 usecTimestampNow() > _nextOwnershipBid; // it is time to bid again
         if (shouldBid && _outgoingPriority < _entity->getSimulationPriority()) {
             // we are insufficiently interested so clear our interest
@@ -420,51 +438,39 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
     if (!_body->isActive()) {
         // make sure all derivatives are zero
-        glm::vec3 zero(0.0f);
-        _entity->setVelocity(zero);
-        _entity->setAngularVelocity(zero);
-        _entity->setAcceleration(zero);
+        _entity->setVelocity(Vectors::ZERO);
+        _entity->setAngularVelocity(Vectors::ZERO);
+        _entity->setAcceleration(Vectors::ZERO);
         _numInactiveUpdates++;
     } else {
-        const uint8_t STEPS_TO_DECIDE_BALLISTIC = 4;
-        float gravityLength = glm::length(_entity->getGravity());
-        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
-        const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
-        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
-            // acceleration measured during the most recent simulation step was close to gravity.
-            if (getAccelerationNearlyGravityCount() < STEPS_TO_DECIDE_BALLISTIC) {
-                // only increment this if we haven't reached the threshold yet.  this is to avoid
-                // overflowing the counter.
-                incrementAccelerationNearlyGravityCount();
-            }
-        } else {
-            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
-            resetAccelerationNearlyGravityCount();
-        }
+        glm::vec3 gravity = _entity->getGravity();
 
         // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
         // the entity server's estimates include gravity.
-        if (getAccelerationNearlyGravityCount() >= STEPS_TO_DECIDE_BALLISTIC) {
-            _entity->setAcceleration(_entity->getGravity());
+        const uint8_t STEPS_TO_DECIDE_BALLISTIC = 4;
+        if (_accelerationNearlyGravityCount >= STEPS_TO_DECIDE_BALLISTIC) {
+            _entity->setAcceleration(gravity);
         } else {
-            _entity->setAcceleration(glm::vec3(0.0f));
+            _entity->setAcceleration(Vectors::ZERO);
         }
 
-        const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-        const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
+        if (!_body->isStaticOrKinematicObject()) {
+            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
+            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
 
-        bool movingSlowlyLinear =
-            glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
-        bool movingSlowlyAngular = glm::length2(_entity->getAngularVelocity()) <
-                (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
-        bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == glm::vec3(0.0f);
+            bool movingSlowlyLinear =
+                glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
+            bool movingSlowlyAngular = glm::length2(_entity->getAngularVelocity()) <
+                    (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == Vectors::ZERO;
 
-        if (movingSlowly) {
-            // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
-            // other simulating observers to deactivate their own copies
-            glm::vec3 zero(0.0f);
-            _entity->setVelocity(zero);
-            _entity->setAngularVelocity(zero);
+            if (movingSlowly) {
+                // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
+                // other simulating observers to deactivate their own copies
+                glm::vec3 zero(0.0f);
+                _entity->setVelocity(zero);
+                _entity->setAngularVelocity(zero);
+            }
         }
         _numInactiveUpdates = 0;
     }
@@ -612,9 +618,9 @@ void EntityMotionState::resetMeasuredBodyAcceleration() {
     if (_body) {
         _lastVelocity = getBodyLinearVelocityGTSigma();
     } else {
-        _lastVelocity = glm::vec3(0.0f);
+        _lastVelocity = Vectors::ZERO;
     }
-    _measuredAcceleration = glm::vec3(0.0f);
+    _measuredAcceleration = Vectors::ZERO;
 }
 
 void EntityMotionState::measureBodyAcceleration() {
@@ -638,8 +644,23 @@ void EntityMotionState::measureBodyAcceleration() {
             _lastStep = ObjectMotionState::getWorldSimulationStep();
             _numInactiveUpdates = 0;
         }
+
+        glm::vec3 gravity = _entity->getGravity();
+        float gravityLength = glm::length(gravity);
+        float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
+        const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
+        if (accVsGravity < ACCELERATION_EQUIVALENT_EPSILON_RATIO * gravityLength) {
+            // acceleration measured during the most recent simulation step was close to gravity.
+            if (_accelerationNearlyGravityCount < (uint8_t)(-2)) {
+                ++_accelerationNearlyGravityCount;
+            }
+        } else {
+            // acceleration wasn't similar to this entities gravity, so reset the went-ballistic counter
+            _accelerationNearlyGravityCount = 0;
+        }
     }
 }
+
 glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
     // This is the dampened change in linear velocity, as calculated in measureBodyAcceleration: dv = a * dt
     // It is generally only meaningful during the lifespan of collision. In particular, it is not meaningful

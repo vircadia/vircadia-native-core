@@ -30,10 +30,11 @@ namespace Setting {
         
     protected:
         Interface(const QString& key) : _key(key) {}
-        virtual ~Interface();
+        virtual ~Interface() = default;
 
         void init();
         void maybeInit();
+        void deinit();
         
         void save();
         void load();

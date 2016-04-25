@@ -64,6 +64,15 @@ void MainWindow::saveGeometry() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    // It is the job of Application::quit() to shut things down properly when it is finished with its event loop.
+    // But if we don't explicitly ignore this event now, the window and application event loop will close
+    // before we've had a chance to act on the aboutToClose signal. This will leaves a zombie process on all platforms.
+    // To repro:
+    //   Open a QML modal dialog (e.g., select an avatar to wear), but don't dismiss it.
+    //   Close the application with the operating system window close button (not the menu Quit)
+    //   With ignore: App will wait until you accept or dismiss the dialog and log "Normal exit".
+    //   Without ignore: App will close immediately, and nothing will log about quitting or exit.
+    event->ignore();
     qApp->quit();
 }
 

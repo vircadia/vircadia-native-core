@@ -144,7 +144,7 @@ public:
 
     static int expectedBytes();
 
-    static void adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew);
+    static void adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew);
 
     // perform update
     virtual void update(const quint64& now) { _lastUpdated = now; }
@@ -152,7 +152,7 @@ public:
 
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
-    void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
+    bool stepKinematicMotion(float timeElapsed); // return 'true' if moving
 
     virtual bool needsToCallUpdate() const { return false; }
 

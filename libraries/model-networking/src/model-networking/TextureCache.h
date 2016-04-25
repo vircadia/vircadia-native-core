@@ -128,7 +128,6 @@ public:
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
-
 protected:
 
     virtual bool isCacheable() const override { return _loaded; }
@@ -136,9 +135,7 @@ protected:
     virtual void downloadFinished(const QByteArray& data) override;
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
-    Q_INVOKABLE void setImage(void* texture, int originalWidth, int originalHeight);
-
+    Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
 private:
     TextureType _type;

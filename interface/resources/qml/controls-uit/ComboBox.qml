@@ -59,7 +59,7 @@ FocusScope {
         id: comboBox
         anchors.fill: parent
         visible: false
-        height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
+        height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
     }
 
     FiraSansSemiBold {

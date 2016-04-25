@@ -23,6 +23,7 @@ struct TransformCamera {
 layout(std140) uniform transformCameraBuffer {
     TransformCamera _camera;
 };
+
 TransformCamera getTransformCamera() {
     return _camera;
 }
@@ -68,8 +69,8 @@ TransformObject getTransformObject() {
 
 
 <@func declareStandardTransform()@>
-<$declareStandardObjectTransform()$>
 <$declareStandardCameraTransform()$>
+<$declareStandardObjectTransform()$>
 <@endfunc@>
 
 <@func transformCameraViewport(cameraTransform, viewport)@>

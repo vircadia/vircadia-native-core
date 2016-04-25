@@ -42,7 +42,7 @@ function createItems(count) {
             name: TEST_ENTITY_NAME,
             position: AUSTIN.avatarRelativePosition(AUSTIN.randomPositionXZ({ x: 0, y: 0, z: -2 }, RADIUS)),
             color: { r: 255, g: 255, b: 255 },
-            dimensions: AUSTIN.randomDimensions(),
+            dimensions: { x: 0.5, y: 0.5, z: 0.5 }, //AUSTIN.randomDimensions(),
             lifetime: ENTITY_LIFETIME,
             userData: JSON.stringify({ 
                 ProceduralEntity: {

@@ -145,6 +145,7 @@ protected:
     virtual OctreePointer createTree() = 0;
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
+    bool readOptionInt64(const QString& optionName, const QJsonObject& settingsSectionObject, qint64& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
     void readConfiguration();
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { };
