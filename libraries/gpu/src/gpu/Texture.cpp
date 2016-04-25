@@ -18,6 +18,8 @@
 #include "GPULogging.h"
 #include "Context.h"
 
+#include "ColorUtils.h"
+
 using namespace gpu;
 
 static int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
@@ -637,50 +639,6 @@ void SphericalHarmonics::assignPreset(int p) {
     }
 }
 
-// This is based upon the conversions found in section 8.24 of the OpenGL 4.4 4.4 specification.
-// glm::pow(color, 2.2f) is approximate, and will cause subtle differences when used with sRGB framebuffers.
-float sRGBValueToLinearValue(float& value) {
-    const float SRGB_ELBOW = 0.04045f;
-    float linearValue = 0.0f;
-    
-    // This should mirror the conversion table found in section 8.24: sRGB Texture Color Conversion
-    if (value <= SRGB_ELBOW) {
-        linearValue = value / 12.92f;
-    } else {
-        linearValue = powf(((value + 0.055f) / 1.055f), 2.4f);
-    }
-    
-    return linearValue;
-}
-
-// This is based upon the conversions found in section 17.3.9 of the OpenGL 4.4 specification.
-// glm::pow(color, 1.0f/2.2f) is approximate, and will cause subtle differences when used with sRGB framebuffers.
-float LinearValueTosRGBValue(float& value) {
-    const float SRGB_ELBOW_INV = 0.0031308f;
-    float sRGBValue = 0.0f;
-    
-    // This should mirror the conversion table found in section 17.3.9: sRGB Conversion
-    if (value <= 0.0f) {
-        sRGBValue = 0.0f;
-    } else if (0 < value < SRGB_ELBOW_INV) {
-        sRGBValue = 12.92f * value;
-    } else if (SRGB_ELBOW_INV <= value < 1) {
-        sRGBValue = 1.055f * powf(value, 0.41666f - 0.055f);
-    } else {
-        sRGBValue = 1.0f;
-    }
-    
-    return sRGBValue;
-}
-
-glm::vec3 sRGBToLinear(glm::vec3& color) {
-    return glm::vec3(sRGBValueToLinearValue(color.x), sRGBValueToLinearValue(color.y), sRGBValueToLinearValue(color.z));
-}
-
-glm::vec3 linearTosRGB(glm::vec3& color) {
-    return glm::vec3(LinearValueTosRGBValue(color.x), LinearValueTosRGBValue(color.y), LinearValueTosRGBValue(color.z));
-}
-
 // Originial code for the Spherical Harmonics taken from "Sun and Black Cat- Igor Dykhta (igor dykhta email) � 2007-2014 "
 void sphericalHarmonicsAdd(float * result, int order, const float * inputA, const float * inputB) {
    const int numCoeff = order * order;
@@ -835,7 +793,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                             float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
 
                 // Gamma correct
-                clr = sRGBToLinear(clr);
+                clr = ColorUtils::sRGBToLinearVec3(clr);
 
                 // scale color and add to previously accumulated coefficients
                 sphericalHarmonicsScale(shBuffB.data(), order,

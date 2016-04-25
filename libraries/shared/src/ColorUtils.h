@@ -24,12 +24,15 @@ public:
     // Convert from gamma 2.2 space to linear
     inline static glm::vec3 toLinearVec3(const glm::vec3& srgb);
     inline static glm::vec3 toGamma22Vec3(const glm::vec3& linear);
+    
+    // Convert from sRGB gamma space to linear.
+    // This is pretty different from converting from 2.2.
+    inline static glm::vec3 sRGBToLinearVec3(const glm::vec3& srgb);
+    inline static glm::vec3 tosRGBVec3(const glm::vec3& srgb);
+    
+    inline static float sRGBToLinearFloat(const float& srgb);
+    inline static float tosRGBFloat(const float& linear);
 };
-
-inline glm::vec3 ColorUtils::toVec3(const xColor& color) {
-    const float ONE_OVER_255 = 1.0f / 255.0f;
-    return glm::vec3(color.red * ONE_OVER_255, color.green * ONE_OVER_255, color.blue * ONE_OVER_255);
-}
 
 inline glm::vec3 ColorUtils::toLinearVec3(const glm::vec3& srgb) {
     const float GAMMA_22 = 2.2f;
@@ -41,6 +44,55 @@ inline glm::vec3 ColorUtils::toGamma22Vec3(const glm::vec3& linear) {
     const float INV_GAMMA_22 = 1.0f / 2.2f;
     // Couldn't find glm::pow(vec3, vec3) ? so did it myself...
     return glm::vec3(glm::pow(linear.x, INV_GAMMA_22), glm::pow(linear.y, INV_GAMMA_22), glm::pow(linear.z, INV_GAMMA_22));
+}
+
+inline glm::vec3 ColorUtils::toVec3(const xColor& color) {
+    const float ONE_OVER_255 = 1.0f / 255.0f;
+    return glm::vec3(color.red * ONE_OVER_255, color.green * ONE_OVER_255, color.blue * ONE_OVER_255);
+}
+
+inline glm::vec3 ColorUtils::sRGBToLinearVec3(const glm::vec3& srgb) {
+    return glm::vec3(sRGBToLinearFloat(srgb.x), sRGBToLinearFloat(srgb.y), sRGBToLinearFloat(srgb.z));
+}
+
+inline glm::vec3 ColorUtils::tosRGBVec3(const glm::vec3& linear) {
+    return glm::vec3(tosRGBFloat(linear.x), tosRGBFloat(linear.y), tosRGBFloat(linear.z));
+}
+
+// This is based upon the conversions found in section 8.24 of the OpenGL 4.4 4.4 specification.
+// glm::pow(color, 2.2f) is approximate, and will cause subtle differences when used with sRGB framebuffers.
+inline float ColorUtils::sRGBToLinearFloat(const float &srgb) {
+    const float SRGB_ELBOW = 0.04045f;
+    float linearValue = 0.0f;
+    
+    // This should mirror the conversion table found in section 8.24: sRGB Texture Color Conversion
+    if (srgb <= SRGB_ELBOW) {
+        linearValue = srgb / 12.92f;
+    } else {
+        linearValue = powf(((srgb + 0.055f) / 1.055f), 2.4f);
+    }
+    
+    return linearValue;
+}
+
+// This is based upon the conversions found in section 17.3.9 of the OpenGL 4.4 specification.
+// glm::pow(color, 1.0f/2.2f) is approximate, and will cause subtle differences when used with sRGB framebuffers.
+inline float ColorUtils::tosRGBFloat(const float &linear) {
+    const float SRGB_ELBOW_INV = 0.0031308f;
+    float sRGBValue = 0.0f;
+    
+    // This should mirror the conversion table found in section 17.3.9: sRGB Conversion
+    if (linear <= 0.0f) {
+        sRGBValue = 0.0f;
+    } else if (0 < linear < SRGB_ELBOW_INV) {
+        sRGBValue = 12.92f * linear;
+    } else if (SRGB_ELBOW_INV <= linear < 1) {
+        sRGBValue = 1.055f * powf(linear, 0.41666f - 0.055f);
+    } else {
+        sRGBValue = 1.0f;
+    }
+    
+    return sRGBValue;
 }
 
 #endif // hifi_ColorUtils_h
