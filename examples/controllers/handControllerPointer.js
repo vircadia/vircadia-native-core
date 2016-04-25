@@ -20,13 +20,23 @@
 // Cursor all the time when uncradled. (E.g., not just when blue ray is on, or five seconds after movement, etc.)
 // Button 3 is left-mouse, button 4 is right-mouse.
 
+// UTILITIES -------------
+//
 var counter = 0, skip = 50;
 function debug() { // Display the arguments not just [Object object].
     if (skip && (counter++ % skip)) { return; }
     print.apply(null, [].map.call(arguments, JSON.stringify));
 }
 
-// Keep track of the vertical fieldOfView setting:
+// Utility to make it easier to setup and disconnect cleanly.
+function setupHandler(event, handler) { 
+    event.connect(handler);
+    Script.scriptEnding.connect(function () { event.disconnect(handler); });
+}
+
+// VERTICAL FIELD OF VIEW ---------
+//
+// Cache the verticalFieldOfView setting and update it every so often.
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 var verticalFieldOfView = Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW;
@@ -35,13 +45,20 @@ var settingsChecker = Script.setInterval(function () {
 }, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker); });
 
-
-// Define shimmable functions for getting hand controller and setting cursor, accomodating
-// the normal case of having a hand controller and the alternative at the bottom of this file.
+// SHIMS ----------
+//
+// Define shimable functions for getting hand controller and setting cursor, for the normal
+// case of having a hand controller. Alternative are at the bottom of the file.
 var getControllerPose = Controller.getPoseValue;
-var setCursor = Reticle.setPosition;
+var setCursor = function (point2d) {
+    if (!HMD.active) {
+	// FIX BUG: The width of the window title bar (on Windows, anyway).
+	point2d = {x: point2d.x, y: point2d.y + 50};
+    }
+    Reticle.setPosition(point2d);
+}
 
-// Generalized HUD utilities, with or without HDM:
+// Generalized HUD utilities, with or without HMD:
 function calculateRayUICollisionPoint(position, direction) {
     // Answer the 3D intersection of the HUD by the given ray, or falsey if no intersection.
     if (HMD.active) {
@@ -61,6 +78,10 @@ function calculateRayUICollisionPoint(position, direction) {
 var DEGREES_TO_HALF_RADIANS = Math.PI / 360;
 function overlayFromWorldPoint(point) {
     // Answer the 2d pixel-space location in the HUD that covers the given 3D point.
+    // REQUIRES: that the 3d point be on the hud surface!
+    // Note that this is based on the Camera, and doesn't know anything about any
+    // ray that may or may not have been used to compute the point. E.g., the
+    // overlay point is NOT the intersection of some non-camera ray with the HUD.
     if (HMD.active) {
         return HMD.overlayFromWorldPoint(point);
     }
@@ -70,11 +91,15 @@ function overlayFromWorldPoint(point) {
     var size = Controller.getViewportDimensions();
     var hudHeight = 2 * Math.tan(verticalFieldOfView * DEGREES_TO_HALF_RADIANS);
     var hudWidth = hudHeight * size.x / size.y;
-    var horizontalPixels = size.x * (cameraX / hudWidth + 0.5);
-    var verticalPixels = size.y * (1 - (cameraY / hudHeight + 0.5));
+    var horizontalFraction = (cameraX / hudWidth + 0.5);
+    var verticalFraction = 1 - (cameraY / hudHeight + 0.5);
+    var horizontalPixels = size.x * horizontalFraction;
+    var verticalPixels = size.y * verticalFraction;
     return { x: horizontalPixels, y: verticalPixels };
 }
 
+// CONTROLLER MAPPING ---------
+//
 // Synthesize left and right mouse click from controller:
 var MAPPING_NAME = Script.resolvePath('');
 var mapping = Controller.newMapping(MAPPING_NAME);
@@ -88,27 +113,54 @@ mapping.enable();
 Script.scriptEnding.connect(mapping.disable);
 
 
-// Here's the meat:
+// MOUSE LOCKOUT --------
+//
+var MOUSE_MOVE_LOCKOUT_TIME = 1000; //fixme 5000; // milliseconds after mouse movement before hand controller can move pointer.
+var mouseMoved = 0, weMovedReticle = false;
+if (Controller.Hardware.Hydra) {
+    function onMouseMove(event) {
+	if (weMovedReticle) { weMovedReticle = false; return; }
+	Reticle.visible = true;
+	mouseMoved = Date.now();
+    }
+    setupHandler(Controller.mouseMoveEvent, onMouseMove);
+}
 
+// MAIN OPERATIONS -----------
+//
 var LASER_COLOR = {red: 10, green: 10, blue: 255};
 var terminatingBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
-    size: 0.011,
+    size: 0.1, //FIXME 0.011,
     color: LASER_COLOR,
     ignoreRayIntersection: true,
     alpha: 0.8, // handControllerGrab has this as 0.5, but I have trouble seeing that.
-    visible: true,
+    visible: false,
     solid: true
 });
 var laserLine = Overlays.addOverlay("line3d", { // same properties as handControllerGrab search line
     lineWidth: 5,
+    // BUG: If you don't supply a start and end at creation, it will never show up, even after editing.
+    start: MyAvatar.position,
+    end: Vec3.ZERO,
     color: LASER_COLOR,
     ignoreRayIntersection: true,
-    visible: true,
+    visible: false,
     alpha: 1
 });
+var overlays = [terminatingBall, laserLine];
+var isOn = true;
+function turnOffLaser() {
+    if (!isOn) { return; }
+    isOn = true;
+    overlays.forEach(function (overlay) {
+	Overlays.editOverlay(overlay, {visible: false});
+    });
+}
 
+var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
 function update() {
-    if (Controller.getValue(Controller.Standard.RT)) { return; } // Interferes with other scripts.
+    if ((Date.now() - mouseMoved) < MOUSE_MOVE_LOCKOUT_TIME) { return turnOffLaser(); } // Let them use it in peace.
+    if (Controller.getValue(Controller.Standard.RT)) { return turnOffLaser(); } // Interferes with other scripts.
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
     if (!controllerPose.valid) { return; } // Controller is cradled.
@@ -118,28 +170,60 @@ function update() {
     var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
-    if (!hudPoint3d) { return; } // E.g., parallel to the screen.
-    Overlays.editOverlay(terminatingBall, {position: hudPoint3d});
-    Overlays.editOverlay(laserLine, {start: controllerPosition, end: hudPoint3d});
-    setCursor(overlayFromWorldPoint(hudPoint3d));
+    if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnLaserOff(); }
+    var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
+    setCursor(hudPoint2d);
+    weMovedReticle = true;
+
+    // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
+    if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d)) {
+	Reticle.visible = true;
+	return turnOffLaser();
+    }
+    // Otherwise, show the laser and intersect it with 3d overlays and entities.
+    var pickRay = {origin: controllerPosition, direction: controllerDirection};
+    var result = Overlays.findRayIntersection(pickRay)
+    if (!result.intersects) {
+	result = Entities.findRayIntersection(pickRay, true);
+    }
+    var termination = result.intersects ?
+	result.intersection :
+	Vec3.sum(controllerPosition, Vec3.multiply(MAX_RAY_SCALE, controllerDirection));
+    isOn = true;
+    Overlays.editOverlay(terminatingBall, {visible: true, position: termination});
+    Overlays.editOverlay(laserLine, {visible: true, start: controllerPosition, end: termination});
+    /*
+    // Hack: Move the pointer again, this time to the intersection. This allows "clicking" on
+    // 2D and 3D entities without rewriting other parts of the system, but it isn't right,
+    // because the line from camera to the new mouse position might intersect different things
+    // than the line from controllerPosition to termination.
+    var eye = Camera.getPosition();
+    var apparentHudTermination3d = calculateRayUICollisionPoint(eye, Vec3.subtract(termination, eye));
+    var apparentHudTermination2d = overlayFromWorldPoint(apparentHudTermination3d);
+    Overlays.editOverlay(fakeReticle, {x: apparentHudTermination2d.x - reticleHalfSize, y: apparentHudTermination2d.y - reticleHalfSize});
+    //Reticle.visible = false;
+    weMovedReticle = true;
+    setCursor(apparentHudTermination2d);
+*/
 }
 
 var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
 Script.scriptEnding.connect(function () {
     Overlays.deleteOverlay(terminatingBall);
-    Overlays.deleteOverlay(laserLine);
     Script.clearInterval(updater);
 });
 
-// -------------------------------------------------------------------------------------------------------------------------------
+
+// DEBUGGING WITHOUT HYDRA -----------------------
+//
 // The rest of this is for debugging without working hand controllers, using a line from camera to mouse, and an image for cursor.
 var CONTROLLER_ROTATION = Quat.fromPitchYawRollDegrees(90, 180, -90);
-if (!Controller.Hardware.Hydra) {  // Check is made at script load time, not continuously while running.
+if (!Controller.Hardware.Hydra) {
+    print('WARNING: no hand controller detected. Using mouse!');
     var mouseKeeper = {x: 0, y: 0};
-    var onMouseMove = function (event) { mouseKeeper.x = event.x; mouseKeeper.y = event.y; };
-    Controller.mouseMoveEvent.connect(onMouseMove);
-    Script.scriptEnding.connect(function () { Controller.mouseMoveEvent.disconnect(onMouseMove); });
+    var onMouseMoveCapture = function (event) { mouseKeeper.x = event.x; mouseKeeper.y = event.y; };
+    setupHandler(Controller.mouseMoveEvent, onMouseMoveCapture);
     getControllerPose = function () {
         var size = Controller.getViewportDimensions();
         var handPoint = Vec3.subtract(Camera.getPosition(), MyAvatar.position); // Pretend controller is at camera
@@ -166,7 +250,6 @@ if (!Controller.Hardware.Hydra) {  // Check is made at script load time, not con
             rotation: Quat.multiply(inverseAvatar, controllerRotation)
         };
     };
-
     // We can't set the mouse if we're using the mouse as a fake controller. So stick an image where we would be putting the mouse.
     // WARNING: This fake cursor is an overlay that will be the target of clicks and drags rather than other overlays underneath it!
     if (true) {  // Don't do the overlay, but do turn off cursor warping, which would be circular.
