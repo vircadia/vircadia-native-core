@@ -35,12 +35,9 @@ var settingsChecker = Script.setInterval(function () {
 }, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker); });
 
-function getViewportDimensions() {
-    return Controller.getViewportDimensions();
-}
 
-// Define shimable functions for getting hand controller and setting cursor, for the normal
-// case of having a hand controller. Alternative are at the bottom of the file.
+// Define shimmable functions for getting hand controller and setting cursor, accomodating
+// the normal case of having a hand controller and the alternative at the bottom of this file.
 var getControllerPose = Controller.getPoseValue;
 var setCursor = Reticle.setPosition;
 
@@ -70,7 +67,7 @@ function overlayFromWorldPoint(point) {
     var cameraToPoint = Vec3.subtract(point, Camera.getPosition());
     var cameraX = Vec3.dot(cameraToPoint, Quat.getRight(Camera.getOrientation()));
     var cameraY = Vec3.dot(cameraToPoint, Quat.getUp(Camera.getOrientation()));
-    var size = getViewportDimensions();
+    var size = Controller.getViewportDimensions();
     var hudHeight = 2 * Math.tan(verticalFieldOfView * DEGREES_TO_HALF_RADIANS);
     var hudWidth = hudHeight * size.x / size.y;
     var horizontalPixels = size.x * (cameraX / hudWidth + 0.5);
@@ -90,12 +87,24 @@ mapToAction('Hydra', 'R4', 'ContextMenu');
 mapping.enable();
 Script.scriptEnding.connect(mapping.disable);
 
+
+// Here's the meat:
+
+var LASER_COLOR = {red: 10, green: 10, blue: 255};
 var terminatingBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
     size: 0.011,
-    color: {red: 10, green: 10, blue: 255},
-    alpha: 0.8,
-    solid: true,
-    visible: true
+    color: LASER_COLOR,
+    ignoreRayIntersection: true,
+    alpha: 0.8, // handControllerGrab has this as 0.5, but I have trouble seeing that.
+    visible: true,
+    solid: true
+});
+var laserLine = Overlays.addOverlay("line3d", { // same properties as handControllerGrab search line
+    lineWidth: 5,
+    color: LASER_COLOR,
+    ignoreRayIntersection: true,
+    visible: true,
+    alpha: 1
 });
 
 function update() {
@@ -111,6 +120,7 @@ function update() {
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) { return; } // E.g., parallel to the screen.
     Overlays.editOverlay(terminatingBall, {position: hudPoint3d});
+    Overlays.editOverlay(laserLine, {start: controllerPosition, end: hudPoint3d});
     setCursor(overlayFromWorldPoint(hudPoint3d));
 }
 
@@ -118,19 +128,20 @@ var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
 Script.scriptEnding.connect(function () {
     Overlays.deleteOverlay(terminatingBall);
+    Overlays.deleteOverlay(laserLine);
     Script.clearInterval(updater);
 });
 
-
+// -------------------------------------------------------------------------------------------------------------------------------
 // The rest of this is for debugging without working hand controllers, using a line from camera to mouse, and an image for cursor.
 var CONTROLLER_ROTATION = Quat.fromPitchYawRollDegrees(90, 180, -90);
-if (!Controller.Hardware.Hydra) {
+if (!Controller.Hardware.Hydra) {  // Check is made at script load time, not continuously while running.
     var mouseKeeper = {x: 0, y: 0};
     var onMouseMove = function (event) { mouseKeeper.x = event.x; mouseKeeper.y = event.y; };
     Controller.mouseMoveEvent.connect(onMouseMove);
     Script.scriptEnding.connect(function () { Controller.mouseMoveEvent.disconnect(onMouseMove); });
     getControllerPose = function () {
-        var size = getViewportDimensions();
+        var size = Controller.getViewportDimensions();
         var handPoint = Vec3.subtract(Camera.getPosition(), MyAvatar.position); // Pretend controller is at camera
 
         // In world-space 3D meters:
@@ -155,7 +166,13 @@ if (!Controller.Hardware.Hydra) {
             rotation: Quat.multiply(inverseAvatar, controllerRotation)
         };
     };
+
     // We can't set the mouse if we're using the mouse as a fake controller. So stick an image where we would be putting the mouse.
+    // WARNING: This fake cursor is an overlay that will be the target of clicks and drags rather than other overlays underneath it!
+    if (true) {  // Don't do the overlay, but do turn off cursor warping, which would be circular.
+        setCursor = function () { };
+        return;
+    }
     var reticleHalfSize = 16;
     var fakeReticle = Overlays.addOverlay("image", {
         imageURL: "http://s3.amazonaws.com/hifi-public/images/delete.png",
