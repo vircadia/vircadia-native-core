@@ -248,7 +248,11 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
     READ_OPTIONAL_STRING(mirrorFlagVar, jsonObj);
 
-    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
+    // animation urls can be relative to the containing url document.
+    auto tempUrl = QUrl(url);
+    tempUrl = jsonUrl.resolved(tempUrl);
+
+    auto node = std::make_shared<AnimClip>(id, tempUrl.toString(), startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     if (!startFrameVar.isEmpty()) {
         node->setStartFrameVar(startFrameVar);

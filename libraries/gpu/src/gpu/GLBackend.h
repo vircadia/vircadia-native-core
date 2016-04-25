@@ -17,6 +17,7 @@
 #include <queue>
 #include <utility>
 #include <list>
+#include <array>
 
 #include <gl/Config.h>
 
@@ -201,24 +202,24 @@ public:
         };
 
         using ShaderObjects = std::array< ShaderObject, NumVersions >;
+
         using UniformMapping = std::map<GLint, GLint>;
         using UniformMappingVersions = std::vector<UniformMapping>;
-
-
+        
         GLShader();
         ~GLShader();
 
         ShaderObjects _shaderObjects;
         UniformMappingVersions _uniformMappings;
 
-        GLuint getProgram() const {
-            return _shaderObjects[Mono].glprogram;
+        GLuint getProgram(Version version = Mono) const {
+            return _shaderObjects[version].glprogram;
         }
 
-        GLint getUniformLocation(GLint srcLoc) {
+        GLint getUniformLocation(GLint srcLoc, Version version = Mono) {
+            // THIS will be used in the future PR as we grow the number of versions
+            // return _uniformMappings[version][srcLoc];
             return srcLoc;
-            // THIS will be used in the next PR
-            // return _uniformMappings[Mono][srcLoc];
         }
 
     };
@@ -353,8 +354,14 @@ public:
     void do_setStateColorWriteMask(uint32 mask);
     
 protected:
+    static const size_t INVALID_OFFSET = (size_t)-1;
+
+    bool _inRenderTransferPass;
+
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
+
+    void setupStereoSide(int side);
 
     void initTextureTransferHelper();
     static void transferGPUObject(const TexturePointer& texture);
@@ -438,7 +445,8 @@ protected:
     void resetTransformStage();
 
     struct TransformStageState {
-        using TransformCameras = std::vector<TransformCamera>;
+        using CameraBufferElement = TransformCamera;
+        using TransformCameras = std::vector<CameraBufferElement>;
 
         TransformCamera _camera;
         TransformCameras _cameras;
@@ -462,9 +470,11 @@ protected:
         using List = std::list<Pair>;
         List _cameraOffsets;
         mutable List::const_iterator _camerasItr;
+        mutable size_t _currentCameraOffset{ INVALID_OFFSET };
 
         void preUpdate(size_t commandIndex, const StereoState& stereo);
         void update(size_t commandIndex, const StereoState& stereo) const;
+        void bindCurrentCamera(int stereoSide) const;
         void transfer(const Batch& batch) const;
     } _transform;
 

@@ -312,11 +312,9 @@ GLBackend::GLShader* compileBackendShader(const Shader& shader) {
 
     // Domain specific defines
     const std::string domainDefines[NUM_SHADER_DOMAINS] = {
-        "#define VERTEX_SHADER",
-        "#define PIXEL_SHADER"
+        "#define GPU_VERTEX_SHADER",
+        "#define GPU_PIXEL_SHADER"
     };
-
-
 
     // Versions specific of the shader
     const std::string versionDefines[GLBackend::GLShader::NumVersions] = {
@@ -374,7 +372,6 @@ GLBackend::GLShader* compileBackendProgram(const Shader& program) {
 
         makeProgramBindings(programObject);
     }
-
 
     // So far so good, the program versions have all been created successfully
     GLBackend::GLShader* object = new GLBackend::GLShader();

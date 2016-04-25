@@ -45,6 +45,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
             CGLDescribeRenderer(rendererInfo, j, kCGLRPVideoMemoryMegabytes, &deviceVRAM);
             if (deviceVRAM > bestVRAM) {
                 bestVRAM = deviceVRAM;
+                _isValid = true;
             }
         }
     }

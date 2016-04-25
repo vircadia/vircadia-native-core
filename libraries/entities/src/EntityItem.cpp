@@ -370,7 +370,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+    qint64 clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
     BufferParser parser(data, bytesLeftToRead);
 
@@ -485,7 +485,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "                                    now:" << now;
         qCDebug(entities) << "                          getLastEdited:" << debugTime(getLastEdited(), now);
         qCDebug(entities) << "                   lastEditedFromBuffer:" << debugTime(lastEditedFromBuffer, now);
-        qCDebug(entities) << "                              clockSkew:" << debugTimeOnly(clockSkew);
+        qCDebug(entities) << "                              clockSkew:" << clockSkew;
         qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
         qCDebug(entities) << "                  _lastEditedFromRemote:" << debugTime(_lastEditedFromRemote, now);
         qCDebug(entities) << "      _lastEditedFromRemoteInRemoteTime:" << debugTime(_lastEditedFromRemoteInRemoteTime, now);
@@ -760,7 +760,7 @@ void EntityItem::debugDump() const {
 }
 
 // adjust any internal timestamps to fix clock skew for this server
-void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew) {
+void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew) {
     unsigned char* dataAt = reinterpret_cast<unsigned char*>(buffer.data());
     int octets = numberOfThreeBitSectionsInCode(dataAt);
     int lengthOfOctcode = (int)bytesRequiredForCodeLength(octets);
@@ -884,7 +884,24 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::stepKinematicMotion(float timeElapsed) {
+    // get all the data
+    Transform transform;
+    glm::vec3 linearVelocity;
+    glm::vec3 angularVelocity;
+    getLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
+
+    // find out if it is moving
+    bool isSpinning = (glm::length2(angularVelocity) > 0.0f);
+    float linearSpeedSquared = glm::length2(linearVelocity);
+    bool isTranslating = linearSpeedSquared > 0.0f;
+    bool moving = isTranslating || isSpinning;
+    if (!moving) {
+        return false;
+    }
+
     if (timeElapsed <= 0.0f) {
+        // someone gave us a useless time value so bail early
+        // but return 'true' because it is moving
         return true;
     }
 
@@ -894,13 +911,7 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
     }
     timeElapsed = glm::min(timeElapsed, MAX_TIME_ELAPSED);
 
-    Transform transform;
-    glm::vec3 linearVelocity;
-    glm::vec3 angularVelocity;
-    getLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
-
-    bool moving = false;
-    if (glm::length2(angularVelocity) > 0.0f) {
+    if (isSpinning) {
         // angular damping
         if (_angularDamping > 0.0f) {
             angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
@@ -922,14 +933,12 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
             }
             transform.setRotation(rotation);
         }
-        moving = true;
     }
 
     glm::vec3 position = transform.getTranslation();
-    float linearSpeedSquared = glm::length2(linearVelocity);
     const float MIN_KINEMATIC_LINEAR_SPEED_SQUARED =
         KINEMATIC_LINEAR_SPEED_THRESHOLD * KINEMATIC_LINEAR_SPEED_THRESHOLD;
-    if (linearSpeedSquared > 0.0f) {
+    if (isTranslating) {
         glm::vec3 deltaVelocity = Vectors::ZERO;
 
         // linear damping
@@ -971,14 +980,12 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
                 linearVelocity += deltaVelocity;
             }
         }
-        moving = true;
     }
 
-    if (moving) {
-        transform.setTranslation(position);
-        setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
-    }
-    return moving;
+    transform.setTranslation(position);
+    setLocalTransformAndVelocities(transform, linearVelocity, angularVelocity);
+
+    return true;
 }
 
 bool EntityItem::isMoving() const {

@@ -20,15 +20,17 @@ TextField {
 
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
+    property bool isSearchField: false
     property string label: ""
-    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
+    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height + 1 : 0)
 
     placeholderText: textField.placeholderText
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
-    height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
+    font.italic: textField.text == ""
+    height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
 
     y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
 
@@ -42,11 +44,22 @@ TextField {
                    : (textField.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: hifi.colors.primaryHighlight
             border.width: textField.focus ? 1 : 0
+            radius: isSearchField ? textField.height / 2 : 0
+
+            HiFiGlyphs {
+                text: hifi.glyphs.search
+                color: textColor
+                size: hifi.fontSizes.textFieldSearchIcon
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: hifi.dimensions.textPadding - 2
+                visible: isSearchField
+            }
         }
         placeholderTextColor: hifi.colors.lightGray
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        padding.left: hifi.dimensions.textPadding
+        padding.left: (isSearchField ? textField.height - 2 : 0) + hifi.dimensions.textPadding
         padding.right: hifi.dimensions.textPadding
     }
 
@@ -56,7 +69,7 @@ TextField {
         colorScheme: textField.colorScheme
         anchors.left: parent.left
         anchors.bottom: parent.top
-        anchors.bottomMargin: 4
+        anchors.bottomMargin: 3
         visible: label != ""
     }
 }

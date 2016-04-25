@@ -131,8 +131,8 @@ Item {
         readonly property bool largeScreen: Screen.width >= 1920 && Screen.height >= 1080
         readonly property real borderRadius: largeScreen ? 7.5 : 5.0
         readonly property real borderWidth: largeScreen ? 2 : 1
-        readonly property vector2d contentMargin: Qt.vector2d(12, 24)
-        readonly property vector2d contentSpacing: Qt.vector2d(8, 12)
+        readonly property vector2d contentMargin: Qt.vector2d(21, 21)
+        readonly property vector2d contentSpacing: Qt.vector2d(11, 14)
         readonly property real labelPadding: 40
         readonly property real textPadding: 8
         readonly property real sliderHandleSize: 18
@@ -143,8 +143,8 @@ Item {
         readonly property real tableHeaderHeight: 40
         readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
         readonly property real modalDialogTitleHeight: 40
-        readonly property real controlLineHeight: 29  // Height of spinbox control on 1920 x 1080 monitor
-        readonly property real controlInterlineHeight: 22  // 75% of controlLineHeight
+        readonly property real controlLineHeight: 28  // Height of spinbox control on 1920 x 1080 monitor
+        readonly property real controlInterlineHeight: 21  // 75% of controlLineHeight
         readonly property vector2d menuPadding: Qt.vector2d(14, 12)
     }
 
@@ -156,6 +156,7 @@ Item {
         readonly property real inputLabel: dimensions.largeScreen ? 14 : 10
         readonly property real textFieldInput: dimensions.largeScreen ? 15 : 12
         readonly property real textFieldInputLabel: dimensions.largeScreen ? 13 : 9
+        readonly property real textFieldSearchIcon: dimensions.largeScreen ? 30 : 24
         readonly property real tableText: dimensions.largeScreen ? 15 : 12
         readonly property real buttonLabel: dimensions.largeScreen ? 13 : 9
         readonly property real iconButton: dimensions.largeScreen ? 13 : 9

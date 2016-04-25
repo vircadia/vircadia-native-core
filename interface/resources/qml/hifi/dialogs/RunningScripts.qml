@@ -114,7 +114,9 @@ Window {
                 }
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.Table {
                 tableModel: runningScriptsModel
@@ -125,7 +127,7 @@ Window {
             }
 
             HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Table view draws a little taller than it's height.
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
             }
         }
 
@@ -180,16 +182,19 @@ Window {
 
             HifiControls.TextField {
                 id: filterEdit
+                isSearchField: true
                 anchors.left: parent.left
                 anchors.right: parent.right
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
-                placeholderText: "filter"
+                placeholderText: "Filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.Tree {
                 id: treeView
@@ -200,7 +205,9 @@ Window {
                 anchors.right: parent.right
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.TextField {
                 id: selectedScript
