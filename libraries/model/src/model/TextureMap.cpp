@@ -474,101 +474,81 @@ public:
 
     static QImage extractEquirectangularFace(const QImage& source, gpu::Texture::CubeFace face, int faceWidth) {
         QImage image(faceWidth, faceWidth, source.format());
+
         glm::vec2 dstInvSize(1.0 / (float)image.width(), 1.0 / (float)image.height());
         float RAD_TO_SRC = 4.0f / glm::pi<float>();
 
+        struct CubeToXYZ {
+            gpu::Texture::CubeFace _face;
+            CubeToXYZ(gpu::Texture::CubeFace face) : _face(face) {}
 
-        if (face == gpu::Texture::CubeFace::CUBE_FACE_BOTTOM_NEG_Y || face == gpu::Texture::CubeFace::CUBE_FACE_TOP_POS_Y) {
-            int isTopFace = (face == gpu::Texture::CubeFace::CUBE_FACE_TOP_POS_Y);
-            int isBottomFace = (1 - isTopFace);
+            glm::vec3 xyzFrom(const glm::vec2& uv) {
+                auto nuv = glm::vec2(-1.0 + 2.0f * uv.x, 1.0 - 2.0f * uv.y);
 
-            const int SOURCE_FACE_X_OFFSET[] = {
-                2, // Right +X
-                0, // Left -X
-                0, // top not used
-                0, // bottom not used
-                3, // Back +Z
-                1 // Front -Z
-            };
-
-            int srcFaceHeight = source.height() / 4;
-            int srcYOffset = 0 + isBottomFace * source.height();
-
-            int srcFaceWidth = source.width();
-            int srcXOffset = 0;
-
-            glm::vec2 dstCoord;
-            glm::vec2 srcCoord;
-            glm::ivec2 srcPixel;
-            for (int y = 0; y < image.height(); ++y) {
-                auto data = reinterpret_cast<QRgb*>(image.scanLine(y));
-                dstCoord.y = -1.0 + 2.0 * (y + 0.5) * dstInvSize.y;
-
-                for (int x = 0; x < image.width(); ++x) {
-                    dstCoord.x = -1.0 + 2.0 * (x + 0.5) * dstInvSize.x;
-
-                    glm::vec2 dstCoordPol(atan2(dstCoord.y, dstCoord.x), glm::length(dstCoord));
-
-                    srcCoord.x = dstCoordPol.y * RAD_TO_SRC / 8.0f;
-                    srcCoord.y = atan(dstCoordPol.y) * RAD_TO_SRC;
-                    if (isBottomFace) {
-                        srcCoord.y -= srcCoord.y;
-                    }
-
-                    srcPixel.x = floor(srcCoord.x * srcFaceHeight + srcXOffset);
-                    srcPixel.y = floor(srcCoord.y * srcFaceWidth + srcYOffset);
-
-                    if (srcPixel.x >= source.width() || srcPixel.y >= source.height()) {
-                        data[x] = QRgb(0);
-                    } else {
-                        data[x] = source.pixel(QPoint(srcPixel.x, srcPixel.y));
-                    }
+                switch (_face) {
+                case gpu::Texture::CubeFace::CUBE_FACE_BACK_POS_Z:
+                    return glm::normalize(glm::vec3(-nuv.x, nuv.y, 1.0));
+                case gpu::Texture::CubeFace::CUBE_FACE_FRONT_NEG_Z:
+                    return glm::normalize(glm::vec3(nuv.x, nuv.y, -1.0));
+                case gpu::Texture::CubeFace::CUBE_FACE_LEFT_NEG_X:
+                    return glm::normalize(glm::vec3(1.0, nuv.y, nuv.x));
+                case gpu::Texture::CubeFace::CUBE_FACE_RIGHT_POS_X:
+                    return glm::normalize(glm::vec3(-1.0, nuv.y, -nuv.x));
+                case gpu::Texture::CubeFace::CUBE_FACE_BOTTOM_NEG_Y:
+                    return glm::normalize(glm::vec3(-nuv.x, -1.0, nuv.y));
+                case gpu::Texture::CubeFace::CUBE_FACE_TOP_POS_Y:
+                default:
+                    return glm::normalize(glm::vec3(-nuv.x, 1.0, -nuv.y));
                 }
             }
-            
-        } else {
-            const int SOURCE_FACE_X_OFFSET[] = {
-                2, // Right +X
-                0, // Left -X
-                0, // top not used
-                0, // bottom not used
-                3, // Back +Z
-                1 // Front -Z
-            };
+        };
+        CubeToXYZ cubeToXYZ(face);
 
-            int srcFaceHeight = source.height() / 2;
-            int srcYOffset = srcFaceHeight;
-            
-            int srcFaceWidth = source.width() / 4;
-            int srcXOffset = SOURCE_FACE_X_OFFSET[face] * srcFaceWidth;
+        struct RectToXYZ {
+            RectToXYZ() {}
 
-            glm::vec2 dstCoord;
-            glm::vec2 srcCoord;
-            glm::ivec2 srcPixel;
-            for (int y = 0; y < image.height(); ++y) {
-                auto data = reinterpret_cast<QRgb*>(image.scanLine(y));
-                dstCoord.y = (y + 0.5) * dstInvSize.y;
+            glm::vec2 uvFrom(const glm::vec3& xyz) {
 
-                srcCoord.y = 0.5f + 0.5f * atan(-1.0 + 2.0 * dstCoord.y) * RAD_TO_SRC;
+                auto flatDir = glm::normalize(glm::vec2(xyz.x, xyz.z));
+                auto uvRad = glm::vec2( atan2(flatDir.x, flatDir.y), -asin(xyz.y));
 
-                srcPixel.y = floor(srcCoord.y * srcFaceHeight) + srcYOffset;
+                const float LON_TO_RECT_U = 1.0f / (glm::pi<float>());
+                const float LAT_TO_RECT_V = 2.0f / glm::pi<float>();
+                return glm::vec2(0.5f * uvRad.x * LON_TO_RECT_U + 0.5f, 0.5f * uvRad.y * LAT_TO_RECT_V + 0.5f);
+            }
+        };
+        RectToXYZ rectToXYZ;
 
-                for (int x = 0; x < image.width(); ++x) {
-                    dstCoord.x = (x + 0.5) * dstInvSize.x;
 
-                    srcCoord.x = 0.5f + 0.5f * atan(-1.0 + 2.0 * dstCoord.x) * RAD_TO_SRC;
+        int srcFaceHeight = source.height();          
+        int srcFaceWidth = source.width();
 
-                    srcPixel.x = floor(srcCoord.x * srcFaceWidth) + srcXOffset;
+        glm::vec2 dstCoord;
+        glm::ivec2 srcPixel;
+        for (int y = 0; y < faceWidth; ++y) {
+            dstCoord.y = (y + 0.5) * dstInvSize.y;
 
-                    if (srcPixel.x >= source.width() || srcPixel.y >= source.height()) {
-                        data[x] = 0xff000011;
-                    } else {
-                        data[x] = 0xff000000 | source.pixel(QPoint(srcPixel.x, srcPixel.y));
-                    }
+            for (int x = 0; x < faceWidth; ++x) {
+                dstCoord.x = (x + 0.5) * dstInvSize.x;
+
+                auto xyzDir = cubeToXYZ.xyzFrom(dstCoord);
+                auto srcCoord = rectToXYZ.uvFrom(xyzDir);
+
+                srcPixel.x = floor(srcCoord.x * srcFaceWidth);
+                srcPixel.y = floor(srcCoord.y * srcFaceHeight);
+
+                if (((uint32)srcPixel.x >= (uint32)source.width()) || ((uint32) srcPixel.y >= (uint32) source.height()) ) {
+                    //image.setPixel(x, y, 0xff000011);
+                } else {
+                    image.setPixel(x, y, 0xff000000 | source.pixel(QPoint(srcPixel.x, srcPixel.y)));
+
+                  // Keep for debug, this is showing the dir as a color
+                  //  glm::u8vec4 rgba((xyzDir.x + 1.0)*0.5 * 256, (xyzDir.y + 1.0)*0.5 * 256, (xyzDir.z + 1.0)*0.5 * 256, 256);
+                  //  unsigned int val = 0xff000000 | (rgba.r) | (rgba.g << 8) | (rgba.b << 16);
+                  //  image.setPixel(x, y, val);
                 }
             }
         }
-
         return image;
     }
 };
@@ -724,7 +704,8 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             } else if (layout._type == CubeLayout::EQUIRECTANGULAR) {
                 int faceWidth = image.width() / 4;
                 for (int face = gpu::Texture::CUBE_FACE_RIGHT_POS_X; face < gpu::Texture::NUM_CUBE_FACES; face++) {
-                    faces.push_back(CubeLayout::extractEquirectangularFace(image, (gpu::Texture::CubeFace) face, faceWidth));
+                    QImage faceImage = CubeLayout::extractEquirectangularFace(image, (gpu::Texture::CubeFace) face, faceWidth);
+                    faces.push_back(faceImage);
                 }
                 
             }
