@@ -8,7 +8,7 @@
 (function() {
 
     var self = this;
-    var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
+    var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
 
     var version = 3;
     this.preload = function(entityId) {
