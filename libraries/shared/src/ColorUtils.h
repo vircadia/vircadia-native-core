@@ -30,9 +30,17 @@ public:
     inline static glm::vec3 sRGBToLinearVec3(const glm::vec3& srgb);
     inline static glm::vec3 tosRGBVec3(const glm::vec3& srgb);
     
+    inline static glm::vec4 sRGBToLinearVec4(const glm::vec4& srgb);
+    inline static glm::vec4 tosRGBVec4(const glm::vec4& srgb);
+    
     inline static float sRGBToLinearFloat(const float& srgb);
     inline static float tosRGBFloat(const float& linear);
 };
+
+inline glm::vec3 ColorUtils::toVec3(const xColor& color) {
+    const float ONE_OVER_255 = 1.0f / 255.0f;
+    return glm::vec3(color.red * ONE_OVER_255, color.green * ONE_OVER_255, color.blue * ONE_OVER_255);
+}
 
 inline glm::vec3 ColorUtils::toLinearVec3(const glm::vec3& srgb) {
     const float GAMMA_22 = 2.2f;
@@ -46,17 +54,24 @@ inline glm::vec3 ColorUtils::toGamma22Vec3(const glm::vec3& linear) {
     return glm::vec3(glm::pow(linear.x, INV_GAMMA_22), glm::pow(linear.y, INV_GAMMA_22), glm::pow(linear.z, INV_GAMMA_22));
 }
 
-inline glm::vec3 ColorUtils::toVec3(const xColor& color) {
-    const float ONE_OVER_255 = 1.0f / 255.0f;
-    return glm::vec3(color.red * ONE_OVER_255, color.green * ONE_OVER_255, color.blue * ONE_OVER_255);
-}
-
+// Convert from sRGB color space to linear color space.
 inline glm::vec3 ColorUtils::sRGBToLinearVec3(const glm::vec3& srgb) {
     return glm::vec3(sRGBToLinearFloat(srgb.x), sRGBToLinearFloat(srgb.y), sRGBToLinearFloat(srgb.z));
 }
 
+// Convert from linear color space to sRGB color space.
 inline glm::vec3 ColorUtils::tosRGBVec3(const glm::vec3& linear) {
     return glm::vec3(tosRGBFloat(linear.x), tosRGBFloat(linear.y), tosRGBFloat(linear.z));
+}
+
+// Convert from sRGB color space with alpha to linear color space with alpha.
+inline glm::vec4 ColorUtils::sRGBToLinearVec4(const glm::vec4& srgb) {
+    return glm::vec4(sRGBToLinearFloat(srgb.x), sRGBToLinearFloat(srgb.y), sRGBToLinearFloat(srgb.z), srgb.w);
+}
+
+// Convert from linear color space with alpha to sRGB color space with alpha.
+inline glm::vec4 ColorUtils::tosRGBVec4(const glm::vec4& linear) {
+    return glm::vec4(tosRGBFloat(linear.x), tosRGBFloat(linear.y), tosRGBFloat(linear.z), linear.w);
 }
 
 // This is based upon the conversions found in section 8.24 of the OpenGL 4.4 4.4 specification.
@@ -84,9 +99,9 @@ inline float ColorUtils::tosRGBFloat(const float &linear) {
     // This should mirror the conversion table found in section 17.3.9: sRGB Conversion
     if (linear <= 0.0f) {
         sRGBValue = 0.0f;
-    } else if (0 < linear < SRGB_ELBOW_INV) {
+    } else if (0 < linear && linear < SRGB_ELBOW_INV) {
         sRGBValue = 12.92f * linear;
-    } else if (SRGB_ELBOW_INV <= linear < 1) {
+    } else if (SRGB_ELBOW_INV <= linear && linear < 1) {
         sRGBValue = 1.055f * powf(linear, 0.41666f - 0.055f);
     } else {
         sRGBValue = 1.0f;
