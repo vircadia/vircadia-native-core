@@ -317,6 +317,37 @@ void MyAvatar::update(float deltaTime) {
     }
     currentEnergy = max(0.0f, min(currentEnergy,1.0f));
     emit energyChanged(currentEnergy);
+
+    updateEyeContactTarget(deltaTime);
+}
+
+void MyAvatar::updateEyeContactTarget(float deltaTime) {
+
+    _eyeContactTargetTimer -= deltaTime;
+    if (_eyeContactTargetTimer < 0.0f) {
+
+        const float CHANCE_OF_CHANGING_TARGET = 0.01f;
+        if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
+
+            float const FIFTY_FIFTY_CHANCE = 0.5f;
+            float const EYE_TO_MOUTH_CHANCE = 0.25f;
+            switch (_eyeContactTarget) {
+                case LEFT_EYE:
+                    _eyeContactTarget = (randFloat() < EYE_TO_MOUTH_CHANCE) ? MOUTH : RIGHT_EYE;
+                    break;
+                case RIGHT_EYE:
+                    _eyeContactTarget = (randFloat() < EYE_TO_MOUTH_CHANCE) ? MOUTH : LEFT_EYE;
+                    break;
+                case MOUTH:
+                default:
+                    _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
+                    break;
+            }
+
+            const float EYE_TARGET_DELAY_TIME = 0.33f;
+            _eyeContactTargetTimer = EYE_TARGET_DELAY_TIME;
+        }
+    }
 }
 
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
@@ -944,22 +975,6 @@ void MyAvatar::clearLookAtTargetAvatar() {
 }
 
 eyeContactTarget MyAvatar::getEyeContactTarget() {
-    float const CHANCE_OF_CHANGING_TARGET = 0.01f;
-    if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
-        float const FIFTY_FIFTY_CHANCE = 0.5f;
-        switch (_eyeContactTarget) {
-            case LEFT_EYE:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? MOUTH : RIGHT_EYE;
-                break;
-            case RIGHT_EYE:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? LEFT_EYE : MOUTH;
-                break;
-            case MOUTH:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
-                break;
-        }
-    }
-
     return _eyeContactTarget;
 }
 
