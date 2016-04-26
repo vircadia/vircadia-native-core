@@ -532,7 +532,7 @@ public:
 
                 srcPixel.x = floor(srcCoord.x * srcFaceWidth);
                 // Flip the vertical axis to QImage going top to bottom
-                srcPixel.y = floor((1.0 - srcCoord.y) * srcFaceHeight);
+                srcPixel.y = floor((1.0f - srcCoord.y) * srcFaceHeight);
 
                 if (((uint32) srcPixel.x < (uint32) source.width()) && ((uint32) srcPixel.y < (uint32) source.height())) {
                     image.setPixel(x, y, source.pixel(QPoint(srcPixel.x, srcPixel.y)));
