@@ -507,10 +507,8 @@ public:
             RectToXYZ() {}
 
             glm::vec2 uvFrom(const glm::vec3& xyz) {
-
                 auto flatDir = glm::normalize(glm::vec2(xyz.x, xyz.z));
-                auto uvRad = glm::vec2( atan2(flatDir.x, flatDir.y), -asin(xyz.y));
-                // Flip the vertical axis to QImage going top to bottom
+                auto uvRad = glm::vec2(atan2(flatDir.x, flatDir.y), asin(xyz.y));
 
                 const float LON_TO_RECT_U = 1.0f / (glm::pi<float>());
                 const float LAT_TO_RECT_V = 2.0f / glm::pi<float>();
@@ -525,7 +523,7 @@ public:
         glm::vec2 dstCoord;
         glm::ivec2 srcPixel;
         for (int y = 0; y < faceWidth; ++y) {
-            dstCoord.y = 1.0 - (y + 0.5f) * dstInvSize.y; // Fill cube face images from top to bottom
+            dstCoord.y = 1.0f - (y + 0.5f) * dstInvSize.y; // Fill cube face images from top to bottom
             for (int x = 0; x < faceWidth; ++x) {
                 dstCoord.x = (x + 0.5f) * dstInvSize.x;
 
@@ -533,7 +531,8 @@ public:
                 auto srcCoord = rectToXYZ.uvFrom(xyzDir);
 
                 srcPixel.x = floor(srcCoord.x * srcFaceWidth);
-                srcPixel.y = floor(srcCoord.y * srcFaceHeight);
+                // Flip the vertical axis to QImage going top to bottom
+                srcPixel.y = floor((1.0 - srcCoord.y) * srcFaceHeight);
 
                 if (((uint32) srcPixel.x < (uint32) source.width()) && ((uint32) srcPixel.y < (uint32) source.height())) {
                     image.setPixel(x, y, source.pixel(QPoint(srcPixel.x, srcPixel.y)));
