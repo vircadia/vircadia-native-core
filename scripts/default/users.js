@@ -17,8 +17,7 @@ var PopUpMenu = function (properties) {
         optionOverlays = [],
         isDisplayingOptions = false,
         OPTION_MARGIN = 4,
-        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
-        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
@@ -194,8 +193,6 @@ var PopUpMenu = function (properties) {
 
 var usersWindow = (function () {
 
-    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
-
         WINDOW_WIDTH = 160,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6,                             // A little less is needed in order look correct
@@ -208,7 +205,7 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA = 0.8,
         windowPane,
         windowHeading,
-        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
@@ -228,7 +225,7 @@ var usersWindow = (function () {
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
         FRIENDS_BUTTON_SPACER = 6,                          // Space before add/remove friends button
-        FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
+        FRIENDS_BUTTON_SVG = Script.resolvePath("assets/images/tools/add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
         FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,
