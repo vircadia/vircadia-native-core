@@ -29,6 +29,10 @@
 #include "Bookmarks.h"
 #include <QtQuick/QQuickWindow>
 
+
+const QString Bookmarks::HOME_BOOKMARK = "Home";
+
+
 Bookmarks::Bookmarks() {
     _bookmarksFilename = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + BOOKMARKS_FILENAME;
     readFromFile();
@@ -58,6 +62,10 @@ void Bookmarks::remove(const QString& name) {
 
 bool Bookmarks::contains(const QString& name) const {
     return _bookmarks.contains(name);
+}
+
+QString Bookmarks::addressForBookmark(const QString& name) const {
+    return _bookmarks.value(name).toString();
 }
 
 void Bookmarks::readFromFile() {
@@ -150,7 +158,7 @@ void Bookmarks::bookmarkLocation() {
 
 void Bookmarks::setHomeLocation() {
     Menu* menubar = Menu::getInstance();
-    QString bookmarkName = "Home";
+    QString bookmarkName = HOME_BOOKMARK;
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
 
