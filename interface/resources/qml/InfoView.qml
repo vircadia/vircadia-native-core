@@ -24,10 +24,8 @@ Windows.Window {
      }
 
     Component.onCompleted: {
-        //console.log("InfoView.Component.onCompleted");
         centerWindow(root);
     }
-
 
     onVisibleChanged: {
         if (visible) {
@@ -36,7 +34,6 @@ Windows.Window {
     }
 
     function centerWindow() {
-        //console.log("InfoView.Component.centerWindow");
         desktop.centerOnVisible(root);
     }
 

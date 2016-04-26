@@ -249,7 +249,6 @@ Fadable {
     children: [ swallower, frame, pane, activator ]
 
     Component.onCompleted: {
-        //console.log("Window(uit).Component.onCompleted window:" + window);
         window.parentChanged.connect(raise);
         raise();
         setDefaultFocus();

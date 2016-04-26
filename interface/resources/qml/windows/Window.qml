@@ -115,7 +115,6 @@ Fadable {
     children: [ swallower, frame, content, activator ]
 
     Component.onCompleted: {
-        //console.log("Window(uit).Component.onCompleted window:" + window);
         window.parentChanged.connect(raise);
         raise();
         centerOrReposition();
