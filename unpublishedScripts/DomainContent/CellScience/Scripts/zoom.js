@@ -27,7 +27,7 @@
                 // print(' no user data yet, try again in one second')
                 self.initialize(entityID);
             }, 1000)
-        } else if (properties.userData.length === 0 || ) {
+        } else if (properties.userData.length === 0) {
             self.initTimeout = Script.setTimeout(function() {
                 // print(' no user data yet, try again in one second')
                 self.initialize(entityID);
