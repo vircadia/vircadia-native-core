@@ -1435,6 +1435,10 @@ function MyController(hand) {
             if (!this.setupHoldAction()) {
                 return;
             }
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'grab',
+                grabbedEntity: this.grabbedEntity
+            }));
         } else {
             // grab entity via parenting
             this.actionID = null;
