@@ -84,7 +84,9 @@ void GLBackend::do_setPipeline(Batch& batch, size_t paramOffset) {
         }
 
         // check the program cache
+        // pick the program version 
         GLuint glprogram = pipelineObject->_program->getProgram();
+
         if (_pipeline._program != glprogram) {
             _pipeline._program = glprogram;
             _pipeline._programShader = pipelineObject->_program;

@@ -360,6 +360,41 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
+    //const QString  = "Automatic Texture Memory";
+    //const QString  = "64 MB";
+    //const QString  = "256 MB";
+    //const QString  = "512 MB";
+    //const QString  = "1024 MB";
+    //const QString  = "2048 MB";
+
+    // Developer > Render > Resolution
+    MenuWrapper* textureMenu = renderOptionsMenu->addMenu(MenuOption::RenderMaxTextureMemory);
+    QActionGroup* textureGroup = new QActionGroup(textureMenu);
+    textureGroup->setExclusive(true);
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTextureAutomatic, 0, true));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture64MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture256MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture512MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture1024MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture2048MB, 0, false));
+    connect(textureGroup, &QActionGroup::triggered, [textureGroup] {
+        auto checked = textureGroup->checkedAction();
+        auto text = checked->text();
+        gpu::Context::Size newMaxTextureMemory { 0 };
+        if (MenuOption::RenderMaxTexture64MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(64);
+        } else if (MenuOption::RenderMaxTexture256MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(256);
+        } else if (MenuOption::RenderMaxTexture512MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(512);
+        } else if (MenuOption::RenderMaxTexture1024MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(1024);
+        } else if (MenuOption::RenderMaxTexture2048MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(2048);
+        }
+        gpu::Texture::setAllowedGPUMemoryUsage(newMaxTextureMemory);
+    });
+
     // Developer > Render > LOD Tools
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
 

@@ -170,7 +170,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
-};
+}
 
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
@@ -243,7 +243,6 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     assert(renderContext->args->_viewFrustum);
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
 
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();

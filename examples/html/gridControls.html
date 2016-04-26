@@ -11,21 +11,15 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="edit-style.css">
+    <link rel="stylesheet" type="text/css" href="css/colpick.css">
+    <script src="jquery-2.1.4.min.js"></script>
+    <script src="colpick.js"></script>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="spinButtons.js"></script>
     <script>
         function loaded() {
             openEventBridge(function() {
-                var gridColor = { red: 0, green: 0, blue: 0 };
-                var gridColors = [
-                    { red: 0, green: 0, blue: 0 },
-                    { red: 255, green: 255, blue: 255 },
-                    { red: 255, green: 0, blue: 0 },
-                    { red: 0, green: 255, blue: 0},
-                    { red: 0, green: 0, blue: 255 },
-                ];
-                var gridColorIndex = 0;
-    
                 elPosY = document.getElementById("horiz-y");
                 elMinorSpacing = document.getElementById("minor-spacing");
                 elMajorSpacing = document.getElementById("major-spacing");
@@ -37,12 +31,12 @@
                 if (window.EventBridge !== undefined) {
                     EventBridge.scriptEventReceived.connect(function(data) {
                         data = JSON.parse(data);
-    
+
                         if (data.origin) {
                             var origin = data.origin;
-                            elPosY.value = origin.y.toFixed(2);
+                            elPosY.value = origin.y;
                         }
-    
+
                         if (data.minorGridEvery !== undefined) {
                             elMinorSpacing.value = data.minorGridEvery;
                         }
@@ -73,7 +67,6 @@
                             minorGridEvery: elMinorSpacing.value,
                             majorGridEvery: elMajorSpacing.value,
                             gridColor: gridColor,
-                            colorIndex: gridColorIndex,
                             snapToGrid: elSnapToGrid.checked,
                             visible: elHorizontalGridVisible.checked,
                         }));
@@ -100,23 +93,52 @@
                     }));
                 });
     
-                var gridColorBox = document.getElementById('grid-color');
-    
-                for (var i = 0; i < gridColors.length; i++) {
-                    var colors = gridColors[i];
-                    var box = document.createElement('div');
-                    box.setAttribute('class', 'color-box');
-                    box.style.background = 'rgb(' + colors.red + ', ' + colors.green + ', ' + colors.blue + ')';
-                    document.getElementById("grid-colors").appendChild(box);
-                    box.addEventListener("click", function(color, index) {
-                        return function() {
-                            gridColor = color;
-                            gridColorIndex = index;
-                            emitUpdate();
-                        }
-                    }({ red: colors.red, green: colors.green, blue: colors.blue }, i));
+                var gridColor = { red: 255, green: 255, blue: 255 };
+                var elColor = document.getElementById("grid-color");
+                var elColorRed = document.getElementById("grid-color-red");
+                var elColorGreen = document.getElementById("grid-color-green");
+                var elColorBlue = document.getElementById("grid-color-blue");
+                elColor.style.backgroundColor = "rgb(" + gridColor.red + "," + gridColor.green + "," + gridColor.blue + ")";
+                elColorRed.value = gridColor.red;
+                elColorGreen.value = gridColor.green;
+                elColorBlue.value = gridColor.blue;
+
+                var colorChangeFunction = function () {
+                    gridColor = { red: elColorRed.value, green: elColorGreen.value, blue: elColorBlue.value };
+                    elColor.style.backgroundColor = "rgb(" + gridColor.red + "," + gridColor.green + "," + gridColor.blue + ")";
+                    emitUpdate();
+                };
+
+                var colorPickFunction = function (red, green, blue) {
+                    elColorRed.value = red;
+                    elColorGreen.value = green;
+                    elColorBlue.value = blue;
+                    gridColor = { red: red, green: green, blue: blue };
+                    emitUpdate();
                 }
-    
+
+                elColorRed.addEventListener('change', colorChangeFunction);
+                elColorGreen.addEventListener('change', colorChangeFunction);
+                elColorBlue.addEventListener('change', colorChangeFunction);
+                $('#grid-color').colpick({
+                    colorScheme: 'dark',
+                    layout: 'hex',
+                    color: { r: gridColor.red, g: gridColor.green, b: gridColor.blue },
+                    onShow: function (colpick) {
+                        $('#grid-color').attr('active', 'true');
+                    },
+                    onHide: function (colpick) {
+                        $('#grid-color').attr('active', 'false');
+                    },
+                    onSubmit: function (hsb, hex, rgb, el) {
+                        $(el).css('background-color', '#' + hex);
+                        $(el).colpickHide();
+                        colorPickFunction(rgb.r, rgb.g, rgb.b);
+                    }
+                });
+
+                augmentSpinButtons();
+
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
             });
 
@@ -146,29 +168,28 @@
 
         <div class="property">
             <div class="number">
-                <label>Major grid size</label>
-                <span>
-                    <input type="number" id="major-spacing" min="1" step="1" /><span class="unit">m</span>
-                </span>
+                <label for="major-spacing">Major grid size <span class="unit">m</span></label>
+                <input type="number" id="major-spacing" min="1" step="1" />
             </div>
             <div class="number">
-                <label>Minor grid size</label>
-                <span>
-                    <input type="number" id="minor-spacing" min="0.2" step="0.2" /><span class="unit">m</span>
-                </span>
+                <label for="minor-spacing">Minor grid size <span class="unit">m</span></label>
+                <input type="number" id="minor-spacing" min="0.2" step="0.2" />
             </div>
         </div>
 
         <div class="property number">
-            <label>Position (Y axis)</label>
-            <span>
-                <input type="number" id="horiz-y" step="0.1" /><span class="unit">m</span>
-            </span>
+            <label for="horiz-y">Position (Y axis) <span class="unit">m</span></label>
+            <input type="number" id="horiz-y" step="0.1" />
         </div>
 
-        <div class="property color-set">
+        <div class="property rgb">
+            <div id="grid-color" class="color-picker"></div>
             <label>Grid line color</label>
-            <span id="grid-colors"></span>
+            <div class="tuple">
+                <div><input type="number" class="red" id="grid-color-red"><label for="grid-color-red">Red:</label></div>
+                <div><input type="number" class="green" id="grid-color-green"><label for="grid-color-green">Green:</label></div>
+                <div><input type="number" class="blue" id="grid-color-blue"><label for="grid-color-blue">Blue:</label></div>
+            </div>
         </div>
 
         <div class="property">

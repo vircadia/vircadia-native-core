@@ -3,14 +3,7 @@ var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 Grid = function(opts) {
     var that = {};
 
-    var colors = [
-        { red: 0, green: 0, blue: 0 },
-        { red: 255, green: 255, blue: 255 },
-        { red: 255, green: 0, blue: 0 },
-        { red: 0, green: 255, blue: 0 },
-        { red: 0, green: 0, blue: 255 },
-    ];
-    var colorIndex = 0;
+    var gridColor = { red: 255, green: 255, blue: 255 };
     var gridAlpha = 0.6;
     var origin = { x: 0, y: +MyAvatar.getJointPosition('LeftToeBase').y.toFixed(1) + 0.1, z: 0 };
     var scale = 500;
@@ -28,7 +21,7 @@ Grid = function(opts) {
         position: origin,
         visible: false,
         drawInFront: false,
-        color: colors[0],
+        color: gridColor,
         alpha: gridAlpha,
         minorGridEvery: minorGridEvery,
         majorGridEvery: majorGridEvery,
@@ -49,12 +42,6 @@ Grid = function(opts) {
     that.getMajorIncrement = function() { return majorGridEvery; };
     that.setMajorIncrement = function(value) {
         majorGridEvery = value;
-        updateGrid();
-    };
-
-    that.getColorIndex = function() { return colorIndex; };
-    that.setColorIndex = function(value) {
-        colorIndex = value;
         updateGrid();
     };
 
@@ -175,8 +162,8 @@ Grid = function(opts) {
             majorGridEvery = data.majorGridEvery;
         }
 
-        if (data.colorIndex !== undefined) {
-            colorIndex = data.colorIndex;
+        if (data.gridColor !== undefined) {
+            gridColor = data.gridColor;
         }
 
         if (data.gridSize) {
@@ -196,7 +183,7 @@ Grid = function(opts) {
             visible: that.visible && that.enabled,
             minorGridEvery: minorGridEvery,
             majorGridEvery: majorGridEvery,
-            color: colors[colorIndex],
+            color: gridColor,
             alpha: gridAlpha,
         });
 

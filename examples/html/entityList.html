@@ -14,25 +14,34 @@
     <script src="list.min.js"></script>
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script type="text/javascript" src="eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="spinButtons.js"></script>
     <script>
         var entities = {};
         var selectedEntities = [];
         var currentSortColumn = 'type';
-        var currentSortOrder = 'asc';
+        var currentSortOrder = 'des';
         var entityList = null;
         var refreshEntityListTimer = null;
-        const ASCENDING_STRING = '&nbsp;&#x25BE;';
-        const DESCENDING_STRING = '&nbsp;&#x25B4;';
+        const ASCENDING_STRING = '&#x25BE;';
+        const DESCENDING_STRING = '&#x25B4;';
+        const LOCKED_GLYPH = "&#xe006;";
+        const VISIBLE_GLYPH = "&#xe007;";
         const DELETE = 46; // Key code for the delete key.
         const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
+        debugPrint = function (message) {
+            console.log(message);
+        };
+
         function loaded() {
           openEventBridge(function() { 
-              entityList = new List('entity-list', { valueNames: ['name', 'type', 'url'], page: MAX_ITEMS});
+              entityList = new List('entity-list', { valueNames: ['name', 'type', 'url', 'locked', 'visible'], page: MAX_ITEMS});
               entityList.clear();
               elEntityTable = document.getElementById("entity-table");
               elEntityTableBody = document.getElementById("entity-table-body");
               elRefresh = document.getElementById("refresh");
+              elToggleLocked = document.getElementById("locked");
+              elToggleVisible = document.getElementById("visible");
               elDelete = document.getElementById("delete");
               elTeleport = document.getElementById("teleport");
               elRadius = document.getElementById("radius");
@@ -49,6 +58,12 @@
               };
               document.getElementById("entity-url").onclick = function() {
                   setSortColumn('url');
+              };
+              document.getElementById("entity-locked").onclick = function () {
+                  setSortColumn('locked');
+              };
+              document.getElementById("entity-visible").onclick = function () {
+                  setSortColumn('visible');
               };
               
               function onRowClicked(clickEvent) {
@@ -101,19 +116,20 @@
                   }));
               }
               
-              function addEntity(id, name, type, url) {
+              function addEntity(id, name, type, url, locked, visible) {
+                  var urlParts = url.split('/');
+                  var filename = urlParts[urlParts.length - 1];
+
                   if (entities[id] === undefined) {
-                      var urlParts = url.split('/');
-                      var filename = urlParts[urlParts.length - 1];
-              
-                      entityList.add([{ id: id, name: name, type: type, url: filename }], function(items) {
+                      entityList.add([{ id: id, name: name, type: type, url: filename, locked: locked, visible: visible }],
+                          function (items) {
                               var currentElement = items[0].elm;
                               var id = items[0]._values.id;
                               entities[id] = {
                                   id: id,
                                   name: name,
                                   el: currentElement,
-                                  item: items[0],
+                                  item: items[0]
                               };
                               currentElement.setAttribute('id', 'entity_' + id);
                               currentElement.setAttribute('title', url);
@@ -128,7 +144,7 @@
                       refreshEntityListTimer = setTimeout(refreshEntityListObject, 50);
                   } else {
                       var item = entities[id].item;
-                      item.values({ name: name, url: url });
+                      item.values({ name: name, url: filename, locked: locked, visible: visible });
                   }
               }
               
@@ -141,19 +157,21 @@
                   name: document.querySelector('#entity-name .sort-order'),
                   type: document.querySelector('#entity-type .sort-order'),
                   url: document.querySelector('#entity-url .sort-order'),
+                  locked: document.querySelector('#entity-locked .sort-order'),
+                  visible: document.querySelector('#entity-visible .sort-order')
               }
               function setSortColumn(column) {
                   if (currentSortColumn == column) {
                       currentSortOrder = currentSortOrder == "asc" ? "desc" : "asc";
                   } else {
-                      elSortOrder[currentSortColumn].style.display = 'none';
-                      elSortOrder[column].style.display = 'inline';
+                      elSortOrder[currentSortColumn].innerHTML = "";
                       currentSortColumn = column;
                       currentSortOrder = "asc";
                   }
                   elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASCENDING_STRING : DESCENDING_STRING;
                   entityList.sort(currentSortColumn, { order: currentSortOrder });
               }
+              setSortColumn('type');
               
               function refreshEntities() {
                   clearEntities();
@@ -191,13 +209,24 @@
                       elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
                   }
 
+                  // HACK: Fixes the footer and header text sometimes not displaying after adding or deleting entities.
+                  // The problem appears to be a bug in the Qt HTML/CSS rendering (Qt 5.5).
+                  document.getElementById("radius").focus();
+                  document.getElementById("radius").blur();
+
                   return notFound;
               }
               
               elRefresh.onclick = function() {
                   refreshEntities();
               }
-              elTeleport.onclick = function() {
+              elToggleLocked.onclick = function () {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
+              }
+              elToggleVisible.onclick = function () {
+                  EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
+              }
+              elTeleport.onclick = function () {
                   EventBridge.emitWebEvent(JSON.stringify({ type: 'teleport' }));
               }
               elDelete.onclick = function() {
@@ -238,11 +267,14 @@
                           var newEntities = data.entities;
                           if (newEntities.length == 0) {
                               elNoEntitiesMessage.style.display = "block";
+                              elFooter.firstChild.nodeValue = "0 entities found";
                           } else {
                               elNoEntitiesMessage.style.display = "none";
                               for (var i = 0; i < newEntities.length; i++) {
                                   var id = newEntities[i].id;
-                                  addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url);
+                                  addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
+                                      newEntities[i].locked ? LOCKED_GLYPH : null,
+                                      newEntities[i].visible ? VISIBLE_GLYPH : null);
                               }
                               updateSelectedEntities(data.selectedIDs);
                               resize();
@@ -254,21 +286,31 @@
 
               function resize() {
                   // Take up available window space
-                  elEntityTableScroll.style.height = window.innerHeight - 200;
+                  elEntityTableScroll.style.height = window.innerHeight - 207;
 
-                  // Update the widths of the header cells to match the body
                   var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
                   var ths = document.querySelectorAll("#entity-table thead th");
                   if (tds.length >= ths.length) {
+                      // Update the widths of the header cells to match the body
                       for (var i = 0; i < ths.length; i++) {
-                          ths[i].style.width = tds[i].offsetWidth;
+                          ths[i].width = tds[i].offsetWidth;
                       }
+                  } else {
+                      // Reasonable widths if nothing is displayed
+                      var tableWidth = document.getElementById("entity-table").offsetWidth;
+                      ths[0].width = 0.16 * tableWidth;
+                      ths[1].width = 0.34 * tableWidth;
+                      ths[2].width = 0.34 * tableWidth;
+                      ths[3].width = 0.08 * tableWidth;
+                      ths[4].width = 0.08 * tableWidth;
                   }
               };
 
               window.onresize = resize;
               resize();
           });
+
+          augmentSpinButtons();
 
           // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
           document.addEventListener("contextmenu", function (event) {
@@ -280,14 +322,21 @@
 <body onload='loaded();'>
     <div id="entity-list-header">
         <input type="button" class="glyph" id="refresh" value="F" />
+        <div>
+            <input type="button" id="locked" class="glyph" value="&#xe006;" />
+            <input type="button" id="visible" class="glyph" value="&#xe007;" />
+        </div>
         <input type="button" id="teleport" value="Jump To Selection" />
         <input type="button" class="red" id="delete" value="Delete" />
     </div>
 
     <div id="entity-list">
         <div id="search-area">
-            <input type="text" class="search" id="filter" placeholder="Filter" />
-            <span id="radius-and-unit"><input type="number" id="radius" value="100" /><span class="unit">m</span></span> 
+            <span class="icon-input"><input type="text" class="search" id="filter" placeholder="Filter" /><span>Y</span></span>
+            <div id="radius-and-unit" class="number">
+                <label for="radius">Search radius <span class="unit">m</span></label>
+                <input type="number" id="radius" value="100" />
+            </div>
         </div>
         <div id="entity-table-scroll">
             <table id="entity-table">
@@ -295,12 +344,16 @@
                     <col span="1" id="col-type" />
                     <col span="1" id="col-name" />
                     <col span="1" id="col-url" />
+                    <col span="1" id="col-locked" />
+                    <col span="1" id="col-visible" />
                 </colgroup>
                 <thead>
                     <tr>
-                        <th id="entity-type" data-sort="type">Type <span class="sort-order" style="display: inline">&nbsp;&#x25BE;</span></th>
-                        <th id="entity-name" data-sort="type">Name <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
-                        <th id="entity-url" data-sort="url">File <span class="sort-order" style="display: none">&nbsp;&#x25BE;</span></th>
+                        <th id="entity-type" data-sort="type">Type<span class="sort-order"></span></th>
+                        <th id="entity-name" data-sort="type">Name<span class="sort-order"></span></th>
+                        <th id="entity-url" data-sort="url">File<span class="sort-order"></span></th>
+                        <th id="entity-locked" data-sort="locked"><span class="glyph">&#xe006;</span><span class="sort-order"></span></th>
+                        <th colspan="2" id="entity-visible" data-sort="visible"><span class="glyph">&#xe007;</span><span class="sort-order"></span></th>
                     </tr>
                 </thead>
                 <tbody class="list" id="entity-table-body">
@@ -308,12 +361,14 @@
                         <td class="type">Type</td>
                         <td class="name">Name</td>
                         <td class="url"><div class='outer'><div class='inner'>URL</div></div></td>
-                        <td class="id" style="display: none">Type</td>
+                        <td class="locked glyph">?</td>
+                        <td class="visible glyph">?</td>
+                        <td class="id" style="display: none">ID</td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td id="footer-text" colspan="3">Footer text</td>
+                        <td id="footer-text" colspan="5"> </td>
                     </tr>
                 </tfoot>
             </table>

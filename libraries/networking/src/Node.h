@@ -54,8 +54,8 @@ public:
     int getPingMs() const { return _pingMs; }
     void setPingMs(int pingMs) { _pingMs = pingMs; }
 
-    int getClockSkewUsec() const { return _clockSkewUsec; }
-    void updateClockSkewUsec(int clockSkewSample);
+    qint64 getClockSkewUsec() const { return _clockSkewUsec; }
+    void updateClockSkewUsec(qint64 clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
     void setIsAllowedEditor(bool isAllowedEditor) { _isAllowedEditor = isAllowedEditor; }
@@ -78,7 +78,7 @@ private:
     std::unique_ptr<NodeData> _linkedData;
     bool _isAlive;
     int _pingMs;
-    int _clockSkewUsec;
+    qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
     bool _isAllowedEditor;
