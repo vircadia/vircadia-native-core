@@ -22,4 +22,22 @@ Windows.Window {
             url: infoView.url
         }
      }
+
+    Component.onCompleted: {
+        //console.log("InfoView.Component.onCompleted");
+        centerWindow(root);
+    }
+
+
+    onVisibleChanged: {
+        if (visible) {
+            centerWindow(root);
+        }
+    }
+
+    function centerWindow() {
+        //console.log("InfoView.Component.centerWindow");
+        desktop.centerOnVisible(root);
+    }
+
 }

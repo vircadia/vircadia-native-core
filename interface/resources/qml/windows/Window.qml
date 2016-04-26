@@ -19,7 +19,7 @@ Fadable {
     // decorations can extend outside it.
     implicitHeight: content ? content.height : 0
     implicitWidth: content ? content.width : 0
-    x: -1; y: -1
+    x: -9999; y: -9999
     enabled: visible
 
     signal windowDestroyed();
@@ -115,12 +115,22 @@ Fadable {
     children: [ swallower, frame, content, activator ]
 
     Component.onCompleted: {
+        //console.log("Window(uit).Component.onCompleted window:" + window);
         window.parentChanged.connect(raise);
         raise();
+        centerOrReposition();
     }
     Component.onDestruction: {
         window.parentChanged.disconnect(raise);  // Prevent warning on shutdown
         windowDestroyed();
+    }
+
+    function centerOrReposition() {
+        if (x == -9999 && y == -9999) {
+            desktop.centerOnVisible(window);
+        } else {
+            desktop.repositionOnVisible(window);
+        }
     }
 
     onVisibleChanged: {
@@ -132,6 +142,10 @@ Fadable {
             raise();
         }
         enabled = visible
+
+        if (visible && parent) {
+            centerOrReposition();
+        }
     }
 
     function raise() {
