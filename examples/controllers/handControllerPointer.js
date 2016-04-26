@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
-/*globals Script, Overlays, Controller, Reticle, HMD, Camera, MyAvatar, Settings, Vec3, Quat, print */
+/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Vec3, Quat, print */
 
 //
 //  handControllerPointer.js
@@ -29,10 +29,21 @@ function debug() { // Display the arguments not just [Object object].
 }
 
 // Utility to make it easier to setup and disconnect cleanly.
-function setupHandler(event, handler) { 
+function setupHandler(event, handler) {
     event.connect(handler);
     Script.scriptEnding.connect(function () { event.disconnect(handler); });
 }
+// If some capability is not available until expiration milliseconds after the last update.
+function TimeLock(expiration) {
+    var last = 0;
+    this.update = function (optionalNow) {
+        last = optionalNow || Date.now();
+    };
+    this.available = function (optionalNow) {
+        return ((optionalNow || Date.now()) - last) > expiration;
+    };
+}
+var lockOut = new TimeLock(1000);
 
 // VERTICAL FIELD OF VIEW ---------
 //
@@ -47,16 +58,18 @@ Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker);
 
 // SHIMS ----------
 //
-// Define shimable functions for getting hand controller and setting cursor, for the normal
-// case of having a hand controller. Alternative are at the bottom of the file.
+// Define customizable versions of some standard operators. Alternative are at the bottom of the file.
 var getControllerPose = Controller.getPoseValue;
 var setCursor = function (point2d) {
     if (!HMD.active) {
-	// FIX BUG: The width of the window title bar (on Windows, anyway).
-	point2d = {x: point2d.x, y: point2d.y + 50};
+        // FIX BUG: The width of the window title bar (on Windows, anyway).
+        point2d = {x: point2d.x, y: point2d.y + 50};
     }
     Reticle.setPosition(point2d);
-}
+};
+var setReticleVisible = function (on) { Reticle.visible = on; };
+var getOverlayAtPoint = Overlays.getOverlayAtPoint;
+var getValue = Controller.getValue;
 
 // Generalized HUD utilities, with or without HMD:
 function calculateRayUICollisionPoint(position, direction) {
@@ -116,23 +129,20 @@ mapToAction('Vive', 'RightPrimaryThumb', 'ReticleClick');
 mapping.enable();
 Script.scriptEnding.connect(mapping.disable);
 
-
 // MOUSE LOCKOUT --------
 //
-var MOUSE_MOVE_LOCKOUT_TIME = 1000; //fixme 5000; // milliseconds after mouse movement before hand controller can move pointer.
-var mouseMoved = 0, weMovedReticle = false;
+var weMovedReticle = false;
 if (Controller.Hardware.Hydra) {
-    function onMouseMove(event) {
-	if (weMovedReticle) { weMovedReticle = false; return; }
-	Reticle.visible = true;
-	mouseMoved = Date.now();
-    }
-    setupHandler(Controller.mouseMoveEvent, onMouseMove);
+    setupHandler(Controller.mouseMoveEvent, function () {
+        if (weMovedReticle) { weMovedReticle = false; return; }
+        setReticleVisible(true);
+        lockOut.update();
+    });
 }
 
 // VISUAL AID -----------
 var LASER_COLOR = {red: 10, green: 10, blue: 255};
-var terminatingBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
+var laserBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
     size: 0.011,
     color: LASER_COLOR,
     ignoreRayIntersection: true,
@@ -150,54 +160,59 @@ var laserLine = Overlays.addOverlay("line3d", { // same properties as handContro
     visible: false,
     alpha: 1
 });
-var overlays = [terminatingBall, laserLine]
+var overlays = [laserBall, laserLine];
 Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverlay); });
 var visualizationOn = true; // Not whether it desired, but simply whether it is. Just an optimization.
-var VISUALIZATION_TOGGLE_LOCKOUT_TIME = 1000; // milliseconds
-var wasToggled = 0, wantsVisualization = false;
 function turnOffLaser() {
-    if (!wasToggled) { wasToggled = Date.now(); }
     if (!visualizationOn) { return; }
     visualizationOn = false;
     overlays.forEach(function (overlay) {
-	Overlays.editOverlay(overlay, {visible: false});
+        Overlays.editOverlay(overlay, {visible: false});
     });
 }
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
-function updateLaser(controllerPosition, controllerDirection) {
+var wantsVisualization = false;
+function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
+    if (!wantsVisualization) { return false; }
     // Show the laser and intersect it with 3d overlays and entities.
     var pickRay = {origin: controllerPosition, direction: controllerDirection};
-    var result = Overlays.findRayIntersection(pickRay)
+    var result = Overlays.findRayIntersection(pickRay);
     if (!result.intersects) {
-	result = Entities.findRayIntersection(pickRay, true);
+        result = Entities.findRayIntersection(pickRay, true);
     }
-    var termination = result.intersects ?
-	result.intersection :
-	Vec3.sum(controllerPosition, Vec3.multiply(MAX_RAY_SCALE, controllerDirection));
+    if (!visualizationOn) { setReticleVisible(true); }
     visualizationOn = true;
-    Overlays.editOverlay(terminatingBall, {visible: true, position: termination});
+    var termination = result.intersects ?
+                result.intersection :
+                Vec3.sum(controllerPosition, Vec3.multiply(MAX_RAY_SCALE, controllerDirection));
     Overlays.editOverlay(laserLine, {visible: true, start: controllerPosition, end: termination});
+    // We show the ball at the hud intersection rather than at the termination because:
+    // 1) As you swing the laser in space, it's hard to judge where it will intersect with a HUD element,
+    //    unless the intersection of the laser with the HUD is marked. But it's confusing to do that
+    //    with the pointer, so we use the ball.
+    // 2) On some objects, the intersection is just enough inside the object that we're not going to see
+    //    the ball anyway.
+    Overlays.editOverlay(laserBall, {visible: true, position: hudPosition3d});
+    return true;
 }
+var toggleLockout = new TimeLock(500);
 function maybeToggleVisualization(trigger, now) {
-    if (trigger > 0) {
-	print('TRIGGER', now - wasToggled);
-	if ((now - wasToggled) > VISUALIZATION_TOGGLE_LOCKOUT_TIME) {
-	    wantsVisualization = !wantsVisualization;
-	    wasToggled = Date.now();
-	}
+    if (!trigger) { return; }
+    if (toggleLockout.available(now)) {
+        wantsVisualization = !wantsVisualization;
+        print('Toggled visualization', wantsVisualization ? 'on' : 'off');
     } else {
-	wasToggled = 0;
+        toggleLockout.update(now);
     }
 }
-
 
 // MAIN OPERATIONS -----------
 //
 function update() {
     var now = Date.now();
-    if ((now - mouseMoved) < MOUSE_MOVE_LOCKOUT_TIME) { return turnOffLaser(); } // Let them use it in peace.
-    var trigger = Controller.getValue(Controller.Standard.RT);
-    if (trigger > 0.5) { print('FULL TRIGGER');return turnOffLaser(); } // Interferes with other scripts.
+    if (!lockOut.available(now)) { return turnOffLaser(); } // Let them use it in peace.
+    var trigger = getValue(Controller.Standard.RT);
+    if (trigger > 0.5) { lockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
     maybeToggleVisualization(trigger, now);
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
@@ -208,7 +223,7 @@ function update() {
     var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
-    if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnLaserOff(); }
+    if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnOffLaser(); }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
     // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
     // it's pointing at a QML tool (aka system overlay).
@@ -216,16 +231,16 @@ function update() {
     weMovedReticle = true;
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
-    if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d)) {
-	Reticle.visible = true;
-	//mapping.enable();
-	return turnOffLaser();
+    if (Reticle.pointingAtSystemOverlay || getOverlayAtPoint(hudPoint2d)) {
+        setReticleVisible(true);
+        //mapping.enable();
+        return turnOffLaser();
     }
+    // We are not pointing at a HUD element (but it could be a 3d overlay).
     //mapping.disable();
-    if (wantsVisualization) {
-	updateLaser(controllerPosition, controllerDirection);
-    } else {
-	Reticle.visible = false; 
+    if (!updateLaser(controllerPosition, controllerDirection, hudPoint3d)) {
+        setReticleVisible(false);
+        turnOffLaser();
     }
     /*
     // Hack: Move the pointer again, this time to the intersection. This allows "clicking" on
@@ -284,10 +299,6 @@ if (!Controller.Hardware.Hydra) {
     };
     // We can't set the mouse if we're using the mouse as a fake controller. So stick an image where we would be putting the mouse.
     // WARNING: This fake cursor is an overlay that will be the target of clicks and drags rather than other overlays underneath it!
-    if (true) {  // Don't do the overlay, but do turn off cursor warping, which would be circular.
-        setCursor = function () { };
-        return;
-    }
     var reticleHalfSize = 16;
     var fakeReticle = Overlays.addOverlay("image", {
         imageURL: "http://s3.amazonaws.com/hifi-public/images/delete.png",
@@ -299,4 +310,28 @@ if (!Controller.Hardware.Hydra) {
     setCursor = function (hudPoint2d) {
         Overlays.editOverlay(fakeReticle, {x: hudPoint2d.x - reticleHalfSize, y: hudPoint2d.y - reticleHalfSize});
     };
+    setReticleVisible = function (on) {
+        Reticle.visible = on; // BUG: doesn't work on mac.
+        Overlays.editOverlay(fakeReticle, {visible: on});
+    };
+    // The idea here is that we not return a truthy result constantly when we display the fake reticle.
+    // But this is done wrong when we're over another overlay as well: if we hit the fakeReticle, we incorrectly answer null here.
+    // FIXME: display fake reticle slightly off to the side instead.
+    getOverlayAtPoint = function (point2d) {
+        var overlay = Overlays.getOverlayAtPoint(point2d);
+        if (overlay === fakeReticle) { return null; }
+        return overlay;
+    };
+    var fakeTrigger = 0;
+    getValue = function () { var trigger = fakeTrigger; fakeTrigger = 0; return trigger; };
+    setupHandler(Controller.keyPressEvent, function (event) {
+        switch (event.text) {
+        case '`':
+            fakeTrigger = 0.4;
+            break;
+        case '~':
+            fakeTrigger = 0.9;
+            break;
+        }
+    });
 }
