@@ -3,7 +3,7 @@ var shiftHeld = false;
 
 Script.include([
     "./libraries/toolBars.js",
-    "../libraries/utils.js",
+    "./libraries/utils.js",
 ]);
 
 var isActive = false;
@@ -48,7 +48,7 @@ var toolBar = (function() {
         });
 
         activeButton = toolBar.addTool({
-            imageURL: "voxels.svg",
+            imageURL: toolIconUrl+"voxels.svg",
             width: toolWidth,
             height: toolHeight,
             alpha: onAlpha,
@@ -305,9 +305,9 @@ function addTerrainBlockNearLocation(baseLocation) {
             z: 16
         },
         voxelSurfaceStyle: 0,
-        xTextureURL: Script.resolvePath("assets/images/textures/dirt.jpg"),
+        xTextureURL: Script.resolvePath("assets/images/textures/dirt.jpeg"),
         yTextureURL: Script.resolvePath("assets/images/textures/grass.png"),
-        zTextureURL: Script.resolvePath("assets/images/textures/dirt.jpg")
+        zTextureURL: Script.resolvePath("assets/images/textures/dirt.jpeg")
     });
 
     //////////

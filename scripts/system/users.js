@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var PopUpMenu = function (properties) {
+var PopUpMenu = function(properties) {
     var value = properties.value,
         promptOverlay,
         valueOverlay,
@@ -17,12 +17,13 @@ var PopUpMenu = function (properties) {
         optionOverlays = [],
         isDisplayingOptions = false,
         OPTION_MARGIN = 4,
-        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
-        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
         MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH;
+
+    MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
 
     function positionDisplayOptions() {
         var y,
@@ -31,7 +32,9 @@ var PopUpMenu = function (properties) {
         y = properties.y - (properties.values.length - 1) * properties.lineHeight - OPTION_MARGIN;
 
         for (i = 0; i < properties.values.length; i += 1) {
-            Overlays.editOverlay(optionOverlays[i], { y: y });
+            Overlays.editOverlay(optionOverlays[i], {
+                y: y
+            });
             y += properties.lineHeight;
         }
     }
@@ -45,7 +48,7 @@ var PopUpMenu = function (properties) {
                 x: properties.x + properties.promptWidth,
                 y: yOffScreen,
                 width: properties.width - properties.promptWidth,
-                height: properties.textHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
+                height: properties.textHeight + OPTION_MARGIN, // Only need to add margin at top to balance descenders
                 topMargin: OPTION_MARGIN,
                 leftMargin: OPTION_MARGIN,
                 color: properties.optionColor,
@@ -86,7 +89,9 @@ var PopUpMenu = function (properties) {
             for (i = 0; i < optionOverlays.length; i += 1) {
                 if (overlay === optionOverlays[i]) {
                     value = properties.values[i];
-                    Overlays.editOverlay(valueOverlay, { text: properties.displayValues[i] });
+                    Overlays.editOverlay(valueOverlay, {
+                        text: properties.displayValues[i]
+                    });
                     clicked = true;
                 }
             }
@@ -100,19 +105,33 @@ var PopUpMenu = function (properties) {
     function updatePosition(x, y) {
         properties.x = x;
         properties.y = y;
-        Overlays.editOverlay(promptOverlay, { x: x, y: y });
-        Overlays.editOverlay(valueOverlay, { x: x + properties.promptWidth, y: y - OPTION_MARGIN });
-        Overlays.editOverlay(buttonOverlay,
-            { x: x + properties.width - MIN_MAX_BUTTON_WIDTH - 1, y: y - OPTION_MARGIN + 1 });
+        Overlays.editOverlay(promptOverlay, {
+            x: x,
+            y: y
+        });
+        Overlays.editOverlay(valueOverlay, {
+            x: x + properties.promptWidth,
+            y: y - OPTION_MARGIN
+        });
+        Overlays.editOverlay(buttonOverlay, {
+            x: x + properties.width - MIN_MAX_BUTTON_WIDTH - 1,
+            y: y - OPTION_MARGIN + 1
+        });
         if (isDisplayingOptions) {
             positionDisplayOptions();
         }
     }
 
     function setVisible(visible) {
-        Overlays.editOverlay(promptOverlay, { visible: visible });
-        Overlays.editOverlay(valueOverlay, { visible: visible });
-        Overlays.editOverlay(buttonOverlay, { visible: visible });
+        Overlays.editOverlay(promptOverlay, {
+            visible: visible
+        });
+        Overlays.editOverlay(valueOverlay, {
+            visible: visible
+        });
+        Overlays.editOverlay(buttonOverlay, {
+            visible: visible
+        });
     }
 
     function tearDown() {
@@ -134,7 +153,9 @@ var PopUpMenu = function (properties) {
         index = properties.values.indexOf(newValue);
         if (index !== -1) {
             value = newValue;
-            Overlays.editOverlay(valueOverlay, { text: properties.displayValues[index] });
+            Overlays.editOverlay(valueOverlay, {
+                text: properties.displayValues[index]
+            });
         }
     }
 
@@ -158,7 +179,7 @@ var PopUpMenu = function (properties) {
         x: properties.x + properties.promptWidth,
         y: properties.y,
         width: properties.width - properties.promptWidth,
-        height: properties.textHeight + OPTION_MARGIN,  // Only need to add margin at top to balance descenders
+        height: properties.textHeight + OPTION_MARGIN, // Only need to add margin at top to balance descenders
         topMargin: OPTION_MARGIN,
         leftMargin: OPTION_MARGIN,
         color: properties.optionColor,
@@ -176,7 +197,12 @@ var PopUpMenu = function (properties) {
         width: MIN_MAX_BUTTON_WIDTH,
         height: MIN_MAX_BUTTON_HEIGHT,
         imageURL: MIN_MAX_BUTTON_SVG,
-        subImage: { x: 0, y: 0, width: MIN_MAX_BUTTON_SVG_WIDTH, height: MIN_MAX_BUTTON_SVG_HEIGHT / 2 },
+        subImage: {
+            x: 0,
+            y: 0,
+            width: MIN_MAX_BUTTON_SVG_WIDTH,
+            height: MIN_MAX_BUTTON_SVG_HEIGHT / 2
+        },
         color: properties.buttonColor,
         alpha: properties.buttonAlpha,
         visible: properties.visible
@@ -192,48 +218,78 @@ var PopUpMenu = function (properties) {
     };
 };
 
-var usersWindow = (function () {
+var usersWindow = (function() {
 
-    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+    var baseURL = Script.resolvePath("assets/images/tools/");
 
-        WINDOW_WIDTH = 160,
+    var WINDOW_WIDTH = 160,
         WINDOW_MARGIN = 12,
-        WINDOW_BASE_MARGIN = 6,                             // A little less is needed in order look correct
-        WINDOW_FONT = { size: 12 },
-        WINDOW_FOREGROUND_COLOR = { red: 240, green: 240, blue: 240 },
+        WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
+        WINDOW_FONT = {
+            size: 12
+        },
+        WINDOW_FOREGROUND_COLOR = {
+            red: 240,
+            green: 240,
+            blue: 240
+        },
         WINDOW_FOREGROUND_ALPHA = 0.95,
-        WINDOW_HEADING_COLOR = { red: 180, green: 180, blue: 180 },
+        WINDOW_HEADING_COLOR = {
+            red: 180,
+            green: 180,
+            blue: 180
+        },
         WINDOW_HEADING_ALPHA = 0.95,
-        WINDOW_BACKGROUND_COLOR = { red: 80, green: 80, blue: 80 },
+        WINDOW_BACKGROUND_COLOR = {
+            red: 80,
+            green: 80,
+            blue: 80
+        },
         WINDOW_BACKGROUND_ALPHA = 0.8,
         windowPane,
         windowHeading,
-        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG = baseURL + "min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
         MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH,
-        MIN_MAX_BUTTON_COLOR = { red: 255, green: 255, blue: 255 },
+        MIN_MAX_BUTTON_COLOR = {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
         MIN_MAX_BUTTON_ALPHA = 0.9,
         minimizeButton,
         SCROLLBAR_BACKGROUND_WIDTH = 12,
-        SCROLLBAR_BACKGROUND_COLOR = { red: 70, green: 70, blue: 70 },
+        SCROLLBAR_BACKGROUND_COLOR = {
+            red: 70,
+            green: 70,
+            blue: 70
+        },
         SCROLLBAR_BACKGROUND_ALPHA = 0.8,
         scrollbarBackground,
         SCROLLBAR_BAR_MIN_HEIGHT = 5,
-        SCROLLBAR_BAR_COLOR = { red: 170, green: 170, blue: 170 },
+        SCROLLBAR_BAR_COLOR = {
+            red: 170,
+            green: 170,
+            blue: 170
+        },
         SCROLLBAR_BAR_ALPHA = 0.8,
         SCROLLBAR_BAR_SELECTED_ALPHA = 0.95,
         scrollbarBar,
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
-        FRIENDS_BUTTON_SPACER = 6,                          // Space before add/remove friends button
-        FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
+        FRIENDS_BUTTON_SPACER = 6, // Space before add/remove friends button
+        FRIENDS_BUTTON_SVG = baseURL + "add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
         FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,
         FRIENDS_BUTTON_HEIGHT = FRIENDS_BUTTON_SVG_HEIGHT,
-        FRIENDS_BUTTON_COLOR = { red: 225, green: 225, blue: 225 },
+        FRIENDS_BUTTON_COLOR = {
+            red: 225,
+            green: 225,
+            blue: 225
+        },
         FRIENDS_BUTTON_ALPHA = 0.95,
         FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends",
         FRIENDS_WINDOW_WIDTH = 290,
@@ -242,21 +298,29 @@ var usersWindow = (function () {
         friendsButton,
         friendsWindow,
 
-        OPTION_BACKGROUND_COLOR = { red: 60, green: 60, blue: 60 },
+        OPTION_BACKGROUND_COLOR = {
+            red: 60,
+            green: 60,
+            blue: 60
+        },
         OPTION_BACKGROUND_ALPHA = 0.1,
 
-        DISPLAY_SPACER = 12,                                // Space before display control
+        DISPLAY_SPACER = 12, // Space before display control
         DISPLAY_PROMPT = "Show me:",
         DISPLAY_PROMPT_WIDTH = 60,
         DISPLAY_EVERYONE = "everyone",
         DISPLAY_FRIENDS = "friends",
         DISPLAY_VALUES = [DISPLAY_EVERYONE, DISPLAY_FRIENDS],
         DISPLAY_DISPLAY_VALUES = DISPLAY_VALUES,
-        DISPLAY_OPTIONS_BACKGROUND_COLOR = { red: 120, green: 120, blue: 120 },
+        DISPLAY_OPTIONS_BACKGROUND_COLOR = {
+            red: 120,
+            green: 120,
+            blue: 120
+        },
         DISPLAY_OPTIONS_BACKGROUND_ALPHA = 0.9,
         displayControl,
 
-        VISIBILITY_SPACER = 6,                             // Space before visibility control
+        VISIBILITY_SPACER = 6, // Space before visibility control
         VISIBILITY_PROMPT = "Visible to:",
         VISIBILITY_PROMPT_WIDTH = 60,
         VISIBILITY_ALL = "all",
@@ -269,21 +333,21 @@ var usersWindow = (function () {
         windowHeight,
         windowTextHeight,
         windowLineSpacing,
-        windowLineHeight,                                   // = windowTextHeight + windowLineSpacing
+        windowLineHeight, // = windowTextHeight + windowLineSpacing
 
-        usersOnline,                                        // Raw users data
-        linesOfUsers = [],                                  // Array of indexes pointing into usersOnline
+        usersOnline, // Raw users data
+        linesOfUsers = [], // Array of indexes pointing into usersOnline
         numUsersToDisplay = 0,
         firstUserToDisplay = 0,
 
         API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online",
         API_FRIENDS_FILTER = "&filter=friends",
-        HTTP_GET_TIMEOUT = 60000,                           // ms = 1 minute
+        HTTP_GET_TIMEOUT = 60000, // ms = 1 minute
         usersRequest,
         processUsers,
         pollUsersTimedOut,
         usersTimer = null,
-        USERS_UPDATE_TIMEOUT = 5000,                        // ms = 5s
+        USERS_UPDATE_TIMEOUT = 5000, // ms = 5s
 
         myVisibility,
 
@@ -304,8 +368,8 @@ var usersWindow = (function () {
         isMovingScrollbar = false,
         scrollbarBackgroundPosition = {},
         scrollbarBarPosition = {},
-        scrollbarBarClickedAt,                              // 0.0 .. 1.0
-        scrollbarValue = 0.0;                               // 0.0 .. 1.0
+        scrollbarBarClickedAt, // 0.0 .. 1.0
+        scrollbarValue = 0.0; // 0.0 .. 1.0
 
     function calculateWindowHeight() {
         var AUDIO_METER_HEIGHT = 52,
@@ -319,10 +383,7 @@ var usersWindow = (function () {
         }
 
         // Reserve space for title, friends button, and option controls
-        nonUsersHeight = WINDOW_MARGIN + windowLineHeight
-                + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT
-                + DISPLAY_SPACER + windowLineHeight
-                + VISIBILITY_SPACER + windowLineHeight + WINDOW_BASE_MARGIN;
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER + windowLineHeight + VISIBILITY_SPACER + windowLineHeight + WINDOW_BASE_MARGIN;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
@@ -361,16 +422,15 @@ var usersWindow = (function () {
         Overlays.editOverlay(scrollbarBackground, {
             y: scrollbarBackgroundPosition.y
         });
-        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1
-                + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1 + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
         Overlays.editOverlay(scrollbarBar, {
             y: scrollbarBarPosition.y
         });
 
-        y = viewportHeight - FRIENDS_BUTTON_HEIGHT
-                - DISPLAY_SPACER - windowLineHeight
-                - VISIBILITY_SPACER - windowLineHeight - WINDOW_BASE_MARGIN;
-        Overlays.editOverlay(friendsButton, { y: y });
+        y = viewportHeight - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER - windowLineHeight - VISIBILITY_SPACER - windowLineHeight - WINDOW_BASE_MARGIN;
+        Overlays.editOverlay(friendsButton, {
+            y: y
+        });
 
         y += FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER;
         displayControl.updatePosition(WINDOW_MARGIN, y);
@@ -412,7 +472,7 @@ var usersWindow = (function () {
                 displayText += "\n" + userText;
             }
 
-            displayText = displayText.slice(1);  // Remove leading "\n".
+            displayText = displayText.slice(1); // Remove leading "\n".
 
             scrollbarBackgroundHeight = numUsersToDisplay * windowLineHeight - windowLineSpacing / 2;
             Overlays.editOverlay(scrollbarBackground, {
@@ -452,7 +512,7 @@ var usersWindow = (function () {
         usersRequest.send();
     }
 
-    processUsers = function () {
+    processUsers = function() {
         var response,
             myUsername,
             user,
@@ -464,12 +524,12 @@ var usersWindow = (function () {
                 response = JSON.parse(usersRequest.responseText);
                 if (response.status !== "success") {
                     print("Error: Request for users status returned status = " + response.status);
-                    usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                    usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
                     return;
                 }
                 if (!response.hasOwnProperty("data") || !response.data.hasOwnProperty("users")) {
                     print("Error: Request for users status returned invalid data");
-                    usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                    usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
                     return;
                 }
 
@@ -497,26 +557,38 @@ var usersWindow = (function () {
 
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);
-                usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+                usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
                 return;
             }
 
-            usersTimer = Script.setTimeout(pollUsers, USERS_UPDATE_TIMEOUT);  // Update after finished processing.
+            usersTimer = Script.setTimeout(pollUsers, USERS_UPDATE_TIMEOUT); // Update after finished processing.
         }
     };
 
-    pollUsersTimedOut = function () {
+    pollUsersTimedOut = function() {
         print("Error: Request for users status timed out");
-        usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT);  // Try again after a longer delay.
+        usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
     };
 
     function updateOverlayVisibility() {
-        Overlays.editOverlay(windowPane, { visible: isVisible });
-        Overlays.editOverlay(windowHeading, { visible: isVisible });
-        Overlays.editOverlay(minimizeButton, { visible: isVisible });
-        Overlays.editOverlay(scrollbarBackground, { visible: isVisible && isUsingScrollbars && !isMinimized });
-        Overlays.editOverlay(scrollbarBar, { visible: isVisible && isUsingScrollbars && !isMinimized });
-        Overlays.editOverlay(friendsButton, { visible: isVisible && !isMinimized });
+        Overlays.editOverlay(windowPane, {
+            visible: isVisible
+        });
+        Overlays.editOverlay(windowHeading, {
+            visible: isVisible
+        });
+        Overlays.editOverlay(minimizeButton, {
+            visible: isVisible
+        });
+        Overlays.editOverlay(scrollbarBackground, {
+            visible: isVisible && isUsingScrollbars && !isMinimized
+        });
+        Overlays.editOverlay(scrollbarBar, {
+            visible: isVisible && isUsingScrollbars && !isMinimized
+        });
+        Overlays.editOverlay(friendsButton, {
+            visible: isVisible && !isMinimized
+        });
         displayControl.setVisible(isVisible && !isMinimized);
         visibilityControl.setVisible(isVisible && !isMinimized);
     }
@@ -540,7 +612,9 @@ var usersWindow = (function () {
     function setMinimized(minimized) {
         isMinimized = minimized;
         Overlays.editOverlay(minimizeButton, {
-            subImage: { y: isMinimized ? MIN_MAX_BUTTON_SVG_HEIGHT / 2 : 0 }
+            subImage: {
+                y: isMinimized ? MIN_MAX_BUTTON_SVG_HEIGHT / 2 : 0
+            }
         });
         updateOverlayVisibility();
     }
@@ -574,7 +648,10 @@ var usersWindow = (function () {
             return;
         }
 
-        clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+        clickedOverlay = Overlays.getOverlayAtPoint({
+            x: event.x,
+            y: event.y
+        });
 
         if (displayControl.handleClick(clickedOverlay)) {
             if (usersTimer !== null) {
@@ -606,8 +683,7 @@ var usersWindow = (function () {
 
             userClicked = firstUserToDisplay + lineClicked;
 
-            if (0 <= userClicked && userClicked < linesOfUsers.length
-                    && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
+            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
                 //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
@@ -650,8 +726,8 @@ var usersWindow = (function () {
         if (clickedOverlay === friendsButton) {
             if (!friendsWindow) {
                 friendsWindow = new OverlayWebWindow({
-                    title: FRIENDS_WINDOW_TITLE, 
-                    width: FRIENDS_WINDOW_WIDTH, 
+                    title: FRIENDS_WINDOW_TITLE,
+                    width: FRIENDS_WINDOW_WIDTH,
                     height: FRIENDS_WINDOW_HEIGHT,
                     visible: false
                 });
@@ -664,10 +740,7 @@ var usersWindow = (function () {
 
     function onMouseMoveEvent(event) {
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
-                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
-                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
-                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
                 scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y) / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
                 firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
@@ -700,9 +773,7 @@ var usersWindow = (function () {
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
         isFullscreenMirror = Menu.isOptionChecked(FULLSCREEN_MIRROR_MENU_ITEM);
 
-        if (viewportHeight !== oldViewportHeight
-                || isMirrorDisplay !== oldIsMirrorDisplay
-                || isFullscreenMirror !== oldIsFullscreenMirror) {
+        if (viewportHeight !== oldViewportHeight || isMirrorDisplay !== oldIsMirrorDisplay || isFullscreenMirror !== oldIsFullscreenMirror) {
             calculateWindowHeight();
             updateUsersDisplay();
             updateOverlayPositions();
@@ -712,7 +783,10 @@ var usersWindow = (function () {
     function setUp() {
         var textSizeOverlay;
 
-        textSizeOverlay = Overlays.addOverlay("text", { font: WINDOW_FONT, visible: false });
+        textSizeOverlay = Overlays.addOverlay("text", {
+            font: WINDOW_FONT,
+            visible: false
+        });
         windowTextHeight = Math.floor(Overlays.textSize(textSizeOverlay, "1").height);
         windowLineSpacing = Math.floor(Overlays.textSize(textSizeOverlay, "1\n2").height - 2 * windowTextHeight);
         windowLineHeight = windowTextHeight + windowLineSpacing;
@@ -724,7 +798,7 @@ var usersWindow = (function () {
 
         windowPane = Overlays.addOverlay("text", {
             x: 0,
-            y: viewportHeight,  // Start up off-screen
+            y: viewportHeight, // Start up off-screen
             width: WINDOW_WIDTH,
             height: windowHeight,
             topMargin: WINDOW_MARGIN + windowLineHeight,
@@ -759,10 +833,15 @@ var usersWindow = (function () {
             width: MIN_MAX_BUTTON_WIDTH,
             height: MIN_MAX_BUTTON_HEIGHT,
             imageURL: MIN_MAX_BUTTON_SVG,
-            subImage: { x: 0, y: 0, width: MIN_MAX_BUTTON_SVG_WIDTH, height: MIN_MAX_BUTTON_SVG_HEIGHT / 2 },
+            subImage: {
+                x: 0,
+                y: 0,
+                width: MIN_MAX_BUTTON_SVG_WIDTH,
+                height: MIN_MAX_BUTTON_SVG_HEIGHT / 2
+            },
             color: MIN_MAX_BUTTON_COLOR,
             alpha: MIN_MAX_BUTTON_ALPHA,
-            visible:  isVisible && !isMinimized
+            visible: isVisible && !isMinimized
         });
 
         scrollbarBackgroundPosition = {
@@ -801,7 +880,12 @@ var usersWindow = (function () {
             width: FRIENDS_BUTTON_WIDTH,
             height: FRIENDS_BUTTON_HEIGHT,
             imageURL: FRIENDS_BUTTON_SVG,
-            subImage: { x: 0, y: 0, width: FRIENDS_BUTTON_SVG_WIDTH, height: FRIENDS_BUTTON_SVG_HEIGHT },
+            subImage: {
+                x: 0,
+                y: 0,
+                width: FRIENDS_BUTTON_SVG_WIDTH,
+                height: FRIENDS_BUTTON_SVG_HEIGHT
+            },
             color: FRIENDS_BUTTON_COLOR,
             alpha: FRIENDS_BUTTON_ALPHA
         });
