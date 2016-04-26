@@ -17,7 +17,8 @@ var PopUpMenu = function (properties) {
         optionOverlays = [],
         isDisplayingOptions = false,
         OPTION_MARGIN = 4,
-        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg",
+        HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
@@ -193,6 +194,8 @@ var PopUpMenu = function (properties) {
 
 var usersWindow = (function () {
 
+    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/",
+
         WINDOW_WIDTH = 160,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6,                             // A little less is needed in order look correct
@@ -205,7 +208,7 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA = 0.8,
         windowPane,
         windowHeading,
-        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg",
+        MIN_MAX_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
@@ -225,7 +228,7 @@ var usersWindow = (function () {
         scrollbarBackgroundHeight,
         scrollbarBarHeight,
         FRIENDS_BUTTON_SPACER = 6,                          // Space before add/remove friends button
-        FRIENDS_BUTTON_SVG = Script.resolvePath("assets/images/tools/add-remove-friends.svg",
+        FRIENDS_BUTTON_SVG = HIFI_PUBLIC_BUCKET + "images/tools/add-remove-friends.svg",
         FRIENDS_BUTTON_SVG_WIDTH = 107,
         FRIENDS_BUTTON_SVG_HEIGHT = 27,
         FRIENDS_BUTTON_WIDTH = FRIENDS_BUTTON_SVG_WIDTH,
@@ -233,8 +236,8 @@ var usersWindow = (function () {
         FRIENDS_BUTTON_COLOR = { red: 225, green: 225, blue: 225 },
         FRIENDS_BUTTON_ALPHA = 0.95,
         FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends",
-    	FRIENDS_WINDOW_WIDTH = 290,
-    	FRIENDS_WINDOW_HEIGHT = 500,
+        FRIENDS_WINDOW_WIDTH = 290,
+        FRIENDS_WINDOW_HEIGHT = 500,
         FRIENDS_WINDOW_TITLE = "Add/Remove Friends",
         friendsButton,
         friendsWindow,
@@ -645,23 +648,26 @@ var usersWindow = (function () {
         }
 
         if (clickedOverlay === friendsButton) {
-	    	if (!friendsWindow) {
-	    		friendsWindow = new OverlayWebWindow({
-				    title: FRIENDS_WINDOW_TITLE, 
-				    width: FRIENDS_WINDOW_WIDTH, 
-				    height: FRIENDS_WINDOW_HEIGHT,
-				    visible: false
-				});
-			}
-			friendsWindow.setURL(FRIENDS_WINDOW_URL);
-		    friendsWindow.setVisible(true);
-    		friendsWindow.raise();
+            if (!friendsWindow) {
+                friendsWindow = new OverlayWebWindow({
+                    title: FRIENDS_WINDOW_TITLE, 
+                    width: FRIENDS_WINDOW_WIDTH, 
+                    height: FRIENDS_WINDOW_HEIGHT,
+                    visible: false
+                });
+            }
+            friendsWindow.setURL(FRIENDS_WINDOW_URL);
+            friendsWindow.setVisible(true);
+            friendsWindow.raise();
         }
     }
 
     function onMouseMoveEvent(event) {
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
+                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
+                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
+                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
                 scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y) / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
                 firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
