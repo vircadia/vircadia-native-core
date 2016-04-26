@@ -74,13 +74,18 @@ void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
     if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
         QMutexLocker lock(&_mutex);
         _simpleKinematicEntities.insert(entity);
+        entity->setLastSimulated(usecTimestampNow());
     }
 }
 
 void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+        int numKinematicEntities = _simpleKinematicEntities.size();
         _simpleKinematicEntities.insert(entity);
+        if (numKinematicEntities != _simpleKinematicEntities.size()) {
+            entity->setLastSimulated(usecTimestampNow());
+        }
     } else {
         _simpleKinematicEntities.remove(entity);
     }

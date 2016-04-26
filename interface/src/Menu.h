@@ -150,6 +150,13 @@ namespace MenuOption {
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
+    const QString RenderMaxTextureMemory = "Maximum Texture Memory";
+    const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
+    const QString RenderMaxTexture64MB = "64 MB";
+    const QString RenderMaxTexture256MB = "256 MB";
+    const QString RenderMaxTexture512MB = "512 MB";
+    const QString RenderMaxTexture1024MB = "1024 MB";
+    const QString RenderMaxTexture2048MB = "2048 MB";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

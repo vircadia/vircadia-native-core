@@ -27,6 +27,10 @@ macro(SET_PACKAGING_PARAMETERS)
     set(HIGH_FIDELITY_PROTOCOL "hifi")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface")
+
+    # add definition for this release type
+    add_definitions(-DPRODUCTION_BUILD)
+
   elseif (RELEASE_TYPE STREQUAL "PR")
     set(DEPLOY_PACKAGE TRUE)
     set(PR_BUILD 1)
@@ -34,12 +38,18 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_ORGANIZATION "High Fidelity - ${BUILD_VERSION}")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
+
+    # add definition for this release type
+    add_definitions(-DPR_BUILD)
   else ()
     set(DEV_BUILD 1)
     set(BUILD_VERSION "dev")
     set(BUILD_ORGANIZATION "High Fidelity - ${BUILD_VERSION}")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
+
+    # add definition for this release type
+    add_definitions(-DDEV_BUILD)
   endif ()
 
   if (APPLE)

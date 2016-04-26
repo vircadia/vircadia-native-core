@@ -254,10 +254,7 @@ void AvatarManager::clearAllAvatars() {
 
     QWriteLocker locker(&_hashLock);
 
-    _myAvatar->die();
-    _myAvatar.reset();
-
-    _avatarHash.clear();
+    handleRemovedAvatar(_myAvatar);
 }
 
 void AvatarManager::setLocalLights(const QVector<AvatarManager::LocalLight>& localLights) {

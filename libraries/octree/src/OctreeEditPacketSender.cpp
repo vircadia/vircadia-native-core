@@ -315,7 +315,7 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
     _releaseQueuedPacketMutex.unlock();
 }
 
-std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType type, int nodeClockSkew) {
+std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType type, qint64 nodeClockSkew) {
     auto newPacket = NLPacket::create(type);
 
     // skip over sequence number for now; will be packed when packet is ready to be sent out

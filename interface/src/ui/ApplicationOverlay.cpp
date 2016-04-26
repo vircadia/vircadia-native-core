@@ -281,7 +281,7 @@ void ApplicationOverlay::buildFramebufferObject() {
             _overlayFramebuffer->setRenderBuffer(0, newColorAttachment);
         }
     }
-    
+
     // If the overlay framebuffer still has no color attachment, no textures were available for rendering, so build a new one
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);

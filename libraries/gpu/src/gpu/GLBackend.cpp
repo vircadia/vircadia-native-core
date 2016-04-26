@@ -14,6 +14,8 @@
 #include <queue>
 #include <list>
 #include <glm/gtc/type_ptr.hpp>
+#include <GPUIdent.h>
+#include <NumericalConstants.h>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -86,10 +88,18 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
+        QString vendor{ (const char*)glGetString(GL_VENDOR) };
+        QString renderer{ (const char*)glGetString(GL_RENDERER) };
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-        qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+        qCDebug(gpulogging) << "GL Vendor: " << vendor;
+        qCDebug(gpulogging) << "GL Renderer: " << renderer;
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
+        // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
+        qCDebug(gpulogging) << "GPU:";
+        qCDebug(gpulogging) << "\tcard:" << gpu->getName();
+        qCDebug(gpulogging) << "\tdriver:" << gpu->getDriver();
+        qCDebug(gpulogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
 
         glewExperimental = true;
         GLenum err = glewInit();
@@ -117,6 +127,50 @@ void GLBackend::init() {
     });
 }
 
+Context::Size GLBackend::getDedicatedMemory() {
+    static Context::Size dedicatedMemory { 0 };
+    static std::once_flag once;
+    std::call_once(once, [&] {
+#ifdef Q_OS_WIN
+        if (!dedicatedMemory && wglGetGPUIDsAMD && wglGetGPUInfoAMD) {
+            UINT maxCount = wglGetGPUIDsAMD(0, 0);
+            std::vector<UINT> ids;
+            ids.resize(maxCount);
+            wglGetGPUIDsAMD(maxCount, &ids[0]);
+            GLuint memTotal;
+            wglGetGPUInfoAMD(ids[0], WGL_GPU_RAM_AMD, GL_UNSIGNED_INT, sizeof(GLuint), &memTotal);
+            dedicatedMemory = MB_TO_BYTES(memTotal);
+        }
+#endif
+
+        if (!dedicatedMemory) {
+            GLint atiGpuMemory[4];
+            // not really total memory, but close enough if called early enough in the application lifecycle
+            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
+            if (GL_NO_ERROR == glGetError()) {
+                dedicatedMemory = KB_TO_BYTES(atiGpuMemory[0]);
+            }
+        }
+
+        if (!dedicatedMemory) {
+            GLint nvGpuMemory { 0 };
+            glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &nvGpuMemory);
+            if (GL_NO_ERROR == glGetError()) {
+                dedicatedMemory = KB_TO_BYTES(nvGpuMemory);
+            }
+        }
+
+        if (!dedicatedMemory) {
+            auto gpuIdent = GPUIdent::getInstance();
+            if (gpuIdent && gpuIdent->isValid()) {
+                dedicatedMemory = MB_TO_BYTES(gpuIdent->getMemory());
+            }
+        }
+    });
+
+    return dedicatedMemory;
+}
+
 Backend* GLBackend::createBackend() {
     return new GLBackend();
 }
@@ -140,6 +194,7 @@ void GLBackend::renderPassTransfer(Batch& batch) {
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
+    _inRenderTransferPass = true;
     { // Sync all the buffers
         PROFILE_RANGE("syncGPUBuffer");
 
@@ -187,7 +242,7 @@ void GLBackend::renderPassTransfer(Batch& batch) {
         _transform.transfer(batch);
     }
 
-
+    _inRenderTransferPass = false;
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {
@@ -246,22 +301,15 @@ void GLBackend::render(Batch& batch) {
     if (!batch.isStereoEnabled()) {
         _stereo._enable = false;
     }
-
+    
     {
         PROFILE_RANGE("Transfer");
         renderPassTransfer(batch);
     }
 
     {
-        PROFILE_RANGE(_stereo._enable ? "LeftRender" : "Render");
+        PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
-    }
-
-    if (_stereo._enable) {
-        PROFILE_RANGE("RightRender");
-        _stereo._pass = 1;
-        renderPassDraw(batch);
-        _stereo._pass = 0;
     }
 
     // Restore the saved stereo state for the next batch
@@ -319,17 +367,38 @@ void GLBackend::syncCache() {
     glEnable(GL_LINE_SMOOTH);
 }
 
+void GLBackend::setupStereoSide(int side) {
+    ivec4 vp = _transform._viewport;
+    vp.z /= 2;
+    glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
+
+    _transform.bindCurrentCamera(side);
+}
+
+
 void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
-    glDrawArrays(mode, startVertex, numVertices);
-    _stats._DSNumTriangles += numVertices / 3;
-    _stats._DSNumDrawcalls++;
+
+    if (isStereo()) {
+        setupStereoSide(0);
+        glDrawArrays(mode, startVertex, numVertices);
+        setupStereoSide(1);
+        glDrawArrays(mode, startVertex, numVertices);
+
+        _stats._DSNumTriangles += 2 * numVertices / 3;
+        _stats._DSNumDrawcalls += 2;
+
+    } else {
+        glDrawArrays(mode, startVertex, numVertices);
+        _stats._DSNumTriangles += numVertices / 3;
+        _stats._DSNumDrawcalls++;
+    }
     _stats._DSNumAPIDrawcalls++;
 
-    (void)CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
@@ -343,9 +412,19 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
-    glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
-    _stats._DSNumTriangles += numIndices / 3;
-    _stats._DSNumDrawcalls++;
+    if (isStereo()) {
+        setupStereoSide(0);
+        glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
+        setupStereoSide(1);
+        glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
+
+        _stats._DSNumTriangles += 2 * numIndices / 3;
+        _stats._DSNumDrawcalls += 2;
+    } else {
+        glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
+        _stats._DSNumTriangles += numIndices / 3;
+        _stats._DSNumDrawcalls++;
+    }
     _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
@@ -358,12 +437,33 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     uint32 numVertices = batch._params[paramOffset + 2]._uint;
     uint32 startVertex = batch._params[paramOffset + 1]._uint;
 
-    glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
-    _stats._DSNumTriangles += (numInstances * numVertices) / 3;
-    _stats._DSNumDrawcalls += numInstances;
+
+    if (isStereo()) {
+        GLint trueNumInstances = 2 * numInstances;
+
+        setupStereoSide(0);
+        glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+        setupStereoSide(1);
+        glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+
+        _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
+        _stats._DSNumDrawcalls += trueNumInstances;
+    } else {
+        glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+        _stats._DSNumTriangles += (numInstances * numVertices) / 3;
+        _stats._DSNumDrawcalls += numInstances;
+    }
     _stats._DSNumAPIDrawcalls++;
 
     (void) CHECK_GL_ERROR();
+}
+
+void glbackend_glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices, GLsizei primcount, GLint basevertex, GLuint baseinstance) {
+#if (GPU_INPUT_PROFILE == GPU_CORE_43)
+    glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, primcount, basevertex, baseinstance);
+#else
+    glDrawElementsInstanced(mode, count, type, indices, primcount);
+#endif
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
@@ -378,15 +478,23 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
 
     auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
     GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
-    
-#if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
-#else
-    glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, numInstances);
-    Q_UNUSED(startInstance); 
-#endif
-    _stats._DSNumTriangles += (numInstances * numIndices) / 3;
-    _stats._DSNumDrawcalls += numInstances;
+ 
+    if (isStereo()) {
+        GLint trueNumInstances = 2 * numInstances;
+
+        setupStereoSide(0);
+        glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
+        setupStereoSide(1);
+        glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
+
+        _stats._DSNumTriangles += (trueNumInstances * numIndices) / 3;
+        _stats._DSNumDrawcalls += trueNumInstances;
+    } else {
+        glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
+        _stats._DSNumTriangles += (numInstances * numIndices) / 3;
+        _stats._DSNumDrawcalls += numInstances;
+    }
+
     _stats._DSNumAPIDrawcalls++;
 
     (void)CHECK_GL_ERROR();
@@ -461,10 +569,9 @@ void GLBackend::resetStages() {
 
 #define ADD_COMMAND_GL(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
+// As long as we don;t use several versions of shaders we can avoid this more complex code path
+// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
-// THis will be used in the next PR
-// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc)
-
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
     // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
@@ -492,6 +599,7 @@ void Batch::_glUniform1i(GLint location, GLint v0) {
     _params.push_back(v0);
     _params.push_back(location);
 }
+
 void GLBackend::do_glUniform1i(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
@@ -499,6 +607,7 @@ void GLBackend::do_glUniform1i(Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+
     glUniform1f(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
         batch._params[paramOffset + 0]._int);
@@ -688,6 +797,7 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+
     glUniformMatrix4fv(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
         batch._params[paramOffset + 2]._uint,

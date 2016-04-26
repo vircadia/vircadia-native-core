@@ -746,7 +746,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, int nodeClockSkewUsec) {
+void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, qint64 nodeClockSkewUsec) {
     const bool wantExtraDebugging = false;
 
     // skip past the flags
@@ -768,12 +768,13 @@ void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool 
         qCDebug(octree) << "sentAt:" << sentAt << " usecs";
         qCDebug(octree) << "arrivedAt:" << arrivedAt << " usecs";
         qCDebug(octree) << "nodeClockSkewUsec:" << nodeClockSkewUsec << " usecs";
+        qCDebug(octree) << "node Clock Skew:" << formatUsecTime(nodeClockSkewUsec);
         qCDebug(octree) << "flightTime:" << flightTime << " usecs";
     }
 
     // Guard against possible corrupted packets... with bad timestamps
-    const int MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
-    const int MIN_RESONABLE_FLIGHT_TIME = 0;
+    const qint64 MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
+    const qint64 MIN_RESONABLE_FLIGHT_TIME = -1 * (qint64)USECS_PER_SECOND; // more than 1 second of "reverse flight time" would be unreasonable
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(

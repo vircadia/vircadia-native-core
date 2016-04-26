@@ -147,13 +147,13 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
     message.readPrimitive(&othersReplyTime);
 
     quint64 now = usecTimestampNow();
-    int pingTime = now - ourOriginalTime;
-    int oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
+    qint64 pingTime = now - ourOriginalTime;
+    qint64 oneWayFlightTime = pingTime / 2; // half of the ping is our one way flight
 
     // The other node's expected time should be our original time plus the one way flight time
     // anything other than that is clock skew
     quint64 othersExpectedReply = ourOriginalTime + oneWayFlightTime;
-    int clockSkew = othersReplyTime - othersExpectedReply;
+    qint64 clockSkew = othersReplyTime - othersExpectedReply;
 
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->updateClockSkewUsec(clockSkew);
@@ -161,6 +161,7 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
     const bool wantDebug = false;
 
     if (wantDebug) {
+        auto averageClockSkew = sendingNode->getClockSkewUsec();
         qCDebug(networking) << "PING_REPLY from node " << *sendingNode << "\n" <<
         "                     now: " << now << "\n" <<
         "                 ourTime: " << ourOriginalTime << "\n" <<
@@ -168,8 +169,8 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
         "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExpectedReply << "\n" <<
-        "               clockSkew: " << clockSkew  << "\n" <<
-        "       average clockSkew: " << sendingNode->getClockSkewUsec();
+        "               clockSkew: " << clockSkew << "[" << formatUsecTime(clockSkew) << "]" << "\n" <<
+        "       average clockSkew: " << averageClockSkew << "[" << formatUsecTime(averageClockSkew) << "]";
     }
 }
 

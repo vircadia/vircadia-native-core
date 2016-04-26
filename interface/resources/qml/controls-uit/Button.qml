@@ -19,7 +19,7 @@ Original.Button {
     property int colorScheme: hifi.colorSchemes.light
 
     width: 120
-    height: 28
+    height: hifi.dimensions.controlLineHeight
 
     style: ButtonStyle {
 

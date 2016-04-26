@@ -39,6 +39,8 @@
 
 using namespace std;
 
+static int FBXGeometryPointerMetaTypeId = qRegisterMetaType<FBXGeometry::Pointer>();
+
 QStringList FBXGeometry::getJointNames() const {
     QStringList names;
     foreach (const FBXJoint& joint, joints) {
