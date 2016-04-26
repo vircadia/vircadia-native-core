@@ -19,7 +19,7 @@ Fadable {
     // decorations can extend outside it.
     implicitHeight: content ? content.height : 0
     implicitWidth: content ? content.width : 0
-    x: -9999; y: -9999
+    x: desktop.INVALID_POSITION; y: desktop.INVALID_POSITION;
     enabled: visible
 
     signal windowDestroyed();
@@ -125,7 +125,7 @@ Fadable {
     }
 
     function centerOrReposition() {
-        if (x == -9999 && y == -9999) {
+        if (x == desktop.INVALID_POSITION && y == desktop.INVALID_POSITION) {
             desktop.centerOnVisible(window);
         } else {
             desktop.repositionOnVisible(window);
