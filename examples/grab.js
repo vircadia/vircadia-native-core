@@ -383,7 +383,16 @@ Grabber.prototype.pressEvent = function(event) {
     if(!entityIsGrabbedByOther(this.entityID)){
       this.moveEvent(event);
     }
-     
+
+    var args = "mouse";
+    Entities.callEntityMethod(this.entityID, "startDistanceGrab", args);
+
+    Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+        action: 'grab',
+        grabbedEntity: this.entityID
+    }));
+
+
     // TODO: play sounds again when we aren't leaking AudioInjector threads
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
 }
@@ -400,6 +409,16 @@ Grabber.prototype.releaseEvent = function(event) {
         this.actionID = null;
 
         beacon.disable();
+
+        var args = "mouse";
+        Entities.callEntityMethod(this.entityID, "releaseGrab", args);
+
+        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+            action: 'release',
+            grabbedEntity: this.entityID,
+            joint: "mouse"
+        }));
+
 
         // TODO: play sounds again when we aren't leaking AudioInjector threads
         //Audio.playSound(releaseSound, { position: entityProperties.position, volume: VOLUME });
