@@ -26,6 +26,7 @@ var examplesWindow = new OverlayWebWindow({
 
 var toolHeight = 50;
 var toolWidth = 50;
+var TOOLBAR_MARGIN_Y = 25;
 
 
 function showExamples(marketplaceID) {
@@ -57,11 +58,14 @@ var toolBar = (function() {
         browseExamplesButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.HORIXONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x - 8 - toolbar.width,
-                y: 135
+                x: windowDimensions.x / 2,
+                y: windowDimensions.y
             };
+        }, {
+            x: -toolWidth / 2,
+            y: -TOOLBAR_MARGIN_Y - toolHeight
         });
         browseExamplesButton = toolBar.addTool({
             imageURL: toolIconUrl + "examples-01.svg",
