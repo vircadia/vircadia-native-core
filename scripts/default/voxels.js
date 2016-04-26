@@ -2,12 +2,12 @@ var controlHeld = false;
 var shiftHeld = false;
 
 Script.include([
-    "libraries/toolBars.js",
-    "libraries/utils.js",
+    "./libraries/toolBars.js",
+    "../libraries/utils.js",
 ]);
 
 var isActive = false;
-var toolIconUrl = "https://s3-us-west-1.amazonaws.com/hifi-content/seth/production/icons/"
+var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var toolHeight = 50;
 var toolWidth = 50;
@@ -44,7 +44,7 @@ var toolBar = (function () {
         });
 
         activeButton = toolBar.addTool({
-            imageURL: "http://s3.amazonaws.com/hifi-public/images/tools/polyvox.svg",
+            imageURL: "voxels.svg",
             width: toolWidth,
             height: toolHeight,
             alpha: onAlpha,
