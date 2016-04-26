@@ -363,7 +363,7 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
     
     // need the gamma corrected color here
-    glm::vec4 lrgba = glm::vec4(ColorUtils::toLinearVec3(glm::vec3(*color)), color->a);
+    glm::vec4 lrgba = glm::vec4(ColorUtils::tosRGBVec3(glm::vec3(*color)), color->a);
     batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
 
     batch.setInputFormat(_format);
