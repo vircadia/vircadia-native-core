@@ -10,9 +10,9 @@
 //    Distributed under the Apache License, Version 2.0.
 //    See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+HIFI_PUBLIC_BUCKET = 'http://s3.amazonaws.com/hifi-public/';
 
-Script.include("../../libraries/toolBars.js");
+Script.include('../../libraries/toolBars.js');
 
 const DEFAULT_NUM_LAYERS = 16;
 const DEFAULT_BASE_DIMENSION = { x: 7, y: 2, z: 7 };
@@ -29,6 +29,8 @@ const DEFAULT_FRICTION = 0.99;
 const DEFAULT_RESTITUTION = 0.0;
 const DEFAULT_SPAWN_DISTANCE = 3;
 const DEFAULT_BLOCK_YAW_OFFSET = 45;
+
+const PLANKY_LIFETIME = 3600; // 1 hour (3600 seconds)
 
 var editMode = false;
 
@@ -51,13 +53,17 @@ SettingsWindow = function() {
     this.plankyStack = null;
     this.webWindow = null;
     this.init = function(plankyStack) {
-        _this.webWindow = new OverlayWebWindow('Planky', Script.resolvePath('../../html/plankySettings.html'), 255, 500, true);
+        _this.webWindow = new OverlayWebWindow({
+            title: 'Planky',
+            source: Script.resolvePath('../../html/plankySettings.html'),
+            toolWindow: true
+        });
         _this.webWindow.setVisible(false);
-        _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
+        _this.webWindow.webEventReceived.connect(_this.onWebEventReceived);
         _this.plankyStack = plankyStack;
     };
     this.sendData = function(data) {
-        _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
+        _this.webWindow.emitScriptEvent(JSON.stringify(data));
     };
     this.onWebEventReceived = function(data) {
         data = JSON.parse(data);
@@ -188,7 +194,8 @@ PlankyStack = function() {
                 dimensions: _this.options.baseDimension,
                 position: Vec3.sum(_this.basePosition, {y: -(_this.options.baseDimension.y / 2)}),
                 rotation: _this.baseRotation,
-                shapeType: 'box'
+                shapeType: 'box',
+                lifetime: PLANKY_LIFETIME
             });
             return;
         }
@@ -254,7 +261,8 @@ PlankyStack = function() {
             density: _this.options.density,
             velocity: {x: 0, y: 0, z: 0},
             angularVelocity: Quat.fromPitchYawRollDegrees(0, 0, 0),
-            collisionless: true
+            collisionless: true,
+            lifetime: PLANKY_LIFETIME
         };
         _this.planks.forEach(function(plank, index, object) {
             if (plank.layer === layer && plank.row === row) {
@@ -304,6 +312,7 @@ var settingsWindow = new SettingsWindow();
 var plankyStack = new PlankyStack();
 settingsWindow.init(plankyStack);
 
+// This function is used to get the ideal y-location for a floor
 function grabLowestJointY() {
     var jointNames = MyAvatar.getJointNames();
     var floorY = MyAvatar.position.y;
