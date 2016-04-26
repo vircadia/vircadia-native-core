@@ -17,7 +17,7 @@ var overlays = {};
 
 
 var toType = function(obj) {
-  return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
+    return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
 }
 
 
@@ -50,7 +50,11 @@ function actionArgumentsToString(actionArguments) {
 
 function updateOverlay(entityID, actionText) {
     var properties = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
-    var position = Vec3.sum(properties.position, {x:0, y:properties.dimensions.y, z:0});
+    var position = Vec3.sum(properties.position, {
+        x: 0,
+        y: properties.dimensions.y,
+        z: 0
+    });
     // print("position: " + vec3toStr(position) + " " + actionText);
     if (entityID in overlays) {
         var overlay = overlays[entityID];
@@ -76,9 +80,20 @@ function updateOverlay(entityID, actionText) {
 
         overlays[entityID] = Overlays.addOverlay("text3d", {
             position: position,
-            dimensions: { x: textWidth, y: textHeight },
-            backgroundColor: { red: 0, green: 0, blue: 0},
-            color: { red: 255, green: 255, blue: 255},
+            dimensions: {
+                x: textWidth,
+                y: textHeight
+            },
+            backgroundColor: {
+                red: 0,
+                green: 0,
+                blue: 0
+            },
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
             topMargin: textMargin,
             leftMargin: textMargin,
             bottomMargin: textMargin,

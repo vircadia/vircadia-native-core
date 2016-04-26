@@ -37,7 +37,7 @@ function grabDataToString(grabData) {
                 argString = arg.toFixed(2);
             }
             result += argumentName + ": "
-            // + toType(arg) + " -- "
+                // + toType(arg) + " -- "
                 + argString + "\n";
         }
     }
@@ -49,7 +49,11 @@ function grabDataToString(grabData) {
 
 function updateOverlay(entityID, grabText) {
     var properties = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
-    var position = Vec3.sum(properties.position, {x:0, y:properties.dimensions.y, z:0});
+    var position = Vec3.sum(properties.position, {
+        x: 0,
+        y: properties.dimensions.y,
+        z: 0
+    });
     if (entityID in overlays) {
         var overlay = overlays[entityID];
         Overlays.editOverlay(overlay, {
@@ -74,9 +78,20 @@ function updateOverlay(entityID, grabText) {
 
         overlays[entityID] = Overlays.addOverlay("text3d", {
             position: position,
-            dimensions: { x: textWidth, y: textHeight },
-            backgroundColor: { red: 0, green: 0, blue: 0},
-            color: { red: 255, green: 255, blue: 255},
+            dimensions: {
+                x: textWidth,
+                y: textHeight
+            },
+            backgroundColor: {
+                red: 0,
+                green: 0,
+                blue: 0
+            },
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
             topMargin: textMargin,
             leftMargin: textMargin,
             bottomMargin: textMargin,

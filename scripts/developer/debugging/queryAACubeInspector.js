@@ -18,9 +18,11 @@ var INSPECT_RADIUS = 10;
 var overlays = {};
 
 function updateOverlay(entityID, queryAACube) {
-    var cubeCenter = {x: queryAACube.x + queryAACube.scale / 2.0,
-                      y: queryAACube.y + queryAACube.scale / 2.0,
-                      z: queryAACube.z + queryAACube.scale / 2.0};
+    var cubeCenter = {
+        x: queryAACube.x + queryAACube.scale / 2.0,
+        y: queryAACube.y + queryAACube.scale / 2.0,
+        z: queryAACube.z + queryAACube.scale / 2.0
+    };
 
     if (entityID in overlays) {
         var overlay = overlays[entityID];
@@ -32,7 +34,11 @@ function updateOverlay(entityID, queryAACube) {
         overlays[entityID] = Overlays.addOverlay("cube", {
             position: cubeCenter,
             size: queryAACube.scale,
-            color: { red: 0, green: 0, blue: 255},
+            color: {
+                red: 0,
+                green: 0,
+                blue: 255
+            },
             alpha: 1,
             // borderSize: ...,
             solid: false
