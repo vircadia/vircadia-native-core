@@ -13,12 +13,29 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// Control the "mouse" using hand controller. (HMD and desktop.)
 // For now:
-// Right hand only.
-// HMD only. (Desktop isn't turned off, but right now it's using
-//            HMD.overlayFromWorldPoint(HMD.calculateRayUICollisionPoint ...) without compensation.)
-// Cursor all the time when uncradled. (E.g., not just when blue ray is on, or five seconds after movement, etc.)
 // Button 3 is left-mouse, button 4 is right-mouse.
+// First-person only.
+// Partial trigger squeeze toggles a laser visualization. When on, you can also click on objects in-world, not just HUD.
+// On Windows, the upper left corner of Interface must be in the upper left corner of the screen, and the title bar must be 50px high. (System bug.)
+//
+// Bugs:
+// Turn in-world click off when visualization is off.
+// May also interfere with other scripts?
+
+// Right hand only.
+// Do not use with depthReticle.js.
+// Trigger toggle is flakey.
+// When clicking on in-world objects, the click acts on the red ball, not the termination of the blue line.
+/*
+ScriptDiscoveryService.getRunning().forEach(function (script) {
+    if (script.name === 'depthReticle.js') {
+	print("Stopping script", script.name);
+	script.stop();
+    }
+});
+*/
 
 // UTILITIES -------------
 //
@@ -43,7 +60,20 @@ function TimeLock(expiration) {
         return ((optionalNow || Date.now()) - last) > expiration;
     };
 }
-var lockOut = new TimeLock(1000);
+var lockOut = new TimeLock(2000);
+
+// Calls onFunction() or offFunction() when swtich(on), but only if it is to a new value.
+function LatchedToggle(onFunction, offFunction, state) {
+    this.setState = function (on) {
+	if (state === on) { return; }
+	state = on;
+	if (on) {
+	    onFunction();
+	} else {
+	    offFunction();
+	}
+    };
+}
 
 // VERTICAL FIELD OF VIEW ---------
 //
@@ -62,7 +92,7 @@ Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker);
 var getControllerPose = Controller.getPoseValue;
 var setCursor = function (point2d) {
     if (!HMD.active) {
-        // FIX BUG: The width of the window title bar (on Windows, anyway).
+        // FIX SYSEM BUG: On Windows, setPosition is setting relative to screen origin, not the content area of the window.
         point2d = {x: point2d.x, y: point2d.y + 50};
     }
     Reticle.setPosition(point2d);
@@ -126,8 +156,8 @@ mapToAction('Hydra', 'L3', 'ReticleClick');
 mapToAction('Hydra', 'L4', 'ContextMenu');
 mapToAction('Vive', 'LeftPrimaryThumb', 'ReticleClick');
 mapToAction('Vive', 'RightPrimaryThumb', 'ReticleClick');
-mapping.enable();
 Script.scriptEnding.connect(mapping.disable);
+toggleMap = new LatchedToggle(mapping.enable, mapping.disable);
 
 // MOUSE LOCKOUT --------
 //
@@ -135,6 +165,7 @@ var weMovedReticle = false;
 if (Controller.Hardware.Hydra) {
     setupHandler(Controller.mouseMoveEvent, function () {
         if (weMovedReticle) { weMovedReticle = false; return; }
+	// Should we implement dephReticle's inactivity timeout here?
         setReticleVisible(true);
         lockOut.update();
     });
@@ -142,17 +173,9 @@ if (Controller.Hardware.Hydra) {
 
 // VISUAL AID -----------
 var LASER_COLOR = {red: 10, green: 10, blue: 255};
-var laserBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
-    size: 0.011,
-    color: LASER_COLOR,
-    ignoreRayIntersection: true,
-    alpha: 0.8, // handControllerGrab has this as 0.5, but I have trouble seeing that.
-    visible: false,
-    solid: true
-});
 var laserLine = Overlays.addOverlay("line3d", { // same properties as handControllerGrab search line
     lineWidth: 5,
-    // BUG: If you don't supply a start and end at creation, it will never show up, even after editing.
+    // FIX SYSTEM BUG: If you don't supply a start and end at creation, it will never show up, even after editing.
     start: MyAvatar.position,
     end: Vec3.ZERO,
     color: LASER_COLOR,
@@ -160,12 +183,33 @@ var laserLine = Overlays.addOverlay("line3d", { // same properties as handContro
     visible: false,
     alpha: 1
 });
-var overlays = [laserBall, laserLine];
+var BALL_SIZE = 0.011;
+var BALL_ALPHA = 0.5;
+var laserBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
+    size: BALL_SIZE,
+    color: LASER_COLOR,
+    ignoreRayIntersection: true,
+    alpha: BALL_ALPHA,
+    visible: false,
+    solid: true,
+    drawInFront: true // Even when burried inside of something, show it.
+});
+var fakeProjectionBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
+    size: 5 * BALL_SIZE,
+    color: {red: 255, green: 10, blue: 10},
+    ignoreRayIntersection: true,
+    alpha: BALL_ALPHA,
+    visible: false,
+    solid: true,
+    drawInFront: true // Even when burried inside of something, show it.
+});
+var overlays = [laserBall, laserLine, fakeProjectionBall];
 Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverlay); });
-var visualizationOn = true; // Not whether it desired, but simply whether it is. Just an optimization.
-function turnOffLaser() {
-    if (!visualizationOn) { return; }
-    visualizationOn = false;
+var visualizationIsShowing = true; // Not whether it desired, but simply whether it is. Just an optimization.
+function turnOffLaser(optionalEnableClicks) {
+    toggleMap.setState(optionalEnableClicks);
+    if (!visualizationIsShowing) { return; }
+    visualizationIsShowing = false;    
     overlays.forEach(function (overlay) {
         Overlays.editOverlay(overlay, {visible: false});
     });
@@ -173,18 +217,22 @@ function turnOffLaser() {
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
 var wantsVisualization = false;
 function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
+    toggleMap.setState(true);
     if (!wantsVisualization) { return false; }
     // Show the laser and intersect it with 3d overlays and entities.
-    var pickRay = {origin: controllerPosition, direction: controllerDirection};
-    var result = Overlays.findRayIntersection(pickRay);
-    if (!result.intersects) {
-        result = Entities.findRayIntersection(pickRay, true);
-    }
-    if (!visualizationOn) { setReticleVisible(true); }
-    visualizationOn = true;
-    var termination = result.intersects ?
+    function intersection3d(position, direction) {
+	var pickRay = {origin: position, direction: direction};
+	var result = Overlays.findRayIntersection(pickRay);
+	if (!result.intersects) {
+            result = Entities.findRayIntersection(pickRay, true);
+	}
+	return result.intersects ?
                 result.intersection :
-                Vec3.sum(controllerPosition, Vec3.multiply(MAX_RAY_SCALE, controllerDirection));
+                Vec3.sum(position, Vec3.multiply(MAX_RAY_SCALE, direction));
+    }
+    termination = intersection3d(controllerPosition, controllerDirection);
+    visualizationIsShowing = true;
+    setReticleVisible(false);
     Overlays.editOverlay(laserLine, {visible: true, start: controllerPosition, end: termination});
     // We show the ball at the hud intersection rather than at the termination because:
     // 1) As you swing the laser in space, it's hard to judge where it will intersect with a HUD element,
@@ -193,6 +241,15 @@ function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
     // 2) On some objects, the intersection is just enough inside the object that we're not going to see
     //    the ball anyway.
     Overlays.editOverlay(laserBall, {visible: true, position: hudPosition3d});
+
+    // We really want in-world interactions to take place at termination:
+    //   - We could do some of that with callEntityMethod (e.g., light switch entity script)
+    //   - But we would have to alter edit.js to accept synthetic mouse data.
+    // So for now, we present a false projection of the cursor onto whatever is below it. This is different from
+    // the laser termination because the false projection is from the camera, while the laser termination is from the hand.
+    var eye = Camera.getPosition();
+    var falseProjection = intersection3d(eye, Vec3.subtract(hudPosition3d, eye));
+    Overlays.editOverlay(fakeProjectionBall, {visible: true, position: falseProjection});
     return true;
 }
 var toggleLockout = new TimeLock(500);
@@ -211,12 +268,13 @@ function maybeToggleVisualization(trigger, now) {
 function update() {
     var now = Date.now();
     if (!lockOut.available(now)) { return turnOffLaser(); } // Let them use it in peace.
+    if (!Menu.isOptionChecked("First Person")) { debug('not 1st person'); return turnOffLaser(); }  // What to do? menus can be behind hand!
     var trigger = getValue(Controller.Standard.RT);
-    if (trigger > 0.5) { lockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
+    if (trigger > 0.9) { lockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
     maybeToggleVisualization(trigger, now);
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
-    if (!controllerPose.valid) { return; } // Controller is cradled.
+    if (!controllerPose.valid) { wantsVisualization = false; return turnOffLaser(); } // Controller is cradled.
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
     // This gets point direction right, but if you want general quaternion it would be more complicated:
@@ -233,11 +291,9 @@ function update() {
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (Reticle.pointingAtSystemOverlay || getOverlayAtPoint(hudPoint2d)) {
         setReticleVisible(true);
-        //mapping.enable();
-        return turnOffLaser();
+        return turnOffLaser(true);
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
-    //mapping.disable();
     if (!updateLaser(controllerPosition, controllerDirection, hudPoint3d)) {
         setReticleVisible(false);
         turnOffLaser();
@@ -311,7 +367,7 @@ if (!Controller.Hardware.Hydra) {
         Overlays.editOverlay(fakeReticle, {x: hudPoint2d.x - reticleHalfSize, y: hudPoint2d.y - reticleHalfSize});
     };
     setReticleVisible = function (on) {
-        Reticle.visible = on; // BUG: doesn't work on mac.
+        Reticle.visible = on; // FIX SYSTEM BUG: doesn't work on mac.
         Overlays.editOverlay(fakeReticle, {visible: on});
     };
     // The idea here is that we not return a truthy result constantly when we display the fake reticle.
