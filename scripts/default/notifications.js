@@ -55,7 +55,7 @@
 //          createNotification(noteString, NotificationType.SNAPSHOT);
 //      }
 //  }
-Script.include("./libraries/globals.js");
+
 Script.include("./libraries/soundArray.js");
 
 var width = 340.0; //width of notification overlay
@@ -120,7 +120,8 @@ var NotificationType = {
 var randomSounds = new SoundArray({ localOnly: true }, true);
 var numberOfSounds = 2;
 for (var i = 1; i <= numberOfSounds; i++) {
-    randomSounds.addSound(HIFI_PUBLIC_BUCKET + "sounds/UI/notification-general" + i + ".raw");
+    
+    randomSounds.addSound(Script.resolvePath("assets/sounds/notification-general"+ i + ".raw"));
 }
 
 var notifications = [];
@@ -328,7 +329,7 @@ function createNotification(text, notificationType) {
         width: 10.0,
         height: 10.0,
         subImage: { x: 0, y: 0, width: 10, height: 10 },
-        imageURL: "http://hifi-public.s3.amazonaws.com/images/close-small-light.svg",
+        imageURL: Script.resolvePath("assets/images/close-small-light.svg"),
         color: { red: 255, green: 255, blue: 255},
         visible: true,
         alpha: backgroundAlpha

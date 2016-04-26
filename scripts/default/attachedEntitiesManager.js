@@ -27,7 +27,6 @@ var SHOW_TOOL_BAR = false;
 // tool bar
 
 if (SHOW_TOOL_BAR) {
-    HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
     var BUTTON_SIZE = 32;
     var PADDING = 3;
     Script.include(["libraries/toolBars.js"]);

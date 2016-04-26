@@ -13,8 +13,7 @@ Script.include([
     "libraries/toolBars.js",
 ]);
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
+var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var EXAMPLES_URL = "https://metaverse.highfidelity.com/examples";
 var examplesWindow = new OverlayWebWindow({

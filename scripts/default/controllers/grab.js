@@ -11,7 +11,7 @@
 //
 /*global print, Mouse, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-Script.include("libraries/utils.js");
+Script.include("../libraries/utils.js");
 // objects that appear smaller than this can't be grabbed
 var MAX_SOLID_ANGLE = 0.01;
 

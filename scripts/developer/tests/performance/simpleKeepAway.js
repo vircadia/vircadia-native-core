@@ -94,7 +94,7 @@ Script.setInterval(function () {
             gravity: GRAVITY,
             collisionsWillMove: true,
             lifetime: LIFETIME,
-            script: Script.resolvePath("../../entityScripts/simpleKeepAway.js")
+            script: Script.resolvePath("keepAwayEntity.js")
         };
         Entities.addEntity(properties);
         totalCreated++;

@@ -11,9 +11,11 @@
 //
 
 // setup the local sound we're going to use
-var connectSound = SoundCache.getSound("file:///" + Paths.resources + "sounds/hello.wav");
-var disconnectSound = SoundCache.getSound("file:///" + Paths.resources + "sounds/goodbye.wav");
-var micMutedSound = SoundCache.getSound("file:///" + Paths.resources + "sounds/goodbye.wav");
+
+
+var connectSound = SoundCache.getSound(Script.resolvePath("assets/sounds/hello.wav"));
+var disconnectSound = SoundCache.getSound(Script.resolvePath("assets/sounds/goodbye.wav"));
+var micMutedSound = SoundCache.getSound(Script.resolvePath("assets/sounds/goodbye.wav"));
 
 // setup the options needed for that sound
 var soundOptions = {

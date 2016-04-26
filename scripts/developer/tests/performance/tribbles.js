@@ -86,7 +86,7 @@ Script.setInterval(function () {
             gravity: GRAVITY,
             collisionsWillMove: true,
             lifetime: LIFETIME,
-            script: Script.resolvePath("../../entityScripts/tribble.js")
+            script: Script.resolvePath("tribbleEntity.js")
         });
 
         totalCreated++;
