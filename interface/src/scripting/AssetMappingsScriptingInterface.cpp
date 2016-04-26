@@ -292,6 +292,8 @@ void AssetMappingModel::refresh() {
         } else {
             emit errorGettingMappings(request->getErrorString());
         }
+
+        request->deleteLater();
     });
 
     request->start();

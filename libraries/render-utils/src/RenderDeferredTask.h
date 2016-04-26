@@ -109,7 +109,6 @@ protected:
     bool _stateSort;
 };
 
-
 class DrawStencilDeferred {
 public:
     using JobModel = render::Job::Model<DrawStencilDeferred>;

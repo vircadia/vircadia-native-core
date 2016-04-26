@@ -78,7 +78,7 @@ public:
 
     PerformanceTimer(const QString& name);
     ~PerformanceTimer();
-    
+
     static bool isActive();
     static void setActive(bool active);
     

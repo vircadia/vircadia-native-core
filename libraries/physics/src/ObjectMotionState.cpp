@@ -45,6 +45,7 @@ void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
     worldSimulationStep = step;
 }
 
+// static
 uint32_t ObjectMotionState::getWorldSimulationStep() {
     return worldSimulationStep;
 }
@@ -296,6 +297,12 @@ void ObjectMotionState::updateBodyVelocities() {
     setBodyAngularVelocity(getObjectAngularVelocity());
     setBodyGravity(getObjectGravity());
     _body->setActivationState(ACTIVE_TAG);
+}
+
+void ObjectMotionState::updateLastKinematicStep() {
+    // NOTE: we init to worldSimulationStep - 1 so that: when any object transitions to kinematic
+    // it will compute a non-zero dt on its first step.
+    _lastKinematicStep = ObjectMotionState::getWorldSimulationStep() - 1;
 }
 
 void ObjectMotionState::updateBodyMassProperties() {

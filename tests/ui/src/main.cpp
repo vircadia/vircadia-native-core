@@ -88,6 +88,7 @@ int main(int argc, char *argv[]) {
     setChild(engine, "ApplicationCompositor");
     setChild(engine, "Desktop");
     setChild(engine, "ScriptDiscoveryService");
+    setChild(engine, "HMD");
     setChild(engine, "MenuHelper");
     setChild(engine, "Preferences");
     setChild(engine, "urlHandler");

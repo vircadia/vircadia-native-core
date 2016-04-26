@@ -6,11 +6,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtGlobal>
 #include <QSharedPointer>
 #include <GenericQueueThread.h>
 #include "GLBackendShared.h"
 
+#ifdef Q_OS_WIN
 #define THREADED_TEXTURE_TRANSFER
+#endif
 
 class OffscreenGLCanvas;
 
@@ -32,33 +35,10 @@ protected:
     void setup() override;
     void shutdown() override;
     bool processQueueItems(const Queue& messages) override;
-    void transferTextureSynchronous(const gpu::Texture& texture);
+    void do_transfer(GLBackend::GLTexture& texturePointer);
 
 private:
     QSharedPointer<OffscreenGLCanvas> _canvas;
 };
-
-template <typename F>
-void withPreservedTexture(GLenum target, F f) {
-    GLint boundTex = -1;
-    switch (target) {
-    case GL_TEXTURE_2D:
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-        break;
-
-    case GL_TEXTURE_CUBE_MAP:
-        glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-        break;
-
-    default:
-        qFatal("Unsupported texture type");
-    }
-    (void)CHECK_GL_ERROR();
-
-    f();
-
-    glBindTexture(target, boundTex);
-    (void)CHECK_GL_ERROR();
-}
 
 }

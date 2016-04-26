@@ -11,13 +11,14 @@
 #ifndef hifi_gpu_Texture_h
 #define hifi_gpu_Texture_h
 
-#include "Resource.h"
-
 #include <algorithm> //min max and more
 #include <bitset>
 
 #include <QMetaType>
 #include <QUrl>
+
+#include "Forward.h"
+#include "Resource.h"
 
 namespace gpu {
 
@@ -141,6 +142,7 @@ protected:
 class Texture : public Resource {
     static std::atomic<uint32_t> _textureCPUCount;
     static std::atomic<Size> _textureCPUMemoryUsage;
+    static std::atomic<Size> _allowedCPUMemoryUsage;
     static void updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 public:
     static uint32_t getTextureCPUCount();
@@ -149,6 +151,8 @@ public:
     static Size getTextureGPUMemoryUsage();
     static Size getTextureGPUVirtualMemoryUsage();
     static uint32_t getTextureGPUTransferCount();
+    static Size getAllowedGPUMemoryUsage();
+    static void setAllowedGPUMemoryUsage(Size size);
 
     class Usage {
     public:
@@ -313,6 +317,7 @@ public:
     const Element& getTexelFormat() const { return _texelFormat; }
     bool  hasBorder() const { return false; }
 
+    Vec3u getDimensions() const { return Vec3u(_width, _height, _depth); }
     uint16 getWidth() const { return _width; }
     uint16 getHeight() const { return _height; }
     uint16 getDepth() const { return _depth; }
@@ -346,6 +351,8 @@ public:
 
     // Eval the size that the mips level SHOULD have
     // not the one stored in the Texture
+    static const uint MIN_DIMENSION = 1;
+    Vec3u evalMipDimensions(uint16 level) const;
     uint16 evalMipWidth(uint16 level) const { return std::max(_width >> level, 1); }
     uint16 evalMipHeight(uint16 level) const { return std::max(_height >> level, 1); }
     uint16 evalMipDepth(uint16 level) const { return std::max(_depth >> level, 1); }
@@ -363,7 +370,7 @@ public:
 
     uint32 evalTotalSize() const {
         uint32 size = 0;
-        uint16 minMipLevel = 0;
+        uint16 minMipLevel = minMip();
         uint16 maxMipLevel = maxMip();
         for (uint16 l = minMipLevel; l <= maxMipLevel; l++) {
             size += evalMipSize(l);
@@ -371,10 +378,19 @@ public:
         return size * getNumSlices();
     }
 
-    // max mip is in the range [ 1 if no sub mips, log2(max(width, height, depth))]
+    // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
     // if autoGenerateMip is on => will provide the maxMIp level specified
     // else provide the deepest mip level provided through assignMip
-    uint16 maxMip() const;
+    uint16 maxMip() const { return _maxMip; }
+
+    uint16 minMip() const { return _minMip; }
+    
+    uint16 mipLevels() const { return _maxMip + 1; }
+    
+    uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
+
+    bool setMinMip(uint16 newMinMip);
+    bool incremementMinMip(uint16 count = 1);
 
     // Generate the mips automatically
     // But the sysmem version is not available
@@ -451,7 +467,8 @@ protected:
     uint16 _numSamples = 1;
     uint16 _numSlices = 1;
 
-    uint16 _maxMip = 0;
+    uint16 _maxMip { 0 };
+    uint16 _minMip { 0 };
  
     Type _type = TEX_1D;
 

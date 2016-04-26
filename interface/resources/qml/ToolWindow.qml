@@ -30,7 +30,7 @@ Window {
     title: "Edit"
     property alias tabView: tabView
     implicitWidth: 520; implicitHeight: 695
-    minSize: Qt.vector2d(412, 500)
+    minSize: Qt.vector2d(456, 500)
 
     HifiConstants { id: hifi }
 
