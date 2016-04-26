@@ -86,13 +86,13 @@ function addButterfly() {
         dimensions: dimensions,
         color: color,
         animation: { 
-            url: "http://hifi-content.s3.amazonaws.com/james/butterfly/butterfly.fbx",
+            url: "http://hifi-production.s3.amazonaws.com/tutorials/butterflies/butterfly.fbx",
             fps: newFrameRate,
             loop: true,
             running: true,
             startAutomatically:false
         },
-        modelURL: "http://hifi-content.s3.amazonaws.com/james/butterfly/butterfly.fbx"
+        modelURL: "http://hifi-production.s3.amazonaws.com/tutorials/butterflies/butterfly.fbx"
     };
     butterflies.push(Entities.addEntity(properties));
 }
