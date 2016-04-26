@@ -129,19 +129,31 @@ void ScriptEngines::shutdownScripting() {
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
         if (scriptEngine->isRunning()) {
+            qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
             // If the script is running, but still evaluating then we need to wait for its evaluation step to
             // complete. After that we can handle the stop process appropriately
             if (scriptEngine->evaluatePending()) {
+                qCDebug(scriptengine) << "script still evaluating:" << scriptName;
+                auto startedWaiting = usecTimestampNow();
                 while (scriptEngine->evaluatePending()) {
 
                     // This event loop allows any started, but not yet finished evaluate() calls to complete
                     // we need to let these complete so that we can be guaranteed that the script engine isn't
                     // in a partially setup state, which can confuse our shutdown unwinding.
                     QEventLoop loop;
-                    QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
-                    loop.exec();
+                    static const int MAX_PROCESSING_TIME = 500; // in MS
+                    loop.processEvents(QEventLoop::AllEvents, MAX_PROCESSING_TIME);
+                    auto stillWaiting = usecTimestampNow();
+                    auto elapsed = stillWaiting - startedWaiting;
+                    // if we've been waiting for more than 5 seconds, then tell the script engine to stop evaluating
+                    static const auto WAITING_TOO_LONG = USECS_PER_SECOND * 5;
+                    if (elapsed > WAITING_TOO_LONG) {
+                        qCDebug(scriptengine) << "giving up on script evaluation elapsed:" << elapsed << "calling abortEvaluation() script:" << scriptName;
+                        scriptEngine->abortEvaluation();
+                    }
                 }
+                qCDebug(scriptengine) << "script DONE evaluating:" << scriptName;
             }
 
             // We disconnect any script engine signals from the application because we don't want to do any

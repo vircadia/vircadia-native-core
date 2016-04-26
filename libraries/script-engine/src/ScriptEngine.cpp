@@ -199,11 +199,28 @@ void ScriptEngine::waitTillDoneRunning() {
 
         // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
         // we want the application thread to continue to process events, because the scripts will likely need to
-        // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
+        // marshall messages across to the main thread. For example if they access Settings or Menu in any of their
         // shutdown code.
+        auto startedWaiting = usecTimestampNow();
         while (thread()->isRunning()) {
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
+            auto stillWaiting = usecTimestampNow();
+            auto elapsed = stillWaiting - startedWaiting;
+            
+            // if we've been waiting a second or more, then tell the script engine to stop evaluating
+            if (elapsed > USECS_PER_SECOND) {
+                qDebug() << __FUNCTION__ << "...giving up on evaluation elapsed:" << elapsed << "calling abortEvaluation()";
+                abortEvaluation();
+            }
+
+            // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
+            static const auto WAITING_TOO_LONG = USECS_PER_SECOND * 5;
+            if (elapsed > WAITING_TOO_LONG) {
+                qDebug() << __FUNCTION__ << "...giving up on thread elapsed:" << elapsed << "calling thread->quit()";
+                thread()->quit();
+                break;
+            }
         }
     }
 }
