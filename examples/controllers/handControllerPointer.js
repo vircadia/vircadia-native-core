@@ -109,6 +109,10 @@ function mapToAction(controller, button, action) {
 }
 mapToAction('Hydra', 'R3', 'ReticleClick');
 mapToAction('Hydra', 'R4', 'ContextMenu');
+mapToAction('Hydra', 'L3', 'ReticleClick');
+mapToAction('Hydra', 'L4', 'ContextMenu');
+mapToAction('Vive', 'LeftPrimaryThumb', 'ReticleClick');
+mapToAction('Vive', 'RightPrimaryThumb', 'ReticleClick');
 mapping.enable();
 Script.scriptEnding.connect(mapping.disable);
 
@@ -126,11 +130,10 @@ if (Controller.Hardware.Hydra) {
     setupHandler(Controller.mouseMoveEvent, onMouseMove);
 }
 
-// MAIN OPERATIONS -----------
-//
+// VISUAL AID -----------
 var LASER_COLOR = {red: 10, green: 10, blue: 255};
 var terminatingBall = Overlays.addOverlay("sphere", { // Same properties as handControllerGrab search sphere
-    size: 0.1, //FIXME 0.011,
+    size: 0.011,
     color: LASER_COLOR,
     ignoreRayIntersection: true,
     alpha: 0.8, // handControllerGrab has this as 0.5, but I have trouble seeing that.
@@ -147,20 +150,55 @@ var laserLine = Overlays.addOverlay("line3d", { // same properties as handContro
     visible: false,
     alpha: 1
 });
-var overlays = [terminatingBall, laserLine];
-var isOn = true;
+var overlays = [terminatingBall, laserLine]
+Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverlay); });
+var visualizationOn = true; // Not whether it desired, but simply whether it is. Just an optimization.
+var VISUALIZATION_TOGGLE_LOCKOUT_TIME = 1000; // milliseconds
+var wasToggled = 0, wantsVisualization = false;
 function turnOffLaser() {
-    if (!isOn) { return; }
-    isOn = true;
+    if (!wasToggled) { wasToggled = Date.now(); }
+    if (!visualizationOn) { return; }
+    visualizationOn = false;
     overlays.forEach(function (overlay) {
 	Overlays.editOverlay(overlay, {visible: false});
     });
 }
-
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
+function updateLaser(controllerPosition, controllerDirection) {
+    // Show the laser and intersect it with 3d overlays and entities.
+    var pickRay = {origin: controllerPosition, direction: controllerDirection};
+    var result = Overlays.findRayIntersection(pickRay)
+    if (!result.intersects) {
+	result = Entities.findRayIntersection(pickRay, true);
+    }
+    var termination = result.intersects ?
+	result.intersection :
+	Vec3.sum(controllerPosition, Vec3.multiply(MAX_RAY_SCALE, controllerDirection));
+    visualizationOn = true;
+    Overlays.editOverlay(terminatingBall, {visible: true, position: termination});
+    Overlays.editOverlay(laserLine, {visible: true, start: controllerPosition, end: termination});
+}
+function maybeToggleVisualization(trigger, now) {
+    if (trigger > 0) {
+	print('TRIGGER', now - wasToggled);
+	if ((now - wasToggled) > VISUALIZATION_TOGGLE_LOCKOUT_TIME) {
+	    wantsVisualization = !wantsVisualization;
+	    wasToggled = Date.now();
+	}
+    } else {
+	wasToggled = 0;
+    }
+}
+
+
+// MAIN OPERATIONS -----------
+//
 function update() {
-    if ((Date.now() - mouseMoved) < MOUSE_MOVE_LOCKOUT_TIME) { return turnOffLaser(); } // Let them use it in peace.
-    if (Controller.getValue(Controller.Standard.RT)) { return turnOffLaser(); } // Interferes with other scripts.
+    var now = Date.now();
+    if ((now - mouseMoved) < MOUSE_MOVE_LOCKOUT_TIME) { return turnOffLaser(); } // Let them use it in peace.
+    var trigger = Controller.getValue(Controller.Standard.RT);
+    if (trigger > 0.5) { print('FULL TRIGGER');return turnOffLaser(); } // Interferes with other scripts.
+    maybeToggleVisualization(trigger, now);
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
     if (!controllerPose.valid) { return; } // Controller is cradled.
@@ -172,26 +210,23 @@ function update() {
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnLaserOff(); }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
+    // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
+    // it's pointing at a QML tool (aka system overlay).
     setCursor(hudPoint2d);
     weMovedReticle = true;
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d)) {
 	Reticle.visible = true;
+	//mapping.enable();
 	return turnOffLaser();
     }
-    // Otherwise, show the laser and intersect it with 3d overlays and entities.
-    var pickRay = {origin: controllerPosition, direction: controllerDirection};
-    var result = Overlays.findRayIntersection(pickRay)
-    if (!result.intersects) {
-	result = Entities.findRayIntersection(pickRay, true);
+    //mapping.disable();
+    if (wantsVisualization) {
+	updateLaser(controllerPosition, controllerDirection);
+    } else {
+	Reticle.visible = false; 
     }
-    var termination = result.intersects ?
-	result.intersection :
-	Vec3.sum(controllerPosition, Vec3.multiply(MAX_RAY_SCALE, controllerDirection));
-    isOn = true;
-    Overlays.editOverlay(terminatingBall, {visible: true, position: termination});
-    Overlays.editOverlay(laserLine, {visible: true, start: controllerPosition, end: termination});
     /*
     // Hack: Move the pointer again, this time to the intersection. This allows "clicking" on
     // 2D and 3D entities without rewriting other parts of the system, but it isn't right,
@@ -209,10 +244,7 @@ function update() {
 
 var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
-Script.scriptEnding.connect(function () {
-    Overlays.deleteOverlay(terminatingBall);
-    Script.clearInterval(updater);
-});
+Script.scriptEnding.connect(function () { Script.clearInterval(updater); });
 
 
 // DEBUGGING WITHOUT HYDRA -----------------------
