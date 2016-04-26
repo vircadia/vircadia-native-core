@@ -196,6 +196,7 @@ function goActive() {
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
+    MyAvatar.reset(true);
     hideOverlay();
 
     // restore overlays state to what it was when we went "away"
