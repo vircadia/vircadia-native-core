@@ -21,9 +21,7 @@ var DIE_SIZE = 0.20;
 
 var madeSound = true; //  Set false at start of throw to look for collision
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-SoundCache.getSound("http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav");
-
+SoundCache.getSound("http://hifi-production.s3.amazonaws.com/tutorials/dice/diceCollide.wav");
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to create new objects."
 
@@ -32,17 +30,19 @@ var screenSize = Controller.getViewportDimensions();
 var BUTTON_SIZE = 32;
 var PADDING = 3;
 
-Script.include(["libraries/toolBars.js"]);
+//a helper library for creating toolbars
+Script.include(["../default/libraries/toolBars.js"]);
 var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function(screenSize) {
   return {
     x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
     y: (screenSize.y - (BUTTON_SIZE + PADDING))
   };
 });
+
 var offButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",
+  imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/close.png",
   color: {
     red: 255,
     green: 255,
@@ -56,7 +56,7 @@ var deleteButton = toolBar.addOverlay("image", {
   y: screenSize.y - (BUTTON_SIZE + PADDING),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
+  imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/delete.png",
   color: {
     red: 255,
     green: 255,
@@ -65,7 +65,7 @@ var deleteButton = toolBar.addOverlay("image", {
   alpha: 1
 });
 
-var diceIconURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/dice.png"
+var diceIconURL = "http://hifi-production.s3.amazonaws.com/tutorials/dice/dice.png"
 var diceButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 + PADDING,
   y: screenSize.y - (BUTTON_SIZE + PADDING),
@@ -94,7 +94,7 @@ function shootDice(position, velocity) {
     for (var i = 0; i < NUMBER_OF_DICE; i++) {
       dice.push(Entities.addEntity({
         type: "Model",
-        modelURL: HIFI_PUBLIC_BUCKET + "models/props/Dice/goldDie.fbx",
+        modelURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/goldDie.fbx",
         position: position,
         velocity: velocity,
         rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
@@ -111,7 +111,7 @@ function shootDice(position, velocity) {
         lifetime: LIFETIME,
         shapeType: "box",
         dynamic: true,
-        collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav"
+        collisionSoundURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/diceCollide.wav"
       }));
       position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));
     }
