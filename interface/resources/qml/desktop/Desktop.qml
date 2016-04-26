@@ -318,9 +318,7 @@ FocusScope {
     }
 
     function repositionOnVisible(item) {
-        console.warn("repositionOnVisible() item:" + item);
         var targetWindow = d.getDesktopWindow(item);
-        console.warn("repositionOnVisible() targetWindow:" + targetWindow);
         if (!targetWindow) {
             console.warn("Could not find top level window for " + item);
             return;
