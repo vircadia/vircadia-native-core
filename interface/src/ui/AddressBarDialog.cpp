@@ -50,6 +50,11 @@ void AddressBarDialog::loadAddress(const QString& address) {
     }
 }
 
+void AddressBarDialog::loadHome() {
+    qDebug() << "Called LoadHome";
+    // TODO
+}
+
 void AddressBarDialog::loadBack() {
     qDebug() << "Called LoadBack";
     DependencyManager::get<AddressManager>()->goBack();
