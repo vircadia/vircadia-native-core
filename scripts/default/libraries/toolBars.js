@@ -139,12 +139,13 @@ Tool.prototype = new Overlay2D;
 Tool.IMAGE_HEIGHT = 50;
 Tool.IMAGE_WIDTH = 50;
 
-ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPositionFunction) {
+ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPositionFunction, optionalOffset) {
     this.tools = new Array();
     this.x = x;
     this.y = y;
+    this.offset = optionalOffset ? optionalOffset : { x: 0, y: 0 };
     this.width = 0;
-    this.height = 0
+    this.height = 0;
     this.backAlpha = 1.0;
     this.back = Overlays.addOverlay("rectangle", {
                     color: { red: 255, green: 255, blue: 255 },
@@ -237,7 +238,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         }
     }
     
-    this.move = function(x, y) {
+    this.move = function (x, y) {
         var dx = x - this.x;
         var dy = y - this.y;
         this.x = x;
@@ -355,23 +356,39 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
             });
         }
     };
-    that.windowDimensions = Controller.getViewportDimensions();
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    var recommendedRect = Controller.getRecommendedOverlayRect();
+    var recommendedDimmensions = { x: recommendedRect.width, y: recommendedRect.height };
+    that.windowDimensions = recommendedDimmensions; // Controller.getViewportDimensions();
+    that.origin = { x: recommendedRect.x, y: recommendedRect.y };
     // Maybe fixme: Keeping the same percent of the window size isn't always the right thing.
     // For example, maybe we want "keep the same percentage to whatever two edges are closest to the edge of screen".
     // If we change that, the places to do so are onResizeViewport, save (maybe), and the initial move based on Settings, below.
     that.onResizeViewport = function (newSize) { // Can be overridden or extended by clients.
-        var fractionX = that.x / that.windowDimensions.x;
-        var fractionY = that.y / that.windowDimensions.y;
-        that.windowDimensions = newSize || Controller.getViewportDimensions();
-        that.move(fractionX * that.windowDimensions.x, fractionY * that.windowDimensions.y);
+        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var recommendedDimmensions = { x: recommendedRect.width, y: recommendedRect.height };
+        var originRelativeX = (that.x - that.origin.x - that.offset.x);
+        var originRelativeY = (that.y - that.origin.y - that.offset.y);
+        var fractionX = clamp(originRelativeX / that.windowDimensions.x, 0, 1);
+        var fractionY = clamp(originRelativeY / that.windowDimensions.y, 0, 1);
+        that.windowDimensions = newSize || recommendedDimmensions;
+        that.origin = { x: recommendedRect.x, y: recommendedRect.y };
+        var newX = (fractionX * that.windowDimensions.x) + recommendedRect.x + that.offset.x;
+        var newY = (fractionY * that.windowDimensions.y) + recommendedRect.y + that.offset.y;
+        that.move(newX, newY);
     };
     if (optionalPersistenceKey) {
         this.fractionKey = optionalPersistenceKey + '.fraction';
         this.save = function () {
-            var screenSize = Controller.getViewportDimensions();
+            var recommendedRect = Controller.getRecommendedOverlayRect();
+            var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
             if (screenSize.x > 0 && screenSize.y > 0) {
                 // Guard against invalid screen size that can occur at shut-down.
-                var fraction = {x: that.x / screenSize.x, y: that.y / screenSize.y};
+                var fraction = {x: (that.x - that.offset.x) / screenSize.x, y: (that.y - that.offset.y) / screenSize.y};
                 Settings.setValue(this.fractionKey, JSON.stringify(fraction));
             }
         }
@@ -411,7 +428,9 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         that.move(that.dragOffsetX + event.x, that.dragOffsetY + event.y);
     };
     that.checkResize = function () { // Can be overriden or extended, but usually not. See onResizeViewport.
-        var currentWindowSize = Controller.getViewportDimensions();
+        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var currentWindowSize = { x: recommendedRect.width, y: recommendedRect.height };
+
         if ((currentWindowSize.x !== that.windowDimensions.x) || (currentWindowSize.y !== that.windowDimensions.y)) {
             that.onResizeViewport(currentWindowSize);            
         }
@@ -434,10 +453,11 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     }
     if (this.fractionKey || optionalInitialPositionFunction) {
         var savedFraction = JSON.parse(Settings.getValue(this.fractionKey) || '0'); // getValue can answer empty string
-        var screenSize = Controller.getViewportDimensions();
+        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
         if (savedFraction) {
             // If we have saved data, keep the toolbar at the same proportion of the screen width/height.
-            that.move(savedFraction.x * screenSize.x, savedFraction.y * screenSize.y);
+            that.move(savedFraction.x * screenSize.x + that.offset.x, savedFraction.y * screenSize.y + that.offset.y);
         } else if (!optionalInitialPositionFunction) {
             print("No initPosition(screenSize, intializedToolbar) specified for ToolBar");
         } else {
@@ -445,7 +465,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
             var that = this;
             Script.setTimeout(function () {
                 var position = optionalInitialPositionFunction(screenSize, that);
-                that.move(position.x, position.y);
+                that.move(position.x + that.offset.x, position.y + that.offset.y);
             }, 0);
         }
     }
