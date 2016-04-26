@@ -21,7 +21,7 @@ FocusScope {
     objectName: "desktop"
     anchors.fill: parent
 
-    readonly int INVALID_POSITION: -9999;
+    readonly property int invalid_position: -9999;
     property rect recommendedRect: Qt.rect(0,0,0,0);
     property var expectedChildren;
 
