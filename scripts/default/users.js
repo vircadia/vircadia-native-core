@@ -661,12 +661,8 @@ var usersWindow = (function () {
 
     function onMouseMoveEvent(event) {
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
-                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
-                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
-                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
-                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
-                    / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
+                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y) / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
                 firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
                 updateOverlayPositions();
