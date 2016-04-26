@@ -511,3 +511,7 @@ void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
     qCDebug(scriptengine) << "Application::loadScript(), script failed to load...";
     emit scriptLoadError(scriptFilename, "");
 }
+
+QString ScriptEngines::getDefaultScriptsLocation() const {
+    return defaultScriptsLocation().toString();
+}

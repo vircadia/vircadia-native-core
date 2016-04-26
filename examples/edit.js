@@ -53,6 +53,7 @@ selectionManager.addEventListener(function() {
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
+var TOOLBAR_MARGIN_Y = 25;
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
@@ -179,11 +180,14 @@ var toolBar = (function() {
         newParticleButton
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x - 8 - toolbar.width,
-                y: (windowDimensions.y - toolbar.height) / 2
+                x: windowDimensions.x / 2,
+                y: windowDimensions.y
             };
+        }, {
+            x: toolWidth,
+            y: -TOOLBAR_MARGIN_Y - toolHeight
         });
 
         activeButton = toolBar.addTool({
@@ -201,7 +205,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL: toolIconUrl + "upload-01.svg",
+            imageURL: toolIconUrl + "model-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -403,6 +407,10 @@ var toolBar = (function() {
         } else {
             Window.alert("Can't create " + properties.type + ": " + properties.type + " would be out of bounds.");
         }
+
+        selectionManager.clearSelections();
+        entityListTool.sendUpdate();
+        selectionManager.setSelections([entityID]);
 
         return entityID;
     }
@@ -1194,6 +1202,30 @@ function deleteSelectedEntities() {
     }
 }
 
+function toggleSelectedEntitiesLocked() {
+    if (SelectionManager.hasSelection()) {
+        var locked = !Entities.getEntityProperties(SelectionManager.selections[0], ["locked"]).locked;
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            Entities.editEntity(entityID, { locked: locked });
+        }
+        entityListTool.sendUpdate();
+        selectionManager._update();
+    }
+}
+
+function toggleSelectedEntitiesVisible() {
+    if (SelectionManager.hasSelection()) {
+        var visible = !Entities.getEntityProperties(SelectionManager.selections[0], ["visible"]).visible;
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            Entities.editEntity(entityID, { visible: visible });
+        }
+        entityListTool.sendUpdate();
+        selectionManager._update();
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem == "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1522,7 +1554,8 @@ PropertiesTool = function(opts) {
                         data.properties.keyLight.direction.x * DEGREES_TO_RADIANS, data.properties.keyLight.direction.y * DEGREES_TO_RADIANS);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
-                if (data.properties.name != undefined) {
+                if (data.properties.name !== undefined || data.properties.modelURL !== undefined
+                    || data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
             }

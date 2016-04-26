@@ -23,6 +23,7 @@ struct TransformCamera {
 layout(std140) uniform transformCameraBuffer {
     TransformCamera _camera;
 };
+
 TransformCamera getTransformCamera() {
     return _camera;
 }
@@ -37,7 +38,7 @@ struct TransformObject {
 
 layout(location=15) in ivec2 _drawCallInfo;
 
-<!<@if  @>!>
+<@if FALSE @>
 // Disable SSBOs for now
 layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
@@ -45,7 +46,7 @@ layout(std140) buffer transformObjectBuffer {
 TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
 }
-<! <@else@>
+<@else@>
 uniform samplerBuffer transformObjectBuffer;
 
 TransformObject getTransformObject() {
@@ -63,13 +64,13 @@ TransformObject getTransformObject() {
 
     return object;
 }
-<@endif@> !>
+<@endif@>
 <@endfunc@>
 
 
 <@func declareStandardTransform()@>
-<$declareStandardObjectTransform()$>
 <$declareStandardCameraTransform()$>
+<$declareStandardObjectTransform()$>
 <@endfunc@>
 
 <@func transformCameraViewport(cameraTransform, viewport)@>

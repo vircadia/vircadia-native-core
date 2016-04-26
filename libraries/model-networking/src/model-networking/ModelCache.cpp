@@ -143,40 +143,38 @@ void GeometryReader::run() {
         QString urlname = _url.path().toLower();
         if (!urlname.isEmpty() && !_url.path().isEmpty() &&
             (_url.path().toLower().endsWith(".fbx") || _url.path().toLower().endsWith(".obj"))) {
-            FBXGeometry* fbxGeometry = nullptr;
+            FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxGeometry = readFBX(_data, _mapping, _url.path());
+                fbxGeometry.reset(readFBX(_data, _mapping, _url.path()));
                 if (fbxGeometry->meshes.size() == 0 && fbxGeometry->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxGeometry = OBJReader().readOBJ(_data, _mapping, _url);
+                fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _url));
             } else {
                 throw QString("unsupported format");
             }
 
-            // Ensure the resource has not been deleted, and won't be while invokeMethod is in flight.
+            // Ensure the resource has not been deleted
             auto resource = _resource.toStrongRef();
             if (!resource) {
                 qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-                delete fbxGeometry;
             } else {
-                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition", Qt::BlockingQueuedConnection, Q_ARG(void*, fbxGeometry));
+                QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
+                    Q_ARG(FBXGeometry::Pointer, fbxGeometry));
             }
         } else {
             throw QString("url is invalid");
         }
     } catch (const QString& error) {
 
-        qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
+        qCDebug(modelnetworking) << "Error parsing model for" << _url << ":" << error;
 
         auto resource = _resource.toStrongRef();
-        // Ensure the resoruce has not been deleted, and won't be while invokeMethod is in flight.
-        if (!resource) {
-            qCWarning(modelnetworking) << "Abandoning load of" << _url << "; could not get strong ref";
-        } else {
-            QMetaObject::invokeMethod(resource.data(), "finishedLoading", Qt::BlockingQueuedConnection, Q_ARG(bool, false));
+        if (resource) {
+            QMetaObject::invokeMethod(resource.data(), "finishedLoading",
+                Q_ARG(bool, false));
         }
     }
 }
@@ -190,7 +188,7 @@ public:
     virtual void downloadFinished(const QByteArray& data) override;
 
 protected:
-    Q_INVOKABLE void setGeometryDefinition(void* fbxGeometry);
+    Q_INVOKABLE void setGeometryDefinition(FBXGeometry::Pointer fbxGeometry);
 
 private:
     QVariantHash _mapping;
@@ -200,9 +198,9 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
     QThreadPool::globalInstance()->start(new GeometryReader(_self, _url, _mapping, data));
 }
 
-void GeometryDefinitionResource::setGeometryDefinition(void* fbxGeometry) {
+void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxGeometry) {
     // Assume ownership of the geometry pointer
-    _geometry.reset(static_cast<FBXGeometry*>(fbxGeometry));
+    _geometry = fbxGeometry;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;

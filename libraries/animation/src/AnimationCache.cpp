@@ -64,9 +64,9 @@ void AnimationReader::run() {
 
         if (urlValid) {
             // Parse the FBX directly from the QNetworkReply
-            FBXGeometry* fbxgeo = nullptr;
+            FBXGeometry::Pointer fbxgeo;
             if (_url.path().toLower().endsWith(".fbx")) {
-                fbxgeo = readFBX(_data, QVariantHash(), _url.path());
+                fbxgeo.reset(readFBX(_data, QVariantHash(), _url.path()));
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);
@@ -117,16 +117,16 @@ const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {
 void Animation::downloadFinished(const QByteArray& data) {
     // parse the animation/fbx file on a background thread.
     AnimationReader* animationReader = new AnimationReader(_url, data);
-    connect(animationReader, SIGNAL(onSuccess(FBXGeometry*)), SLOT(animationParseSuccess(FBXGeometry*)));
+    connect(animationReader, SIGNAL(onSuccess(FBXGeometry::Pointer)), SLOT(animationParseSuccess(FBXGeometry::Pointer)));
     connect(animationReader, SIGNAL(onError(int, QString)), SLOT(animationParseError(int, QString)));
     QThreadPool::globalInstance()->start(animationReader);
 }
 
-void Animation::animationParseSuccess(FBXGeometry* geometry) {
+void Animation::animationParseSuccess(FBXGeometry::Pointer geometry) {
 
     qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
 
-    _geometry.reset(geometry);
+    _geometry = geometry;
     finishedLoading(true);
 }
 

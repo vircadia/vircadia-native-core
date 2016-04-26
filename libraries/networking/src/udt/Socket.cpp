@@ -38,6 +38,21 @@ Socket::Socket(QObject* parent) :
     _synTimer->start(_synInterval);
 }
 
+void Socket::bind(const QHostAddress& address, quint16 port) {
+    _udpSocket.bind(address, port);
+    setSystemBufferSizes();
+
+#if defined(Q_OS_LINUX)
+    auto sd = _udpSocket.socketDescriptor();
+    int val = IP_PMTUDISC_DONT;
+    setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+#elif defined(Q_OS_WINDOWS)
+    auto sd = _udpSocket.socketDescriptor();
+    int val = 0; // false
+    setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+#endif
+}
+
 void Socket::rebind() {
     quint16 oldPort = _udpSocket.localPort();
     

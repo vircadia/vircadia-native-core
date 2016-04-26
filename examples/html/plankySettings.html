@@ -3,11 +3,15 @@
 <head>
 <link rel="stylesheet" type="text/css" href="style.css">
 <script type="text/javascript" src="jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script type="text/javascript" src="eventBridgeLoader.js"></script>
 <script type="text/javascript">
 var properties = [];
-function sendWebEvent(data) {
-    EventBridge.emitWebEvent(JSON.stringify(data));
+
+var sendWebEvent = function(data) {
+    console.log('sendWebEvent not initialized.');
 }
+
 PropertyInput = function(key, label, value, attributes) {
     this.key = key;
     this.label = label;
@@ -93,7 +97,7 @@ function addHeader(label) {
     $('#properties-list').append($('<div>').addClass('section-header').append($('<label>').text(label)));
 }
 
-$(function() {  
+$(function() {
     addHeader('Stack Settings');
     properties['numLayers'] = new NumberInput('numLayers', 'Layers', 17, {'min': 0, 'max': 300, 'step': 1});
     properties['blocksPerLayer'] = new NumberInput('blocksPerLayer', 'Blocks per layer', 4, {'min': 1, 'max': 100, 'step': 1});
@@ -120,7 +124,8 @@ $(function() {
         .append($('<input>').val('factory reset').attr('type', 'button').on('click', function() { sendWebEvent({action: 'factory-reset'}); }))
         .append($('<input>').val('save as default').attr('type', 'button').on('click', function() { sendWebEvent({action: 'save-default'}); }))
         .append($('<input>').val('cleanup planky').attr('type', 'button').on('click', function() { sendWebEvent({action: 'cleanup'}); }));
-    if (window.EventBridge !== undefined) {
+
+    openEventBridge(function() {
         EventBridge.scriptEventReceived.connect(function(data) {
             data = JSON.parse(data);
             if (data.action == 'load') {
@@ -129,8 +134,11 @@ $(function() {
                 });
             }
         });
-    }
-    sendWebEvent({action: 'loaded'});
+        sendWebEvent = function(data) {
+            EventBridge.emitWebEvent(JSON.stringify(data));
+        };
+        sendWebEvent({action: 'loaded'});
+    });
 });
 </script>
 </head>

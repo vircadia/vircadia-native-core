@@ -61,7 +61,7 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     updateActionWorker(deltaTimeStep);
 }
 
-int ObjectAction::getEntityServerClockSkew() const {
+qint64 ObjectAction::getEntityServerClockSkew() const {
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto ownerEntity = _ownerEntity.lock();
@@ -276,7 +276,7 @@ quint64 ObjectAction::localTimeToServerTime(quint64 timeValue) const {
         return 0;
     }
 
-    int serverClockSkew = getEntityServerClockSkew();
+    qint64 serverClockSkew = getEntityServerClockSkew();
     if (serverClockSkew < 0 && timeValue <= (quint64)(-serverClockSkew)) {
         return 1; // non-zero but long-expired value to avoid negative roll-over
     }
@@ -290,7 +290,7 @@ quint64 ObjectAction::serverTimeToLocalTime(quint64 timeValue) const {
         return 0;
     }
 
-    int serverClockSkew = getEntityServerClockSkew();
+    qint64 serverClockSkew = getEntityServerClockSkew();
     if (serverClockSkew > 0 && timeValue <= (quint64)serverClockSkew) {
         return 1; // non-zero but long-expired value to avoid negative roll-over
     }

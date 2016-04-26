@@ -86,6 +86,8 @@ public:
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
+    void updateLastKinematicStep();
+
     virtual void updateBodyMassProperties();
 
     MotionStateType getType() const { return _type; }

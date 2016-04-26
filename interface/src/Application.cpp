@@ -131,6 +131,7 @@
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/RatesScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -1178,8 +1179,6 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    getEntities()->clear(); // this will allow entity scripts to properly shutdown
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -1190,6 +1189,7 @@ void Application::cleanupBeforeQuit() {
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
@@ -1385,6 +1385,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
     rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
     rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
+    rootContext->setContextProperty("Rates", new RatesScriptingInterface(this));
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -3103,10 +3104,8 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
-                glm::mat4 headPose = myAvatar->getHMDSensorMatrix();
-                glm::quat headRotation = glm::quat_cast(headPose);
-                lookAtSpot = myAvatar->getPosition() +
-                    myAvatar->getOrientation() * (headRotation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                lookAtSpot = transformPoint(worldHMDMat, glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -4184,8 +4183,13 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
+
+    // if we're about to quit, we really don't need to do any of these things...
+    if (_aboutToQuit) {
+        return;
+    }
+
     qCDebug(interfaceapp) << "Clearing domain octree details...";
-    // reset the environment so that we don't erroneously end up with multiple
 
     resetPhysicsReadyInformation();
 
@@ -4209,7 +4213,6 @@ void Application::clearDomainOctreeDetails() {
 
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
-    clearDomainOctreeDetails();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
 }
@@ -4435,6 +4438,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
+
+    scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
     scriptEngine->registerGlobalObject("MyAvatar", getMyAvatar());

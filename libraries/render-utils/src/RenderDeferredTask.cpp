@@ -96,7 +96,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<PrepareDeferred>("PrepareDeferred");
 
     // Render opaque objects in DeferredBuffer
-    addJob<DrawDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
+    addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
 
     // Once opaque is all rendered create stencil background
     addJob<DrawStencilDeferred>("DrawOpaqueStencil");
@@ -170,7 +170,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
-};
+}
 
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
@@ -200,6 +200,38 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     config->setNumDrawn((int)inItems.size());
 }
 
+void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        if (_stateSort) {
+            renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+        } else {
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+        }
+        args->_batch = nullptr;
+    });
+
+    config->setNumDrawn((int)inItems.size());
+}
+
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque) {
@@ -211,7 +243,6 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     assert(renderContext->args->_viewFrustum);
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
 
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();

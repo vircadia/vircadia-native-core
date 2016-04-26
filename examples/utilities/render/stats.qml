@@ -81,11 +81,6 @@ Item {
                     color: "#1AC567"
                 },
                 {
-                    prop: "frameTextureCount",
-                    label: "Frame",
-                    color: "#E2334D"
-                },
-                {
                     prop: "textureGPUTransferCount",
                     label: "Transfer",
                     color: "#9495FF"
@@ -114,13 +109,7 @@ Item {
                     prop: "textureGPUVirtualMemoryUsage",
                     label: "GPU Virtual",
                     color: "#9495FF"
-                },
-                {
-                    prop: "frameTextureMemoryUsage",
-                    label: "Frame",
-                    color: "#E2334D"
                 }
-
             ]
         }
 
@@ -170,6 +159,24 @@ Item {
             ]
         }
  
+        PlotPerf {
+            title: "State Changes"
+            height: parent.evalEvenHeight()
+            object: stats.config
+            plots: [
+                {
+                    prop: "frameTextureCount",
+                    label: "Textures",
+                    color: "#00B4EF"
+                },
+                {
+                    prop: "frameSetPipelineCount",
+                    label: "Pipelines",
+                    color: "#E2334D"
+                }
+            ]
+        }  
+
         property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred")
         property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred")
         property var drawLightConfig: Render.getConfig("DrawLight")
@@ -234,7 +241,6 @@ Item {
                    color: "#E2334D"
                }
            ]
-       }           
+        }           
     }
-
 }
