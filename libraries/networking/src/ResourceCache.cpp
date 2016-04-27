@@ -157,7 +157,7 @@ void ScriptableResource::disconnectHelper() {
 }
 
 ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
-    auto result = new ScriptableResource(url);
+    ScriptableResource* result = nullptr;
 
     if (QThread::currentThread() != thread()) {
         // Must be called in thread to ensure getResource returns a valid pointer
@@ -167,6 +167,7 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
         return result;
     }
 
+    result = new ScriptableResource(url);
 
     auto resource = getResource(url, QUrl(), false, extra);
     result->_resource = resource;
