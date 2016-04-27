@@ -98,7 +98,7 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
     if (pipeline.locations->lightBufferUnit >= 0) {
         DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
             pipeline.locations->lightBufferUnit,
-            -1);
+            pipeline.locations->lightAmbientMapUnit);
     }
 }
 

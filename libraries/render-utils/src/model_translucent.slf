@@ -15,7 +15,8 @@
 <@include model/Material.slh@>
 
 <@include DeferredGlobalLight.slh@>
-<$declareEvalAmbientSphereGlobalColor()$>
+
+<$declareEvalGlobalLightColor()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
@@ -58,7 +59,7 @@ void main(void) {
 
     TransformCamera cam = getTransformCamera();
 
-    _fragColor =  vec4(evalAmbientSphereGlobalColor(
+    _fragColor =  vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
         1.0,

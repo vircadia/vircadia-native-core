@@ -203,6 +203,7 @@ public:
         static const int OCCLUSION_MAP = 5;
 
         static const int LIGHT_BUFFER = 4;
+        static const int LIGHT_AMBIENT_MAP = 6;
         static const int NORMAL_FITTING_MAP = 10;
     };
 
@@ -220,6 +221,7 @@ public:
         int skinClusterBufferUnit;
         int materialBufferUnit;
         int lightBufferUnit;
+        int lightAmbientMapUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 

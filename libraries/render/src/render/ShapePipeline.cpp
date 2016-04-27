@@ -60,6 +60,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::EMISSIVE_LIGHTMAP_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::OCCLUSION_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::LIGHT_BUFFER));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::LIGHT_AMBIENT_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING_MAP));
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -77,6 +78,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->lightAmbientMapUnit = program->getBuffers().findLocation("skyboxMap");
 
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
