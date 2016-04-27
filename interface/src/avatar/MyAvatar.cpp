@@ -235,7 +235,12 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andReload) {
+void MyAvatar::reset(bool andRecenter) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter));
+        return;
+    }
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
@@ -245,7 +250,7 @@ void MyAvatar::reset(bool andReload) {
     _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
 
-    if (andReload) {
+    if (andRecenter) {
         // derive the desired body orientation from the *old* hmd orientation, before the sensor reset.
         auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
 

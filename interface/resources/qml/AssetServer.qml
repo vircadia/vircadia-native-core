@@ -24,7 +24,6 @@ Window {
     title: "Asset Browser"
     resizable: true
     destroyOnInvisible: true
-    x: 40; y: 40
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 
