@@ -8,16 +8,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.load("away.js");
-Script.load("progress.js");
-Script.load("edit.js");
-Script.load("examples.js");
-Script.load("selectAudioDevice.js");
-Script.load("notifications.js");
-Script.load("controllers/handControllerGrab.js");
-Script.load("controllers/squeezeHands.js");
-Script.load("controllers/grab.js");
-Script.load("directory.js");
-Script.load("dialTone.js");
+Script.load("system/away.js");
+Script.load("system/progress.js");
+Script.load("system/edit.js");
+Script.load("system/examples.js");
+Script.load("system/selectAudioDevice.js");
+Script.load("system/notifications.js");
+Script.load("system/controllers/handControllerGrab.js");
+Script.load("system/controllers/squeezeHands.js");
+Script.load("system/controllers/grab.js");
+Script.load("system/directory.js");
+Script.load("system/dialTone.js");
 // Script.load("attachedEntitiesManager.js");
-Script.load("depthReticle.js");
+Script.load("system/depthReticle.js");
