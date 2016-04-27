@@ -1,5 +1,5 @@
 //
-//  DefaultFrame.qml
+//  InfoView.qml
 //
 //  Created by Bradley Austin Davis on 27 Apr 2015
 //  Copyright 2015 High Fidelity, Inc.

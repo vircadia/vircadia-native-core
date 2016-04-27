@@ -1,5 +1,5 @@
 //
-//  WebView.qml
+//  AvatarBrowser.qml
 //
 //  Created by Bradley Austin Davis on 30 Aug 2015
 //  Copyright 2015 High Fidelity, Inc.

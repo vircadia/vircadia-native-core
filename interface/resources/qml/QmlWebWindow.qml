@@ -1,5 +1,5 @@
 //
-//  DefaultFrame.qml
+//  QmlWebWindow.qml
 //
 //  Created by Bradley Austin Davis on 17 Dec 2015
 //  Copyright 2015 High Fidelity, Inc.
