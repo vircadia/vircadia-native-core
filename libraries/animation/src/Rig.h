@@ -203,8 +203,6 @@ public:
     // rig space
     bool getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const;
 
-    const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
-
     // rig space
     AnimPose getAbsoluteDefaultPose(int index) const;
 
@@ -275,7 +273,6 @@ protected:
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
-    glm::vec3 _eyesInRootFrame { Vectors::ZERO };
 
     QUrl _animGraphURL;
     std::shared_ptr<AnimNode> _animNode;
