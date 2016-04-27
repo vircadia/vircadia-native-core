@@ -31,12 +31,15 @@
             z: 4405.6
         },
         preload: function(entityId) {
+            print('CELL PRELOAD RIBOSOME 1')
             this.entityId = entityId;
             this.addButton();
             Controller.mousePressEvent.connect(this.onClick);
+            print('CELL PRELOAD RIBOSOME 2')
         },
         addButton: function() {
             if (this.hasButton === false) {
+                print('CELL ADBUTTON RIBOSOME 1')
                 var windowDimensions = Controller.getViewportDimensions();
                 var buttonWidth = 150;
                 var buttonHeight = 50;
@@ -54,6 +57,9 @@
                     alpha: 1.0
                 });
                 this.hasButton = true;
+                print('CELL ADDBUTTON RIBOSOME 2 button id is : ' +button)
+            } else {
+                print('CELL ADDBUTTON RIBOSOME FAIL - hasButton is' + this.hasButton)
             }
         },
         onClick: function(event) {

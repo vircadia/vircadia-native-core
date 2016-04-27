@@ -38,12 +38,15 @@
             z: 13501
         },
         preload: function(entityId) {
+            print('CELL PRELOAD HEXOKINASE 1')
             this.entityId = entityId;
             this.addButton();
             Controller.mousePressEvent.connect(this.onClick);
+            print('CELL PRELOAD HEXOKINASE 2')
         },
         addButton: function() {
             if (this.hasButton === false) {
+                print('CELL ADDBUTTON HEXOKINASE 1')
                 var windowDimensions = Controller.getViewportDimensions();
                 var buttonWidth = 150;
                 var buttonHeight = 50;
@@ -61,6 +64,9 @@
                     alpha: 1.0
                 });
                 this.hasButton = true;
+                print('CELL ADDBUTTON HEXOKINASE 2 button id is : ' +button)
+            } else {
+                print('CELL ADDBUTTON HEXOKINASE FAIL hasButton is' + this.hasButton)
             }
         },
         onClick: function(event) {

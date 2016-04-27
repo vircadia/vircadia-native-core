@@ -32,12 +32,15 @@
             z: 4405.6
         },
         preload: function(entityId) {
+            print('CeLL PRELOAD INSIDECELL 1')
             this.entityId = entityId;
             this.addButton();
             Controller.mousePressEvent.connect(this.onClick);
+            print('CeLL PRELOAD INSIDECELL 2')
         },
         addButton: function() {
             if (this.hasButton === false) {
+                print('CELL ADDBUTTON INSIDECELL 1')
                 var windowDimensions = Controller.getViewportDimensions();
                 var buttonWidth = 150;
                 var buttonHeight = 50;
@@ -55,6 +58,9 @@
                     alpha: 1.0
                 });
                 this.hasButton = true;
+                print('CELL ADDBUTTON INSIDECELL 2 button id is : ' +button)
+            } else {
+                print('CELL ADDBUTTON INSIDECELL FAIL - hasButton is' + this.hasButton)
             }
         },
         onClick: function(event) {
