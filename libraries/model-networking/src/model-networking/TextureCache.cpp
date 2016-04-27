@@ -37,9 +37,13 @@ TextureCache::TextureCache() {
     setObjectName("TextureCache");
 
     // Expose enum Type to JS/QML via properties
+    // Despite being one-off, this should be fine, because TextureCache is a SINGLETON_DEPENDENCY
+    QObject* type = new QObject(this);
+    type->setObjectName("TextureType");
+    setProperty("Type", QVariant::fromValue(type));
     auto metaEnum = QMetaEnum::fromType<Type>();
     for (int i = 0; i < metaEnum.keyCount(); ++i) {
-        setProperty(metaEnum.key(i), metaEnum.value(i));
+        type->setProperty(metaEnum.key(i), metaEnum.value(i));
     }
 }
 
