@@ -24,7 +24,6 @@ Window {
     title: "Asset Browser"
     resizable: true
     destroyOnInvisible: true
-    x: 40; y: 40
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 
@@ -330,8 +329,9 @@ Window {
         HifiControls.ContentSection {
             id: assetDirectory
             name: "Asset Directory"
-            spacing: hifi.dimensions.contentSpacing.y
             isFirst: true
+
+            HifiControls.VerticalSpacer {}
 
             Row {
                 id: buttonRow
@@ -343,8 +343,7 @@ Window {
                     glyph: hifi.glyphs.reload
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
-                    height: 26
-                    width: 26
+                    width: hifi.dimensions.controlLineHeight
 
                     onClicked: root.reload()
                 }
@@ -353,7 +352,6 @@ Window {
                     text: "ADD TO WORLD"
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
-                    height: 26
                     width: 120
 
                     enabled: canAddToWorld(assetProxyModel.data(treeView.selection.currentIndex, 0x100))
@@ -365,7 +363,6 @@ Window {
                     text: "RENAME"
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
-                    height: 26
                     width: 80
 
                     onClicked: root.renameFile()
@@ -378,7 +375,6 @@ Window {
                     text: "DELETE"
                     color: hifi.buttons.red
                     colorScheme: root.colorScheme
-                    height: 26
                     width: 80
 
                     onClicked: root.deleteFile()
@@ -419,7 +415,7 @@ Window {
             id: treeView
             anchors.top: assetDirectory.bottom
             anchors.bottom: uploadSection.top
-            anchors.margins: 12
+            anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.left: parent.left
             anchors.right: parent.right
 
@@ -448,7 +444,7 @@ Window {
             name: "Upload A File"
             spacing: hifi.dimensions.contentSpacing.y
             anchors.bottom: parent.bottom
-            height: 92
+            height: 95
 
             Item {
                 height: parent.height

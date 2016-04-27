@@ -162,7 +162,7 @@ public:
     quint64 getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, qint64 nodeClockSkewUsec);
 
     quint32 getIncomingPackets() const { return _incomingPacket; }
     quint64 getIncomingBytes() const { return _incomingBytes; }

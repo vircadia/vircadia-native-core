@@ -253,7 +253,7 @@ static const QString SETTINGS_KEY = "Settings";
 
 void ScriptEngines::loadDefaultScripts() {
     QUrl defaultScriptsLoc = defaultScriptsLocation();
-    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "/defaultScripts.js");
+    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "/system/defaultScripts.js");
     loadScript(defaultScriptsLoc.toString());
 }
 
@@ -510,4 +510,8 @@ void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* 
 void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
     qCDebug(scriptengine) << "Application::loadScript(), script failed to load...";
     emit scriptLoadError(scriptFilename, "");
+}
+
+QString ScriptEngines::getDefaultScriptsLocation() const {
+    return defaultScriptsLocation().toString();
 }

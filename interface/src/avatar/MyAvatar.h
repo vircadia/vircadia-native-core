@@ -93,7 +93,7 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    void reset(bool andReload = false);
+    Q_INVOKABLE void reset(bool andRecenter = false);
     void update(float deltaTime);
     void preRender(RenderArgs* renderArgs);
 
@@ -328,6 +328,8 @@ private:
 
     bool cameraInsideHead() const;
 
+    void updateEyeContactTarget(float deltaTime);
+
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
@@ -368,6 +370,7 @@ private:
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
+    float _eyeContactTargetTimer { 0.0f };
 
     glm::vec3 _trackedHeadPosition;
 

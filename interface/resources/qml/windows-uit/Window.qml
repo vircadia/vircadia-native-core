@@ -31,7 +31,7 @@ Fadable {
     // decorations can extend outside it.
     implicitHeight: content ? content.height : 0
     implicitWidth: content ? content.width : 0
-    x: -1; y: -1
+    x: desktop.invalid_position; y: desktop.invalid_position;
     enabled: visible
 
     signal windowDestroyed();
@@ -215,7 +215,7 @@ Fadable {
                 bottom: parent.bottom
             }
             width: parent.contentWidth
-            height: footer.height + 2 * hifi.dimensions.contentSpacing.y
+            height: footer.height + 2 * hifi.dimensions.contentSpacing.y + 3
             color: hifi.colors.baseGray
             visible: footer.height > 0
 
@@ -252,6 +252,7 @@ Fadable {
         window.parentChanged.connect(raise);
         raise();
         setDefaultFocus();
+        centerOrReposition();
     }
     Component.onDestruction: {
         window.parentChanged.disconnect(raise);  // Prevent warning on shutdown
@@ -267,6 +268,18 @@ Fadable {
             raise();
         }
         enabled = visible
+
+        if (visible && parent) {
+            centerOrReposition();
+        }
+    }
+
+    function centerOrReposition() {
+        if (x == desktop.invalid_position && y == desktop.invalid_position) {
+            desktop.centerOnVisible(window);
+        } else {
+            desktop.repositionOnVisible(window);
+        }
     }
 
     function raise() {

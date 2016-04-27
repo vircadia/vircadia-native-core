@@ -81,7 +81,6 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
     SortedShapes sortedShapes;
     std::vector<Item> ownPipelineBucket;
 
-
     for (auto i = 0; i < numItemsToDraw; ++i) {
         auto item = scene->getItem(inItems[i].id);
 

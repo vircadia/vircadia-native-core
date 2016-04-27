@@ -820,16 +820,24 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
 
-    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
-    if (!entity) {
+    QString collisionSoundURL;
+    float mass = 1.0; // value doesn't get used, but set it so compiler is quiet
+    AACube minAACube;
+    bool success = false;
+    _tree->withReadLock([&] {
+        EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
+        if (entity) {
+            collisionSoundURL = entity->getCollisionSoundURL();
+            mass = entity->computeMass();
+            minAACube = entity->getMinimumAACube(success);
+        }
+    });
+    if (!success) {
         return;
     }
-
-    const QString& collisionSoundURL = entity->getCollisionSoundURL();
     if (collisionSoundURL.isEmpty()) {
         return;
     }
-    const float mass = entity->computeMass();
     const float COLLISION_PENETRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
     // but that first contact depends on exactly where we hit in the physics step.
@@ -854,11 +862,6 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    bool success;
-    auto minAACube = entity->getMinimumAACube(success);
-    if (!success) {
-        return;
-    }
     const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
     AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
 }

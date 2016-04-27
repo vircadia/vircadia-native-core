@@ -207,6 +207,7 @@ protected:
     static void incrementBufferGPUCount();
     static void decrementBufferGPUCount();
     static void updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
