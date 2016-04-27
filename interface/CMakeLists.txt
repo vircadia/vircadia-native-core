@@ -269,7 +269,7 @@ endif (APPLE)
 if (SCRIPTS_INSTALL_DIR)
   # setup install of scripts beside interface executable
   install(
-    DIRECTORY "${CMAKE_SOURCE_DIR}/examples/"
+    DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"
     DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
     COMPONENT ${CLIENT_COMPONENT}
   )

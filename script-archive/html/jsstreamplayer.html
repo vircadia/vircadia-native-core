@@ -1,0 +1,42 @@
+<!-- -->
+<!-- #20622:  JS Stream Player -->
+<!-- ************************* -->
+<!-- -->
+<!-- Created by Kevin M. Thomas and Thoys 07/17/15. -->
+<!-- Copyright 2015 High Fidelity, Inc. -->
+<!-- kevintown.net -->
+<!-- -->
+<!-- JavaScript for the High Fidelity interface that creates a stream player with a UI and keyPressEvents for adding a stream URL in addition to play, stop and volume functionality. -->
+<!-- -->
+<!-- Distributed under the Apache License, Version 2.0. -->
+<!-- See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html -->
+<!-- -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+
+		<script type="text/javascript">
+		$(function(){
+			if (window.EventBridge !== undefined) {
+	        	EventBridge.scriptEventReceived.connect(function(data) {
+	        		var myData = JSON.parse(data);
+	        		if (myData.action == "changeStream") {
+	        			$('body > audio').attr("src", myData.stream);
+	        		}
+	        		if (myData.action == "changeVolume") {
+	        			$('body > audio').prop("volume", myData.volume);
+	        		}
+	        	});
+	    	}
+	   		EventBridge.emitWebEvent("loaded");
+		});
+		</script>
+	</head>
+
+	<body>
+		<audio controls src="" controls autoplay></audio>
+	</body>
+</html>

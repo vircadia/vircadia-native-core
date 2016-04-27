@@ -1,0 +1,25 @@
+    {
+        "ProceduralEntity": {
+            "shaderUrl": "file:///C:/Users/bdavis/Git/hifi/examples/shaders/exampleV2.fs",
+            // V2 and onwards, shaders must include a version identifier, or they will default
+            // to V1 behavior
+            "version": 2,
+            // Any values specified here will be passed on to uniforms with matching names in
+            // the shader. Only numbers and arrays of length 1-4 of numbers are supported.
+            //
+            // The size of the data must match the size of the uniform:
+            //      a number or 1 value array = 'uniform float'
+            //      2 value array = 'uniform vec2'
+            //      3 value array = 'uniform vec3'
+            //      4 value array = 'uniform vec4'
+            //
+            // Uniforms should always be declared in the shader with a default value
+            // or failure to specify the value here will result in undefined behavior.
+            "uniforms": {
+                // uniform float iSpeed = 1.0;
+                "iSpeed": 2.0,
+                // uniform vec3 iSize = vec3(1.0);
+                "iSize": [1.0, 2.0, 4.0]
+            }
+        }
+    }
