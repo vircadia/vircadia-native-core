@@ -110,6 +110,8 @@ bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);
 int computeDirection(float xi, float yi, float xj, float yj, float xk, float yk);
 
+// calculate the angle between a point on a sphere that is closest to the cone.
+float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirection, const glm::vec3& sphereCenter, float sphereRadius);
 
 typedef glm::vec2 LineSegment2[2];
 
