@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
-/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Vec3, Quat, print */
+/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print */
 
 //
 //  handControllerPointer.js
@@ -25,17 +25,20 @@
 // May also interfere with other scripts?
 
 // Right hand only.
-// Do not use with depthReticle.js.
 // Trigger toggle is flakey.
 // When clicking on in-world objects, the click acts on the red ball, not the termination of the blue line.
-/*
-ScriptDiscoveryService.getRunning().forEach(function (script) {
-    if (script.name === 'depthReticle.js') {
-	print("Stopping script", script.name);
-	script.stop();
-    }
-});
-*/
+
+function checkForDepthReticleScript() {
+    ScriptDiscoveryService.getRunning().forEach(function (script) {
+        if (script.name === 'depthReticle.js') {
+            Window.alert('Please shut down depthReticle script.\n' + script.path +
+                         '\nMost of the behavior is included here in\n' +
+                         Script.resolvePath(''));
+            // Some current deviations are listed below as fixmes.
+        }
+    });
+}
+
 
 // UTILITIES -------------
 //
@@ -56,52 +59,75 @@ function TimeLock(expiration) {
     this.update = function (optionalNow) {
         last = optionalNow || Date.now();
     };
-    this.available = function (optionalNow) {
+    this.expired = function (optionalNow) {
         return ((optionalNow || Date.now()) - last) > expiration;
     };
 }
-var lockOut = new TimeLock(2000);
+var handControllerLockOut = new TimeLock(2000);
 
 // Calls onFunction() or offFunction() when swtich(on), but only if it is to a new value.
 function LatchedToggle(onFunction, offFunction, state) {
     this.setState = function (on) {
-	if (state === on) { return; }
-	state = on;
-	if (on) {
-	    onFunction();
-	} else {
-	    offFunction();
-	}
+        if (state === on) { return; }
+        state = on;
+        if (on) {
+            onFunction();
+        } else {
+            offFunction();
+        }
     };
 }
+
 
 // VERTICAL FIELD OF VIEW ---------
 //
 // Cache the verticalFieldOfView setting and update it every so often.
-var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
-var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
-var verticalFieldOfView = Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW;
-var settingsChecker = Script.setInterval(function () {
+var verticalFieldOfView, DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
+function updateFieldOfView() {
     verticalFieldOfView = Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW;
-}, SETTINGS_CHANGE_RECHECK_INTERVAL);
-Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker); });
+}
 
 // SHIMS ----------
 //
 // Define customizable versions of some standard operators. Alternative are at the bottom of the file.
 var getControllerPose = Controller.getPoseValue;
-var setCursor = function (point2d) {
+var getValue = Controller.getValue;
+var getOverlayAtPoint = Overlays.getOverlayAtPoint;
+var setReticleVisible = function (on) { Reticle.visible = on; };
+
+var weMovedReticle = false;
+function handControllerMovedReticle() { // I.e., change in cursor position is from us, not the mouse.
+    // Only we know if we moved it, which is why this script has to replace depthReticle.js
+    if (!weMovedReticle) { return false; }
+    weMovedReticle = false;
+    return true;
+}
+var setReticlePosition = function (point2d) {
     if (!HMD.active) {
         // FIX SYSEM BUG: On Windows, setPosition is setting relative to screen origin, not the content area of the window.
         point2d = {x: point2d.x, y: point2d.y + 50};
     }
+    weMovedReticle = true;
     Reticle.setPosition(point2d);
 };
-var setReticleVisible = function (on) { Reticle.visible = on; };
-var getOverlayAtPoint = Overlays.getOverlayAtPoint;
-var getValue = Controller.getValue;
+
+// Generalizations of utilities that work with system and overlay elements.
+function findRayIntersection(pickRay) {
+    // Check 3D overlays and entities. Argument is an object with origin and direction.
+    var result = Overlays.findRayIntersection(pickRay);
+    if (!result.intersects) {
+        result = Entities.findRayIntersection(pickRay, true);
+    }
+    return result;
+}
+function isPointingAtOverlay(optionalHudPosition2d) {
+    return Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position);
+}
 
 // Generalized HUD utilities, with or without HMD:
+// These two "vars" are for documentation. Do not change their values!
+var SPHERICAL_HUD_DISTANCE = 1; // meters.
+var PLANAR_PERPENDICULAR_HUD_DISTANCE = SPHERICAL_HUD_DISTANCE;
 function calculateRayUICollisionPoint(position, direction) {
     // Answer the 3D intersection of the HUD by the given ray, or falsey if no intersection.
     if (HMD.active) {
@@ -111,7 +137,7 @@ function calculateRayUICollisionPoint(position, direction) {
     //   scale = hudNormal dot (hudPoint - position) / hudNormal dot direction
     //   intersection = postion + scale*direction
     var hudNormal = Quat.getFront(Camera.getOrientation());
-    var hudPoint = Vec3.sum(Camera.getPosition(), hudNormal); // 1m out
+    var hudPoint = Vec3.sum(Camera.getPosition(), hudNormal); // must also scale if PLANAR_PERPENDICULAR_HUD_DISTANCE!=1
     var denominator = Vec3.dot(hudNormal, direction);
     if (denominator === 0) { return null; } // parallel to plane
     var numerator = Vec3.dot(hudNormal, Vec3.subtract(hudPoint, position));
@@ -132,7 +158,7 @@ function overlayFromWorldPoint(point) {
     var cameraX = Vec3.dot(cameraToPoint, Quat.getRight(Camera.getOrientation()));
     var cameraY = Vec3.dot(cameraToPoint, Quat.getUp(Camera.getOrientation()));
     var size = Controller.getViewportDimensions();
-    var hudHeight = 2 * Math.tan(verticalFieldOfView * DEGREES_TO_HALF_RADIANS);
+    var hudHeight = 2 * Math.tan(verticalFieldOfView * DEGREES_TO_HALF_RADIANS); // must adjust if PLANAR_PERPENDICULAR_HUD_DISTANCE!=1
     var hudWidth = hudHeight * size.x / size.y;
     var horizontalFraction = (cameraX / hudWidth + 0.5);
     var verticalFraction = 1 - (cameraY / hudHeight + 0.5);
@@ -147,7 +173,7 @@ function overlayFromWorldPoint(point) {
 var MAPPING_NAME = Script.resolvePath('');
 var mapping = Controller.newMapping(MAPPING_NAME);
 function mapToAction(controller, button, action) {
-    if (!Controller.Hardware[controller]) { return; }
+    if (!Controller.Hardware[controller]) { return; } // FIXME: recheck periodically!
     mapping.from(Controller.Hardware[controller][button]).peek().to(Controller.Actions[action]);
 }
 mapToAction('Hydra', 'R3', 'ReticleClick');
@@ -157,19 +183,45 @@ mapToAction('Hydra', 'L4', 'ContextMenu');
 mapToAction('Vive', 'LeftPrimaryThumb', 'ReticleClick');
 mapToAction('Vive', 'RightPrimaryThumb', 'ReticleClick');
 Script.scriptEnding.connect(mapping.disable);
-toggleMap = new LatchedToggle(mapping.enable, mapping.disable);
+var toggleMap = new LatchedToggle(mapping.enable, mapping.disable);
 
-// MOUSE LOCKOUT --------
+// MOUSE ACTIVITY --------
 //
-var weMovedReticle = false;
-if (Controller.Hardware.Hydra) {
-    setupHandler(Controller.mouseMoveEvent, function () {
-        if (weMovedReticle) { weMovedReticle = false; return; }
-	// Should we implement dephReticle's inactivity timeout here?
-        setReticleVisible(true);
-        lockOut.update();
-    });
+var mouseCursorActivity = new TimeLock(5000);
+var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
+function updateMouseActivity() {
+    if (handControllerMovedReticle()) { return; }
+    // Turn off mouse cursor after inactivity (as in depthReticle.js), and turn off hand controller mouse for a while.
+    var now = Date.now();
+    handControllerLockOut.update(now);
+    mouseCursorActivity.update(now);
+    // FIXME: Does not yet seek to lookAt upon waking.
+    setReticleVisible(true);
 }
+function expireMouseCursor(now) {
+    if (mouseCursorActivity.expired(now)) {
+        setReticleVisible(false);
+    }
+}
+function onMouseMove() {
+    // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
+    if (handControllerMovedReticle()) { return; }
+
+    if (HMD.active) { // set depth
+        // FIXME: does not yet adjust slowly.
+        if (isPointingAtOverlay()) {
+            Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT FOR OFFSET SPHERE!
+        } else {
+            var result = findRayIntersection(Camera.computePickRay(Reticle.position.x, Reticle.position.y));
+            Reticle.depth = result.intersects ? result.depth : APPARENT_MAXIMUM_DEPTH;
+        }
+    }
+    updateMouseActivity();
+}
+setupHandler(Controller.mouseMoveEvent, onMouseMove);
+setupHandler(Controller.mousePressEvent, updateMouseActivity);
+setupHandler(Controller.mouseDoublePressEvent, updateMouseActivity);
+
 
 // VISUAL AID -----------
 var LASER_COLOR = {red: 10, green: 10, blue: 255};
@@ -208,8 +260,9 @@ Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverla
 var visualizationIsShowing = true; // Not whether it desired, but simply whether it is. Just an optimization.
 function turnOffLaser(optionalEnableClicks) {
     toggleMap.setState(optionalEnableClicks);
+    if (!optionalEnableClicks) { expireMouseCursor(); }
     if (!visualizationIsShowing) { return; }
-    visualizationIsShowing = false;    
+    visualizationIsShowing = false;
     overlays.forEach(function (overlay) {
         Overlays.editOverlay(overlay, {visible: false});
     });
@@ -221,16 +274,11 @@ function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
     if (!wantsVisualization) { return false; }
     // Show the laser and intersect it with 3d overlays and entities.
     function intersection3d(position, direction) {
-	var pickRay = {origin: position, direction: direction};
-	var result = Overlays.findRayIntersection(pickRay);
-	if (!result.intersects) {
-            result = Entities.findRayIntersection(pickRay, true);
-	}
-	return result.intersects ?
-                result.intersection :
-                Vec3.sum(position, Vec3.multiply(MAX_RAY_SCALE, direction));
+        var pickRay = {origin: position, direction: direction};
+        var result = findRayIntersection(pickRay);
+        return result.intersects ? result.intersection : Vec3.sum(position, Vec3.multiply(MAX_RAY_SCALE, direction));
     }
-    termination = intersection3d(controllerPosition, controllerDirection);
+    var termination = intersection3d(controllerPosition, controllerDirection);
     visualizationIsShowing = true;
     setReticleVisible(false);
     Overlays.editOverlay(laserLine, {visible: true, start: controllerPosition, end: termination});
@@ -255,7 +303,7 @@ function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
 var toggleLockout = new TimeLock(500);
 function maybeToggleVisualization(trigger, now) {
     if (!trigger) { return; }
-    if (toggleLockout.available(now)) {
+    if (toggleLockout.expired(now)) {
         wantsVisualization = !wantsVisualization;
         print('Toggled visualization', wantsVisualization ? 'on' : 'off');
     } else {
@@ -265,12 +313,13 @@ function maybeToggleVisualization(trigger, now) {
 
 // MAIN OPERATIONS -----------
 //
+var FULL_TRIGGER_THRESHOLD = 0.9; // 0 to 1. Non-linear.
 function update() {
     var now = Date.now();
-    if (!lockOut.available(now)) { return turnOffLaser(); } // Let them use it in peace.
+    if (!handControllerLockOut.expired(now)) { return turnOffLaser(); } // Let them use mouse it in peace.
     if (!Menu.isOptionChecked("First Person")) { debug('not 1st person'); return turnOffLaser(); }  // What to do? menus can be behind hand!
     var trigger = getValue(Controller.Standard.RT);
-    if (trigger > 0.9) { lockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
+    if (trigger > FULL_TRIGGER_THRESHOLD) { handControllerLockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
     maybeToggleVisualization(trigger, now);
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
@@ -285,11 +334,10 @@ function update() {
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
     // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
     // it's pointing at a QML tool (aka system overlay).
-    setCursor(hudPoint2d);
-    weMovedReticle = true;
+    setReticlePosition(hudPoint2d);
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
-    if (Reticle.pointingAtSystemOverlay || getOverlayAtPoint(hudPoint2d)) {
+    if (isPointingAtOverlay(hudPoint2d)) {
         setReticleVisible(true);
         return turnOffLaser(true);
     }
@@ -308,8 +356,7 @@ function update() {
     var apparentHudTermination2d = overlayFromWorldPoint(apparentHudTermination3d);
     Overlays.editOverlay(fakeReticle, {x: apparentHudTermination2d.x - reticleHalfSize, y: apparentHudTermination2d.y - reticleHalfSize});
     //Reticle.visible = false;
-    weMovedReticle = true;
-    setCursor(apparentHudTermination2d);
+    setReticlePosition(apparentHudTermination2d);
 */
 }
 
@@ -317,12 +364,22 @@ var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
 Script.scriptEnding.connect(function () { Script.clearInterval(updater); });
 
+// Check periodically for changes to setup.
+var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
+function checkSettings() {
+    updateFieldOfView();
+    updateMouseHandlers();
+}
+checkSettings();
+var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
+Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker); });
+
 
 // DEBUGGING WITHOUT HYDRA -----------------------
 //
 // The rest of this is for debugging without working hand controllers, using a line from camera to mouse, and an image for cursor.
 var CONTROLLER_ROTATION = Quat.fromPitchYawRollDegrees(90, 180, -90);
-if (!Controller.Hardware.Hydra) {
+if (false && !Controller.Hardware.Hydra) {
     print('WARNING: no hand controller detected. Using mouse!');
     var mouseKeeper = {x: 0, y: 0};
     var onMouseMoveCapture = function (event) { mouseKeeper.x = event.x; mouseKeeper.y = event.y; };
@@ -363,7 +420,8 @@ if (!Controller.Hardware.Hydra) {
         alpha: 0.7
     });
     Script.scriptEnding.connect(function () { Overlays.deleteOverlay(fakeReticle); });
-    setCursor = function (hudPoint2d) {
+    setReticlePosition = function (hudPoint2d) {
+        weMovedReticle = true;
         Overlays.editOverlay(fakeReticle, {x: hudPoint2d.x - reticleHalfSize, y: hudPoint2d.y - reticleHalfSize});
     };
     setReticleVisible = function (on) {
