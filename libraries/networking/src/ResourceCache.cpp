@@ -121,17 +121,7 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 
 ScriptableResource::ScriptableResource(const QUrl& url) :
     QObject(nullptr),
-    _url(url) {
-
-    // Expose enum State to JS/QML via properties
-    QObject* state = new QObject(this);
-    state->setObjectName("ResourceState");
-    setProperty("State", QVariant::fromValue(state));
-    auto metaEnum = QMetaEnum::fromType<State>();
-    for (int i = 0; i < metaEnum.keyCount(); ++i) {
-        state->setProperty(metaEnum.key(i), metaEnum.value(i));
-    }
-}
+    _url(url) { }
 
 void ScriptableResource::release() {
     disconnectHelper();

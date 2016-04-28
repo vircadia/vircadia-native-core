@@ -285,6 +285,23 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
 }
 
+static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
+    auto prototype = engine->newObject();
+
+    // Expose enum State to JS/QML via properties
+    QObject* state = new QObject(engine);
+    state->setObjectName("ResourceState");
+    auto metaEnum = QMetaEnum::fromType<ScriptableResource::State>();
+    for (int i = 0; i < metaEnum.keyCount(); ++i) {
+        state->setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+
+    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership, QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
+    prototype.setProperty("State", prototypeState);
+
+    return prototype;
+}
+
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -342,11 +359,14 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
+    // Scriptable cache access
+    auto resourcePrototype = createScriptableResourcePrototype(this);
+    globalObject().setProperty("Resource", resourcePrototype);
+    setDefaultPrototype(qMetaTypeId<ScriptableResource*>(), resourcePrototype);
     qScriptRegisterMetaType(this, scriptableResourceToScriptValue, scriptableResourceFromScriptValue);
 
     // constants

@@ -19,15 +19,15 @@ function getFrame(callback) {
     var FRAME_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/finalFrame.fbx";
 
     var model = ModelCache.prefetch(FRAME_URL);
-    if (model.loaded) {
-        makeFrame(true);
+    if (model.state = Resource.State.FINISHED) {
+        makeFrame(Resource.State.FINISHED);
     } else {
         model.stateChanged.connect(makeFrame);
     }
 
     function makeFrame(state) {
-        if (state == 4) { throw "Failed to load frame"; }
-        if (state != 3) { return; }
+        if (state == Resource.State.FAILED) { throw "Failed to load frame"; }
+        if (state != Resource.State.FINISHED) { return; }
 
         var pictureFrameProperties = {
             name: 'scriptableResourceTest Picture Frame',
@@ -67,10 +67,10 @@ function prefetch(callback) {
         var filepath = MOVIE_URL + padded + '.jpg';
         var texture = TextureCache.prefetch(filepath);
         frames.push(texture);
-        if (!texture.loaded) {
+        if (!texture.state == Resource.State.FINISHED) {
             numLoading++;
             texture.stateChanged.connect(function(state) {
-                if (state == 3 || state == 4) {
+                if (state == Resource.State.FAILED || state == Resource.State.FINISHED) {
                     --numLoading;
                     if (!numLoading) { callback(frames); }
                 }

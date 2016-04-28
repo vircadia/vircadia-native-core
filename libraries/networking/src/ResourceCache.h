@@ -24,8 +24,11 @@
 #include <QtCore/QWeakPointer>
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QQueue>
+
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+
+#include <QScriptEngine>
 
 #include <DependencyManager.h>
 
