@@ -50,10 +50,9 @@ selectionManager.addEventListener(function() {
     lightOverlayManager.updatePositions();
 }); 
 
-var toolIconUrl = Script.resolvePath("assets/images/tools/");
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
-var TOOLBAR_MARGIN_Y = 25;
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
@@ -106,7 +105,7 @@ IMPORTING_SVO_OVERLAY_HEIGHT = 30;
 IMPORTING_SVO_OVERLAY_MARGIN = 5;
 IMPORTING_SVO_OVERLAY_LEFT_MARGIN = 34;
 var importingSVOImageOverlay = Overlays.addOverlay("image", {
-    imageURL: Script.resolvePath("assets") + "/images/hourglass.svg",
+    imageURL: HIFI_PUBLIC_BUCKET + "images/hourglass.svg",
     width: 20,
     height: 20,
     alpha: 1.0,
@@ -180,18 +179,15 @@ var toolBar = (function() {
         newParticleButton
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x / 2,
-                y: windowDimensions.y
+                x: windowDimensions.x - 8 - toolbar.width,
+                y: (windowDimensions.y - toolbar.height) / 2
             };
-        }, {
-            x: toolWidth,
-            y: -TOOLBAR_MARGIN_Y - toolHeight
         });
 
         activeButton = toolBar.addTool({
-            imageURL:  toolIconUrl + "edit-01.svg",
+            imageURL: toolIconUrl + "edit-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -205,7 +201,7 @@ var toolBar = (function() {
         }, true, false);
 
         newModelButton = toolBar.addTool({
-            imageURL:toolIconUrl + "model-01.svg",
+            imageURL: toolIconUrl + "model-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -220,7 +216,7 @@ var toolBar = (function() {
         });
 
         newCubeButton = toolBar.addTool({
-            imageURL:toolIconUrl + "cube-01.svg",
+            imageURL: toolIconUrl + "cube-01.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
