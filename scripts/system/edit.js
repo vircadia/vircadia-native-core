@@ -48,9 +48,9 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-}); 
+});
 
-var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
+var toolIconUrl = Script.resolvePath("assets/images/tools/");
 var toolHeight = 50;
 var toolWidth = 50;
 var TOOLBAR_MARGIN_Y = 25;
@@ -106,7 +106,7 @@ IMPORTING_SVO_OVERLAY_HEIGHT = 30;
 IMPORTING_SVO_OVERLAY_MARGIN = 5;
 IMPORTING_SVO_OVERLAY_LEFT_MARGIN = 34;
 var importingSVOImageOverlay = Overlays.addOverlay("image", {
-    imageURL: HIFI_PUBLIC_BUCKET + "images/hourglass.svg",
+    imageURL: Script.resolvePath("assets") + "/images/hourglass.svg",
     width: 20,
     height: 20,
     alpha: 1.0,
@@ -336,7 +336,9 @@ var toolBar = (function() {
             if (active && !Entities.canAdjustLocks()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
-                Messages.sendLocalMessage("edit-events", JSON.stringify({enabled: active}));
+                Messages.sendLocalMessage("edit-events", JSON.stringify({
+                    enabled: active
+                }));
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
@@ -549,8 +551,16 @@ var toolBar = (function() {
                 type: "ParticleEffect",
                 isEmitting: true,
                 particleRadius: 0.1,
-                emitAcceleration: {x: 0, y: -1, z: 0},
-                accelerationSpread: {x: 5, y: 0, z: 5},
+                emitAcceleration: {
+                    x: 0,
+                    y: -1,
+                    z: 0
+                },
+                accelerationSpread: {
+                    x: 5,
+                    y: 0,
+                    z: 5
+                },
                 emitSpeed: 1,
                 lifespan: 1,
                 particleRadius: 0.025,
@@ -563,7 +573,7 @@ var toolBar = (function() {
         return false;
     };
 
-    that.mouseReleaseEvent = function (event) {
+    that.mouseReleaseEvent = function(event) {
         return false;
     }
 
@@ -604,7 +614,7 @@ var intersection;
 
 var SCALE_FACTOR = 200.0;
 
-function rayPlaneIntersection(pickRay, point, normal) {    //
+function rayPlaneIntersection(pickRay, point, normal) { //
     //
     //  This version of the test returns the intersection of a line with a plane
     //
@@ -1207,7 +1217,9 @@ function toggleSelectedEntitiesLocked() {
         var locked = !Entities.getEntityProperties(SelectionManager.selections[0], ["locked"]).locked;
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entityID = SelectionManager.selections[i];
-            Entities.editEntity(entityID, { locked: locked });
+            Entities.editEntity(entityID, {
+                locked: locked
+            });
         }
         entityListTool.sendUpdate();
         selectionManager._update();
@@ -1219,7 +1231,9 @@ function toggleSelectedEntitiesVisible() {
         var visible = !Entities.getEntityProperties(SelectionManager.selections[0], ["visible"]).visible;
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entityID = SelectionManager.selections[i];
-            Entities.editEntity(entityID, { visible: visible });
+            Entities.editEntity(entityID, {
+                visible: visible
+            });
         }
         entityListTool.sendUpdate();
         selectionManager._update();
@@ -1554,8 +1568,7 @@ PropertiesTool = function(opts) {
                         data.properties.keyLight.direction.x * DEGREES_TO_RADIANS, data.properties.keyLight.direction.y * DEGREES_TO_RADIANS);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
-                if (data.properties.name !== undefined || data.properties.modelURL !== undefined
-                    || data.properties.visible !== undefined || data.properties.locked !== undefined) {
+                if (data.properties.name !== undefined || data.properties.modelURL !== undefined || data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
             }
@@ -1835,15 +1848,15 @@ entityListTool.webView.webEventReceived.connect(function(data) {
     var data = JSON.parse(data);
     if (data.type == "selectionUpdate") {
         var ids = data.entityIds;
-        if(ids.length === 1) {
-            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect" ) {
+        if (ids.length === 1) {
+            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
                 if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
                     // This particle entity is already selected, so return
                     return;
                 }
                 // Destroy the old particles web view first
-               particleExplorerTool.destroyWebView();
-               particleExplorerTool.createWebView();
+                particleExplorerTool.destroyWebView();
+                particleExplorerTool.createWebView();
                 var properties = Entities.getEntityProperties(ids[0]);
                 var particleData = {
                     messageType: "particle_settings",
@@ -1855,7 +1868,7 @@ entityListTool.webView.webEventReceived.connect(function(data) {
                 particleExplorerTool.webView.webEventReceived.connect(function(data) {
                     var data = JSON.parse(data);
                     if (data.messageType === "page_loaded") {
-                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));  
+                        particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
                     }
                 });
             } else {
