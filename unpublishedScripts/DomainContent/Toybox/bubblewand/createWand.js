@@ -12,8 +12,8 @@
 
 Script.include("libraries/utils.js");
 
-var WAND_MODEL = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand.fbx';
-var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
+var WAND_MODEL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/wand.fbx';
+var WAND_COLLISION_SHAPE = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/wand_collision_hull.obj';
 
 var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
 
