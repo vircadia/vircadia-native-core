@@ -58,7 +58,7 @@ var toolBar = (function() {
         browseExamplesButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.HORIXONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x / 2,
                 y: windowDimensions.y
