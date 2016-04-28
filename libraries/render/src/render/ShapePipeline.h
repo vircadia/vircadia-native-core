@@ -12,6 +12,8 @@
 #ifndef hifi_render_ShapePipeline_h
 #define hifi_render_ShapePipeline_h
 
+#include <unordered_set>
+
 #include <gpu/Batch.h>
 #include <RenderArgs.h>
 
@@ -147,7 +149,7 @@ public:
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
 
-    // Hasher for use in unordered_maps
+    // Comparator for use in stl containers
     class Hash {
     public:
         size_t operator() (const ShapeKey& key) const {
@@ -155,7 +157,7 @@ public:
         }
     };
 
-    // Comparator for use in unordered_maps
+    // Comparator for use in stl containers
     class KeyEqual {
     public:
         bool operator()(const ShapeKey& lhs, const ShapeKey& rhs) const { return lhs._flags == rhs._flags; }
@@ -264,7 +266,11 @@ public:
 protected:
     void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
     PipelineMap _pipelineMap;
+
+private:
+    mutable std::unordered_set<Key, Key::Hash, Key::KeyEqual> _missingKeys;
 };
+
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 
 }

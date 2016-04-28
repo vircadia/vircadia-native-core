@@ -93,7 +93,11 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
 
     const auto& pipelineIterator = _pipelineMap.find(key);
     if (pipelineIterator == _pipelineMap.end()) {
-        qDebug() << "Couldn't find a pipeline from ShapeKey ?" << key;
+        // The first time we can't find a pipeline, we should log it
+        if (_missingKeys.find(key) == _missingKeys.end()) {
+            _missingKeys.insert(key);
+            qDebug() << "Couldn't find a pipeline for" << key;
+        }
         return PipelinePointer(nullptr);
     }
 
