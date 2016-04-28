@@ -24,21 +24,28 @@ print('handControllerPointer version', 10);
 // On Windows, the upper left corner of Interface must be in the upper left corner of the screen, and the title bar must be 50px high. (System bug.)
 //
 // Bugs:
-// Don't turn off hand controllers on simulated click (only on real mouse click).
-// Turn in-world click off when moving by hand controller.
-// Trigger toggle is flakey.
 // When clicking on in-world objects, the click acts on the red ball, not the termination of the blue line.
+// While hardware mouse move switches to mouse move, hardware mouse click (without amove) does not.
+// Turn in-world click off when moving by hand controller.
 
+var wasRunningDepthReticle = false;
 function checkForDepthReticleScript() {
     ScriptDiscoveryService.getRunning().forEach(function (script) {
         if (script.name === 'depthReticle.js') {
-            Window.alert('Please shut down depthReticle script.\n' + script.path +
+            wasRunningDepthReticle = script.path;
+            Window.alert('Shuting down depthReticle script.\n' + script.path +
                          '\nMost of the behavior is included here in\n' +
                          Script.resolvePath(''));
-            // Some current deviations are listed below as fixmes.
+            ScriptDiscoveryService.stopScript(script.path); // BUG: getRunning gets path and url backwards. stopScript wants a url.
+            // Some current deviations are listed below as 'FIXME'.
         }
     });
 }
+Script.scriptEnding.connect(function () {
+    if (wasRunningDepthReticle) {
+        Script.load(wasRunningDepthReticle);
+    }
+});
 
 
 // UTILITIES -------------
@@ -79,6 +86,35 @@ function LatchedToggle(onFunction, offFunction, state) {
     };
 }
 
+// Code copied and adapted from handControllerGrab.js. We should refactor this.
+function Trigger() {
+    var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
+    var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
+    var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
+    var TRIGGER_OFF_VALUE = 0.15;
+    var that = this;
+    that.triggerValue = 0; // rolling average of trigger value
+    that.rawTriggerValue = 0;
+    that.triggerPress = function(value) {
+        print('fixme trigger', value);
+        that.rawTriggerValue = value;
+    };
+    that.updateSmoothedTrigger = function() {
+        var triggerValue = that.rawTriggerValue;
+        // smooth out trigger value
+        that.triggerValue = (that.triggerValue * TRIGGER_SMOOTH_RATIO) +
+            (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
+    };
+    that.triggerSmoothedGrab = function() {
+        return that.triggerValue > TRIGGER_GRAB_VALUE;
+    };
+    that.triggerSmoothedSqueezed = function() {
+        return that.triggerValue > TRIGGER_ON_VALUE;
+    };
+    that.triggerSmoothedReleased = function() {
+        return that.triggerValue < TRIGGER_OFF_VALUE;
+    };
+}
 
 // VERTICAL FIELD OF VIEW ---------
 //
@@ -168,30 +204,6 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
-// CONTROLLER MAPPING ---------
-//
-// Synthesize left and right mouse click from controller:
-var MAPPING_NAME = Script.resolvePath('');
-var mapping = Controller.newMapping(MAPPING_NAME);
-function mapToAction(controller, button, action) {
-    if (!Controller.Hardware[controller]) { return; } // FIXME: recheck periodically!
-    mapping.from(Controller.Hardware[controller][button]).peek().to(action);
-}
-function handControllerClick(input) {
-    if (!input) { return; } // We get both a down (with input 1) and up (with input 0)
-    if (isPointingAtOverlay()) { print('OVERLAY CLICK'); return; }
-    print('FIXME controller click');
-}
-mapToAction('Hydra', 'R3', Controller.Actions.ReticleClick); // handControllerClick);
-mapToAction('Hydra', 'L3', handControllerClick);
-mapToAction('Vive', 'LeftPrimaryThumb', handControllerClick);
-mapToAction('Vive', 'RightPrimaryThumb', handControllerClick);
-mapToAction('Hydra', 'R4', Controller.Actions.ContextMenu);
-mapToAction('Hydra', 'L4', Controller.Actions.ContextMenu);
-Script.scriptEnding.connect(mapping.disable);
-mapping.enable();
-//var toggleMap = new LatchedToggle(mapping.enable, mapping.disable);
-
 // MOUSE ACTIVITY --------
 //
 var mouseCursorActivity = new TimeLock(5000);
@@ -200,11 +212,10 @@ function updateMouseActivity(isClick) {
     if (handControllerMovedReticle()) { return; }
     var now = Date.now();
     mouseCursorActivity.update(now);
-    if (isClick) { return; } // FIXME: mouse clicks should keep going. Just not hand controller clicks
-    handControllerLockOut.update(now);
-    // Turn off mouse cursor after inactivity (as in depthReticle.js), and turn off hand controller mouse for a while.
+    if (isClick) { return; } // Bug: mouse clicks should keep going. Just not hand controller clicks
     // FIXME: Does not yet seek to lookAt upon waking.
     // FIXME not unless Reticle.allowMouseCapture
+    handControllerLockOut.update(now);
     setReticleVisible(true);
 }
 function expireMouseCursor(now) {
@@ -233,6 +244,37 @@ function onMouseClick() {
 setupHandler(Controller.mouseMoveEvent, onMouseMove);
 setupHandler(Controller.mousePressEvent, onMouseClick);
 setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
+
+// CONTROLLER MAPPING ---------
+//
+// Synthesize left and right mouse click from controller, and get trigger values matching handControllerGrab.
+var MAPPING_NAME = Script.resolvePath('');
+var mapping = Controller.newMapping(MAPPING_NAME);
+
+var leftTrigger = new Trigger();
+var rightTrigger = new Trigger();
+mapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
+mapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
+
+function mapToAction(controller, button, action) {
+    if (!Controller.Hardware[controller]) { return; } // FIXME: recheck periodically!
+    mapping.from(Controller.Hardware[controller][button]).peek().to(action);
+}
+function handControllerClick(input) { // FIXME
+    if (!input) { return; } // We get both a down (with input 1) and up (with input 0)
+    if (isPointingAtOverlay()) { return; }
+}
+mapToAction('Hydra', 'R3', Controller.Actions.ReticleClick); // handControllerClick);
+mapToAction('Hydra', 'L3', handControllerClick);
+mapToAction('Vive', 'LeftPrimaryThumb', handControllerClick);
+mapToAction('Vive', 'RightPrimaryThumb', handControllerClick);
+mapToAction('Hydra', 'R4', Controller.Actions.ContextMenu);
+mapToAction('Hydra', 'L4', Controller.Actions.ContextMenu);
+Script.scriptEnding.connect(mapping.disable);
+//mapping.enable();
+var toggleMap = new LatchedToggle(mapping.enable, mapping.disable);
+toggleMap.setState(true);
+Script.scriptEnding.connect(mapping.disable);
 
 
 // VISUAL AID -----------
@@ -270,17 +312,20 @@ var fakeProjectionBall = Overlays.addOverlay("sphere", { // Same properties as h
 var overlays = [laserBall, laserLine, fakeProjectionBall];
 Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverlay); });
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
+var wantsVisualization = false;
 function turnOffLaser(optionalEnableClicks) {
-    //toggleMap.setState(optionalEnableClicks);
-    if (!optionalEnableClicks) { expireMouseCursor(); }
+    if (!optionalEnableClicks) {
+        expireMouseCursor();
+        wantsVisualization = false;
+    }
     if (!visualizationIsShowing) { return; }
     visualizationIsShowing = false;
+    //toggleMap.setState(optionalEnableClicks);
     overlays.forEach(function (overlay) {
         Overlays.editOverlay(overlay, {visible: false});
     });
 }
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
-var wantsVisualization = false;
 function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
     //toggleMap.setState(true);
     if (!wantsVisualization) { return false; }
@@ -312,30 +357,19 @@ function updateLaser(controllerPosition, controllerDirection, hudPosition3d) {
     Overlays.editOverlay(fakeProjectionBall, {visible: true, position: falseProjection});
     return true;
 }
-var toggleLockout = new TimeLock(500);
-function maybeToggleVisualization(trigger, now) {
-    if (!trigger) { return; }
-    if (toggleLockout.expired(now)) {
-        wantsVisualization = !wantsVisualization;
-        print('Toggled visualization', wantsVisualization ? 'on' : 'off');
-    } else {
-        toggleLockout.update(now);
-    }
-}
 
 // MAIN OPERATIONS -----------
 //
-var FULL_TRIGGER_THRESHOLD = 0.9; // 0 to 1. Non-linear.
 function update() {
     var now = Date.now();
+    rightTrigger.updateSmoothedTrigger();
     if (!handControllerLockOut.expired(now)) { return turnOffLaser(); } // Let them use mouse it in peace.
     if (!Menu.isOptionChecked("First Person")) { return turnOffLaser(); }  // What to do? menus can be behind hand!
-    var trigger = getValue(Controller.Standard.RT);
-    if (trigger > FULL_TRIGGER_THRESHOLD) { handControllerLockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
-    maybeToggleVisualization(trigger, now);
+    if (rightTrigger.triggerSmoothedGrab()) { handControllerLockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
+    if (rightTrigger.triggerSmoothedSqueezed()) { print('FIXME on'); wantsVisualization = true; }
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
-    if (!controllerPose.valid) { wantsVisualization = false; return turnOffLaser(); } // Controller is cradled.
+    if (!controllerPose.valid) { return turnOffLaser(); } // Controller is cradled.
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
     // This gets point direction right, but if you want general quaternion it would be more complicated:
