@@ -82,28 +82,36 @@ private:
 class ScriptableResource : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getUrl)
-    Q_PROPERTY(bool loaded READ isLoaded NOTIFY loadedChanged)
-    Q_PROPERTY(bool failed READ isFailed NOTIFY failedChanged)
+    Q_PROPERTY(int state READ getState NOTIFY stateChanged)
 
 public:
+    enum State {
+        QUEUED,
+        LOADING,
+        LOADED,
+        FINISHED,
+        FAILED,
+    };
+    Q_ENUM(State)
+
     ScriptableResource(const QUrl& url);
     virtual ~ScriptableResource() = default;
 
     Q_INVOKABLE void release();
 
     const QUrl& getUrl() const { return _url; }
-    bool isLoaded() const { return _isLoaded; }
-    bool isFailed() const { return _isFailed; }
+    int getState() const { return (int)_state; }
 
-    // Connects to a SLOT(updateMemoryCost(qint64) on the given engine
+    // Connects to a SLOT(updateMemoryCost(qint64)) on the given engine
     void updateMemoryCost(const QObject* engine);
 
 signals:
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
-    void loadedChanged(bool loaded); // analogous to &Resource::finished
-    void failedChanged(bool failed);
+    void stateChanged(int state);
 
 private slots:
+    void loadingChanged();
+    void loadedChanged();
     void finished(bool success);
 
 private:
@@ -115,11 +123,12 @@ private:
     QSharedPointer<Resource> _resource;
 
     QMetaObject::Connection _progressConnection;
+    QMetaObject::Connection _loadingConnection;
+    QMetaObject::Connection _loadedConnection;
     QMetaObject::Connection _finishedConnection;
 
     QUrl _url;
-    bool _isLoaded{ false };
-    bool _isFailed{ false };
+    State _state{ QUEUED };
 };
 
 Q_DECLARE_METATYPE(ScriptableResource*);
@@ -287,6 +296,9 @@ public:
     const QUrl& getURL() const { return _url; }
 
 signals:
+    /// Fired when the resource begins downloading.
+    void loading();
+
     /// Fired when the resource has been downloaded.
     /// This can be used instead of downloadFinished to access data before it is processed.
     void loaded(const QByteArray request);

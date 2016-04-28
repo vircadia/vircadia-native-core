@@ -121,7 +121,17 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 
 ScriptableResource::ScriptableResource(const QUrl& url) :
     QObject(nullptr),
-    _url(url) {}
+    _url(url) {
+
+    // Expose enum State to JS/QML via properties
+    QObject* state = new QObject(this);
+    state->setObjectName("ResourceState");
+    setProperty("State", QVariant::fromValue(state));
+    auto metaEnum = QMetaEnum::fromType<State>();
+    for (int i = 0; i < metaEnum.keyCount(); ++i) {
+        state->setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+}
 
 void ScriptableResource::release() {
     disconnectHelper();
@@ -135,21 +145,29 @@ void ScriptableResource::updateMemoryCost(const QObject* engine) {
     }
 }
 
+void ScriptableResource::loadingChanged() {
+    emit stateChanged(LOADING);
+}
+
+void ScriptableResource::loadedChanged() {
+    emit stateChanged(LOADED);
+}
+
 void ScriptableResource::finished(bool success) {
     disconnectHelper();
 
-    _isLoaded = true;
-    _isFailed = !success;
-
-    if (_isFailed) {
-        emit failedChanged(_isFailed);
-    }
-    emit loadedChanged(_isLoaded);
+    emit stateChanged(success ? FINISHED : FAILED);
 }
 
 void ScriptableResource::disconnectHelper() {
     if (_progressConnection) {
         disconnect(_progressConnection);
+    }
+    if (_loadingConnection) {
+        disconnect(_loadingConnection);
+    }
+    if (_loadedConnection) {
+        disconnect(_loadedConnection);
     }
     if (_finishedConnection) {
         disconnect(_finishedConnection);
@@ -180,6 +198,12 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
         result->_progressConnection = connect(
             resource.data(), &Resource::onProgress,
             result, &ScriptableResource::progressChanged);
+        result->_loadingConnection = connect(
+            resource.data(), &Resource::loading,
+            result, &ScriptableResource::loadingChanged);
+        result->_loadedConnection = connect(
+            resource.data(), &Resource::loaded,
+            result, &ScriptableResource::loadedChanged);
         result->_finishedConnection = connect(
             resource.data(), &Resource::finished,
             result, &ScriptableResource::finished);
@@ -644,6 +668,7 @@ void Resource::makeRequest() {
     }
     
     qCDebug(networking).noquote() << "Starting request for:" << _url.toDisplayString();
+    emit loading();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
     connect(this, &Resource::onProgress, this, &Resource::handleDownloadProgress);

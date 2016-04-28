@@ -22,11 +22,12 @@ function getFrame(callback) {
     if (model.loaded) {
         makeFrame(true);
     } else {
-        model.loadedChanged.connect(makeFrame);
+        model.stateChanged.connect(makeFrame);
     }
 
-    function makeFrame(success) {
-        if (!success) { throw "Failed to load frame"; }
+    function makeFrame(state) {
+        if (state == 4) { throw "Failed to load frame"; }
+        if (state != 3) { return; }
 
         var pictureFrameProperties = {
             name: 'scriptableResourceTest Picture Frame',
@@ -68,9 +69,11 @@ function prefetch(callback) {
         frames.push(texture);
         if (!texture.loaded) {
             numLoading++;
-            texture.loadedChanged.connect(function() {
-                --numLoading;
-                if (!numLoading) { callback(frames); }
+            texture.stateChanged.connect(function(state) {
+                if (state == 3 || state == 4) {
+                    --numLoading;
+                    if (!numLoading) { callback(frames); }
+                }
             });
         }
     }
