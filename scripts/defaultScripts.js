@@ -17,7 +17,5 @@ Script.load("system/notifications.js");
 Script.load("system/controllers/handControllerGrab.js");
 Script.load("system/controllers/squeezeHands.js");
 Script.load("system/controllers/grab.js");
-Script.load("system/directory.js");
 Script.load("system/dialTone.js");
-// Script.load("attachedEntitiesManager.js");
 Script.load("system/depthReticle.js");
