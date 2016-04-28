@@ -104,9 +104,10 @@ public:
 
     const QUrl& getUrl() const { return _url; }
     int getState() const { return (int)_state; }
+    const QSharedPointer<Resource>& getResource() const { return _resource; }
 
-    // Connects to a SLOT(updateMemoryCost(qint64)) on the given engine
-    void updateMemoryCost(const QObject* engine);
+    bool isInScript() const;
+    void setInScript(bool isInScript);
 
 signals:
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
@@ -357,6 +358,9 @@ private slots:
     void handleReplyFinished();
 
 private:
+    friend class ResourceCache;
+    friend class ScriptableResource;
+    
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();
@@ -365,9 +369,6 @@ private:
 
     bool isInScript() const { return _isInScript; }
     void setInScript(bool isInScript) { _isInScript = isInScript; }
-    
-    friend class ResourceCache;
-    friend class ScriptableResource;
     
     ResourceRequest* _request{ nullptr };
     int _lruKey{ 0 };

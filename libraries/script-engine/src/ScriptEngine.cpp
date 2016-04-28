@@ -274,7 +274,17 @@ static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantR
 using ScriptableResourceRawPtr = ScriptableResource*;
 
 static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const ScriptableResourceRawPtr& resource) {
-    resource->updateMemoryCost(engine);
+    // The first script to encounter this resource will track its memory.
+    // In this way, it will be more likely to GC.
+    // This fails in the case that the resource is used across many scripts, but
+    // in that case it would be too difficult to tell which one should track the memory, and
+    // this serves the common case (use in a single script).
+    auto data = resource->getResource();
+    if (data && !resource->isInScript()) {
+        resource->setInScript(true);
+        QObject::connect(data.data(), SIGNAL(updateSize(qint64)), engine, SLOT(updateMemoryCost(qint64)));
+    }
+
     auto object = engine->newQObject(
         const_cast<ScriptableResourceRawPtr>(resource),
         QScriptEngine::ScriptOwnership);

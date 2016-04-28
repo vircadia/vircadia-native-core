@@ -128,10 +128,13 @@ void ScriptableResource::release() {
     _resource.reset();
 }
 
-void ScriptableResource::updateMemoryCost(const QObject* engine) {
-    if (_resource && !_resource->isInScript()) {
-        _resource->setInScript(true);
-        connect(_resource.data(), SIGNAL(updateSize(qint64)), engine, SLOT(updateMemoryCost(qint64)));
+bool ScriptableResource::isInScript() const {
+    return _resource && _resource->isInScript();
+}
+
+void ScriptableResource::setInScript(bool isInScript) {
+    if (_resource) {
+        _resource->setInScript(isInScript);
     }
 }
 
