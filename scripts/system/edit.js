@@ -53,7 +53,7 @@ selectionManager.addEventListener(function() {
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 var toolHeight = 50;
 var toolWidth = 50;
-var TOOLBAR_MARGIN_Y = 25;
+var TOOLBAR_MARGIN_Y = 0;
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
