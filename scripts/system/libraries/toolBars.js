@@ -383,6 +383,9 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     };
     if (optionalPersistenceKey) {
         this.fractionKey = optionalPersistenceKey + '.fraction';
+        // FIXME: New default position in RC8 is bottom center of screen instead of right. Can remove this key and associated
+        // code once the new toolbar position is well established with users.
+        this.isNewPositionKey = optionalPersistenceKey + '.isNewPosition';
         this.save = function () {
             var recommendedRect = Controller.getRecommendedOverlayRect();
             var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
@@ -452,10 +455,9 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         return id;
     }
     if (this.fractionKey || optionalInitialPositionFunction) {
-        var NEW_TOOLBAR_POSITION = "newToolbarPosition";  // New default position is bottom center of screen instead of right.
-        var isNewPosition = Settings.getValue(NEW_TOOLBAR_POSITION);
+        var isNewPosition = Settings.getValue(this.isNewPositionKey);
         var savedFraction = isNewPosition ? JSON.parse(Settings.getValue(this.fractionKey) || "0") : 0;
-        Settings.setValue(NEW_TOOLBAR_POSITION, true);
+        Settings.setValue(this.isNewPositionKey, true);
 
         var recommendedRect = Controller.getRecommendedOverlayRect();
         var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
