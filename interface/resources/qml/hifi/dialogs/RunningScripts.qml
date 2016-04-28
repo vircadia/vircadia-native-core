@@ -23,7 +23,6 @@ Window {
     title: "Running Scripts"
     resizable: true
     destroyOnInvisible: true
-    x: 40; y: 40
     implicitWidth: 400
     implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(200, 300)

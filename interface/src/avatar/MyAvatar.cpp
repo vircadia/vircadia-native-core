@@ -235,7 +235,12 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andReload) {
+void MyAvatar::reset(bool andRecenter) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter));
+        return;
+    }
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
@@ -245,7 +250,7 @@ void MyAvatar::reset(bool andReload) {
     _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
 
-    if (andReload) {
+    if (andRecenter) {
         // derive the desired body orientation from the *old* hmd orientation, before the sensor reset.
         auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
 
@@ -317,6 +322,37 @@ void MyAvatar::update(float deltaTime) {
     }
     currentEnergy = max(0.0f, min(currentEnergy,1.0f));
     emit energyChanged(currentEnergy);
+
+    updateEyeContactTarget(deltaTime);
+}
+
+void MyAvatar::updateEyeContactTarget(float deltaTime) {
+
+    _eyeContactTargetTimer -= deltaTime;
+    if (_eyeContactTargetTimer < 0.0f) {
+
+        const float CHANCE_OF_CHANGING_TARGET = 0.01f;
+        if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
+
+            float const FIFTY_FIFTY_CHANCE = 0.5f;
+            float const EYE_TO_MOUTH_CHANCE = 0.25f;
+            switch (_eyeContactTarget) {
+                case LEFT_EYE:
+                    _eyeContactTarget = (randFloat() < EYE_TO_MOUTH_CHANCE) ? MOUTH : RIGHT_EYE;
+                    break;
+                case RIGHT_EYE:
+                    _eyeContactTarget = (randFloat() < EYE_TO_MOUTH_CHANCE) ? MOUTH : LEFT_EYE;
+                    break;
+                case MOUTH:
+                default:
+                    _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
+                    break;
+            }
+
+            const float EYE_TARGET_DELAY_TIME = 0.33f;
+            _eyeContactTargetTimer = EYE_TARGET_DELAY_TIME;
+        }
+    }
 }
 
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
@@ -880,7 +916,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
         avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar() && avatar->isInitialized() &&
             (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getUniformScale())) {
-            float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
+            float radius = glm::length(avatar->getHead()->getEyePosition() - avatar->getHead()->getRightEyePosition());
+            float angleTo = coneSphereAngle(getHead()->getEyePosition(), lookForward, avatar->getHead()->getEyePosition(), radius);
             if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
@@ -944,22 +981,6 @@ void MyAvatar::clearLookAtTargetAvatar() {
 }
 
 eyeContactTarget MyAvatar::getEyeContactTarget() {
-    float const CHANCE_OF_CHANGING_TARGET = 0.01f;
-    if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
-        float const FIFTY_FIFTY_CHANCE = 0.5f;
-        switch (_eyeContactTarget) {
-            case LEFT_EYE:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? MOUTH : RIGHT_EYE;
-                break;
-            case RIGHT_EYE:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? LEFT_EYE : MOUTH;
-                break;
-            case MOUTH:
-                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
-                break;
-        }
-    }
-
     return _eyeContactTarget;
 }
 
