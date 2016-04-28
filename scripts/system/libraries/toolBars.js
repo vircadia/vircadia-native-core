@@ -452,7 +452,11 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         return id;
     }
     if (this.fractionKey || optionalInitialPositionFunction) {
-        var savedFraction = JSON.parse(Settings.getValue(this.fractionKey) || '0'); // getValue can answer empty string
+        var NEW_TOOLBAR_POSITION = "newToolbarPosition";  // New default position is bottom center of screen instead of right.
+        var isNewPosition = Settings.getValue(NEW_TOOLBAR_POSITION);
+        var savedFraction = isNewPosition ? JSON.parse(Settings.getValue(this.fractionKey) || "0") : 0;
+        Settings.setValue(NEW_TOOLBAR_POSITION, true);
+
         var recommendedRect = Controller.getRecommendedOverlayRect();
         var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
         if (savedFraction) {
