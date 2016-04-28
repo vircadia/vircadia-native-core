@@ -35,7 +35,8 @@ function checkForDepthReticleScript() {
             wasRunningDepthReticle = script.path;
             Window.alert('Shuting down depthReticle script.\n' + script.path +
                          '\nMost of the behavior is included here in\n' +
-                         Script.resolvePath(''));
+                         Script.resolvePath('') +
+                        '\ndepthReticle.js will be silently restarted when this script ends.');
             ScriptDiscoveryService.stopScript(script.path); // BUG: getRunning gets path and url backwards. stopScript wants a url.
             // Some current deviations are listed below as 'FIXME'.
         }
@@ -96,7 +97,6 @@ function Trigger() {
     that.triggerValue = 0; // rolling average of trigger value
     that.rawTriggerValue = 0;
     that.triggerPress = function(value) {
-        print('fixme trigger', value);
         that.rawTriggerValue = value;
     };
     that.updateSmoothedTrigger = function() {
@@ -248,17 +248,20 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 // CONTROLLER MAPPING ---------
 //
 // Synthesize left and right mouse click from controller, and get trigger values matching handControllerGrab.
-var MAPPING_NAME = Script.resolvePath('');
-var mapping = Controller.newMapping(MAPPING_NAME);
 
+var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-trigger');
+Script.scriptEnding.connect(triggerMapping.disable);
 var leftTrigger = new Trigger();
 var rightTrigger = new Trigger();
-mapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
-mapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
+triggerMapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
+triggerMapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
+triggerMapping.enable();
 
+var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+Script.scriptEnding.connect(clickMapping.disable);
 function mapToAction(controller, button, action) {
     if (!Controller.Hardware[controller]) { return; } // FIXME: recheck periodically!
-    mapping.from(Controller.Hardware[controller][button]).peek().to(action);
+    clickMapping.from(Controller.Hardware[controller][button]).peek().to(action);
 }
 function handControllerClick(input) { // FIXME
     if (!input) { return; } // We get both a down (with input 1) and up (with input 0)
@@ -270,11 +273,8 @@ mapToAction('Vive', 'LeftPrimaryThumb', handControllerClick);
 mapToAction('Vive', 'RightPrimaryThumb', handControllerClick);
 mapToAction('Hydra', 'R4', Controller.Actions.ContextMenu);
 mapToAction('Hydra', 'L4', Controller.Actions.ContextMenu);
-Script.scriptEnding.connect(mapping.disable);
-//mapping.enable();
-var toggleMap = new LatchedToggle(mapping.enable, mapping.disable);
-toggleMap.setState(true);
-Script.scriptEnding.connect(mapping.disable);
+var clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
+clickMapToggle.setState(true);
 
 
 // VISUAL AID -----------
@@ -366,7 +366,7 @@ function update() {
     if (!handControllerLockOut.expired(now)) { return turnOffLaser(); } // Let them use mouse it in peace.
     if (!Menu.isOptionChecked("First Person")) { return turnOffLaser(); }  // What to do? menus can be behind hand!
     if (rightTrigger.triggerSmoothedGrab()) { handControllerLockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
-    if (rightTrigger.triggerSmoothedSqueezed()) { print('FIXME on'); wantsVisualization = true; }
+    if (rightTrigger.triggerSmoothedSqueezed()) { wantsVisualization = true; }
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
     if (!controllerPose.valid) { return turnOffLaser(); } // Controller is cradled.
@@ -386,13 +386,16 @@ function update() {
     if (isPointingAtOverlay(hudPoint2d)) {
         setReticleVisible(true);
         Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
+        clickMapToggle.setState(true);
         return turnOffLaser(true);
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
-    if (!updateLaser(controllerPosition, controllerDirection, hudPoint3d)) {
+    var visualization3d = updateLaser(controllerPosition, controllerDirection, hudPoint3d);
+    if (!visualization3d) {
         setReticleVisible(false);
         turnOffLaser();
     }
+    clickMapToggle.setState(visualization3d);
     /*
     // Hack: Move the pointer again, this time to the intersection. This allows "clicking" on
     // 2D and 3D entities without rewriting other parts of the system, but it isn't right,
