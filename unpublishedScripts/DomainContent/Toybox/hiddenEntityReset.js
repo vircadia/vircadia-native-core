@@ -14,17 +14,17 @@
 
     var _this;
 
-    var gunScriptURL = Script.resolvePath("../examples/toybox/pistol/pistol.js");
-    var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
-    var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
-    var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
-    var pingPongScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/pingPongGun.js');
-    var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
-    var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
-    var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
-    var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
-    var bowScriptURL = Script.resolvePath('../examples/toybox/bow/bow.js');
-    var raveStickEntityScriptURL = Script.resolvePath("../examples/flowArts/raveStick/raveStickEntityScript.js");
+    var gunScriptURL = Script.resolvePath("pistol/pistol.js");
+    var sprayPaintScriptURL = Script.resolvePath("spray_paint/sprayPaintCan.js");
+    var catScriptURL = Script.resolvePath("cat/cat.js");
+    var flashlightScriptURL = Script.resolvePath('flashlight/flashlight.js');
+    var pingPongScriptURL = Script.resolvePath('ping_pong_gun/pingPongGun.js');
+    var wandScriptURL = Script.resolvePath("bubblewand/wand.js");
+    var dollScriptURL = Script.resolvePath("doll/doll.js");
+    var lightsScriptURL = Script.resolvePath("lights/lightSwitch.js");
+    var targetsScriptURL = Script.resolvePath('ping_pong_gun/wallTarget.js');
+    var bowScriptURL = Script.resolvePath('bow/bow.js');
+    var raveStickEntityScriptURL = Script.resolvePath("flowArts/raveStick/raveStickEntityScript.js");
     var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
     var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 

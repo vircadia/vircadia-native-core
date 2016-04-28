@@ -11,7 +11,7 @@
 
 (function() {
 
-    Script.include("../../libraries/utils.js");
+    Script.include("libraries/utils.js");
 
     var NOTCH_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/notch.wav';
     var SHOOT_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/String_release2.L.wav';

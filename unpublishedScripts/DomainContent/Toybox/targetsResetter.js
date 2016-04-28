@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 (function() {
-    var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
+    var targetsScriptURL = Script.resolvePath('ping_pong_gun/wallTarget.js');
 
     var _this;
     Resetter = function() {

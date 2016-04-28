@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var utilsPath = Script.resolvePath('../../libraries/utils.js');
+var utilsPath = Script.resolvePath('libraries/utils.js');
 Script.include(utilsPath);
 
 var SCRIPT_URL = Script.resolvePath('bow.js');

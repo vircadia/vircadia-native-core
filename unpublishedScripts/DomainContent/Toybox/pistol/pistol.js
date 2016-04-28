@@ -11,8 +11,7 @@
 
 
 (function() {
-    Script.include("../../libraries/utils.js");
-    Script.include("../../libraries/constants.js");
+    Script.include("libraries/utils.js");
 
     var _this;
     var DISABLE_LASER_THRESHOLD = 0.2;
@@ -343,8 +342,8 @@
         preload: function(entityID) {
             this.entityID = entityID;
             this.laser = Overlays.addOverlay("line3d", {
-                start: ZERO_VECTOR,
-                end: ZERO_VECTOR,
+                start:  { x: 0, y: 0, z: 0 },
+                end:  { x: 0, y: 0, z: 0 },
                 color: COLORS.RED,
                 alpha: 1,
                 visible: true,
