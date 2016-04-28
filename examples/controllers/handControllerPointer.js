@@ -17,7 +17,7 @@ print('handControllerPointer version', 10);
 
 // Control the "mouse" using hand controller. (HMD and desktop.)
 // For now:
-// Button 3 is left-mouse, button 4 is right-mouse.
+// Button 3 is left-mouse, button 4 is right-mouse. What to do on Vive?
 // First-person only.
 // Right hand only.
 // On Windows, the upper left corner of Interface must be in the upper left corner of the screen, and the title bar must be 50px high. (System bug.)
@@ -279,6 +279,33 @@ mapToAction(clickMapping, 'Vive', 'LeftPrimaryThumb', 'ReticleClick');
 mapToAction(clickMapping, 'Vive', 'RightPrimaryThumb', 'ReticleClick');
 var clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
 clickMapToggle.setState(true);
+/*
+var hardware; // undefined
+var leftTrigger = new Trigger();
+var rightTrigger = new Trigger();
+function checkHardware() {
+    var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive': null); // not undefined
+    if (hardware === newHardware) { return; }
+    if (hardware) {
+        triggerMenuMapping.disable();
+        clickMapping.disable();
+    }
+    hardware = newHardware;
+    triggerMenuMapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
+    triggerMenuMapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
+    mapToAction(triggerMenuMapping, 'Hydra', 'R4', 'ContextMenu');
+    mapToAction(triggerMenuMapping, 'Hydra', 'L4', 'ContextMenu');
+    triggerMenuMapping.enable();
+
+    mapToAction(clickMapping, 'Hydra', 'R3', 'ReticleClick');
+    mapToAction(clickMapping, 'Hydra', 'L3', 'ReticleClick');
+    mapToAction(clickMapping, 'Vive', 'LeftPrimaryThumb', 'ReticleClick');
+    mapToAction(clickMapping, 'Vive', 'RightPrimaryThumb', 'ReticleClick');
+    var clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
+    clickMapToggle.setState(true);
+}
+checkHardware();
+*/
 
 
 // VISUAL AID -----------
