@@ -12,6 +12,9 @@
 
 (function() {
 
+    var utilitiesScript = Script.resolvePath("libraries/utils.js");
+    Script.include(utilitiesScript);
+
     var _this;
 
     var gunScriptURL = Script.resolvePath("pistol/pistol.js");
