@@ -314,7 +314,7 @@ public:
 
     virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
-    virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
+    virtual float getVolumeEstimate() const;
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }

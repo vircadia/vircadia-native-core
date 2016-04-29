@@ -339,15 +339,16 @@ void RenderableModelEntityItem::updateModelBounds() {
         return;
     }
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
+    glm::vec3 dimensions = getDimensions();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
          _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
-         _model->getScaleToFitDimensions() != getDimensions() ||
+         _model->getScaleToFitDimensions() != dimensions ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
-        _model->setScaleToFit(true, getDimensions());
+        _model->setScaleToFit(true, dimensions);
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
