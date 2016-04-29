@@ -99,22 +99,22 @@ function Trigger() {
     var that = this;
     that.triggerValue = 0; // rolling average of trigger value
     that.rawTriggerValue = 0;
-    that.triggerPress = function(value) {
+    that.triggerPress = function (value) {
         that.rawTriggerValue = value;
     };
-    that.updateSmoothedTrigger = function() {
+    that.updateSmoothedTrigger = function () {
         var triggerValue = that.rawTriggerValue;
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
     };
-    that.triggerSmoothedGrab = function() {
+    that.triggerSmoothedGrab = function () {
         return that.triggerValue > TRIGGER_GRAB_VALUE;
     };
-    that.triggerSmoothedSqueezed = function() {
+    that.triggerSmoothedSqueezed = function () {
         return that.triggerValue > TRIGGER_ON_VALUE;
     };
-    that.triggerSmoothedReleased = function() {
+    that.triggerSmoothedReleased = function () {
         return that.triggerValue < TRIGGER_OFF_VALUE;
     };
 }
@@ -263,7 +263,7 @@ var rightTrigger = new Trigger();
 var clickMappings = {}, clickMapping, clickMapToggle;
 var hardware; // undefined
 function checkHardware() {
-    var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive': null); // not undefined
+    var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive' : null); // not undefined
     if (hardware === newHardware) { return; }
     print('Setting mapping for new controller hardware:', newHardware);
     if (clickMapToggle) {
@@ -292,15 +292,15 @@ function checkHardware() {
             mapToAction('L4', 'ContextMenu');
             break;
         case 'Vive':
-            mapToAction('RightPrimaryThumb', 'ReticleClick');
-            mapToAction('LeftPrimaryThumb', 'ReticleClick');
+            mapToAction('RS', 'ReticleClick');
+            mapToAction('LS', 'ReticleClick');
             break;
         }
 
         triggerMapping = Controller.newMapping(Script.resolvePath('') + '-trigger-' + hardware);
         Script.scriptEnding.connect(triggerMapping.disable);
-        triggerMapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
-        triggerMapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
+        triggerMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
+        triggerMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
 
         clickMappings[hardware] = {click: clickMapping, trigger: triggerMapping};
     }
@@ -329,7 +329,7 @@ function toggleHand() {
 // Same properties as handControllerGrab search sphere
 var BALL_SIZE = 0.011;
 var BALL_ALPHA = 0.5;
-var fakeProjectionBall = Overlays.addOverlay("sphere", { 
+var fakeProjectionBall = Overlays.addOverlay("sphere", {
     size: 5 * BALL_SIZE,
     color: {red: 255, green: 10, blue: 10},
     ignoreRayIntersection: true,
@@ -391,7 +391,7 @@ function update() {
     if (!handControllerLockOut.expired(now)) { return turnOffVisualization(); } // Let them use mouse it in peace.
 
     if (activeTrigger.triggerSmoothedSqueezed() && !inactiveTrigger.triggerSmoothedSqueezed()) { toggleHand(); }
-    
+
     if (!Menu.isOptionChecked("First Person")) { return turnOffVisualization(); }  // What to do? menus can be behind hand!
     var controllerPose = getControllerPose(activeHand);
     if (!controllerPose.valid) { return turnOffVisualization(); } // Controller is cradled.
@@ -428,7 +428,7 @@ var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
     checkForDepthReticleScript();
-    checkHardware();;
+    checkHardware();
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
