@@ -1585,7 +1585,7 @@
         }
 
         function createBlocks(position) {
-            var baseURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky";
+            var baseURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky/";
             var collisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky/ToyWoodBlock.L.wav";
             var NUM_BLOCKS_PER_COLOR = 4;
             var i, j;
