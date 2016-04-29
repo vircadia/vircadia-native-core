@@ -18,7 +18,7 @@
     // this is the "constructor" for the entity as a JS object we don't do much here
     var Doll = function() {
         _this = this;
-        this.screamSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav")];
+        this.screamSounds = [SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/KenDoll_1%2303.wav")];
     };
 
     Doll.prototype = {
@@ -31,7 +31,7 @@
 
             Entities.editEntity(this.entityID, {
                 animation: {
-                    url: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
+                    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/zombie_scream.fbx",
                     running: true
                 }
             });
