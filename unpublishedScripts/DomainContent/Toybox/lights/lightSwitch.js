@@ -21,7 +21,7 @@
     Script.include(utilitiesScript);
     LightSwitch = function() {
         _this = this;
-        this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
+        this.switchSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/lights/lamp_switch_2.wav");
     };
 
     LightSwitch.prototype = {

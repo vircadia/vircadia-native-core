@@ -19,8 +19,8 @@
 
     Script.include("libraries/utils.js");
 
-    var ON_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
-    var OFF_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_off.wav';
+    var ON_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight_on.wav';
+    var OFF_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight_off.wav';
 
     //we are creating lights that we don't want to get stranded so lets make sure that we can get rid of them
     var startTime = Date.now();
