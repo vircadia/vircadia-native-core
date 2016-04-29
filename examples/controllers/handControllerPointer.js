@@ -109,7 +109,7 @@ function Trigger() {
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
-        debug(that.triggerValue);
+        debug(that.triggerValue); // FIXME
     };
     that.triggerSmoothedGrab = function() {
         return that.triggerValue > TRIGGER_GRAB_VALUE;
@@ -310,6 +310,17 @@ function checkHardware() {
 }
 checkHardware();
 
+var activeHand = Controller.Standard.RightHand;
+var activeTrigger = rightTrigger;
+function toggleHand() {
+    if (activeHand === Controller.Standard.RightHand) {
+        activeHand = Controller.Standard.LeftHand;
+        activeTrigger = leftTrigger;
+    } else {
+        activeHand = Controller.Standard.RightHand;
+        activeTrigger = rightTrigger;
+    }
+}
 
 // VISUAL AID -----------
 // Same properties as handControllerGrab search sphere
@@ -372,11 +383,14 @@ function updateVisualization(controllerPosition, controllerDirection, hudPositio
 //
 function update() {
     var now = Date.now();
+    leftTrigger.updateSmoothedTrigger();
     rightTrigger.updateSmoothedTrigger();
     if (!handControllerLockOut.expired(now)) { return turnOffVisualization(); } // Let them use mouse it in peace.
+
+    if (activeTrigger.triggerSmoothedSqueezed()) { toggleHand(); }
+    
     if (!Menu.isOptionChecked("First Person")) { return turnOffVisualization(); }  // What to do? menus can be behind hand!
-    var hand = Controller.Standard.RightHand;
-    var controllerPose = getControllerPose(hand);
+    var controllerPose = getControllerPose(activeHand);
     if (!controllerPose.valid) { return turnOffVisualization(); } // Controller is cradled.
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
