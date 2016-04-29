@@ -27,8 +27,8 @@
         this.forceMultiplier = 1;
         this.laserLength = 100;
 
-        this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
-        this.ricochetSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/Ricochet.L.wav");
+        this.fireSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/GUN-SHOT2.raw");
+        this.ricochetSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/Ricochet.L.wav");
         this.playRichochetSoundChance = 0.1;
         this.fireVolume = 0.2;
         this.bulletForce = 10;
@@ -216,7 +216,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": true,
-                "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+                "textures": "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/star.png"
             });
 
             Script.setTimeout(function() {

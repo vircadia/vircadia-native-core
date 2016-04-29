@@ -14,8 +14,8 @@
 Script.include("utils.js");
 var scriptURL = Script.resolvePath('wallTarget.js');
 
-var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
-var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
+var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target.fbx';
+var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
 var MINIMUM_MOVE_LENGTH = 0.05;
 var RESET_DISTANCE = 0.5;
 

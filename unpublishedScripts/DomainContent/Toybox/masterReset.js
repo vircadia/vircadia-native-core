@@ -20,11 +20,11 @@ var catScriptURL = Script.resolvePath("cat/cat.js");
 var flashlightScriptURL = Script.resolvePath('flashlight/flashlight.js');
 var pingPongScriptURL = Script.resolvePath('ping_pong_gun/pingPongGun.js');
 var wandScriptURL = Script.resolvePath("bubblewand/wand.js");
-var dollScriptURL = Script.resolvePath("doll.js");
+var dollScriptURL = Script.resolvePath("doll/doll.js");
 var lightsScriptURL = Script.resolvePath("lights/lightSwitch.js");
-var bowScriptURL = Script.resolvePath("toybox/bow/bow.js");
+var targetsScriptURL = Script.resolvePath('ping_pong_gun/wallTarget.js');
+var bowScriptURL = Script.resolvePath('bow/bow.js');
 var raveStickEntityScriptURL = Script.resolvePath("flowArts/raveStick/raveStickEntityScript.js");
-var targetsScriptURL = Script.resolvePath('toybox/ping_pong_gun/wallTarget.js');
 var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
 var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
@@ -32,7 +32,6 @@ var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 MasterReset = function() {
     var resetKey = "resetMe";
 
-    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
     var shouldDeleteOnEndScript = false;
 
@@ -148,7 +147,7 @@ MasterReset = function() {
     }
 
     function createRaveStick(position) {
-        var modelURL = "http://hifi-content.s3.amazonaws.com/eric/models/raveStick.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/raveStick.fbx";
         var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
         var stick = Entities.addEntity({
             type: "Model",
@@ -243,7 +242,7 @@ MasterReset = function() {
             alphaSpread: 0.1,
             alphaStart: 0.1,
             alphaFinish: 0.1,
-            textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
+            textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/beamParticle.png",
             emitterShouldTrail: false,
             userData: JSON.stringify({
                 resetMe: {
@@ -254,7 +253,8 @@ MasterReset = function() {
     }
 
     function createGun(position) {
-        var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/gun.fbx";
+
 
         var pistol = Entities.addEntity({
             type: 'Model',
@@ -281,7 +281,7 @@ MasterReset = function() {
             restitution: 0,
             dynamic: true,
             damping: 0.5,
-            collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/drop.wav",
+            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/drop.wav",
             userData: JSON.stringify({
                 "wearable": {
                     "joints": {
@@ -327,9 +327,8 @@ MasterReset = function() {
 
         var SCRIPT_URL = Script.resolvePath('bow.js');
         var BOW_ROTATION = Quat.fromPitchYawRollDegrees(-103.05, -178.60, -87.27);
-        var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
-        var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
-
+        var MODEL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/bow-deadly.fbx";
+        var COLLISION_HULL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/bow_collision_hull.obj";
         var BOW_DIMENSIONS = {
             x: 0.04,
             y: 1.3,
@@ -480,7 +479,7 @@ MasterReset = function() {
             type: "ParticleEffect",
             name: "fire",
             animationSettings: animationSettings,
-            textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+            textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/fire/Particle-Sprite-Smoke-1.png",
             position: {
                 x: 551.45,
                 y: 494.82,
@@ -544,10 +543,10 @@ MasterReset = function() {
         var DIAMETER = 0.30;
         var RESET_DISTANCE = 1;
         var MINIMUM_MOVE_LENGTH = 0.05;
-        var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
-        var basketballCollisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
-        var rackURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_rack.fbx";
-        var rackCollisionHullURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/rack_collision_hull.obj";
+        var basketballURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
+        var basketballCollisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
+        var rackURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_rack.fbx";
+        var rackCollisionHullURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/rack_collision_hull.obj";
 
         var rackRotation = Quat.fromPitchYawRollDegrees(0, -90, 0);
 
@@ -624,7 +623,7 @@ MasterReset = function() {
                         z: 0
                     },
                     dynamic: true,
-                    collisionSoundURL: 'http://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav',
+                    collisionSoundURL: 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav',
                     collisionless: false,
                     modelURL: basketballURL,
                     userData: JSON.stringify({
@@ -721,8 +720,8 @@ MasterReset = function() {
     function createTargets() {
 
 
-        var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
+        var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target.fbx';
+        var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
 
         var MINIMUM_MOVE_LENGTH = 0.05;
         var RESET_DISTANCE = 0.5;
@@ -801,8 +800,8 @@ MasterReset = function() {
 
     function createCat(position) {
 
-        var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
-        var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/cat/Dark_Cat.fbx";
+        var animationURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/cat/sleeping.fbx";
         var animationSettings = JSON.stringify({
             running: true
         });
@@ -838,7 +837,7 @@ MasterReset = function() {
     }
 
     function createFlashlight(position) {
-        var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight.fbx";
 
         var flashlight = Entities.addEntity({
             type: "Model",
@@ -852,7 +851,7 @@ MasterReset = function() {
                 z: 0.08
             },
             dynamic: true,
-            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/flashlight_drop.L.wav",
+            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight_drop.L.wav",
             gravity: {
                 x: 0,
                 y: -3.5,
@@ -903,8 +902,7 @@ MasterReset = function() {
     }
 
     function createLights() {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx";
-
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/lights/lightswitch.fbx";
 
         var rotation = {
             w: 0.63280689716339111,
@@ -1151,8 +1149,8 @@ MasterReset = function() {
     function createDice() {
         var diceProps = {
             type: "Model",
-            modelURL: "http://s3.amazonaws.com/hifi-public/models/props/Dice/goldDie.fbx",
-            collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
+            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/dice/goldDie.fbx",
+            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/dice/diceCollide.wav",
             name: "dice",
             position: {
                 x: 541.61,
@@ -1199,8 +1197,7 @@ MasterReset = function() {
     }
 
     function createGates() {
-        var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/ryan/fence.fbx';
-
+        var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/gates/fence.fbx';
         var rotation = Quat.fromPitchYawRollDegrees(0, -16, 0);
         var gate = Entities.addEntity({
             name: 'Front Door Fence',
@@ -1239,10 +1236,9 @@ MasterReset = function() {
     }
 
     function createPingPongBallGun() {
-        var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.obj';
-
-        var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
+        var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.fbx';
+        var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.obj';
+        var COLLISION_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/plastic_impact.L.wav';
         var position = {
             x: 548.6,
             y: 495.4,
@@ -1308,8 +1304,8 @@ MasterReset = function() {
     }
 
     function createWand(position) {
-        var WAND_MODEL = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand.fbx';
-        var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
+        var WAND_MODEL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/wand.fbx';
+        var WAND_COLLISION_SHAPE = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/wand_collision_hull.obj';
 
         var wand = Entities.addEntity({
             name: 'Bubble Wand',
@@ -1369,7 +1365,7 @@ MasterReset = function() {
 
     function createBasketBall(position) {
 
-        var modelURL = "http://s3.amazonaws.com/hifi-public/models/content/basketball2.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
 
         var entity = Entities.addEntity({
             type: "Model",
@@ -1395,7 +1391,7 @@ MasterReset = function() {
                 y: -0.01,
                 z: 0
             },
-            collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/basketball/basketball.wav",
+            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav",
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -1409,7 +1405,7 @@ MasterReset = function() {
     }
 
     function createDoll(position) {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/bboy2.fbx";
 
         var naturalDimensions = {
             x: 1.63,
@@ -1450,7 +1446,8 @@ MasterReset = function() {
 
     function createSprayCan(position) {
 
-        var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
+
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/paintcan.fbx";
 
         var entity = Entities.addEntity({
             type: "Model",
@@ -1464,7 +1461,7 @@ MasterReset = function() {
                 z: 0.07
             },
             dynamic: true,
-            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
+            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/SpryPntCnDrp1.L.wav",
             shapeType: 'box',
             gravity: {
                 x: 0,
@@ -1490,7 +1487,7 @@ MasterReset = function() {
     }
 
     function createPottedPlant(position) {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/models/potted_plant/potted_plant.fbx";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/potted_plant/potted_plant.fbx";
 
         var entity = Entities.addEntity({
             type: "Model",
@@ -1528,8 +1525,8 @@ MasterReset = function() {
 
 
     function createCombinedArmChair(position) {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/combined_chair.fbx";
-        var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj";
+        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/armchair/combined_chair.fbx";
+        var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/armchair/red_arm_chair_collision_hull.obj";
 
         var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
 
@@ -1571,8 +1568,8 @@ MasterReset = function() {
     }
 
     function createBlocks(position) {
-        var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/";
-        var collisionSoundURL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav";
+        var baseURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky";
+        var collisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky/ToyWoodBlock.L.wav";
         var NUM_BLOCKS_PER_COLOR = 4;
         var i, j;
 
