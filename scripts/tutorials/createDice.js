@@ -31,7 +31,8 @@ var BUTTON_SIZE = 32;
 var PADDING = 3;
 
 //a helper library for creating toolbars
-Script.include(["../system/libraries/toolBars.js"]);
+Script.include("http://hifi-production.s3.amazonaws.com/tutorials/dice/toolBars.js");
+
 var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function(screenSize) {
   return {
     x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
