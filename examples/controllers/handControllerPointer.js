@@ -141,7 +141,9 @@ var getOverlayAtPoint = Overlays.getOverlayAtPoint;
 var setReticleVisible = function (on) { Reticle.visible = on; };
 
 var weMovedReticle = false;
-function handControllerMovedReticle() { // I.e., change in cursor position is from this script, not the mouse.
+function ignoreMouseActivity() {
+    // If we're paused, or if change in cursor position is from this script, not the hardware mouse.
+    if (!Reticle.allowMouseCapture) { return true; }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js
     if (!weMovedReticle) { return false; }
     weMovedReticle = false;
@@ -218,12 +220,11 @@ function overlayFromWorldPoint(point) {
 var mouseCursorActivity = new TimeLock(5000);
 var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
 function updateMouseActivity(isClick) {
-    if (handControllerMovedReticle()) { return; }
+    if (ignoreMouseActivity()) { return; }
     var now = Date.now();
     mouseCursorActivity.update(now);
     if (isClick) { return; } // Bug: mouse clicks should keep going. Just not hand controller clicks
     // FIXME: Does not yet seek to lookAt upon waking.
-    // FIXME not unless Reticle.allowMouseCapture
     handControllerLockOut.update(now);
     setReticleVisible(true);
 }
@@ -234,7 +235,7 @@ function expireMouseCursor(now) {
 }
 function onMouseMove() {
     // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
-    if (handControllerMovedReticle()) { return; }
+    if (ignoreMouseActivity()) { return; }
 
     if (HMD.active) { // set depth
         // FIXME: does not yet adjust slowly.
@@ -250,12 +251,9 @@ function onMouseMove() {
 function onMouseClick() {
     updateMouseActivity(true);
 }
-var fixmehack = false;
-if (!fixmehack) {
-    setupHandler(Controller.mouseMoveEvent, onMouseMove);
-    setupHandler(Controller.mousePressEvent, onMouseClick);
-    setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
-}
+setupHandler(Controller.mouseMoveEvent, onMouseMove);
+setupHandler(Controller.mousePressEvent, onMouseClick);
+setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 // CONTROLLER MAPPING ---------
 //
@@ -329,19 +327,18 @@ var fakeProjectionBall = Overlays.addOverlay("sphere", {
 var overlays = [fakeProjectionBall]; // If we want to try showing multiple balls and lasers.
 Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverlay); });
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
-function turnOffLaser(optionalEnableClicks) {
+function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
     if (!optionalEnableClicks) {
         expireMouseCursor();
     }
     if (!visualizationIsShowing) { return; }
     visualizationIsShowing = false;
-    //toggleMap.setState(optionalEnableClicks);
     overlays.forEach(function (overlay) {
         Overlays.editOverlay(overlay, {visible: false});
     });
 }
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
-function updateLaser(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
+function updateVisualization(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
     // Show an indication of where the cursor will appear when crossing a HUD element,
     // and where in-world clicking will occur.
     //
@@ -376,19 +373,18 @@ function updateLaser(controllerPosition, controllerDirection, hudPosition3d, hud
 function update() {
     var now = Date.now();
     rightTrigger.updateSmoothedTrigger();
-    if (!handControllerLockOut.expired(now)) { return turnOffLaser(); } // Let them use mouse it in peace.
-    if (!Menu.isOptionChecked("First Person")) { return turnOffLaser(); }  // What to do? menus can be behind hand!
-    if (rightTrigger.triggerSmoothedGrab()) { handControllerLockOut.update(now); return turnOffLaser(); } // Interferes with other scripts.
+    if (!handControllerLockOut.expired(now)) { return turnOffVisualization(); } // Let them use mouse it in peace.
+    if (!Menu.isOptionChecked("First Person")) { return turnOffVisualization(); }  // What to do? menus can be behind hand!
     var hand = Controller.Standard.RightHand;
     var controllerPose = getControllerPose(hand);
-    if (!controllerPose.valid) { return turnOffLaser(); } // Controller is cradled.
+    if (!controllerPose.valid) { return turnOffVisualization(); } // Controller is cradled.
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
     // This gets point direction right, but if you want general quaternion it would be more complicated:
     var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
-    if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnOffLaser(); }
+    if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnOffVisualization(); }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
 
     // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
@@ -400,10 +396,10 @@ function update() {
             Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
         }
         setReticleVisible(true);
-        return turnOffLaser(true);
+        return turnOffVisualization(true);
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
-    updateLaser(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
+    updateVisualization(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
 }
 
 var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
