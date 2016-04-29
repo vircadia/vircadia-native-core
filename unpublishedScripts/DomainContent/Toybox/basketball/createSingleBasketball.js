@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
-var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
-var collisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
+var basketballURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
+var collisionSoundURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
 
 
 var basketball = null;
