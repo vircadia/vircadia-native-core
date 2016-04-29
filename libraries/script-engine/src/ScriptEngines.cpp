@@ -84,12 +84,17 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             url.setPath(defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/")); // 2 to skip the slashes in /~/
 
             // stop something like Script.include(["/~/../Users/james/Desktop/naughty.js"]); from working
-            QFileInfo fileInfo(url.path());
-            url.setPath(fileInfo.absoluteFilePath());
+            qDebug() << "url: " << url.path();
+            qDebug() << "BEFORE: " << url.path();
+            QFileInfo fileInfo(url.toLocalFile());
+            url = QUrl::fromLocalFile(fileInfo.absoluteFilePath());
+            qDebug() << "AFTER: " << url.path();
+            qDebug() << "default: " << defaultScriptsLoc.path();
 
-            if (!url.path().startsWith(defaultScriptsLoc.path())) {
+            if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << normalizedScriptURL
-                                        << "outside of standard libraries";
+                                        << "outside of standard libraries" << url.path() << defaultScriptsLoc.path();
+                // return QUrl("");
             }
             return url;
         }
