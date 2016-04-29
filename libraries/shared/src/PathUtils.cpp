@@ -56,12 +56,15 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
 }
 
 QUrl defaultScriptsLocation() {
-#ifdef Q_OS_WIN
-    return QUrl(("file:///" + QCoreApplication::applicationDirPath()).toLower() + "/scripts");
-#elif defined(Q_OS_OSX)
-    return QUrl(("file://" + QCoreApplication::applicationDirPath() + "/../Resources/scripts").toLower());
-#else
     // return "http://s3.amazonaws.com/hifi-public";
-    return QUrl("file://" + QCoreApplication::applicationDirPath() + "/scripts");
+#ifdef Q_OS_WIN
+    QString path = QCoreApplication::applicationDirPath() + "/scripts";
+#elif defined(Q_OS_OSX)
+    QString path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
+#else
+    QString path = QCoreApplication::applicationDirPath() + "/scripts";
 #endif
+
+    QFileInfo fileInfo(path);
+    return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 }

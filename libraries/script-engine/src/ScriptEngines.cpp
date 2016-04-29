@@ -89,13 +89,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 
             // stop something like Script.include(["/~/../Desktop/naughty.js"]); from working
             QFileInfo fileInfo(url.toLocalFile());
-            #if defined(Q_OS_WIN)
-            url = QUrl::fromLocalFile(fileInfo.canonicalFilePath().toLower());
-            #elif defined(Q_OS_OSX)
-            url = QUrl::fromLocalFile(fileInfo.canonicalFilePath().toLower());
-            #else
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
-            #endif
 
             QUrl defaultScriptsLoc = defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
@@ -104,6 +98,9 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
                                         << url.path()
                                         << defaultScriptsLoc.path();
                 return rawScriptURL;
+            }
+            if (rawScriptURL.path().endsWith("/") && !url.path().endsWith("/")) {
+                url.setPath(url.path() + "/");
             }
             return url;
         }

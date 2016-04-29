@@ -874,6 +874,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
     }
 
     // at this point we should have a legitimate fully qualified URL for our parent
+    qDebug() << "ScriptEngine::resolvePath" << parentURL << url;
     url = expandScriptUrl(parentURL.resolved(url));
     return url;
 }
