@@ -914,7 +914,12 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     for (QString file : includeFiles) {
         QUrl thisURL;
         if (file.startsWith("/~/")) {
-            thisURL = expandScriptUrl(QUrl::fromLocalFile(file));
+            thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
+            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            if (!defaultScriptsLoc.isParentOf(thisURL)) {
+                qDebug() << "ScriptEngine::include -- skipping" << file << "-- outside of standard libraries";
+                continue;
+            }
         } else {
             thisURL = resolvePath(file);
         }

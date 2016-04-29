@@ -70,6 +70,12 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
     }
 }
 
+QString expandScriptPath(const QString& rawPath) {
+    QStringList splitPath = rawPath.split("/");
+    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    return defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/"); // 2 to skip the slashes in /~/
+}
+
 QUrl expandScriptUrl(const QUrl& rawScriptURL) {
     QUrl normalizedScriptURL = normalizeScriptURL(rawScriptURL);
     if (normalizedScriptURL.scheme() == "http" ||
@@ -79,17 +85,25 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
     } else if (normalizedScriptURL.scheme() == "file") {
         if (normalizedScriptURL.path().startsWith("/~/")) {
             QUrl url = normalizedScriptURL;
-            QStringList splitPath = url.path().split("/");
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
-            url.setPath(defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/")); // 2 to skip the slashes in /~/
+            url.setPath(expandScriptPath(url.path()));
 
             // stop something like Script.include(["/~/../Desktop/naughty.js"]); from working
             QFileInfo fileInfo(url.toLocalFile());
+            #if defined(Q_OS_WIN)
+            url = QUrl::fromLocalFile(fileInfo.canonicalFilePath().toLower());
+            #elif defined(Q_OS_OSX)
+            url = QUrl::fromLocalFile(fileInfo.canonicalFilePath().toLower());
+            #else
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+            #endif
+
+            QUrl defaultScriptsLoc = defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
-                                        << "-- outside of standard libraries: " << url.path() << defaultScriptsLoc.path();
-                return QUrl("");
+                                        << "-- outside of standard libraries: "
+                                        << url.path()
+                                        << defaultScriptsLoc.path();
+                return rawScriptURL;
             }
             return url;
         }
