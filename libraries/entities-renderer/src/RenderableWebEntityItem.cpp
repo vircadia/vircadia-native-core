@@ -119,12 +119,13 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 
             // Map the intersection point to an actual offscreen pixel
             glm::vec3 point = intersection.intersection;
+            glm::vec3 dimensions = getDimensions();
             point -= getPosition();
             point = glm::inverse(getRotation()) * point;
-            point /= getDimensions();
+            point /= dimensions;
             point += 0.5f;
             point.y = 1.0f - point.y;
-            point *= getDimensions() * METERS_TO_INCHES * DPI;
+            point *= dimensions * (METERS_TO_INCHES * DPI);
 
             if (event->button() == Qt::MouseButton::LeftButton) {
                 if (event->type() == QEvent::MouseButtonPress) {

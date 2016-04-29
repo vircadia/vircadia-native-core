@@ -26,7 +26,7 @@ var directoryWindow = new OverlayWebWindow({
 
 var toolHeight = 50;
 var toolWidth = 50;
-var TOOLBAR_MARGIN_Y = 25;
+var TOOLBAR_MARGIN_Y = 0;
 
 
 function showDirectory() {

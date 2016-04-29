@@ -63,7 +63,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     }
     
     accountManager.sendRequest(USER_ACTIVITY_URL,
-                               AccountManagerAuth::Required,
+                               AccountManagerAuth::Optional,
                                QNetworkAccessManager::PostOperation,
                                params, NULL, multipart);
 }

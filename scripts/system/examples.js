@@ -26,7 +26,7 @@ var examplesWindow = new OverlayWebWindow({
 
 var toolHeight = 50;
 var toolWidth = 50;
-var TOOLBAR_MARGIN_Y = 25;
+var TOOLBAR_MARGIN_Y = 0;
 
 
 function showExamples(marketplaceID) {
@@ -58,7 +58,7 @@ var toolBar = (function() {
         browseExamplesButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.HORIXONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x / 2,
                 y: windowDimensions.y
