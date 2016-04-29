@@ -15,7 +15,8 @@
 
 // Control the "mouse" using hand controller. (HMD and desktop.)
 // For now:
-// Thumb utton 3 is left-mouse, button 4 is right-mouse. What to do on Vive? (Currently primary thumb is left click.)
+// Hydra thumb button 3 is left-mouse, button 4 is right-mouse.
+// Vive thumb pad is left mouse (but that interferes with driveing!). Vive menu button is context menu (right mouse).
 // First-person only.
 // Starts right handed, but switches to whichever is free: Whichever hand was NOT most recently squeezed.
 //   (For now, the thumb buttons on both controllers are always on.)
