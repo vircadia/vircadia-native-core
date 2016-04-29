@@ -17,16 +17,16 @@ print('handControllerPointer version', 10);
 
 // Control the "mouse" using hand controller. (HMD and desktop.)
 // For now:
-// Button 3 is left-mouse, button 4 is right-mouse. What to do on Vive?
+// Thumb utton 3 is left-mouse, button 4 is right-mouse. What to do on Vive? (Currently primary thumb is left click.)
 // First-person only.
-// Right hand only.  FIXME
+// Starts right handed, but switches to whichever is free: Whichever hand was NOT most recently squeezed.
+//   (For now, the thumb buttons on both controllers are always on.)
 // When over a HUD element, the reticle is shown where the active hand controller beam intersects the HUD.
 // Otherwise, the active hand controller shows a red ball where a click will act.
 //
 // Bugs:
 // On Windows, the upper left corner of Interface must be in the upper left corner of the screen, and the title bar must be 50px high. (System bug.)
 // While hardware mouse move switches to mouse move, hardware mouse click (without amove) does not.
-// lockout after click on 2d overlay?
 
 var wasRunningDepthReticle = false;
 function checkForDepthReticleScript() {
@@ -109,7 +109,6 @@ function Trigger() {
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
-        debug(that.triggerValue); // FIXME
     };
     that.triggerSmoothedGrab = function() {
         return that.triggerValue > TRIGGER_GRAB_VALUE;
@@ -291,9 +290,12 @@ function checkHardware() {
         case 'Hydra':
             mapToAction('R3', 'ReticleClick');
             mapToAction('R4', 'ContextMenu');
+            mapToAction('L3', 'ReticleClick');
+            mapToAction('L4', 'ContextMenu');
             break;
         case 'Vive':
             mapToAction('RightPrimaryThumb', 'ReticleClick');
+            mapToAction('LeftPrimaryThumb', 'ReticleClick');
             break;
         }
 
