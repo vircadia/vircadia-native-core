@@ -13,8 +13,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-print('handControllerPointer version', 10);
-
 // Control the "mouse" using hand controller. (HMD and desktop.)
 // For now:
 // Thumb utton 3 is left-mouse, button 4 is right-mouse. What to do on Vive? (Currently primary thumb is left click.)
@@ -314,13 +312,16 @@ checkHardware();
 
 var activeHand = Controller.Standard.RightHand;
 var activeTrigger = rightTrigger;
+var inactiveTrigger = leftTrigger;
 function toggleHand() {
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
         activeTrigger = leftTrigger;
+        inactiveTrigger = rightTrigger;
     } else {
         activeHand = Controller.Standard.RightHand;
         activeTrigger = rightTrigger;
+        inactiveTrigger = leftTrigger;
     }
 }
 
@@ -389,7 +390,7 @@ function update() {
     rightTrigger.updateSmoothedTrigger();
     if (!handControllerLockOut.expired(now)) { return turnOffVisualization(); } // Let them use mouse it in peace.
 
-    if (activeTrigger.triggerSmoothedSqueezed()) { toggleHand(); }
+    if (activeTrigger.triggerSmoothedSqueezed() && !inactiveTrigger.triggerSmoothedSqueezed()) { toggleHand(); }
     
     if (!Menu.isOptionChecked("First Person")) { return turnOffVisualization(); }  // What to do? menus can be behind hand!
     var controllerPose = getControllerPose(activeHand);
