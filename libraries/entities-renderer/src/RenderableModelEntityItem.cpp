@@ -518,6 +518,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
     if (!_dimensionsInitialized && _model && _model->isActive()) {
         if (_model->isLoaded()) {
             EntityItemProperties properties;
+            properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
             auto extents = _model->getMeshExtents();
             properties.setDimensions(extents.maximum - extents.minimum);
             qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());

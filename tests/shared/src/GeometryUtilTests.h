@@ -18,6 +18,7 @@
 class GeometryUtilTests : public QObject {
     Q_OBJECT
 private slots:
+    void testConeSphereAngle();
     void testLocalRayRectangleIntersection();
     void testWorldRayRectangleIntersection();
     void testTwistSwingDecomposition();

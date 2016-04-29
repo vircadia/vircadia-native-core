@@ -75,20 +75,16 @@ gpu::BufferView getDefaultMaterialBuffer() {
 
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
     // Set a default albedo map
-    batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
         DependencyManager::get<TextureCache>()->getWhiteTexture());
     // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
         DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    // Set default coordinates
-    if (pipeline.locations->texcoordMatrices >= 0) {
-        static const glm::mat4 TEX_COORDS[2];
-        batch._glUniformMatrix4fv(pipeline.locations->texcoordMatrices, 2, false, (const float*)&TEX_COORDS);
-    }
+
     // Set a default material
     if (pipeline.locations->materialBufferUnit >= 0) {
         static const gpu::BufferView OPAQUE_SCHEMA_BUFFER = getDefaultMaterialBuffer();
-        batch.setUniformBuffer(ShapePipeline::Slot::MATERIAL_GPU, OPAQUE_SCHEMA_BUFFER);
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, OPAQUE_SCHEMA_BUFFER);
     }
 }
 

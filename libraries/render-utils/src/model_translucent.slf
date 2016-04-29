@@ -59,7 +59,7 @@ void main(void) {
 
     TransformCamera cam = getTransformCamera();
 
-    _fragColor =  vec4(evalSkyboxGlobalColor(
+    _fragColor =  vec4(evalGlobalLightColor(
         cam._viewInverse,
         1.0,
         1.0,
@@ -68,6 +68,6 @@ void main(void) {
         albedo,
         metallic,
         emissive,
-        roughness),
+        roughness, opacity),
         opacity);
 }
