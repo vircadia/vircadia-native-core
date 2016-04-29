@@ -559,8 +559,8 @@
             var RESET_DISTANCE = 1;
             var MINIMUM_MOVE_LENGTH = 0.05;
             var basketballURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
-            var basketballCollisionSoundURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
-            var rackURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_rack.fbx";
+            var basketballCollisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
+            var rackURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_rack.fbx";
             var rackCollisionHullURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/rack_collision_hull.obj";
 
             var rackRotation = Quat.fromPitchYawRollDegrees(0, -90, 0);
