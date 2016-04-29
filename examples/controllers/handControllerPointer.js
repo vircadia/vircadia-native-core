@@ -53,7 +53,7 @@ Script.scriptEnding.connect(function () {
 
 // UTILITIES -------------
 //
-var counter = 0, skip = 0; //fixme 50;
+var counter = 0, skip = 50;
 function debug() { // Display the arguments not just [Object object].
     if (skip && (counter++ % skip)) { return; }
     print.apply(null, [].map.call(arguments, JSON.stringify));
@@ -78,6 +78,9 @@ var handControllerLockOut = new TimeLock(2000);
 
 // Calls onFunction() or offFunction() when swtich(on), but only if it is to a new value.
 function LatchedToggle(onFunction, offFunction, state) {
+    this.getState = function () {
+        return state;
+    };
     this.setState = function (on) {
         if (state === on) { return; }
         state = on;
@@ -106,6 +109,7 @@ function Trigger() {
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
+        debug(that.triggerValue);
     };
     that.triggerSmoothedGrab = function() {
         return that.triggerValue > TRIGGER_GRAB_VALUE;
@@ -256,56 +260,58 @@ if (!fixmehack) {
 // CONTROLLER MAPPING ---------
 //
 // Synthesize left and right mouse click from controller, and get trigger values matching handControllerGrab.
-function mapToAction(mapping, controller, button, action) {
-    if (!Controller.Hardware[controller]) { return; } // FIXME: recheck periodically!
-    mapping.from(Controller.Hardware[controller][button]).peek().to(Controller.Actions[action]);
-}
-
-var triggerMenuMapping = Controller.newMapping(Script.resolvePath('') + '-trigger');
-Script.scriptEnding.connect(triggerMenuMapping.disable);
+var triggerMapping;
 var leftTrigger = new Trigger();
 var rightTrigger = new Trigger();
-triggerMenuMapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
-triggerMenuMapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
-mapToAction(triggerMenuMapping, 'Hydra', 'R4', 'ContextMenu');
-mapToAction(triggerMenuMapping, 'Hydra', 'L4', 'ContextMenu');
-triggerMenuMapping.enable();
 
-var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
-Script.scriptEnding.connect(clickMapping.disable);
-mapToAction(clickMapping, 'Hydra', 'R3', 'ReticleClick');
-mapToAction(clickMapping, 'Hydra', 'L3', 'ReticleClick');
-mapToAction(clickMapping, 'Vive', 'LeftPrimaryThumb', 'ReticleClick');
-mapToAction(clickMapping, 'Vive', 'RightPrimaryThumb', 'ReticleClick');
-var clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
-clickMapToggle.setState(true);
-/*
+// Create clickMappings as needed, on demand.
+var clickMappings = {}, clickMapping, clickMapToggle;
 var hardware; // undefined
-var leftTrigger = new Trigger();
-var rightTrigger = new Trigger();
 function checkHardware() {
+    // FIX SYSTEM BUG: This does not work when hardware changes.
+    // https://app.asana.com/0/26225263936266/118428633439654
     var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive': null); // not undefined
     if (hardware === newHardware) { return; }
-    if (hardware) {
-        triggerMenuMapping.disable();
-        clickMapping.disable();
+    print('Setting mapping for new controller hardware:', newHardware);
+    if (clickMapToggle) {
+        clickMapToggle.setState(false);
+        triggerMapping.disable();
     }
     hardware = newHardware;
-    triggerMenuMapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
-    triggerMenuMapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
-    mapToAction(triggerMenuMapping, 'Hydra', 'R4', 'ContextMenu');
-    mapToAction(triggerMenuMapping, 'Hydra', 'L4', 'ContextMenu');
-    triggerMenuMapping.enable();
+    if (clickMappings[hardware]) {
+        clickMapping = clickMappings[hardware].click;
+        triggerMapping = clickMappings[hardware].trigger;
+    } else {
+        clickMapping = Controller.newMapping(Script.resolvePath('') + '-click-' + hardware);
+        Script.scriptEnding.connect(clickMapping.disable);
+        function mapToAction(button, action) {
+            clickMapping.from(Controller.Hardware[hardware][button]).peek().to(Controller.Actions[action]);
+        }
+        switch (hardware) {
+        case 'Hydra':
+            mapToAction('R3', 'ReticleClick');
+            mapToAction('L3', 'ReticleClick');
+            mapToAction('R4', 'ContextMenu');
+            mapToAction('L4', 'ContextMenu');
+            break;
+        case 'Vive':
+            mapToAction('LeftPrimaryThumb', 'ReticleClick');
+            mapToAction('RightPrimaryThumb', 'ReticleClick');
+            break;
+        }
 
-    mapToAction(clickMapping, 'Hydra', 'R3', 'ReticleClick');
-    mapToAction(clickMapping, 'Hydra', 'L3', 'ReticleClick');
-    mapToAction(clickMapping, 'Vive', 'LeftPrimaryThumb', 'ReticleClick');
-    mapToAction(clickMapping, 'Vive', 'RightPrimaryThumb', 'ReticleClick');
-    var clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
+        triggerMapping = Controller.newMapping(Script.resolvePath('') + '-trigger-' + hardware);
+        Script.scriptEnding.connect(triggerMapping.disable);
+        triggerMapping.from([Controller.Standard.RT]).peek().to(rightTrigger.triggerPress);
+        triggerMapping.from([Controller.Standard.LT]).peek().to(leftTrigger.triggerPress);
+
+        clickMappings[hardware] = {click: clickMapping, trigger: triggerMapping};
+    }
+    clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
     clickMapToggle.setState(true);
+    triggerMapping.enable();
 }
 checkHardware();
-*/
 
 
 // VISUAL AID -----------
@@ -462,7 +468,8 @@ Script.scriptEnding.connect(function () { Script.clearInterval(updater); });
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
-    checkForDepthReticleScript()    
+    checkForDepthReticleScript();
+    checkHardware();;
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
