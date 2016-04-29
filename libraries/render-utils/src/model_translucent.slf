@@ -16,7 +16,7 @@
 
 <@include DeferredGlobalLight.slh@>
 
-<$declareEvalGlobalLightColor()$>
+<$declareEvalGlobalLightingAlphaBlended()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
@@ -59,7 +59,7 @@ void main(void) {
 
     TransformCamera cam = getTransformCamera();
 
-    _fragColor =  vec4(evalGlobalLightColor(
+    _fragColor =  vec4(evalGlobalLightingAlphaBlended(
         cam._viewInverse,
         1.0,
         1.0,
