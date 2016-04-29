@@ -25,15 +25,12 @@ UserActivityLogger& UserActivityLogger::getInstance() {
     return sharedInstance;
 }
 
-UserActivityLogger::UserActivityLogger() : _disabled(false) {
-}
-
 void UserActivityLogger::disable(bool disable) {
-    _disabled = disable;
+    _disabled.set(disable);
 }
 
 void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCallbackParameters params) {
-    if (_disabled) {
+    if (_disabled.get()) {
         return;
     }
     
