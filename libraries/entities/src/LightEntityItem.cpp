@@ -76,12 +76,13 @@ void LightEntityItem::setIsSpotlight(bool value) {
     if (value != _isSpotlight) {
         _isSpotlight = value;
 
+        glm::vec3 dimensions = getDimensions();
         if (_isSpotlight) {
-            const float length = getDimensions().z;
+            const float length = dimensions.z;
             const float width = length * glm::sin(glm::radians(_cutoff));
             setDimensions(glm::vec3(width, width, length));
         } else {
-            float maxDimension = glm::max(getDimensions().x, getDimensions().y, getDimensions().z);
+            float maxDimension = glm::max(dimensions.x, dimensions.y, dimensions.z);
             setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
         }
     }

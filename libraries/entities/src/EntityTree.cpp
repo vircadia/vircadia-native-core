@@ -1459,10 +1459,12 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
 
 void EntityTree::callLoader(EntityItemID entityID) {
     // this is used to bounce from the networking thread to the main thread
-    EntityItemPointer entity = findEntityByEntityItemID(entityID);
-    if (entity) {
-        entity->loader();
-    }
+    this->withWriteLock([&] {
+        EntityItemPointer entity = findEntityByEntityItemID(entityID);
+        if (entity) {
+            entity->loader();
+        }
+    });
 }
 
 int EntityTree::getJointIndex(const QUuid& entityID, const QString& name) const {
