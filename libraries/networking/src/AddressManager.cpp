@@ -600,13 +600,6 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
 
     // if we're cold starting and this is called for the first address (from settings) we don't do anything
     if (trigger != LookupTrigger::StartupFromSettings) {
-        if (trigger == LookupTrigger::UserInput) {
-            // anyime the user has manually looked up an address we know we should clear the forward stack
-            _forwardStack.clear();
-
-            emit goForwardPossible(false);
-        }
-
         if (trigger == LookupTrigger::Back) {
             // we're about to push to the forward stack
             // if it's currently empty emit our signal to say that going forward is now possible
@@ -618,9 +611,16 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
             // and do not but it into the back stack
             _forwardStack.push(currentAddress());
         } else {
+            if (trigger == LookupTrigger::UserInput) {
+                // anyime the user has manually looked up an address we know we should clear the forward stack
+                _forwardStack.clear();
+
+                emit goForwardPossible(false);
+            }
+
             // we're about to push to the back stack
-            // if it's currently empty emit our signal to say that going forward is now possible
-            if (_forwardStack.size() == 0) {
+            // if it's currently empty emit our signal to say that going backward is now possible
+            if (_backStack.size() == 0) {
                 emit goBackPossible(true);
             }
 
