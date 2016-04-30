@@ -298,9 +298,21 @@ public:
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
 
+    // Texture Map Array Schema
+    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
+    class TexMapArraySchema {
+    public:
+        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
+        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
+        TexMapArraySchema() {}
+    };
+
+    const UniformBufferView& getTexMapArrayBuffer() const { return _texMapArrayBuffer; }
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
+    mutable UniformBufferView _texMapArrayBuffer;
+
     TextureMaps _textureMaps;
 };
 typedef std::shared_ptr< Material > MaterialPointer;

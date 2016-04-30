@@ -243,7 +243,7 @@ else (APPLE)
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${CMAKE_SOURCE_DIR}/examples"
+    "${CMAKE_SOURCE_DIR}/scripts"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
@@ -269,7 +269,7 @@ endif (APPLE)
 if (SCRIPTS_INSTALL_DIR)
   # setup install of scripts beside interface executable
   install(
-    DIRECTORY "${CMAKE_SOURCE_DIR}/examples/"
+    DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"
     DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
     COMPONENT ${CLIENT_COMPONENT}
   )

@@ -25,7 +25,7 @@ Hifi.AvatarInputs {
     readonly property int iconPadding: 5
 
     readonly property bool shouldReposition: true
-    
+
     Settings {
         category: "Overlay.AvatarInputs"
         property alias x: root.x

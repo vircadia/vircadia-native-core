@@ -339,15 +339,16 @@ void RenderableModelEntityItem::updateModelBounds() {
         return;
     }
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
+    glm::vec3 dimensions = getDimensions();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
          _needsJointSimulation ||
          _model->getTranslation() != getPosition() ||
-         _model->getScaleToFitDimensions() != getDimensions() ||
+         _model->getScaleToFitDimensions() != dimensions ||
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
-        _model->setScaleToFit(true, getDimensions());
+        _model->setScaleToFit(true, dimensions);
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
@@ -518,6 +519,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
     if (!_dimensionsInitialized && _model && _model->isActive()) {
         if (_model->isLoaded()) {
             EntityItemProperties properties;
+            properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
             auto extents = _model->getMeshExtents();
             properties.setDimensions(extents.maximum - extents.minimum);
             qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());

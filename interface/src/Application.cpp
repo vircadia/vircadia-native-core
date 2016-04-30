@@ -4315,6 +4315,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
     }
 }
+
 void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
     // Attempt to identify the sender from its address.
     if (sendingNode) {

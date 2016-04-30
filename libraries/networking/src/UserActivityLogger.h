@@ -19,6 +19,8 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
+#include <SettingHandle.h>
+
 class UserActivityLogger : public QObject {
     Q_OBJECT
     
@@ -44,8 +46,8 @@ private slots:
     void requestError(QNetworkReply& errorReply);
     
 private:
-    UserActivityLogger();
-    bool _disabled;
+    UserActivityLogger() {};
+    Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", false };
 };
 
 #endif // hifi_UserActivityLogger_h
