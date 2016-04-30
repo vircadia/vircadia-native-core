@@ -140,6 +140,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         hadUncaughtExceptions(*this, _fileNameString);
     });
+    
+    setProcessEventsInterval(MSECS_PER_SECOND);
 }
 
 ScriptEngine::~ScriptEngine() {
@@ -193,6 +195,14 @@ void ScriptEngine::runInThread() {
     workerThread->start();
 }
 
+void ScriptEngine::threadSafeAbortEvaluation() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "threadSafeAbortEvaluation");
+        return;
+    }
+    abortEvaluation();
+}
+
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
     if (_isRunning && _isThreaded) {
@@ -213,7 +223,7 @@ void ScriptEngine::waitTillDoneRunning() {
             // if we've been waiting a second or more, then tell the script engine to stop evaluating
             if (elapsed > USECS_PER_SECOND) {
                 qDebug() << "giving up on evaluation elapsed:" << elapsed << "calling abortEvaluation() script:" << scriptName;
-                abortEvaluation();
+                threadSafeAbortEvaluation();
             }
 
             // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
