@@ -361,7 +361,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
-    virtual SpatialParentTree* getParentTree() const;
+    virtual SpatialParentTree* getParentTree() const override;
     bool wantTerseEditLogging() const;
 
     glm::mat4 getEntityToWorldMatrix() const;
