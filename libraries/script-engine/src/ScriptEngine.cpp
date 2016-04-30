@@ -222,14 +222,14 @@ void ScriptEngine::waitTillDoneRunning() {
             
             // if we've been waiting a second or more, then tell the script engine to stop evaluating
             if (elapsed > USECS_PER_SECOND) {
-                qDebug() << "giving up on evaluation elapsed:" << elapsed << "calling abortEvaluation() script:" << scriptName;
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsed << "] aborting evaluation.";
                 threadSafeAbortEvaluation();
             }
 
             // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
             static const auto WAITING_TOO_LONG = USECS_PER_SECOND * 5;
             if (elapsed > WAITING_TOO_LONG) {
-                qDebug() << "giving up on thread elapsed:" << elapsed << "calling thread->quit() script:" << scriptName;
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsed << "] quitting.";
                 thread()->quit();
                 break;
             }
@@ -396,7 +396,6 @@ void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
             if (partsToGo > 0) {
                 //QObject *object = new QObject;
                 QScriptValue partValue = newArray(); //newQObject(object, QScriptEngine::ScriptOwnership);
-                qDebug() << "partValue[" << pathPart<<"].isArray() :" << partValue.isArray();
                 partObject.setProperty(pathPart, partValue);
             } else {
                 partObject.setProperty(pathPart, value);
@@ -1089,11 +1088,6 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
                 << QThread::currentThread() << "] expected thread [" << strongEngine->thread() << "]";
 #endif
             strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
-        } else {
-            // FIXME - I'm leaving this in for testing, so that QA can confirm that sometimes the script contents
-            //         returns after the ScriptEngine has been deleted, we can remove this after QA verifies the
-            //         repro case.
-            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted... script:" << scriptOrURL;
         }
     }, forceRedownload);
 }
