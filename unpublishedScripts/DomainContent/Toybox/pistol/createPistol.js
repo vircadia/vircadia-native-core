@@ -1,6 +1,6 @@
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
 var scriptURL = Script.resolvePath('pistol.js');
-var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
+var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/gun.fbx";
 
 
 var pistol = Entities.addEntity({
@@ -27,7 +27,7 @@ var pistol = Entities.addEntity({
     },
     restitution: 0,
     damping:0.5,
-    collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/drop.wav",
+    collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/drop.wav",
     userData: JSON.stringify({
         grabbableKey: {
             invertSolidWhileHeld: true

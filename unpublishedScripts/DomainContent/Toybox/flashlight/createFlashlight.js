@@ -12,11 +12,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
-Script.include("../../libraries/utils.js");
+Script.include("libraries/utils.js");
 
 var scriptURL = Script.resolvePath('flashlight.js');
 
-var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
+var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight.fbx";
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,

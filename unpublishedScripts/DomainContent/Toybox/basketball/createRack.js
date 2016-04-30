@@ -8,15 +8,13 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
-Script.include("../../libraries/utils.js");
 
-var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+Script.include("libraries/utils.js");
 
-var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
-var collisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
-var rackURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/basketball_rack.fbx";
-var rackCollisionHullURL = HIFI_PUBLIC_BUCKET + "models/basketball_hoop/rack_collision_hull.obj";
+var basketballURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
+var collisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
+var rackURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_rack.fbx";
+var rackCollisionHullURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/rack_collision_hull.obj";
 var NUMBER_OF_BALLS = 4;
 var DIAMETER = 0.30;
 var RESET_DISTANCE = 1;
