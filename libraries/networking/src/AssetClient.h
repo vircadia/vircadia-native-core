@@ -74,9 +74,6 @@ private slots:
     void handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
-    void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length);
-    void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID);
-
     void handleNodeKilled(SharedNodePointer node);
 
 private:
@@ -95,6 +92,9 @@ private:
     bool cancelGetAssetInfoRequest(MessageID id);
     bool cancelGetAssetRequest(MessageID id);
     bool cancelUploadAssetRequest(MessageID id);
+
+    void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length);
+    void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID);
 
     struct GetAssetRequestData {
         QSharedPointer<ReceivedMessage> message;
