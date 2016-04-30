@@ -221,7 +221,8 @@ void ScriptEngine::waitTillDoneRunning() {
             auto elapsed = stillWaiting - startedWaiting;
             
             // if we've been waiting a second or more, then tell the script engine to stop evaluating
-            if (elapsed > USECS_PER_SECOND) {
+            static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
+            if (elapsed > MAX_SCRIPT_EVALUATION_TIME) {
                 qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsed << "] aborting evaluation.";
                 threadSafeAbortEvaluation();
             }
