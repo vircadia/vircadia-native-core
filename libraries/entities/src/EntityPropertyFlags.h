@@ -169,6 +169,9 @@ enum EntityPropertyList {
 
     PROP_FALLOFF_RADIUS, // for Light entity
 
+    PROP_FLYING_ALLOWED, // can avatars in a zone fly?
+    PROP_GHOSTING_ALLOWED, // can avatars in a zone turn off physics?
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
