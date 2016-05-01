@@ -98,6 +98,9 @@ public:
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
+    void setFlyingAllowed(bool value);
+
+
 protected:
 #ifdef DEBUG_STATE_CHANGE
     void setState(State state, const char* reason);
@@ -147,6 +150,8 @@ protected:
     btRigidBody* _rigidBody { nullptr };
     uint32_t _pendingFlags { 0 };
     uint32_t _previousFlags { 0 };
+
+    bool _flyingAllowed { true };
 };
 
 #endif // hifi_CharacterControllerInterface_h
