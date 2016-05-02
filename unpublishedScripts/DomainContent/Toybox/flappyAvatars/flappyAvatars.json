@@ -10,7 +10,7 @@
             },
             "dynamic": 1,
             "id": "{ee5b25e6-aca2-4dc7-9462-51537d89c126}",
-            "modelURL": "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/cube.fbx",
+            "modelURL": "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/cube.fbx",
             "queryAACube": {
                 "scale": 0.5974045991897583,
                 "x": -5.1575918197631836,
@@ -23,7 +23,7 @@
                 "y": -0.13279926776885986,
                 "z": 0.34688329696655273
             },
-            "script": "https://raw.githubusercontent.com/Atlante45/hifi/feat/hackaton/examples/toybox/flappyAvatars/flappyAvatars.js",
+            "script": "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flappyAvatars/flappyAvatars.js",
             "scriptTimestamp": 1457031937425,
             "shapeType": "box",
             "type": "Model",

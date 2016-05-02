@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 (function() {
-    var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
+    var targetsScriptURL = Script.resolvePath('ping_pong_gun/wallTarget.js');
 
     var _this;
     Resetter = function() {
@@ -44,8 +44,8 @@
 
         createTargets: function() {
 
-            var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
-            var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
+            var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target.fbx';
+            var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
 
             var MINIMUM_MOVE_LENGTH = 0.05;
             var RESET_DISTANCE = 0.5;
