@@ -17,7 +17,7 @@ var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var DIRECTORY_WINDOW_URL = "https://metaverse.highfidelity.com/directory";
 var directoryWindow = new OverlayWebWindow({
-    title: 'directory',
+    title: 'Directory',
     source: "about:blank",
     width: 900,
     height: 700,
