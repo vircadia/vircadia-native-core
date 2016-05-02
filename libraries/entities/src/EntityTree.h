@@ -127,7 +127,7 @@ public:
     EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
-    virtual SpatiallyNestablePointer findByID(const QUuid& id) { return findEntityByID(id); }
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 

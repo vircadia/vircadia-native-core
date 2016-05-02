@@ -20,7 +20,7 @@ public:
     Volume3DOverlay() {}
     Volume3DOverlay(const Volume3DOverlay* volume3DOverlay);
     
-    virtual AABox getBounds() const;
+    virtual AABox getBounds() const override;
     
     const glm::vec3& getDimensions() const { return _localBoundingBox.getDimensions(); }
     void setDimensions(float value) { _localBoundingBox.setBox(glm::vec3(-value / 2.0f), value); }
@@ -30,7 +30,7 @@ public:
     QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                        BoxFace& face, glm::vec3& surfaceNormal) override;
     
 protected:
     // Centered local bounding box

@@ -19,12 +19,12 @@ class Circle3DOverlay : public Planar3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Circle3DOverlay();
     Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
     
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -54,9 +54,9 @@ public:
     void setMinorTickMarksColor(const xColor& value) { _minorTickMarksColor = value; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                        BoxFace& face, glm::vec3& surfaceNormal) override;
 
-    virtual Circle3DOverlay* createClone() const;
+    virtual Circle3DOverlay* createClone() const override;
     
 protected:
     float _startAt;
