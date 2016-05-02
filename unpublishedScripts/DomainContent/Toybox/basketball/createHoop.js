@@ -6,12 +6,10 @@
 //
 //  This is a script that creates a persistent basketball hoop with a working collision hull.  Feel free to move it.
 //
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
-var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
-var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
+
+var hoopURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_hoop.fbx";
+var hoopCollisionHullURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_hoop_collision_hull.obj";
 
 var hoopStartPosition =
     Vec3.sum(MyAvatar.position,

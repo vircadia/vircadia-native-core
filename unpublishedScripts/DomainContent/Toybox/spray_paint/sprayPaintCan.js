@@ -13,9 +13,9 @@
     // Script.include("../libraries/utils.js");
     //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
 
-    Script.include("../../libraries/utils.js");
+    Script.include("libraries/utils.js");
 
-    this.spraySound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/sprayPaintSound.wav");
+    this.spraySound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/spray_paint.wav");
 
     var TIP_OFFSET_Z = 0.02;
     var TIP_OFFSET_Y = 0.08;
@@ -63,7 +63,7 @@
             name: "streamEffect",
             isEmitting: true,
             position: position,
-            textures: "https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png",
+            textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/smokeparticle.png",
             emitSpeed: 3,
             speedSpread: 0.02,
             emitAcceleration: ZERO_VEC,

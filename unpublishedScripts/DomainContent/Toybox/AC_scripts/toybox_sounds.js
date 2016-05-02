@@ -10,7 +10,7 @@
 
 var soundMap = [{
     name: 'river water',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/Water_Lap_River_Edge_Gentle.L.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/Water_Lap_River_Edge_Gentle.L.wav",
     audioOptions: {
         position: {
             x: 580,
@@ -22,7 +22,7 @@ var soundMap = [{
     }
 }, {
     name: 'windmill',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/WINDMILL_Mono.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/WINDMILL_Mono.wav",
     audioOptions: {
         position: {
             x: 530,
@@ -34,7 +34,7 @@ var soundMap = [{
     }
 }, {
     name: 'insects',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/insects3.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/insects3.wav",
     audioOptions: {
         position: {
             x: 560,
@@ -46,7 +46,7 @@ var soundMap = [{
     }
 }, {
     name: 'fireplace',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/0619_Fireplace__Tree_B.L.wav",
     audioOptions: {
         position: {
             x: 551.61,
@@ -58,7 +58,7 @@ var soundMap = [{
     }
 }, {
     name: 'cat purring',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/Cat_Purring_Deep_Low_Snor.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/Cat_Purring_Deep_Low_Snor.wav",
     audioOptions: {
         position: {
             x: 551.48,
@@ -70,7 +70,7 @@ var soundMap = [{
     }
 }, {
     name: 'dogs barking',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/dogs_barking_1.L.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/dogs_barking_1.L.wav",
     audioOptions: {
         position: {
             x: 523,
@@ -83,7 +83,7 @@ var soundMap = [{
     playAtInterval: 60 * 1000
 }, {
     name: 'arcade game',
-    url: "http://hifi-public.s3.amazonaws.com/ryan/ARCADE_GAMES_VID.L.L.wav",
+    url: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/sounds/ARCADE_GAMES_VID.L.L.wav",
     audioOptions: {
         position: {
             x: 543.77,
