@@ -138,21 +138,17 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    batch.setUniformBuffer(ShapePipeline::Slot::MATERIAL_GPU, _drawMaterial->getSchemaBuffer());
+    batch.setUniformBuffer(ShapePipeline::Slot::MATERIAL_BUFFER, _drawMaterial->getSchemaBuffer());
+    batch.setUniformBuffer(ShapePipeline::Slot::TEXMAPARRAY_BUFFER, _drawMaterial->getTexMapArrayBuffer());
 
     auto materialKey = _drawMaterial->getKey();
     auto textureMaps = _drawMaterial->getTextureMaps();
-    glm::mat4 texcoordTransform[2];
 
     // Albedo
     if (materialKey.isAlbedoMap()) {
         auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
         if (albedoMap && albedoMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, albedoMap->getTextureView());
-
-            if (!albedoMap->getTextureTransform().isIdentity()) {
-                albedoMap->getTextureTransform().getMatrix(texcoordTransform[0]);
-            }
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getGrayTexture());
         }
@@ -222,13 +218,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
         if (lightmapMap && lightmapMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, lightmapMap->getTextureView());
-
-            auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
-            batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
-
-            if (!lightmapMap->getTextureTransform().isIdentity()) {
-                lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
-            }
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getGrayTexture());
         }
@@ -242,12 +231,6 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         }
     } else {
         batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, nullptr);
-    }
-
-    // Texcoord transforms ?
-    if (locations->texcoordMatrices >= 0) {
-        batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*)&texcoordTransform);
-       // batch._glUniformMatrix4fv(locations->texcoordMatrices, (materialKey.isLightmapMap() ? 2 : 1), false, (const float*)&texcoordTransform);
     }
 }
 
@@ -491,9 +474,9 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     Transform transform;
     if (state.clusterBuffer) {
         if (canCauterize && _model->getCauterizeBones()) {
-            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.cauterizedClusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_BUFFER, state.cauterizedClusterBuffer);
         } else {
-            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.clusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_BUFFER, state.clusterBuffer);
         }
     } else {
         if (canCauterize && _model->getCauterizeBones()) {

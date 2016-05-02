@@ -107,7 +107,8 @@ public:
 
     // The recommended bounds for primary overlay placement
     virtual QRect getRecommendedOverlayRect() const {
-        auto recommendedSize = getRecommendedUiSize();
+        const int DESKTOP_SCREEN_PADDING = 50;
+        auto recommendedSize = getRecommendedUiSize() - glm::uvec2(DESKTOP_SCREEN_PADDING);
         return QRect(0, 0, recommendedSize.x, recommendedSize.y);
     }
 
