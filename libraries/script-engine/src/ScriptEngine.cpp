@@ -195,14 +195,6 @@ void ScriptEngine::runInThread() {
     workerThread->start();
 }
 
-void ScriptEngine::threadSafeAbortEvaluation() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "threadSafeAbortEvaluation");
-        return;
-    }
-    abortEvaluation();
-}
-
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
     if (_isRunning && _isThreaded) {
@@ -218,21 +210,20 @@ void ScriptEngine::waitTillDoneRunning() {
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
             auto stillWaiting = usecTimestampNow();
-            auto elapsed = stillWaiting - startedWaiting;
+            auto elapsedUsecs = stillWaiting - startedWaiting;
             
             // if we've been waiting a second or more, then tell the script engine to stop evaluating
             static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
-            if (elapsed > MAX_SCRIPT_EVALUATION_TIME) {
-                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsed << "] aborting evaluation.";
-                threadSafeAbortEvaluation();
-            }
+            static const auto WAITING_TOO_LONG = MAX_SCRIPT_EVALUATION_TIME * 5;
 
             // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
-            static const auto WAITING_TOO_LONG = USECS_PER_SECOND * 5;
-            if (elapsed > WAITING_TOO_LONG) {
-                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsed << "] quitting.";
+            if (elapsedUsecs > WAITING_TOO_LONG) {
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << "] quitting.";
                 thread()->quit();
                 break;
+            } else if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << "] aborting evaluation.";
+                QMetaObject::invokeMethod(this, "abortEvaluation");
             }
         }
     }
