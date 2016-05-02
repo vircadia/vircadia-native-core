@@ -19,7 +19,7 @@ function getFrame(callback) {
     var FRAME_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pictureFrame/finalFrame.fbx";
 
     var model = ModelCache.prefetch(FRAME_URL);
-    if (model.state = Resource.State.FINISHED) {
+    if (model.state === Resource.State.FINISHED) {
         makeFrame(Resource.State.FINISHED);
     } else {
         model.stateChanged.connect(makeFrame);
