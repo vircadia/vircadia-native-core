@@ -13,6 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+
 var isDice = false;
 var NUMBER_OF_DICE = 4;
 var LIFETIME = 10000; //  Dice will live for about 3 hours
@@ -29,14 +31,14 @@ var screenSize = Controller.getViewportDimensions();
 
 var BUTTON_SIZE = 32;
 var PADDING = 3;
-
+var BOTTOM_PADDING = 50;
 //a helper library for creating toolbars
 Script.include("http://hifi-production.s3.amazonaws.com/tutorials/dice/toolBars.js");
 
-var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function(screenSize) {
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.toolbars.dice7", function(screenSize) {
   return {
-    x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
-    y: (screenSize.y - (BUTTON_SIZE + PADDING))
+    x: (screenSize.x - BUTTON_SIZE*3),
+    y: (screenSize.y - 100)
   };
 });
 
@@ -54,7 +56,7 @@ var offButton = toolBar.addOverlay("image", {
 
 var deleteButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 - BUTTON_SIZE,
-  y: screenSize.y - (BUTTON_SIZE + PADDING),
+  y: screenSize.y - (BUTTON_SIZE + PADDING)+BOTTOM_PADDING,
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/delete.png",
@@ -69,7 +71,7 @@ var deleteButton = toolBar.addOverlay("image", {
 var diceIconURL = "http://hifi-production.s3.amazonaws.com/tutorials/dice/dice.png"
 var diceButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 + PADDING,
-  y: screenSize.y - (BUTTON_SIZE + PADDING),
+  y: screenSize.y - (BUTTON_SIZE + PADDING)+BOTTOM_PADDING,
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: diceIconURL,
