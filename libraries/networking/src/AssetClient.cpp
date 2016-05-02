@@ -325,46 +325,116 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
 
     // Check if we have any pending requests for this node
     auto messageMapIt = _pendingRequests.find(senderNode);
-    if (messageMapIt != _pendingRequests.end()) {
+    if (messageMapIt == _pendingRequests.end()) {
+        return;
+    }
 
-        // Found the node, get the MessageID -> Callback map
-        auto& messageCallbackMap = messageMapIt->second;
+    // Found the node, get the MessageID -> Callback map
+    auto& messageCallbackMap = messageMapIt->second;
 
-        // Check if we have this pending request
-        auto requestIt = messageCallbackMap.find(messageID);
-        if (requestIt != messageCallbackMap.end()) {
-            auto& callbacks = requestIt->second;
-
-            // Store message in case we need to disconnect from it later.
-            callbacks.message = message;
-
-            if (message->isComplete()) {
-                callbacks.completeCallback(true, error, message->readAll());
-                messageCallbackMap.erase(requestIt);
-            } else {
-                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, &callbacks]() {
-                    callbacks.progressCallback(message->getSize(), length);
-                });
-                connect(message.data(), &ReceivedMessage::completed, this, [this, messageID, message, &messageCallbackMap, &callbacks]() {
-                    if (message->failed()) {
-                        callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
-                    } else {
-                        callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());
-                    }
-
-                    // We should never get to this point without the associated senderNode and messageID
-                    // in our list of pending requests. If the senderNode had disconnected or the message
-                    // had been canceled, we should have been disconnected from the ReceivedMessage
-                    // signals and thus never had this lambda called.
-                    messageCallbackMap.erase(messageID);
-                });
-            }
-        }
-
+    // Check if we have this pending request
+    auto requestIt = messageCallbackMap.find(messageID);
+    if (requestIt == messageCallbackMap.end()) {
         // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
         // it to avoid constantly creating/deleting the map on subsequent requests.
+        return;
+    }
+
+    auto& callbacks = requestIt->second;
+
+    // Store message in case we need to disconnect from it later.
+    callbacks.message = message;
+
+    if (message->isComplete()) {
+        callbacks.completeCallback(true, error, message->readAll());
+        messageCallbackMap.erase(requestIt);
+    } else {
+        auto weakNode = senderNode.toWeakRef();
+
+        connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length]() {
+            handleProgressCallback(weakNode, messageID, length);
+        });
+        connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
+            handleCompleteCallback(weakNode, messageID);
+        });
     }
 }
+
+void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length) {
+    auto senderNode = node.toStrongRef();
+
+    if (!senderNode) {
+        return;
+    }
+
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingRequests.find(senderNode);
+    if (messageMapIt == _pendingRequests.end()) {
+        return;
+    }
+
+    // Found the node, get the MessageID -> Callback map
+    auto& messageCallbackMap = messageMapIt->second;
+
+    // Check if we have this pending request
+    auto requestIt = messageCallbackMap.find(messageID);
+    if (requestIt == messageCallbackMap.end()) {
+        return;
+    }
+
+    auto& callbacks = requestIt->second;
+    auto& message = callbacks.message;
+
+    if (!message) {
+        return;
+    }
+
+    callbacks.progressCallback(message->getSize(), length);
+}
+
+void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID) {
+    auto senderNode = node.toStrongRef();
+
+    if (!senderNode) {
+        return;
+    }
+
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingRequests.find(senderNode);
+    if (messageMapIt == _pendingRequests.end()) {
+        return;
+    }
+
+    // Found the node, get the MessageID -> Callback map
+    auto& messageCallbackMap = messageMapIt->second;
+
+    // Check if we have this pending request
+    auto requestIt = messageCallbackMap.find(messageID);
+    if (requestIt == messageCallbackMap.end()) {
+        return;
+    }
+
+    auto& callbacks = requestIt->second;
+    auto& message = callbacks.message;
+
+    if (!message) {
+        return;
+    }
+
+
+    if (message->failed()) {
+        callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
+    } else {
+        callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());
+    }
+
+    // We should never get to this point without the associated senderNode and messageID
+    // in our list of pending requests. If the senderNode had disconnected or the message
+    // had been canceled, we should have been disconnected from the ReceivedMessage
+    // signals and thus never had this lambda called.
+    messageCallbackMap.erase(messageID);
+}
+
 
 MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());

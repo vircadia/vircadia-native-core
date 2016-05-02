@@ -6,7 +6,6 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 (function() {
 
@@ -42,8 +41,8 @@ var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
         createBasketballs: function() {
             var NUMBER_OF_BALLS = 4;
             var DIAMETER = 0.30;
-            var basketballURL = HIFI_PUBLIC_BUCKET + "models/content/basketball2.fbx";
-            var basketballCollisionSoundURL = HIFI_PUBLIC_BUCKET + "sounds/basketball/basketball.wav";
+            var basketballURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
+            var basketballCollisionSoundURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
 
             var position = {
                 x: 542.86,
