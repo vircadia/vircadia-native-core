@@ -19,7 +19,8 @@
 
 <@include Skinning.slh@>
 
-uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
 
 out vec4 _position;
 out vec2 _texCoord0;
@@ -37,9 +38,9 @@ void main(void) {
     _color = colorToLinearRGB(inColor.rgb);
     _alpha = inColor.a;
 
-    // and the texture coordinates
-    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
-    
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();

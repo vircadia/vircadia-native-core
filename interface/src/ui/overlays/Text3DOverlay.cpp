@@ -110,7 +110,14 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
                             _color.blue / MAX_COLOR, getTextAlpha() };
+
+    // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline
+    //        for a gpu performance increase. Currently,
+    //        Text renderer sets its own pipeline,
     _textRenderer->draw(batch, 0, 0, _text, textColor, glm::vec2(-1.0f), getDrawInFront());
+    //        so before we continue, we must reset the pipeline
+    batch.setPipeline(args->_pipeline->pipeline);
+    args->_pipeline->prepare(batch);
 }
 
 const render::ShapeKey Text3DOverlay::getShapeKey() {
