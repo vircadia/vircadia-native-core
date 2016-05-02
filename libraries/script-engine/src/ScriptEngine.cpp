@@ -218,11 +218,11 @@ void ScriptEngine::waitTillDoneRunning() {
 
             // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
             if (elapsedUsecs > WAITING_TOO_LONG) {
-                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << "] quitting.";
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
                 thread()->quit();
                 break;
             } else if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
-                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << "] aborting evaluation.";
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] aborting evaluation.";
                 QMetaObject::invokeMethod(this, "abortEvaluation");
             }
         }
