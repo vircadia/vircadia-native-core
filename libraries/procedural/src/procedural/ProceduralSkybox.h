@@ -26,7 +26,7 @@ public:
 
     virtual void clear() override;
 
-    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
+    virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const override;
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);
 
 protected:

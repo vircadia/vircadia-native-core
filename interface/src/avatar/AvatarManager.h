@@ -78,11 +78,11 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     // virtual overrides
-    virtual AvatarSharedPointer newSharedAvatar();
-    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual AvatarSharedPointer newSharedAvatar() override;
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
 
-    virtual void removeAvatar(const QUuid& sessionUUID);
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
+    virtual void removeAvatar(const QUuid& sessionUUID) override;
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) override;
 
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;
