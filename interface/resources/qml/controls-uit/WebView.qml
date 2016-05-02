@@ -15,6 +15,8 @@ WebEngineView {
     id: root
     property var newUrl;
 
+    profile.httpUserAgent: "Mozilla/5.0 Chrome (HighFidelityInterface)"
+
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
         // Ensure the JS from the web-engine makes it to our logging
