@@ -830,6 +830,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
             if (!action) {
                 return false;
             }
+            action->setIsMine(true);
             success = entity->addAction(simulation, action);
             entity->grabSimulationOwnership();
             return false; // Physics will cause a packet to be sent, so don't send from here.
