@@ -11,7 +11,7 @@
 
  var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js');
 
- var AVATAR_COLLISION_HULL = 'atp:/dressingRoom/Avatar-Hull-4.obj';
+ var AVATAR_COLLISION_HULL = 'atp:/dressingRoom/Avatar-Hull-5.obj';
 
  TransformerDoll = function(modelURL, spawnPosition, spawnRotation, dimensions) {
      print('SCRIPT REF AT TRANSFORMER CREATE::' + TRANSFORMER_SCRIPT);

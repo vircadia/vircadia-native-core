@@ -39,6 +39,20 @@
         z: 0.2606
     };
 
+    var PRISCILLA_DIMENSIONS = {
+        //priscilla
+        x: 1.6448,
+        y: 1.6657,
+        z: 0.3078
+    };
+
+    var MATTHEW_DIMENSIONS = {
+        //matthew
+        x: 1.8722,
+        y: 1.8197,
+        z: 0.3666
+    }
+
     var _this;
 
     function Transformer() {
@@ -54,7 +68,6 @@
             print('PRELOAD TRANSFORMER SCRIPT')
             this.entityID = entityID;
             this.initialProperties = Entities.getEntityProperties(entityID);
-            // this.transformationSound = SoundCache.getSound(TRANSFORMATION_SOUND_URL);
         },
 
         collisionWithEntity: function(myID, otherID, collisionInfo) {
@@ -69,14 +82,6 @@
             }
         },
 
-        // playTransformationSound: function(position) {
-        //     print('transformer should play a sound')
-        //     Audio.playSound(_this.transformationSound, {
-        //         position: position,
-        //         volume: 0.5
-        //     });
-        // },
-
         findRotatorBlock: function() {
             print('transformer should find rotator block')
             var myProps = Entities.getEntityProperties(_this.entityID);
@@ -89,7 +94,6 @@
                     return;
                 }
             });
-
         },
 
         removeCurrentBigVersion: function(rotatorBlock) {
@@ -125,7 +129,6 @@
                 dimensions = WILL_DIMENSIONS;
             } else if (smallProps.modelURL.indexOf('being_of_light') > -1) {
                 print('TRANSFORMER IS BEING OF LIGHT')
-
                 dimensions = BEING_OF_LIGHT_DIMENSIONS;
             } else if (smallProps.modelURL.indexOf('stylized_female') > -1) {
                 print('TRANSFORMER IS ARTEMIS')
@@ -133,6 +136,12 @@
             } else if (smallProps.modelURL.indexOf('simple_robot') > -1) {
                 print('TRANSFORMER IS A ROBOT')
                 dimensions = ROBOT_DIMENSIONS;
+            } else if (smallProps.modelURL.indexOf('priscilla') > -1) {
+                print('TRANSFORMER IS PRISCILLA')
+                dimensions = PRISCILLA_DIMENSIONS;
+            } else if (smallProps.modelURL.indexOf('matthew') > -1) {
+                print('TRANSFORMER IS MATTHEW')
+                dimensions = MATTHEW_DIMENSIONS;
             } else {
                 print('TRANSFORMER IS SOME OTHER');
                 dimensions = smallProps.naturalDimensions;
@@ -156,8 +165,8 @@
                 }),
             }
 
-            if(bigVersionProps.modelURL.indexOf('simple_robot') > -1){
-                bigVersionProps.position.y+=0.5;
+            if (bigVersionProps.modelURL.indexOf('simple_robot') > -1) {
+                bigVersionProps.position.y += 0.5;
             }
 
             var bigVersion = Entities.addEntity(bigVersionProps);

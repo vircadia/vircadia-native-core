@@ -68,9 +68,9 @@
 
     var TRANSFORMER_URL_STYLIZED_FEMALE = 'atp:/dressingRoom/stylized_female.fbx';
 
-    var TRANSFORMER_URL_REALISTIC_MALE = '';
+    var TRANSFORMER_URL_PRISCILLA = 'atp:/dressingRoom/priscilla.fbx';
 
-    var TRANSFORMER_URL_REALISTIC_FEMALE = '';
+    var TRANSFORMER_URL_MATTHEW = 'atp:/dressingRoom/matthew.fbx';
 
     Reset.prototype = {
         tidying: false,
@@ -414,7 +414,6 @@
             };
 
             var dais = Entities.addEntity(daisProperties);
-            print('HOME created dais : ' + dais)
         },
 
         createTransformers: function() {
@@ -436,7 +435,9 @@
                 TRANSFORMER_URL_STYLIZED_FEMALE,
                 TRANSFORMER_URL_ROBOT,
                 TRANSFORMER_URL_BEING_OF_LIGHT,
-                TRANSFORMER_URL_WILL
+                TRANSFORMER_URL_WILL,
+                TRANSFORMER_URL_PRISCILLA,
+                TRANSFORMER_URL_MATTHEW
             ];
 
             var dollDimensions = [{
@@ -459,6 +460,16 @@
                 x: 1.6326,
                 y: 1.6764,
                 z: 0.2606
+            }, {
+                //priscilla
+                x: 1.6448,
+                y: 1.6657,
+                z: 0.3078
+            }, {
+                //matthew
+                x: 1.8722,
+                y: 1.8197,
+                z: 0.3666
             }];
 
             var TRANSFORMER_SCALE = 0.25;
@@ -474,7 +485,11 @@
                 var separation = index * dollLateralSeparation;
                 var left = Quat.getRight(rotationAsQuat);
                 var distanceToLeft = Vec3.multiply(separation, left);
-                var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft)
+                var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft);
+                if (index === 1) {
+                    //special case for robot
+                    dollPosition.y += 0.15;
+                }
                 var transformer = new TransformerDoll(doll, dollPosition, dollRotation,
                     dollDimensions[index]);
             });
