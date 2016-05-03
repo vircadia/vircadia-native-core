@@ -16,6 +16,8 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 #include <glm/gtc/type_ptr.hpp>
+#include <QtGui/QWindow>
+#include <QQuickWindow>
 
 #include <ui/Menu.h>
 #include <NumericalConstants.h>
@@ -305,10 +307,6 @@ void CompositorHelper::sendFakeMouseEvent() {
     }
 }
 
-//FIXME remove static Setting::Handle<QRect> windowGeometry("WindowGeometry");
-
-#include "QWindow.h"
-#include "QQuickWindow.h"
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
