@@ -84,11 +84,6 @@ function ignoreMouseActivity() {
     return true;
 }
 var setReticlePosition = function (point2d) {
-    if (!HMD.active) {
-        // FIX SYSTEM BUG: setPosition is setting relative to screen origin, not the content area of the window.
-        // https://app.asana.com/0/26225263936266/118427643788550
-        point2d = {x: point2d.x, y: point2d.y + 50};
-    }
     weMovedReticle = true;
     Reticle.setPosition(point2d);
 };

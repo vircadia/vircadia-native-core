@@ -305,6 +305,10 @@ void CompositorHelper::sendFakeMouseEvent() {
     }
 }
 
+//FIXME remove static Setting::Handle<QRect> windowGeometry("WindowGeometry");
+
+#include "QWindow.h"
+#include "QQuickWindow.h"
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
@@ -322,7 +326,20 @@ void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFa
             sendFakeMouseEvent();
         }
     } else {
-        QCursor::setPos(position.x, position.y);
+        if (!_mainWindow) {
+            auto windows = qApp->topLevelWindows();
+            QWindow* result = nullptr;
+            for (auto window : windows) {
+                QVariant isMainWindow = window->property("MainWindow");
+                if (!qobject_cast<QQuickWindow*>(window)) {
+                    result = window;
+                    break;
+                }
+            }
+            _mainWindow = result;;
+        }
+        const int MENU_BAR_HEIGHT = 20;
+        QCursor::setPos(position.x + _mainWindow->x(), position.y + _mainWindow->y() + MENU_BAR_HEIGHT);
     }
 }
 
