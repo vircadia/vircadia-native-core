@@ -270,6 +270,48 @@ static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantR
     assert(false);
 }
 
+// Templated qScriptRegisterMetaType fails to compile with raw pointers
+using ScriptableResourceRawPtr = ScriptableResource*;
+
+static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const ScriptableResourceRawPtr& resource) {
+    // The first script to encounter this resource will track its memory.
+    // In this way, it will be more likely to GC.
+    // This fails in the case that the resource is used across many scripts, but
+    // in that case it would be too difficult to tell which one should track the memory, and
+    // this serves the common case (use in a single script).
+    auto data = resource->getResource();
+    if (data && !resource->isInScript()) {
+        resource->setInScript(true);
+        QObject::connect(data.data(), SIGNAL(updateSize(qint64)), engine, SLOT(updateMemoryCost(qint64)));
+    }
+
+    auto object = engine->newQObject(
+        const_cast<ScriptableResourceRawPtr>(resource),
+        QScriptEngine::ScriptOwnership);
+    return object;
+}
+
+static void scriptableResourceFromScriptValue(const QScriptValue& value, ScriptableResourceRawPtr& resource) {
+    resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
+}
+
+static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
+    auto prototype = engine->newObject();
+
+    // Expose enum State to JS/QML via properties
+    QObject* state = new QObject(engine);
+    state->setObjectName("ResourceState");
+    auto metaEnum = QMetaEnum::fromType<ScriptableResource::State>();
+    for (int i = 0; i < metaEnum.keyCount(); ++i) {
+        state->setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+
+    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership, QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
+    prototype.setProperty("State", prototypeState);
+
+    return prototype;
+}
+
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -327,10 +369,15 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
+
+    // Scriptable cache access
+    auto resourcePrototype = createScriptableResourcePrototype(this);
+    globalObject().setProperty("Resource", resourcePrototype);
+    setDefaultPrototype(qMetaTypeId<ScriptableResource*>(), resourcePrototype);
+    qScriptRegisterMetaType(this, scriptableResourceToScriptValue, scriptableResourceFromScriptValue);
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
@@ -790,6 +837,12 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
         resultHandler(result);
     } else {
         qCWarning(scriptengine) << "ScriptEngine::callAnimationStateHandler invalid return argument from callback, expected an object";
+    }
+}
+
+void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
+    if (deltaSize > 0) {
+        reportAdditionalMemoryCost(deltaSize);
     }
 }
 

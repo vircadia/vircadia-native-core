@@ -143,9 +143,6 @@ public:
     // remove an animation role override and return to the standard animation.
     Q_INVOKABLE void restoreRoleAnimation(const QString& role);
 
-    // prefetch animation
-    Q_INVOKABLE void prefetchAnimation(const QString& url);
-
     // Adds handler(animStateDictionaryIn) => animStateDictionaryOut, which will be invoked just before each animGraph state update.
     // The handler will be called with an animStateDictionaryIn that has all those properties specified by the (possibly empty)
     // propertiesList argument. However for debugging, if the properties argument is null, all internal animGraph state is provided.

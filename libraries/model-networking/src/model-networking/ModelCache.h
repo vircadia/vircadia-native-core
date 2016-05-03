@@ -170,6 +170,8 @@ protected:
     const bool& isOriginal() const { return _isOriginal; }
 
 private:
+    using TextureType = NetworkTexture::Type;
+
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
     model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,

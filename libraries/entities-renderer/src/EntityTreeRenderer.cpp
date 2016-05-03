@@ -380,7 +380,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
     } else {
-        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
+        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), NetworkTexture::CUBE_TEXTURE);
         _pendingAmbientTexture = true;
 
         if (_ambientTexture && _ambientTexture->isLoaded()) {
@@ -410,7 +410,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
-                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), NetworkTexture::CUBE_TEXTURE);
                 _pendingSkyboxTexture = true;
 
                 if (_skyboxTexture && _skyboxTexture->isLoaded()) {
