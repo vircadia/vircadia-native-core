@@ -334,7 +334,7 @@ public:
 
     /// Returns the instructions for rendering of faces
     DrawingInstructions Instructions(PrimitiveType primitive) const {
-        DrawingInstructions instr = this->MakeInstructions();
+        DrawingInstructions instr = MakeInstructions();
         DrawOperation operation;
         operation.method = DrawOperation::Method::DrawElements;
         operation.mode = primitive;
@@ -342,8 +342,8 @@ public:
         operation.count = _prim_count * 3;
         operation.restart_index = DrawOperation::NoRestartIndex();
         operation.phase = 0;
-        this->AddInstruction(instr, operation);
-        return std::move(instr);
+        AddInstruction(instr, operation);
+        return instr;
     }
 
     /// Returns the instructions for rendering of faces

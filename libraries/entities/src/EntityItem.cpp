@@ -705,8 +705,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
-    READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
-    READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+    {   // parentID and parentJointIndex are also protected by simulation ownership
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+        overwriteLocalData = oldOverwrite;
+    }
 
     READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
 
