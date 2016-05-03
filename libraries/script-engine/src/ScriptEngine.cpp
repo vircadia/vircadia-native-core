@@ -170,7 +170,7 @@ void ScriptEngine::runInThread() {
     }
 
     _isThreaded = true;
-    QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
+    QThread* workerThread = new QThread(this); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
@@ -184,9 +184,6 @@ void ScriptEngine::runInThread() {
     // tell the thread to stop when the script engine is done
     connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
 
-    // when the thread is finished, add thread to the deleteLater queue
-    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
-
     moveToThread(workerThread);
 
     // Starts an event loop, and emits workerThread->started()
@@ -199,7 +196,7 @@ void ScriptEngine::waitTillDoneRunning() {
 
         // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
         // we want the application thread to continue to process events, because the scripts will likely need to
-        // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
+        // marshall messages across to the main thread. For example if they access Settings or Menu in any of their
         // shutdown code.
         while (thread()->isRunning()) {
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
