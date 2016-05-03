@@ -193,18 +193,24 @@ class ShapePipeline {
 public:
     class Slot {
     public:
-        static const int SKINNING_BUFFER = 2;
-        static const int MATERIAL_BUFFER = 3;
-        static const int TEXMAPARRAY_BUFFER = 4;
-        static const int ALBEDO_MAP = 0;
-        static const int NORMAL_MAP = 1;
-        static const int METALLIC_MAP = 2;
-        static const int EMISSIVE_LIGHTMAP_MAP = 3;
-        static const int ROUGHNESS_MAP = 4;
-        static const int OCCLUSION_MAP = 5;
+        enum BUFFER {
+            SKINNING = 2,
+            MATERIAL,
+            TEXMAPARRAY,
+            LIGHT
+        };
 
-        static const int LIGHT_BUFFER = 5;
-        static const int NORMAL_FITTING_MAP = 10;
+        enum MAP {
+            ALBEDO = 0,
+            NORMAL,
+            METALLIC,
+            EMISSIVE_LIGHTMAP,
+            ROUGHNESS,
+            OCCLUSION,
+            LIGHT_AMBIENT,
+
+            NORMAL_FITTING = 10,
+        };
     };
 
     class Locations {
@@ -220,6 +226,7 @@ public:
         int materialBufferUnit;
         int texMapArrayBufferUnit;
         int lightBufferUnit;
+        int lightAmbientMapUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 

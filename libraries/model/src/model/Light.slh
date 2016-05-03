@@ -109,9 +109,14 @@ SphericalHarmonics getLightAmbientSphere(Light l) {
     return l._ambientSphere;
 }
 
+bool getLightHasAmbientMap(Light l) {
+    return l._control.x > 0;
+}
+
 float getLightAmbientMapNumMips(Light l) {
     return l._control.x;
 }
+
 
 <@if GPU_FEATURE_PROFILE == GPU_CORE @>
 uniform lightBuffer {
