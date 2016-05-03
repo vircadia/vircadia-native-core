@@ -152,14 +152,6 @@ void Rig::restoreRoleAnimation(const QString& role) {
     }
 }
 
-void Rig::prefetchAnimation(const QString& url) {
-
-    // This will begin loading the NetworkGeometry for the given URL.
-    // which should speed us up if we request it later via overrideAnimation.
-    auto clipNode = std::make_shared<AnimClip>("prefetch", url, 0, 0, 1.0, false, false);
-    _prefetchedAnimations.push_back(clipNode);
-}
-
 void Rig::destroyAnimGraph() {
     _animSkeleton.reset();
     _animLoader.reset();
