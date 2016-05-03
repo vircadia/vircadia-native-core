@@ -140,6 +140,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         hadUncaughtExceptions(*this, _fileNameString);
     });
+    
+    setProcessEventsInterval(MSECS_PER_SECOND);
 }
 
 ScriptEngine::~ScriptEngine() {
@@ -198,9 +200,28 @@ void ScriptEngine::waitTillDoneRunning() {
         // we want the application thread to continue to process events, because the scripts will likely need to
         // marshall messages across to the main thread. For example if they access Settings or Menu in any of their
         // shutdown code.
+        QString scriptName = getFilename();
+
+        auto startedWaiting = usecTimestampNow();
         while (thread()->isRunning()) {
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
+            auto stillWaiting = usecTimestampNow();
+            auto elapsedUsecs = stillWaiting - startedWaiting;
+            
+            // if we've been waiting a second or more, then tell the script engine to stop evaluating
+            static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
+            static const auto WAITING_TOO_LONG = MAX_SCRIPT_EVALUATION_TIME * 5;
+
+            // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
+            if (elapsedUsecs > WAITING_TOO_LONG) {
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
+                thread()->quit();
+                break;
+            } else if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
+                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] aborting evaluation.";
+                QMetaObject::invokeMethod(this, "abortEvaluation");
+            }
         }
     }
 }
@@ -411,7 +432,6 @@ void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
             if (partsToGo > 0) {
                 //QObject *object = new QObject;
                 QScriptValue partValue = newArray(); //newQObject(object, QScriptEngine::ScriptOwnership);
-                qDebug() << "partValue[" << pathPart<<"].isArray() :" << partValue.isArray();
                 partObject.setProperty(pathPart, partValue);
             } else {
                 partObject.setProperty(pathPart, value);
@@ -1110,11 +1130,6 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
                 << QThread::currentThread() << "] expected thread [" << strongEngine->thread() << "]";
 #endif
             strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
-        } else {
-            // FIXME - I'm leaving this in for testing, so that QA can confirm that sometimes the script contents
-            //         returns after the ScriptEngine has been deleted, we can remove this after QA verifies the
-            //         repro case.
-            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted... script:" << scriptOrURL;
         }
     }, forceRedownload);
 }

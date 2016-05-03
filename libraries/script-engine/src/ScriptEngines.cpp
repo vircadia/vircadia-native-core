@@ -129,20 +129,7 @@ void ScriptEngines::shutdownScripting() {
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
         if (scriptEngine->isRunning()) {
-
-            // If the script is running, but still evaluating then we need to wait for its evaluation step to
-            // complete. After that we can handle the stop process appropriately
-            if (scriptEngine->evaluatePending()) {
-                while (scriptEngine->evaluatePending()) {
-
-                    // This event loop allows any started, but not yet finished evaluate() calls to complete
-                    // we need to let these complete so that we can be guaranteed that the script engine isn't
-                    // in a partially setup state, which can confuse our shutdown unwinding.
-                    QEventLoop loop;
-                    QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
-                    loop.exec();
-                }
-            }
+            qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
             // We disconnect any script engine signals from the application because we don't want to do any
             // extra stopScript/loadScript processing that the Application normally does when scripts start
