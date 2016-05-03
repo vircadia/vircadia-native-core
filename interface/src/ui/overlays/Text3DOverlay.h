@@ -22,14 +22,14 @@ class Text3DOverlay : public Billboard3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Text3DOverlay();
     Text3DOverlay(const Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
 
-    virtual void update(float deltatime);
+    virtual void update(float deltatime) override;
 
     virtual const render::ShapeKey getShapeKey() override;
 
@@ -59,9 +59,9 @@ public:
     QSizeF textSize(const QString& test) const;  // Meters
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                        BoxFace& face, glm::vec3& surfaceNormal) override;
 
-    virtual Text3DOverlay* createClone() const;
+    virtual Text3DOverlay* createClone() const override;
 
 private:
     TextRenderer3D* _textRenderer = nullptr;

@@ -18,7 +18,6 @@ function offsetVectorToWorld(vector) {
 
     newVector = Vec3.sum(vector, WORLD_OFFSET);
 
-    print('JBP NEW VECTOR IS:: ' + JSON.stringify(newVector))
     return newVector
 }
 

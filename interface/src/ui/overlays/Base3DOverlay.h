@@ -23,7 +23,7 @@ public:
     Base3DOverlay(const Base3DOverlay* base3DOverlay);
 
     // getters
-    virtual bool is3D() const { return true; }
+    virtual bool is3D() const override { return true; }
     const glm::vec3& getPosition() const { return _transform.getTranslation(); }
     const glm::quat& getRotation() const { return _transform.getRotation(); }
     const glm::vec3& getScale() const { return _transform.getScale(); }
@@ -50,7 +50,7 @@ public:
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
 
-    virtual AABox getBounds() const = 0;
+    virtual AABox getBounds() const override = 0;
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;

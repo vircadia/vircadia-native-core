@@ -663,14 +663,6 @@ void MyAvatar::restoreRoleAnimation(const QString& role) {
     _rig->restoreRoleAnimation(role);
 }
 
-void MyAvatar::prefetchAnimation(const QString& url) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "prefetchAnimation", Q_ARG(const QString&, url));
-        return;
-    }
-    _rig->prefetchAnimation(url);
-}
-
 void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
