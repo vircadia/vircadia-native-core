@@ -418,9 +418,9 @@
 
         createTransformers: function() {
             var firstDollPosition = {
-                x: 1107.61,
-                y: 460.6,
-                z: -77.34
+                x: 1107.6,
+                y: 460.575,
+                z: -77.37
             }
 
             var dollRotation = {
@@ -432,20 +432,15 @@
             var rotationAsQuat = Quat.fromPitchYawRollDegrees(dollRotation.x, dollRotation.y, dollRotation.z);
 
             var dolls = [
-                TRANSFORMER_URL_STYLIZED_FEMALE,
                 TRANSFORMER_URL_ROBOT,
                 TRANSFORMER_URL_BEING_OF_LIGHT,
+                TRANSFORMER_URL_STYLIZED_FEMALE,
                 TRANSFORMER_URL_WILL,
                 TRANSFORMER_URL_PRISCILLA,
                 TRANSFORMER_URL_MATTHEW
             ];
 
             var dollDimensions = [{
-                //stylized female artemis
-                x: 1.6323,
-                y: 1.7705,
-                z: 0.2851
-            }, {
                 //robot
                 x: 1.4439,
                 y: 0.6224,
@@ -455,6 +450,11 @@
                 x: 1.8838,
                 y: 1.7865,
                 z: 0.2955
+            }, {
+                //stylized female artemis
+                x: 1.6323,
+                y: 1.7705,
+                z: 0.2851
             }, {
                 //will
                 x: 1.6326,
@@ -486,7 +486,7 @@
                 var left = Quat.getRight(rotationAsQuat);
                 var distanceToLeft = Vec3.multiply(separation, left);
                 var dollPosition = Vec3.sum(firstDollPosition, distanceToLeft);
-                if (index === 1) {
+                if (index === 0) {
                     //special case for robot
                     dollPosition.y += 0.15;
                 }

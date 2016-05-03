@@ -78,6 +78,26 @@
                 _this.locked = true;
                 _this.findRotatorBlock();
             } else {
+                var transformerProps = Entities.getEntityProperties(_this.entityID, ["rotation", "position"]);
+                var eulerRotation = Quat.safeEulerAngles(transformerProps.rotation);
+                eulerRotation.x = 0;
+                eulerRotation.z = 0;
+                var newRotation = Quat.fromVec3Degrees(eulerRotation);
+
+                //we zero out the velocity and angular velocity so the cow doesn't change position or spin
+                Entities.editEntity(_this.entityID, {
+                    rotation: newRotation,
+                    velocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    angularVelocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    }
+                });
                 return;
             }
         },
