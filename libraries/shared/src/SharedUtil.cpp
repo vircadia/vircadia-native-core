@@ -455,19 +455,29 @@ void printVoxelCode(unsigned char* voxelCode) {
 }
 
 #ifdef _WIN32
-    void usleep(int waitTime) {
-        const quint64 BUSY_LOOP_USECS = 2000;
-        quint64 compTime = waitTime + usecTimestampNow();
-        quint64 compTimeSleep = compTime - BUSY_LOOP_USECS;
-        while (true) {
-            if (usecTimestampNow() < compTimeSleep) {
-                QThread::msleep(1);
-            }
-            if (usecTimestampNow() >= compTime) {
-                break;
-            }
+void usleep(int waitTime) {
+    quint64 sleepUntil = waitTime + usecTimestampNow();
+
+    // Busy wait with sleep/yield where possible
+    while (true) {
+        quint64 now = usecTimestampNow();
+        if (now >= sleepUntil) {
+            break;
+        }
+
+        // Sleep if we have at least 1ms to spare
+        const int MIN_SLEEP_USECS = 1000;
+        // msleep is allowed to overshoot, so give it a 100us berth
+        const int MIN_SLEEP_USECS_BERTH = 100;
+        if (sleepUntil - now > (MIN_SLEEP_USECS + MIN_SLEEP_USECS_BERTH)) {
+            unsigned long sleepFor = (sleepUntil - now - MIN_SLEEP_USECS_BERTH) / USECS_PER_MSEC;
+            QThread::msleep(sleepFor);
+        // Yield otherwise
+        } else {
+            QThread::yieldCurrentThread();
         }
     }
+}
 #endif
 
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
