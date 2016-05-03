@@ -15,7 +15,7 @@ Script.load("system/examples.js");
 Script.load("system/selectAudioDevice.js");
 Script.load("system/notifications.js");
 Script.load("system/controllers/handControllerGrab.js");
+Script.load("system/controllers/handControllerPointer.js");
 Script.load("system/controllers/squeezeHands.js");
 Script.load("system/controllers/grab.js");
 Script.load("system/dialTone.js");
-Script.load("system/depthReticle.js");

@@ -322,16 +322,6 @@ void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFa
             sendFakeMouseEvent();
         }
     } else {
-        // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-        // remove it after we're done
-        const float REASONABLE_CHANGE = 50.0f;
-        glm::vec2 oldPos = toGlm(QCursor::pos());
-        auto distance = glm::distance(oldPos, position);
-        if (distance > REASONABLE_CHANGE) {
-            qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" <<
-                distance << " oldPos:" << oldPos.x << "," << oldPos.y << " newPos:" << position.x << "," << position.y;
-        }
-
         QCursor::setPos(position.x, position.y);
     }
 }
