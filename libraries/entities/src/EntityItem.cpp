@@ -655,7 +655,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
-        if (_simulationOwner.set(newSimOwner)) {
+        if (weOwnSimulation && newSimOwner.getID().isNull() && _simulationOwner.getPriority() != 0) {
+            // entity-server is trying to clear our ownership, probably at our own request, but we've
+            // changed our minds since we sent it, therefore we ignore the ownerhip part of this update.
+        } else if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             somethingChanged = true;
             // recompute weOwnSimulation so that if this is the packet that tells use we are the owner,
@@ -1110,6 +1113,22 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._rotationChanged = true;
     properties._angularVelocityChanged = true;
     properties._accelerationChanged = true;
+}
+
+void EntityItem::pokeSimulationOwnership() {
+    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE;
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    }
+}
+
+void EntityItem::grabSimulationOwnership() {
+    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB;
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    }
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
