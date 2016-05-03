@@ -35,7 +35,7 @@ var BOTTOM_PADDING = 50;
 //a helper library for creating toolbars
 Script.include("http://hifi-production.s3.amazonaws.com/tutorials/dice/toolBars.js");
 
-var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.toolbars.dice7", function(screenSize) {
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.toolbars-dice", function(screenSize) {
   return {
     x: (screenSize.x - BUTTON_SIZE*3),
     y: (screenSize.y - 100)
