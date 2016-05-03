@@ -155,7 +155,7 @@ var isSeeking = false;
 var averageMouseVelocity = 0, lastIntegration = 0, lastMouse;
 var WEIGHTING = 1 / 20; // simple moving average over last 20 samples
 var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
-var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 2.5;
+var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 5;
 function isShakingMouse() { // True if the person is waving the mouse around trying to find it.
     var now = Date.now(), mouse = Reticle.position, isShaking = false;
     if (lastIntegration && (lastIntegration !== now)) {
@@ -176,7 +176,7 @@ function updateSeeking() {
     if (!isSeeking) { return; }
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
-    if (!lookAt2D) { return; } // E.g., if parallel to location in HUD
+    if (!lookAt2D) { print('Cannot seek without lookAt position'); return; } // E.g., if parallel to location in HUD
     var copy = Reticle.position;
     function updateDimension(axis) {
         var distanceBetween = lookAt2D[axis] - Reticle.position[axis];
@@ -188,7 +188,7 @@ function updateSeeking() {
     if (!updateDimension('x') && !updateDimension('y')) {
         isSeeking = false;
     } else {
-        Reticle.position(copy);
+        Reticle.setPosition(copy); // Not setReticlePosition
     }
 }
 
