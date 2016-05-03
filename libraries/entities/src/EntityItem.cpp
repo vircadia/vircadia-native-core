@@ -658,6 +658,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             somethingChanged = true;
+            // recompute weOwnSimulation so that if this is the packet that tells use we are the owner,
+            // we ignore the physics changes from this packet.
+            weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -1702,6 +1705,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 
         success = action->updateArguments(arguments);
         if (success) {
+            action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         } else {
@@ -1808,7 +1812,9 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
-            action->deserialize(serializedAction);
+            if (!action->isMine()) {
+                action->deserialize(serializedAction);
+            }
             action->locallyAddedButNotYetReceived = false;
             updated << actionID;
         } else {
