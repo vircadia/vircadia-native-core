@@ -982,7 +982,18 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
     const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
-        QUrl thisURL { resolvePath(file) };
+        QUrl thisURL;
+        if (file.startsWith("/~/")) {
+            thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
+            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            if (!defaultScriptsLoc.isParentOf(thisURL)) {
+                qDebug() << "ScriptEngine::include -- skipping" << file << "-- outside of standard libraries";
+                continue;
+            }
+        } else {
+            thisURL = resolvePath(file);
+        }
+
         if (!_includedURLs.contains(thisURL)) {
             if (!currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
                 (

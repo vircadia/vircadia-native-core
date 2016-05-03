@@ -101,6 +101,7 @@ protected:
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);
+QString expandScriptPath(const QString& rawPath);
 QUrl expandScriptUrl(const QUrl& rawScriptURL);
 
 #endif // hifi_ScriptEngine_h
