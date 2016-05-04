@@ -216,6 +216,7 @@ void ScriptEngine::waitTillDoneRunning() {
             if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
                 qCDebug(scriptengine) <<
                     "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
+                abortEvaluation(); // to allow the thread to quit
                 workerThread->quit();
                 break;
             }
