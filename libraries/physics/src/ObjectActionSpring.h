@@ -46,7 +46,7 @@ protected:
     glm::vec3 _linearVelocityTarget;
     glm::vec3 _angularVelocityTarget;
 
-    virtual bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep);
+    virtual bool prepareForSpringUpdate(btScalar deltaTimeStep);
 };
 
 #endif // hifi_ObjectActionSpring_h
