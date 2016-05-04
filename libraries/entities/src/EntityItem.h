@@ -302,6 +302,7 @@ public:
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
+    void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }

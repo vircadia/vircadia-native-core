@@ -655,14 +655,32 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
-        if (weOwnSimulation && newSimOwner.getID().isNull() && _simulationOwner.getPriority() != 0) {
-            // entity-server is trying to clear our ownership, probably at our own request, but we've
-            // changed our minds since we sent it, therefore we ignore the ownerhip part of this update.
+        if (weOwnSimulation) {
+            if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
+                // entity-server is trying to clear our ownership (probably at our own request)
+                // but we actually want to own it, therefore we ignore this clear event
+                // and pretend that we own it (we assume we'll recover it soon)
+            } else if (_simulationOwner.set(newSimOwner)) {
+                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                somethingChanged = true;
+                // recompute weOwnSimulation for later
+                weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+            }
+        } else if (newSimOwner.getID().isNull() && _simulationOwner.pendingTake(lastEditedFromBufferAdjusted)) {
+            // entity-server is trying to clear someone  else's ownership
+            // but we want to own it, therefore we ignore this clear event
+            // and pretend that we own it (we assume we'll get it soon)
+            weOwnSimulation = true;
+            if (!_simulationOwner.isNull()) {
+                // someone else really did own it
+                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                somethingChanged = true;
+                _simulationOwner.clearCurrentOwner();
+            }
         } else if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             somethingChanged = true;
-            // recompute weOwnSimulation so that if this is the packet that tells use we are the owner,
-            // we ignore the physics changes from this packet.
+            // recompute weOwnSimulation for later
             weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
         }
     }
@@ -1119,7 +1137,11 @@ void EntityItem::pokeSimulationOwnership() {
     _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE;
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        // we already own it
         _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    } else {
+        // we don't own it yet
+        _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
     }
 }
 
@@ -1127,7 +1149,11 @@ void EntityItem::grabSimulationOwnership() {
     _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB;
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        // we already own it
         _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    } else {
+        // we don't own it yet
+        _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
     }
 }
 
@@ -1665,11 +1691,14 @@ void EntityItem::clearSimulationOwnership() {
 
     _simulationOwner.clear();
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
-    // is only ever called entity-server-side and the flags are only used client-side
+    // is only ever called on the entity-server and the flags are only used client-side
     //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
 
 }
 
+void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
+    _simulationOwner.setPendingPriority(priority, timestamp);
+}
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
     bool result;
