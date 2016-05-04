@@ -26,9 +26,9 @@
             z: 3000
         },
         target: {
-            x: 3276.6,
-            y: 13703.3,
-            z: 4405.6
+            x: 13500,
+            y: 3000,
+            z: 3000
         },
         preload: function(entityId) {
             print('CELL PRELOAD RIBOSOME 1')
