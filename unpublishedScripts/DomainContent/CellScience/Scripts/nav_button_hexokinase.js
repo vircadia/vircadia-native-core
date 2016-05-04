@@ -13,7 +13,7 @@
 
 (function() {
 
-    var version = 12;
+    var version = 13;
 
     var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
     var button;
@@ -53,7 +53,7 @@
                 var buttonPadding = 10;
                 var offset = 3;
                 var buttonPositionX = (offset + 1) * (buttonWidth + buttonPadding) + (windowDimensions.x / 2) - (buttonWidth * 3 + buttonPadding * 2.5);
-                var buttonPositionY = (windowDimensions.y - buttonHeight) - 50;
+                var buttonPositionY = (windowDimensions.y - buttonHeight) - 150;
                 button = Overlays.addOverlay("image", {
                     x: buttonPositionX,
                     y: buttonPositionY,
