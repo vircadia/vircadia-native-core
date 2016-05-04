@@ -310,7 +310,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     if (!returnedPath.isEmpty()) {
                         if (shouldFaceViewpoint) {
                             // try to parse this returned path as a viewpoint, that's the only thing it could be for now
-                            if (!handleViewpoint(returnedPath, shouldFaceViewpoint)) {
+                            if (!handleViewpoint(returnedPath, shouldFaceViewpoint, trigger)) {
                                 qCDebug(networking) << "Received a location path that was could not be handled as a viewpoint -"
                                     << returnedPath;
                             }
@@ -446,7 +446,7 @@ bool AddressManager::handleDomainID(const QString& host) {
 }
 
 void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly) {
-    if (!handleViewpoint(path, false, wasPathOnly)) {
+    if (!handleViewpoint(path, false, trigger, wasPathOnly)) {
         qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << path <<
                             "- wll attempt to ask domain-server to resolve.";
 
@@ -463,7 +463,7 @@ void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool
     }
 }
 
-bool AddressManager::handleViewpoint(const QString& viewpointString, bool shouldFace,
+bool AddressManager::handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
                                      bool definitelyPathOnly, const QString& pathString) {
     const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
     const QString SPACED_COMMA_REGEX_STRING = "\\s*,\\s*";
@@ -491,8 +491,9 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
         // before moving to a new host thanks to the information in the same lookup URL.
 
 
-        if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)) {
-            addCurrentAddressToHistory(LookupTrigger::UserInput);
+        if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)
+            || trigger == Back || trigger == Forward) {
+            addCurrentAddressToHistory(trigger);
         }
 
         if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
@@ -599,7 +600,7 @@ void AddressManager::copyPath() {
 void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
 
     // if we're cold starting and this is called for the first address (from settings) we don't do anything
-    if (trigger != LookupTrigger::StartupFromSettings) {
+    if (trigger != LookupTrigger::StartupFromSettings && trigger != LookupTrigger::DomainPathResponse) {
         if (trigger == LookupTrigger::Back) {
             // we're about to push to the forward stack
             // if it's currently empty emit our signal to say that going forward is now possible

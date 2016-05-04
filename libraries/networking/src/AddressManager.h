@@ -46,7 +46,8 @@ public:
         UserInput,
         Back,
         Forward,
-        StartupFromSettings
+        StartupFromSettings,
+        DomainPathResponse
     };
 
     bool isConnected();
@@ -77,7 +78,7 @@ public slots:
 
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
     bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
-        { return handleViewpoint(viewpointString, false, false, pathString); }
+        { return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString); }
 
     void goBack();
     void goForward();
@@ -125,7 +126,7 @@ private:
 
     bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
-    bool handleViewpoint(const QString& viewpointString, bool shouldFace = false,
+    bool handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
                          bool definitelyPathOnly = false, const QString& pathString = QString());
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);
