@@ -852,6 +852,23 @@ void EntityItem::setHref(QString value) {
     _href = value;
 }
 
+void EntityItem::setCollisionSoundURL(const QString& value) {
+    if (_collisionSoundURL != value) {
+        _collisionSoundURL = value;
+
+        if (auto myTree = getTree()) {
+            myTree->notifyNewCollisionSoundURL(_collisionSoundURL, getEntityItemID());
+        }
+    }
+}
+
+SharedSoundPointer EntityItem::getCollisionSound() {
+    if (!_collisionSound) {
+        _collisionSound = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
+    }
+    return _collisionSound;
+}
+
 void EntityItem::simulate(const quint64& now) {
     if (_lastSimulated == 0) {
         _lastSimulated = now;

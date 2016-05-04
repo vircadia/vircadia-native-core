@@ -95,7 +95,6 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     _isDirty = true;
-    maybeNotifyNewCollisionSoundURL("", entity->getCollisionSoundURL());
     emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
@@ -223,7 +222,6 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
         QString entityScriptBefore = entity->getScript();
         quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
-        QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
 
         AACube newQueryAACube;
@@ -295,7 +293,6 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         if (entityScriptBefore != entityScriptAfter || reload) {
             emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
-        maybeNotifyNewCollisionSoundURL(collisionSoundURLBefore, entity->getCollisionSoundURL());
      }
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
@@ -362,10 +359,8 @@ void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, cons
     emit entityScriptChanging(entityItemID, reload);
 }
 
-void EntityTree::maybeNotifyNewCollisionSoundURL(const QString& previousCollisionSoundURL, const QString& nextCollisionSoundURL) {
-    if (!nextCollisionSoundURL.isEmpty() && (nextCollisionSoundURL != previousCollisionSoundURL)) {
-        emit newCollisionSoundURL(QUrl(nextCollisionSoundURL));
-    }
+void EntityTree::notifyNewCollisionSoundURL(const QString& newURL, const EntityItemID& entityID) {
+    emit newCollisionSoundURL(QUrl(newURL), entityID);
 }
 
 void EntityTree::setSimulation(EntitySimulation* simulation) {

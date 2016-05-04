@@ -97,7 +97,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _collisionSoundURL(""),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -1234,7 +1233,6 @@ void MyAvatar::clearScriptableSettings() {
 void MyAvatar::setCollisionSoundURL(const QString& url) {
     if (url != _collisionSoundURL) {
         _collisionSoundURL = url;
-        _collisionSound = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
 
         emit newCollisionSoundURL(QUrl(_collisionSoundURL));
     }

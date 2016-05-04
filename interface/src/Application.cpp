@@ -3019,8 +3019,19 @@ void Application::init() {
     _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
-    connect(tree.get(), &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
-    connect(getMyAvatar(), &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(tree.get(), &EntityTree::newCollisionSoundURL, this, [this](QUrl newURL, EntityItemID id) {
+        EntityTreePointer tree = getEntities()->getTree();
+        if (auto entity = tree->findEntityByEntityItemID(id)) {
+            auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
+            entity->setCollisionSound(sound);
+        }
+    }, Qt::QueuedConnection);
+    connect(getMyAvatar(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
+        if (auto avatar = getMyAvatar()) {
+            auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
+            avatar->setCollisionSound(sound);
+        }
+    }, Qt::QueuedConnection);
 }
 
 void Application::updateLOD() const {

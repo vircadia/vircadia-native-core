@@ -395,7 +395,7 @@ AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float vo
                                          nInputFrames);
 
     Q_UNUSED(nOutputFrames);
-    return playSoundAndDelete(resampled, options, NULL);
+    return playSoundAndDelete(resampled, options, nullptr);
 }
 
 AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {

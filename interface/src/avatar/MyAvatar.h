@@ -224,6 +224,7 @@ public:
     void setCollisionSoundURL(const QString& url);
 
     SharedSoundPointer getCollisionSound();
+    void setCollisionSound(SharedSoundPointer sound) { _collisionSound = sound; }
 
     void clearScriptableSettings();
 
