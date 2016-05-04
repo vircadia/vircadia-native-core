@@ -131,63 +131,84 @@ const glm::vec3 randVector() {
 //  Do some basic timing tests and report the results
 void runTimingTests() {
     //  How long does it take to make a call to get the time?
-    const int numTests = 1000000;
-    int* iResults = (int*)malloc(sizeof(int) * numTests);
-    float fTest = 1.0;
-    float* fResults = (float*)malloc(sizeof(float) * numTests);
+    const int numTimingTests = 3;
     QElapsedTimer startTime;
     float elapsedNSecs;
     float elapsedUSecs;
 
+    qCDebug(interfaceapp, "numTimingTests: %d", numTimingTests);
+
     startTime.start();
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() ns: %f", (double)elapsedNSecs);
+    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() ns: %f", (double)elapsedNSecs / numTimingTests);
 
     // Test sleep functions for accuracy
     startTime.start();
-    QThread::msleep(1);
+    for (int i = 0; i < numTimingTests; i++) {
+        QThread::msleep(1);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedNSecs / NSECS_PER_MSEC));
+    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / numTimingTests));
 
     startTime.start();
-    QThread::sleep(1);
+    for (int i = 0; i < numTimingTests; i++) {
+        QThread::sleep(1);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "QThread::sleep(1) s: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / MSECS_PER_SECOND));
+    qCDebug(interfaceapp, "QThread::sleep(1) s: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / MSECS_PER_SECOND / numTimingTests));
+
+    const int numUsecTests = 1000;
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
 
     startTime.start();
-    usleep(1);
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(10);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(1) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+    qCDebug(interfaceapp, "usleep(10) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
 
     startTime.start();
-    usleep(10);
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(100);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(10) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+    qCDebug(interfaceapp, "usleep(100) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
 
     startTime.start();
-    usleep(100);
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1000);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(100) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+    qCDebug(interfaceapp, "usleep(1000) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
 
     startTime.start();
-    usleep(1000);
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1001);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(1000) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+    qCDebug(interfaceapp, "usleep(1001) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
 
     startTime.start();
-    usleep(1500);
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1500);
+    }
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(1500) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
-
-    startTime.start();
-    usleep(2500);
-    elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(2500) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+    qCDebug(interfaceapp, "usleep(1500) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
 
     startTime.start();
     usleep(15000);
     elapsedNSecs = (float)startTime.nsecsElapsed();
-    qCDebug(interfaceapp, "usleep(15000) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+    qCDebug(interfaceapp, "usleep(15000) (1x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+
+    const int numTests = 1000000;
+    int* iResults = (int*)malloc(sizeof(int) * numTests);
+    float fTest = 1.0;
+    float* fResults = (float*)malloc(sizeof(float) * numTests);
 
     // Random number generation
     startTime.start();
