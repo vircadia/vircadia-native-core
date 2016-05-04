@@ -456,24 +456,39 @@ void printVoxelCode(unsigned char* voxelCode) {
 
 #ifdef _WIN32
 void usleep(int waitTime) {
-    quint64 sleepUntil = waitTime + usecTimestampNow();
+    // Use QueryPerformanceCounter for least overhead
+    LARGE_INTEGER now; // ticks
+    QueryPerformanceCounter(&now);
+
+    static int64_t ticksPerSec = 0;
+    if (ticksPerSec == 0) {
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        ticksPerSec = frequency.QuadPart;
+    }
+
+    // order ops to avoid loss in precision
+    int64_t waitTicks = (ticksPerSec * waitTime) / USECS_PER_SECOND;
+    int64_t sleepTicks = now.QuadPart + waitTicks;
 
     // Busy wait with sleep/yield where possible
     while (true) {
-        quint64 now = usecTimestampNow();
-        if (now >= sleepUntil) {
+        QueryPerformanceCounter(&now);
+        if (now.QuadPart >= sleepTicks) {
             break;
         }
 
         // Sleep if we have at least 1ms to spare
-        const int MIN_SLEEP_USECS = 1000;
+        const int64_t MIN_SLEEP_USECS = 1000;
         // msleep is allowed to overshoot, so give it a 100us berth
-        const int MIN_SLEEP_USECS_BERTH = 100;
-        if (sleepUntil - now > (MIN_SLEEP_USECS + MIN_SLEEP_USECS_BERTH)) {
-            unsigned long sleepFor = (sleepUntil - now - MIN_SLEEP_USECS_BERTH) / USECS_PER_MSEC;
-            QThread::msleep(sleepFor);
+        const int64_t MIN_SLEEP_USECS_BERTH = 100;
+        // order ops to avoid loss in precision
+        int64_t sleepFor = ((sleepTicks - now.QuadPart) * USECS_PER_SECOND) / ticksPerSec - MIN_SLEEP_USECS_BERTH;
+        if (sleepFor > MIN_SLEEP_USECS) {
+            Sleep((DWORD)(sleepFor / USECS_PER_MSEC));
         // Yield otherwise
         } else {
+            // Use Qt to delegate, as SwitchToThread is only supported starting with XP
             QThread::yieldCurrentThread();
         }
     }
