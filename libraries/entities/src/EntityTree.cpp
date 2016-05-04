@@ -213,8 +213,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setVelocityChanged(false);
                 properties.setAngularVelocityChanged(false);
                 properties.setAccelerationChanged(false);
-                properties.setParentID(QUuid());
-                properties.setParentJointIndex(false);
+                properties.setParentIDChanged(false);
+                properties.setParentJointIndexChanged(false);
 
                 if (wantTerseEditLogging()) {
                     qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";

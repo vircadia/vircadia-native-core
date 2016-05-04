@@ -1740,6 +1740,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         EntityActionPointer action = _objectActions[actionID];
 
         action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
         _objectActions.remove(actionID);
 
         if (simulation) {
@@ -1846,8 +1847,10 @@ void EntityItem::deserializeActionsInternal() {
         QUuid id = i.key();
         if (!updated.contains(id)) {
             EntityActionPointer action = i.value();
-            // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
-            if (! action->locallyAddedButNotYetReceived) {
+            // don't let someone else delete my action.
+            if (!action->isMine() &&
+                // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
+                !action->locallyAddedButNotYetReceived) {
                 _actionsToRemove << id;
                 _previouslyDeletedActions.insert(id, now);
             }

@@ -1895,7 +1895,8 @@ function MyController(hand) {
                 Entities.editEntity(entityID, deactiveProps);
             } else if (noVelocity) {
                 Entities.editEntity(entityID, {velocity: {x: 0.0, y: 0.0, z: 0.0},
-                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0}});
+                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               dynamic: data["dynamic"]});
             }
         } else {
             data = null;

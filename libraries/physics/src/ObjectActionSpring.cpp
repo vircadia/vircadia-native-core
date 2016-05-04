@@ -45,9 +45,8 @@ bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm
     position = _desiredPositionalTarget;
     linearVelocity = glm::vec3();
     angularVelocity = glm::vec3();
-	return true;
+    return true;
 }
-
 
 bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
     glm::quat rotation;
@@ -140,10 +139,13 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
                 float speed = glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED);
                 targetVelocity = (-speed / offsetLength) * offset;
                 if (speed > rigidBody->getLinearSleepingThreshold()) {
+                    qDebug() << "HERE";
+                    forceBodyNonStatic();
                     rigidBody->activate();
                 }
             }
             // this action is aggresively critically damped and defeats the current velocity
+            qDebug() << targetVelocity.x() << targetVelocity.y() << targetVelocity.z();
             rigidBody->setLinearVelocity(targetVelocity);
         }
 
