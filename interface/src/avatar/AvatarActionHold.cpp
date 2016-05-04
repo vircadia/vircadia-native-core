@@ -93,13 +93,13 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
     activateBody(true);
 }
 
-std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                                                    glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
+bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
+                                 glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
 
     if (!holdingAvatar) {
-        return holdingAvatar;
+        return false;;
     }
 
     withReadLock([&]{
@@ -171,62 +171,17 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::qu
         linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
     });
 
-    return holdingAvatar;
+    return true;
 }
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
-    glm::quat rotation;
-    glm::vec3 position;
-    glm::vec3 linearVelocity;
-    glm::vec3 angularVelocity;
-    bool valid = false;
-    int holdCount = 0;
-
-    auto ownerEntity = _ownerEntity.lock();
-    if (!ownerEntity) {
-        return;
-    }
-    QList<EntityActionPointer> holdActions = ownerEntity->getActionsOfType(ACTION_TYPE_HOLD);
-    foreach (EntityActionPointer action, holdActions) {
-        std::shared_ptr<AvatarActionHold> holdAction = std::static_pointer_cast<AvatarActionHold>(action);
-        glm::quat rotationForAction;
-        glm::vec3 positionForAction;
-        glm::vec3 linearVelocityForAction, angularVelocityForAction;
-        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(deltaTimeStep, rotationForAction, positionForAction,  linearVelocityForAction, angularVelocityForAction);
-        if (holdingAvatar) {
-            holdCount ++;
-            if (holdAction.get() == this) {
-                // only use the rotation for this action
-                valid = true;
-                rotation = rotationForAction;
-            }
-
-            position += positionForAction;
-            linearVelocity += linearVelocityForAction;
-            angularVelocity += angularVelocityForAction;
-        }
-    }
-
-    if (valid && holdCount > 0) {
-        position /= holdCount;
-        linearVelocity /= holdCount;
-        angularVelocity /= holdCount;
-
-        withWriteLock([&]{
-            _positionalTarget = position;
-            _rotationalTarget = rotation;
-            _linearVelocityTarget = linearVelocity;
-            _angularVelocityTarget = angularVelocity;
-            _positionalTargetSet = true;
-            _rotationalTargetSet = true;
-            _active = true;
-        });
-        if (_kinematic) {
+    if (_kinematic) {
+        if (prepareForSpringUpdate(deltaTimeStep)) {
             doKinematicUpdate(deltaTimeStep);
-        } else {
-            forceBodyNonStatic();
-            ObjectActionSpring::updateActionWorker(deltaTimeStep);
         }
+    } else {
+        forceBodyNonStatic();
+        ObjectActionSpring::updateActionWorker(deltaTimeStep);
     }
 }
 

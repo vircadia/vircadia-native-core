@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-Script.include("../libraries/utils.js");
+Script.include("/~/system/libraries/utils.js");
 
 
 //
@@ -28,7 +28,7 @@ var WANT_DEBUG_SEARCH_NAME = null;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
+var TRIGGER_GRAB_VALUE = 0.75; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
