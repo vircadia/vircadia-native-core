@@ -892,7 +892,10 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             properties = true;
                             propertyName = "P";
                             index = 4;
+                        } else if (subobject.name == "ShadingModel") {
+                            material.shadingModel = subobject.properties.at(0).toString();
                         }
+
                         if (properties) {
                             std::vector<std::string> unknowns;
                             foreach(const FBXNode& property, subobject.children) {
