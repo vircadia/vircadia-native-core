@@ -1847,6 +1847,12 @@ void EntityItem::deserializeActionsInternal() {
         QUuid id = i.key();
         if (!updated.contains(id)) {
             EntityActionPointer action = i.value();
+
+            if (action->isMine()) {
+                // we just received an update that didn't include one of our actions.  tell the server about it.
+                setActionDataNeedsTransmit(true);
+            }
+
             // don't let someone else delete my action.
             if (!action->isMine() &&
                 // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
