@@ -115,8 +115,9 @@ private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
 
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 private:
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
+
     void setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
     void setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
 
