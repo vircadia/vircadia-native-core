@@ -413,11 +413,11 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    qWarning() << "udt::Socket error -" << socketError;
+    qCWarning(networking) << "udt::Socket error -" << socketError;
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
-        qWarning() << "udt::Socket state changed - state is now" << socketState;
+        qCWarning(networking) << "udt::Socket state changed - state is now" << socketState;
     }
 }
