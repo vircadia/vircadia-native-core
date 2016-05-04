@@ -501,6 +501,8 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
 
             QRegExp orientationRegex(QUAT_REGEX_STRING);
 
+            bool orientationChanged = false;
+
             // we may also have an orientation
             if (viewpointString[positionRegex.matchedLength() - 1] == QChar('/')
                 && orientationRegex.indexIn(viewpointString, positionRegex.matchedLength() - 1) != -1) {
@@ -512,14 +514,13 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
 
                 if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)
                     && !isNaN(newOrientation.w)) {
-                    emit locationChangeRequired(newPosition, true, newOrientation, shouldFace);
-                    return true;
+                    orientationChanged = true;
                 } else {
                     qCDebug(networking) << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
 
-            emit locationChangeRequired(newPosition, false, newOrientation, shouldFace);
+            emit locationChangeRequired(newPosition, orientationChanged, newOrientation, shouldFace);
 
         } else {
             qCDebug(networking) << "Could not jump to position from lookup string because it has an invalid value.";
