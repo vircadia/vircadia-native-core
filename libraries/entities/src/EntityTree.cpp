@@ -213,7 +213,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setVelocityChanged(false);
                 properties.setAngularVelocityChanged(false);
                 properties.setAccelerationChanged(false);
-                properties.setParentID(false);
+                properties.setParentID(QUuid());
                 properties.setParentJointIndex(false);
 
                 if (wantTerseEditLogging()) {
