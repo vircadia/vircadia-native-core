@@ -31,6 +31,8 @@ DiscoverabilityManager::DiscoverabilityManager() :
 
 const QString API_USER_LOCATION_PATH = "/api/v1/user/location";
 
+const QString SESSION_ID_KEY = "session_id";
+
 void DiscoverabilityManager::updateLocation() {
     AccountManager& accountManager = AccountManager::getInstance();
     
@@ -86,7 +88,31 @@ void DiscoverabilityManager::updateLocation() {
     } else if (UserActivityLogger::getInstance().isEnabled()) {
         // we still send a heartbeat to the metaverse server for stats collection
         const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
-        accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation);
+
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
+
+        QJsonObject heartbeatObject;
+        if (!_sessionID.isEmpty()) {
+            heartbeatObject[SESSION_ID_KEY] = _sessionID;
+        } else {
+            heartbeatObject[SESSION_ID_KEY] = QJsonValue();
+        }
+
+        accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
+                                   QNetworkAccessManager::PutOperation, callbackParameters,
+                                   QJsonDocument(heartbeatObject).toJson());
+    }
+}
+
+void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    static const QString STATUS_KEY = "status";
+
+    if (jsonObject.contains(STATUS_KEY) && jsonObject[STATUS_KEY] == "success") {
+        _sessionID = jsonObject[SESSION_ID_KEY].toString();
     }
 }
 
