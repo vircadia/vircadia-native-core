@@ -215,7 +215,7 @@ private:
 
     EntityTreePointer _entityTree;
 
-    std::mutex _entitiesScriptEngineLock;
+    std::recursive_mutex _entitiesScriptEngineLock;
     EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
     
     bool _bidOnSimulationOwnership { false };
