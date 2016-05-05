@@ -66,6 +66,19 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
     
 }
 
+QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply &requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    static const QString STATUS_KEY = "status";
+    static const QString DATA_KEY = "data";
+
+    if (jsonObject.contains(STATUS_KEY) && jsonObject[STATUS_KEY] == "success" && jsonObject.contains(DATA_KEY)) {
+        return jsonObject[DATA_KEY].toObject();
+    } else {
+        return QJsonObject();
+    }
+}
+
 AccountManager::AccountManager() :
     _authURL(),
     _pendingCallbackMap()

@@ -77,6 +77,8 @@ public:
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
 
+    static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
 

@@ -107,12 +107,10 @@ void DiscoverabilityManager::updateLocation() {
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
 
-    static const QString STATUS_KEY = "status";
-
-    if (jsonObject.contains(STATUS_KEY) && jsonObject[STATUS_KEY] == "success") {
-        _sessionID = jsonObject[SESSION_ID_KEY].toString();
+    if (!dataObject.isEmpty()) {
+        _sessionID = dataObject[SESSION_ID_KEY].toString();
     }
 }
 
