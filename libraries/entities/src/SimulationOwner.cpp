@@ -113,11 +113,11 @@ void SimulationOwner::updateExpiry() {
 }
 
 bool SimulationOwner::pendingRelease(const quint64& timestamp) {
-    return _pendingPriority == 0 && _pendingState == PENDING_STATE_RELEASE && _pendingTimestamp > timestamp;
+    return _pendingPriority == 0 && _pendingState == PENDING_STATE_RELEASE && _pendingTimestamp >= timestamp;
 }
 
 bool SimulationOwner::pendingTake(const quint64& timestamp) {
-    return _pendingPriority > 0 && _pendingState == PENDING_STATE_TAKE && _pendingTimestamp > timestamp;
+    return _pendingPriority > 0 && _pendingState == PENDING_STATE_TAKE && _pendingTimestamp >= timestamp;
 }
 
 void SimulationOwner::clearCurrentOwner() {
