@@ -1705,16 +1705,31 @@ void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& tim
     _simulationOwner.setPendingPriority(priority, timestamp);
 }
 
+QString EntityItem::actionsToDebugString() {
+    QString result;
+    QVector<QByteArray> serializedActions;
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        EntityActionPointer action = _objectActions[id];
+        EntityActionType actionType = action->getType();
+        result += QString("") + actionType + ":" + action->getID().toString() + " ";
+        i++;
+    }
+    return result;
+}
+
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
     bool result;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
 
         result = addActionInternal(simulation, action);
-        if (!result) {
-            removeActionInternal(action->getID());
-        } else {
+        if (result) {
             action->setIsMine(true);
+            _actionDataDirty = true;
+        } else {
+            removeActionInternal(action->getID());
         }
     });
 
