@@ -54,6 +54,9 @@ public:
     virtual bool lifetimeIsOver() { return false; }
     virtual quint64 getExpires() { return 0; }
 
+    virtual bool isMine() { return _isMine; }
+    virtual void setIsMine(bool value) { _isMine = value; }
+
     bool locallyAddedButNotYetReceived = false;
 
     virtual bool shouldSuppressLocationEdits() { return false; }
@@ -89,6 +92,7 @@ protected:
     QUuid _id;
     EntityActionType _type;
     bool _active { false };
+    bool _isMine { false }; // did this interface create / edit this action?
 };
 
 

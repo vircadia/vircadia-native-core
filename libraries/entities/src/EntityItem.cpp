@@ -655,9 +655,33 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
-        if (_simulationOwner.set(newSimOwner)) {
+        if (weOwnSimulation) {
+            if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
+                // entity-server is trying to clear our ownership (probably at our own request)
+                // but we actually want to own it, therefore we ignore this clear event
+                // and pretend that we own it (we assume we'll recover it soon)
+            } else if (_simulationOwner.set(newSimOwner)) {
+                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                somethingChanged = true;
+                // recompute weOwnSimulation for later
+                weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+            }
+        } else if (newSimOwner.getID().isNull() && _simulationOwner.pendingTake(lastEditedFromBufferAdjusted)) {
+            // entity-server is trying to clear someone  else's ownership
+            // but we want to own it, therefore we ignore this clear event
+            // and pretend that we own it (we assume we'll get it soon)
+            weOwnSimulation = true;
+            if (!_simulationOwner.isNull()) {
+                // someone else really did own it
+                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                somethingChanged = true;
+                _simulationOwner.clearCurrentOwner();
+            }
+        } else if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             somethingChanged = true;
+            // recompute weOwnSimulation for later
+            weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -781,7 +805,8 @@ void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSk
 }
 
 float EntityItem::computeMass() const {
-    return _density * _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
+    glm::vec3 dimensions = getDimensions();
+    return _density * _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 }
 
 void EntityItem::setDensity(float density) {
@@ -801,7 +826,8 @@ void EntityItem::setMass(float mass) {
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
 
-    float volume = _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
+    glm::vec3 dimensions = getDimensions();
+    float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
@@ -1107,6 +1133,30 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
+void EntityItem::pokeSimulationOwnership() {
+    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE;
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        // we already own it
+        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    } else {
+        // we don't own it yet
+        _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
+    }
+}
+
+void EntityItem::grabSimulationOwnership() {
+    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB;
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        // we already own it
+        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    } else {
+        // we don't own it yet
+        _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
+    }
+}
+
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
@@ -1222,11 +1272,13 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
         // * we know that the position is the center of rotation
         glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
         if (success) {
+            _recalcMaxAACube = false;
             // * we know that the registration point is the center of rotation
             // * we can calculate the length of the furthest extent from the registration point
             //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
-            glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
-            glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
+            glm::vec3 dimensions = getDimensions();
+            glm::vec3 registrationPoint = (dimensions * _registrationPoint);
+            glm::vec3 registrationRemainder = (dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
             glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
 
             // * we know that if you rotate in any direction you would create a sphere
@@ -1238,7 +1290,6 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
             glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
 
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
-            _recalcMaxAACube = false;
         }
     } else {
         success = true;
@@ -1251,28 +1302,27 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
 ///
 AACube EntityItem::getMinimumAACube(bool& success) const {
     if (_recalcMinAACube) {
-        // _position represents the position of the registration point.
-        glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
-
-        glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * getRegistrationPoint());
-        glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
-        Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-        Extents rotatedExtentsRelativeToRegistrationPoint =
-            unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
-
-        // shift the extents to be relative to the position/registration point
-        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition(success));
-
+        // position represents the position of the registration point.
+        glm::vec3 position = getPosition(success);
         if (success) {
+            _recalcMinAACube = false;
+            glm::vec3 dimensions = getDimensions();
+            glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
+            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
+            Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+            extents.rotate(getRotation());
+
+            // shift the extents to be relative to the position/registration point
+            extents.shiftBy(position);
+
             // the cube that best encompasses extents is...
-            AABox box(rotatedExtentsRelativeToRegistrationPoint);
+            AABox box(extents);
             glm::vec3 centerOfBox = box.calcCenter();
             float longestSide = box.getLargestDimension();
             float halfLongestSide = longestSide / 2.0f;
             glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
 
             _minAACube = AACube(cornerOfCube, longestSide);
-            _recalcMinAACube = false;
         }
     } else {
         success = true;
@@ -1282,21 +1332,20 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
 
 AABox EntityItem::getAABox(bool& success) const {
     if (_recalcAABox) {
-        // _position represents the position of the registration point.
-        glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
-
-        glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * _registrationPoint);
-        glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
-        Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-        Extents rotatedExtentsRelativeToRegistrationPoint =
-            unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
-
-        // shift the extents to be relative to the position/registration point
-        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition(success));
-
+        // position represents the position of the registration point.
+        glm::vec3 position = getPosition(success);
         if (success) {
-            _cachedAABox = AABox(rotatedExtentsRelativeToRegistrationPoint);
             _recalcAABox = false;
+            glm::vec3 dimensions = getDimensions();
+            glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
+            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
+            Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+            extents.rotate(getRotation());
+
+            // shift the extents to be relative to the position/registration point
+            extents.shiftBy(position);
+
+            _cachedAABox = AABox(extents);
         }
     } else {
         success = true;
@@ -1373,6 +1422,11 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     adjustShapeInfoByRegistration(info);
 }
 
+float EntityItem::getVolumeEstimate() const {
+    glm::vec3 dimensions = getDimensions();
+    return dimensions.x * dimensions.y * dimensions.z;
+}
+
 void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         setRegistrationPoint(value);
@@ -1433,7 +1487,8 @@ void EntityItem::updateMass(float mass) {
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
 
-    float volume = _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
+    glm::vec3 dimensions = getDimensions();
+    float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
     float newDensity = _density;
@@ -1636,11 +1691,14 @@ void EntityItem::clearSimulationOwnership() {
 
     _simulationOwner.clear();
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
-    // is only ever called entity-server-side and the flags are only used client-side
+    // is only ever called on the entity-server and the flags are only used client-side
     //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
 
 }
 
+void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
+    _simulationOwner.setPendingPriority(priority, timestamp);
+}
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
     bool result;
@@ -1695,6 +1753,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 
         success = action->updateArguments(arguments);
         if (success) {
+            action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         } else {
@@ -1801,7 +1860,9 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
-            action->deserialize(serializedAction);
+            if (!action->isMine()) {
+                action->deserialize(serializedAction);
+            }
             action->locallyAddedButNotYetReceived = false;
             updated << actionID;
         } else {

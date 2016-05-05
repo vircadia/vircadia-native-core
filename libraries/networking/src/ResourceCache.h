@@ -24,8 +24,11 @@
 #include <QtCore/QWeakPointer>
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QQueue>
+
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+
+#include <QScriptEngine>
 
 #include <DependencyManager.h>
 
@@ -50,7 +53,7 @@ static const qint64 DEFAULT_UNUSED_MAX_SIZE = 100 * BYTES_PER_MEGABYTES;
 static const qint64 DEFAULT_UNUSED_MAX_SIZE = 1024 * BYTES_PER_MEGABYTES;
 #endif
 static const qint64 MIN_UNUSED_MAX_SIZE = 0;
-static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
+static const qint64 MAX_UNUSED_MAX_SIZE = MAXIMUM_CACHE_SIZE;
 
 // We need to make sure that these items are available for all instances of
 // ResourceCache derived classes. Since we can't count on the ordering of
@@ -78,6 +81,61 @@ private:
     QList<QWeakPointer<Resource>> _loadingRequests;
 };
 
+/// Wrapper to expose resources to JS/QML
+class ScriptableResource : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QUrl url READ getUrl)
+    Q_PROPERTY(int state READ getState NOTIFY stateChanged)
+
+public:
+    enum State {
+        QUEUED,
+        LOADING,
+        LOADED,
+        FINISHED,
+        FAILED,
+    };
+    Q_ENUM(State)
+
+    ScriptableResource(const QUrl& url);
+    virtual ~ScriptableResource() = default;
+
+    Q_INVOKABLE void release();
+
+    const QUrl& getUrl() const { return _url; }
+    int getState() const { return (int)_state; }
+    const QSharedPointer<Resource>& getResource() const { return _resource; }
+
+    bool isInScript() const;
+    void setInScript(bool isInScript);
+
+signals:
+    void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
+    void stateChanged(int state);
+
+private slots:
+    void loadingChanged();
+    void loadedChanged();
+    void finished(bool success);
+
+private:
+    void disconnectHelper();
+
+    friend class ResourceCache;
+
+    // Holds a ref to the resource to keep it in scope
+    QSharedPointer<Resource> _resource;
+
+    QMetaObject::Connection _progressConnection;
+    QMetaObject::Connection _loadingConnection;
+    QMetaObject::Connection _loadedConnection;
+    QMetaObject::Connection _finishedConnection;
+
+    QUrl _url;
+    State _state{ QUEUED };
+};
+
+Q_DECLARE_METATYPE(ScriptableResource*);
 
 /// Base class for resource caches.
 class ResourceCache : public QObject {
@@ -121,12 +179,23 @@ public slots:
     void checkAsynchronousGets();
 
 protected slots:
-    void updateTotalSize(const qint64& oldSize, const qint64& newSize);
+    void updateTotalSize(const qint64& deltaSize);
+
+    // Prefetches a resource to be held by the QScriptEngine.
+    // Left as a protected member so subclasses can overload prefetch
+    // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
+    ScriptableResource* prefetch(const QUrl& url, void* extra);
 
 private slots:
     void clearATPAssets();
 
 protected:
+    // Prefetches a resource to be held by the QScriptEngine.
+    // Pointers created through this method should be owned by the caller,
+    // which should be a QScriptEngine with ScriptableResource registered, so that
+    // the QScriptEngine will delete the pointer when it is garbage collected.
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
+
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
@@ -231,6 +300,9 @@ public:
     const QUrl& getURL() const { return _url; }
 
 signals:
+    /// Fired when the resource begins downloading.
+    void loading();
+
     /// Fired when the resource has been downloaded.
     /// This can be used instead of downloadFinished to access data before it is processed.
     void loaded(const QByteArray request);
@@ -243,6 +315,12 @@ signals:
 
     /// Fired when the resource is refreshed.
     void onRefresh();
+
+    /// Fired on progress updates.
+    void onProgress(uint64_t bytesReceived, uint64_t bytesTotal);
+
+    /// Fired when the size changes (through setSize).
+    void updateSize(qint64 deltaSize);
 
 protected slots:
     void attemptRequest();
@@ -280,21 +358,26 @@ private slots:
     void handleReplyFinished();
 
 private:
+    friend class ResourceCache;
+    friend class ScriptableResource;
+    
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();
     void retry();
     void reinsert();
+
+    bool isInScript() const { return _isInScript; }
+    void setInScript(bool isInScript) { _isInScript = isInScript; }
     
-    friend class ResourceCache;
-    
-    ResourceRequest* _request = nullptr;
-    int _lruKey = 0;
-    QTimer* _replyTimer = nullptr;
-    qint64 _bytesReceived = 0;
-    qint64 _bytesTotal = 0;
-    qint64 _bytes = 0;
-    int _attempts = 0;
+    ResourceRequest* _request{ nullptr };
+    int _lruKey{ 0 };
+    QTimer* _replyTimer{ nullptr };
+    qint64 _bytesReceived{ 0 };
+    qint64 _bytesTotal{ 0 };
+    qint64 _bytes{ 0 };
+    int _attempts{ 0 };
+    bool _isInScript{ false };
 };
 
 uint qHash(const QPointer<QObject>& value, uint seed = 0);

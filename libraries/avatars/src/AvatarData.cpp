@@ -45,7 +45,6 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
-static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),

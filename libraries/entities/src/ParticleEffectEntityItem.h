@@ -49,7 +49,7 @@ public:
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-    glm::vec3 getColorRGB() const { return  ColorUtils::toLinearVec3(toGlm(getXColor())); }
+    glm::vec3 getColorRGB() const { return  ColorUtils::sRGBToLinearVec3(toGlm(getXColor())); }
 
     static const xColor DEFAULT_COLOR;
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
@@ -62,17 +62,17 @@ public:
     bool _isColorStartInitialized = false;
     void setColorStart(const xColor& colorStart) { _colorStart = colorStart; _isColorStartInitialized = true; }
     xColor getColorStart() const { return _isColorStartInitialized ? _colorStart : getXColor(); }
-    glm::vec3 getColorStartRGB() const { return _isColorStartInitialized ? ColorUtils::toLinearVec3(toGlm(_colorStart)) : getColorRGB(); }
+    glm::vec3 getColorStartRGB() const { return _isColorStartInitialized ? ColorUtils::sRGBToLinearVec3(toGlm(_colorStart)) : getColorRGB(); }
 
     bool _isColorFinishInitialized = false;
     void setColorFinish(const xColor& colorFinish) { _colorFinish = colorFinish; _isColorFinishInitialized = true; }
     xColor getColorFinish() const { return _isColorFinishInitialized ? _colorFinish : getXColor(); }
-    glm::vec3 getColorFinishRGB() const { return _isColorStartInitialized ? ColorUtils::toLinearVec3(toGlm(_colorFinish)) : getColorRGB(); }
+    glm::vec3 getColorFinishRGB() const { return _isColorStartInitialized ? ColorUtils::sRGBToLinearVec3(toGlm(_colorFinish)) : getColorRGB(); }
 
     static const xColor DEFAULT_COLOR_SPREAD;
     void setColorSpread(const xColor& colorSpread) { _colorSpread = colorSpread; }
     xColor getColorSpread() const { return _colorSpread; }
-    glm::vec3 getColorSpreadRGB() const { return ColorUtils::toLinearVec3(toGlm(_colorSpread)); }
+    glm::vec3 getColorSpreadRGB() const { return ColorUtils::sRGBToLinearVec3(toGlm(_colorSpread)); }
 
     static const float MAXIMUM_ALPHA;
     static const float MINIMUM_ALPHA;

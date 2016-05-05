@@ -302,6 +302,7 @@ public:
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
+    void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -314,7 +315,7 @@ public:
 
     virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
-    virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
+    virtual float getVolumeEstimate() const;
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
@@ -361,7 +362,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
-    virtual SpatialParentTree* getParentTree() const;
+    virtual SpatialParentTree* getParentTree() const override;
     bool wantTerseEditLogging() const;
 
     glm::mat4 getEntityToWorldMatrix() const;
@@ -373,8 +374,8 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void pokeSimulationOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE; }
-    void grabSimulationOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB; }
+    void pokeSimulationOwnership();
+    void grabSimulationOwnership();
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);

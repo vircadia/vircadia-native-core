@@ -22,9 +22,14 @@
     this.initialize = function(entityID) {
         // print(' should initialize')
         var properties = Entities.getEntityProperties(entityID);
-        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+        if (properties.hasOwnProperty('userData') === false) {
             self.initTimeout = Script.setTimeout(function() {
-            // print(' no user data yet, try again in one second')
+                // print(' no user data yet, try again in one second')
+                self.initialize(entityID);
+            }, 1000)
+        } else if (properties.userData.length === 0) {
+            self.initTimeout = Script.setTimeout(function() {
+                // print(' no user data yet, try again in one second')
                 self.initialize(entityID);
             }, 1000)
         } else {
@@ -39,7 +44,7 @@
                 volume: 0.5
             };
 
-            self.teleportSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
+            self.teleportSound = SoundCache.getSound("https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
             // print(" portal destination is " + self.portalDestination);
         }
     }
@@ -51,13 +56,13 @@
         if (data != null) {
             print("Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
 
-             MyAvatar.position = data.location;
+            MyAvatar.position = data.location;
 
         }
 
     }
 
-    this.lookAtTarget = function(entryPoint,target) {
+    this.lookAtTarget = function(entryPoint, target) {
         //print('SHOULD LOOK AT TARGET')
         var direction = Vec3.normalize(Vec3.subtract(entryPoint, target));
         var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
