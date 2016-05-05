@@ -13,8 +13,9 @@ var TRANSFORMER_SCRIPT = Script.resolvePath('transformer.js');
 
 var AVATAR_COLLISION_HULL = 'atp:/dressingRoom/Avatar-Hull-6.obj';
 var ROBOT_COLLISION_HULL = 'atp:/dressingRoom/robot_hull.obj';
+
 TransformerDoll = function(modelURL, spawnPosition, spawnRotation, dimensions) {
-    print('SCRIPT REF AT TRANSFORMER CREATE::' + TRANSFORMER_SCRIPT);
+
     var transformerProps = {
         name: 'hifi-home-dressing-room-little-transformer',
         type: 'Model',
@@ -48,15 +49,13 @@ TransformerDoll = function(modelURL, spawnPosition, spawnRotation, dimensions) {
         density: 7500,
         dimensions: dimensions,
         script: TRANSFORMER_SCRIPT
-    }
+    };
 
     if (modelURL.indexOf('robot') > -1) {
-        print('THIS IS A ROBOT, GIVE IT A DIFFERENT SHAPE TYPE')
-        transformerProps.compoundShapeURL =ROBOT_COLLISION_HULL;
+        transformerProps.compoundShapeURL = ROBOT_COLLISION_HULL;
     }
-    var transformer = Entities.addEntity(transformerProps);
 
-    print('CREATED TRANSFORMER' + transformer);
+    var transformer = Entities.addEntity(transformerProps);
 
     return this;
 }
