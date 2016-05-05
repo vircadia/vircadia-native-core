@@ -1666,7 +1666,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
         if (!result) {
             removeActionInternal(action->getID());
         } else {
-            action->locallyAddedButNotYetReceived = true;
+            action->setIsMine(true);
         }
     });
 
@@ -1821,7 +1821,6 @@ void EntityItem::deserializeActionsInternal() {
             if (!action->isMine()) {
                 action->deserialize(serializedAction);
             }
-            action->locallyAddedButNotYetReceived = false;
             updated << actionID;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
@@ -1829,7 +1828,6 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
                 entity->addActionInternal(simulation, action);
-                action->locallyAddedButNotYetReceived = false;
                 updated << actionID;
             } else {
                 static QString repeatedMessage =
@@ -1849,14 +1847,10 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = i.value();
 
             if (action->isMine()) {
-                // we just received an update that didn't include one of our actions.  tell the server about it.
+                // we just received an update that didn't include one of our actions.  tell the server about it (again).
                 setActionDataNeedsTransmit(true);
-            }
-
-            // don't let someone else delete my action.
-            if (!action->isMine() &&
-                // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
-                !action->locallyAddedButNotYetReceived) {
+            } else {
+                // don't let someone else delete my action.
                 _actionsToRemove << id;
                 _previouslyDeletedActions.insert(id, now);
             }
