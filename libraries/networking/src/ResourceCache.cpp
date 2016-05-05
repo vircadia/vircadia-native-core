@@ -40,15 +40,14 @@ void ResourceCacheSharedItems::appendPendingRequest(QWeakPointer<Resource> resou
 
 QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
     QList<QSharedPointer<Resource>> result;
+    Lock lock(_mutex);
 
-    {
-        Lock lock(_mutex);
-        foreach(QSharedPointer<Resource> resource, _pendingRequests) {
-            if (resource) {
-                result.append(resource);
-            }
+    foreach(QSharedPointer<Resource> resource, _pendingRequests) {
+        if (resource) {
+            result.append(resource);
         }
     }
+
     return result;
 }
 
@@ -59,20 +58,20 @@ uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
 
 QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
     QList<QSharedPointer<Resource>> result;
+    Lock lock(_mutex);
 
-    {
-        Lock lock(_mutex);
-        foreach(QSharedPointer<Resource> resource, _loadingRequests) {
-            if (resource) {
-                result.append(resource);
-            }
+    foreach(QSharedPointer<Resource> resource, _loadingRequests) {
+        if (resource) {
+            result.append(resource);
         }
     }
+
     return result;
 }
 
 void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     Lock lock(_mutex);
+
     // resource can only be removed if it still has a ref-count, as
     // QWeakPointer has no operator== implementation for two weak ptrs, so
     // manually loop in case resource has been freed.
@@ -88,11 +87,11 @@ void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
 }
 
 QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
-    Lock lock(_mutex);
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
     QSharedPointer<Resource> highestResource;
+    Lock lock(_mutex);
 
     for (int i = 0; i < _pendingRequests.size();) {
         // Clear any freed resources
@@ -176,12 +175,14 @@ void ResourceCache::refreshAll() {
     clearUnusedResource();
     resetResourceCounters();
 
-    _resourcesLock.lockForRead();
-    auto resourcesCopy = _resources;
-    _resourcesLock.unlock();
+    QHash<QUrl, QWeakPointer<Resource>> resources;
+    {
+        QReadLocker locker(&_resourcesLock);
+        resources = _resources;
+    }
 
     // Refresh all remaining resources in use
-    foreach (QSharedPointer<Resource> resource, resourcesCopy) {
+    foreach (QSharedPointer<Resource> resource, resources) {
         if (resource) {
             resource->refresh();
         }
@@ -231,17 +232,17 @@ void ResourceCache::setRequestLimit(int limit) {
 
 void ResourceCache::getResourceAsynchronously(const QUrl& url) {
     qCDebug(networking) << "ResourceCache::getResourceAsynchronously" << url.toString();
-    _resourcesToBeGottenLock.lockForWrite();
+    QWriteLocker locker(&_resourcesToBeGottenLock);
     _resourcesToBeGotten.enqueue(QUrl(url));
-    _resourcesToBeGottenLock.unlock();
 }
 
 void ResourceCache::checkAsynchronousGets() {
     assert(QThread::currentThread() == thread());
+    QWriteLocker locker(&_resourcesToBeGottenLock);
     if (!_resourcesToBeGotten.isEmpty()) {
-        _resourcesToBeGottenLock.lockForWrite();
         QUrl url = _resourcesToBeGotten.dequeue();
-        _resourcesToBeGottenLock.unlock();
+
+        locker.unlock();
         getResource(url);
     }
 }
@@ -312,8 +313,10 @@ void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resourc
     if (_unusedResources.contains(resource->getLRUKey())) {
         _unusedResources.remove(resource->getLRUKey());
         _unusedResourcesSize -= resource->getBytes();
+
+        locker.unlock();
+        resetResourceCounters();
     }
-    resetResourceCounters();
 }
 
 void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
@@ -326,7 +329,9 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         it.value()->setCache(nullptr);
         auto size = it.value()->getBytes();
 
+        locker.unlock();
         removeResource(it.value()->getURL(), size);
+        locker.relock();
 
         _unusedResourcesSize -= size;
         _unusedResources.erase(it);
@@ -346,8 +351,16 @@ void ResourceCache::clearUnusedResource() {
 }
 
 void ResourceCache::resetResourceCounters() {
-    _numTotalResources = _resources.size();
-    _numUnusedResources = _unusedResources.size();
+    {
+        QReadLocker locker(&_resourcesLock);
+        _numTotalResources = _resources.size();
+    }
+
+    {
+        QReadLocker locker(&_unusedResourcesLock);
+        _numUnusedResources = _unusedResources.size();
+    }
+
     emit dirty();
 }
 
