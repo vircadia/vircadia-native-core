@@ -13,7 +13,7 @@
 //
 
 // Everything about deferred buffer
-<@include DeferredBuffer.slh@>
+<@include DeferredBufferRead.slh@>
 
 //Everything about deferred lighting
 <@include DeferredLighting.slh@>

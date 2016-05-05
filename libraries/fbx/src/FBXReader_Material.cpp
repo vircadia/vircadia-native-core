@@ -212,6 +212,13 @@ void FBXReader::consolidateFBXMaterials() {
             material._material->setRoughness(model::Material::shininessToRoughness(material.shininess));
             float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
             material._material->setMetallic(metallic);
+
+            if (material.shadingModel == "lambert") {
+                if (!material._material->getKey().isAlbedo()) {
+                    material._material->setUnlit(true);
+                    std::cout << emissive;
+                }
+            }
         }
 
         if (material.opacity <= 0.0f) {

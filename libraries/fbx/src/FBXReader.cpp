@@ -991,7 +991,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QString propname = subobject.name.data();
                             int unknown = 0;
                             if ( (propname == "Version")
-                                ||(propname == "ShadingModel")
                                 ||(propname == "Multilayer")) {
                             } else {
                                 unknown++;
