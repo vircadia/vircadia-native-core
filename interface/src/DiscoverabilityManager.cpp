@@ -15,6 +15,7 @@
 #include <AddressManager.h>
 #include <DomainHandler.h>
 #include <NodeList.h>
+#include <UserActivityLogger.h>
 #include <UUID.h>
 
 #include "DiscoverabilityManager.h"
@@ -44,6 +45,7 @@ void DiscoverabilityManager::updateLocation() {
             QJsonObject rootObject;
             
             QJsonObject locationObject;
+
             
             QString pathString = addressManager->currentPath();
             
@@ -56,13 +58,22 @@ void DiscoverabilityManager::updateLocation() {
                 const QString PLACE_ID_KEY_IN_LOCATION = "place_id";
                 locationObject.insert(PLACE_ID_KEY_IN_LOCATION,
                                       uuidStringWithoutCurlyBraces(addressManager->getRootPlaceID()));
-                
-            } else {
+            }
+
+            if (!domainHandler.getUUID().isNull()) {
                 const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
                 locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION,
                                       uuidStringWithoutCurlyBraces(domainHandler.getUUID()));
             }
-            
+
+            // in case the place/domain isn't in the database, we send the network address and port
+            auto& domainSockAddr = domainHandler.getSockAddr();
+            const QString NETWORK_ADRESS_KEY_IN_LOCATION = "network_address";
+            locationObject.insert(NETWORK_ADRESS_KEY_IN_LOCATION, domainSockAddr.getAddress().toString());
+
+            const QString NETWORK_ADDRESS_PORT_IN_LOCATION = "network_port";
+            locationObject.insert(NETWORK_ADDRESS_PORT_IN_LOCATION, domainSockAddr.getPort());
+
             const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
             locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
             
@@ -72,7 +83,7 @@ void DiscoverabilityManager::updateLocation() {
                                        QNetworkAccessManager::PutOperation,
                                        JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
         }
-    } else {
+    } else if (UserActivityLogger::getInstance().isEnabled()) {
         // we still send a heartbeat to the metaverse server for stats collection
         const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
         accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation);
