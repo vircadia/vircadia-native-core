@@ -146,12 +146,15 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
+
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
         scriptEngines->removeScriptEngine(this);
     } else {
         qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
     }
+
+    waitTillDoneRunning();
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
@@ -172,7 +175,7 @@ void ScriptEngine::runInThread() {
     }
 
     _isThreaded = true;
-    QThread* workerThread = new QThread(this); // thread is not owned, so we need to manage the delete
+    QThread* workerThread = new QThread();
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
@@ -194,35 +197,35 @@ void ScriptEngine::runInThread() {
 
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
-    if (_isRunning && _isThreaded) {
-
-        // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
-        // we want the application thread to continue to process events, because the scripts will likely need to
-        // marshall messages across to the main thread. For example if they access Settings or Menu in any of their
-        // shutdown code.
+    auto workerThread = thread();
+    if (_isThreaded && workerThread) {
         QString scriptName = getFilename();
-
         auto startedWaiting = usecTimestampNow();
-        while (thread()->isRunning()) {
-            // process events for the main application thread, allowing invokeMethod calls to pass between threads
-            QCoreApplication::processEvents();
-            auto stillWaiting = usecTimestampNow();
-            auto elapsedUsecs = stillWaiting - startedWaiting;
-            
-            // if we've been waiting a second or more, then tell the script engine to stop evaluating
-            static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
-            static const auto WAITING_TOO_LONG = MAX_SCRIPT_EVALUATION_TIME * 5;
 
-            // if we've been waiting for more than 5 seconds then we should be more aggessive about stopping
-            if (elapsedUsecs > WAITING_TOO_LONG) {
-                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
-                thread()->quit();
+        while (workerThread->isRunning()) {
+            // NOTE: This will be called on the main application thread from stopAllScripts.
+            //       The application thread will need to continue to process events, because
+            //       the scripts will likely need to marshall messages across to the main thread, e.g.
+            //       if they access Settings or Menu in any of their shutdown code. So:
+            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
+            QCoreApplication::processEvents(); // thread-safe :)
+
+            // If we've been waiting a second or more, then tell the script engine to stop evaluating
+            static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
+            auto elapsedUsecs = usecTimestampNow() - startedWaiting;
+            if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
+                qCDebug(scriptengine) <<
+                    "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
+                abortEvaluation(); // to allow the thread to quit
+                workerThread->quit();
                 break;
-            } else if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
-                qCDebug(scriptengine) << "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] aborting evaluation.";
-                QMetaObject::invokeMethod(this, "abortEvaluation");
             }
+
+            // Avoid a pure busy wait
+            QThread::yieldCurrentThread();
         }
+
+        workerThread->deleteLater();
     }
 }
 
