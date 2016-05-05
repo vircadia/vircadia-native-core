@@ -37,13 +37,12 @@ class SimulationOwner {
 public:
     static const int NUM_BYTES_ENCODED;
 
-    SimulationOwner() : _id(), _priority(0), _expiry(0) {}
-    SimulationOwner(const QUuid& id, quint8 priority) : _id(id), _priority(priority), _expiry(0) {}
-    SimulationOwner(const SimulationOwner& other);
+    SimulationOwner();
+    SimulationOwner(const QUuid& id, quint8 priority);
 
     const QUuid& getID() const { return _id; }
-    quint8 getPriority() const { return _priority; }
     const quint64& getExpiry() const { return _expiry; }
+    quint8 getPriority() const { return _priority; }
 
     QByteArray toByteArray() const;
     bool fromByteArray(const QByteArray& data);
@@ -57,6 +56,7 @@ public:
     bool setID(const QUuid& id);
     bool set(const QUuid& id, quint8 priority);
     bool set(const SimulationOwner& owner);
+    void setPendingPriority(quint8 priority, const quint64& timestamp);
 
     bool isNull() const { return _id.isNull(); }
     bool matchesValidID(const QUuid& id) const { return _id == id && !_id.isNull(); }
@@ -64,6 +64,10 @@ public:
     void updateExpiry();
 
     bool hasExpired() const { return usecTimestampNow() > _expiry; }
+
+    bool pendingRelease(const quint64& timestamp); // return true if valid pending RELEASE
+    bool pendingTake(const quint64& timestamp); // return true if valid pending TAKE
+    void clearCurrentOwner();
 
     bool operator>=(quint8 priority) const { return _priority >= priority; }
     bool operator==(const SimulationOwner& other) { return (_id == other._id && _priority == other._priority); }
@@ -77,9 +81,12 @@ public:
     static void test();
 
 private:
-    QUuid _id;
-    quint8 _priority;
-    quint64 _expiry;
+    QUuid _id; // owner
+    quint64 _expiry; // time when ownership can transition at equal priority
+    quint64 _pendingTimestamp; // time when pending update was set
+    quint8 _priority; // priority of current owner
+    quint8 _pendingPriority; // priority of pendingTake
+    quint8 _pendingState; // NOTHING, TAKE, or RELEASE
 };
 
 
