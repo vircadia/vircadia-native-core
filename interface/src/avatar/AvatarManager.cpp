@@ -311,7 +311,9 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
             MyAvatar* myAvatar = getMyAvatar();
             auto collisionSound = myAvatar->getCollisionSound();
             if (collisionSound) {
-                const float velocityChange = glm::length(collision.velocityChange);
+                const auto characterController = myAvatar->getCharacterController();
+                const float avatarVelocityChange = (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
+                const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
                 const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01f;
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
