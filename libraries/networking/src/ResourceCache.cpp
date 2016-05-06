@@ -139,17 +139,17 @@ void ScriptableResource::setInScript(bool isInScript) {
 }
 
 void ScriptableResource::loadingChanged() {
-    emit stateChanged(LOADING);
+    setState(LOADING);
 }
 
 void ScriptableResource::loadedChanged() {
-    emit stateChanged(LOADED);
+    setState(LOADED);
 }
 
 void ScriptableResource::finished(bool success) {
     disconnectHelper();
 
-    emit stateChanged(success ? FINISHED : FAILED);
+    setState(success ? FINISHED : FAILED);
 }
 
 void ScriptableResource::disconnectHelper() {

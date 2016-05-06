@@ -113,6 +113,9 @@ signals:
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
     void stateChanged(int state);
 
+protected:
+    void setState(State state) { _state = state; emit stateChanged(_state); }
+
 private slots:
     void loadingChanged();
     void loadedChanged();
