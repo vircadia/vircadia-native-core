@@ -49,6 +49,11 @@ bool ObjectActionSpring::getTarget(float deltaTimeStep, glm::quat& rotation, glm
 }
 
 bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return false;
+    }
+
     glm::quat rotation;
     glm::vec3 position;
     glm::vec3 linearVelocity;
@@ -57,12 +62,7 @@ bool ObjectActionSpring::prepareForSpringUpdate(btScalar deltaTimeStep) {
     bool valid = false;
     int springCount = 0;
 
-    auto ownerEntity = _ownerEntity.lock();
-    if (!ownerEntity) {
-        return false;
-    }
-
-	QList<EntityActionPointer> springDerivedActions;
+    QList<EntityActionPointer> springDerivedActions;
     springDerivedActions.append(ownerEntity->getActionsOfType(ACTION_TYPE_SPRING));
     springDerivedActions.append(ownerEntity->getActionsOfType(ACTION_TYPE_HOLD));
 
