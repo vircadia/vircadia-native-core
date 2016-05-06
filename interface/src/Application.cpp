@@ -4519,11 +4519,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 }
 
-void Application::copyCurrentViewFrustum(ViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _displayViewFrustum;
-}
-
 bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
