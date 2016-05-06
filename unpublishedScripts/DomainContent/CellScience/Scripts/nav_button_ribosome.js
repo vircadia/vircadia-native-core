@@ -6,7 +6,7 @@
 //
 (function() {
 
-    var version = 12;
+    var version = 13;
 
     var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
     var button;
@@ -26,9 +26,9 @@
             z: 3000
         },
         target: {
-            x: 3276.6,
-            y: 13703.3,
-            z: 4405.6
+            x: 13500,
+            y: 3000,
+            z: 3000
         },
         preload: function(entityId) {
             print('CELL PRELOAD RIBOSOME 1')
@@ -46,7 +46,7 @@
                 var buttonPadding = 10;
                 var offset = 2;
                 var buttonPositionX = (offset + 1) * (buttonWidth + buttonPadding) + (windowDimensions.x / 2) - (buttonWidth * 3 + buttonPadding * 2.5);
-                var buttonPositionY = (windowDimensions.y - buttonHeight) - 50;
+                var buttonPositionY = (windowDimensions.y - buttonHeight) - 150;
                 button = Overlays.addOverlay("image", {
                     x: buttonPositionX,
                     y: buttonPositionY,
