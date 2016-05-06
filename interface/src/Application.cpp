@@ -161,7 +161,6 @@ extern "C" {
 using namespace std;
 
 static QTimer locationUpdateTimer;
-static QTimer balanceUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
@@ -688,13 +687,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
 
-    const qint64 BALANCE_UPDATE_INTERVAL_MSECS = 5 * MSECS_PER_SEC;
-
-    connect(&balanceUpdateTimer, &QTimer::timeout, &accountManager, &AccountManager::updateBalance);
-    balanceUpdateTimer.start(BALANCE_UPDATE_INTERVAL_MSECS);
-
-    connect(&accountManager, &AccountManager::balanceChanged, this, &Application::updateWindowTitle);
-
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(&accountManager, &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
@@ -1197,7 +1189,6 @@ void Application::cleanupBeforeQuit() {
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
     locationUpdateTimer.stop();
-    balanceUpdateTimer.stop();
     identityPacketTimer.stop();
     pingTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
