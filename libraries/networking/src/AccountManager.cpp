@@ -36,16 +36,6 @@
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
-AccountManager& AccountManager::getInstance(bool forceReset) {
-    static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
-    
-    if (forceReset) {
-        sharedInstance.reset(new AccountManager());
-    }
-    
-    return *sharedInstance;
-}
-
 Q_DECLARE_METATYPE(OAuthAccessToken)
 Q_DECLARE_METATYPE(DataServerAccountInfo)
 Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)

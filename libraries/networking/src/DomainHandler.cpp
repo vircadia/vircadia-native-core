@@ -371,10 +371,10 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         emit domainConnectionRefused(reason);
     }
 
-    auto& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     if (!_hasCheckedForAccessToken) {
-        accountManager.checkAndSignalForAccessToken();
+        accountManager->checkAndSignalForAccessToken();
         _hasCheckedForAccessToken = true;
     }
 
@@ -382,7 +382,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
     if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
-        accountManager.generateNewUserKeypair();
+        accountManager->generateNewUserKeypair();
         _connectionDenialsSinceKeypairRegen = 0;
     }
 }

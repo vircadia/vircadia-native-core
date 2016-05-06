@@ -51,6 +51,8 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
+
+    DependencyManager::set<AccountManager>();
  
     auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
@@ -116,7 +118,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     _requestTimer.start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
 
     // connections to AccountManager for authentication
-    connect(&AccountManager::getInstance(), &AccountManager::authRequired,
+    connect(DependencyManager::get<AccountManager>().data(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
 
     // Create Singleton objects on main thread
@@ -309,13 +311,13 @@ void AssignmentClient::handleAuthenticationRequest() {
     QString username = sysEnvironment.value(DATA_SERVER_USERNAME_ENV);
     QString password = sysEnvironment.value(DATA_SERVER_PASSWORD_ENV);
 
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     if (!username.isEmpty() && !password.isEmpty()) {
         // ask the account manager to log us in from the env variables
-        accountManager.requestAccessToken(username, password);
+        accountManager->requestAccessToken(username, password);
     } else {
-        qCWarning(assigmnentclient) << "Authentication was requested against" << qPrintable(accountManager.getAuthURL().toString())
+        qCWarning(assigmnentclient) << "Authentication was requested against" << qPrintable(accountManager->getAuthURL().toString())
             << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
             << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Unable to authenticate.";
 

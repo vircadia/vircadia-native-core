@@ -20,6 +20,9 @@
 #include "NetworkAccessManager.h"
 
 #include "DataServerAccountInfo.h"
+#include "SharedUtil.h"
+
+#include <DependencyManager.h>
 
 class JSONCallbackParameters {
 public:

@@ -13,20 +13,22 @@
 
 #include "AccountScriptingInterface.h"
 
+#include <DependencyManager.h>
+
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
     return &sharedInstance;
 }
 
 bool AccountScriptingInterface::isLoggedIn() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    return accountManager.isLoggedIn();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->isLoggedIn();
 }
 
 QString AccountScriptingInterface::getUsername() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    if (accountManager.isLoggedIn()) {
-        return accountManager.getAccountInfo().getUsername();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        return accountManager->getAccountInfo().getUsername();
     } else {
         return "Unknown user";
     }
