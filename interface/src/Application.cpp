@@ -676,6 +676,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
         discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
+    // send a location update immediately
+    discoverabilityManager->updateLocation();
+
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);

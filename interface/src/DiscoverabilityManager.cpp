@@ -144,6 +144,9 @@ void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discov
         if (static_cast<int>(_mode.get()) == Discoverability::None) {
             // if we just got set to no discoverability, make sure that we delete our location in DB
             removeLocation();
+        } else {
+            // we have a discoverability mode that says we should send a location, do that right away
+            updateLocation();
         }
 
         emit discoverabilityModeChanged(discoverabilityMode);
