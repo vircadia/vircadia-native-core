@@ -20,7 +20,7 @@
 #include "DiscoverabilityManager.h"
 #include "Menu.h"
 
-const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::All;
+const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Friends;
 
 DiscoverabilityManager::DiscoverabilityManager() :
     _mode("discoverabilityMode", DEFAULT_DISCOVERABILITY_MODE)
