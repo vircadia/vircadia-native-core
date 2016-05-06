@@ -30,6 +30,7 @@ DiscoverabilityManager::DiscoverabilityManager() :
 }
 
 const QString API_USER_LOCATION_PATH = "/api/v1/user/location";
+const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
 
 const QString SESSION_ID_KEY = "session_id";
 
@@ -48,7 +49,6 @@ void DiscoverabilityManager::updateLocation() {
             
             QJsonObject locationObject;
 
-            
             QString pathString = addressManager->currentPath();
             
             const QString LOCATION_KEY_IN_ROOT = "location";
@@ -78,16 +78,33 @@ void DiscoverabilityManager::updateLocation() {
 
             const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
             locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
-            
-            rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
-            
-            accountManager.sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required,
+
+            // if we have a session ID add it now, otherwise add a null value
+            rootObject[SESSION_ID_KEY] = _sessionID.isEmpty() ? QJsonValue() : _sessionID;
+
+            JSONCallbackParameters callbackParameters;
+            callbackParameters.jsonCallbackReceiver = this;
+            callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
+
+            // figure out if we'll send a fresh location or just a simple heartbeat
+            auto apiPath = API_USER_HEARTBEAT_PATH;
+
+            if (locationObject != _lastLocationObject) {
+                // we have a changed location, send it now
+                _lastLocationObject = locationObject;
+
+                rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
+
+                apiPath = API_USER_LOCATION_PATH;
+            }
+
+            accountManager.sendRequest(apiPath, AccountManagerAuth::Required,
                                        QNetworkAccessManager::PutOperation,
-                                       JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
+                                       callbackParameters, QJsonDocument(rootObject).toJson());
+
         }
     } else if (UserActivityLogger::getInstance().isEnabled()) {
         // we still send a heartbeat to the metaverse server for stats collection
-        const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
 
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;

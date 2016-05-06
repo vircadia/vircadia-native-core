@@ -50,6 +50,7 @@ private:
     
     Setting::Handle<int> _mode;
     QString _sessionID;
+    QJsonObject _lastLocationObject;
 };
 
 #endif // hifi_DiscoverabilityManager_h
