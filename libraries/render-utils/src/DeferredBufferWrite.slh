@@ -73,7 +73,7 @@ void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
     if (alpha != 1.0) {
         discard;
     }
-    _fragColor0 = vec4(color, FRAG_TYPE_UNLIT);
+    _fragColor0 = vec4(color, packUnlit());
     _fragColor1 = vec4(bestFitNormal(normal), 1.0);
     //_fragColor2 = vec4(vec3(0.0), 1.0); // If unlit, do not worry about the emissive color target
 }

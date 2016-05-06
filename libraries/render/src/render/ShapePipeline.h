@@ -25,6 +25,7 @@ public:
         TANGENTS,
         SPECULAR,
         EMISSIVE,
+        UNLIT,
         SKINNED,
         STEREO,
         DEPTH_ONLY,
@@ -56,6 +57,7 @@ public:
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
         Builder& withSpecular() { _flags.set(SPECULAR); return (*this); }
         Builder& withEmissive() { _flags.set(EMISSIVE); return (*this); }
+        Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
         Builder& withStereo() { _flags.set(STEREO); return (*this); }
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
@@ -102,6 +104,9 @@ public:
             Builder& withEmissive() { _flags.set(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
             Builder& withoutEmissive() { _flags.reset(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
 
+            Builder& withUnlit() { _flags.set(UNLIT); _mask.set(UNLIT); return (*this); }
+            Builder& withoutUnlit() { _flags.reset(UNLIT); _mask.set(UNLIT); return (*this); }
+
             Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
             Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
 
@@ -136,6 +141,7 @@ public:
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool hasSpecular() const { return _flags[SPECULAR]; }
     bool hasEmissive() const { return _flags[EMISSIVE]; }
+    bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
     bool isSkinned() const { return _flags[SKINNED]; }
     bool isStereo() const { return _flags[STEREO]; }
@@ -172,6 +178,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "hasTangents:" << key.hasTangents()
                 << "hasSpecular:" << key.hasSpecular()
                 << "hasEmissive:" << key.hasEmissive()
+                << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
                 << "isSkinned:" << key.isSkinned()
                 << "isStereo:" << key.isStereo()

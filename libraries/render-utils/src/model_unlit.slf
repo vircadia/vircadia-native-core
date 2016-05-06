@@ -1,0 +1,36 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  material_opaque_unlit.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 5/5/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+<@include model/Material.slh@>
+
+uniform sampler2D albedoMap;
+
+in vec2 _texCoord0;
+in vec3 _normal;
+in vec3 _color;
+in float _alpha;
+
+void main(void) {
+    vec4 texel = texture(albedoMap, _texCoord0);
+
+    Material mat = getMaterial();
+    //vec3 fragColor = getMaterialEmissive(mat) * texel.rgb * _color;
+    vec3 fragColor = vec3(1.0, 0.5, 0.0);
+
+    packDeferredFragmentUnlit(
+        normalize(_normal), 
+        1.0,
+        fragColor);
+}

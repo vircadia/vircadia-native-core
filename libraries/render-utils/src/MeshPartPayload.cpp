@@ -414,6 +414,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
+    bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
     bool wireframe = _model->isWireframe();
@@ -434,6 +435,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
     if (hasLightmap) {
         builder.withLightmap();
+    }
+    if (isUnlit) {
+        builder.withUnlit();
     }
     if (isSkinned) {
         builder.withSkinned();

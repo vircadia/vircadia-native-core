@@ -94,6 +94,14 @@ static const std::string DEFAULT_EMISSIVE_SHADER{
     " }"
 };
 
+static const std::string DEFAULT_UNLIT_SHADER{
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return vec4(pow(vec3(frag.diffuseVal.w), vec3(1.0 / 2.2)), 1.0);"
+//    "    return (frag.mode == FRAG_MODE_UNLIT ? vec4(pow(frag.diffuse, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    " }"
+};
+
 static const std::string DEFAULT_LIGHTMAP_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
@@ -184,6 +192,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_DEPTH_SHADER;
         case EmissiveMode:
             return DEFAULT_EMISSIVE_SHADER;
+        case UnlitMode:
+            return DEFAULT_UNLIT_SHADER;
         case OcclusionMode:
             return DEFAULT_OCCLUSION_SHADER;
         case LightmapMode:

@@ -28,6 +28,7 @@
 
 #include "model_frag.h"
 #include "model_emissive_frag.h"
+#include "model_unlit_frag.h"
 #include "model_shadow_frag.h"
 #include "model_normal_map_frag.h"
 #include "model_normal_specular_map_frag.h"
@@ -202,6 +203,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     // Pixel shaders
     auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
     auto modelEmissivePixel = gpu::Shader::createPixel(std::string(model_emissive_frag));
+    auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
     auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
     auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
@@ -222,6 +224,9 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withEmissive(),
         modelVertex, modelEmissivePixel);
     addPipeline(
+        Key::Builder().withUnlit(),
+        modelVertex, modelUnlitPixel);
+    addPipeline(
         Key::Builder().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
     addPipeline(
@@ -236,6 +241,9 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         modelVertex, modelTranslucentPixel);
     addPipeline(
         Key::Builder().withTranslucent().withEmissive(),
+        modelVertex, modelTranslucentEmissivePixel);
+    addPipeline(
+        Key::Builder().withTranslucent().withUnlit(),
         modelVertex, modelTranslucentEmissivePixel);
     addPipeline(
         Key::Builder().withTranslucent().withTangents(),
@@ -296,4 +304,5 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
+
 }
