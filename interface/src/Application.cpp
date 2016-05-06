@@ -3651,19 +3651,16 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
-    ViewFrustum viewFrustumCopy;
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        viewFrustumCopy = _viewFrustum;
-    }
-    _octreeQuery.setCameraPosition(viewFrustumCopy.getPosition());
-    _octreeQuery.setCameraOrientation(viewFrustumCopy.getOrientation());
-    _octreeQuery.setCameraFov(viewFrustumCopy.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(viewFrustumCopy.getAspectRatio());
-    _octreeQuery.setCameraNearClip(viewFrustumCopy.getNearClip());
-    _octreeQuery.setCameraFarClip(viewFrustumCopy.getFarClip());
+    ViewFrustum viewFrustum;
+    copyViewFrustum(viewFrustum);
+    _octreeQuery.setCameraPosition(viewFrustum.getPosition());
+    _octreeQuery.setCameraOrientation(viewFrustum.getOrientation());
+    _octreeQuery.setCameraFov(viewFrustum.getFieldOfView());
+    _octreeQuery.setCameraAspectRatio(viewFrustum.getAspectRatio());
+    _octreeQuery.setCameraNearClip(viewFrustum.getNearClip());
+    _octreeQuery.setCameraFarClip(viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(viewFrustumCopy.getCenterRadius());
+    _octreeQuery.setCameraCenterRadius(viewFrustum.getCenterRadius());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -3699,7 +3696,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-                    if (viewFrustumCopy.cubeIntersectsKeyhole(serverBounds)) {
+                    if (viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
                         inViewServers++;
                     }
                 }
@@ -3765,11 +3762,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                         rootDetails.s * TREE_SCALE);
 
 
-                    inView = viewFrustumCopy.cubeIntersectsKeyhole(serverBounds);
-                } else {
-                    if (wantExtraDebugging) {
-                        qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
-                    }
+                    inView = viewFrustum.cubeIntersectsKeyhole(serverBounds);
+                } else if (wantExtraDebugging) {
+                    qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                 }
             }
 

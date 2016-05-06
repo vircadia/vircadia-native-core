@@ -506,7 +506,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
     auto cameraMode = qApp->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        ViewFrustum frustum = renderArgs->getViewFrustum();
+        auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();
         if (frustum.pointIntersectsFrustum(textPosition)) {
             renderDisplayName(batch, frustum, textPosition);

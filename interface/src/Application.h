@@ -167,7 +167,7 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override;
+    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() override { return thread(); }
     virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;
