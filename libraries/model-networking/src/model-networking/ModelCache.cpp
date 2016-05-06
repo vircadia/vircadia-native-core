@@ -394,10 +394,20 @@ const QString& NetworkMaterial::getTextureName(MapChannel channel) {
     return NO_TEXTURE;
 }
 
-QUrl NetworkMaterial::getTextureUrl(const QUrl& url, const FBXTexture& texture) {
-    // If content is inline, cache it under the fbx file, not its url
-    const auto baseUrl = texture.content.isEmpty() ? url : QUrl(url.url() + "/");
-    return baseUrl.resolved(QUrl(texture.filename));
+QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& texture) {
+    if (texture.content.isEmpty()) {
+        // External file: search relative to the baseUrl, in case filename is relative
+        return baseUrl.resolved(QUrl(texture.filename));
+    } else {
+        // Inlined file: cache under the fbx file to avoid namespace clashes
+        // NOTE: We cannot resolve the path because filename may be an absolute path
+        assert(texture.filename.size() > 0);
+        if (texture.filename.at(0) == '/') {
+            return baseUrl.toString() + texture.filename;
+        } else {
+            return baseUrl.toString() + '/' + texture.filename;
+        }
+    }
 }
 
 model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
