@@ -42,10 +42,15 @@ public slots:
 signals:
     void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
+private slots:
+    void handleHeartbeatResponse(QNetworkReply& requestReply);
+    
 private:
     DiscoverabilityManager();
     
     Setting::Handle<int> _mode;
+    QString _sessionID;
+    QJsonObject _lastLocationObject;
 };
 
 #endif // hifi_DiscoverabilityManager_h
