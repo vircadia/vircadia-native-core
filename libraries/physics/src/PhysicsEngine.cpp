@@ -225,9 +225,7 @@ void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
     ContactMap::iterator contactItr = _contactMap.begin();
     while (contactItr != _contactMap.end()) {
         if (contactItr->first._a == motionState || contactItr->first._b == motionState) {
-            ContactMap::iterator iterToDelete = contactItr;
-            ++contactItr;
-            _contactMap.erase(iterToDelete);
+            contactItr = _contactMap.erase(contactItr);
         } else {
             ++contactItr;
         }
@@ -386,9 +384,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
         }
 
         if (type == CONTACT_EVENT_TYPE_END) {
-            ContactMap::iterator iterToDelete = contactItr;
-            ++contactItr;
-            _contactMap.erase(iterToDelete);
+            contactItr = _contactMap.erase(contactItr);
         } else {
             ++contactItr;
         }
