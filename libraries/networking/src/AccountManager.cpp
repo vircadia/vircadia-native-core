@@ -69,7 +69,8 @@ QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply &requestReply) 
     }
 }
 
-AccountManager::AccountManager() :
+AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
+    _userAgentGetter(userAgentGetter),
     _authURL(),
     _pendingCallbackMap()
 {
@@ -212,8 +213,9 @@ void AccountManager::sendRequest(const QString& path,
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     
     QNetworkRequest networkRequest;
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    
+
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
     QUrl requestURL = _authURL;
     
     if (path.startsWith("/")) {
@@ -463,7 +465,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
-    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
@@ -533,7 +535,7 @@ void AccountManager::requestProfile() {
     profileURL.setPath("/api/v1/user/profile");
     
     QNetworkRequest profileRequest(profileURL);
-    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
     profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
 
     QNetworkReply* profileReply = networkAccessManager.get(profileRequest);

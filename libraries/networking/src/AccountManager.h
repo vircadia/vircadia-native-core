@@ -52,10 +52,12 @@ Q_DECLARE_METATYPE(AccountManagerAuth::Type);
 
 const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 
-class AccountManager : public QObject {
+using UserAgentGetter = std::function<QString()>;
+
+class AccountManager : public QObject, public Dependency {
     Q_OBJECT
 public:
-    static AccountManager& getInstance(bool forceReset = false);
+    AccountManager(UserAgentGetter = []() -> QString { return HIGH_FIDELITY_USER_AGENT; });
 
     Q_INVOKABLE void sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
@@ -112,7 +114,6 @@ private slots:
     void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
 
 private:
-    AccountManager();
     AccountManager(AccountManager const& other) = delete;
     void operator=(AccountManager const& other) = delete;
 
@@ -121,6 +122,8 @@ private:
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
+
+    UserAgentGetter _userAgentGetter;
 
     QUrl _authURL;
     
