@@ -368,7 +368,7 @@ void EntityTree::maybeNotifyNewCollisionSoundURL(const QString& previousCollisio
     }
 }
 
-void EntityTree::setSimulation(EntitySimulation* simulation) {
+void EntityTree::setSimulation(EntitySimulationPointer simulation) {
     this->withWriteLock([&] {
         if (simulation) {
             // assert that the simulation's backpointer has already been properly connected

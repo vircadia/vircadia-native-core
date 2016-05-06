@@ -49,7 +49,7 @@ protected:
         return newTree;
     }
 
-    EntitySimulation* _simulation;
+    EntitySimulationPointer _simulation;
 };
 
 #endif // hifi_EntityTreeHeadlessViewer_h

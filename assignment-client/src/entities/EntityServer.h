@@ -28,6 +28,8 @@ struct ViewerSendingStats {
 };
 
 class SimpleEntitySimulation;
+using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
+
 
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
@@ -69,7 +71,7 @@ private slots:
     void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
-    SimpleEntitySimulation* _entitySimulation;
+    SimpleEntitySimulationPointer _entitySimulation;
     QTimer* _pruneDeletedEntitiesTimer = nullptr;
 
     QReadWriteLock _viewerSendingStatsLock;
