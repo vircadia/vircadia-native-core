@@ -1074,15 +1074,13 @@ QString Application::getUserAgent() {
 
     // For each plugin, add to userAgent
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-    foreach(auto dp, displayPlugins) {
+    for (auto& dp : displayPlugins) {
         if (dp->isActive() && dp->isHmd()) {
             userAgent += " " + formatPluginName(dp->getName());
         }
     }
-
-    // For each plugin, add to userAgent
     auto inputPlugins= PluginManager::getInstance()->getInputPlugins();
-    foreach(auto ip, inputPlugins) {
+    for (auto& ip : inputPlugins) {
         if (ip->isActive()) {
             userAgent += " " + formatPluginName(ip->getName());
         }
