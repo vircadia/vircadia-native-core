@@ -77,6 +77,8 @@ public:
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
 
+    static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
 
@@ -85,8 +87,6 @@ public slots:
     void requestAccessTokenError(QNetworkReply::NetworkError error);
     void requestProfileError(QNetworkReply::NetworkError error);
     void logout();
-    void updateBalance();
-    void accountInfoBalanceChanged(qint64 newBalance);
     void generateNewUserKeypair() { generateNewKeypair(); }
     void generateNewDomainKeypair(const QUuid& domainID) { generateNewKeypair(false, domainID); }
 
@@ -98,7 +98,6 @@ signals:
     void loginComplete(const QUrl& authURL);
     void loginFailed();
     void logoutComplete();
-    void balanceChanged(qint64 newBalance);
     void newKeypair();
 
 private slots:

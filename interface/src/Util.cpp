@@ -131,71 +131,102 @@ const glm::vec3 randVector() {
 //  Do some basic timing tests and report the results
 void runTimingTests() {
     //  How long does it take to make a call to get the time?
+    const int numTimingTests = 3;
+    QElapsedTimer startTime;
+    float elapsedNSecs;
+    float elapsedUSecs;
+
+    qCDebug(interfaceapp, "numTimingTests: %d", numTimingTests);
+
+    startTime.start();
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() ns: %f", (double)elapsedNSecs / numTimingTests);
+
+    // Test sleep functions for accuracy
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        QThread::msleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / numTimingTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        QThread::sleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "QThread::sleep(1) s: %f", (double)(elapsedNSecs / NSECS_PER_MSEC / MSECS_PER_SECOND / numTimingTests));
+
+    const int numUsecTests = 1000;
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(1);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
+
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(10);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(10) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
+
+    startTime.start();
+    for (int i = 0; i < numUsecTests; i++) {
+        usleep(100);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(100) (1000x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numUsecTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1000);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1000) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1001);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1001) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
+
+    startTime.start();
+    for (int i = 0; i < numTimingTests; i++) {
+        usleep(1500);
+    }
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(1500) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC / numTimingTests));
+
+    startTime.start();
+    usleep(15000);
+    elapsedNSecs = (float)startTime.nsecsElapsed();
+    qCDebug(interfaceapp, "usleep(15000) (1x) us: %f", (double)(elapsedNSecs / NSECS_PER_USEC));
+
     const int numTests = 1000000;
     int* iResults = (int*)malloc(sizeof(int) * numTests);
     float fTest = 1.0;
     float* fResults = (float*)malloc(sizeof(float) * numTests);
-    QElapsedTimer startTime;
-    startTime.start();
-    float elapsedUsecs;
-
-    float NSEC_TO_USEC = 1.0f / 1000.0f;
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() usecs: %f", (double)elapsedUsecs);
-
-    // Test sleep functions for accuracy
-    startTime.start();
-    QThread::msleep(1);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    QThread::sleep(1);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QThread::sleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(1);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(10);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(10) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(100);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(100) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(1000);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(1000) ms: %f", (double)(elapsedUsecs / 1000.0f));
-
-    startTime.start();
-    usleep(15000);
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(15000) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     // Random number generation
     startTime.start();
     for (int i = 0; i < numTests; i++) {
         iResults[i] = rand();
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "rand() stored in array usecs: %f, first result:%d",
-            (double)(elapsedUsecs / numTests), iResults[0]);
+            (double)(elapsedUSecs / numTests), iResults[0]);
 
     // Random number generation using randFloat()
     startTime.start();
     for (int i = 0; i < numTests; i++) {
         fResults[i] = randFloat();
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "randFloat() stored in array usecs: %f, first result: %f",
-            (double)(elapsedUsecs / numTests), (double)(fResults[0]));
+            (double)(elapsedUSecs / numTests), (double)(fResults[0]));
 
     free(iResults);
     free(fResults);
@@ -206,8 +237,8 @@ void runTimingTests() {
     for (int i = 0; i < numTests; i++) {
         fTest = powf(fTest, 0.5f);
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", (double)(elapsedUsecs / (float) numTests));
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
+    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", (double)(elapsedUSecs / (float) numTests));
 
     //  Vector Math
     float distance;
@@ -218,9 +249,9 @@ void runTimingTests() {
         //float distanceSquared = glm::dot(temp, temp);
         distance = glm::distance(pointA, pointB);
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "vector math usecs: %f [%f usecs total for %d tests], last result:%f",
-            (double)(elapsedUsecs / (float) numTests), (double)elapsedUsecs, numTests, (double)distance);
+            (double)(elapsedUSecs / (float) numTests), (double)elapsedUSecs, numTests, (double)distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
@@ -231,9 +262,9 @@ void runTimingTests() {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
-    elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+    elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
     qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f",
-            (double)(elapsedUsecs / numTests), (double)result);
+            (double)(elapsedUSecs / numTests), (double)result);
 
 
     quint64 BYTE_CODE_MAX_TEST_VALUE = 99999999;
@@ -265,9 +296,9 @@ void runTimingTests() {
             }
 
         }
-        elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUsecs
-                                << "per test:" << (double) (elapsedUsecs / tests)
+        elapsedUSecs = (float)startTime.nsecsElapsed() / NSECS_PER_USEC;
+        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUSecs
+                                << "per test:" << (double) (elapsedUSecs / tests)
                                 << "tests:" << tests
                                 << "failed:" << failed;
     }
