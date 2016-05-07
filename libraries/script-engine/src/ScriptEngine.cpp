@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFileInfo>
@@ -706,9 +709,15 @@ void ScriptEngine::run() {
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
-    QElapsedTimer startTime;
-    startTime.start();
+#ifdef _WIN32
+    // VS13 does not sleep_until unless it uses the system_clock, see:
+    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
+    using clock = std::chrono::system_clock;
+#else
+    using clock = std::chrono::high_resolution_clock;
+#endif
 
+    clock::time_point startTime = clock::now();
     int thisFrame = 0;
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -716,12 +725,29 @@ void ScriptEngine::run() {
 
     qint64 lastUpdate = usecTimestampNow();
 
+    // TODO: Integrate this with signals/slots instead of this busy wait
     while (!_isFinished) {
-        int usecToSleep = (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - startTime.nsecsElapsed() / 1000; // nsec to usec
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
+        // Throttle to SCRIPT_FPS
+        const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
+        std::this_thread::sleep_until(sleepTime);
 
+#ifdef SCRIPT_DELAY_DEBUG
+        {
+            auto now = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            if (seconds > 0) { // avoid division by zero and time travel
+                uint64_t fps = thisFrame / seconds;
+                // Overreporting artificially reduces the reported rate
+                if (thisFrame % SCRIPT_FPS == 0) {
+                    qCDebug(scriptengine) <<
+                        "Frame:" << thisFrame <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "FPS:" << fps;
+                }
+            }
+        }
+#endif
         if (_isFinished) {
             break;
         }
