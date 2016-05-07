@@ -126,7 +126,13 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
-    propertiesWithSimID = clientOnly;
+
+    if (clientOnly) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
+        propertiesWithSimID.setClientOnly(clientOnly);
+        propertiesWithSimID.setOwningAvatarID(myNodeID);
+    }
 
     auto dimensions = propertiesWithSimID.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
