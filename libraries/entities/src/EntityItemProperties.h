@@ -276,6 +276,12 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
+    bool getClientOnly() const { return _clientOnly; }
+    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    // if this entity is client-only, which avatar is it associated with?
+    QUuid getOwningAvatarID() const { return _owningAvatarID; }
+    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
@@ -302,6 +308,9 @@ private:
     glm::vec3 _naturalPosition;
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
+
+    bool _clientOnly { false };
+    QUuid _owningAvatarID;
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);

@@ -82,7 +82,7 @@ public slots:
     Q_INVOKABLE bool canRez();
 
     /// adds a model with the specific properties
-    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties);
+    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool clientOnly = false);
 
     /// temporary method until addEntity can be used from QJSEngine
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position);

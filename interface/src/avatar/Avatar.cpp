@@ -30,6 +30,7 @@
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <TextureCache.h>
+#include <VariantMapToScriptValue.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -160,6 +161,89 @@ void Avatar::animateScaleChanges(float deltaTime) {
     }
 }
 
+void Avatar::updateAvatarEntities() {
+    // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
+    // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
+    // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
+    // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
+    // - AvatarHashMap::processAvatarIdentityPacket's on other interfaces call avatar->setAvatarEntityData()
+    // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
+    // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+
+    quint64 now = usecTimestampNow();
+
+    const static quint64 refreshTime = 3 * USECS_PER_SECOND;
+    if (!_avatarEntityDataChanged && now - _avatarEntityChangedTime < refreshTime) {
+        return;
+    }
+
+    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return;
+    }
+
+    bool success = true;
+    QScriptEngine scriptEngine;
+    entityTree->withWriteLock([&] {
+        AvatarEntityMap avatarEntities = getAvatarEntityData();
+        for (auto entityID : avatarEntities.keys()) {
+            // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
+            // and either add or update the entity.
+            QByteArray jsonByteArray = avatarEntities.value(entityID);
+            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(jsonByteArray);
+            if (!jsonProperties.isObject()) {
+                qDebug() << "got bad avatarEntity json";
+                continue;
+            }
+            QVariant variantProperties = jsonProperties.toVariant();
+            QVariantMap asMap = variantProperties.toMap();
+            QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
+            EntityItemProperties properties;
+            EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
+            properties.setClientOnly(true);
+            properties.setOwningAvatarID(getID());
+
+            if (properties.getParentID() == AVATAR_SELF_ID) {
+                properties.setParentID(getID());
+            }
+
+            EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+
+            if (entity) {
+                if (!entityTree->updateEntity(entityID, properties)) {
+                    qDebug() << "AVATAR-ENTITES -- updateEntity failed: " << properties.getType();
+                    success = false;
+                }
+            } else {
+                entity = entityTree->addEntity(entityID, properties);
+                if (!entity) {
+                    qDebug() << "AVATAR-ENTITES -- addEntity failed: " << properties.getType();
+                    success = false;
+                }
+            }
+        }
+    });
+
+    AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
+    foreach (auto entityID, recentlyDettachedAvatarEntities) {
+        if (!_avatarEntityData.contains(entityID)) {
+            EntityItemPointer dettachedEntity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (dettachedEntity) {
+                // this will cause this interface to listen to data from the entity-server about this entity.
+                dettachedEntity->setClientOnly(false);
+            }
+        }
+    }
+
+    if (success) {
+        setAvatarEntityDataChanged(false);
+        _avatarEntityChangedTime = now;
+    }
+}
+
+
+
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
@@ -228,6 +312,7 @@ void Avatar::simulate(float deltaTime) {
 
     simulateAttachments(deltaTime);
     updatePalms();
+    updateAvatarEntities();
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {

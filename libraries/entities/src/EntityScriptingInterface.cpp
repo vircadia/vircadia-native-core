@@ -36,7 +36,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
-    getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
+    getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
 }
 
 bool EntityScriptingInterface::canAdjustLocks() {
@@ -123,9 +123,10 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
+    propertiesWithSimID = clientOnly;
 
     auto dimensions = propertiesWithSimID.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
@@ -272,13 +273,15 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (!entity) {
+            return;
+        }
+
         if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (!entity) {
-                return;
-            }
+
             //existing entity, retrieve old velocity for check down below
             oldVelocity = entity->getVelocity().length();
 
@@ -296,6 +299,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             }
         }
         properties = convertLocationFromScriptSemantics(properties);
+        properties.setClientOnly(entity->getClientOnly());
+        properties.setOwningAvatarID(entity->getOwningAvatarID());
 
         float cost = calculateCost(density * volume, oldVelocity, newVelocity);
         cost *= costMultiplier;

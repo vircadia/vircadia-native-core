@@ -111,17 +111,18 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     QDataStream identityStream(message->getMessage());
 
     QUuid sessionUUID;
-    
+
     while (!identityStream.atEnd()) {
 
         QUrl faceMeshURL, skeletonURL;
         QVector<AttachmentData> attachmentData;
+        AvatarEntityMap avatarEntityData;
         QString displayName;
-        identityStream >> sessionUUID >> faceMeshURL >> skeletonURL >> attachmentData >> displayName;
+        identityStream >> sessionUUID >> faceMeshURL >> skeletonURL >> attachmentData >> displayName >> avatarEntityData;
 
         // mesh URL for a UUID, find avatar in our list
         auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
-        
+
         if (avatar->getSkeletonModelURL().isEmpty() || (avatar->getSkeletonModelURL() != skeletonURL)) {
             avatar->setSkeletonModelURL(skeletonURL); // Will expand "" to default and so will not continuously fire
         }
@@ -129,6 +130,8 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         if (avatar->getAttachmentData() != attachmentData) {
             avatar->setAttachmentData(attachmentData);
         }
+
+        avatar->setAvatarEntityData(avatarEntityData);
 
         if (avatar->getDisplayName() != displayName) {
             avatar->setDisplayName(displayName);
