@@ -431,13 +431,23 @@ glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v) {
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
 
+    // primaryAxis & secondaryAxis must not be zero.
+    assert(fabsf(glm::length2(primaryAxis) > 0.01f));
+    assert(fabsf(glm::length2(secondaryAxis) > 0.01f));
+
     uAxisOut = glm::normalize(primaryAxis);
-    wAxisOut = glm::cross(uAxisOut, secondaryAxis);
-    if (glm::length(wAxisOut) > 0.0f) {
-        wAxisOut = glm::normalize(wAxisOut);
-    } else {
-        wAxisOut = glm::normalize(glm::cross(uAxisOut, glm::vec3(0, 1, 0)));
+    glm::vec3 normSecondary = glm::normalize(secondaryAxis);
+
+    // if secondaryAxis is parallel with the primaryAxis, pick another axis.
+    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > 0.001f) {
+        // pick a better secondaryAxis.
+        normSecondary = glm::vec3(1.0f, 0.0f, 0.0f);
+        if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > 0.001f) {
+            normSecondary = glm::vec3(0.0f, 1.0f, 0.0f);
+        }
     }
+
+    wAxisOut = glm::normalize(glm::cross(uAxisOut, secondaryAxis));
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 

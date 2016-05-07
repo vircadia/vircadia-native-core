@@ -1259,40 +1259,6 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
-
-    if (!_skeletonModel->isRenderable()) {
-        return; // wait until all models are loaded
-    }
-
-    fixupModelsInScene();
-
-    //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum);
-    }
-
-    // This is drawing the lookat vectors from our avatar to wherever we're looking.
-    if (qApp->isHMDMode()) {
-        glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-
-        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
-        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
-        leftEyePose = leftEyePose * headPose;
-        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
-        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
-        rightEyePose = rightEyePose * headPose;
-        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
-        glm::vec3 headPosition = extractTranslation(headPose);
-
-        getHead()->renderLookAts(renderArgs,
-            cameraPosition + getOrientation() * (leftEyePosition - headPosition),
-            cameraPosition + getOrientation() * (rightEyePosition - headPosition));
-    } else {
-        getHead()->renderLookAts(renderArgs);
-    }
-}
-
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
     if (model->isActive() && model->isRenderable()) {
         model->setVisibleInScene(visible, scene);
@@ -1349,11 +1315,11 @@ void MyAvatar::destroyAnimGraph() {
     _rig->destroyAnimGraph();
 }
 
-void MyAvatar::preRender(RenderArgs* renderArgs) {
+void MyAvatar::postUpdate(float deltaTime) {
+
+    Avatar::postUpdate(deltaTime);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    const bool shouldDrawHead = shouldRenderHead(renderArgs);
-
     if (_skeletonModel->initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
@@ -1403,7 +1369,12 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
+}
 
+void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
+
+    // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setCauterizeBones(!shouldDrawHead);
     }

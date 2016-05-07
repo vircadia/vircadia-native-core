@@ -307,6 +307,16 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPo
     }
 }
 
+static void addLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, Vertex*& v) {
+    uint32_t colorInt = toRGBA(color);
+    v->pos = start;
+    v->rgba = colorInt;
+    v++;
+    v->pos = end;
+    v->rgba = colorInt;
+    v++;
+}
+
 void AnimDebugDraw::update() {
 
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
@@ -319,6 +329,7 @@ void AnimDebugDraw::update() {
 
         const size_t VERTICES_PER_BONE = (6 + (NUM_CIRCLE_SLICES * 2) * 3);
         const size_t VERTICES_PER_LINK = 8 * 2;
+        const size_t VERTICES_PER_RAY = 2;
 
         const float BONE_RADIUS = 0.01f; // 1 cm
         const float POSE_RADIUS = 0.1f; // 10 cm
@@ -342,6 +353,7 @@ void AnimDebugDraw::update() {
         numVerts += (int)markerMap.size() * VERTICES_PER_BONE;
         auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
         numVerts += (int)myAvatarMarkerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)DebugDraw::getInstance().getRays().size() * VERTICES_PER_RAY;
 
         // allocate verts!
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
@@ -389,6 +401,12 @@ void AnimDebugDraw::update() {
             const float radius = POSE_RADIUS;
             addBone(myAvatarPose, AnimPose(glm::vec3(1), rot, pos), radius, v);
         }
+
+        // draw rays from shared DebugDraw singleton
+        for (auto& iter : DebugDraw::getInstance().getRays()) {
+            addLine(std::get<0>(iter), std::get<1>(iter), std::get<2>(iter), v);
+        }
+        DebugDraw::getInstance().clearRays();
 
         assert(numVerts == (v - verts));
 

@@ -44,6 +44,8 @@ public:
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
 
+    void postUpdate(float deltaTime);
+
     void clearOtherAvatars();
     void clearAllAvatars();
 
