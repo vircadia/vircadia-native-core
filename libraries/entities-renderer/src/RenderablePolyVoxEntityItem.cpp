@@ -981,7 +981,7 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
             PhysicalEntitySimulation* peSimulation = static_cast<PhysicalEntitySimulation*>(simulation);
             EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
             if (packetSender) {
-                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, tree, entity->getID(), properties);
             }
         });
     });
