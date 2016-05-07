@@ -144,6 +144,11 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto materialKey = _drawMaterial->getKey();
     auto textureMaps = _drawMaterial->getTextureMaps();
 
+    int numUnlit = 0;
+    if (materialKey.isUnlit()) {
+        numUnlit++;
+    }
+
     // Albedo
     if (materialKey.isAlbedoMap()) {
         auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];

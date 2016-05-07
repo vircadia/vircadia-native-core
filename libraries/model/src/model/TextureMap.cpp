@@ -104,7 +104,7 @@ const QImage& image, bool isLinear, bool doCompress) {
     if (image.hasAlphaChannel()) {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
-        if (isLinear) {
+        if (!isLinear) {
             mipSemantic = gpu::SBGRA;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_SRGBA;
@@ -124,7 +124,7 @@ const QImage& image, bool isLinear, bool doCompress) {
     } else {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
-        if (isLinear) {
+        if (!isLinear) {
             mipSemantic = gpu::SRGB;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_SRGB;
