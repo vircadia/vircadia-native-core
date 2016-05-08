@@ -969,7 +969,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
     QList<QUrl> urls;
     bool knowsSensitivity = false;
-    Qt::CaseSensitivity sensitivity;
+    Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
     auto getSensitivity = [&]() {
         if (!knowsSensitivity) {
             QString path = currentSandboxURL.path();
@@ -986,6 +986,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
         QUrl thisURL;
+        bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
             thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
             QUrl defaultScriptsLoc = defaultScriptsLocation();
@@ -993,21 +994,17 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                 qDebug() << "ScriptEngine::include -- skipping" << file << "-- outside of standard libraries";
                 continue;
             }
+            isStandardLibrary = true;
         } else {
             thisURL = resolvePath(file);
         }
 
         if (!_includedURLs.contains(thisURL)) {
-            if (!currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
-                (
-                    (currentSandboxURL.scheme() != "file") ||
-                        (
-                            !thisURL.toString(strippingFlags).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
-                            !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity())
-                        )
-                 )
-                ) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path" << thisURL << "outside of original entity script" << currentSandboxURL;
+            if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
+                (currentSandboxURL.scheme() != "file" ||
+                 !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
+                qCWarning(scriptengine) << "Script.include() ignoring file path"
+                                        << thisURL << "outside of original entity script" << currentSandboxURL;
             } else {
                 // We could also check here for CORS, but we don't yet.
                 // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.
