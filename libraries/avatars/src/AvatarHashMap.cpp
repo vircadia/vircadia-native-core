@@ -107,6 +107,7 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
 }
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    // this is used by clients
     // setup a data stream to parse the packet
     QDataStream identityStream(message->getMessage());
 

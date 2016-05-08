@@ -50,7 +50,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return VERSION_LIGHT_HAS_FALLOFF_RADIUS;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarEntities);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:

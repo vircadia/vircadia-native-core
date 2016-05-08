@@ -956,6 +956,7 @@ void AvatarData::clearJointsData() {
 }
 
 bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
+    // this is used by the avatar-mixer
     QDataStream packetStream(data);
 
     QUuid avatarUUID;
