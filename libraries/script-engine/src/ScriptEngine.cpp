@@ -17,12 +17,18 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QRegularExpression>
+
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QApplication>
+
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtScript/QScriptEngine>
+
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
-#include <QtCore/QStringList>
+
+#include <QtScriptTools/QScriptEngineDebugger>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -34,6 +40,7 @@
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
+#include <ui/Menu.h>
 
 #include <controllers/ScriptingInterface.h>
 #include <AnimationObject.h>
@@ -169,6 +176,61 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     }
 }
 
+void ScriptEngine::runDebuggable() {
+    init();
+    _isRunning = true;
+    _debuggable = true;
+    _debugger = new QScriptEngineDebugger(this);
+    _debugger->attachTo(this);
+    static QMenu* scriptDebugMenu = qobject_cast<QMainWindow*>(qApp->activeWindow())->menuBar()->addMenu("Script Debug");
+    scriptDebugMenu->addMenu(_fileNameString)->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
+    _debugger->action(QScriptEngineDebugger::InterruptAction)->trigger();
+    QScriptValue result = evaluate(_scriptContents, _fileNameString);
+
+    _lastUpdate = usecTimestampNow();
+    QTimer* timer = new QTimer(this);
+    connect(this, &ScriptEngine::finished, [this, timer] { 
+        disconnect(timer); 
+    });
+
+    connect(timer, &QTimer::timeout, [this, timer] {
+        if (_isFinished) {
+            if (!_isRunning) {
+                return;
+            }
+            stopAllTimers(); // make sure all our timers are stopped if the script is ending
+            if (_wantSignals) {
+                emit scriptEnding();
+                emit finished(_fileNameString, this);
+            }
+            _isRunning = false;
+            if (_wantSignals) {
+                emit runningStateChanged();
+                emit doneRunning();
+            }
+            timer->deleteLater();
+            return;
+        }
+
+        qint64 now = usecTimestampNow();
+        // we check for 'now' in the past in case people set their clock back
+        if (_lastUpdate < now) {
+            float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
+            }
+        }
+        _lastUpdate = now;
+        // Debug and clear exceptions
+        hadUncaughtExceptions(*this, _fileNameString);
+    });
+
+    timer->start(10);
+}
+
+
 void ScriptEngine::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
 
@@ -260,6 +322,10 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 // FIXME - switch this to the new model of ScriptCache callbacks
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
+    static const QString DEBUG_FLAG("#debug");
+    if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
+        _debuggable = true;
+    }
     if (_wantSignals) {
         emit scriptLoaded(url.toString());
     }
@@ -723,7 +789,7 @@ void ScriptEngine::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    qint64 lastUpdate = usecTimestampNow();
+    _lastUpdate = usecTimestampNow();
 
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
@@ -771,15 +837,15 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (lastUpdate < now) {
-            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+        if (_lastUpdate < now) {
+            float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 if (_wantSignals) {
                     emit update(deltaTime);
                 }
             }
         }
-        lastUpdate = now;
+        _lastUpdate = now;
 
         // Debug and clear exceptions
         hadUncaughtExceptions(*this, _fileNameString);

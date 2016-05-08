@@ -11,8 +11,11 @@
 
 #include "MenuScriptingInterface.h"
 
-#include "Menu.h"
+#include <QtCore/QCoreApplication>
+#include <QtCore/QThread>
+
 #include <MenuItemProperties.h>
+#include "Menu.h"
 
 MenuScriptingInterface* MenuScriptingInterface::getInstance() {
     static MenuScriptingInterface sharedInstance;
@@ -36,6 +39,9 @@ void MenuScriptingInterface::removeMenu(const QString& menu) {
 }
 
 bool MenuScriptingInterface::menuExists(const QString& menu) {
+    if (QThread::currentThread() == qApp->thread()) {
+        return Menu::getInstance()->menuExists(menu);
+    }
     bool result;
     QMetaObject::invokeMethod(Menu::getInstance(), "menuExists", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(bool, result), 
@@ -76,11 +82,14 @@ void MenuScriptingInterface::removeMenuItem(const QString& menu, const QString& 
 };
 
 bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& menuitem) {
+    if (QThread::currentThread() == qApp->thread()) {
+        return Menu::getInstance()->menuItemExists(menu, menuitem);
+    }
     bool result;
     QMetaObject::invokeMethod(Menu::getInstance(), "menuItemExists", Qt::BlockingQueuedConnection,
-                Q_RETURN_ARG(bool, result), 
-                Q_ARG(const QString&, menu),
-                Q_ARG(const QString&, menuitem));
+        Q_RETURN_ARG(bool, result),
+        Q_ARG(const QString&, menu),
+        Q_ARG(const QString&, menuitem));
     return result;
 }
 
@@ -101,6 +110,9 @@ void MenuScriptingInterface::removeActionGroup(const QString& groupName) {
 }
 
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
+    if (QThread::currentThread() == qApp->thread()) {
+        return Menu::getInstance()->isOptionChecked(menuOption);
+    }
     bool result;
     QMetaObject::invokeMethod(Menu::getInstance(), "isOptionChecked", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(bool, result), 
@@ -109,7 +121,7 @@ bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
 }
 
 void MenuScriptingInterface::setIsOptionChecked(const QString& menuOption, bool isChecked) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "setIsOptionChecked", Qt::BlockingQueuedConnection,
+    QMetaObject::invokeMethod(Menu::getInstance(), "setIsOptionChecked",
                 Q_ARG(const QString&, menuOption),
                 Q_ARG(bool, isChecked));
 }
