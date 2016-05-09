@@ -64,6 +64,7 @@ class ResourceCacheSharedItems : public Dependency  {
 
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
+
 public:
     void appendPendingRequest(QWeakPointer<Resource> newRequest);
     void appendActiveRequest(QWeakPointer<Resource> newRequest);
@@ -224,26 +225,30 @@ private:
     void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 
-    QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
-    QHash<QUrl, QWeakPointer<Resource>> _resources;
-    int _lastLRUKey = 0;
-    
+    void getResourceAsynchronously(const QUrl& url);
+
     static int _requestLimit;
     static int _requestsActive;
 
-    void getResourceAsynchronously(const QUrl& url);
-    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
-    QQueue<QUrl> _resourcesToBeGotten;
-    
-    std::atomic<size_t> _numTotalResources { 0 };
-    std::atomic<size_t> _numUnusedResources { 0 };
+    // Resources
+    QHash<QUrl, QWeakPointer<Resource>> _resources;
+    QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
+    int _lastLRUKey = 0;
 
+    std::atomic<size_t> _numTotalResources { 0 };
     std::atomic<qint64> _totalResourcesSize { 0 };
+
+    // Cached resources
+    QMap<int, QSharedPointer<Resource>> _unusedResources;
+    QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
+    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
+
+    std::atomic<size_t> _numUnusedResources { 0 };
     std::atomic<qint64> _unusedResourcesSize { 0 };
 
-    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
-    QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
-    QMap<int, QSharedPointer<Resource>> _unusedResources;
+    // Pending resources
+    QQueue<QUrl> _resourcesToBeGotten;
+    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
 };
 
 /// Base class for resources.
