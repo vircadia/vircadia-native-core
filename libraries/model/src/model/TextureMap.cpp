@@ -171,14 +171,6 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 
         if (generateMips) {
             theTexture->autoGenerateMips(-1);
-            auto levels = theTexture->maxMip();
-            uvec2 size(image.width(), image.height());
-            for (uint8_t i = 1; i <= levels; ++i) {
-                size >>= 1;
-                size = glm::max(size, uvec2(1));
-                image = image.scaled(size.x, size.y, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-                theTexture->assignStoredMip(i, formatMip, image.byteCount(), image.constBits());
-            }
         }
     }
 
