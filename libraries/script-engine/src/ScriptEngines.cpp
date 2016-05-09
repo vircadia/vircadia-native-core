@@ -118,9 +118,9 @@ void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
 }
 
 void ScriptEngines::addScriptEngine(ScriptEngine* engine) {
-    _allScriptsMutex.lock();
-    _allKnownScriptEngines.insert(engine);
-    _allScriptsMutex.unlock();
+    if (!_stoppingAllScripts) {
+        _allKnownScriptEngines.insert(engine);
+    }
 }
 
 void ScriptEngines::removeScriptEngine(ScriptEngine* engine) {
@@ -128,16 +128,15 @@ void ScriptEngines::removeScriptEngine(ScriptEngine* engine) {
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
     if (!_stoppingAllScripts) {
-        _allScriptsMutex.lock();
+        QMutexLocker locker(&_allScriptsMutex);
         _allKnownScriptEngines.remove(engine);
-        _allScriptsMutex.unlock();
     }
 }
 
 void ScriptEngines::shutdownScripting() {
-    _allScriptsMutex.lock();
     _stoppingAllScripts = true;
     ScriptEngine::_stoppingAllScripts = true;
+    QMutexLocker locker(&_allScriptsMutex);
     qCDebug(scriptengine) << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
 
     QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
@@ -173,8 +172,6 @@ void ScriptEngines::shutdownScripting() {
             i.remove();
         }
     }
-    _stoppingAllScripts = false;
-    _allScriptsMutex.unlock();
     qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
 
