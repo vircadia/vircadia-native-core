@@ -432,7 +432,9 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
 
     // primaryAxis & secondaryAxis must not be zero.
+#ifndef NDEBUG
     const float MIN_LENGTH_SQUARED = 1.0e-6f;
+#endif
     assert(fabsf(glm::length2(primaryAxis) > MIN_LENGTH_SQUARED));
     assert(fabsf(glm::length2(secondaryAxis) > MIN_LENGTH_SQUARED));
 
