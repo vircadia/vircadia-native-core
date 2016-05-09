@@ -382,6 +382,7 @@ public:
     void grabSimulationOwnership();
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
+    QString actionsToDebugString();
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
     bool removeAction(EntitySimulation* simulation, const QUuid& actionID);

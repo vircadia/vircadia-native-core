@@ -726,8 +726,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
-    READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
-    READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+    {   // parentID and parentJointIndex are also protected by simulation ownership
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+        overwriteLocalData = oldOverwrite;
+    }
 
     READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
 
@@ -1717,16 +1722,31 @@ void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& tim
     _simulationOwner.setPendingPriority(priority, timestamp);
 }
 
+QString EntityItem::actionsToDebugString() {
+    QString result;
+    QVector<QByteArray> serializedActions;
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        EntityActionPointer action = _objectActions[id];
+        EntityActionType actionType = action->getType();
+        result += QString("") + actionType + ":" + action->getID().toString() + " ";
+        i++;
+    }
+    return result;
+}
+
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
     bool result;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
 
         result = addActionInternal(simulation, action);
-        if (!result) {
-            removeActionInternal(action->getID());
+        if (result) {
+            action->setIsMine(true);
+            _actionDataDirty = true;
         } else {
-            action->locallyAddedButNotYetReceived = true;
+            removeActionInternal(action->getID());
         }
     });
 
@@ -1800,6 +1820,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         EntityActionPointer action = _objectActions[actionID];
 
         action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
         _objectActions.remove(actionID);
 
         if (simulation) {
@@ -1880,7 +1901,6 @@ void EntityItem::deserializeActionsInternal() {
             if (!action->isMine()) {
                 action->deserialize(serializedAction);
             }
-            action->locallyAddedButNotYetReceived = false;
             updated << actionID;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
@@ -1888,7 +1908,6 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
                 entity->addActionInternal(simulation, action);
-                action->locallyAddedButNotYetReceived = false;
                 updated << actionID;
             } else {
                 static QString repeatedMessage =
@@ -1906,8 +1925,12 @@ void EntityItem::deserializeActionsInternal() {
         QUuid id = i.key();
         if (!updated.contains(id)) {
             EntityActionPointer action = i.value();
-            // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
-            if (! action->locallyAddedButNotYetReceived) {
+
+            if (action->isMine()) {
+                // we just received an update that didn't include one of our actions.  tell the server about it (again).
+                setActionDataNeedsTransmit(true);
+            } else {
+                // don't let someone else delete my action.
                 _actionsToRemove << id;
                 _previouslyDeletedActions.insert(id, now);
             }
