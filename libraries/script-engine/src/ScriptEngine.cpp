@@ -725,7 +725,7 @@ void ScriptEngine::run() {
 
     qint64 lastUpdate = usecTimestampNow();
 
-    // TODO: Integrate this with signals/slots instead of this busy wait
+    // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
         // Throttle to SCRIPT_FPS
         const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
