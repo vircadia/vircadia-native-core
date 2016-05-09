@@ -60,7 +60,7 @@ function onButtonClick() {
     earth = Entities.addEntity({
         type: "Model",
         name: "Earth",
-        modelURL: Script.resolvePath("earth.fbx"),
+        modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/seth/production/NBody/makePlanets.js/earth.fbx",
         position: inFrontOfMe(2 * EARTH_SIZE),
         dimensions: { x: EARTH_SIZE, y: EARTH_SIZE, z: EARTH_SIZE },
         shapeType: "sphere",
@@ -71,7 +71,7 @@ function onButtonClick() {
     moon = Entities.addEntity({
         type: "Model",
         name: "Moon",
-        modelURL: Script.resolvePath("moon.fbx"),
+        modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/seth/production/NBody/makePlanets.js/moon.fbx",
         position: inFrontOfMe(EARTH_SIZE - MOON_SIZE),
         dimensions: { x: MOON_SIZE, y: MOON_SIZE, z: MOON_SIZE },
         dynamic: true,
