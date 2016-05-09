@@ -45,7 +45,6 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
-static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
@@ -1194,10 +1193,15 @@ void AvatarData::sendIdentityPacket() {
 
     QByteArray identityData = identityByteArray();
 
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, identityData.size());
-    identityPacket->write(identityData);
-
-    nodeList->broadcastToNodes(std::move(identityPacket), NodeSet() << NodeType::AvatarMixer);
+    auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    packetList->write(identityData);
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+        },
+        [&](const SharedNodePointer& node) {
+            nodeList->sendPacketList(std::move(packetList), *node);
+        });
 }
 
 void AvatarData::sendBillboardPacket() {

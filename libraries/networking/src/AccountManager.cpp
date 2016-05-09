@@ -66,6 +66,19 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
     
 }
 
+QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply &requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    static const QString STATUS_KEY = "status";
+    static const QString DATA_KEY = "data";
+
+    if (jsonObject.contains(STATUS_KEY) && jsonObject[STATUS_KEY] == "success" && jsonObject.contains(DATA_KEY)) {
+        return jsonObject[DATA_KEY].toObject();
+    } else {
+        return QJsonObject();
+    }
+}
+
 AccountManager::AccountManager() :
     _authURL(),
     _pendingCallbackMap()
@@ -82,8 +95,6 @@ AccountManager::AccountManager() :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     qRegisterMetaType<AccountManagerAuth::Type>();
-
-    connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -92,30 +103,12 @@ void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
 
-    emit balanceChanged(0);
-    connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
-
     // remove this account from the account settings file
     removeAccountFromFile();
 
     emit logoutComplete();
     // the username has changed to blank
     emit usernameChanged(QString());
-}
-
-void AccountManager::updateBalance() {
-    if (hasValidAccessToken()) {
-        // ask our auth endpoint for our balance
-        JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = &_accountInfo;
-        callbackParameters.jsonCallbackMethod = "setBalanceFromJSON";
-
-        sendRequest("/api/v1/wallets/mine", AccountManagerAuth::Required, QNetworkAccessManager::GetOperation, callbackParameters);
-    }
-}
-
-void AccountManager::accountInfoBalanceChanged(qint64 newBalance) {
-    emit balanceChanged(newBalance);
 }
 
 QString accountFileDir() {
