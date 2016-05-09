@@ -427,20 +427,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     float distanceToTarget = glm::length(toTarget);
 
     {
-        // glow when moving far away
-        const float GLOW_DISTANCE = 20.0f;
-        const float GLOW_MAX_LOUDNESS = 2500.0f;
-        const float MAX_GLOW = 0.5f;
-
-        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
-                                            ? 0.0f
-                                            : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
-        GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
-
-        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE
-                      ? 1.0f
-                      : GLOW_FROM_AVERAGE_LOUDNESS;
-
         fixupModelsInScene();
 
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
