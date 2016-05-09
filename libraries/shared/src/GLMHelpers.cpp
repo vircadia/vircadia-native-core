@@ -432,17 +432,19 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut) {
 
     // primaryAxis & secondaryAxis must not be zero.
-    assert(fabsf(glm::length2(primaryAxis) > 0.01f));
-    assert(fabsf(glm::length2(secondaryAxis) > 0.01f));
+    const float MIN_LENGTH_SQUARED = 1.0e-6f;
+    assert(fabsf(glm::length2(primaryAxis) > MIN_LENGTH_SQUARED));
+    assert(fabsf(glm::length2(secondaryAxis) > MIN_LENGTH_SQUARED));
 
     uAxisOut = glm::normalize(primaryAxis);
     glm::vec3 normSecondary = glm::normalize(secondaryAxis);
 
     // if secondaryAxis is parallel with the primaryAxis, pick another axis.
-    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > 0.001f) {
+    const float EPSILON = 1.0e-4f;
+    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
         // pick a better secondaryAxis.
         normSecondary = glm::vec3(1.0f, 0.0f, 0.0f);
-        if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > 0.001f) {
+        if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
             normSecondary = glm::vec3(0.0f, 1.0f, 0.0f);
         }
     }
