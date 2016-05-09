@@ -14,42 +14,43 @@
 #include <OVR_CAPI.h>
 
 const float TARGET_RATE_OculusLegacy = 75.0f;
+class GLWindow;
 
 class OculusLegacyDisplayPlugin : public HmdDisplayPlugin {
 	using Parent = HmdDisplayPlugin;
 public:
     OculusLegacyDisplayPlugin();
-    virtual bool isSupported() const override;
-    virtual const QString& getName() const override { return NAME; }
+    bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
 
-    virtual int getHmdScreen() const override;
+    int getHmdScreen() const override;
 
     // Stereo specific methods
-    virtual void resetSensors() override;
-    virtual void beginFrameRender(uint32_t frameIndex) override;
+    void resetSensors() override;
+    void beginFrameRender(uint32_t frameIndex) override;
 
-    virtual float getTargetFrameRate() const override;
+    float getTargetFrameRate() const override;
 
 protected:
-    virtual bool internalActivate() override;
-    virtual void internalDeactivate() override;
+    bool internalActivate() override;
+    void internalDeactivate() override;
 
-    virtual void customizeContext() override;
-    void hmdPresent() override {}
+    void customizeContext() override;
+    void uncustomizeContext() override;
+    void hmdPresent() override;
     bool isHmdMounted() const override { return true; }
-#if 0
-    virtual void uncustomizeContext() override;
-    virtual void internalPresent() override;
-#endif
     
 private:
     static const QString NAME;
 
+    GLWindow* _hmdWindow{ nullptr };
     ovrHmd _hmd;
     mutable ovrTrackingState _trackingState;
     ovrEyeRenderDesc _eyeRenderDescs[2];
+    ovrVector3f _ovrEyeOffsets[2];
+
     ovrFovPort _eyeFovs[2];
-    //ovrTexture _eyeTextures[2]; // FIXME - not currently in use
+    ovrTexture _eyeTextures[2]; // FIXME - not currently in use
     mutable int _hmdScreen { -1 };
     bool _hswDismissed { false };
 };
