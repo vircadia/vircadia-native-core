@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <tuple>
 #include <string>
+#include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
