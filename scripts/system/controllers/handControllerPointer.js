@@ -246,10 +246,6 @@ function checkHardware() {
     print('Setting mapping for new controller hardware:', newHardware);
     if (clickMapToggle) {
         clickMapToggle.setState(false);
-        // FIX SYSTEM BUG: This does not work when hardware changes.
-        Window.alert("This isn't likely to work because of " +
-                     'https://app.asana.com/0/26225263936266/118428633439654\n' +
-                     "You'll probably need to restart interface.");
     }
     hardware = newHardware;
     if (clickMappings[hardware]) {
