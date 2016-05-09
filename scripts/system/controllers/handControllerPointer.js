@@ -150,7 +150,7 @@ var isSeeking = false;
 var averageMouseVelocity = 0, lastIntegration = 0, lastMouse;
 var WEIGHTING = 1 / 20; // simple moving average over last 20 samples
 var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
-var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 5;
+var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 20;
 function isShakingMouse() { // True if the person is waving the mouse around trying to find it.
     var now = Date.now(), mouse = Reticle.position, isShaking = false;
     if (lastIntegration && (lastIntegration !== now)) {
@@ -176,11 +176,12 @@ function updateSeeking() {
     function updateDimension(axis) {
         var distanceBetween = lookAt2D[axis] - Reticle.position[axis];
         var move = distanceBetween / NON_LINEAR_DIVISOR;
-        if (move >= MINIMUM_SEEK_DISTANCE) { return false; }
+        if (Math.abs(move) < MINIMUM_SEEK_DISTANCE) { return false; }
         copy[axis] += move;
         return true;
     }
-    if (!updateDimension('x') && !updateDimension('y')) {
+    var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
+    if (okX && okY) {
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
