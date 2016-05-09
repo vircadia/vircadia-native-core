@@ -105,18 +105,18 @@ const QImage& image, bool isLinear, bool doCompress) {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
         if (isLinear) {
-            mipSemantic = gpu::SBGRA;
-            if (doCompress) {
-                gpuSemantic = gpu::COMPRESSED_SRGBA;
-            } else {
-                gpuSemantic = gpu::SRGBA;
-            }
-        } else {
             mipSemantic = gpu::BGRA;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {
                 gpuSemantic = gpu::RGBA;
+            }
+        } else {
+            mipSemantic = gpu::SBGRA;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_SRGBA;
+            } else {
+                gpuSemantic = gpu::SRGBA;
             }
         }
         formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
@@ -125,18 +125,18 @@ const QImage& image, bool isLinear, bool doCompress) {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
         if (isLinear) {
-            mipSemantic = gpu::SRGB;
-            if (doCompress) {
-                gpuSemantic = gpu::COMPRESSED_SRGB;
-            } else {
-                gpuSemantic = gpu::SRGB;
-            }
-        } else {
             mipSemantic = gpu::RGB;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_RGB;
             } else {
                 gpuSemantic = gpu::RGB;
+            }
+        } else {
+            mipSemantic = gpu::SRGB;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_SRGB;
+            } else {
+                gpuSemantic = gpu::SRGB;
             }
         }
         formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);
@@ -178,20 +178,20 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 }
 
 gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, false, true);
+    return process2DTextureColorFromImage(srcImage, false, false, true);
 }
 
 
 gpu::Texture* TextureUsage::createAlbedoTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, true, true);
+    return process2DTextureColorFromImage(srcImage, false, true, true);
 }
 
 gpu::Texture* TextureUsage::createEmissiveTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, true, true);
+    return process2DTextureColorFromImage(srcImage, false, true, true);
 }
 
 gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    return process2DTextureColorFromImage(srcImage, true, true, true);
+    return process2DTextureColorFromImage(srcImage, false, true, true);
 }
 
 
