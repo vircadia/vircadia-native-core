@@ -70,6 +70,12 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
     }
 }
 
+QString expandScriptPath(const QString& rawPath) {
+    QStringList splitPath = rawPath.split("/");
+    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    return defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/"); // 2 to skip the slashes in /~/
+}
+
 QUrl expandScriptUrl(const QUrl& rawScriptURL) {
     QUrl normalizedScriptURL = normalizeScriptURL(rawScriptURL);
     if (normalizedScriptURL.scheme() == "http" ||
@@ -79,9 +85,23 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
     } else if (normalizedScriptURL.scheme() == "file") {
         if (normalizedScriptURL.path().startsWith("/~/")) {
             QUrl url = normalizedScriptURL;
-            QStringList splitPath = url.path().split("/");
+            url.setPath(expandScriptPath(url.path()));
+
+            // stop something like Script.include(["/~/../Desktop/naughty.js"]); from working
+            QFileInfo fileInfo(url.toLocalFile());
+            url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+
             QUrl defaultScriptsLoc = defaultScriptsLocation();
-            url.setPath(defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/")); // 2 to skip the slashes in /~/
+            if (!defaultScriptsLoc.isParentOf(url)) {
+                qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
+                                        << "-- outside of standard libraries: "
+                                        << url.path()
+                                        << defaultScriptsLoc.path();
+                return rawScriptURL;
+            }
+            if (rawScriptURL.path().endsWith("/") && !url.path().endsWith("/")) {
+                url.setPath(url.path() + "/");
+            }
             return url;
         }
         return normalizedScriptURL;
@@ -129,20 +149,7 @@ void ScriptEngines::shutdownScripting() {
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
         if (scriptEngine->isRunning()) {
-
-            // If the script is running, but still evaluating then we need to wait for its evaluation step to
-            // complete. After that we can handle the stop process appropriately
-            if (scriptEngine->evaluatePending()) {
-                while (scriptEngine->evaluatePending()) {
-
-                    // This event loop allows any started, but not yet finished evaluate() calls to complete
-                    // we need to let these complete so that we can be guaranteed that the script engine isn't
-                    // in a partially setup state, which can confuse our shutdown unwinding.
-                    QEventLoop loop;
-                    QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
-                    loop.exec();
-                }
-            }
+            qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
             // We disconnect any script engine signals from the application because we don't want to do any
             // extra stopScript/loadScript processing that the Application normally does when scripts start

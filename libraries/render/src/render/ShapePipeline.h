@@ -12,6 +12,8 @@
 #ifndef hifi_render_ShapePipeline_h
 #define hifi_render_ShapePipeline_h
 
+#include <unordered_set>
+
 #include <gpu/Batch.h>
 #include <RenderArgs.h>
 
@@ -147,7 +149,7 @@ public:
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
 
-    // Hasher for use in unordered_maps
+    // Comparator for use in stl containers
     class Hash {
     public:
         size_t operator() (const ShapeKey& key) const {
@@ -155,7 +157,7 @@ public:
         }
     };
 
-    // Comparator for use in unordered_maps
+    // Comparator for use in stl containers
     class KeyEqual {
     public:
         bool operator()(const ShapeKey& lhs, const ShapeKey& rhs) const { return lhs._flags == rhs._flags; }
@@ -193,18 +195,24 @@ class ShapePipeline {
 public:
     class Slot {
     public:
-        static const int SKINNING_BUFFER = 2;
-        static const int MATERIAL_BUFFER = 3;
-        static const int TEXMAPARRAY_BUFFER = 4;
-        static const int ALBEDO_MAP = 0;
-        static const int NORMAL_MAP = 1;
-        static const int METALLIC_MAP = 2;
-        static const int EMISSIVE_LIGHTMAP_MAP = 3;
-        static const int ROUGHNESS_MAP = 4;
-        static const int OCCLUSION_MAP = 5;
+        enum BUFFER {
+            SKINNING = 2,
+            MATERIAL,
+            TEXMAPARRAY,
+            LIGHT
+        };
 
-        static const int LIGHT_BUFFER = 5;
-        static const int NORMAL_FITTING_MAP = 10;
+        enum MAP {
+            ALBEDO = 0,
+            NORMAL,
+            METALLIC,
+            EMISSIVE_LIGHTMAP,
+            ROUGHNESS,
+            OCCLUSION,
+            LIGHT_AMBIENT,
+
+            NORMAL_FITTING = 10,
+        };
     };
 
     class Locations {
@@ -220,6 +228,7 @@ public:
         int materialBufferUnit;
         int texMapArrayBufferUnit;
         int lightBufferUnit;
+        int lightAmbientMapUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
@@ -264,7 +273,11 @@ public:
 protected:
     void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
     PipelineMap _pipelineMap;
+
+private:
+    mutable std::unordered_set<Key, Key::Hash, Key::KeyEqual> _missingKeys;
 };
+
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 
 }

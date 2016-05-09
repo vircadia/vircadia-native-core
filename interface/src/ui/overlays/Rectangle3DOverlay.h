@@ -18,16 +18,16 @@ class Rectangle3DOverlay : public Planar3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Rectangle3DOverlay();
     Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay);
     ~Rectangle3DOverlay();
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
     void setProperties(const QVariantMap& properties) override;
 
-    virtual Rectangle3DOverlay* createClone() const;
+    virtual Rectangle3DOverlay* createClone() const override;
 private:
     int _geometryCacheID;
     glm::vec2 _previousHalfDimensions;

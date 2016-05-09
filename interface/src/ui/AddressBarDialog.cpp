@@ -10,6 +10,7 @@
 //
 
 #include "AddressBarDialog.h"
+#include "Application.h"
 
 #include <QMessageBox>
 
@@ -48,6 +49,16 @@ void AddressBarDialog::loadAddress(const QString& address) {
     if (!address.isEmpty()) {
         DependencyManager::get<AddressManager>()->handleLookupString(address);
     }
+}
+
+void AddressBarDialog::loadHome() {
+    qDebug() << "Called LoadHome";
+    QString homeLocation = qApp->getBookmarks()->addressForBookmark(Bookmarks::HOME_BOOKMARK);
+    const QString DEFAULT_HOME_LOCATION = "localhost";
+    if (homeLocation == "") {
+        homeLocation = DEFAULT_HOME_LOCATION;
+    }
+    DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }
 
 void AddressBarDialog::loadBack() {

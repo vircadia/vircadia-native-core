@@ -98,7 +98,7 @@ public:
     GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) :
         Resource(url), _textureBaseUrl(textureBaseUrl) {}
 
-    virtual bool areTexturesLoaded() const { return isLoaded() && Geometry::areTexturesLoaded(); }
+    virtual bool areTexturesLoaded() const override { return isLoaded() && Geometry::areTexturesLoaded(); }
 
     virtual void deleter() override;
 
@@ -170,6 +170,8 @@ protected:
     const bool& isOriginal() const { return _isOriginal; }
 
 private:
+    using TextureType = NetworkTexture::Type;
+
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
     model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,

@@ -245,6 +245,7 @@ public:
     }
 
     static const Element COLOR_RGBA_32;
+    static const Element COLOR_SRGBA_32;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
     static const Element VEC2F_XY;

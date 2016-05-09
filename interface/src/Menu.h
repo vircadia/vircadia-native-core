@@ -170,6 +170,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
+    const QString SetHomeLocation = "Set Home Location";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";

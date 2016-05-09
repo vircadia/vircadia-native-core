@@ -119,6 +119,92 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     return highestResource;
 }
 
+ScriptableResource::ScriptableResource(const QUrl& url) :
+    QObject(nullptr),
+    _url(url) { }
+
+void ScriptableResource::release() {
+    disconnectHelper();
+    _resource.reset();
+}
+
+bool ScriptableResource::isInScript() const {
+    return _resource && _resource->isInScript();
+}
+
+void ScriptableResource::setInScript(bool isInScript) {
+    if (_resource) {
+        _resource->setInScript(isInScript);
+    }
+}
+
+void ScriptableResource::loadingChanged() {
+    emit stateChanged(LOADING);
+}
+
+void ScriptableResource::loadedChanged() {
+    emit stateChanged(LOADED);
+}
+
+void ScriptableResource::finished(bool success) {
+    disconnectHelper();
+
+    emit stateChanged(success ? FINISHED : FAILED);
+}
+
+void ScriptableResource::disconnectHelper() {
+    if (_progressConnection) {
+        disconnect(_progressConnection);
+    }
+    if (_loadingConnection) {
+        disconnect(_loadingConnection);
+    }
+    if (_loadedConnection) {
+        disconnect(_loadedConnection);
+    }
+    if (_finishedConnection) {
+        disconnect(_finishedConnection);
+    }
+}
+
+ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
+    ScriptableResource* result = nullptr;
+
+    if (QThread::currentThread() != thread()) {
+        // Must be called in thread to ensure getResource returns a valid pointer
+        QMetaObject::invokeMethod(this, "prefetch", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(ScriptableResource*, result),
+            Q_ARG(QUrl, url), Q_ARG(void*, extra));
+        return result;
+    }
+
+    result = new ScriptableResource(url);
+
+    auto resource = getResource(url, QUrl(), false, extra);
+    result->_resource = resource;
+    result->setObjectName(url.toString());
+
+    result->_resource = resource;
+    if (resource->isLoaded()) {
+        result->finished(!resource->_failedToLoad);
+    } else {
+        result->_progressConnection = connect(
+            resource.data(), &Resource::onProgress,
+            result, &ScriptableResource::progressChanged);
+        result->_loadingConnection = connect(
+            resource.data(), &Resource::loading,
+            result, &ScriptableResource::loadingChanged);
+        result->_loadedConnection = connect(
+            resource.data(), &Resource::loaded,
+            result, &ScriptableResource::loadedChanged);
+        result->_finishedConnection = connect(
+            resource.data(), &Resource::finished,
+            result, &ScriptableResource::finished);
+    }
+
+    return result;
+}
+
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
     auto nodeList = DependencyManager::get<NodeList>();
     if (nodeList) {
@@ -219,7 +305,7 @@ QVariantList ResourceCache::getResourceList() {
 
     return list;
 }
-
+ 
 void ResourceCache::setRequestLimit(int limit) {
     _requestLimit = limit;
 
@@ -272,6 +358,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
                               getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
     resource->setSelf(resource);
     resource->setCache(this);
+    connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
     {
         QWriteLocker locker(&_resourcesLock);
         _resources.insert(url, resource);
@@ -357,8 +444,13 @@ void ResourceCache::removeResource(const QUrl& url, qint64 size) {
     _totalResourcesSize -= size;
 }
 
-void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
-    _totalResourcesSize += (newSize - oldSize);
+void ResourceCache::updateTotalSize(const qint64& deltaSize) {
+    _totalResourcesSize += deltaSize;
+
+    // Sanity checks
+    assert(_totalResourcesSize >= 0);
+    assert(_totalResourcesSize < (1024 * BYTES_PER_GIGABYTES));
+
     emit dirty();
 }
  
@@ -543,7 +635,7 @@ void Resource::finishedLoading(bool success) {
 }
 
 void Resource::setSize(const qint64& bytes) {
-    QMetaObject::invokeMethod(_cache.data(), "updateTotalSize", Q_ARG(qint64, _bytes), Q_ARG(qint64, bytes));
+    emit updateSize(bytes - _bytes);
     _bytes = bytes;
 }
 
@@ -569,8 +661,11 @@ void Resource::makeRequest() {
     }
     
     qCDebug(networking).noquote() << "Starting request for:" << _url.toDisplayString();
+    emit loading();
 
-    connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
+    connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
+    connect(this, &Resource::onProgress, this, &Resource::handleDownloadProgress);
+
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
 
     _bytesReceived = _bytesTotal = _bytes = 0;
