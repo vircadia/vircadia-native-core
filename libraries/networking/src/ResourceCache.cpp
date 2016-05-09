@@ -316,23 +316,6 @@ void ResourceCache::setRequestLimit(int limit) {
     }
 }
 
-void ResourceCache::getResourceAsynchronously(const QUrl& url) {
-    qCDebug(networking) << "ResourceCache::getResourceAsynchronously" << url.toString();
-    QWriteLocker locker(&_resourcesToBeGottenLock);
-    _resourcesToBeGotten.enqueue(QUrl(url));
-}
-
-void ResourceCache::checkAsynchronousGets() {
-    assert(QThread::currentThread() == thread());
-    QWriteLocker locker(&_resourcesToBeGottenLock);
-    if (!_resourcesToBeGotten.isEmpty()) {
-        QUrl url = _resourcesToBeGotten.dequeue();
-
-        locker.unlock();
-        getResource(url);
-    }
-}
-
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
                                                     bool delayLoad, void* extra) {
     QSharedPointer<Resource> resource;
@@ -346,8 +329,11 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     }
 
     if (QThread::currentThread() != thread()) {
+        qCDebug(networking) << "Fetching asynchronously:" << url;
         assert(delayLoad);
-        getResourceAsynchronously(url);
+        QMetaObject::invokeMethod(this, "getResource",
+            Q_ARG(QUrl, url), Q_ARG(QUrl, fallback), Q_ARG(bool, delayLoad));
+            // Cannot use extra parameter as it might be freed before the invocation
         return QSharedPointer<Resource>();
     }
 

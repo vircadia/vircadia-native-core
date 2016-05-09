@@ -224,8 +224,6 @@ public:
 signals:
     void svoImportRequested(const QString& url);
 
-    void checkBackgroundDownloads();
-
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
     void beforeAboutToQuit();

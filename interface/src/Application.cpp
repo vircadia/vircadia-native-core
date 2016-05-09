@@ -584,12 +584,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
-    // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
-    // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
-    // downloads.
-    auto modelCache = DependencyManager::get<ModelCache>();
-    connect(this, &Application::checkBackgroundDownloads, modelCache.data(), &ModelCache::checkAsynchronousGets);
-
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
@@ -2746,9 +2740,6 @@ void Application::idle(uint64_t now) {
     }
 
     _overlayConductor.update(secondsSinceLastUpdate);
-
-    // check for any requested background downloads.
-    emit checkBackgroundDownloads();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
