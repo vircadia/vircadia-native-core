@@ -104,19 +104,19 @@ const QImage& image, bool isLinear, bool doCompress) {
     if (image.hasAlphaChannel()) {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
-        if (!isLinear) {
-            mipSemantic = gpu::SBGRA;
-            if (doCompress) {
-                gpuSemantic = gpu::COMPRESSED_SRGBA;
-            } else {
-                gpuSemantic = gpu::SRGBA;
-            }
-        } else {
+        if (isLinear) {
             mipSemantic = gpu::BGRA;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {
                 gpuSemantic = gpu::RGBA;
+            }
+        } else {
+            mipSemantic = gpu::SBGRA;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_SRGBA;
+            } else {
+                gpuSemantic = gpu::SRGBA;
             }
         }
         formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
@@ -124,19 +124,19 @@ const QImage& image, bool isLinear, bool doCompress) {
     } else {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
-        if (!isLinear) {
-            mipSemantic = gpu::SRGB;
-            if (doCompress) {
-                gpuSemantic = gpu::COMPRESSED_SRGB;
-            } else {
-                gpuSemantic = gpu::SRGB;
-            }
-        } else {
+        if (isLinear) {
             mipSemantic = gpu::RGB;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_RGB;
             } else {
                 gpuSemantic = gpu::RGB;
+            }
+        } else {
+            mipSemantic = gpu::SRGB;
+            if (doCompress) {
+                gpuSemantic = gpu::COMPRESSED_SRGB;
+            } else {
+                gpuSemantic = gpu::SRGB;
             }
         }
         formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);
