@@ -17,7 +17,6 @@
 #include <QtCore/QPropertyAnimation>
 #include <QtGui/QCursor>
 #include <QtGui/QMouseEvent>
-#include <QtGui/QWindow>
 
 #include <GLMHelpers.h>
 #include <Transform.h>
@@ -183,7 +182,6 @@ private:
     bool _fakeMouseEvent { false };
 
     ReticleInterface* _reticleInterface { nullptr };
-    QWindow* _mainWindow { nullptr };
 };
 
 // Scripting interface available to control the Reticle

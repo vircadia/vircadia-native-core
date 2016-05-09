@@ -258,7 +258,7 @@ glm::vec2 CompositorHelper::getReticlePosition() const {
         QMutexLocker locker(&_reticleLock);
         return _reticlePositionInHMD;
     }
-    return toGlm(QCursor::pos());
+    return toGlm(_renderingWidget->mapFromGlobal(QCursor::pos()));
 }
 
 bool CompositorHelper::getReticleOverDesktop() const {
@@ -324,20 +324,8 @@ void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFa
             sendFakeMouseEvent();
         }
     } else {
-        if (!_mainWindow) {
-            auto windows = qApp->topLevelWindows();
-            QWindow* result = nullptr;
-            for (auto window : windows) {
-                QVariant isMainWindow = window->property("MainWindow");
-                if (!qobject_cast<QQuickWindow*>(window)) {
-                    result = window;
-                    break;
-                }
-            }
-            _mainWindow = result;;
-        }
-        const int MENU_BAR_HEIGHT = 20;
-        QCursor::setPos(position.x + _mainWindow->x(), position.y + _mainWindow->y() + MENU_BAR_HEIGHT);
+        const QPoint point(position.x, position.y);
+        QCursor::setPos(_renderingWidget->mapToGlobal(point));
     }
 }
 
