@@ -403,7 +403,7 @@ private:
     QElapsedTimer _lastTimeUpdated;
 
     ShapeManager _shapeManager;
-    PhysicalEntitySimulation _entitySimulation;
+    PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entityClipboardRenderer;
