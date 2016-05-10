@@ -163,7 +163,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
 
     // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->_viewFrustum)) {
+    if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
         return;
     }
 
@@ -174,7 +174,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
@@ -187,8 +187,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
 
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
@@ -202,7 +202,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
 
 void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
@@ -215,8 +215,8 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
 
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
@@ -240,7 +240,7 @@ DrawOverlay3D::DrawOverlay3D(bool opaque) :
 
 void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const render::ItemBounds& inItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
@@ -268,8 +268,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             glm::mat4 projMat;
             Transform viewMat;
-            args->_viewFrustum->evalProjectionMatrix(projMat);
-            args->_viewFrustum->evalViewTransform(viewMat);
+            args->getViewFrustum().evalProjectionMatrix(projMat);
+            args->getViewFrustum().evalViewTransform(viewMat);
 
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
@@ -290,7 +290,7 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
 
 void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     // from the touched pixel generate the stencil buffer 
     RenderArgs* args = renderContext->args;
@@ -316,7 +316,7 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
 
 void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -334,8 +334,8 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
 
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);

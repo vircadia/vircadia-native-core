@@ -71,7 +71,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         GeometryExtra extra{ mapping, _textureBaseUrl };
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
-        _geometryResource = modelCache->getResource(url, QUrl(), false, &extra).staticCast<GeometryResource>();
+        _geometryResource = modelCache->getResource(url, QUrl(), &extra).staticCast<GeometryResource>();
         // Avoid caching nested resources - their references will be held by the parent
         _geometryResource->_isCacheable = false;
 
@@ -236,7 +236,7 @@ ModelCache::ModelCache() {
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    bool delayLoad, const void* extra) {
+    const void* extra) {
     Resource* resource = nullptr;
     if (url.path().toLower().endsWith(".fst")) {
         resource = new GeometryMappingResource(url);
@@ -252,7 +252,7 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
 
 std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) {
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
-    GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
+    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
@@ -394,10 +394,20 @@ const QString& NetworkMaterial::getTextureName(MapChannel channel) {
     return NO_TEXTURE;
 }
 
-QUrl NetworkMaterial::getTextureUrl(const QUrl& url, const FBXTexture& texture) {
-    // If content is inline, cache it under the fbx file, not its url
-    const auto baseUrl = texture.content.isEmpty() ? url : QUrl(url.url() + "/");
-    return baseUrl.resolved(QUrl(texture.filename));
+QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& texture) {
+    if (texture.content.isEmpty()) {
+        // External file: search relative to the baseUrl, in case filename is relative
+        return baseUrl.resolved(QUrl(texture.filename));
+    } else {
+        // Inlined file: cache under the fbx file to avoid namespace clashes
+        // NOTE: We cannot resolve the path because filename may be an absolute path
+        assert(texture.filename.size() > 0);
+        if (texture.filename.at(0) == '/') {
+            return baseUrl.toString() + texture.filename;
+        } else {
+            return baseUrl.toString() + '/' + texture.filename;
+        }
+    }
 }
 
 model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,

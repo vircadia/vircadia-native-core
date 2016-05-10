@@ -13,30 +13,14 @@
 
 #include "AccountScriptingInterface.h"
 
-AccountScriptingInterface::AccountScriptingInterface() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, &AccountManager::balanceChanged, this,
-            &AccountScriptingInterface::updateBalance);
-}
-
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
     return &sharedInstance;
 }
 
-float AccountScriptingInterface::getBalance() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    return accountManager.getAccountInfo().getBalanceInSatoshis();
-}
-
 bool AccountScriptingInterface::isLoggedIn() {
     AccountManager& accountManager = AccountManager::getInstance();
     return accountManager.isLoggedIn();
-}
-
-void AccountScriptingInterface::updateBalance() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    emit balanceChanged(accountManager.getAccountInfo().getBalanceInSatoshis());
 }
 
 QString AccountScriptingInterface::getUsername() {

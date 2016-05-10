@@ -222,7 +222,7 @@ var usersWindow = (function() {
 
     var baseURL = Script.resolvePath("assets/images/tools/");
 
-    var WINDOW_WIDTH = 160,
+    var WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
         WINDOW_FONT = {

@@ -1,5 +1,5 @@
 //
-//  testPrefetch.js
+//  prefetchTest.js
 //  scripts/developer/tests/scriptableResource 
 //
 //  Created by Zach Pomerantz on 4/27/16.

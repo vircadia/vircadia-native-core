@@ -141,6 +141,16 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
     }
 }
 
+void OctreeQueryNode::copyCurrentViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _currentViewFrustum;
+}
+
+void OctreeQueryNode::copyLastKnownViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _lastKnownViewFrustum;
+}
+
 bool OctreeQueryNode::updateCurrentViewFrustum() {
     // if shutting down, return immediately
     if (_isShuttingDown) {
@@ -171,11 +181,13 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     }
 
 
-    // if there has been a change, then recalculate
-    if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
-        _currentViewFrustum = newestViewFrustum;
-        _currentViewFrustum.calculate();
-        currentViewFrustumChanged = true;
+    { // if there has been a change, then recalculate
+        QMutexLocker viewLocker(&_viewMutex);
+        if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
+            _currentViewFrustum = newestViewFrustum;
+            _currentViewFrustum.calculate();
+            currentViewFrustumChanged = true;
+        }
     }
 
     // Also check for LOD changes from the client
@@ -219,11 +231,14 @@ void OctreeQueryNode::updateLastKnownViewFrustum() {
         return;
     }
 
-    bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
 
-    if (frustumChanges) {
-        // save our currentViewFrustum into our lastKnownViewFrustum
-        _lastKnownViewFrustum = _currentViewFrustum;
+        if (frustumChanges) {
+            // save our currentViewFrustum into our lastKnownViewFrustum
+            _lastKnownViewFrustum = _currentViewFrustum;
+        }
     }
 
     // save that we know the view has been sent.
@@ -237,15 +252,13 @@ bool OctreeQueryNode::moveShouldDump() const {
         return false;
     }
 
+    QMutexLocker viewLocker(&_viewMutex);
     glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
     glm::vec3 newPosition = _currentViewFrustum.getPosition();
 
     // theoretically we could make this slightly larger but relative to avatar scale.
     const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.0f;
-    if (glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP) {
-        return true;
-    }
-    return false;
+    return glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP;
 }
 
 void OctreeQueryNode::dumpOutOfView() {
@@ -257,8 +270,10 @@ void OctreeQueryNode::dumpOutOfView() {
     int stillInView = 0;
     int outOfView = 0;
     OctreeElementBag tempBag;
+    ViewFrustum viewCopy;
+    copyCurrentViewFrustum(viewCopy);
     while (OctreeElementPointer elementToCheck = elementBag.extract()) {
-        if (elementToCheck->isInView(_currentViewFrustum)) {
+        if (elementToCheck->isInView(viewCopy)) {
             tempBag.insert(elementToCheck);
             stillInView++;
         } else {
@@ -267,7 +282,7 @@ void OctreeQueryNode::dumpOutOfView() {
     }
     if (stillInView > 0) {
         while (OctreeElementPointer elementToKeepInBag = tempBag.extract()) {
-            if (elementToKeepInBag->isInView(_currentViewFrustum)) {
+            if (elementToKeepInBag->isInView(viewCopy)) {
                 elementBag.insert(elementToKeepInBag);
             }
         }

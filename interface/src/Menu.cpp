@@ -566,8 +566,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::LogExtraTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SupressDeadlockWatchdogStatus, 0, false,
-        qApp, SLOT(toggleSuppressDeadlockWatchdogStatus(bool)));
 
 
     // Developer > Audio >>>

@@ -25,6 +25,7 @@
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
+#include <OctreeUtils.h>
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
@@ -167,7 +168,10 @@ void Avatar::simulate(float deltaTime) {
     // update the shouldAnimate flag to match whether or not we will render the avatar.
     const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
     const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
-    float visibility = qApp->getViewFrustum()->calculateRenderAccuracy(getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
+    ViewFrustum viewFrustum;
+    qApp->copyViewFrustum(viewFrustum);
+    float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
+            getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
     if (!_shouldAnimate) {
         if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
             _shouldAnimate = true;
@@ -180,8 +184,9 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool avatarPositionInView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
-    bool avatarMeshInView = qApp->getDisplayViewFrustum()->boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
+    qApp->copyDisplayViewFrustum(viewFrustum);
+    bool avatarPositionInView = viewFrustum.sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool avatarMeshInView = viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
 
     if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
@@ -410,17 +415,16 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         }
     }
 
-    // simple frustum check
-    float boundingRadius = getBoundingRadius();
-    ViewFrustum* frustum = nullptr;
-    if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-        frustum = qApp->getShadowViewFrustum();
-    } else {
-        frustum = qApp->getDisplayViewFrustum();
-    }
-
-    if (!frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
-        return;
+    { // simple frustum check
+        ViewFrustum frustum;
+        if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+            qApp->copyShadowViewFrustum(frustum);
+        } else {
+            qApp->copyDisplayViewFrustum(frustum);
+        }
+        if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
+            return;
+        }
     }
 
     glm::vec3 toTarget = cameraPosition - getPosition();
@@ -458,9 +462,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
     auto cameraMode = qApp->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        auto& frustum = *renderArgs->_viewFrustum;
+        auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();
-
         if (frustum.pointIntersectsFrustum(textPosition)) {
             renderDisplayName(batch, frustum, textPosition);
         }

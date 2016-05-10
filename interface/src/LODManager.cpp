@@ -10,6 +10,7 @@
 //
 
 #include <SettingHandle.h>
+#include <OctreeUtils.h>
 #include <Util.h>
 
 #include "Application.h"
@@ -216,7 +217,7 @@ QString LODManager::getLODFeedbackText() {
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
     // to use in rendering.
-    float renderAccuracy = args->_viewFrustum->calculateRenderAccuracy(bounds, args->_sizeScale, args->_boundaryLevelAdjust);
+    float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
     return (renderAccuracy > 0.0f);
 };
 
@@ -228,7 +229,6 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
 }
 
-
 void LODManager::loadSettings() {
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
     setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
@@ -238,5 +238,4 @@ void LODManager::saveSettings() {
     desktopLODDecreaseFPS.set(getDesktopLODDecreaseFPS());
     hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
 }
-
 
