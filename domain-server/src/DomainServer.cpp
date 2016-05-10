@@ -462,7 +462,7 @@ void DomainServer::setupAutomaticNetworking() {
                 nodeList->startSTUNPublicSocketUpdate();
             } else {
                 // send our heartbeat to data server so it knows what our network settings are
-                sendHeartbeatToDataServer();
+                sendHeartbeatToMetaverse();
             }
         } else {
             qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
@@ -471,7 +471,7 @@ void DomainServer::setupAutomaticNetworking() {
             return;
         }
     } else {
-        sendHeartbeatToDataServer();
+        sendHeartbeatToMetaverse();
     }
 
     qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
@@ -480,7 +480,7 @@ void DomainServer::setupAutomaticNetworking() {
     const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
 
     QTimer* dataHeartbeatTimer = new QTimer(this);
-    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
+    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToMetaverse()));
     dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
@@ -1029,11 +1029,11 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
 }
 
 
-void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
+void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
