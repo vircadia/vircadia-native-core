@@ -1,4 +1,14 @@
-import QtQuick 2.0
+//
+//  FileDialog.qml
+//
+//  Created by Bradley Austin Davis on 22 Jan 2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 TableView {
@@ -8,6 +18,7 @@ TableView {
             root.selection.select(0)
         }
     }
+    //horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
 
     itemDelegate: Component {
         Item {
@@ -23,6 +34,7 @@ TableView {
                 function getText() {
                     switch (styleData.column) {
                         //case 1: return Date.fromLocaleString(locale, styleData.value, "yyyy-MM-dd hh:mm:ss");
+                        case 1: return root.model.get(styleData.row, "fileIsDir") ? "" : styleData.value;
                         case 2: return root.model.get(styleData.row, "fileIsDir") ? "" : formatSize(styleData.value);
                         default: return styleData.value;
                     }
@@ -45,20 +57,23 @@ TableView {
     }
 
     TableViewColumn {
+        id: fileNameColumn
         role: "fileName"
         title: "Name"
-        width: 400
+        width: Math.floor(0.55 * parent.width)
+        resizable: true
     }
     TableViewColumn {
+        id: fileMofifiedColumn
         role: "fileModified"
-        title: "Date Modified"
-        width: 200
+        title: "Date"
+        width: Math.floor(0.3 * parent.width)
+        resizable: true
     }
     TableViewColumn {
         role: "fileSize"
         title: "Size"
-        width: 200
+        width: Math.floor(0.15 * parent.width) - 16 - 2  // Allow space for vertical scrollbar and borders
+        resizable: true
     }
 }
-
-
