@@ -284,7 +284,7 @@ void DebugDeferredBuffer::configure(const Config& config) {
 
 void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -292,20 +292,20 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
         const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-        
+
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
 
         // TODO REMOVE: Temporary until UI
         auto first = _customPipelines.begin()->first;
-        
+
         batch.setPipeline(getPipeline(_mode, first));
-        
+
         batch.setResourceTexture(Albedo, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());

@@ -1,6 +1,6 @@
 //
-//  OctreeProjectedPolygon.cpp
-//  libraries/octree/src
+//  CubeProjectedPolygon.cpp
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 06/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -15,50 +15,50 @@
 
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
-#include "OctreeLogging.h"
-#include "OctreeProjectedPolygon.h"
+#include "SharedLogging.h"
+#include "CubeProjectedPolygon.h"
 
 
-glm::vec2 BoundingBox::getVertex(int vertexNumber) const {
+glm::vec2 BoundingRectangle::getVertex(int vertexNumber) const {
     switch (vertexNumber) {
-        case BoundingBox::BOTTOM_LEFT:
+        case BoundingRectangle::BOTTOM_LEFT:
             return corner;
-        case BoundingBox::TOP_LEFT:
+        case BoundingRectangle::TOP_LEFT:
             return glm::vec2(corner.x, corner.y + size.y);
-        case BoundingBox::BOTTOM_RIGHT:
+        case BoundingRectangle::BOTTOM_RIGHT:
             return glm::vec2(corner.x + size.x, corner.y);
-        case BoundingBox::TOP_RIGHT:
+        case BoundingRectangle::TOP_RIGHT:
             return corner + size;
     }
     assert(false); // not allowed
     return glm::vec2(0,0);
 }
 
-BoundingBox BoundingBox::topHalf() const {
+BoundingRectangle BoundingRectangle::topHalf() const {
     float halfY = size.y/2.0f;
-    BoundingBox result(glm::vec2(corner.x,corner.y + halfY), glm::vec2(size.x, halfY));
+    BoundingRectangle result(glm::vec2(corner.x,corner.y + halfY), glm::vec2(size.x, halfY));
     return result;
 }
 
-BoundingBox BoundingBox::bottomHalf() const {
+BoundingRectangle BoundingRectangle::bottomHalf() const {
     float halfY = size.y/2.0f;
-    BoundingBox result(corner, glm::vec2(size.x, halfY));
+    BoundingRectangle result(corner, glm::vec2(size.x, halfY));
     return result;
 }
 
-BoundingBox BoundingBox::leftHalf() const {
+BoundingRectangle BoundingRectangle::leftHalf() const {
     float halfX = size.x/2.0f;
-    BoundingBox result(corner, glm::vec2(halfX, size.y));
+    BoundingRectangle result(corner, glm::vec2(halfX, size.y));
     return result;
 }
 
-BoundingBox BoundingBox::rightHalf() const {
+BoundingRectangle BoundingRectangle::rightHalf() const {
     float halfX = size.x/2.0f;
-    BoundingBox result(glm::vec2(corner.x + halfX , corner.y), glm::vec2(halfX, size.y));
+    BoundingRectangle result(glm::vec2(corner.x + halfX , corner.y), glm::vec2(halfX, size.y));
     return result;
 }
 
-bool BoundingBox::contains(const BoundingBox& box) const {
+bool BoundingRectangle::contains(const BoundingRectangle& box) const {
     return ( _set &&
                 (box.corner.x >= corner.x) &&
                 (box.corner.y >= corner.y) &&
@@ -67,7 +67,7 @@ bool BoundingBox::contains(const BoundingBox& box) const {
             );
 }
 
-bool BoundingBox::contains(const glm::vec2& point) const {
+bool BoundingRectangle::contains(const glm::vec2& point) const {
     return ( _set &&
                 (point.x > corner.x) &&
                 (point.y > corner.y) &&
@@ -76,7 +76,7 @@ bool BoundingBox::contains(const glm::vec2& point) const {
             );
 }
 
-void BoundingBox::explandToInclude(const BoundingBox& box) {
+void BoundingRectangle::explandToInclude(const BoundingRectangle& box) {
     if (!_set) {
         corner = box.corner;
         size = box.size;
@@ -94,20 +94,20 @@ void BoundingBox::explandToInclude(const BoundingBox& box) {
 }
 
 
-void BoundingBox::printDebugDetails(const char* label) const {
-    qCDebug(octree, "%s _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]",
-            (label ? label : "BoundingBox"),
+void BoundingRectangle::printDebugDetails(const char* label) const {
+    qCDebug(shared, "%s _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]",
+            (label ? label : "BoundingRectangle"),
             debug::valueOf(_set), (double)corner.x, (double)corner.y, (double)size.x, (double)size.y,
             (double)corner.x, (double)corner.y, (double)(corner.x+size.x), (double)(corner.y+size.y));
 }
 
 
-long OctreeProjectedPolygon::pointInside_calls = 0;
-long OctreeProjectedPolygon::occludes_calls = 0;
-long OctreeProjectedPolygon::intersects_calls = 0;
+long CubeProjectedPolygon::pointInside_calls = 0;
+long CubeProjectedPolygon::occludes_calls = 0;
+long CubeProjectedPolygon::intersects_calls = 0;
 
 
-OctreeProjectedPolygon::OctreeProjectedPolygon(const BoundingBox& box) :
+CubeProjectedPolygon::CubeProjectedPolygon(const BoundingRectangle& box) :
     _vertexCount(4),
     _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
     _distance(0)
@@ -118,7 +118,7 @@ OctreeProjectedPolygon::OctreeProjectedPolygon(const BoundingBox& box) :
 }
 
 
-void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
+void CubeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
     _vertices[vertex] = point;
 
     // keep track of our bounding box
@@ -138,9 +138,9 @@ void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
 }
 
 // can be optimized with new pointInside()
-bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bool checkAllInView) const {
+bool CubeProjectedPolygon::occludes(const CubeProjectedPolygon& occludee, bool checkAllInView) const {
 
-    OctreeProjectedPolygon::occludes_calls++;
+    CubeProjectedPolygon::occludes_calls++;
 
     // if we are completely out of view, then we definitely don't occlude!
     // if the occludee is completely out of view, then we also don't occlude it
@@ -197,12 +197,12 @@ bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bo
     return false; // if we got this far, then we're not occluded
 }
 
-bool OctreeProjectedPolygon::occludes(const BoundingBox& boxOccludee) const {
-    OctreeProjectedPolygon testee(boxOccludee);
+bool CubeProjectedPolygon::occludes(const BoundingRectangle& boxOccludee) const {
+    CubeProjectedPolygon testee(boxOccludee);
     return occludes(testee);
 }
 
-bool OctreeProjectedPolygon::matches(const OctreeProjectedPolygon& testee) const {
+bool CubeProjectedPolygon::matches(const CubeProjectedPolygon& testee) const {
     if (testee.getVertexCount() != getVertexCount()) {
         return false;
     }
@@ -231,14 +231,14 @@ bool OctreeProjectedPolygon::matches(const OctreeProjectedPolygon& testee) const
     return true; // all of our vertices match, therefore we're the same
 }
 
-bool OctreeProjectedPolygon::matches(const BoundingBox& box) const {
-    OctreeProjectedPolygon testee(box);
+bool CubeProjectedPolygon::matches(const BoundingRectangle& box) const {
+    CubeProjectedPolygon testee(box);
     return matches(testee);
 }
 
-bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
+bool CubeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
 
-    OctreeProjectedPolygon::pointInside_calls++;
+    CubeProjectedPolygon::pointInside_calls++;
 
     // first check the bounding boxes, the point must be fully within the boounding box of this polygon
     if ((point.x > getMaxX()) ||
@@ -264,23 +264,23 @@ bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVe
     return true;
 }
 
-void OctreeProjectedPolygon::printDebugDetails() const {
-    qCDebug(octree, "OctreeProjectedPolygon..."
+void CubeProjectedPolygon::printDebugDetails() const {
+    qCDebug(shared, "CubeProjectedPolygon..."
             "    minX=%f maxX=%f minY=%f maxY=%f", (double)getMinX(), (double)getMaxX(), (double)getMinY(), (double)getMaxY());
-    qCDebug(octree, "    vertex count=%d distance=%f", getVertexCount(), (double)getDistance());
+    qCDebug(shared, "    vertex count=%d distance=%f", getVertexCount(), (double)getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
         glm::vec2 point = getVertex(i);
-        qCDebug(octree, "    vertex[%d] = %f, %f ", i, (double)point.x, (double)point.y);
+        qCDebug(shared, "    vertex[%d] = %f, %f ", i, (double)point.x, (double)point.y);
     }
 }
 
-bool OctreeProjectedPolygon::intersects(const BoundingBox& box) const {
-    OctreeProjectedPolygon testee(box);
+bool CubeProjectedPolygon::intersects(const BoundingRectangle& box) const {
+    CubeProjectedPolygon testee(box);
     return intersects(testee);
 }
 
-bool OctreeProjectedPolygon::intersects(const OctreeProjectedPolygon& testee) const {
-    OctreeProjectedPolygon::intersects_calls++;
+bool CubeProjectedPolygon::intersects(const CubeProjectedPolygon& testee) const {
+    CubeProjectedPolygon::intersects_calls++;
     return intersectsOnAxes(testee) && testee.intersectsOnAxes(*this);
 }
 
@@ -294,7 +294,7 @@ bool OctreeProjectedPolygon::intersects(const OctreeProjectedPolygon& testee) co
 // Note: this only works on convex polygons
 //
 //
-bool OctreeProjectedPolygon::intersectsOnAxes(const OctreeProjectedPolygon& testee) const {
+bool CubeProjectedPolygon::intersectsOnAxes(const CubeProjectedPolygon& testee) const {
 
     // consider each edge of this polygon as a potential separating axis
     for (int i = 0; i < getVertexCount(); i++) {
@@ -324,7 +324,7 @@ bool OctreeProjectedPolygon::intersectsOnAxes(const OctreeProjectedPolygon& test
     return true;
 }
 
-bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const {
+bool CubeProjectedPolygon::canMerge(const CubeProjectedPolygon& that) const {
 
     // RIGHT/NEAR
     // LEFT/NEAR
@@ -642,7 +642,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
 }
 
 
-void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
+void CubeProjectedPolygon::merge(const CubeProjectedPolygon& that) {
 
     // RIGHT/NEAR
     // LEFT/NEAR
