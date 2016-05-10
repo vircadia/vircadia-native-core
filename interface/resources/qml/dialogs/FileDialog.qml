@@ -78,8 +78,12 @@ ModalWindow {
 
         Row {
             id: navControls
-            anchors { left: parent.left; top: parent.top; margins: 8 }
-            spacing: 8
+            anchors {
+                top: parent.top
+                topMargin: hifi.dimensions.contentMargin.y
+                left: parent.left
+            }
+            spacing: hifi.dimensions.contentSpacing.x
 
             // FIXME implement back button
             //VrControls.ButtonAwesome {
@@ -119,7 +123,13 @@ ModalWindow {
             id: currentDirectory
             height: homeButton.height
             style:  TextFieldStyle { renderType: Text.QtRendering }
-            anchors { left: navControls.right; right: parent.right; top: parent.top; margins: 8 }
+            anchors {
+                top: parent.top
+                topMargin: hifi.dimensions.contentMargin.y
+                left: navControls.right
+                leftMargin: hifi.dimensions.contentSpacing.x
+                right: parent.right
+            }
             property var lastValidFolder: helper.urlToPath(model.folder)
             onLastValidFolderChanged: text = lastValidFolder;
             verticalAlignment: Text.AlignVCenter
@@ -179,7 +189,14 @@ ModalWindow {
 
         FileTableView {
             id: fileTableView
-            anchors { left: parent.left; right: parent.right; top: currentDirectory.bottom; bottom: currentSelection.top; margins: 8 }
+            anchors {
+                top: navControls.bottom
+                topMargin: hifi.dimensions.contentSpacing.y
+                left: parent.left
+                right: parent.right
+                bottom: currentSelection.top
+                bottomMargin: hifi.dimensions.contentSpacing.y
+            }
             onDoubleClicked: navigateToRow(row);
             focus: true
             Keys.onReturnPressed: navigateToCurrentRow();
@@ -277,7 +294,13 @@ ModalWindow {
         TextField {
             id: currentSelection
             style:  TextFieldStyle { renderType: Text.QtRendering }
-            anchors { right: root.selectDirectory ? parent.right : selectionType.left; rightMargin: 8; left: parent.left; leftMargin: 8; top: selectionType.top }
+            anchors {
+                left: parent.left
+                right: root.selectDirectory ? parent.right : selectionType.left
+                rightMargin: hifi.dimensions.contentSpacing.x
+                bottom: buttonRow.top
+                bottomMargin: hifi.dimensions.contentSpacing.y
+            }
             readOnly: !root.saveDialog
             activeFocusOnTab: !readOnly
             onActiveFocusChanged: if (activeFocus) { selectAll(); }
@@ -286,7 +309,11 @@ ModalWindow {
 
         FileTypeSelection {
             id: selectionType
-            anchors { bottom: buttonRow.top; bottomMargin: 8; right: parent.right; rightMargin: 8; left: buttonRow.left }
+            anchors {
+                top: currentSelection.top
+                left: buttonRow.left
+                right: parent.right
+            }
             visible: !selectDirectory
             KeyNavigation.left: fileTableView
             KeyNavigation.right: openButton
@@ -294,19 +321,22 @@ ModalWindow {
 
         Row {
             id: buttonRow
-            anchors.right: parent.right
-            anchors.rightMargin: 8
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 8
-            spacing: 8
+            anchors {
+                right: parent.right
+                bottom: parent.bottom
+            }
+            spacing: hifi.dimensions.contentSpacing.y
+
             Button {
                 id: openButton
+                color: hifi.buttons.blue
                 action: okAction
                 Keys.onReturnPressed: okAction.trigger()
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType
                 KeyNavigation.right: cancelButton
             }
+
             Button {
                 id: cancelButton
                 action: cancelAction
