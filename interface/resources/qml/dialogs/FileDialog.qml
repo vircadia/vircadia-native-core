@@ -94,25 +94,26 @@ ModalWindow {
             //    MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
             //}
 
-            Button {
+            GlyphButton {
                 id: upButton
+                glyph: hifi.glyphs.levelUp
+                width: height
                 enabled: model.parentFolder && model.parentFolder !== ""
-                text: "up"
                 onClicked: d.navigateUp();
             }
 
-            Button {
+            GlyphButton {
                 id: homeButton
                 property var destination: helper.home();
+                glyph: hifi.glyphs.home
+                width: height
                 enabled: d.homeDestination ? true : false
-                text: "home"
                 onClicked: d.navigateHome();
             }
 
             ComboBox {
                 id: drivesSelector
-                width: 48
-                height: homeButton.height
+                width: 62
                 model: drives
                 visible: drives.length > 1
                 currentIndex: 0
@@ -121,8 +122,8 @@ ModalWindow {
 
         TextField {
             id: currentDirectory
+            property var lastValidFolder: helper.urlToPath(model.folder)
             height: homeButton.height
-            style:  TextFieldStyle { renderType: Text.QtRendering }
             anchors {
                 top: parent.top
                 topMargin: hifi.dimensions.contentMargin.y
@@ -130,11 +131,7 @@ ModalWindow {
                 leftMargin: hifi.dimensions.contentSpacing.x
                 right: parent.right
             }
-            property var lastValidFolder: helper.urlToPath(model.folder)
             onLastValidFolderChanged: text = lastValidFolder;
-            verticalAlignment: Text.AlignVCenter
-            font.pointSize: 14
-            font.bold: true
 
             // FIXME add support auto-completion
             onAccepted: {

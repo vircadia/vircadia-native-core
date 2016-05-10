@@ -17,7 +17,7 @@ import "../styles-uit"
 
 Original.Button {
     property int color: 0
-    property int colorScheme: hifi.colorShemes.light
+    property int colorScheme: hifi.colorSchemes.light
     property string glyph: ""
 
     width: 120
