@@ -1091,6 +1091,11 @@ void Application::checkChangeCursor() {
 
         _cursorNeedsChanging = false;
     }
+
+
+    // After all of the constructor is completed, then set firstRun to false.
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
+    firstRun.set(false);
 }
 
 void Application::showCursor(const QCursor& cursor) {
@@ -2950,7 +2955,7 @@ void Application::init() {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
-    Setting::Handle<bool> firstRun { "firstRun", true };
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (addressLookupString.isEmpty() && firstRun.get()) {
         qDebug() << "First run and no URL passed... attempting to Go Home...";
         DependencyManager::get<AddressManager>()->goHomeOrElsewhere();
