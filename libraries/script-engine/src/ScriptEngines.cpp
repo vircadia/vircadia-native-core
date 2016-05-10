@@ -9,7 +9,8 @@
 #include "ScriptEngines.h"
 
 #include <QtCore/QStandardPaths>
-#include <QtCore/QCoreApplication>
+
+#include <QtWidgets/QApplication>
 
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
@@ -490,7 +491,12 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
     for (auto initializer : _scriptInitializers) {
         initializer(scriptEngine);
     }
-    scriptEngine->runInThread();
+    
+    if (scriptEngine->isDebuggable() || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier)) {
+        scriptEngine->runDebuggable();
+    } else {
+        scriptEngine->runInThread();
+    }
 }
 
 
