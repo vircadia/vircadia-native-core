@@ -1185,6 +1185,9 @@ void Application::cleanupBeforeQuit() {
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
 
+    // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
+    QThreadPool::globalInstance()->clear();
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
