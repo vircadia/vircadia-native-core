@@ -1189,6 +1189,9 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
 
+    // Cleanup all overlays after the scripts, as scripts might add more
+    _overlays.cleanupAllOverlays();
+
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
     locationUpdateTimer.stop();
