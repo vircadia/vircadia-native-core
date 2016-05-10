@@ -1209,7 +1209,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             auto plaintext = QByteArray::fromRawData(_iceServerHeartbeatPacket->getPayload(), _iceServerHeartbeatPacket->getPayloadSize());
 
             // generate a signature for the plaintext data in the packet
-            auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
+            auto signature = accountManager->getAccountInfo().signPlaintext(plaintext);
 
             // pack the signature with the data
             heartbeatDataStream << signature;
