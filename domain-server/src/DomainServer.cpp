@@ -1056,20 +1056,34 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     domainObject[RESTRICTED_ACCESS_FLAG] =
         _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
-    // add the number of currently connected agent users
-    int numConnectedAuthedUsers = 0;
+    // figure out the breakdown of currently connected interface clients
+    int numConnectedUnassigned = 0;
+    QJsonObject userHostnames;
 
-    nodeList->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
-        if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
-            ++numConnectedAuthedUsers;
+    static const QString DEFAULT_HOSTNAME = "*";
+
+    nodeList->eachNode([&numConnectedUnassigned, &userHostnames](const SharedNodePointer& node) {
+        if (node->getLinkedData()) {
+            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+
+            if (!nodeData->wasAssigned()) {
+                ++numConnectedUnassigned;
+
+                // increment the count for this hostname (or the default if we don't have one)
+                auto hostname = nodeData->getPlaceName().isEmpty() ? DEFAULT_HOSTNAME : nodeData->getPlaceName();
+                userHostnames[hostname] = userHostnames[hostname].toInt() + 1;
+            }
         }
     });
 
-    const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
+    static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+    static const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
+    static const QString HEARTBEAT_USER_HOSTNAMES_KEY = "user_hostnames";
 
     QJsonObject heartbeatObject;
-    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedAuthedUsers;
+    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
+    heartbeatObject[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
+
     domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
 
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
