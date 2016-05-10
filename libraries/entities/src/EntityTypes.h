@@ -48,7 +48,8 @@ public:
         Line,
         PolyVox,
         PolyLine,
-        LAST = PolyLine
+        Shape,
+        LAST = Shape
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);
@@ -72,6 +73,15 @@ private:
 #define REGISTER_ENTITY_TYPE(x) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, x##EntityItem::factory);
 
+
+struct EntityRegistrationChecker {
+    EntityRegistrationChecker(bool result, const char* debugMessage) {
+        if (!result) {
+            qDebug() << debugMessage;
+        }
+    }
+};
+
 /// Macro for registering entity types with an overloaded factory. Like using the REGISTER_ENTITY_TYPE macro: Make sure to add
 /// an element to the EntityType enum with your name. But unlike  REGISTER_ENTITY_TYPE, your class can be named anything
 /// so long as you provide a static method passed to the macro, that takes an EnityItemID, and EntityItemProperties and 
@@ -79,9 +89,9 @@ private:
 //        static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 #define REGISTER_ENTITY_TYPE_WITH_FACTORY(x,y) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, y); \
-            if (!x##Registration) { \
-                qDebug() << "UNEXPECTED: REGISTER_ENTITY_TYPE_WITH_FACTORY(" #x "," #y ") FAILED.!"; \
-            }
+            EntityRegistrationChecker x##RegistrationChecker( \
+                x##Registration, \
+                "UNEXPECTED: REGISTER_ENTITY_TYPE_WITH_FACTORY(" #x "," #y ") FAILED.!");
 
 
 #endif // hifi_EntityTypes_h

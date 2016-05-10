@@ -18,17 +18,16 @@
 #include "EntityItemProperties.h"
 #include "EntityTypes.h"
 
-#include "BoxEntityItem.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 #include "ParticleEffectEntityItem.h"
-#include "SphereEntityItem.h"
 #include "TextEntityItem.h"
 #include "WebEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "LineEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "PolyLineEntityItem.h"
+#include "ShapeEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
@@ -39,16 +38,17 @@ const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 
 // Register Entity the default implementations of entity types here...
 REGISTER_ENTITY_TYPE(Model)
-REGISTER_ENTITY_TYPE(Box)
 REGISTER_ENTITY_TYPE(Web)
-REGISTER_ENTITY_TYPE(Sphere)
 REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Text)
 REGISTER_ENTITY_TYPE(ParticleEffect)
 REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Line)
 REGISTER_ENTITY_TYPE(PolyVox)
-REGISTER_ENTITY_TYPE(PolyLine);
+REGISTER_ENTITY_TYPE(PolyLine)
+REGISTER_ENTITY_TYPE(Shape)
+REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, ShapeEntityItem::boxFactory)
+REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, ShapeEntityItem::sphereFactory)
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);

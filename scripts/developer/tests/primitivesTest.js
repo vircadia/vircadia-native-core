@@ -17,9 +17,8 @@
 
 Script.include("./entitySpawnTool.js");
 
+
 ENTITY_SPAWNER({
-    count: 20000,
-    spawnLimit: 1000,
-    spawnInterval: 0.1,
-    updateInterval: 0.05
-});
+    updateInterval: 2.0
+})
+

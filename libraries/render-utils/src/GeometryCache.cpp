@@ -112,10 +112,12 @@ void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count
     }
 }
 
+// The golden ratio
+static const float PHI = 1.61803398874f;
+
 const VertexVector& icosahedronVertices() {
-    static const float phi = (1.0f + sqrtf(5.0f)) / 2.0f;
-    static const float a = 0.5f;
-    static const float b = 1.0f / (2.0f * phi);
+    static const float a = 1;
+    static const float b = PHI / 2.0f;
 
     static const VertexVector vertices{ //
         vec3(0, b, -a), vec3(-b, a, 0), vec3(b, a, 0), // 
@@ -143,11 +145,10 @@ const VertexVector& icosahedronVertices() {
 }
 
 const VertexVector& tetrahedronVertices() {
-    static const float a = 1.0f / sqrtf(2.0f);
-    static const auto A = vec3(0, 1, a);
-    static const auto B = vec3(0, -1, a);
-    static const auto C = vec3(1, 0, -a);
-    static const auto D = vec3(-1, 0, -a);
+    static const auto A = vec3(1, 1, 1);
+    static const auto B = vec3(1, -1, -1);
+    static const auto C = vec3(-1, 1, -1);
+    static const auto D = vec3(-1, -1, 1);
     static const VertexVector vertices{
         A, B, C,
         D, B, A,
@@ -356,7 +357,7 @@ void GeometryCache::buildShapes() {
                 for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
                     auto triangleVertexIndex = j;
                     auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
+                    vertices.push_back(originalVertices[vertexIndex]);
                     vertices.push_back(faceNormal);
                 }
             }
@@ -437,7 +438,7 @@ void GeometryCache::buildShapes() {
                 for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
                     auto triangleVertexIndex = j;
                     auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
+                    vertices.push_back(originalVertices[vertexIndex]);
                     vertices.push_back(faceNormal);
                     indices.push_back((uint16_t)(vertexIndex + startingIndex));
                 }
@@ -1801,10 +1802,10 @@ uint32_t toCompactColor(const glm::vec4& color) {
 
 static const size_t INSTANCE_COLOR_BUFFER = 0;
 
-void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4& color, bool isWire,
+void renderInstances(gpu::Batch& batch, const glm::vec4& color, bool isWire,
                     const render::ShapePipelinePointer& pipeline, GeometryCache::Shape shape) {
     // Add pipeline to name
-    std::string instanceName = name + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
+    std::string instanceName = (isWire ? "wire_shapes_" : "solid_shapes_") + std::to_string(shape) + "_" + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
 
     // Add color to named buffer
     {
@@ -1826,14 +1827,16 @@ void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4
     });
 }
 
+void GeometryCache::renderSolidShapeInstance(gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    renderInstances(batch, color, false, pipeline, shape);
+}
+
 void GeometryCache::renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, color, false, pipeline, GeometryCache::Sphere);
+    renderInstances(batch, color, false, pipeline, GeometryCache::Sphere);
 }
 
 void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, color, true, pipeline, GeometryCache::Sphere);
+    renderInstances(batch, color, true, pipeline, GeometryCache::Sphere);
 }
 
 // Enable this in a debug build to cause 'box' entities to iterate through all the
@@ -1841,8 +1844,6 @@ void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const glm::vec4&
 //#define DEBUG_SHAPES
 
 void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    static const std::string INSTANCE_NAME = __FUNCTION__;
-    
 #ifdef DEBUG_SHAPES
     static auto startTime = usecTimestampNow();
     renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
@@ -1876,11 +1877,11 @@ void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& 
         }
     });
 #else
-    renderInstances(INSTANCE_NAME, batch, color, false, pipeline, GeometryCache::Cube);
+    renderInstances(batch, color, false, pipeline, GeometryCache::Cube);
 #endif
 }
 
 void GeometryCache::renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, color, true, pipeline, GeometryCache::Cube);
+    renderInstances(batch, color, true, pipeline, GeometryCache::Cube);
 }
