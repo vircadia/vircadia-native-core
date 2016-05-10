@@ -67,8 +67,8 @@ public:
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
-    /// determines if the local sandbox is likely running. It does not account for custom setups but is only 
-    /// intended to detect the standard sandbox install.
+    /// determines if the local sandbox is likely running. It does not account for custom setups, and is only 
+    /// intended to detect the standard local sandbox install.
     void ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
                                    std::function<void()> localSandboxNotRunningDoThat);
 
