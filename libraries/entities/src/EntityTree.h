@@ -194,8 +194,8 @@ public:
 
     void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
 
-    void setSimulation(EntitySimulation* simulation);
-    EntitySimulation* getSimulation() const { return _simulation; }
+    void setSimulation(EntitySimulationPointer simulation);
+    EntitySimulationPointer getSimulation() const { return _simulation; }
 
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
@@ -299,7 +299,7 @@ protected:
     mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
 
-    EntitySimulation* _simulation;
+    EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
     bool _wantTerseEditLogging = false;

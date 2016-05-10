@@ -485,6 +485,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _sessionRunTimer(startupTimer),
     _previousSessionCrashed(setupEssentials(argc, argv)),
     _undoStackScriptingInterface(&_undoStack),
+    _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
@@ -559,12 +560,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
-
-    // Model background downloads need to happen on the Datagram Processor Thread.  The idle loop will
-    // emit checkBackgroundDownloads to cause the ModelCache to check it's queue for requested background
-    // downloads.
-    auto modelCache = DependencyManager::get<ModelCache>();
-    connect(this, &Application::checkBackgroundDownloads, modelCache.data(), &ModelCache::checkAsynchronousGets);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -2739,9 +2734,6 @@ void Application::idle(uint64_t now) {
     }
 
     _overlayConductor.update(secondsSinceLastUpdate);
-
-    // check for any requested background downloads.
-    emit checkBackgroundDownloads();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -2991,13 +2983,13 @@ void Application::init() {
     _physicsEngine->init();
 
     EntityTreePointer tree = getEntities()->getTree();
-    _entitySimulation.init(tree, _physicsEngine, &_entityEditSender);
-    tree->setSimulation(&_entitySimulation);
+    _entitySimulation->init(tree, _physicsEngine, &_entityEditSender);
+    tree->setSimulation(_entitySimulation);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
+    connect(_entitySimulation.get(), &EntitySimulation::entityCollisionWithEntity,
             getEntities(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -3417,22 +3409,22 @@ void Application::update(float deltaTime) {
 
             PerformanceTimer perfTimer("updateStates)");
             static VectorOfMotionStates motionStates;
-            _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+            _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
-            _entitySimulation.deleteObjectsRemovedFromPhysics();
+            _entitySimulation->deleteObjectsRemovedFromPhysics();
 
             getEntities()->getTree()->withReadLock([&] {
-                _entitySimulation.getObjectsToAddToPhysics(motionStates);
+                _entitySimulation->getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);
 
             });
             getEntities()->getTree()->withReadLock([&] {
-                _entitySimulation.getObjectsToChange(motionStates);
+                _entitySimulation->getObjectsToChange(motionStates);
                 VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-                _entitySimulation.setObjectsToChange(stillNeedChange);
+                _entitySimulation->setObjectsToChange(stillNeedChange);
             });
 
-            _entitySimulation.applyActionChanges();
+            _entitySimulation->applyActionChanges();
 
              avatarManager->getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
@@ -3460,7 +3452,7 @@ void Application::update(float deltaTime) {
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
-                    _entitySimulation.handleOutgoingChanges(outgoingChanges);
+                    _entitySimulation->handleOutgoingChanges(outgoingChanges);
                     avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
@@ -3473,7 +3465,7 @@ void Application::update(float deltaTime) {
                     PerformanceTimer perfTimer("entities");
                     // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                     // deadlock.)
-                    _entitySimulation.handleCollisionEvents(collisionEvents);
+                    _entitySimulation->handleCollisionEvents(collisionEvents);
 
                     // NOTE: the getEntities()->update() call below will wait for lock
                     // and will simulate entity motion (the EntityTree has been given an EntitySimulation).

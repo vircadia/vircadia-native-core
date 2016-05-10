@@ -23,7 +23,9 @@
 #include "PhysicsEngine.h"
 #include "EntityMotionState.h"
 
-typedef QSet<EntityMotionState*> SetOfEntityMotionStates;
+class PhysicalEntitySimulation;
+using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation>;
+using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
 class PhysicalEntitySimulation :public EntitySimulation {
 public:

@@ -383,10 +383,10 @@ public:
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
-    bool addAction(EntitySimulation* simulation, EntityActionPointer action);
-    bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
-    bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
-    bool clearActions(EntitySimulation* simulation);
+    bool addAction(EntitySimulationPointer simulation, EntityActionPointer action);
+    bool updateAction(EntitySimulationPointer simulation, const QUuid& actionID, const QVariantMap& arguments);
+    bool removeAction(EntitySimulationPointer simulation, const QUuid& actionID);
+    bool clearActions(EntitySimulationPointer simulation);
     void setActionData(QByteArray actionData);
     const QByteArray getActionData() const;
     bool hasActions() const { return !_objectActions.empty(); }
@@ -529,8 +529,8 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    bool addActionInternal(EntitySimulation* simulation, EntityActionPointer action);
-    bool removeActionInternal(const QUuid& actionID, EntitySimulation* simulation = nullptr);
+    bool addActionInternal(EntitySimulationPointer simulation, EntityActionPointer action);
+    bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);
     void deserializeActionsInternal();
     void serializeActions(bool& success, QByteArray& result) const;
     QHash<QUuid, EntityActionPointer> _objectActions;
@@ -541,7 +541,7 @@ protected:
     // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
     // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
     // are used to keep track of and work around this situation.
-    void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
+    void checkWaitingToRemove(EntitySimulationPointer simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
     mutable bool _actionDataNeedsTransmit = false;

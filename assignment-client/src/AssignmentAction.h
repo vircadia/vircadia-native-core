@@ -24,7 +24,7 @@ public:
     AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentAction();
 
-    virtual void removeFromSimulation(EntitySimulation* simulation) const;
+    virtual void removeFromSimulation(EntitySimulationPointer simulation) const;
     virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments);
