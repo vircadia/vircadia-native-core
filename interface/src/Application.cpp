@@ -2624,6 +2624,20 @@ void Application::idle(uint64_t now) {
         return; // bail early, we're throttled and not enough time has elapsed
     }
 
+#ifdef DEBUG_PAINT_DELAY
+    static uint64_t paintDelaySamples{ 0 };
+    static uint64_t paintDelayUsecs{ 0 };
+
+    paintDelayUsecs += displayPlugin->getPaintDelayUsecs();
+
+    static const int PAINT_DELAY_THROTTLE = 1000;
+    if (++paintDelaySamples % PAINT_DELAY_THROTTLE == 0) {
+        qCDebug(interfaceapp).nospace() <<
+            "Paint delay (" << paintDelaySamples << " samples): " <<
+            (float)paintDelaySamples / paintDelayUsecs << "us";
+    }
+#endif
+
     auto presentCount = displayPlugin->presentCount();
     if (presentCount < _renderedFrameIndex) {
         _renderedFrameIndex = INVALID_FRAME;

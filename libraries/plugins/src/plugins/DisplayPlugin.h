@@ -15,6 +15,7 @@
 
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
+#include <QtCore/QElapsedTimer>
 class QImage;
 
 #include <GLMHelpers.h>
@@ -156,6 +157,8 @@ public:
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
     uint32_t presentCount() const { return _presentedFrameIndex; }
+    // Time since last call to incrementPresentCount. Only valid if DEBUG_PAINT_DELAY is defined
+    int64_t getPaintDelayUsecs() const;
 
     virtual void cycleDebugOutput() {}
 
@@ -165,9 +168,10 @@ signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
 
 protected:
-    void incrementPresentCount() { ++_presentedFrameIndex; }
+    void incrementPresentCount();
 
 private:
     std::atomic<uint32_t> _presentedFrameIndex;
+    QElapsedTimer _paintDelayTimer;
 };
 
