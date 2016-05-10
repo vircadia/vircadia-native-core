@@ -311,7 +311,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result = NULL;
 
-    if (getIsClient()) {
+    bool clientOnly = properties.getClientOnly();
+
+    if (!clientOnly && getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
         if (nodeList && !nodeList->getThisNodeCanRez()) {
@@ -337,6 +339,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     // construct the instance of the entity
     EntityTypes::EntityType type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
+    result->setClientOnly(clientOnly);
 
     if (result) {
         if (recordCreationTime) {
