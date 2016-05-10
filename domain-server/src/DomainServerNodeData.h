@@ -58,7 +58,7 @@ public:
     void removeOverrideForKey(const QString& key, const QString& value);
 
     const QString& getPlaceName() { return _placeName; }
-    void setPlaceName(const QString& placeName) { _placeName; }
+    void setPlaceName(const QString& placeName) { _placeName = placeName; }
     
 private:
     QJsonObject overrideValuesIfNeeded(const QJsonObject& newStats);
