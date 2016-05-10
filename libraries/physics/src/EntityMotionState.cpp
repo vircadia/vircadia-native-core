@@ -404,6 +404,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     assert(_body);
     assert(entityTreeIsLocked());
 
+    if (_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
+        // don't send updates for someone else's avatarEntities
+        return false;
+    }
+
     if (_entity->actionDataNeedsTransmit()) {
         return true;
     }
