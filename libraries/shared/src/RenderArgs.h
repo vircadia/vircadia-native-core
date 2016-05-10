@@ -14,12 +14,15 @@
 
 #include <functional>
 #include <memory>
-#include "GLMHelpers.h"
+#include <stack>
+
+#include <GLMHelpers.h>
+#include <ViewFrustum.h>
+
 
 
 class AABox;
 class OctreeRenderer;
-class ViewFrustum;
 
 namespace gpu {
 class Batch;
@@ -39,21 +42,21 @@ public:
         SHADOW,
         OTHER
     };
-    
+
     struct Item {
         int _considered = 0;
         int _outOfView = 0;
         int _tooSmall = 0;
         int _rendered = 0;
     };
-    
+
     int _materialSwitches = 0;
     int _trianglesRendered = 0;
-    
+
     Item _item;
     Item _shadow;
     Item _other;
-    
+
     Item& edit(Type type) {
         switch (type) {
             case SHADOW:
@@ -77,7 +80,6 @@ public:
 
     RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
                OctreeRenderer* renderer = nullptr,
-               ViewFrustum* viewFrustum = nullptr,
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
                RenderMode renderMode = DEFAULT_RENDER_MODE,
@@ -86,7 +88,6 @@ public:
                gpu::Batch* batch = nullptr) :
     _context(context),
     _renderer(renderer),
-    _viewFrustum(viewFrustum),
     _sizeScale(sizeScale),
     _boundaryLevelAdjust(boundaryLevelAdjust),
     _renderMode(renderMode),
@@ -95,11 +96,22 @@ public:
     _batch(batch) {
     }
 
+    bool hasViewFrustum() const { return _viewFrustums.size() > 0; }
+    void setViewFrustum(const ViewFrustum& viewFrustum) {
+        while (_viewFrustums.size() > 0) {
+            _viewFrustums.pop();
+        }
+        _viewFrustums.push(viewFrustum);
+    }
+    const ViewFrustum& getViewFrustum() const { assert(_viewFrustums.size() > 0); return _viewFrustums.top(); }
+    void pushViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustums.push(viewFrustum); }
+    void popViewFrustum() { _viewFrustums.pop(); }
+
     std::shared_ptr<gpu::Context> _context = nullptr;
     std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
     std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
     OctreeRenderer* _renderer = nullptr;
-    ViewFrustum* _viewFrustum = nullptr;
+    std::stack<ViewFrustum> _viewFrustums;
     glm::ivec4 _viewport{ 0.0f, 0.0f, 1.0f, 1.0f };
     glm::vec3 _boomOffset{ 0.0f, 0.0f, 1.0f };
     float _sizeScale = 1.0f;
@@ -108,7 +120,7 @@ public:
     RenderSide _renderSide = MONO;
     DebugFlags _debugFlags = RENDER_DEBUG_NONE;
     gpu::Batch* _batch = nullptr;
-    
+
     std::shared_ptr<gpu::Texture> _whiteTexture;
 
     RenderDetails _details;

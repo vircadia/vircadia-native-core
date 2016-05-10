@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFileInfo>
@@ -706,9 +709,15 @@ void ScriptEngine::run() {
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
-    QElapsedTimer startTime;
-    startTime.start();
+#ifdef _WIN32
+    // VS13 does not sleep_until unless it uses the system_clock, see:
+    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
+    using clock = std::chrono::system_clock;
+#else
+    using clock = std::chrono::high_resolution_clock;
+#endif
 
+    clock::time_point startTime = clock::now();
     int thisFrame = 0;
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -716,12 +725,29 @@ void ScriptEngine::run() {
 
     qint64 lastUpdate = usecTimestampNow();
 
+    // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
-        int usecToSleep = (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - startTime.nsecsElapsed() / 1000; // nsec to usec
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
+        // Throttle to SCRIPT_FPS
+        const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
+        std::this_thread::sleep_until(sleepTime);
 
+#ifdef SCRIPT_DELAY_DEBUG
+        {
+            auto now = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            if (seconds > 0) { // avoid division by zero and time travel
+                uint64_t fps = thisFrame / seconds;
+                // Overreporting artificially reduces the reported rate
+                if (thisFrame % SCRIPT_FPS == 0) {
+                    qCDebug(scriptengine) <<
+                        "Frame:" << thisFrame <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "FPS:" << fps;
+                }
+            }
+        }
+#endif
         if (_isFinished) {
             break;
         }
@@ -969,7 +995,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
     QList<QUrl> urls;
     bool knowsSensitivity = false;
-    Qt::CaseSensitivity sensitivity;
+    Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
     auto getSensitivity = [&]() {
         if (!knowsSensitivity) {
             QString path = currentSandboxURL.path();
@@ -986,6 +1012,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
         QUrl thisURL;
+        bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
             thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
             QUrl defaultScriptsLoc = defaultScriptsLocation();
@@ -993,21 +1020,17 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                 qDebug() << "ScriptEngine::include -- skipping" << file << "-- outside of standard libraries";
                 continue;
             }
+            isStandardLibrary = true;
         } else {
             thisURL = resolvePath(file);
         }
 
         if (!_includedURLs.contains(thisURL)) {
-            if (!currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
-                (
-                    (currentSandboxURL.scheme() != "file") ||
-                        (
-                            !thisURL.toString(strippingFlags).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
-                            !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity())
-                        )
-                 )
-                ) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path" << thisURL << "outside of original entity script" << currentSandboxURL;
+            if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
+                (currentSandboxURL.scheme() != "file" ||
+                 !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
+                qCWarning(scriptengine) << "Script.include() ignoring file path"
+                                        << thisURL << "outside of original entity script" << currentSandboxURL;
             } else {
                 // We could also check here for CORS, but we don't yet.
                 // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.

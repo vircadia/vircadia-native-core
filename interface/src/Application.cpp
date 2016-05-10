@@ -210,9 +210,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
 
 class DeadlockWatchdogThread : public QThread {
 public:
-    static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long HEARTBEAT_REPORT_INTERVAL_USECS = 5 * USECS_PER_SECOND;
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
@@ -239,8 +237,6 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
-    static void setSuppressStatus(bool suppress) { _suppressStatus = suppress; }
-
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
@@ -248,7 +244,6 @@ public:
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
-            auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
@@ -274,21 +269,10 @@ public:
             if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
                 qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
-                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE**"
+                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE **"
                     << "maxElapsed:" << _maxElapsed
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
-                _lastReport = now;
-            }
-
-            if (!_suppressStatus && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
-                qDebug() << "DEADLOCK WATCHDOG STATUS:"
-                    << "lastHeartbeatAge:" << lastHeartbeatAge
-                    << "elapsedMovingAverage:" << elapsedMovingAverage
-                    << "maxElapsed:" << _maxElapsed
-                    << "maxElapsedAverage:" << _maxElapsedAverage
-                    << "samples:" << _movingAverage.getSamples();
-                _lastReport = now;
             }
 
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
@@ -310,9 +294,7 @@ public:
         }
     }
 
-    static std::atomic<bool> _suppressStatus;
     static std::atomic<uint64_t> _heartbeat;
-    static std::atomic<uint64_t> _lastReport;
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
@@ -320,16 +302,10 @@ public:
     bool _quit { false };
 };
 
-std::atomic<bool> DeadlockWatchdogThread::_suppressStatus;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
-std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
-
-void Application::toggleSuppressDeadlockWatchdogStatus(bool checked) {
-    DeadlockWatchdogThread::setSuppressStatus(checked);
-}
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -1510,10 +1486,17 @@ void Application::paintGL() {
 
     auto lodManager = DependencyManager::get<LODManager>();
 
-
-    RenderArgs renderArgs(_gpuContext, getEntities(), getViewFrustum(), lodManager->getOctreeSizeScale(),
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _viewFrustum.calculate();
+    }
+    RenderArgs renderArgs(_gpuContext, getEntities(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        renderArgs.setViewFrustum(_viewFrustum);
+    }
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1680,7 +1663,7 @@ void Application::paintGL() {
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
-            auto baseProjection = renderArgs._viewFrustum->getProjection();
+            auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
             mat4 headPose = displayPlugin->getHeadPose();
@@ -1810,7 +1793,10 @@ void Application::resizeGL() {
     _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), aspectRatio,
                                              DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     // Possible change in aspect ratio
-    loadViewFrustum(_myCamera, _viewFrustum);
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        loadViewFrustum(_myCamera, _viewFrustum);
+    }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto uiSize = displayPlugin->getRecommendedUiSize();
@@ -2137,6 +2123,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_J:
                 if (isShifted) {
+                    QMutexLocker viewLocker(&_viewMutex);
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -2146,6 +2133,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_M:
                 if (isShifted) {
+                    QMutexLocker viewLocker(&_viewMutex);
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
@@ -2994,7 +2982,10 @@ void Application::init() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     getEntities()->init();
-    getEntities()->setViewFrustum(getViewFrustum());
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        getEntities()->setViewFrustum(_viewFrustum);
+    }
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();
@@ -3014,12 +3005,26 @@ void Application::init() {
     getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
 
     _entityClipboardRenderer.init();
-    _entityClipboardRenderer.setViewFrustum(getViewFrustum());
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _entityClipboardRenderer.setViewFrustum(_viewFrustum);
+    }
     _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
-    connect(tree.get(), &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
-    connect(getMyAvatar(), &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(tree.get(), &EntityTree::newCollisionSoundURL, this, [this](QUrl newURL, EntityItemID id) {
+        EntityTreePointer tree = getEntities()->getTree();
+        if (auto entity = tree->findEntityByEntityItemID(id)) {
+            auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
+            entity->setCollisionSound(sound);
+        }
+    }, Qt::QueuedConnection);
+    connect(getMyAvatar(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
+        if (auto avatar = getMyAvatar()) {
+            auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
+            avatar->setCollisionSound(sound);
+        }
+    }, Qt::QueuedConnection);
 }
 
 void Application::updateLOD() const {
@@ -3217,9 +3222,12 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
+        _viewFrustum.setOrientation(glm::quat());
+    }
     // Clear entities out of view frustum
-    _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
-    _viewFrustum.setOrientation(glm::quat());
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -3508,7 +3516,7 @@ void Application::update(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details
     // to the server.
     {
-        PerformanceTimer perfTimer("loadViewFrustum");
+        QMutexLocker viewLocker(&_viewMutex);
         loadViewFrustum(_myCamera, _viewFrustum);
     }
 
@@ -3517,6 +3525,7 @@ void Application::update(float deltaTime) {
     // Update my voxel servers with my current voxel query...
     {
         PROFILE_RANGE_EX("QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        QMutexLocker viewLocker(&_viewMutex);
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
@@ -3628,14 +3637,16 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
-    _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
-    _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
-    _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
-    _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
-    _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
+    ViewFrustum viewFrustum;
+    copyViewFrustum(viewFrustum);
+    _octreeQuery.setCameraPosition(viewFrustum.getPosition());
+    _octreeQuery.setCameraOrientation(viewFrustum.getOrientation());
+    _octreeQuery.setCameraFov(viewFrustum.getFieldOfView());
+    _octreeQuery.setCameraAspectRatio(viewFrustum.getAspectRatio());
+    _octreeQuery.setCameraNearClip(viewFrustum.getNearClip());
+    _octreeQuery.setCameraFarClip(viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
+    _octreeQuery.setCameraCenterRadius(viewFrustum.getCenterRadius());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -3671,7 +3682,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-                    if (_viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
+                    if (viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
                         inViewServers++;
                     }
                 }
@@ -3737,11 +3748,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                         rootDetails.s * TREE_SCALE);
 
 
-                    inView = _viewFrustum.cubeIntersectsKeyhole(serverBounds);
-                } else {
-                    if (wantExtraDebugging) {
-                        qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
-                    }
+                    inView = viewFrustum.cubeIntersectsKeyhole(serverBounds);
+                } else if (wantExtraDebugging) {
+                    qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
                 }
             }
 
@@ -3832,6 +3841,7 @@ QRect Application::getDesirableApplicationGeometry() const {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
+    PerformanceTimer perfTimer("loadViewFrustum");
     PROFILE_RANGE(__FUNCTION__);
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
@@ -3860,7 +3870,8 @@ PickRay Application::computePickRay(float x, float y) const {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
         pickPoint /= getCanvasSize();
-        getViewFrustum()->computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
+        QMutexLocker viewLocker(&_viewMutex);
+        _viewFrustum.computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
     return result;
 }
@@ -3873,44 +3884,19 @@ glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 
-ViewFrustum* Application::getViewFrustum() {
-#ifdef DEBUG
-    if (QThread::currentThread() == activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
-    }
-#endif
-    return &_viewFrustum;
+void Application::copyViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _viewFrustum;
 }
 
-const ViewFrustum* Application::getViewFrustum() const {
-#ifdef DEBUG
-    if (QThread::currentThread() == activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
-    }
-#endif
-    return &_viewFrustum;
+void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _displayViewFrustum;
 }
 
-ViewFrustum* Application::getDisplayViewFrustum() {
-#ifdef DEBUG
-    if (QThread::currentThread() != activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
-    }
-#endif
-    return &_displayViewFrustum;
-}
-
-const ViewFrustum* Application::getDisplayViewFrustum() const {
-#ifdef DEBUG
-    if (QThread::currentThread() != activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
-    }
-#endif
-    return &_displayViewFrustum;
+void Application::copyShadowViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _shadowViewFrustum;
 }
 
 // WorldBox Render Data & rendering functions
@@ -3975,7 +3961,7 @@ namespace render {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
                     PerformanceTimer perfTimer("skybox");
-                    skybox->render(batch, *(args->_viewFrustum));
+                    skybox->render(batch, args->getViewFrustum());
                     break;
                 }
             }
@@ -4019,7 +4005,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
 
     // load the view frustum
-    loadViewFrustum(theCamera, _displayViewFrustum);
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        loadViewFrustum(theCamera, _displayViewFrustum);
+    }
 
     // TODO fix shadows and make them use the GPU library
 
@@ -4087,7 +4076,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
-        renderArgs->_viewFrustum = getDisplayViewFrustum();
+        {
+            QMutexLocker viewLocker(&_viewMutex);
+            renderArgs->setViewFrustum(_displayViewFrustum);
+        }
         _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
@@ -5218,10 +5210,10 @@ void Application::updateInputModes() {
 }
 
 mat4 Application::getEyeProjection(int eye) const {
+    QMutexLocker viewLocker(&_viewMutex);
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getEyeProjection((Eye)eye, _viewFrustum.getProjection());
     }
-
     return _viewFrustum.getProjection();
 }
 
