@@ -249,6 +249,8 @@ public:
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
 
+    void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
+
 public slots:
     void callLoader(EntityItemID entityID);
 
@@ -256,7 +258,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
-    void newCollisionSoundURL(const QUrl& url);
+    void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
 
 protected:
@@ -301,7 +303,6 @@ protected:
 
     bool _wantEditLogging = false;
     bool _wantTerseEditLogging = false;
-    void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 
 
     // some performance tracking properties - only used in server trees

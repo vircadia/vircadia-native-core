@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <cstdio>
 #include <fstream>
 #include <time.h>
@@ -201,7 +204,7 @@ bool OctreePersistThread::process() {
     if (isStillRunning()) {
         quint64 MSECS_TO_USECS = 1000;
         quint64 USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
-        usleep(USECS_TO_SLEEP);
+        std::this_thread::sleep_for(std::chrono::microseconds(USECS_TO_SLEEP));
 
         // do our updates then check to save...
         _tree->update();

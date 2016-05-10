@@ -32,7 +32,11 @@ const LoaderList& getLoadedPlugins() {
     static std::once_flag once;
     static LoaderList loadedPlugins;
     std::call_once(once, [&] {
+#ifdef Q_OS_MAC
+        QString pluginPath = QCoreApplication::applicationDirPath() + "/../PlugIns/";
+#else
         QString pluginPath = QCoreApplication::applicationDirPath() + "/plugins/";
+#endif
         QDir pluginDir(pluginPath);
         pluginDir.setFilter(QDir::Files);
         if (pluginDir.exists()) {

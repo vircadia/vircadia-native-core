@@ -59,8 +59,6 @@ public:
     virtual bool isMine() { return _isMine; }
     virtual void setIsMine(bool value) { _isMine = value; }
 
-    bool locallyAddedButNotYetReceived = false;
-
     virtual bool shouldSuppressLocationEdits() { return false; }
 
     virtual void prepareForPhysicsSimulation() { }

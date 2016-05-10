@@ -24,6 +24,7 @@
 #include <PhysicsCollisionGroups.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
+#include <Sound.h>
 #include <SpatiallyNestable.h>
 
 #include "EntityItemID.h"
@@ -250,7 +251,10 @@ public:
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
-    void setCollisionSoundURL(const QString& value) { _collisionSoundURL = value; }
+    void setCollisionSoundURL(const QString& value);
+
+    SharedSoundPointer getCollisionSound();
+    void setCollisionSound(SharedSoundPointer sound) { _collisionSound = sound; }
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
@@ -378,6 +382,7 @@ public:
     void grabSimulationOwnership();
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
+    QString actionsToDebugString();
     bool addAction(EntitySimulationPointer simulation, EntityActionPointer action);
     bool updateAction(EntitySimulationPointer simulation, const QUuid& actionID, const QVariantMap& arguments);
     bool removeAction(EntitySimulationPointer simulation, const QUuid& actionID);
@@ -478,6 +483,7 @@ protected:
     quint64 _loadedScriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
 
     QString _collisionSoundURL;
+    SharedSoundPointer _collisionSound;
     glm::vec3 _registrationPoint;
     float _angularDamping;
     bool _visible;

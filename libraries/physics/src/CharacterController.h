@@ -77,6 +77,7 @@ public:
     glm::vec3 getFollowVelocity() const;
 
     glm::vec3 getLinearVelocity() const;
+    glm::vec3 getVelocityChange() const;
 
     float getCapsuleRadius() const { return _radius; }
     float getCapsuleHalfHeight() const { return _halfHeight; }
@@ -112,6 +113,8 @@ protected:
     btVector3 _currentUp;
     btVector3 _targetVelocity;
     btVector3 _parentVelocity;
+    btVector3 _preSimulationVelocity;
+    btVector3 _velocityChange;
     btTransform _followDesiredBodyTransform;
     btScalar _followTimeRemaining;
     btTransform _characterBodyTransform;

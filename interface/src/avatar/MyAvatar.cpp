@@ -23,7 +23,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AudioClient.h>
-#include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <FSTReader.h>
 #include <GeometryUtil.h>
@@ -32,6 +31,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <SoundCache.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -97,7 +97,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _collisionSoundURL(""),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -1232,10 +1231,18 @@ void MyAvatar::clearScriptableSettings() {
 }
 
 void MyAvatar::setCollisionSoundURL(const QString& url) {
-    _collisionSoundURL = url;
-    if (!url.isEmpty() && (url != _collisionSoundURL)) {
-        emit newCollisionSoundURL(QUrl(url));
+    if (url != _collisionSoundURL) {
+        _collisionSoundURL = url;
+
+        emit newCollisionSoundURL(QUrl(_collisionSoundURL));
     }
+}
+
+SharedSoundPointer MyAvatar::getCollisionSound() {
+    if (!_collisionSound) {
+        _collisionSound = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
+    }
+    return _collisionSound;
 }
 
 void MyAvatar::attach(const QString& modelURL, const QString& jointName,

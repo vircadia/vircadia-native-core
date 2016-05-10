@@ -39,9 +39,9 @@
 #include "ScriptUUID.h"
 #include "Vec3.h"
 
-const QString NO_SCRIPT("");
+static const QString NO_SCRIPT("");
 
-const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0f / 60.0f) * 1000 * 1000) + 0.5f);
+static const int SCRIPT_FPS = 60;
 
 class CallbackData {
 public:
