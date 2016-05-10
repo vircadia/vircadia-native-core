@@ -109,8 +109,6 @@ public:
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         OctreeElementExtraEncodeData* extraEncodeData = NULL) :
-            viewFrustum(),
-            lastViewFrustum(),
             lastViewFrustumSent(lastViewFrustumSent),
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),

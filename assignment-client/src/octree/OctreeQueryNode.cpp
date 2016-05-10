@@ -271,10 +271,7 @@ void OctreeQueryNode::dumpOutOfView() {
     int outOfView = 0;
     OctreeElementBag tempBag;
     ViewFrustum viewCopy;
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        viewCopy = _currentViewFrustum;
-    }
+    copyCurrentViewFrustum(viewCopy);
     while (OctreeElementPointer elementToCheck = elementBag.extract()) {
         if (elementToCheck->isInView(viewCopy)) {
             tempBag.insert(elementToCheck);

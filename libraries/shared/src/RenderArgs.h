@@ -88,7 +88,6 @@ public:
                gpu::Batch* batch = nullptr) :
     _context(context),
     _renderer(renderer),
-    _viewFrustums(),
     _sizeScale(sizeScale),
     _boundaryLevelAdjust(boundaryLevelAdjust),
     _renderMode(renderMode),

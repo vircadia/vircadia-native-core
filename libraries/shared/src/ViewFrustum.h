@@ -17,8 +17,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-//#include <GLMHelpers.h>
-
 #include "AABox.h"
 #include "AACube.h"
 #include "CubeProjectedPolygon.h"

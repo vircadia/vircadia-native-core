@@ -22,8 +22,7 @@
 
 OctreeRenderer::OctreeRenderer() :
     _tree(NULL),
-    _managedTree(false),
-    _viewFrustum()
+    _managedTree(false)
 {
 }
 
