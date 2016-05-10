@@ -347,19 +347,14 @@ public:
 };
 #endif
 
-enum CustomEventTypes {
-    Lambda = QEvent::User + 1,
-    Paint = Lambda + 1,
-};
-
 class LambdaEvent : public QEvent {
     std::function<void()> _fun;
 public:
     LambdaEvent(const std::function<void()> & fun) :
-    QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    QEvent(static_cast<QEvent::Type>(Application::Lambda)), _fun(fun) {
     }
     LambdaEvent(std::function<void()> && fun) :
-    QEvent(static_cast<QEvent::Type>(Lambda)), _fun(fun) {
+    QEvent(static_cast<QEvent::Type>(Application::Lambda)), _fun(fun) {
     }
     void call() const { _fun(); }
 };
@@ -1060,18 +1055,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
-
-    _idleTimer = new QTimer(this);
-    connect(_idleTimer, &QTimer::timeout, [=] {
-        idle(usecTimestampNow());
-    });
-    connect(this, &Application::beforeAboutToQuit, [=] {
-        disconnect(_idleTimer);
-    });
-    // Setting the interval to zero forces this to get called whenever there are no messages
-    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
-    // of logic to abort early if it's being called too often.
-    _idleTimer->start(0);
 }
 
 
@@ -1437,23 +1420,15 @@ void Application::initializeUi() {
     });
 }
 
-
 void Application::paintGL() {
-    updateHeartbeat();
-    // Some plugins process message events, potentially leading to
-    // re-entering a paint event.  don't allow further processing if this
-    // happens
-    if (_inPaint) {
+    // Some plugins process message events, allowing paintGL to be called reentrantly.
+    if (_inPaint || _aboutToQuit) {
         return;
     }
-    _inPaint = true;
-    Finally clearFlagLambda([this] { _inPaint = false; });
 
-    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
-    // and the plugins have shutdown
-    if (_aboutToQuit) {
-        return;
-    }
+    _inPaint = true;
+    Finally clearFlag([this] { _inPaint = false; });
+
     _frameCount++;
     _frameCounter.increment();
 
@@ -1811,13 +1786,15 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
-    if ((int)event->type() == (int)Lambda) {
-        static_cast<LambdaEvent*>(event)->call();
+    if ((int)event->type() == (int)Idle) {
+        idle();
+        removePostedEvents(this, Idle); // clear pending idles so we don't clog the pipes
         return true;
-    }
-
-    if ((int)event->type() == (int)Paint) {
+    } else if ((int)event->type() == (int)Paint) {
         paintGL();
+        return true;
+    } else if ((int)event->type() == (int)Lambda) {
+        static_cast<LambdaEvent*>(event)->call();
         return true;
     }
 
@@ -2595,34 +2572,13 @@ bool Application::acceptSnapshot(const QString& urlString) {
 
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
-void Application::idle(uint64_t now) {
-    // NOTICE NOTICE NOTICE NOTICE
-    // Do not insert new code between here and the PROFILE_RANGE declaration 
-    // unless you know exactly what you're doing.  This idle function can be 
-    // called thousands per second or more, so any additional work that's done 
-    // here will have a serious impact on CPU usage.  Only add code after all 
-    // the thottling logic, i.e. after PROFILE_RANGE
-    // NOTICE NOTICE NOTICE NOTICE
-    updateHeartbeat();
-
-    if (_aboutToQuit || _inPaint) {
-        return; // bail early, nothing to do here.
+void Application::idle() {
+    // idle is called on a queued connection, so make sure we should be here.
+    if (_inPaint || _aboutToQuit) {
+        return;
     }
 
     auto displayPlugin = getActiveDisplayPlugin();
-    // depending on whether we're throttling or not.
-    // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
-    // perpetuity and not expect events to get backed up.
-    bool isThrottled = displayPlugin->isThrottled();
-    //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
-    // This attempts to lock the simulation at 60 updates per second, regardless of framerate
-    float timeSinceLastUpdateUs = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_USEC;
-    float secondsSinceLastUpdate = timeSinceLastUpdateUs / USECS_PER_SECOND;
-
-    if (isThrottled && (timeSinceLastUpdateUs / USECS_PER_MSEC) < THROTTLED_SIM_FRAME_PERIOD_MS) {
-        // Throttling both rendering and idle
-        return; // bail early, we're throttled and not enough time has elapsed
-    }
 
 #ifdef DEBUG_PAINT_DELAY
     static uint64_t paintDelaySamples{ 0 };
@@ -2638,43 +2594,38 @@ void Application::idle(uint64_t now) {
     }
 #endif
 
-    auto presentCount = displayPlugin->presentCount();
-    if (presentCount < _renderedFrameIndex) {
-        _renderedFrameIndex = INVALID_FRAME;
-    }
+    float msecondsSinceLastUpdate = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_USEC / USECS_PER_MSEC;
 
-    // Don't saturate the main thread with rendering and simulation,
-    // unless display plugin has increased by at least one frame
-    if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
-        // Record what present frame we're on
-        _renderedFrameIndex = presentCount;
-
-        // request a paint, get to it as soon as possible: high priority
-        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-    } else {
-        // there's no use in simulating or rendering faster then the present rate.
+    // Throttle if requested
+    if (displayPlugin->isThrottled() && (msecondsSinceLastUpdate < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return;
     }
 
-    // NOTICE NOTICE NOTICE NOTICE
-    // do NOT add new code above this line unless you want it to be executed potentially 
-    // thousands of times per second
-    // NOTICE NOTICE NOTICE NOTICE
+    // Sync up the _renderedFrameIndex
+    _renderedFrameIndex = displayPlugin->presentCount();
 
-    PROFILE_RANGE(__FUNCTION__);
+    // Request a paint ASAP
+    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+
+    // Update the deadlock watchdog
+    updateHeartbeat();
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // These tasks need to be done on our first idle, because we don't want the showing of
     // overlay subwindows to do a showDesktop() until after the first time through
     static bool firstIdle = true;
     if (firstIdle) {
         firstIdle = false;
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
+    PROFILE_RANGE(__FUNCTION__);
+
+    float secondsSinceLastUpdate = msecondsSinceLastUpdate / MSECS_PER_SECOND;
+
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
         _keyboardMouseDevice->pluginFocusOutEvent();
         _keyboardDeviceHasFocus = false;

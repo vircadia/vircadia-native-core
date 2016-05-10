@@ -35,4 +35,7 @@ void DisplayPlugin::incrementPresentCount() {
 #endif
 
     ++_presentedFrameIndex;
+
+    // Alert the app that it needs to paint a new presentation frame
+    qApp->postEvent(qApp, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
 }

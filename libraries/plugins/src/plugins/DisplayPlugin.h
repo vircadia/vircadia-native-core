@@ -60,6 +60,10 @@ class DisplayPlugin : public Plugin {
     Q_OBJECT
     using Parent = Plugin;
 public:
+    enum Event {
+        Paint = QEvent::User + 1
+    };
+
     bool activate() override;
     void deactivate() override;
     virtual bool isHmd() const { return false; }
