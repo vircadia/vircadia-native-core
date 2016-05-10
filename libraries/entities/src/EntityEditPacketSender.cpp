@@ -36,6 +36,51 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByte
     }
 }
 
+void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
+                                                          EntityTreePointer entityTree,
+                                                          EntityItemID entityItemID,
+                                                          const EntityItemProperties& properties) {
+    if (!_shouldSend) {
+        return; // bail early
+    }
+
+    assert(properties.getClientOnly());
+
+    // this is an avatar-based entity.  update our avatar-data rather than sending to the entity-server
+    assert(_myAvatar);
+
+    if (!entityTree) {
+        qDebug() << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
+        return;
+    }
+    EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
+    if (!entity) {
+        qDebug() << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
+        return;
+    }
+
+    // the properties that get serialized into the avatar identity packet should be the entire set
+    // rather than just the ones being edited.
+    entity->setProperties(properties);
+    EntityItemProperties entityProperties = entity->getProperties();
+
+    QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
+    QVariant variantProperties = scriptProperties.toVariant();
+    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+
+    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+    QJsonObject jsonObject = jsonProperties.object();
+    if (QUuid(jsonObject["parentID"].toString()) == _myAvatar->getID()) {
+        jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+    }
+    jsonProperties = QJsonDocument(jsonObject);
+
+    QByteArray binaryProperties = jsonProperties.toBinaryData();
+    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
+    return;
+}
+
+
 void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
@@ -43,38 +88,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     if (!_shouldSend) {
         return; // bail early
     }
+
     if (properties.getClientOnly()) {
-        // this is an avatar-based entity.  update our avatar-data rather than sending to the entity-server
-        assert(_myAvatar);
-
-        if (!entityTree) {
-            qDebug() << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
-            return;
-        }
-        EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
-        if (!entity) {
-            qDebug() << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
-            return;
-        }
-
-        // the properties that get serialized into the avatar identity packet should be the entire set
-        // rather than just the ones being edited.
-        entity->setProperties(properties);
-        EntityItemProperties entityProperties = entity->getProperties();
-
-        QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
-        QVariant variantProperties = scriptProperties.toVariant();
-        QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
-
-        // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
-        QJsonObject jsonObject = jsonProperties.object();
-        if (QUuid(jsonObject["parentID"].toString()) == _myAvatar->getID()) {
-            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
-        }
-        jsonProperties = QJsonDocument(jsonObject);
-
-        QByteArray binaryProperties = jsonProperties.toBinaryData();
-        _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
+        queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
         return;
     }
 
