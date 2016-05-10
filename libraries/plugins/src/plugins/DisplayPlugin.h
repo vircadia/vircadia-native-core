@@ -161,7 +161,7 @@ public:
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
     uint32_t presentCount() const { return _presentedFrameIndex; }
-    // Time since last call to incrementPresentCount. Only valid if DEBUG_PAINT_DELAY is defined
+    // Time since last call to incrementPresentCount (only valid if DEBUG_PAINT_DELAY is defined)
     int64_t getPaintDelayUsecs() const;
 
     virtual void cycleDebugOutput() {}
@@ -176,6 +176,7 @@ protected:
 
 private:
     std::atomic<uint32_t> _presentedFrameIndex;
+    mutable std::mutex _paintDelayMutex;
     QElapsedTimer _paintDelayTimer;
 };
 
