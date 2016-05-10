@@ -177,19 +177,51 @@ void ScriptEngine::disconnectNonEssentialSignals() {
 }
 
 void ScriptEngine::runDebuggable() {
+    static QMenuBar* menuBar { nullptr };
+    static QMenu* scriptDebugMenu { nullptr };
+    static size_t scriptMenuCount { 0 };
+    if (!scriptDebugMenu) {
+        for (auto window : qApp->topLevelWidgets()) {
+            auto mainWindow = qobject_cast<QMainWindow*>(window);
+            if (mainWindow) {
+                menuBar = mainWindow->menuBar();
+                break;
+            }
+        }
+        if (menuBar) {
+            scriptDebugMenu = menuBar->addMenu("Script Debug");
+        }
+    }
+
     init();
     _isRunning = true;
     _debuggable = true;
     _debugger = new QScriptEngineDebugger(this);
     _debugger->attachTo(this);
-    static QMenu* scriptDebugMenu = qobject_cast<QMainWindow*>(qApp->activeWindow())->menuBar()->addMenu("Script Debug");
-    scriptDebugMenu->addMenu(_fileNameString)->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
-    _debugger->action(QScriptEngineDebugger::InterruptAction)->trigger();
+
+    QMenu* parentMenu = scriptDebugMenu;
+    QMenu* scriptMenu { nullptr };
+    if (parentMenu) {
+        ++scriptMenuCount;
+        scriptMenu = parentMenu->addMenu(_fileNameString);
+        scriptMenu->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
+    } else {
+        qWarning() << "Unable to add script debug menu";
+    }
+
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
     _lastUpdate = usecTimestampNow();
     QTimer* timer = new QTimer(this);
-    connect(this, &ScriptEngine::finished, [this, timer] { 
+    connect(this, &ScriptEngine::finished, [this, timer, parentMenu, scriptMenu] {
+        if (scriptMenu) {
+            parentMenu->removeAction(scriptMenu->menuAction());
+            --scriptMenuCount;
+            if (0 == scriptMenuCount) {
+                menuBar->removeAction(scriptDebugMenu->menuAction());
+                scriptDebugMenu = nullptr;
+            }
+        }
         disconnect(timer); 
     });
 
