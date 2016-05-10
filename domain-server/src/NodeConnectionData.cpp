@@ -19,6 +19,7 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
     
     if (isConnectRequest) {
         dataStream >> newHeader.connectUUID;
+        dataStream >> newHeader.placeName;
     }
     
     dataStream >> newHeader.nodeType

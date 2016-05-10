@@ -58,6 +58,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetUpload:
             // Removal of extension from Asset requests
             return 18;
+        case PacketType::DomainConnectRequest:
+            // addition of referring hostname information
+            return 18;
         default:
             return 17;
     }

@@ -105,6 +105,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         nodeData->setSendingSockAddr(message->getSenderSockAddr());
         nodeData->setNodeInterestSet(nodeConnection.interestList.toSet());
+        nodeData->setPlaceName(nodeConnection.placeName);
         
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away

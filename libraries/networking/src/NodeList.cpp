@@ -312,6 +312,9 @@ void NodeList::sendDomainServerCheckIn() {
 
             // pack the connect UUID for this connect request
             packetStream << connectUUID;
+
+            // pack the hostname information (so the domain-server can see which place name we came in on)
+            packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
         }
 
         // pack our data to send to the domain-server
