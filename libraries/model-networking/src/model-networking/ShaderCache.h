@@ -13,7 +13,7 @@
 
 class NetworkShader : public Resource {
 public:
-    NetworkShader(const QUrl& url, bool delayLoad);
+    NetworkShader(const QUrl& url);
     virtual void downloadFinished(const QByteArray& data) override;
 
     QString _source;
@@ -28,7 +28,8 @@ public:
     NetworkShaderPointer getShader(const QUrl& url);
 
 protected:
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) override;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+        const void* extra) override;
 };
 
 #endif
