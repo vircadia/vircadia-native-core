@@ -16,7 +16,6 @@
 #include <QVariant>
 
 namespace Setting {
-
     void preInit();
     void init();
     void cleanupSettings();
