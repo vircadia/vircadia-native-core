@@ -107,6 +107,18 @@ Avatar::Avatar(RigPointer rig) :
 
 Avatar::~Avatar() {
     assert(isDead()); // mark dead before calling the dtor
+
+    EntityTreeRenderer* treeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
+
     if (_motionState) {
         delete _motionState;
         _motionState = nullptr;
@@ -167,7 +179,7 @@ void Avatar::updateAvatarEntities() {
     // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
     // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
     // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
-    // - AvatarHashMap::processAvatarIdentityPacket's on other interfaces call avatar->setAvatarEntityData()
+    // - AvatarHashMap::processAvatarIdentityPacket on other interfaces call avatar->setAvatarEntityData()
     // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
 
@@ -224,18 +236,14 @@ void Avatar::updateAvatarEntities() {
                 }
             }
         }
-    });
 
-    AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-    foreach (auto entityID, recentlyDettachedAvatarEntities) {
-        if (!_avatarEntityData.contains(entityID)) {
-            EntityItemPointer dettachedEntity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-            if (dettachedEntity) {
-                // this will cause this interface to listen to data from the entity-server about this entity.
-                dettachedEntity->setClientOnly(false);
+        AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
+        foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            if (!_avatarEntityData.contains(entityID)) {
+                entityTree->deleteEntity(entityID, true, true);
             }
         }
-    }
+    });
 
     if (success) {
         setAvatarEntityDataChanged(false);
