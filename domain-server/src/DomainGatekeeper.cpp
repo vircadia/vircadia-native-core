@@ -151,6 +151,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
     nodeData->setWalletUUID(it->second.getWalletUUID());
     nodeData->setNodeVersion(it->second.getNodeVersion());
+    nodeData->setWasAssigned(true);
     
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
     _pendingAssignedNodes.erase(it);
@@ -283,7 +284,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // set the edit rights for this user
     newNode->setIsAllowedEditor(isAllowedEditor);
     newNode->setCanRez(canRez);
-    
+
     // grab the linked data for our new node so we can set the username
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
     

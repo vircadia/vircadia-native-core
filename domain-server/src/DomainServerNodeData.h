@@ -59,6 +59,9 @@ public:
 
     const QString& getPlaceName() { return _placeName; }
     void setPlaceName(const QString& placeName) { _placeName = placeName; }
+
+    bool wasAssigned() const { return _wasAssigned; };
+    void setWasAssigned(bool wasAssigned) { _wasAssigned = wasAssigned; }
     
 private:
     QJsonObject overrideValuesIfNeeded(const QJsonObject& newStats);
@@ -80,6 +83,8 @@ private:
     QString _nodeVersion;
 
     QString _placeName;
+
+    bool _wasAssigned { false };
 };
 
 #endif // hifi_DomainServerNodeData_h
