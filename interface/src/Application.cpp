@@ -2619,6 +2619,9 @@ void Application::idle() {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
+    } else {
+        // FIXME: AvatarInputs are positioned incorrectly if instantiated before the first paint
+        AvatarInputs::getInstance()->update();
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -2641,7 +2644,6 @@ void Application::idle() {
     checkChangeCursor();
 
     Stats::getInstance()->updateStats();
-    AvatarInputs::getInstance()->update();
 
     _simCounter.increment();
 
