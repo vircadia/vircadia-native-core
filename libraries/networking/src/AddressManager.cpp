@@ -295,10 +295,13 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
                 QString placeName = rootMap[PLACE_NAME_KEY].toString();
+
                 if (!placeName.isEmpty()) {
                     if (setHost(placeName, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
+
+                    _placeName = placeName;
                 } else {
                     if (setHost(domainIDString, trigger)) {
                         trigger = LookupTrigger::Internal;
@@ -580,7 +583,9 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
 bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
     bool hostChanged = setHost(hostname, trigger, port);
 
+    // clear any current place information
     _rootPlaceID = QUuid();
+    _placeName.clear();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
 
