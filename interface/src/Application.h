@@ -95,8 +95,8 @@ class Application : public QApplication, public AbstractViewStateInterface, publ
 
 public:
     enum Event {
-        Idle = DisplayPlugin::Paint,
-        Paint = Idle + 1,
+        Present = DisplayPlugin::Present,
+        Paint = Present + 1,
         Lambda = Paint + 1
     };
 

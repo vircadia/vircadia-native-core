@@ -1786,9 +1786,9 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
-    if ((int)event->type() == (int)Idle) {
+    if ((int)event->type() == (int)Present) {
         idle();
-        removePostedEvents(this, Idle); // clear pending idles so we don't clog the pipes
+        removePostedEvents(this, Present); // clear pending presents so we don't clog the pipes
         return true;
     } else if ((int)event->type() == (int)Paint) {
         paintGL();

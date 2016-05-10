@@ -61,7 +61,7 @@ class DisplayPlugin : public Plugin {
     using Parent = Plugin;
 public:
     enum Event {
-        Paint = QEvent::User + 1
+        Present = QEvent::User + 1
     };
 
     bool activate() override;
