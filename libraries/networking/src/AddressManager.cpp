@@ -636,9 +636,8 @@ void AddressManager::goHomeOrElsewhere(QString elsewhere, LookupTrigger trigger)
     sandboxStatus.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(sandboxStatus);
 
-    connect(reply, &QNetworkReply::finished, this, [this, elsewhere, trigger]() {
-        QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
-        auto statusData = sender->readAll();
+    connect(reply, &QNetworkReply::finished, this, [this, elsewhere, reply, trigger]() {
+        auto statusData = reply->readAll();
         auto statusJson = QJsonDocument::fromJson(statusData);
         if (!statusJson.isEmpty()) {
             auto statusObject = statusJson.object();
