@@ -16,6 +16,7 @@ ComboBox {
     id: root
     property string filtersString:  "All Files (*.*)";
     property var currentFilter: [ "*.*" ];
+    property int filtersCount: filtersString.split(';;').length
 
     // Per http://doc.qt.io/qt-5/qfiledialog.html#getOpenFileName the string can contain
     // multiple filters separated by semicolons

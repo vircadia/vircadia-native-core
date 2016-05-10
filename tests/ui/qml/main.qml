@@ -216,7 +216,8 @@ ApplicationWindow {
                 property var builder: Component {
                     FileDialog {
                         title: "Open File"
-                        filter: "*.js"
+                        filter: "All Files (*.*)"
+                        //filter: "HTML files (*.html);;Other(*.png)"
                     }
                 }
 

@@ -296,8 +296,8 @@ ModalWindow {
             label: "Path:"
             anchors {
                 left: parent.left
-                right: root.selectDirectory ? parent.right : selectionType.left
-                rightMargin: root.selectDirectory ? 0 : hifi.dimensions.contentSpacing.x
+                right: selectionType.visible ? selectionType.left: parent.right
+                rightMargin: selectionType.visible ? hifi.dimensions.contentSpacing.x : 0
                 bottom: buttonRow.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
@@ -314,7 +314,7 @@ ModalWindow {
                 left: buttonRow.left
                 right: parent.right
             }
-            visible: !selectDirectory
+            visible: !selectDirectory && filtersCount > 1
             KeyNavigation.left: fileTableView
             KeyNavigation.right: openButton
         }
