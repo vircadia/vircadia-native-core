@@ -1,5 +1,5 @@
 //
-//  Desktop.qml
+//  FileDialog.qml
 //
 //  Created by Bradley Austin Davis on 14 Jan 2016
 //  Copyright 2015 High Fidelity, Inc.
@@ -195,7 +195,7 @@ ModalWindow {
                 left: parent.left
                 right: parent.right
                 bottom: currentSelection.top
-                bottomMargin: hifi.dimensions.contentSpacing.y
+                bottomMargin: hifi.dimensions.contentSpacing.y + currentSelection.controlHeight - currentSelection.height
             }
             onDoubleClicked: navigateToRow(row);
             focus: true
@@ -293,11 +293,11 @@ ModalWindow {
 
         TextField {
             id: currentSelection
-            style:  TextFieldStyle { renderType: Text.QtRendering }
+            label: "Path:"
             anchors {
                 left: parent.left
                 right: root.selectDirectory ? parent.right : selectionType.left
-                rightMargin: hifi.dimensions.contentSpacing.x
+                rightMargin: root.selectDirectory ? 0 : hifi.dimensions.contentSpacing.x
                 bottom: buttonRow.top
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }

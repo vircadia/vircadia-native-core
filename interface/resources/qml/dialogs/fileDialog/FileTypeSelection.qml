@@ -1,8 +1,18 @@
+//
+//  FileTypeSelection.qml
+//
+//  Created by Bradley Austin Davis on 29 Jan 2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 
-import "../../controls" as VrControls
+import "../../controls-uit"
 
-VrControls.ComboBox {
+ComboBox {
     id: root
     property string filtersString:  "All Files (*.*)";
     property var currentFilter: [ "*.*" ];
