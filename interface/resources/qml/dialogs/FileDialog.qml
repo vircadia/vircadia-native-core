@@ -1,4 +1,14 @@
-import QtQuick 2.0
+//
+//  Desktop.qml
+//
+//  Created by Bradley Austin Davis on 14 Jan 2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+import QtQuick 2.5
 import QtQuick.Controls 1.4
 import Qt.labs.folderlistmodel 2.1
 import Qt.labs.settings 1.0
@@ -6,17 +16,19 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import ".."
-import "../windows"
-import "../styles"
-import "../controls" as VrControls
+import "../controls-uit"
+import "../styles-uit"
+import "../windows-uit"
+
 import "fileDialog"
 
 //FIXME implement shortcuts for favorite location
 ModalWindow {
     id: root
-    resizable: true
-    width: 640
-    height: 480
+    //resizable: true
+    implicitWidth: 640
+    implicitHeight: 480
+    HifiConstants { id: hifi }
 
     Settings {
         category: "FileDialog"
@@ -46,6 +58,8 @@ ModalWindow {
     property alias model: fileTableView.model
     property var drives: helper.drives()
 
+    property int titleWidth: 0
+
     signal selectedFile(var file);
     signal canceled();
 
@@ -56,14 +70,17 @@ ModalWindow {
         })
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: "white"
+    Item {
+        clip: true
+        width: pane.width
+        height: pane.height
+        anchors.margins: 0
 
         Row {
             id: navControls
             anchors { left: parent.left; top: parent.top; margins: 8 }
             spacing: 8
+
             // FIXME implement back button
             //VrControls.ButtonAwesome {
             //    id: backButton
@@ -72,30 +89,29 @@ ModalWindow {
             //    enabled: d.backStack.length != 0
             //    MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
             //}
-            VrControls.ButtonAwesome {
+
+            Button {
                 id: upButton
                 enabled: model.parentFolder && model.parentFolder !== ""
-                text: "\uf0aa"
-                size: 32
+                text: "up"
                 onClicked: d.navigateUp();
             }
-            VrControls.ButtonAwesome {
+
+            Button {
                 id: homeButton
                 property var destination: helper.home();
                 enabled: d.homeDestination ? true : false
-                text: "\uf015"
-                size: 32
+                text: "home"
                 onClicked: d.navigateHome();
             }
 
-            VrControls.ComboBox {
+            ComboBox {
                 id: drivesSelector
                 width: 48
                 height: homeButton.height
                 model: drives
                 visible: drives.length > 1
                 currentIndex: 0
-
             }
         }
 
@@ -385,5 +401,3 @@ ModalWindow {
         }
     }
 }
-
-

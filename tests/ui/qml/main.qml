@@ -212,6 +212,26 @@ ApplicationWindow {
             }
 
             Button {
+                text: "Open File"
+                property var builder: Component {
+                    FileDialog {
+                        title: "Open File"
+                        filter: "*.js"
+                    }
+                }
+
+                onClicked: {
+                    var fileDialog = builder.createObject(desktop);
+                    fileDialog.canceled.connect(function(){
+                        console.log("Cancelled")
+                    })
+                    fileDialog.selectedFile.connect(function(file){
+                        console.log("Selected " + file)
+                    })
+                }
+            }
+
+            Button {
                 text: "Add Tab"
                 onClicked: {
                     console.log(desktop.toolWindow);
@@ -246,24 +266,7 @@ ApplicationWindow {
                 }
             }
 
-            Button {
-                text: "Open File"
-                property var builder: Component {
-                    FileDialog { }
-                }
-
-                onClicked: {
-                    var fileDialog = builder.createObject(desktop);
-                    fileDialog.canceled.connect(function(){
-                        console.log("Cancelled")
-                    })
-                    fileDialog.selectedFile.connect(function(file){
-                        console.log("Selected " + file)
-                    })
-                }
-            }
         }
-
         /*
         Window {
             id: blue
