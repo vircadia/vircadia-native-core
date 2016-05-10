@@ -210,9 +210,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
 
 class DeadlockWatchdogThread : public QThread {
 public:
-    static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long HEARTBEAT_REPORT_INTERVAL_USECS = 5 * USECS_PER_SECOND;
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
@@ -239,8 +237,6 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
-    static void setSuppressStatus(bool suppress) { _suppressStatus = suppress; }
-
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
@@ -248,7 +244,6 @@ public:
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
-            auto sinceLastReport = (now > _lastReport) ? now - _lastReport : 0;
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
@@ -274,21 +269,10 @@ public:
             if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
                 qDebug() << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
-                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE**"
+                    << "elapsedMovingAverage:" << elapsedMovingAverage << "** OVER EXPECTED VALUE **"
                     << "maxElapsed:" << _maxElapsed
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
-                _lastReport = now;
-            }
-
-            if (!_suppressStatus && sinceLastReport > HEARTBEAT_REPORT_INTERVAL_USECS) {
-                qDebug() << "DEADLOCK WATCHDOG STATUS:"
-                    << "lastHeartbeatAge:" << lastHeartbeatAge
-                    << "elapsedMovingAverage:" << elapsedMovingAverage
-                    << "maxElapsed:" << _maxElapsed
-                    << "maxElapsedAverage:" << _maxElapsedAverage
-                    << "samples:" << _movingAverage.getSamples();
-                _lastReport = now;
             }
 
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
@@ -310,9 +294,7 @@ public:
         }
     }
 
-    static std::atomic<bool> _suppressStatus;
     static std::atomic<uint64_t> _heartbeat;
-    static std::atomic<uint64_t> _lastReport;
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
@@ -320,16 +302,10 @@ public:
     bool _quit { false };
 };
 
-std::atomic<bool> DeadlockWatchdogThread::_suppressStatus;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
-std::atomic<uint64_t> DeadlockWatchdogThread::_lastReport;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
-
-void Application::toggleSuppressDeadlockWatchdogStatus(bool checked) {
-    DeadlockWatchdogThread::setSuppressStatus(checked);
-}
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
