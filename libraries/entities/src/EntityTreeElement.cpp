@@ -34,8 +34,6 @@ OctreeElementPointer EntityTreeElement::createNewElement(unsigned char* octalCod
     return newChild;
 }
 
-
-
 void EntityTreeElement::init(unsigned char* octalCode) {
     OctreeElement::init(octalCode);
     _octreeMemoryUsage += sizeof(EntityTreeElement);

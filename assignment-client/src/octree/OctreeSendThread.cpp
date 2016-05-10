@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <NodeList.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
@@ -101,13 +104,16 @@ bool OctreeSendThread::process() {
         int elapsed = (usecTimestampNow() - start);
         int usecToSleep =  OCTREE_SEND_INTERVAL_USECS - elapsed;
 
-        if (usecToSleep > 0) {
-            PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
-            usleep(usecToSleep);
-        } else {
+        if (usecToSleep <= 0) {
             const int MIN_USEC_TO_SLEEP = 1;
-            usleep(MIN_USEC_TO_SLEEP);
+            usecToSleep = MIN_USEC_TO_SLEEP;
         }
+
+        {
+            PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
+            std::this_thread::sleep_for(std::chrono::microseconds(usecToSleep));
+        }
+
     }
 
     return isStillRunning();  // keep running till they terminate us

@@ -17,8 +17,15 @@ QOpenGLContext* QOpenGLContextWrapper::currentContext() {
     return QOpenGLContext::currentContext();
 }
 
+
 QOpenGLContextWrapper::QOpenGLContextWrapper() :
-    _context(new QOpenGLContext)
+_context(new QOpenGLContext)
+{
+}
+
+
+QOpenGLContextWrapper::QOpenGLContextWrapper(QOpenGLContext* context) :
+    _context(context)
 {
 }
 
@@ -48,5 +55,9 @@ void QOpenGLContextWrapper::setShareContext(QOpenGLContext* otherContext) {
 
 bool isCurrentContext(QOpenGLContext* context) {
     return QOpenGLContext::currentContext() == context;
+}
+
+void QOpenGLContextWrapper::moveToThread(QThread* thread) {
+    _context->moveToThread(thread);
 }
 

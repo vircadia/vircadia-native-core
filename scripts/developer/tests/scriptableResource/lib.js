@@ -26,8 +26,8 @@ function getFrame(callback) {
     }
 
     function makeFrame(state) {
-        if (state == Resource.State.FAILED) { throw "Failed to load frame"; }
-        if (state != Resource.State.FINISHED) { return; }
+        if (state === Resource.State.FAILED) { throw "Failed to load frame"; }
+        if (state !== Resource.State.FINISHED) { return; }
 
         var pictureFrameProperties = {
             name: 'scriptableResourceTest Picture Frame',
@@ -50,7 +50,6 @@ function getFrame(callback) {
         position.x += - 5 * Math.sin(rads);
         position.z += - 5 * Math.cos(rads);
 
-        print(JSON.stringify(position));
         return position;
     }
 }
@@ -67,10 +66,10 @@ function prefetch(callback) {
         var filepath = MOVIE_URL + padded + '.jpg';
         var texture = TextureCache.prefetch(filepath);
         frames.push(texture);
-        if (!texture.state == Resource.State.FINISHED) {
+        if (texture.state !== Resource.State.FINISHED) {
             numLoading++;
             texture.stateChanged.connect(function(state) {
-                if (state == Resource.State.FAILED || state == Resource.State.FINISHED) {
+                if (state === Resource.State.FAILED || state === Resource.State.FINISHED) {
                     --numLoading;
                     if (!numLoading) { callback(frames); }
                 }
