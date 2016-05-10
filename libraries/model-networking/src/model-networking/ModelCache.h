@@ -44,8 +44,8 @@ public:
 protected:
     friend class GeometryMappingResource;
 
-    virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+        const void* extra);
 
 private:
     ModelCache();
