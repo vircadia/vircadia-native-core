@@ -308,24 +308,24 @@ function checkHardware() {
             };
         }
         switch (hardware) {
-        case 'Hydra':
-            makeHandToggle('R3', 'RightHand');
-            makeHandToggle('L3', 'LeftHand');
+            case 'Hydra':
+                makeHandToggle('R3', 'RightHand');
+                makeHandToggle('L3', 'LeftHand');
 
-            mapToAction('R3', 'ReticleClick');
-            mapToAction('L3', 'ReticleClick');
-            mapToAction('R4', 'ContextMenu');
-            mapToAction('L4', 'ContextMenu');
-            break;
-        case 'Vive':
-            // When touchpad click is NOT treated as movement, treat as left click
-            makeHandToggle('RS', 'RightHand', makeViveWhen('RS', 'RX', 'RY'));
-            makeHandToggle('LS', 'LeftHand', makeViveWhen('LS', 'LX', 'LY'));
-            clickMapping.from(Controller.Hardware.Vive.RS).when(makeViveWhen('RS', 'RX', 'RY')).to(Controller.Actions.ReticleClick);
-            clickMapping.from(Controller.Hardware.Vive.LS).when(makeViveWhen('LS', 'LX', 'LY')).to(Controller.Actions.ReticleClick);
-            mapToAction('RightApplicationMenu', 'ContextMenu');
-            mapToAction('LeftApplicationMenu', 'ContextMenu');
-            break;
+                mapToAction('R3', 'ReticleClick');
+                mapToAction('L3', 'ReticleClick');
+                mapToAction('R4', 'ContextMenu');
+                mapToAction('L4', 'ContextMenu');
+                break;
+            case 'Vive':
+                // When touchpad click is NOT treated as movement, treat as left click
+                makeHandToggle('RS', 'RightHand', makeViveWhen('RS', 'RX', 'RY'));
+                makeHandToggle('LS', 'LeftHand', makeViveWhen('LS', 'LX', 'LY'));
+                clickMapping.from(Controller.Hardware.Vive.RS).when(makeViveWhen('RS', 'RX', 'RY')).to(Controller.Actions.ReticleClick);
+                clickMapping.from(Controller.Hardware.Vive.LS).when(makeViveWhen('LS', 'LX', 'LY')).to(Controller.Actions.ReticleClick);
+                mapToAction('RightApplicationMenu', 'ContextMenu');
+                mapToAction('LeftApplicationMenu', 'ContextMenu');
+                break;
         }
         clickMappings[hardware] = clickMapping;
     }
