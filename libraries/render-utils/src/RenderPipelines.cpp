@@ -39,12 +39,13 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 #include "model_translucent_emissive_frag.h"
+#include "model_translucent_unlit_frag.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
 #include "overlay3D_translucent_frag.h"
-#include "overlay3D_emissive_frag.h"
-#include "overlay3D_translucent_emissive_frag.h"
+#include "overlay3D_unlit_frag.h"
+#include "overlay3D_translucent_unlit_frag.h"
 
 #include "drawOpaqueStencil_frag.h"
 
@@ -103,8 +104,8 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
     auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
     auto pixelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_translucent_frag));
-    auto pixelEmissive = gpu::Shader::createPixel(std::string(overlay3D_emissive_frag));
-    auto pixelTranslucentEmissive = gpu::Shader::createPixel(std::string(overlay3D_translucent_emissive_frag));
+    auto pixelEmissive = gpu::Shader::createPixel(std::string(overlay3D_unlit_frag));
+    auto pixelTranslucentEmissive = gpu::Shader::createPixel(std::string(overlay3D_translucent_unlit_frag));
 
     auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);
     auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
@@ -209,6 +210,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
     auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(model_translucent_frag));
     auto modelTranslucentEmissivePixel = gpu::Shader::createPixel(std::string(model_translucent_emissive_frag));
+    auto modelTranslucentUnlitPixel = gpu::Shader::createPixel(std::string(model_translucent_unlit_frag));
     auto modelShadowPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
     auto modelLightmapPixel = gpu::Shader::createPixel(std::string(model_lightmap_frag));
     auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));

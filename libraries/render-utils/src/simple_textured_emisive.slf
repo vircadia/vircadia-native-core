@@ -25,6 +25,14 @@ in vec2 _texCoord0;
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
     
+
+    
+    packDeferredFragmentUnlit(
+         normalize(_normal),
+         texel.a,
+         texel.rgb);
+    
+    /*
     packDeferredFragmentLightmap(
          normalize(_normal),
          texel.a,
@@ -33,4 +41,5 @@ void main(void) {
          DEFAULT_METALLIC,
          DEFAULT_SPECULAR,
          texel.rgb);
+         */
 }

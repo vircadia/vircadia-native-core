@@ -32,6 +32,10 @@ void main(void) {
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
 
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    }
+
     mat4 invViewMat = deferredTransform.viewInverse;
 
     // Kill if in front of the light volume

@@ -71,6 +71,9 @@ void main(void) {
         fragRoughness,
         fragOpacity);
 
+    if (gl_FragCoord.x > 1000) {
+        color = vec4(fragAlbedo, color.w);
+    }
     // Apply standard tone mapping
     _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
 }
