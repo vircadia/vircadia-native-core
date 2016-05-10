@@ -646,7 +646,7 @@ void AddressManager::goHomeOrElsewhere(QString elsewhere, LookupTrigger trigger)
             if (!serversValue.isUndefined() && serversValue.isObject()) {
                 auto serversObject = serversValue.toObject();
                 auto serversCount = serversObject.size();
-                const int MINIMUM_EXPECTED_SERVER_COUNT = 6;
+                const int MINIMUM_EXPECTED_SERVER_COUNT = 5;
                 if (serversCount >= MINIMUM_EXPECTED_SERVER_COUNT) {
                     qDebug() << "Home sandbox is running, going to " << SANDBOX_HIFI_ADDRESS;
                     handleUrl(SANDBOX_HIFI_ADDRESS, trigger);
