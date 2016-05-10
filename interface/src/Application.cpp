@@ -2957,8 +2957,15 @@ void Application::init() {
 
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (addressLookupString.isEmpty() && firstRun.get()) {
-        qDebug() << "First run and no URL passed... attempting to Go Home...";
-        DependencyManager::get<AddressManager>()->goHomeOrElsewhere();
+        qDebug() << "First run and no URL passed... attempting to go to Home or Entry...";
+        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([](){
+            qDebug() << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox();
+        }, 
+        [](){
+            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            DependencyManager::get<AddressManager>()->goToEntry();
+        });
     } else {
         qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
