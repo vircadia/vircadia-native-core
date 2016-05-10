@@ -306,6 +306,9 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     if (setHost(domainIDString, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
+                    
+                    // this isn't a place, so clear the place name
+                    _placeName.clear();
                 }
 
                 // check if we had a path to override the path returned
