@@ -34,7 +34,9 @@
 // Utility to make it easier to setup and disconnect cleanly.
 function setupHandler(event, handler) {
     event.connect(handler);
-    Script.scriptEnding.connect(function () { event.disconnect(handler); });
+    Script.scriptEnding.connect(function () {
+        event.disconnect(handler);
+    });
 }
 // If some capability is not available until expiration milliseconds after the last update.
 function TimeLock(expiration) {
@@ -54,7 +56,9 @@ function LatchedToggle(onFunction, offFunction, state) {
         return state;
     };
     this.setState = function (on) {
-        if (state === on) { return; }
+        if (state === on) {
+            return;
+        }
         state = on;
         if (on) {
             onFunction();
@@ -77,9 +81,13 @@ function updateFieldOfView() {
 var weMovedReticle = false;
 function ignoreMouseActivity() {
     // If we're paused, or if change in cursor position is from this script, not the hardware mouse.
-    if (!Reticle.allowMouseCapture) { return true; }
+    if (!Reticle.allowMouseCapture) {
+        return true;
+    }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js
-    if (!weMovedReticle) { return false; }
+    if (!weMovedReticle) {
+        return false;
+    }
     weMovedReticle = false;
     return true;
 }
@@ -116,7 +124,9 @@ function calculateRayUICollisionPoint(position, direction) {
     var hudNormal = Quat.getFront(Camera.getOrientation());
     var hudPoint = Vec3.sum(Camera.getPosition(), hudNormal); // must also scale if PLANAR_PERPENDICULAR_HUD_DISTANCE!=1
     var denominator = Vec3.dot(hudNormal, direction);
-    if (denominator === 0) { return null; } // parallel to plane
+    if (denominator === 0) {
+        return null;
+    } // parallel to plane
     var numerator = Vec3.dot(hudNormal, Vec3.subtract(hudPoint, position));
     var scale = numerator / denominator;
     return Vec3.sum(position, Vec3.multiply(scale, direction));
@@ -167,16 +177,25 @@ function isShakingMouse() { // True if the person is waving the mouse around try
 var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.01;
 function updateSeeking() {
-    if (!Reticle.visible || isShakingMouse()) { isSeeking = true; } // e.g., if we're about to turn it on with first movement.
-    if (!isSeeking) { return; }
+    if (!Reticle.visible || isShakingMouse()) {
+        isSeeking = true;
+    } // e.g., if we're about to turn it on with first movement.
+    if (!isSeeking) {
+        return;
+    }
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
-    if (!lookAt2D) { print('Cannot seek without lookAt position'); return; } // E.g., if parallel to location in HUD
+    if (!lookAt2D) {
+        print('Cannot seek without lookAt position');
+        return;
+    } // E.g., if parallel to location in HUD
     var copy = Reticle.position;
     function updateDimension(axis) {
         var distanceBetween = lookAt2D[axis] - Reticle.position[axis];
         var move = distanceBetween / NON_LINEAR_DIVISOR;
-        if (Math.abs(move) < MINIMUM_SEEK_DISTANCE) { return false; }
+        if (Math.abs(move) < MINIMUM_SEEK_DISTANCE) {
+            return false;
+        }
         copy[axis] += move;
         return true;
     }
@@ -191,10 +210,14 @@ function updateSeeking() {
 var mouseCursorActivity = new TimeLock(5000);
 var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
 function updateMouseActivity(isClick) {
-    if (ignoreMouseActivity()) { return; }
+    if (ignoreMouseActivity()) {
+        return;
+    }
     var now = Date.now();
     mouseCursorActivity.update(now);
-    if (isClick) { return; } // Bug: mouse clicks should keep going. Just not hand controller clicks
+    if (isClick) {
+        return;
+    } // Bug: mouse clicks should keep going. Just not hand controller clicks
     handControllerLockOut.update(now);
     Reticle.visible = true;
 }
@@ -205,7 +228,9 @@ function expireMouseCursor(now) {
 }
 function onMouseMove() {
     // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
-    if (ignoreMouseActivity()) { return; }
+    if (ignoreMouseActivity()) {
+        return;
+    }
 
     if (HMD.active) { // set depth
         updateSeeking();
@@ -243,7 +268,9 @@ var clickMappings = {}, clickMapping, clickMapToggle;
 var hardware; // undefined
 function checkHardware() {
     var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive' : null); // not undefined
-    if (hardware === newHardware) { return; }
+    if (hardware === newHardware) {
+        return;
+    }
     print('Setting mapping for new controller hardware:', newHardware);
     if (clickMapToggle) {
         clickMapToggle.setState(false);
@@ -258,7 +285,9 @@ function checkHardware() {
             clickMapping.from(Controller.Hardware[hardware][button]).peek().to(Controller.Actions[action]);
         }
         function makeHandToggle(button, hand, optionalWhen) {
-            var whenThunk = optionalWhen || function () { return true; };
+            var whenThunk = optionalWhen || function () {
+                return true;
+            };
             function maybeToggle() {
                 if (activeHand !== Controller.Standard[hand]) {
                     toggleHand();
@@ -319,13 +348,17 @@ var fakeProjectionBall = Overlays.addOverlay("sphere", {
     drawInFront: true // Even when burried inside of something, show it.
 });
 var overlays = [fakeProjectionBall]; // If we want to try showing multiple balls and lasers.
-Script.scriptEnding.connect(function () { overlays.forEach(Overlays.deleteOverlay); });
+Script.scriptEnding.connect(function () {
+    overlays.forEach(Overlays.deleteOverlay);
+});
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
 function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
     if (!optionalEnableClicks) {
         expireMouseCursor();
     }
-    if (!visualizationIsShowing) { return; }
+    if (!visualizationIsShowing) {
+        return;
+    }
     visualizationIsShowing = false;
     overlays.forEach(function (overlay) {
         Overlays.editOverlay(overlay, {visible: false});
@@ -366,18 +399,27 @@ function updateVisualization(controllerPosition, controllerDirection, hudPositio
 //
 function update() {
     var now = Date.now();
-    if (!handControllerLockOut.expired(now)) { return turnOffVisualization(); } // Let them use mouse it in peace.
-    if (!Menu.isOptionChecked("First Person")) { return turnOffVisualization(); }  // What to do? menus can be behind hand!
+    if (!handControllerLockOut.expired(now)) {
+        return turnOffVisualization();
+    } // Let them use mouse it in peace.
+    if (!Menu.isOptionChecked("First Person")) {
+        return turnOffVisualization();
+    }  // What to do? menus can be behind hand!
     var controllerPose = Controller.getPoseValue(activeHand);
     // Vive is effectively invalid when not in HMD
-    if (!controllerPose.valid || ((hardware === 'Vive') && !HMD.active)) { return turnOffVisualization(); } // Controller is cradled.
+    if (!controllerPose.valid || ((hardware === 'Vive') && !HMD.active)) {
+        return turnOffVisualization();
+    } // Controller is cradled.
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
     // This gets point direction right, but if you want general quaternion it would be more complicated:
     var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
-    if (!hudPoint3d) { print('Controller is parallel to HUD'); return turnOffVisualization(); }
+    if (!hudPoint3d) {
+        print('Controller is parallel to HUD');
+        return turnOffVisualization();
+    }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
 
     // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
@@ -397,7 +439,9 @@ function update() {
 
 var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
-Script.scriptEnding.connect(function () { Script.clearInterval(updater); });
+Script.scriptEnding.connect(function () {
+    Script.clearInterval(updater);
+});
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
@@ -407,4 +451,6 @@ function checkSettings() {
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
-Script.scriptEnding.connect(function () { Script.clearInterval(settingsChecker); });
+Script.scriptEnding.connect(function () {
+    Script.clearInterval(settingsChecker);
+});
