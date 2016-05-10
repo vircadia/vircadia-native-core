@@ -678,6 +678,9 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
 
+    // update the connecting hostname in case it has changed
+    nodeData->setPlaceName(nodeRequestData.placeName);
+
     sendDomainListToNode(sendingNode, message->getSenderSockAddr());
 }
 

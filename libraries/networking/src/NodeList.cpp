@@ -312,13 +312,12 @@ void NodeList::sendDomainServerCheckIn() {
 
             // pack the connect UUID for this connect request
             packetStream << connectUUID;
-
-            // pack the hostname information (so the domain-server can see which place name we came in on)
-            packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
         }
 
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        // pack our data to send to the domain-server including
+        // the hostname information (so the domain-server can see which place name we came in on)
+        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList()
+            << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();

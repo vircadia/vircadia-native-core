@@ -19,12 +19,11 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
     
     if (isConnectRequest) {
         dataStream >> newHeader.connectUUID;
-        dataStream >> newHeader.placeName;
     }
     
     dataStream >> newHeader.nodeType
         >> newHeader.publicSockAddr >> newHeader.localSockAddr
-        >> newHeader.interestList;
+        >> newHeader.interestList >> newHeader.placeName;
 
     newHeader.senderSockAddr = senderSockAddr;
     
