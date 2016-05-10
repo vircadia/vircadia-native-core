@@ -183,10 +183,8 @@ void Avatar::updateAvatarEntities() {
     // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
 
-    quint64 now = usecTimestampNow();
-
     const static quint64 refreshTime = 3 * USECS_PER_SECOND;
-    if (!_avatarEntityDataChanged && now - _avatarEntityChangedTime < refreshTime) {
+    if (!_avatarEntityDataChanged) {
         return;
     }
 
@@ -247,7 +245,6 @@ void Avatar::updateAvatarEntities() {
 
     if (success) {
         setAvatarEntityDataChanged(false);
-        _avatarEntityChangedTime = now;
     }
 }
 

@@ -423,7 +423,6 @@ protected:
     AvatarEntityMap _avatarEntityData;
     bool _avatarEntityDataLocallyEdited { false };
     bool _avatarEntityDataChanged { false };
-    quint64 _avatarEntityChangedTime { 0 };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
