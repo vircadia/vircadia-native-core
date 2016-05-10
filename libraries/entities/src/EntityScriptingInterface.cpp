@@ -788,6 +788,9 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         return false;
     }
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+
     EntityItemPointer entity;
     bool doTransmit = false;
     _entityTree->withWriteLock([&] {
@@ -800,6 +803,10 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 
         if (!simulation) {
             qDebug() << "actionWorker -- no simulation" << entityID;
+            return;
+        }
+
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
             return;
         }
 

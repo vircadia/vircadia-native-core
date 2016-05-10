@@ -187,6 +187,10 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
+    if (getID() == QUuid()) {
+        return; // wait until MyAvatar gets an ID before doing this.
+    }
+
     EntityTreeRenderer* treeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {

@@ -44,6 +44,10 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
         return; // bail early
     }
 
+    if (properties.getOwningAvatarID() != _myAvatar->getID()) {
+        return; // don't send updates for someone else's avatarEntity
+    }
+
     assert(properties.getClientOnly());
 
     // this is an avatar-based entity.  update our avatar-data rather than sending to the entity-server
