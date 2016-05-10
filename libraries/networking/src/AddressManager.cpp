@@ -629,3 +629,33 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
         }
     }
 }
+
+void AddressManager::goHomeOrElsewhere(QString elsewhere, LookupTrigger trigger) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest sandboxStatus(QString("http://localhost:60332/status"));
+    sandboxStatus.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(sandboxStatus);
+
+    connect(reply, &QNetworkReply::finished, this, [this, elsewhere, trigger]() {
+        QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
+        auto statusData = sender->readAll();
+        auto statusJson = QJsonDocument::fromJson(statusData);
+        if (!statusJson.isEmpty()) {
+            auto statusObject = statusJson.object();
+            auto serversValue = statusObject.value("servers");
+            if (!serversValue.isUndefined() && serversValue.isObject()) {
+                auto serversObject = serversValue.toObject();
+                auto serversCount = serversObject.size();
+                const int MINIMUM_EXPECTED_SERVER_COUNT = 6;
+                if (serversCount >= MINIMUM_EXPECTED_SERVER_COUNT) {
+                    qDebug() << "Home sandbox is running, going to " << SANDBOX_HIFI_ADDRESS;
+                    handleUrl(SANDBOX_HIFI_ADDRESS, trigger);
+                    return;
+                }
+            }
+        }
+        qDebug() << "Home sandbox was not running, going to " << elsewhere << "instead.";
+        handleUrl(elsewhere, trigger);
+    });
+}
+

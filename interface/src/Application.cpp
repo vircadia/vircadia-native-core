@@ -2950,7 +2950,14 @@ void Application::init() {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
-    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+    Setting::Handle<bool> firstRun { "firstRun", true };
+    if (addressLookupString.isEmpty() && firstRun.get()) {
+        qDebug() << "First run and no URL passed... attempting to Go Home...";
+        DependencyManager::get<AddressManager>()->goHomeOrElsewhere();
+    } else {
+        qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+    }
 
     qCDebug(interfaceapp) << "Loaded settings";
 

@@ -24,6 +24,7 @@
 
 const QString HIFI_URL_SCHEME = "hifi";
 const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
+const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
 const QString INDEX_PATH = "/";
 
 const QString GET_PLACE = "/api/v1/places/%1";
@@ -64,6 +65,9 @@ public:
 
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
+
+    void goHomeOrElsewhere(QString elsewhere = DEFAULT_HIFI_ADDRESS, 
+                           LookupTrigger trigger = LookupTrigger::StartupFromSettings);
 
 public slots:
     void handleLookupString(const QString& lookupString);
