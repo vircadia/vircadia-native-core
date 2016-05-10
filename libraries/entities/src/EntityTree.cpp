@@ -312,6 +312,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     EntityItemPointer result = NULL;
 
     bool clientOnly = properties.getClientOnly();
+    QUuid owningAvatarID = properties.getOwningAvatarID();
 
     if (!clientOnly && getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
@@ -340,6 +341,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     EntityTypes::EntityType type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
     result->setClientOnly(clientOnly);
+    result->setOwningAvatarID(owningAvatarID);
 
     if (result) {
         if (recordCreationTime) {
