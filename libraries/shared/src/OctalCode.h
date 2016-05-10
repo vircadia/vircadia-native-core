@@ -12,8 +12,9 @@
 #ifndef hifi_OctalCode_h
 #define hifi_OctalCode_h
 
-#include <string.h>
 #include <QString>
+
+#include <memory>
 
 const int BITS_IN_OCTAL = 3;
 const int NUMBER_OF_COLORS = 3; // RGB!
@@ -21,6 +22,8 @@ const int SIZE_OF_COLOR_DATA = NUMBER_OF_COLORS * sizeof(unsigned char); // size
 const int RED_INDEX   = 0;
 const int GREEN_INDEX = 1;
 const int BLUE_INDEX  = 2;
+
+using OctalCodePtr = std::shared_ptr<unsigned char>;
 
 void printOctalCode(const unsigned char* octalCode);
 size_t bytesRequiredForCodeLength(unsigned char threeBitCodes);
@@ -58,6 +61,6 @@ typedef enum {
 OctalCodeComparison compareOctalCodes(const unsigned char* code1, const unsigned char* code2);
 
 QString octalCodeToHexString(const unsigned char* octalCode);
-unsigned char* hexStringToOctalCode(const QString& input);
+std::shared_ptr<unsigned char> hexStringToOctalCode(const QString& input);
 
 #endif // hifi_OctalCode_h

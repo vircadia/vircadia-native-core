@@ -23,6 +23,7 @@
 
 #include <NLPacket.h>
 #include <Node.h>
+#include <OctalCode.h>
 
 class JurisdictionMap {
 public:
@@ -41,7 +42,7 @@ public:
 
     // application constructors
     JurisdictionMap(const char* filename);
-    JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
+//    JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
     ~JurisdictionMap();
 
@@ -50,11 +51,10 @@ public:
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);
 
-    unsigned char* getRootOctalCode() const { return _rootOctalCode; }
-    unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
-    int getEndNodeCount() const { return (int)_endNodes.size(); }
+    OctalCodePtr getRootOctalCode() const { return _rootOctalCode; }
+    std::vector<OctalCodePtr> getEndNodeOctalCodes() const { return _endNodes; }
 
-    void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
+    void copyContents(const OctalCodePtr& rootCodeIn, const std::vector<OctalCodePtr>& endNodesIn);
 
     int unpackFromPacket(ReceivedMessage& message);
     std::unique_ptr<NLPacket> packIntoPacket();
@@ -69,11 +69,11 @@ public:
 
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
-    void clear();
-    void init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
+    void init(OctalCodePtr rootOctalCode, const std::vector<OctalCodePtr>& endNodes);
 
-    unsigned char* _rootOctalCode;
-    std::vector<unsigned char*> _endNodes;
+    mutable std::mutex _octalCodeMutex;
+    OctalCodePtr _rootOctalCode { nullptr };
+    std::vector<OctalCodePtr> _endNodes;
     NodeType_t _nodeType;
 };
 
