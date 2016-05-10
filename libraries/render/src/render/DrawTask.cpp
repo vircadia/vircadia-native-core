@@ -120,7 +120,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
 
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
     // render lights

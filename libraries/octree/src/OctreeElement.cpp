@@ -22,10 +22,11 @@
 
 #include "AACube.h"
 #include "OctalCode.h"
+#include "Octree.h"
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
-#include "Octree.h"
 #include "OctreeLogging.h"
+#include "OctreeUtils.h"
 #include "SharedUtil.h"
 
 AtomicUIntStat OctreeElement::_octreeMemoryUsage { 0 };
@@ -471,11 +472,11 @@ ViewFrustum::intersection OctreeElement::computeViewIntersection(const ViewFrust
 //    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest"
 //    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
-bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
+bool OctreeElement::calculateShouldRender(const ViewFrustum& viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
     bool shouldRender = false;
 
     if (hasContent()) {
-        float furthestDistance = furthestDistanceToCamera(*viewFrustum);
+        float furthestDistance = furthestDistanceToCamera(viewFrustum);
         float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
         bool inChildBoundary = (furthestDistance <= childBoundary);
         if (hasDetailedContent() && inChildBoundary) {

@@ -1,6 +1,6 @@
 //
 //  ViewFrustum.cpp
-//  libraries/octree/src
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -17,13 +17,13 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <QtCore/QDebug>
 
-#include <NumericalConstants.h>
 
 #include "GeometryUtil.h"
 #include "GLMHelpers.h"
+#include "NumericalConstants.h"
+#include "SharedLogging.h"
+//#include "OctreeConstants.h"
 #include "ViewFrustum.h"
-#include "OctreeLogging.h"
-#include "OctreeConstants.h"
 
 using namespace std;
 
@@ -41,24 +41,24 @@ void ViewFrustum::setPosition(const glm::vec3& position) {
 }
 
 // Order cooresponds to the order defined in the BoxVertex enum.
-static const glm::vec4 NDC_VALUES[8] = {
-    glm::vec4(-1, -1, -1, 1),
-    glm::vec4(1, -1, -1, 1),
-    glm::vec4(1, 1, -1, 1),
-    glm::vec4(-1, 1, -1, 1),
-    glm::vec4(-1, -1, 1, 1),
-    glm::vec4(1, -1, 1, 1),
-    glm::vec4(1, 1, 1, 1),
-    glm::vec4(-1, 1, 1, 1),
+static const glm::vec4 NDC_VALUES[NUM_FRUSTUM_CORNERS] = {
+    glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f),
+    glm::vec4(1.0f, -1.0f, -1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, -1.0f, 1.0f),
+    glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f),
+    glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, -1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f),
 };
 
 void ViewFrustum::setProjection(const glm::mat4& projection) {
     _projection = projection;
-    _inverseProjection = glm::inverse(projection);
+    glm::mat4 inverseProjection = glm::inverse(projection);
 
     // compute our dimensions the usual way
-    for (int i = 0; i < 8; ++i) {
-        _corners[i] = _inverseProjection * NDC_VALUES[i];
+    for (int i = 0; i < NUM_FRUSTUM_CORNERS; ++i) {
+        _corners[i] = inverseProjection * NDC_VALUES[i];
         _corners[i] /= _corners[i].w;
     }
     _nearClip = -_corners[BOTTOM_LEFT_NEAR].z;
@@ -66,12 +66,12 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _aspectRatio = (_corners[TOP_RIGHT_NEAR].x - _corners[BOTTOM_LEFT_NEAR].x) /
         (_corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_LEFT_NEAR].y);
 
-    glm::vec4 top = _inverseProjection * vec4(0, 1, -1, 1);
+    glm::vec4 top = inverseProjection * vec4(0.0f, 1.0f, -1.0f, 1.0f);
     top /= top.w;
-    _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0, 0, -1), glm::normalize(vec3(top))))));
+    _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0.0f, 0.0f, -1.0f), glm::normalize(vec3(top))))));
 }
 
-// ViewFrustum::calculateViewFrustum()
+// ViewFrustum::calculate()
 //
 // Description: this will calculate the view frustum bounds for a given position and direction
 //
@@ -84,7 +84,7 @@ void ViewFrustum::calculate() {
     // then transform them to world space
     glm::mat4 worldMatrix = glm::translate(_position) * glm::mat4(glm::mat3(_right, _up, -_direction));
     glm::vec4 v;
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < NUM_FRUSTUM_CORNERS; ++i) {
         v = worldMatrix * _corners[i];
         v /= v.w;
         _cornersWorld[i] = glm::vec3(v);
@@ -133,7 +133,7 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
 ViewFrustum::intersection ViewFrustum::calculateCubeFrustumIntersection(const AACube& cube) const {
     // only check against frustum
     ViewFrustum::intersection result = INSIDE;
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         // check distance to farthest cube point
         if ( _planes[i].distance(cube.getFarthestVertex(normal)) < 0.0f) {
@@ -178,7 +178,7 @@ ViewFrustum::intersection ViewFrustum::calculateCubeKeyholeIntersection(const AA
 
 bool ViewFrustum::pointIntersectsFrustum(const glm::vec3& point) const {
     // only check against frustum
-    for(int i = 0; i < 6; ++i) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; ++i) {
         float distance = _planes[i].distance(point);
         if (distance < 0.0f) {
             return false;
@@ -189,7 +189,7 @@ bool ViewFrustum::pointIntersectsFrustum(const glm::vec3& point) const {
 
 bool ViewFrustum::sphereIntersectsFrustum(const glm::vec3& center, float radius) const {
     // only check against frustum
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
         float distance = _planes[i].distance(center);
         if (distance < -radius) {
             // This is outside the regular frustum, so just return the value from checking the keyhole
@@ -201,7 +201,7 @@ bool ViewFrustum::sphereIntersectsFrustum(const glm::vec3& center, float radius)
 
 bool ViewFrustum::boxIntersectsFrustum(const AABox& box) const {
     // only check against frustum
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         // check distance to farthest box point
         if ( _planes[i].distance(box.getFarthestVertex(normal)) < 0.0f) {
@@ -217,7 +217,7 @@ bool ViewFrustum::sphereIntersectsKeyhole(const glm::vec3& center, float radius)
         return true;
     }
     // check negative touches against frustum planes
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
         if ( _planes[i].distance(center) < -radius) {
             return false;
         }
@@ -231,7 +231,7 @@ bool ViewFrustum::cubeIntersectsKeyhole(const AACube& cube) const {
         return true;
     }
     // check negative touches against frustum planes
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         if ( _planes[i].distance(cube.getFarthestVertex(normal)) < 0.0f) {
             return false;
@@ -246,7 +246,7 @@ bool ViewFrustum::boxIntersectsKeyhole(const AABox& box) const {
         return true;
     }
     // check negative touches against frustum planes
-    for(int i=0; i < 6; i++) {
+    for(int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         if ( _planes[i].distance(box.getFarthestVertex(normal)) < 0.0f) {
             return false;
@@ -281,36 +281,36 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
            testMatches(compareTo._focalLength, _focalLength);
 
     if (!result && debug) {
-        qCDebug(octree, "ViewFrustum::matches()... result=%s", debug::valueOf(result));
-        qCDebug(octree, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
+        qCDebug(shared, "ViewFrustum::matches()... result=%s", debug::valueOf(result));
+        qCDebug(shared, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
                 (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
                 (double)_position.x, (double)_position.y, (double)_position.z);
-        qCDebug(octree, "%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f",
+        qCDebug(shared, "%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f",
                 (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._direction.x, (double)compareTo._direction.y, (double)compareTo._direction.z,
                 (double)_direction.x, (double)_direction.y, (double)_direction.z );
-        qCDebug(octree, "%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f",
+        qCDebug(shared, "%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f",
                 (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._up.x, (double)compareTo._up.y, (double)compareTo._up.z,
                 (double)_up.x, (double)_up.y, (double)_up.z );
-        qCDebug(octree, "%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f",
+        qCDebug(shared, "%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f",
                 (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._right.x, (double)compareTo._right.y, (double)compareTo._right.z,
                 (double)_right.x, (double)_right.y, (double)_right.z );
-        qCDebug(octree, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
+        qCDebug(shared, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
                 (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._fieldOfView, (double)_fieldOfView);
-        qCDebug(octree, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
+        qCDebug(shared, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
                 (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._aspectRatio, (double)_aspectRatio);
-        qCDebug(octree, "%s -- compareTo._nearClip=%f _nearClip=%f",
+        qCDebug(shared, "%s -- compareTo._nearClip=%f _nearClip=%f",
                 (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._nearClip, (double)_nearClip);
-        qCDebug(octree, "%s -- compareTo._farClip=%f _farClip=%f",
+        qCDebug(shared, "%s -- compareTo._farClip=%f _farClip=%f",
                 (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._farClip, (double)_farClip);
-        qCDebug(octree, "%s -- compareTo._focalLength=%f _focalLength=%f",
+        qCDebug(shared, "%s -- compareTo._focalLength=%f _focalLength=%f",
                 (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._focalLength, (double)_focalLength);
     }
@@ -342,34 +342,34 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
 
 
     if (!result && debug) {
-        qCDebug(octree, "ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
-        qCDebug(octree, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
+        qCDebug(shared, "ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
+        qCDebug(shared, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
                 (testMatches(compareTo._position,_position, POSITION_SIMILAR_ENOUGH) ?
                      "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
                 (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
                 (double)_position.x, (double)_position.y, (double)_position.z );
 
-        qCDebug(octree, "%s -- positionDistance=%f",
+        qCDebug(shared, "%s -- positionDistance=%f",
                 (testMatches(0,positionDistance, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
                 (double)positionDistance);
 
-        qCDebug(octree, "%s -- angleOrientation=%f",
+        qCDebug(shared, "%s -- angleOrientation=%f",
                 (testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
                 (double)angleOrientation);
 
-        qCDebug(octree, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
+        qCDebug(shared, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
                 (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._fieldOfView, (double)_fieldOfView);
-        qCDebug(octree, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
+        qCDebug(shared, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
                 (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._aspectRatio, (double)_aspectRatio);
-        qCDebug(octree, "%s -- compareTo._nearClip=%f _nearClip=%f",
+        qCDebug(shared, "%s -- compareTo._nearClip=%f _nearClip=%f",
                 (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._nearClip, (double)_nearClip);
-        qCDebug(octree, "%s -- compareTo._farClip=%f _farClip=%f",
+        qCDebug(shared, "%s -- compareTo._farClip=%f _farClip=%f",
                 (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._farClip, (double)_farClip);
-        qCDebug(octree, "%s -- compareTo._focalLength=%f _focalLength=%f",
+        qCDebug(shared, "%s -- compareTo._focalLength=%f _focalLength=%f",
                 (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
                 (double)compareTo._focalLength, (double)_focalLength);
     }
@@ -394,7 +394,7 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
     // find the minimum and maximum z values, which will be our near and far clip distances
     nearValue = FLT_MAX;
     farValue = -FLT_MAX;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < NUM_FRUSTUM_CORNERS; i++) {
         nearValue = min(nearValue, -_corners[i].z);
         farValue = max(farValue, -_corners[i].z);
     }
@@ -427,17 +427,17 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 void ViewFrustum::printDebugDetails() const {
-    qCDebug(octree, "ViewFrustum::printDebugDetails()...");
-    qCDebug(octree, "_position=%f,%f,%f",  (double)_position.x, (double)_position.y, (double)_position.z );
-    qCDebug(octree, "_direction=%f,%f,%f", (double)_direction.x, (double)_direction.y, (double)_direction.z );
-    qCDebug(octree, "_up=%f,%f,%f", (double)_up.x, (double)_up.y, (double)_up.z );
-    qCDebug(octree, "_right=%f,%f,%f", (double)_right.x, (double)_right.y, (double)_right.z );
-    qCDebug(octree, "_fieldOfView=%f", (double)_fieldOfView);
-    qCDebug(octree, "_aspectRatio=%f", (double)_aspectRatio);
-    qCDebug(octree, "_centerSphereRadius=%f", (double)_centerSphereRadius);
-    qCDebug(octree, "_nearClip=%f", (double)_nearClip);
-    qCDebug(octree, "_farClip=%f", (double)_farClip);
-    qCDebug(octree, "_focalLength=%f", (double)_focalLength);
+    qCDebug(shared, "ViewFrustum::printDebugDetails()...");
+    qCDebug(shared, "_position=%f,%f,%f",  (double)_position.x, (double)_position.y, (double)_position.z );
+    qCDebug(shared, "_direction=%f,%f,%f", (double)_direction.x, (double)_direction.y, (double)_direction.z );
+    qCDebug(shared, "_up=%f,%f,%f", (double)_up.x, (double)_up.y, (double)_up.z );
+    qCDebug(shared, "_right=%f,%f,%f", (double)_right.x, (double)_right.y, (double)_right.z );
+    qCDebug(shared, "_fieldOfView=%f", (double)_fieldOfView);
+    qCDebug(shared, "_aspectRatio=%f", (double)_aspectRatio);
+    qCDebug(shared, "_centerSphereRadius=%f", (double)_centerSphereRadius);
+    qCDebug(shared, "_nearClip=%f", (double)_nearClip);
+    qCDebug(shared, "_farClip=%f", (double)_farClip);
+    qCDebug(shared, "_focalLength=%f", (double)_focalLength);
 }
 
 glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
@@ -536,7 +536,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
-OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
+CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
@@ -549,7 +549,7 @@ OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
 
-    OctreeProjectedPolygon projectedPolygon(vertexCount);
+    CubeProjectedPolygon projectedPolygon(vertexCount);
 
     bool pointInView = true;
     bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
@@ -630,7 +630,7 @@ void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furth
     }
 }
 
-const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) {
+const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) const {
     glm::vec3 normal = glm::normalize(_direction);
 
     auto getCorner = [&](enum::BoxVertex nearCorner, enum::BoxVertex farCorner) {
@@ -662,51 +662,10 @@ void ViewFrustum::evalViewTransform(Transform& view) const {
     view.setRotation(getOrientation());
 }
 
-float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale, int boundaryLevelAdjust) const {
-    float distanceToCamera = glm::length(bounds.calcCenter() - getPosition());
-    float largestDimension = bounds.getLargestDimension();
-
-    const float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-
-    static std::once_flag once;
-    static QMap<float, float> shouldRenderTable;
-    std::call_once(once, [&] {
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float factor = 1.0f;
-
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            factor /= 2.0f;
-            shouldRenderTable[scale] = factor;
-        }
-    });
-
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
+void ViewFrustum::invalidate() {
+    // these setting should make nearly all intersection tests fail
+    for (int i = 0; i < NUM_FRUSTUM_PLANES; ++i) {
+        _planes[i].invalidate();
     }
-
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-
-    // FIXME - for now, it's either visible or not visible. We want to adjust this to eventually return
-    // a floating point for objects that have small angular size to indicate that they may be rendered
-    // with lower preciscion
-    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f;
-}
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
-    return voxelSizeScale / powf(2, renderLevel);
-}
-
-float ViewFrustum::getAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) const {
-    const float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-    return atan(maxScale / visibleDistanceAtMaxScale);
+    _centerSphereRadius = -1.0e6f; // -10^6 should be negative enough
 }

@@ -545,7 +545,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
     } else {
-        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() / _realWorldFieldOfView.get();
+        ViewFrustum viewFrustum;
+        qApp->copyViewFrustum(viewFrustum);
+        float magnifyFieldOfView = viewFrustum.getFieldOfView() / _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
@@ -928,15 +930,17 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
                 glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
 
+                 ViewFrustum viewFrustum;
+                 qApp->copyViewFrustum(viewFrustum);
+
                 // scale gazeOffset by IPD, if wearing an HMD.
                 if (qApp->isHMDMode()) {
                     glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
                     glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                     glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                     glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
-                    auto humanSystem = qApp->getViewFrustum();
-                    glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
-                    glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
+                    glm::vec3 humanLeftEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * leftEyeHeadLocal);
+                    glm::vec3 humanRightEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * rightEyeHeadLocal);
 
                     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
                     float ipdScale = hmdInterface->getIPDScale();
@@ -950,7 +954,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 }
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
+                glm::vec3 corrected = viewFrustum.getPosition() + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1266,18 +1270,13 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
+void MyAvatar::renderBody(RenderArgs* renderArgs, float glowLevel) {
 
     if (!_skeletonModel->isRenderable()) {
         return; // wait until all models are loaded
     }
 
     fixupModelsInScene();
-
-    //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum);
-    }
 
     // This is drawing the lookat vectors from our avatar to wherever we're looking.
     if (qApp->isHMDMode()) {
@@ -1359,7 +1358,6 @@ void MyAvatar::destroyAnimGraph() {
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     if (_skeletonModel->initWhenReady(scene)) {
         initHeadBones();
@@ -1411,6 +1409,7 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
 
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setCauterizeBones(!shouldDrawHead);
     }

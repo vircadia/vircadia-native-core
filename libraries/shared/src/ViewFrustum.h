@@ -1,6 +1,6 @@
 //
 //  ViewFrustum.h
-//  libraries/octree/src
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -17,21 +17,21 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <GLMHelpers.h>
-#include <RegisteredMetaTypes.h>
-
-#include "Transform.h"
 #include "AABox.h"
 #include "AACube.h"
+#include "CubeProjectedPolygon.h"
 #include "Plane.h"
-#include "OctreeConstants.h"
-#include "OctreeProjectedPolygon.h"
+#include "RegisteredMetaTypes.h"
+#include "Transform.h"
+
+const int NUM_FRUSTUM_CORNERS = 8;
+const int NUM_FRUSTUM_PLANES = 6;
 
 const float DEFAULT_CENTER_SPHERE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
-const float DEFAULT_FAR_CLIP = (float)HALF_TREE_SCALE;
+const float DEFAULT_FAR_CLIP = 16384.0f;
 
 // the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
 // a central sphere for stuff that is nearby (for physics simulation).
@@ -74,7 +74,7 @@ public:
         glm::vec3 bottomRight;
     // Get the corners depth units from frustum position, along frustum orientation
     };
-    const Corners getCorners(const float& depth);
+    const Corners getCorners(const float& depth) const;
 
     // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }
@@ -123,7 +123,7 @@ public:
     void printDebugDetails() const;
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
-    OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
+    CubeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
@@ -131,44 +131,37 @@ public:
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
 
-    /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
-    /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
-    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
-                                  int boundaryLevelAdjust = 0) const;
-
-    float getAccuracyAngle(float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
-
     enum PlaneIndex { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE, NUM_PLANES };
 
     const ::Plane* getPlanes() const { return _planes; }
-private:
-    // camera location/orientation attributes
-    glm::vec3 _position; // the position in world-frame
-    glm::quat _orientation;
-    glm::mat4 _view;
 
-    // Lens attributes
+    void invalidate(); // causes all reasonable intersection tests to fail
+private:
+    glm::mat4 _view;
     glm::mat4 _projection;
 
-    // calculated for orientation
+    ::Plane _planes[NUM_FRUSTUM_PLANES]; // plane normals point inside frustum
+
+    glm::vec3 _position; // position in world-frame
+    glm::quat _orientation; // orientation in world-frame
+
+    // calculated from orientation
     glm::vec3 _direction = IDENTITY_FRONT;
     glm::vec3 _up = IDENTITY_UP;
     glm::vec3 _right = IDENTITY_RIGHT;
 
+    // calculated from projection
+    glm::vec4 _corners[NUM_FRUSTUM_CORNERS];
+    glm::vec3 _cornersWorld[NUM_FRUSTUM_CORNERS];
     float _centerSphereRadius = DEFAULT_CENTER_SPHERE_RADIUS;
+    float _width { 1.0f };
+    float _height { 1.0f };
+    float _aspectRatio { 1.0f };
+    float _focalLength { 0.25f };
+    float _fieldOfView { DEFAULT_FIELD_OF_VIEW_DEGREES };
 
-    // Calculated values
-    glm::mat4 _inverseProjection;
-    float _width = 1.0f;
-    float _height = 1.0f;
-    float _aspectRatio = 1.0f;
-    float _nearClip = DEFAULT_NEAR_CLIP;
-    float _farClip = DEFAULT_FAR_CLIP;
-    float _focalLength = 0.25f;
-    float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
-    glm::vec4 _corners[8];
-    glm::vec3 _cornersWorld[8];
-    ::Plane _planes[6]; // plane normals point inside frustum
+    float _nearClip { DEFAULT_NEAR_CLIP };
+    float _farClip { DEFAULT_FAR_CLIP };
 
     const char* debugPlaneName (int plane) const;
 
@@ -176,7 +169,5 @@ private:
     glm::mat4 _ourModelViewProjectionMatrix;
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_ViewFrustum_h
