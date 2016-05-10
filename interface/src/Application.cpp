@@ -702,9 +702,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
     UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed, sessionRunTime.get());
 
-    // once the event loop has started, check and signal for an access token
-    QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
-
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
@@ -1327,8 +1324,6 @@ void Application::initializeGL() {
 
     // update before the first render
     update(0);
-
-    InfoView::show(INFO_HELP_PATH, true);
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
