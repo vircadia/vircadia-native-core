@@ -52,7 +52,7 @@ public:
     bool readFromFile(const char* filename);
 
     // Provide an atomic way to get both the rootOctalCode and endNodeOctalCodes.
-    std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootAndEndNodeOctalCodes() const;
+    std::tuple<OctalCodePtr, OctalCodePtrList> getRootAndEndNodeOctalCodes() const;
     OctalCodePtr getRootOctalCode() const;
     OctalCodePtrList getEndNodeOctalCodes() const;
 
