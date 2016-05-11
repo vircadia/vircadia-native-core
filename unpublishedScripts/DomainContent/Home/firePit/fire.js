@@ -57,6 +57,8 @@
     Fire.prototype = {
         preload: function(entityID) {
             this.entityID = entityID;
+            this.EXPLOSION_SOUND = SoundCache.getSound("atp:/firepit/fire_burst.wav");
+
         },
         collisionWithEntity: function(myID, otherID, collisionInfo) {
             var otherProps = Entities.getEntityProperties(otherID);
@@ -72,11 +74,12 @@
                 if (data.hasOwnProperty('hifiHomeKey')) {
                     if (data.hifiHomeKey.reset === true) {
                         print('FLAMMABLE THING, EXPLODE IT!');
+                        _this.playSoundAtCurrentPosition();
                         _this.explodeWithColor();
+                        _this.smokePuff();
                         Entities.deleteEntity(otherID)
                     }
                 }
-
             }
         },
         explodeWithColor: function() {
@@ -138,13 +141,24 @@
                 "textures": "atp:/firepit/explode.png",
                 "type": "ParticleEffect",
                 lifetime: 1,
-                position:myProps.position
-            }
+                position: myProps.position
+            };
 
+            var explosion = Entities.addEntity(explosionParticleProperties);
+            print('explosion is: ' + explosion)
+        },
+        smokePuff: function() {
+            //smoke puff here
+        },
+        playSoundAtCurrentPosition: function() {
 
-           var explosion =  Entities.addEntity(explosionParticleProperties);
-           print('explosion is: ' + explosion)
-        }
+            var audioProperties = {
+                volume: 0.5,
+                position: Entities.getEntityProperties(this.entityID).position
+            };
+
+            Audio.playSound(this.EXPLOSION_SOUND, audioProperties);
+        },
     }
 
     return new Fire();
