@@ -4949,24 +4949,19 @@ qreal Application::getDevicePixelRatio() {
     return (_window && _window->windowHandle()) ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
-DisplayPlugin* Application::getActiveDisplayPlugin() {
-    DisplayPlugin* result = nullptr;
-    if (QThread::currentThread() == thread()) {
-        if (nullptr == _displayPlugin) {
-            updateDisplayMode();
-            Q_ASSERT(_displayPlugin);
-        }
-        result = _displayPlugin.get();
-    } else {
+DisplayPluginPointer Application::getActiveDisplayPlugin() const {
+    if (QThread::currentThread() != thread()) {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
-        result = _displayPlugin.get();
+        return _displayPlugin;
     }
-    return result;
+
+    if (!_displayPlugin) {
+        const_cast<Application*>(this)->updateDisplayMode();
+        Q_ASSERT(_displayPlugin);
+    }
+    return _displayPlugin;
 }
 
-const DisplayPlugin* Application::getActiveDisplayPlugin() const {
-    return const_cast<Application*>(this)->getActiveDisplayPlugin();
-}
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();

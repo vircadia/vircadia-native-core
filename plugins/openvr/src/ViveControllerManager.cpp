@@ -11,6 +11,8 @@
 
 #include "ViveControllerManager.h"
 
+#include <QtCore/QProcessEnvironment>
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
@@ -48,9 +50,11 @@ static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 const QString ViveControllerManager::NAME = "OpenVR";
+static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 bool ViveControllerManager::isSupported() const {
-    return !isOculusPresent() && vr::VR_IsHmdPresent();
+    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
 }
 
 bool ViveControllerManager::activate() {
