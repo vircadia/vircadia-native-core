@@ -99,7 +99,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
     qCDebug(octree, "JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)",
         rootHexCode, rootHexCode, endNodesHexCodes, endNodesHexCodes);
 
-    _rootOctalCode = std::shared_ptr<unsigned char>(hexStringToOctalCode(QString(rootHexCode)));
+    _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
 
     qCDebug(octree, "JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode.get());
     myDebugPrintOctalCode(_rootOctalCode.get(), true);
