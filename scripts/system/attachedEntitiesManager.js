@@ -166,7 +166,6 @@ function AttachedEntitiesManager() {
                     }
                 }
 
-                // Entities.editEntity(grabbedEntity, wearProps);
                 Entities.deleteEntity(grabbedEntity);
                 Entities.addEntity(wearProps, true);
             } else if (props.parentID != NULL_UUID) {
@@ -179,8 +178,23 @@ function AttachedEntitiesManager() {
                     var wearProps = Entities.getEntityProperties(grabbedEntity);
                     wearProps.parentID = NULL_UUID;
                     wearProps.parentJointIndex = -1;
+
+                    delete wearProps.id;
+                    delete wearProps.created;
+                    delete wearProps.age;
+                    delete wearProps.ageAsText;
+                    delete wearProps.naturalDimensions;
+                    delete wearProps.naturalPosition;
+                    delete wearProps.actionData;
+                    delete wearProps.sittingPoints;
+                    delete wearProps.boundingBox;
+                    delete wearProps.clientOnly;
+                    delete wearProps.owningAvatarID;
+                    delete wearProps.localPosition;
+                    delete wearProps.localRotation;
+
                     Entities.deleteEntity(grabbedEntity);
-                    Entities.addEntity(wearProps, false);
+                    Entities.addEntity(wearProps);
                 }
             }
         }
@@ -271,7 +285,7 @@ function AttachedEntitiesManager() {
             this.scrubProperties(savedProps);
             delete savedProps["id"];
             savedProps.parentID = MyAvatar.sessionUUID; // this will change between sessions
-            var loadedEntityID = Entities.addEntity(savedProps);
+            var loadedEntityID = Entities.addEntity(savedProps, true);
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'loaded',
