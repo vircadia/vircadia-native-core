@@ -51,10 +51,11 @@ public:
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);
 
-    OctalCodePtr getRootOctalCode() const { return _rootOctalCode; }
-    std::vector<OctalCodePtr> getEndNodeOctalCodes() const { return _endNodes; }
+    std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootOctalCodeAndEndNodes() const;
+    OctalCodePtr getRootOctalCode() const;
+    OctalCodePtrList getEndNodeOctalCodes() const;
 
-    void copyContents(const OctalCodePtr& rootCodeIn, const std::vector<OctalCodePtr>& endNodesIn);
+    void copyContents(const OctalCodePtr& rootCodeIn, const OctalCodePtrList& endNodesIn);
 
     int unpackFromPacket(ReceivedMessage& message);
     std::unique_ptr<NLPacket> packIntoPacket();
@@ -73,7 +74,7 @@ private:
 
     mutable std::mutex _octalCodeMutex;
     OctalCodePtr _rootOctalCode { nullptr };
-    std::vector<OctalCodePtr> _endNodes;
+    OctalCodePtrList _endNodes;
     NodeType_t _nodeType;
 };
 

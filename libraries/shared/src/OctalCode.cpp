@@ -304,7 +304,7 @@ bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* po
     return true;
 }
 
-std::shared_ptr<unsigned char> hexStringToOctalCode(const QString& input) {
+OctalCodePtr hexStringToOctalCode(const QString& input) {
     const int HEX_NUMBER_BASE = 16;
     const int HEX_BYTE_SIZE = 2;
     int stringIndex = 0;

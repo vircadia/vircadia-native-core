@@ -154,15 +154,12 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
     _isFullScene = isFullScene;
     _isMoving = isMoving;
 
-    _jurisdictionRoot = nullptr;
-
-    // clear existing endNodes before copying new ones...
-    _jurisdictionEndNodes.clear();
-
     // setup jurisdictions
     if (jurisdictionMap) {
-        _jurisdictionRoot = jurisdictionMap->getRootOctalCode();
-        _jurisdictionEndNodes = jurisdictionMap->getEndNodeOctalCodes();
+        std::tie(_jurisdictionRoot, _jurisdictionEndNodes) = jurisdictionMap->getRootOctalCodeAndEndNodes();
+    } else {
+        _jurisdictionRoot = nullptr;
+        _jurisdictionEndNodes.clear();
     }
 }
 

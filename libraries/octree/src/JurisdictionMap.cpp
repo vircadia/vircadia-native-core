@@ -70,7 +70,12 @@ void JurisdictionMap::copyContents(const OctalCodePtr& rootCodeIn, const std::ve
 void JurisdictionMap::copyContents(const JurisdictionMap& other) {
     _nodeType = other._nodeType;
 
-    init(other.getRootOctalCode(), other.getEndNodeOctalCodes());
+    OctalCodePtr rootOctalCode;
+    OctalCodePtrList endNodes;
+
+    std::tie(rootOctalCode, endNodes) = other.getRootOctalCodeAndEndNodes();
+
+    init(rootOctalCode, endNodes);
 }
 
 JurisdictionMap::~JurisdictionMap() {
@@ -120,6 +125,20 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
     }
 }
 
+std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootOctalCodeAndEndNodes() const {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    return std::tuple<OctalCodePtr, std::vector<OctalCodePtr>>(_rootOctalCode, _endNodes);
+}
+
+OctalCodePtr JurisdictionMap::getRootOctalCode() const {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    return _rootOctalCode;
+}
+
+OctalCodePtrList JurisdictionMap::getEndNodeOctalCodes() const {
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
+    return _endNodes;
+}
 
 void JurisdictionMap::init(OctalCodePtr rootOctalCode, const std::vector<OctalCodePtr>& endNodes) {
     std::lock_guard<std::mutex> lock(_octalCodeMutex);
@@ -160,7 +179,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     qCDebug(octree) << "rootCode=" << rootCode;
 
     std::lock_guard<std::mutex> lock(_octalCodeMutex);
-    _rootOctalCode = std::shared_ptr<unsigned char>(hexStringToOctalCode(rootCode));
+    _rootOctalCode = hexStringToOctalCode(rootCode);
     printOctalCode(_rootOctalCode.get());
 
     settings.beginGroup("endNodes");
@@ -195,11 +214,10 @@ void JurisdictionMap::displayDebugDetails() const {
 
 
 bool JurisdictionMap::writeToFile(const char* filename) {
-    std::lock_guard<std::mutex> lock(_octalCodeMutex);
-
     QString     settingsFile(filename);
     QSettings   settings(settingsFile, QSettings::IniFormat);
 
+    std::lock_guard<std::mutex> lock(_octalCodeMutex);
 
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode.get());
 

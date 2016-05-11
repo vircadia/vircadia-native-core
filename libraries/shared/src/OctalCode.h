@@ -24,6 +24,7 @@ const int GREEN_INDEX = 1;
 const int BLUE_INDEX  = 2;
 
 using OctalCodePtr = std::shared_ptr<unsigned char>;
+using OctalCodePtrList = std::vector<OctalCodePtr>;
 
 void printOctalCode(const unsigned char* octalCode);
 size_t bytesRequiredForCodeLength(unsigned char threeBitCodes);
@@ -61,6 +62,6 @@ typedef enum {
 OctalCodeComparison compareOctalCodes(const unsigned char* code1, const unsigned char* code2);
 
 QString octalCodeToHexString(const unsigned char* octalCode);
-std::shared_ptr<unsigned char> hexStringToOctalCode(const QString& input);
+OctalCodePtr hexStringToOctalCode(const QString& input);
 
 #endif // hifi_OctalCode_h
