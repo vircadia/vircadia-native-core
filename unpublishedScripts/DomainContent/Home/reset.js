@@ -198,13 +198,13 @@
             });
 
             var whiteboard = new Whiteboard({
-                x: 1104,
-                y: 460.5,
-                z: -77
+                x: 1105.0955,
+                y: 460.5000,
+                z: -77.4409
             }, {
-                x: 0,
-                y: -133,
-                z: 0
+                x: -0.0013,
+                y: -133.0056,
+                z: -0.0013
             });
 
             var pingPongGun = new HomePingPongGun({
@@ -218,13 +218,13 @@
             });
 
             var cuckooClock = new MyCuckooClock({
-                x: 1105.267,
-                y: 461.44,
-                z: -81.9495
+                x: 1105.5237,
+                y: 461.4826,
+                z: -81.7524
             }, {
-                x: 0,
-                y: -57,
-                z: 0
+                x: -0.0013,
+                y: -57.0089,
+                z: -0.0013
             });
 
             print('HOME after creating scripted entities')
