@@ -26,7 +26,6 @@ public:
         LIGHTMAP,
         TANGENTS,
         SPECULAR,
-        EMISSIVE,
         UNLIT,
         SKINNED,
         STEREO,
@@ -58,7 +57,6 @@ public:
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
         Builder& withSpecular() { _flags.set(SPECULAR); return (*this); }
-        Builder& withEmissive() { _flags.set(EMISSIVE); return (*this); }
         Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
         Builder& withStereo() { _flags.set(STEREO); return (*this); }
@@ -103,9 +101,6 @@ public:
             Builder& withSpecular() { _flags.set(SPECULAR); _mask.set(SPECULAR); return (*this); }
             Builder& withoutSpecular() { _flags.reset(SPECULAR); _mask.set(SPECULAR); return (*this); }
 
-            Builder& withEmissive() { _flags.set(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
-            Builder& withoutEmissive() { _flags.reset(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
-
             Builder& withUnlit() { _flags.set(UNLIT); _mask.set(UNLIT); return (*this); }
             Builder& withoutUnlit() { _flags.reset(UNLIT); _mask.set(UNLIT); return (*this); }
 
@@ -142,7 +137,6 @@ public:
     bool hasLightmap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool hasSpecular() const { return _flags[SPECULAR]; }
-    bool hasEmissive() const { return _flags[EMISSIVE]; }
     bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
     bool isSkinned() const { return _flags[SKINNED]; }
@@ -179,7 +173,6 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "hasLightmap:" << key.hasLightmap()
                 << "hasTangents:" << key.hasTangents()
                 << "hasSpecular:" << key.hasSpecular()
-                << "hasEmissive:" << key.hasEmissive()
                 << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
                 << "isSkinned:" << key.isSkinned()

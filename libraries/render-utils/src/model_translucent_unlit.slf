@@ -29,18 +29,11 @@ void main(void) {
     <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;
-    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)&>;
-    <$discardTransparent(opacity)$>;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    vec4 albedo = texture(albedoMap, _texCoord0);
-
-    Material mat = getMaterial();
-    vec3 fragColor = getMaterialAlbedo(mat) * albedo.rgb * _color;
-    float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
-
-    _fragColor = vec4(fragColor, fragOpacity);
+    _fragColor = vec4(albedo, opacity);
 }
