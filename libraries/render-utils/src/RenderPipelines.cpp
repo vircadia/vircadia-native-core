@@ -27,7 +27,6 @@
 #include "skin_model_normal_map_vert.h"
 
 #include "model_frag.h"
-#include "model_emissive_frag.h"
 #include "model_unlit_frag.h"
 #include "model_shadow_frag.h"
 #include "model_normal_map_frag.h"
@@ -38,7 +37,6 @@
 #include "model_lightmap_normal_specular_map_frag.h"
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
-#include "model_translucent_emissive_frag.h"
 #include "model_translucent_unlit_frag.h"
 
 #include "overlay3D_vert.h"
