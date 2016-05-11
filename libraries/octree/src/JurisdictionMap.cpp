@@ -73,7 +73,7 @@ void JurisdictionMap::copyContents(const JurisdictionMap& other) {
     OctalCodePtr rootOctalCode;
     OctalCodePtrList endNodes;
 
-    std::tie(rootOctalCode, endNodes) = other.getRootOctalCodeAndEndNodes();
+    std::tie(rootOctalCode, endNodes) = other.getRootAndEndNodeOctalCodes();
 
     init(rootOctalCode, endNodes);
 }
@@ -83,7 +83,7 @@ JurisdictionMap::~JurisdictionMap() {
 
 JurisdictionMap::JurisdictionMap(NodeType_t type) : _rootOctalCode(nullptr) {
     _nodeType = type;
-    OctalCodePtr rootCode = allocateOctalCodePtr(1);
+    OctalCodePtr rootCode = createOctalCodePtr(1);
     *rootCode = 0;
 
     OctalCodePtrList emptyEndNodes;
@@ -125,7 +125,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
     }
 }
 
-std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootOctalCodeAndEndNodes() const {
+std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootAndEndNodeOctalCodes() const {
     std::lock_guard<std::mutex> lock(_octalCodeMutex);
     return std::tuple<OctalCodePtr, OctalCodePtrList>(_rootOctalCode, _endNodes);
 }
@@ -291,7 +291,7 @@ int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
     _endNodes.clear();
 
     if (bytes > 0 && bytes <= message.getBytesLeftToRead()) {
-        _rootOctalCode = allocateOctalCodePtr(bytes);
+        _rootOctalCode = createOctalCodePtr(bytes);
         message.read(reinterpret_cast<char*>(_rootOctalCode.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
@@ -303,7 +303,7 @@ int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
             message.readPrimitive(&bytes);
 
             if (bytes <= message.getBytesLeftToRead()) {
-                auto endNodeCode = allocateOctalCodePtr(bytes);
+                auto endNodeCode = createOctalCodePtr(bytes);
                 message.read(reinterpret_cast<char*>(endNodeCode.get()), bytes);
 
                 // if the endNodeCode was 0 length then don't add it

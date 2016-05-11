@@ -61,7 +61,7 @@ typedef enum {
 
 OctalCodeComparison compareOctalCodes(const unsigned char* code1, const unsigned char* code2);
 
-OctalCodePtr allocateOctalCodePtr(size_t size);
+OctalCodePtr createOctalCodePtr(size_t size);
 QString octalCodeToHexString(const unsigned char* octalCode);
 OctalCodePtr hexStringToOctalCode(const QString& input);
 

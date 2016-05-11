@@ -116,14 +116,14 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     // Now copy the values from the other
     if (other._jurisdictionRoot) {
         auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot.get()));
-        _jurisdictionRoot = allocateOctalCodePtr(bytes);
+        _jurisdictionRoot = createOctalCodePtr(bytes);
         memcpy(_jurisdictionRoot.get(), other._jurisdictionRoot.get(), bytes);
     }
     for (size_t i = 0; i < other._jurisdictionEndNodes.size(); i++) {
         auto& endNodeCode = other._jurisdictionEndNodes[i];
         if (endNodeCode) {
             auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode.get()));
-            auto endNodeCodeCopy = allocateOctalCodePtr(bytes);
+            auto endNodeCodeCopy = createOctalCodePtr(bytes);
             memcpy(endNodeCodeCopy.get(), endNodeCode.get(), bytes);
             _jurisdictionEndNodes.push_back(endNodeCodeCopy);
         }
@@ -156,7 +156,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
 
     // setup jurisdictions
     if (jurisdictionMap) {
-        std::tie(_jurisdictionRoot, _jurisdictionEndNodes) = jurisdictionMap->getRootOctalCodeAndEndNodes();
+        std::tie(_jurisdictionRoot, _jurisdictionEndNodes) = jurisdictionMap->getRootAndEndNodeOctalCodes();
     } else {
         _jurisdictionRoot = nullptr;
         _jurisdictionEndNodes.clear();
@@ -470,7 +470,7 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
         _jurisdictionRoot = nullptr;
         _jurisdictionEndNodes.clear();
     } else {
-        _jurisdictionRoot = allocateOctalCodePtr(bytes);
+        _jurisdictionRoot = createOctalCodePtr(bytes);
         packet.read(reinterpret_cast<char*>(_jurisdictionRoot.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
@@ -484,7 +484,7 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
             
             packet.readPrimitive(&bytes);
             
-            auto endNodeCode = allocateOctalCodePtr(bytes);
+            auto endNodeCode = createOctalCodePtr(bytes);
             packet.read(reinterpret_cast<char*>(endNodeCode.get()), bytes);
             
             _jurisdictionEndNodes.push_back(endNodeCode);
