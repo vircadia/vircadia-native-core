@@ -828,6 +828,7 @@ void MyAvatar::loadData() {
     for (int i = 0; i < avatarEntityCount; i++) {
         settings.setArrayIndex(i);
         QUuid entityID = settings.value("id").toUuid();
+        // QUuid entityID = QUuid::createUuid(); // generate a new ID
         QByteArray properties = settings.value("properties").toByteArray();
         updateAvatarEntity(entityID, properties);
     }

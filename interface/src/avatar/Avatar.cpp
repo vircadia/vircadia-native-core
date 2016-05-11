@@ -229,7 +229,10 @@ void Avatar::updateAvatarEntities() {
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
 
             if (entity) {
-                if (!entityTree->updateEntity(entityID, properties)) {
+                if (entityTree->updateEntity(entityID, properties)) {
+                    entity->markAsChangedOnServer();
+                    entity->updateLastEditedFromRemote();
+                } else {
                     qDebug() << "AVATAR-ENTITES -- updateEntity failed: " << properties.getType();
                     success = false;
                 }

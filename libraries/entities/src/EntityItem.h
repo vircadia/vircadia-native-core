@@ -375,6 +375,7 @@ public:
     glm::vec3 entityToWorld(const glm::vec3& point) const;
 
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
+    void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 

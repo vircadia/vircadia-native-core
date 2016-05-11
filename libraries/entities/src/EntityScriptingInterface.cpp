@@ -401,6 +401,14 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
 
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+                    // don't delete other avatar's avatarEntities
+                    shouldDelete = false;
+                    return;
+                }
+
                 auto dimensions = entity->getDimensions();
                 float volume = dimensions.x * dimensions.y * dimensions.z;
                 auto density = entity->getDensity();
@@ -806,7 +814,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
             return;
         }
 
