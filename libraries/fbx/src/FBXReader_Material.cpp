@@ -228,14 +228,11 @@ void FBXReader::consolidateFBXMaterials() {
                 if (!material._material->getKey().isAlbedo()) {
                     // switch emissive to material albedo as we tag the material to unlit
                     material._material->setUnlit(true);
-                    material._material->setEmissive(diffuse);
                     material._material->setAlbedo(emissive);
 
                     if (!material.emissiveTexture.isNull()) {
                         material.albedoTexture = material.emissiveTexture;
                     }
-
-                    std::cout << emissive;
                 }
             }
         }
