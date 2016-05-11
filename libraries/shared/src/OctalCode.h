@@ -12,6 +12,7 @@
 #ifndef hifi_OctalCode_h
 #define hifi_OctalCode_h
 
+#include <vector>
 #include <QString>
 
 #include <memory>
