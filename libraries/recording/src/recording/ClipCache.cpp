@@ -9,12 +9,9 @@
 #include "impl/PointerClip.h"
 
 using namespace recording;
-NetworkClipLoader::NetworkClipLoader(const QUrl& url, bool delayLoad)
-    : Resource(url, delayLoad), _clip(std::make_shared<NetworkClip>(url))
-{
-    
-}
-
+NetworkClipLoader::NetworkClipLoader(const QUrl& url) :
+    Resource(url),
+    _clip(std::make_shared<NetworkClip>(url)) {}
 
 void NetworkClip::init(const QByteArray& clipData) {
     _clipData = clipData;
@@ -32,10 +29,10 @@ ClipCache& ClipCache::instance() {
 }
 
 NetworkClipLoaderPointer ClipCache::getClipLoader(const QUrl& url) {
-    return ResourceCache::getResource(url, QUrl(), false, nullptr).staticCast<NetworkClipLoader>();
+    return ResourceCache::getResource(url, QUrl(), nullptr).staticCast<NetworkClipLoader>();
 }
 
-QSharedPointer<Resource> ClipCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
-    return QSharedPointer<Resource>(new NetworkClipLoader(url, delayLoad), &Resource::deleter);
+QSharedPointer<Resource> ClipCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, const void* extra) {
+    return QSharedPointer<Resource>(new NetworkClipLoader(url), &Resource::deleter);
 }
 

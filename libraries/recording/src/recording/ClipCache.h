@@ -31,7 +31,7 @@ private:
 
 class NetworkClipLoader : public Resource {
 public:
-    NetworkClipLoader(const QUrl& url, bool delayLoad);
+    NetworkClipLoader(const QUrl& url);
     virtual void downloadFinished(const QByteArray& data) override;
     ClipPointer getClip() { return _clip; }
     bool completed() { return _failedToLoad || isLoaded(); }
@@ -49,7 +49,7 @@ public:
     NetworkClipLoaderPointer getClipLoader(const QUrl& url);
 
 protected:
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) override;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, const void* extra) override;
 };
 
 }

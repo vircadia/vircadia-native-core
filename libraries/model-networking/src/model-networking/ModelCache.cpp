@@ -71,7 +71,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         GeometryExtra extra{ mapping, _textureBaseUrl };
 
         // Get the raw GeometryResource, not the wrapped NetworkGeometry
-        _geometryResource = modelCache->getResource(url, QUrl(), false, &extra).staticCast<GeometryResource>();
+        _geometryResource = modelCache->getResource(url, QUrl(), &extra).staticCast<GeometryResource>();
         // Avoid caching nested resources - their references will be held by the parent
         _geometryResource->_isCacheable = false;
 
@@ -236,7 +236,7 @@ ModelCache::ModelCache() {
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    bool delayLoad, const void* extra) {
+    const void* extra) {
     Resource* resource = nullptr;
     if (url.path().toLower().endsWith(".fst")) {
         resource = new GeometryMappingResource(url);
@@ -252,7 +252,7 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url, const QShar
 
 std::shared_ptr<NetworkGeometry> ModelCache::getGeometry(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) {
     GeometryExtra geometryExtra = { mapping, textureBaseUrl };
-    GeometryResource::Pointer resource = getResource(url, QUrl(), true, &geometryExtra).staticCast<GeometryResource>();
+    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();

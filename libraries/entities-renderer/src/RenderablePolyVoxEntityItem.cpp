@@ -977,8 +977,8 @@ void RenderablePolyVoxEntityItem::compressVolumeDataAndSendEditPacket() {
             properties.setVoxelDataDirty();
             properties.setLastEdited(now);
 
-            EntitySimulation* simulation = tree ? tree->getSimulation() : nullptr;
-            PhysicalEntitySimulation* peSimulation = static_cast<PhysicalEntitySimulation*>(simulation);
+            EntitySimulationPointer simulation = tree ? tree->getSimulation() : nullptr;
+            PhysicalEntitySimulationPointer peSimulation = std::static_pointer_cast<PhysicalEntitySimulation>(simulation);
             EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
             if (packetSender) {
                 packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);

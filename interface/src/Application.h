@@ -222,8 +222,6 @@ public:
 signals:
     void svoImportRequested(const QString& url);
 
-    void checkBackgroundDownloads();
-
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
     void beforeAboutToQuit();
@@ -405,7 +403,7 @@ private:
     QElapsedTimer _lastTimeUpdated;
 
     ShapeManager _shapeManager;
-    PhysicalEntitySimulation _entitySimulation;
+    PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entityClipboardRenderer;
