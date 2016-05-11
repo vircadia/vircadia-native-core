@@ -799,6 +799,8 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid myNodeID = nodeList->getSessionUUID();
 
+    EntityItemProperties properties;
+
     EntityItemPointer entity;
     bool doTransmit = false;
     _entityTree->withWriteLock([&] {
@@ -820,13 +822,14 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 
         doTransmit = actor(simulation, entity);
         if (doTransmit) {
+            properties.setClientOnly(entity->getClientOnly());
+            properties.setOwningAvatarID(entity->getOwningAvatarID());
             _entityTree->entityChanged(entity);
         }
     });
 
     // transmit the change
     if (doTransmit) {
-        EntityItemProperties properties;
         _entityTree->withReadLock([&] {
             properties = entity->getProperties();
         });

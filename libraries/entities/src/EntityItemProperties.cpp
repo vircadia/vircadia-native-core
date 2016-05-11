@@ -309,6 +309,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_POSITION, localPosition);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
+    CHECK_PROPERTY_CHANGE(PROP_CLIENT_ONLY, clientOnly);
+    CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
@@ -541,6 +543,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
 
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+
+    properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
+    properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
+
     // FIXME - I don't think these properties are supported any more
     //COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
     //COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
@@ -678,6 +686,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1564,6 +1575,9 @@ void EntityItemProperties::markAllChanged() {
     _jointTranslationsChanged = true;
 
     _queryAACubeChanged = true;
+
+    _clientOnlyChanged = true;
+    _owningAvatarIDChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -1883,6 +1897,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (queryAACubeChanged()) {
         out += "queryAACube";
+    }
+    if (clientOnlyChanged()) {
+        out += "clientOnly";
+    }
+    if (owningAvatarIDChanged()) {
+        out += "owningAvatarID";
     }
 
     getAnimation().listChangedProperties(out);

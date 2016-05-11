@@ -205,6 +205,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, QVector<glm::vec3>());
 
+    DEFINE_PROPERTY(PROP_CLIENT_ONLY, ClientOnly, clientOnly, bool, false);
+    DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
+
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
@@ -276,12 +279,6 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
-    bool getClientOnly() const { return _clientOnly; }
-    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
-    // if this entity is client-only, which avatar is it associated with?
-    QUuid getOwningAvatarID() const { return _owningAvatarID; }
-    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
-
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
@@ -308,9 +305,6 @@ private:
     glm::vec3 _naturalPosition;
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
-
-    bool _clientOnly { false };
-    QUuid _owningAvatarID;
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
@@ -429,6 +423,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotations, jointRotations, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslationsSet, jointTranslationsSet, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslations, jointTranslations, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");
 
     properties.getAnimation().debugDump();
     properties.getSkybox().debugDump();

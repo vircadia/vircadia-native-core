@@ -169,6 +169,9 @@ enum EntityPropertyList {
 
     PROP_FALLOFF_RADIUS, // for Light entity
 
+    PROP_CLIENT_ONLY, // doesn't go over wire
+    PROP_OWNING_AVATAR_ID, // doesn't go over wire
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
