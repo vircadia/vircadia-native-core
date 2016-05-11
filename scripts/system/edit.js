@@ -63,7 +63,6 @@ var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 var allowLargeModels = true;
 var allowSmallModels = true;
-var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
@@ -800,11 +799,6 @@ function highlightEntityUnderCursor(position, accurateRay) {
         var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
         if (entityIntersection.entityID && sizeOK) {
-            if (wantEntityGlow) {
-                Entities.editEntity(entityIntersection.entityID, {
-                    glowLevel: 0.25
-                });
-            }
             highlightedEntityID = entityIntersection.entityID;
             selectionDisplay.highlightSelectable(entityIntersection.entityID);
         }
