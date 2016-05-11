@@ -46,25 +46,29 @@ function shutdown() {
 }
 Script.scriptEnding.connect(shutdown);
 
-prevPose = Controller.getPoseValue(Controller.Hardware.Vive.LeftHand);
+function viveIsConnected() {
+    return Controller.Hardware.Vive;
+}
 
 function update(dt) {
-    var thumbDown = Controller.getValue(Controller.Hardware.Vive.RSTouch);
-    if (thumbDown) {
-        var x = Controller.getValue(Controller.Hardware.Vive.RX);
-        var y = Controller.getValue(Controller.Hardware.Vive.RY);
-        var xOffset = Vec3.multiply(boxZAxis, x);
-        var yOffset = Vec3.multiply(boxYAxis, y);
-        var offset = Vec3.sum(xOffset, yOffset);
-        Entities.editEntity(boxEntity, {position: Vec3.sum(boxPosition, offset)});
+    if (viveIsConnected()) {
+        var thumbDown = Controller.getValue(Controller.Hardware.Vive.RSTouch);
+        if (thumbDown) {
+            var x = Controller.getValue(Controller.Hardware.Vive.RX);
+            var y = Controller.getValue(Controller.Hardware.Vive.RY);
+            var xOffset = Vec3.multiply(boxZAxis, x);
+            var yOffset = Vec3.multiply(boxYAxis, y);
+            var offset = Vec3.sum(xOffset, yOffset);
+            Entities.editEntity(boxEntity, {position: Vec3.sum(boxPosition, offset)});
+        }
+        if (thumbDown && !prevThumbDown) {
+            Entities.editEntity(boxEntity, {color: GREEN});
+        }
+        if (!thumbDown && prevThumbDown) {
+            Entities.editEntity(boxEntity, {color: GRAY});
+        }
+        prevThumbDown = thumbDown;
     }
-    if (thumbDown && !prevThumbDown) {
-        Entities.editEntity(boxEntity, {color: GREEN});
-    }
-    if (!thumbDown && prevThumbDown) {
-        Entities.editEntity(boxEntity, {color: GRAY});
-    }
-    prevThumbDown = thumbDown;
 }
 
 Script.update.connect(update);
