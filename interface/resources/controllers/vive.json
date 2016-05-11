@@ -5,14 +5,14 @@
         { "from": "Vive.LX",  "when": "Vive.LS", "to": "Standard.LX" },
 
         { "from": "Vive.LT", "to": "Standard.LT" },
-        { "from": "Vive.LB", "to": "Standard.LB" },
+        { "from": "Vive.LeftGrip", "to": "Standard.LB" },
         { "from": "Vive.LS", "to": "Standard.LS" },
 
         { "from": "Vive.RY",  "when": "Vive.RS", "filters": "invert", "to": "Standard.RY" },
         { "from": "Vive.RX",  "when": "Vive.RS", "to": "Standard.RX" },
 
         { "from": "Vive.RT", "to": "Standard.RT" },
-        { "from": "Vive.RB", "to": "Standard.RB" },
+        { "from": "Vive.RightGrip", "to": "Standard.RB" },
         { "from": "Vive.RS", "to": "Standard.RS" },
 
         { "from": "Vive.LeftApplicationMenu", "to": "Standard.Back" },
