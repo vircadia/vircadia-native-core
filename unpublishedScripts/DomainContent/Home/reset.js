@@ -37,13 +37,9 @@
 
     var whiteboardPath = Script.resolvePath("atp:/whiteboard/wrapper.js");
 
-    var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
-
     var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
     var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
-
-    var musicBoxPath = Script.resolvePath("musicBox/wrapper.js?" + Math.random());
 
     var transformerPath = Script.resolvePath("atp:/dressingRoom/wrapper.js");
 
@@ -54,10 +50,8 @@
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
-    Script.include(plantPath);
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
-    // Script.include(musicBoxPath);
     Script.include(transformerPath);
 
     var TRANSFORMER_URL_ROBOT = 'atp:/dressingRoom/simple_robot.fbx';
@@ -213,16 +207,6 @@
                 z: 0
             });
 
-            var myPlant = new Plant({
-                x: 1099.8785,
-                y: 460.3115,
-                z: -84.7736
-            }, {
-                x: 0,
-                y: 0,
-                z: 0
-            });
-
             var pingPongGun = new HomePingPongGun({
                 x: 1101.2123,
                 y: 460.2328,
@@ -243,7 +227,6 @@
                 z: 0
             });
 
-            // var musicBox = new MusicBox();
             print('HOME after creating scripted entities')
 
         },
