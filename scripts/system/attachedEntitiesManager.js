@@ -22,7 +22,7 @@ var MINIMUM_DROP_DISTANCE_FROM_JOINT = 0.8;
 var ATTACHED_ENTITY_SEARCH_DISTANCE = 10.0;
 var ATTACHED_ENTITIES_SETTINGS_KEY = "ATTACHED_ENTITIES";
 var DRESSING_ROOM_DISTANCE = 2.0;
-var SHOW_TOOL_BAR = false;
+var SHOW_TOOL_BAR = true;
 
 // tool bar
 
@@ -30,34 +30,20 @@ if (SHOW_TOOL_BAR) {
     var BUTTON_SIZE = 32;
     var PADDING = 3;
     Script.include(["libraries/toolBars.js"]);
-    var toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.attachedEntities.toolbar", function(screenSize) {
-        return {
-            x: (BUTTON_SIZE + PADDING),
-            y: (screenSize.y / 2 - BUTTON_SIZE * 2 + PADDING)
-        };
-    });
-    var saveButton = toolBar.addOverlay("image", {
+
+    var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.attachedEntities.toolbar");
+    var lockButton = toolBar.addTool({
         width: BUTTON_SIZE,
         height: BUTTON_SIZE,
-        imageURL: ".../save.png",
+        imageURL: Script.resolvePath("assets/images/lock.svg"),
         color: {
             red: 255,
             green: 255,
             blue: 255
         },
-        alpha: 1
-    });
-    var loadButton = toolBar.addOverlay("image", {
-        width: BUTTON_SIZE,
-        height: BUTTON_SIZE,
-        imageURL: ".../load.png",
-        color: {
-            red: 255,
-            green: 255,
-            blue: 255
-        },
-        alpha: 1
-    });
+        alpha: 1,
+        visible: true
+    }, false);
 }
 
 
@@ -67,10 +53,8 @@ function mousePressEvent(event) {
         y: event.y
     });
 
-    if (clickedOverlay == saveButton) {
-        manager.saveAttachedEntities();
-    } else if (clickedOverlay == loadButton) {
-        manager.loadAttachedEntities();
+    if (lockButton === toolBar.clicked(clickedOverlay)) {
+        manager.toggleLocked();
     }
 }
 
@@ -92,6 +76,8 @@ Script.scriptEnding.connect(scriptEnding);
 
 
 function AttachedEntitiesManager() {
+    var clothingLocked = true;
+
     this.subscribeToMessages = function() {
         Messages.subscribe('Hifi-Object-Manipulation');
         Messages.messageReceived.connect(this.handleWearableMessages);
@@ -126,19 +112,6 @@ function AttachedEntitiesManager() {
         } else {
             print('attachedEntitiesManager -- unknown actions: ' + parsedMessage.action);
         }
-    }
-
-    this.avatarIsInDressingRoom = function() {
-        // return true if MyAvatar is near the dressing room
-        var possibleDressingRoom = Entities.findEntities(MyAvatar.position, DRESSING_ROOM_DISTANCE);
-        for (i = 0; i < possibleDressingRoom.length; i++) {
-            var entityID = possibleDressingRoom[i];
-            var props = Entities.getEntityProperties(entityID);
-            if (props.name == 'Hifi-Dressing-Room-Base') {
-                return true;
-            }
-        }
-        return false;
     }
 
     this.handleEntityRelease = function(grabbedEntity, releasedFromJoint) {
@@ -179,21 +152,23 @@ function AttachedEntitiesManager() {
             }
 
             if (bestJointIndex != -1) {
-                var wearProps = {
-                    parentID: MyAvatar.sessionUUID,
-                    parentJointIndex: bestJointIndex
-                };
+                var wearProps = Entities.getEntityProperties(grabbedEntity);
+                wearProps.parentID = MyAvatar.sessionUUID;
+                wearProps.parentJointIndex = bestJointIndex;
 
                 if (bestJointOffset && bestJointOffset.constructor === Array) {
-                    if (this.avatarIsInDressingRoom() || bestJointOffset.length < 2) {
+                    if (!clothingLocked || bestJointOffset.length < 2) {
                         this.updateRelativeOffsets(grabbedEntity);
                     } else {
-                        // don't snap the entity to the preferred position if the avatar is in the dressing room.
+                        // don't snap the entity to the preferred position if unlocked
                         wearProps.localPosition = bestJointOffset[0];
                         wearProps.localRotation = bestJointOffset[1];
                     }
                 }
-                Entities.editEntity(grabbedEntity, wearProps);
+
+                // Entities.editEntity(grabbedEntity, wearProps);
+                Entities.deleteEntity(grabbedEntity);
+                Entities.addEntity(wearProps, true);
             } else if (props.parentID != NULL_UUID) {
                 // drop the entity and set it to have no parent (not on the avatar), unless it's being equipped in a hand.
                 if (props.parentID === MyAvatar.sessionUUID &&
@@ -201,7 +176,11 @@ function AttachedEntitiesManager() {
                      props.parentJointIndex == MyAvatar.getJointIndex("LeftHand"))) {
                     // this is equipped on a hand -- don't clear the parent.
                 } else {
-                    Entities.editEntity(grabbedEntity, { parentID: NULL_UUID });
+                    var wearProps = Entities.getEntityProperties(grabbedEntity);
+                    wearProps.parentID = NULL_UUID;
+                    wearProps.parentJointIndex = -1;
+                    Entities.deleteEntity(grabbedEntity);
+                    Entities.addEntity(wearProps, false);
                 }
             }
         }
@@ -219,6 +198,17 @@ function AttachedEntitiesManager() {
             return true;
         }
         return false;
+    }
+
+    this.toggleLocked = function() {
+        print("toggleLocked");
+        if (clothingLocked) {
+            clothingLocked = false;
+            toolBar.setImageURL(Script.resolvePath("assets/images/unlock.svg"), lockButton);
+        } else {
+            clothingLocked = true;
+            toolBar.setImageURL(Script.resolvePath("assets/images/lock.svg"), lockButton);
+        }
     }
 
     this.saveAttachedEntities = function() {
