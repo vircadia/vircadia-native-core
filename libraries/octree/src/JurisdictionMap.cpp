@@ -119,7 +119,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
         //printOctalCode(endNodeOctcode);
         _endNodes.push_back(endNodeOctcode);
 
-        qCDebug(octree, "JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode);
+        qCDebug(octree, "JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode.get());
         myDebugPrintOctalCode(endNodeOctcode.get(), true);
 
     }
