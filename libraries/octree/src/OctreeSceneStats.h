@@ -147,7 +147,7 @@ public:
     OctalCodePtr getJurisdictionRoot() const { return _jurisdictionRoot; }
 
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
-    const std::vector<OctalCodePtr>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
+    const OctalCodePtrList& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
 
     bool isMoving() const { return _isMoving; }
     bool isFullScene() const { return _isFullScene; }

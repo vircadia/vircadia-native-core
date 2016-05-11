@@ -42,8 +42,8 @@ public:
 
     // application constructors
     JurisdictionMap(const char* filename);
-//    JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
+
     ~JurisdictionMap();
 
     Area isMyJurisdiction(const unsigned char* nodeOctalCode, int childIndex) const;
@@ -70,7 +70,7 @@ public:
 
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
-    void init(OctalCodePtr rootOctalCode, const std::vector<OctalCodePtr>& endNodes);
+    void init(OctalCodePtr rootOctalCode, const OctalCodePtrList& endNodes);
 
     mutable std::mutex _octalCodeMutex;
     OctalCodePtr _rootOctalCode { nullptr };

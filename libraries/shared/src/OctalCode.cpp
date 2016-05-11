@@ -304,6 +304,10 @@ bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* po
     return true;
 }
 
+OctalCodePtr allocateOctalCodePtr(size_t size) {
+    return OctalCodePtr(new unsigned char[size], std::default_delete<unsigned char[]>());
+}
+
 OctalCodePtr hexStringToOctalCode(const QString& input) {
     const int HEX_NUMBER_BASE = 16;
     const int HEX_BYTE_SIZE = 2;
@@ -311,7 +315,7 @@ OctalCodePtr hexStringToOctalCode(const QString& input) {
     int byteArrayIndex = 0;
 
     // allocate byte array based on half of string length
-    auto bytes = std::shared_ptr<unsigned char>(new unsigned char[(input.length()) / HEX_BYTE_SIZE]);
+    auto bytes = allocateOctalCodePtr(input.length() / HEX_BYTE_SIZE);
 
     // loop through the string - 2 bytes at a time converting
     //  it to decimal equivalent and store in byte array

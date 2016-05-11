@@ -63,7 +63,7 @@ JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(
     copyContents(other);
 }
 
-void JurisdictionMap::copyContents(const OctalCodePtr& rootCodeIn, const std::vector<OctalCodePtr>& endNodesIn) {
+void JurisdictionMap::copyContents(const OctalCodePtr& rootCodeIn, const OctalCodePtrList& endNodesIn) {
     init(rootCodeIn, endNodesIn);
 }
 
@@ -83,10 +83,10 @@ JurisdictionMap::~JurisdictionMap() {
 
 JurisdictionMap::JurisdictionMap(NodeType_t type) : _rootOctalCode(nullptr) {
     _nodeType = type;
-    auto rootCode = std::shared_ptr<unsigned char>(new unsigned char[1], std::default_delete<unsigned char[]>());
+    OctalCodePtr rootCode = allocateOctalCodePtr(1);
     *rootCode = 0;
 
-    std::vector<OctalCodePtr> emptyEndNodes;
+    OctalCodePtrList emptyEndNodes;
     init(rootCode, emptyEndNodes);
 }
 
@@ -127,7 +127,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
 
 std::tuple<OctalCodePtr, OctalCodePtrList> JurisdictionMap::getRootOctalCodeAndEndNodes() const {
     std::lock_guard<std::mutex> lock(_octalCodeMutex);
-    return std::tuple<OctalCodePtr, std::vector<OctalCodePtr>>(_rootOctalCode, _endNodes);
+    return std::tuple<OctalCodePtr, OctalCodePtrList>(_rootOctalCode, _endNodes);
 }
 
 OctalCodePtr JurisdictionMap::getRootOctalCode() const {
@@ -140,7 +140,7 @@ OctalCodePtrList JurisdictionMap::getEndNodeOctalCodes() const {
     return _endNodes;
 }
 
-void JurisdictionMap::init(OctalCodePtr rootOctalCode, const std::vector<OctalCodePtr>& endNodes) {
+void JurisdictionMap::init(OctalCodePtr rootOctalCode, const OctalCodePtrList& endNodes) {
     std::lock_guard<std::mutex> lock(_octalCodeMutex);
     _rootOctalCode = rootOctalCode;
     _endNodes = endNodes;
@@ -291,7 +291,7 @@ int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
     _endNodes.clear();
 
     if (bytes > 0 && bytes <= message.getBytesLeftToRead()) {
-        _rootOctalCode = std::shared_ptr<unsigned char>(new unsigned char[bytes], std::default_delete<unsigned char[]>());
+        _rootOctalCode = allocateOctalCodePtr(bytes);
         message.read(reinterpret_cast<char*>(_rootOctalCode.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
@@ -303,7 +303,7 @@ int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
             message.readPrimitive(&bytes);
 
             if (bytes <= message.getBytesLeftToRead()) {
-                auto endNodeCode = std::shared_ptr<unsigned char>(new unsigned char[bytes], std::default_delete<unsigned char[]>());
+                auto endNodeCode = allocateOctalCodePtr(bytes);
                 message.read(reinterpret_cast<char*>(endNodeCode.get()), bytes);
 
                 // if the endNodeCode was 0 length then don't add it
