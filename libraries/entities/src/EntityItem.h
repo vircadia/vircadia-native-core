@@ -24,6 +24,7 @@
 #include <PhysicsCollisionGroups.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
+#include <Sound.h>
 #include <SpatiallyNestable.h>
 
 #include "EntityItemID.h"
@@ -250,7 +251,10 @@ public:
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
-    void setCollisionSoundURL(const QString& value) { _collisionSoundURL = value; }
+    void setCollisionSoundURL(const QString& value);
+
+    SharedSoundPointer getCollisionSound();
+    void setCollisionSound(SharedSoundPointer sound) { _collisionSound = sound; }
 
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
@@ -302,6 +306,7 @@ public:
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
+    void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -314,7 +319,7 @@ public:
 
     virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
-    virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
+    virtual float getVolumeEstimate() const;
 
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
@@ -361,7 +366,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
-    virtual SpatialParentTree* getParentTree() const;
+    virtual SpatialParentTree* getParentTree() const override;
     bool wantTerseEditLogging() const;
 
     glm::mat4 getEntityToWorldMatrix() const;
@@ -373,14 +378,15 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void pokeSimulationOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE; }
-    void grabSimulationOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB; }
+    void pokeSimulationOwnership();
+    void grabSimulationOwnership();
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
-    bool addAction(EntitySimulation* simulation, EntityActionPointer action);
-    bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
-    bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
-    bool clearActions(EntitySimulation* simulation);
+    QString actionsToDebugString();
+    bool addAction(EntitySimulationPointer simulation, EntityActionPointer action);
+    bool updateAction(EntitySimulationPointer simulation, const QUuid& actionID, const QVariantMap& arguments);
+    bool removeAction(EntitySimulationPointer simulation, const QUuid& actionID);
+    bool clearActions(EntitySimulationPointer simulation);
     void setActionData(QByteArray actionData);
     const QByteArray getActionData() const;
     bool hasActions() const { return !_objectActions.empty(); }
@@ -477,6 +483,7 @@ protected:
     quint64 _loadedScriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
 
     QString _collisionSoundURL;
+    SharedSoundPointer _collisionSound;
     glm::vec3 _registrationPoint;
     float _angularDamping;
     bool _visible;
@@ -515,8 +522,8 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    bool addActionInternal(EntitySimulation* simulation, EntityActionPointer action);
-    bool removeActionInternal(const QUuid& actionID, EntitySimulation* simulation = nullptr);
+    bool addActionInternal(EntitySimulationPointer simulation, EntityActionPointer action);
+    bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);
     void deserializeActionsInternal();
     void serializeActions(bool& success, QByteArray& result) const;
     QHash<QUuid, EntityActionPointer> _objectActions;
@@ -527,7 +534,7 @@ protected:
     // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
     // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
     // are used to keep track of and work around this situation.
-    void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
+    void checkWaitingToRemove(EntitySimulationPointer simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
     mutable bool _actionDataNeedsTransmit = false;

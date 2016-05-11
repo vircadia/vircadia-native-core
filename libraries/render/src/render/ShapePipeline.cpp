@@ -51,22 +51,22 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter) {
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::ALBEDO_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("roughnessMap"), Slot::ROUGHNESS_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::NORMAL_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("metallicMap"), Slot::METALLIC_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::EMISSIVE_LIGHTMAP_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::OCCLUSION_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::LIGHT_BUFFER));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
+    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
+    slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));
+    slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::MAP::ALBEDO));
+    slotBindings.insert(gpu::Shader::Binding(std::string("roughnessMap"), Slot::MAP::ROUGHNESS));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::MAP::NORMAL));
+    slotBindings.insert(gpu::Shader::Binding(std::string("metallicMap"), Slot::MAP::METALLIC));
+    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::MAP::EMISSIVE_LIGHTMAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
     auto locations = std::make_shared<Locations>();
-    locations->texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
-    locations->emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
     locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
     locations->roughnessTextureUnit = program->getTextures().findLocation("roughnessMap");
@@ -76,7 +76,9 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->occlusionTextureUnit = program->getTextures().findLocation("occlusionMap");
     locations->skinClusterBufferUnit = program->getBuffers().findLocation("skinClusterBuffer");
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
+    locations->texMapArrayBufferUnit = program->getBuffers().findLocation("texMapArrayBuffer");
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
+    locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
 
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
@@ -93,7 +95,11 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
 
     const auto& pipelineIterator = _pipelineMap.find(key);
     if (pipelineIterator == _pipelineMap.end()) {
-        qDebug() << "Couldn't find a pipeline from ShapeKey ?" << key;
+        // The first time we can't find a pipeline, we should log it
+        if (_missingKeys.find(key) == _missingKeys.end()) {
+            _missingKeys.insert(key);
+            qDebug() << "Couldn't find a pipeline for" << key;
+        }
         return PipelinePointer(nullptr);
     }
 

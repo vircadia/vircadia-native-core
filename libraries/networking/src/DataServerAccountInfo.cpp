@@ -31,8 +31,6 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _xmppPassword = otherInfo._xmppPassword;
     _discourseApiKey = otherInfo._discourseApiKey;
     _walletID = otherInfo._walletID;
-    _balance = otherInfo._balance;
-    _hasBalance = otherInfo._hasBalance;
     _privateKey = otherInfo._privateKey;
     _domainID = otherInfo._domainID;
 }
@@ -51,8 +49,6 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_xmppPassword, otherInfo._xmppPassword);
     swap(_discourseApiKey, otherInfo._discourseApiKey);
     swap(_walletID, otherInfo._walletID);
-    swap(_balance, otherInfo._balance);
-    swap(_hasBalance, otherInfo._hasBalance);
     swap(_privateKey, otherInfo._privateKey);
     swap(_domainID, otherInfo._domainID);
 }
@@ -84,23 +80,6 @@ void DataServerAccountInfo::setDiscourseApiKey(const QString& discourseApiKey) {
 void DataServerAccountInfo::setWalletID(const QUuid& walletID) {
     if (_walletID != walletID) {
         _walletID = walletID;
-    }
-}
-
-void DataServerAccountInfo::setBalance(qint64 balance) {
-    if (!_hasBalance || _balance != balance) {
-        _balance = balance;
-        _hasBalance = true;
-
-        emit balanceChanged(_balance);
-    }
-}
-
-void DataServerAccountInfo::setBalanceFromJSON(QNetworkReply& requestReply) {
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-    if (jsonObject["status"].toString() == "success") {
-        qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toDouble();
-        setBalance(balanceInSatoshis);
     }
 }
 

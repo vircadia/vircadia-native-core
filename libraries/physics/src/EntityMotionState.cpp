@@ -519,12 +519,16 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         // but we remember we do still own it...  and rely on the server to tell us we don't
         properties.clearSimulationOwner();
         _outgoingPriority = 0;
+        _entity->setPendingOwnershipPriority(_outgoingPriority, now);
     } else if (Physics::getSessionUUID() != _entity->getSimulatorID()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
-        properties.setSimulationOwner(Physics::getSessionUUID(),
-                glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
+        quint8 bidPriority = glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY);
+        properties.setSimulationOwner(Physics::getSessionUUID(), bidPriority);
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
-        _outgoingPriority = 0; // reset outgoing priority whenever we bid
+        // copy _outgoingPriority into pendingPriority...
+        _entity->setPendingOwnershipPriority(_outgoingPriority, now);
+        // ...then reset _outgoingPriority in preparation for the next frame
+        _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
         // we own the simulation but our desired priority has changed
         if (_outgoingPriority == 0) {
@@ -534,6 +538,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             // we just need to change the priority
             properties.setSimulationOwner(Physics::getSessionUUID(), _outgoingPriority);
         }
+        _entity->setPendingOwnershipPriority(_outgoingPriority, now);
     }
 
     EntityItemID id(_entity->getID());

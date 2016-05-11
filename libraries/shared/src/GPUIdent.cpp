@@ -147,7 +147,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
             _isValid = true;
         }
-        hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
+        hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance.p, &uNumOfInstances);
     }
 #endif
     return this;

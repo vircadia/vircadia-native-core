@@ -44,7 +44,7 @@ else ()
 endif ()
 
 find_package(Qt5 COMPONENTS
-    Gui Multimedia Network OpenGL Qml Quick Script Svg
+    Gui Multimedia Network OpenGL Qml Quick Script ScriptTools Svg
     WebChannel WebEngine WebEngineWidgets WebKitWidgets WebSockets)
 
 # grab the ui files in resources/ui
@@ -201,7 +201,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
-  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::ScriptTools Qt5::Svg
   Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets Qt5::WebKitWidgets
 )
 
@@ -243,7 +243,7 @@ else (APPLE)
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${CMAKE_SOURCE_DIR}/examples"
+    "${CMAKE_SOURCE_DIR}/scripts"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
@@ -269,7 +269,7 @@ endif (APPLE)
 if (SCRIPTS_INSTALL_DIR)
   # setup install of scripts beside interface executable
   install(
-    DIRECTORY "${CMAKE_SOURCE_DIR}/examples/"
+    DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"
     DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
     COMPONENT ${CLIENT_COMPONENT}
   )

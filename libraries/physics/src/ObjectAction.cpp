@@ -138,7 +138,7 @@ QVariantMap ObjectAction::getArguments() {
 void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {
 }
 
-void ObjectAction::removeFromSimulation(EntitySimulation* simulation) const {
+void ObjectAction::removeFromSimulation(EntitySimulationPointer simulation) const {
     QUuid myID;
     withReadLock([&]{
         myID = _id;

@@ -107,7 +107,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext,
                      const ItemBounds& inItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
     const int NUM_STATUS_VEC4_PER_ITEM = 2;
@@ -183,8 +183,8 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);

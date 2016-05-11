@@ -46,7 +46,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        qDebug() << "Item could not be rendered: invalid key ?" << key;
+        qDebug() << "Item could not be rendered with invalid key" << key;
     }
 }
 
@@ -96,7 +96,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
             } else if (key.hasOwnPipeline()) {
                 ownPipelineBucket.push_back(item);
             } else {
-                qDebug() << "Item could not be rendered: invalid key ?" << key;
+                qDebug() << "Item could not be rendered with invalid key" << key;
             }
         }
     }
@@ -105,6 +105,9 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
     for (auto& pipelineKey : sortedPipelines) {
         auto& bucket = sortedShapes[pipelineKey];
         args->_pipeline = shapeContext->pickPipeline(args, pipelineKey);
+        if (!args->_pipeline) {
+            continue;
+        }
         for (auto& item : bucket) {
             item.render(args);
         }
@@ -117,7 +120,7 @@ void render::renderStateSortShapes(const SceneContextPointer& sceneContext, cons
 
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
     // render lights

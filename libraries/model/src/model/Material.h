@@ -245,16 +245,16 @@ public:
     const MaterialKey& getKey() const { return _key; }
 
     void setEmissive(const Color& emissive, bool isSRGB = true);
-    Color getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
+    Color getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
 
     void setOpacity(float opacity);
     float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
 
     void setAlbedo(const Color& albedo, bool isSRGB = true);
-    Color getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._albedo) : _schemaBuffer.get<Schema>()._albedo); }
+    Color getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._albedo) : _schemaBuffer.get<Schema>()._albedo); }
 
     void setFresnel(const Color& fresnel, bool isSRGB = true);
-    Color getFresnel(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._fresnel) : _schemaBuffer.get<Schema>()._fresnel); }
+    Color getFresnel(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._fresnel) : _schemaBuffer.get<Schema>()._fresnel); }
 
     void setMetallic(float metallic);
     float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic; }
@@ -298,9 +298,21 @@ public:
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
 
+    // Texture Map Array Schema
+    static const int NUM_TEXCOORD_TRANSFORMS{ 2 };
+    class TexMapArraySchema {
+    public:
+        glm::mat4 _texcoordTransforms[NUM_TEXCOORD_TRANSFORMS];
+        glm::vec4 _lightmapParams{ 0.0, 1.0, 0.0, 0.0 };
+        TexMapArraySchema() {}
+    };
+
+    const UniformBufferView& getTexMapArrayBuffer() const { return _texMapArrayBuffer; }
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
+    mutable UniformBufferView _texMapArrayBuffer;
+
     TextureMaps _textureMaps;
 };
 typedef std::shared_ptr< Material > MaterialPointer;

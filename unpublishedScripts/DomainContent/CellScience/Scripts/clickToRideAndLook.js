@@ -13,7 +13,7 @@
         z: -1
     }
 
-    var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
+    var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
 
     var self = this;
 

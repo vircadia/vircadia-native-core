@@ -26,6 +26,8 @@
 // TODO: remove
 class Settings : public QSettings {
 public:
+    static const QString firstRun;
+
     void getFloatValueIfValid(const QString& name, float& floatValue);
     void getBoolValue(const QString& name, bool& boolValue);
 

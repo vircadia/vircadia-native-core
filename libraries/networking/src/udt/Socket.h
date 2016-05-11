@@ -86,7 +86,10 @@ public slots:
 private slots:
     void readPendingDatagrams();
     void rateControlSync();
-    
+
+    void handleSocketError(QAbstractSocket::SocketError socketError);
+    void handleStateChanged(QAbstractSocket::SocketState socketState);
+
 private:
     void setSystemBufferSizes();
     Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);

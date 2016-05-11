@@ -380,7 +380,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
     } else {
-        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
+        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), NetworkTexture::CUBE_TEXTURE);
         _pendingAmbientTexture = true;
 
         if (_ambientTexture && _ambientTexture->isLoaded()) {
@@ -410,7 +410,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
-                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), NetworkTexture::CUBE_TEXTURE);
                 _pendingSkyboxTexture = true;
 
                 if (_skyboxTexture && _skyboxTexture->isLoaded()) {
@@ -820,14 +820,14 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
 
-    QString collisionSoundURL;
+    SharedSoundPointer collisionSound;
     float mass = 1.0; // value doesn't get used, but set it so compiler is quiet
     AACube minAACube;
     bool success = false;
     _tree->withReadLock([&] {
         EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
         if (entity) {
-            collisionSoundURL = entity->getCollisionSoundURL();
+            collisionSound = entity->getCollisionSound();
             mass = entity->computeMass();
             minAACube = entity->getMinimumAACube(success);
         }
@@ -835,9 +835,10 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     if (!success) {
         return;
     }
-    if (collisionSoundURL.isEmpty()) {
+    if (!collisionSound) {
         return;
     }
+
     const float COLLISION_PENETRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
     // but that first contact depends on exactly where we hit in the physics step.
@@ -859,11 +860,10 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
     const float volume = (energyFactorOfFull * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
 
-
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
     const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
+    AudioInjector::playSound(collisionSound, volume, stretchFactor, position);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,

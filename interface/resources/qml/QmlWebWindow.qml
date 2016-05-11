@@ -1,11 +1,21 @@
-import QtQuick 2.3
-import QtQuick.Controls 1.2
+//
+//  QmlWebWindow.qml
+//
+//  Created by Bradley Austin Davis on 17 Dec 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 
-import "windows" as Windows
-import "controls" as Controls
-import "styles"
+import "windows-uit" as Windows
+import "controls-uit" as Controls
+import "styles-uit"
 
 Windows.Window {
     id: root
@@ -29,11 +39,16 @@ Windows.Window {
     // missing signal
     signal sendToScript(var message);
 
-    Controls.WebView {
-        id: webview
-        url: "about:blank"
-        anchors.fill: parent
-        focus: true
-        webChannel.registeredObjects: [eventBridgeWrapper]
+    Item {
+        width: pane.contentWidth
+        implicitHeight: pane.scrollHeight
+
+        Controls.WebView {
+            id: webview
+            url: "about:blank"
+            anchors.fill: parent
+            focus: true
+            webChannel.registeredObjects: [eventBridgeWrapper]
+        }
     }
-} // dialog
+}

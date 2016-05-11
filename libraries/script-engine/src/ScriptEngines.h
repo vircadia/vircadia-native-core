@@ -87,8 +87,6 @@ protected:
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
 
-
-    Setting::Handle<bool> _firstRun { "firstRun", true };
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;
@@ -101,6 +99,7 @@ protected:
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);
+QString expandScriptPath(const QString& rawPath);
 QUrl expandScriptUrl(const QUrl& rawScriptURL);
 
 #endif // hifi_ScriptEngine_h

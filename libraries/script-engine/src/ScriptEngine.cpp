@@ -9,17 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFileInfo>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QRegularExpression>
+
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QApplication>
+
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtScript/QScriptEngine>
+
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
-#include <QtCore/QStringList>
+
+#include <QtScriptTools/QScriptEngineDebugger>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -31,6 +40,7 @@
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
+#include <ui/Menu.h>
 
 #include <controllers/ScriptingInterface.h>
 #include <AnimationObject.h>
@@ -140,16 +150,21 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         hadUncaughtExceptions(*this, _fileNameString);
     });
+    
+    setProcessEventsInterval(MSECS_PER_SECOND);
 }
 
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
+
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
         scriptEngines->removeScriptEngine(this);
     } else {
         qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
     }
+
+    waitTillDoneRunning();
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
@@ -161,6 +176,93 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     }
 }
 
+void ScriptEngine::runDebuggable() {
+    static QMenuBar* menuBar { nullptr };
+    static QMenu* scriptDebugMenu { nullptr };
+    static size_t scriptMenuCount { 0 };
+    if (!scriptDebugMenu) {
+        for (auto window : qApp->topLevelWidgets()) {
+            auto mainWindow = qobject_cast<QMainWindow*>(window);
+            if (mainWindow) {
+                menuBar = mainWindow->menuBar();
+                break;
+            }
+        }
+        if (menuBar) {
+            scriptDebugMenu = menuBar->addMenu("Script Debug");
+        }
+    }
+
+    init();
+    _isRunning = true;
+    _debuggable = true;
+    _debugger = new QScriptEngineDebugger(this);
+    _debugger->attachTo(this);
+
+    QMenu* parentMenu = scriptDebugMenu;
+    QMenu* scriptMenu { nullptr };
+    if (parentMenu) {
+        ++scriptMenuCount;
+        scriptMenu = parentMenu->addMenu(_fileNameString);
+        scriptMenu->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
+    } else {
+        qWarning() << "Unable to add script debug menu";
+    }
+
+    QScriptValue result = evaluate(_scriptContents, _fileNameString);
+
+    _lastUpdate = usecTimestampNow();
+    QTimer* timer = new QTimer(this);
+    connect(this, &ScriptEngine::finished, [this, timer, parentMenu, scriptMenu] {
+        if (scriptMenu) {
+            parentMenu->removeAction(scriptMenu->menuAction());
+            --scriptMenuCount;
+            if (0 == scriptMenuCount) {
+                menuBar->removeAction(scriptDebugMenu->menuAction());
+                scriptDebugMenu = nullptr;
+            }
+        }
+        disconnect(timer); 
+    });
+
+    connect(timer, &QTimer::timeout, [this, timer] {
+        if (_isFinished) {
+            if (!_isRunning) {
+                return;
+            }
+            stopAllTimers(); // make sure all our timers are stopped if the script is ending
+            if (_wantSignals) {
+                emit scriptEnding();
+                emit finished(_fileNameString, this);
+            }
+            _isRunning = false;
+            if (_wantSignals) {
+                emit runningStateChanged();
+                emit doneRunning();
+            }
+            timer->deleteLater();
+            return;
+        }
+
+        qint64 now = usecTimestampNow();
+        // we check for 'now' in the past in case people set their clock back
+        if (_lastUpdate < now) {
+            float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
+            }
+        }
+        _lastUpdate = now;
+        // Debug and clear exceptions
+        hadUncaughtExceptions(*this, _fileNameString);
+    });
+
+    timer->start(10);
+}
+
+
 void ScriptEngine::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
 
@@ -170,7 +272,7 @@ void ScriptEngine::runInThread() {
     }
 
     _isThreaded = true;
-    QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
+    QThread* workerThread = new QThread();
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
 
@@ -184,9 +286,6 @@ void ScriptEngine::runInThread() {
     // tell the thread to stop when the script engine is done
     connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
 
-    // when the thread is finished, add thread to the deleteLater queue
-    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
-
     moveToThread(workerThread);
 
     // Starts an event loop, and emits workerThread->started()
@@ -195,16 +294,35 @@ void ScriptEngine::runInThread() {
 
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
-    if (_isRunning && _isThreaded) {
+    auto workerThread = thread();
+    if (_isThreaded && workerThread) {
+        QString scriptName = getFilename();
+        auto startedWaiting = usecTimestampNow();
 
-        // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
-        // we want the application thread to continue to process events, because the scripts will likely need to
-        // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
-        // shutdown code.
-        while (thread()->isRunning()) {
-            // process events for the main application thread, allowing invokeMethod calls to pass between threads
-            QCoreApplication::processEvents();
+        while (workerThread->isRunning()) {
+            // NOTE: This will be called on the main application thread from stopAllScripts.
+            //       The application thread will need to continue to process events, because
+            //       the scripts will likely need to marshall messages across to the main thread, e.g.
+            //       if they access Settings or Menu in any of their shutdown code. So:
+            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
+            QCoreApplication::processEvents(); // thread-safe :)
+
+            // If we've been waiting a second or more, then tell the script engine to stop evaluating
+            static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
+            auto elapsedUsecs = usecTimestampNow() - startedWaiting;
+            if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
+                qCDebug(scriptengine) <<
+                    "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
+                abortEvaluation(); // to allow the thread to quit
+                workerThread->quit();
+                break;
+            }
+
+            // Avoid a pure busy wait
+            QThread::yieldCurrentThread();
         }
+
+        workerThread->deleteLater();
     }
 }
 
@@ -236,6 +354,10 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 // FIXME - switch this to the new model of ScriptCache callbacks
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
+    static const QString DEBUG_FLAG("#debug");
+    if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
+        _debuggable = true;
+    }
     if (_wantSignals) {
         emit scriptLoaded(url.toString());
     }
@@ -268,6 +390,48 @@ static QScriptValue resultHandlerToScriptValue(QScriptEngine* engine, const Anim
 static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantResultHandler& resultHandler) {
     qCCritical(scriptengine) << "Attempt to marshall result handler from javascript";
     assert(false);
+}
+
+// Templated qScriptRegisterMetaType fails to compile with raw pointers
+using ScriptableResourceRawPtr = ScriptableResource*;
+
+static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const ScriptableResourceRawPtr& resource) {
+    // The first script to encounter this resource will track its memory.
+    // In this way, it will be more likely to GC.
+    // This fails in the case that the resource is used across many scripts, but
+    // in that case it would be too difficult to tell which one should track the memory, and
+    // this serves the common case (use in a single script).
+    auto data = resource->getResource();
+    if (data && !resource->isInScript()) {
+        resource->setInScript(true);
+        QObject::connect(data.data(), SIGNAL(updateSize(qint64)), engine, SLOT(updateMemoryCost(qint64)));
+    }
+
+    auto object = engine->newQObject(
+        const_cast<ScriptableResourceRawPtr>(resource),
+        QScriptEngine::ScriptOwnership);
+    return object;
+}
+
+static void scriptableResourceFromScriptValue(const QScriptValue& value, ScriptableResourceRawPtr& resource) {
+    resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
+}
+
+static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
+    auto prototype = engine->newObject();
+
+    // Expose enum State to JS/QML via properties
+    QObject* state = new QObject(engine);
+    state->setObjectName("ResourceState");
+    auto metaEnum = QMetaEnum::fromType<ScriptableResource::State>();
+    for (int i = 0; i < metaEnum.keyCount(); ++i) {
+        state->setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+
+    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership, QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
+    prototype.setProperty("State", prototypeState);
+
+    return prototype;
 }
 
 void ScriptEngine::init() {
@@ -327,10 +491,15 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
-    registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
+
+    // Scriptable cache access
+    auto resourcePrototype = createScriptableResourcePrototype(this);
+    globalObject().setProperty("Resource", resourcePrototype);
+    setDefaultPrototype(qMetaTypeId<ScriptableResource*>(), resourcePrototype);
+    qScriptRegisterMetaType(this, scriptableResourceToScriptValue, scriptableResourceFromScriptValue);
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
@@ -367,7 +536,6 @@ void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
             if (partsToGo > 0) {
                 //QObject *object = new QObject;
                 QScriptValue partValue = newArray(); //newQObject(object, QScriptEngine::ScriptOwnership);
-                qDebug() << "partValue[" << pathPart<<"].isArray() :" << partValue.isArray();
                 partObject.setProperty(pathPart, partValue);
             } else {
                 partObject.setProperty(pathPart, value);
@@ -639,22 +807,45 @@ void ScriptEngine::run() {
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
-    QElapsedTimer startTime;
-    startTime.start();
+#ifdef _WIN32
+    // VS13 does not sleep_until unless it uses the system_clock, see:
+    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
+    using clock = std::chrono::system_clock;
+#else
+    using clock = std::chrono::high_resolution_clock;
+#endif
 
+    clock::time_point startTime = clock::now();
     int thisFrame = 0;
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    qint64 lastUpdate = usecTimestampNow();
+    _lastUpdate = usecTimestampNow();
 
+    // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
-        int usecToSleep = (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - startTime.nsecsElapsed() / 1000; // nsec to usec
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
+        // Throttle to SCRIPT_FPS
+        const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
+        std::this_thread::sleep_until(sleepTime);
 
+#ifdef SCRIPT_DELAY_DEBUG
+        {
+            auto now = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            if (seconds > 0) { // avoid division by zero and time travel
+                uint64_t fps = thisFrame / seconds;
+                // Overreporting artificially reduces the reported rate
+                if (thisFrame % SCRIPT_FPS == 0) {
+                    qCDebug(scriptengine) <<
+                        "Frame:" << thisFrame <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "FPS:" << fps;
+                }
+            }
+        }
+#endif
         if (_isFinished) {
             break;
         }
@@ -678,15 +869,15 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (lastUpdate < now) {
-            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+        if (_lastUpdate < now) {
+            float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 if (_wantSignals) {
                     emit update(deltaTime);
                 }
             }
         }
-        lastUpdate = now;
+        _lastUpdate = now;
 
         // Debug and clear exceptions
         hadUncaughtExceptions(*this, _fileNameString);
@@ -793,6 +984,12 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
     }
 }
 
+void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
+    if (deltaSize > 0) {
+        reportAdditionalMemoryCost(deltaSize);
+    }
+}
+
 void ScriptEngine::timerFired() {
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
     CallbackData timerData = _timerFunctionMap.value(callingTimer);
@@ -896,7 +1093,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
     QList<QUrl> urls;
     bool knowsSensitivity = false;
-    Qt::CaseSensitivity sensitivity;
+    Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
     auto getSensitivity = [&]() {
         if (!knowsSensitivity) {
             QString path = currentSandboxURL.path();
@@ -912,18 +1109,26 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     // Do NOT use PreferLocalFile as its behavior is unpredictable (e.g., on defaultScriptsLocation())
     const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
-        QUrl thisURL { resolvePath(file) };
+        QUrl thisURL;
+        bool isStandardLibrary = false;
+        if (file.startsWith("/~/")) {
+            thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
+            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            if (!defaultScriptsLoc.isParentOf(thisURL)) {
+                qDebug() << "ScriptEngine::include -- skipping" << file << "-- outside of standard libraries";
+                continue;
+            }
+            isStandardLibrary = true;
+        } else {
+            thisURL = resolvePath(file);
+        }
+
         if (!_includedURLs.contains(thisURL)) {
-            if (!currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
-                (
-                    (currentSandboxURL.scheme() != "file") ||
-                        (
-                            !thisURL.toString(strippingFlags).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
-                            !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity())
-                        )
-                 )
-                ) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path" << thisURL << "outside of original entity script" << currentSandboxURL;
+            if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
+                (currentSandboxURL.scheme() != "file" ||
+                 !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
+                qCWarning(scriptengine) << "Script.include() ignoring file path"
+                                        << thisURL << "outside of original entity script" << currentSandboxURL;
             } else {
                 // We could also check here for CORS, but we don't yet.
                 // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.
@@ -1060,11 +1265,6 @@ void ScriptEngine::loadEntityScript(QWeakPointer<ScriptEngine> theEngine, const 
                 << QThread::currentThread() << "] expected thread [" << strongEngine->thread() << "]";
 #endif
             strongEngine->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
-        } else {
-            // FIXME - I'm leaving this in for testing, so that QA can confirm that sometimes the script contents
-            //         returns after the ScriptEngine has been deleted, we can remove this after QA verifies the
-            //         repro case.
-            qDebug() << "ScriptCache::getScriptContents() returned after our ScriptEngine was deleted... script:" << scriptOrURL;
         }
     }, forceRedownload);
 }

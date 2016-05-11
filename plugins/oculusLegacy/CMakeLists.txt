@@ -12,13 +12,17 @@ if (APPLE)
 
     set(TARGET_NAME oculusLegacy)
     setup_hifi_plugin()
-    link_hifi_libraries(shared gl gpu plugins display-plugins input-plugins)
+    link_hifi_libraries(shared gl gpu plugins ui display-plugins input-plugins)
     
     include_hifi_library_headers(octree)
     
     add_dependency_external_projects(LibOVR)
     find_package(LibOVR REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
-    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
+    find_library(COCOA_LIBRARY Cocoa)
+    find_library(IOKIT_LIBRARY IOKit)
+    target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES} ${COCOA_LIBRARY} ${IOKIT_LIBRARY})
+
+
 
 endif()

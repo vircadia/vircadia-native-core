@@ -24,7 +24,7 @@ class PluginContainerProxy : public QObject, PluginContainer {
     virtual ui::Menu* getPrimaryMenu() override;
     virtual QOpenGLContext* getPrimaryContext() override;
     virtual bool isForeground() override;
-    virtual const DisplayPlugin* getActiveDisplayPlugin() const override;
+    virtual const DisplayPluginPointer getActiveDisplayPlugin() const override;
 
     friend class Application;
 
