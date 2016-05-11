@@ -13,6 +13,7 @@
 
 #include <math.h>
 
+const QString Settings::firstRun { "firstRun" };
 
 void Settings::getFloatValueIfValid(const QString& name, float& floatValue) {
     const QVariant badDefaultValue = NAN;

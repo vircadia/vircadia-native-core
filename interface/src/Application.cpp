@@ -673,9 +673,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
     UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed, sessionRunTime.get());
 
-    // once the event loop has started, check and signal for an access token
-    QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
-
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
@@ -1089,6 +1086,11 @@ void Application::checkChangeCursor() {
 
         _cursorNeedsChanging = false;
     }
+
+
+    // After all of the constructor is completed, then set firstRun to false.
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
+    firstRun.set(false);
 }
 
 void Application::showCursor(const QCursor& cursor) {
@@ -1298,8 +1300,6 @@ void Application::initializeGL() {
 
     // update before the first render
     update(0);
-
-    InfoView::show(INFO_HELP_PATH, true);
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -2959,7 +2959,21 @@ void Application::init() {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
-    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    if (addressLookupString.isEmpty() && firstRun.get()) {
+        qDebug() << "First run and no URL passed... attempting to go to Home or Entry...";
+        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([](){
+            qDebug() << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox();
+        }, 
+        [](){
+            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            DependencyManager::get<AddressManager>()->goToEntry();
+        });
+    } else {
+        qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+    }
 
     qCDebug(interfaceapp) << "Loaded settings";
 
