@@ -23,7 +23,6 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
     _foundOld(false),
     _foundNew(false),
     _removeOld(false),
-    _dontMove(false), // assume we'll be moving
     _changeTime(usecTimestampNow()),
     _oldEntityCube(),
     _newEntityCube(),
@@ -46,12 +45,11 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
     // If our new properties don't have bounds details (no change to position, etc) or if this containing element would
     // be the best fit for our new properties, then just do the new portion of the store pass, since the change path will
     // be the same for both parts of the update
-    bool oldElementBestFit = _containingElement->bestFitBounds(newQueryAACube);
+    bool oldElementBestFit = _containingElement->bestFitBounds(_oldEntityBox);
 
     // For some reason we've seen a case where the original containing element isn't a best fit for the old properties
     // in this case we want to move it, even if the properties haven't changed.
     if (!oldElementBestFit) {
-        _newEntityCube = _oldEntityCube;
         _removeOld = true; // our properties are going to move us, so remember this for later processing
 
         if (_wantDebug) {
@@ -59,14 +57,13 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
         }
     } else {
         _foundOld = true;
-        _newEntityCube = _oldEntityCube;
-        _dontMove = true;
 
         if (_wantDebug) {
             qCDebug(entities) << "    **** TYPICAL NO MOVE CASE **** oldElementBestFit:" << oldElementBestFit;
         }
     }
 
+    _newEntityCube = newQueryAACube;
     _newEntityBox = _newEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
     if (_wantDebug) {
