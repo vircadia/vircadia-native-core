@@ -105,6 +105,57 @@
             });
         },
 
+        tidyGlowActive: function() {
+            print('tidy glow active')
+            var res = Entities.findEntities(MyAvatar.position, 30);
+            var glow = null;
+            res.forEach(function(item) {
+                var props = Entities.getEntityProperties(item);
+                if (props.name === "Tidyguy-Glow") {
+                    glow = item;
+                }
+
+
+            })
+            if (glow !== null) {
+                print('editing glow' + glow)
+                Entities.editEntity(glow, {
+                    color: {
+                        red: 255,
+                        green: 140,
+                        blue: 20
+                    }
+                })
+            }
+        },
+
+        tidyGlowDefault: function() {
+           print('tidy glow default')
+
+            var res = Entities.findEntities(MyAvatar.position, 30);
+            var glow = null;
+            res.forEach(function(item) {
+                var props = Entities.getEntityProperties(item);
+                if (props.name === "Tidyguy-Glow") {
+                    glow = item;
+                }
+
+            });
+
+            if (glow !== null) {
+                print('editing glow' + glow)
+
+                Entities.editEntity(glow, {
+
+                    color: {
+                        red: 92,
+                        green: 255,
+                        blue: 209
+                    }
+                })
+            }
+        },
+
         showTidyButton: function() {
             var data = {
                 "Texture": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker.jpg",
@@ -146,11 +197,13 @@
             } else {
                 _this.tidying = true;
                 _this.showTidyingButton();
+                _this.tidyGlowActive();
                 _this.playTidyingSound();
                 _this.flickerEyes();
                 _this.findAndDeleteHomeEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
+                    _this.tidyGlowDefault();
                     _this.tidying = false;
                 }, 2500);
 
