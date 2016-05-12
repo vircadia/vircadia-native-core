@@ -46,7 +46,7 @@ public:
     virtual render::ScenePointer getMain3DScene() = 0;
     virtual render::EnginePointer getRenderEngine() = 0;
 
-    virtual void pushPreRenderLambda(void* key, std::function<void()> func) = 0;
+    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) = 0;
 
     // FIXME - we shouldn't assume that there's a single instance of an AbstractViewStateInterface
     static AbstractViewStateInterface* instance();
