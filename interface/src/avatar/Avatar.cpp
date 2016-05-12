@@ -197,6 +197,7 @@ void Avatar::updateAvatarEntities() {
     QScriptEngine scriptEngine;
     entityTree->withWriteLock([&] {
         AvatarEntityMap avatarEntities = getAvatarEntityData();
+        qDebug() << "---------------";
         for (auto entityID : avatarEntities.keys()) {
             // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
             // and either add or update the entity.
@@ -206,6 +207,9 @@ void Avatar::updateAvatarEntities() {
                 qDebug() << "got bad avatarEntity json";
                 continue;
             }
+
+            qDebug() << jsonProperties.toJson();
+
             QVariant variantProperties = jsonProperties.toVariant();
             QVariantMap asMap = variantProperties.toMap();
             QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
@@ -214,7 +218,7 @@ void Avatar::updateAvatarEntities() {
             properties.setClientOnly(true);
             properties.setOwningAvatarID(getID());
 
-            // there's not entity-server to tell us we're the simulation owner, so always set the
+            // there's no entity-server to tell us we're the simulation owner, so always set the
             // simulationOwner to the owningAvatarID and a high priority.
             properties.setSimulationOwner(getID(), 129);
 
@@ -225,17 +229,19 @@ void Avatar::updateAvatarEntities() {
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
 
             if (entity) {
+                qDebug() << "avatar-entities existing entity, element =" << entity->getElement().get();
                 if (entityTree->updateEntity(entityID, properties)) {
-                    entity->markAsChangedOnServer();
                     entity->updateLastEditedFromRemote();
+                    qDebug() << "avatar-entities after entityTree->updateEntity(), element =" << entity->getElement().get();
                 } else {
-                    qDebug() << "AVATAR-ENTITES -- updateEntity failed: " << properties.getType();
+                    qDebug() << "AVATAR-ENTITIES -- updateEntity failed: " << properties.getType();
                     success = false;
                 }
             } else {
+                qDebug() << "avatar-entities new entity";
                 entity = entityTree->addEntity(entityID, properties);
                 if (!entity) {
-                    qDebug() << "AVATAR-ENTITES -- addEntity failed: " << properties.getType();
+                    qDebug() << "AVATAR-ENTITIES -- addEntity failed: " << properties.getType();
                     success = false;
                 }
             }
