@@ -187,40 +187,34 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
     }
 
-    // decompose into horizontal and vertical components.
-    btVector3 actualVertVelocity = actualVelocity.dot(_currentUp) * _currentUp;
-    btVector3 actualHorizVelocity = actualVelocity - actualVertVelocity;
-    btVector3 desiredVertVelocity = desiredVelocity.dot(_currentUp) * _currentUp;
-    btVector3 desiredHorizVelocity = desiredVelocity - desiredVertVelocity;
 
     btVector3 finalVelocity;
+    const btScalar FLY_ACCELERATION_TIMESCALE = 0.2f;
 
-    switch (_state) {
-    case State::Ground:
-    case State::Takeoff:
-        {
-            // horizontal ground control
-            const btScalar WALK_ACCELERATION_TIMESCALE = 0.1f;
-            btScalar tau = dt / WALK_ACCELERATION_TIMESCALE;
-            finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity + actualVertVelocity;
+    if (_state == State::Hover) {
+        // simple case
+        btScalar tau = dt / FLY_ACCELERATION_TIMESCALE;
+        finalVelocity = tau * desiredVelocity + (1.0f - tau) * actualVelocity;
+    } else {
+        // ground states require special handling of horizontal and vertical components
+        btVector3 actualVertVelocity = actualVelocity.dot(_currentUp) * _currentUp;
+        btVector3 actualHorizVelocity = actualVelocity - actualVertVelocity;
+        btVector3 desiredVertVelocity = desiredVelocity.dot(_currentUp) * _currentUp;
+        btVector3 desiredHorizVelocity = desiredVelocity - desiredVertVelocity;
+
+        // horizontal part
+        const btScalar WALK_ACCELERATION_TIMESCALE = 0.1f;
+        const btScalar IN_AIR_ACCELERATION_TIMESCALE = 2.0f;
+        btScalar timescale = (_state == State::InAir) ? IN_AIR_ACCELERATION_TIMESCALE : WALK_ACCELERATION_TIMESCALE;
+        btScalar tau = dt / timescale;
+        finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity;
+
+        // only blend vertical part if the target velocity has non-zero vertical component
+        const btScalar MIN_VERT_TARGET_SPEED_SQUARED = 1.0e-6; // 1mm/sec
+        if (desiredVertVelocity.length2() > MIN_VERT_TARGET_SPEED_SQUARED) {
+            tau = dt / FLY_ACCELERATION_TIMESCALE;
+            finalVelocity += tau * desiredVertVelocity + (1.0f - tau) * actualVertVelocity;
         }
-        break;
-    case State::InAir:
-        {
-            // horizontal air control
-            const btScalar IN_AIR_ACCELERATION_TIMESCALE = 2.0f;
-            btScalar tau = dt / IN_AIR_ACCELERATION_TIMESCALE;
-            finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity + actualVertVelocity;
-        }
-        break;
-    case State::Hover:
-        {
-            // vertical and horizontal air control
-            const btScalar FLY_ACCELERATION_TIMESCALE = 0.2f;
-            btScalar tau = dt / FLY_ACCELERATION_TIMESCALE;
-            finalVelocity = tau * desiredVelocity + (1.0f - tau) * actualVelocity;
-        }
-        break;
     }
 
     _rigidBody->setLinearVelocity(finalVelocity + _parentVelocity);
