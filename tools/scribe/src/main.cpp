@@ -12,6 +12,7 @@
 #include "TextTemplate.h"
 
 #include <fstream>
+#include <sstream>
 #include <ctime>
 #include <chrono>
 
