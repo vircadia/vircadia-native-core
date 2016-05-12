@@ -430,23 +430,6 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
     *alphaOut = alpha;
 }
 
-bool Rig::getJointData(int index, JointData& jointDataOut) const {
-    if (isIndexValid(index)) {
-        jointDataOut.rotation = _internalPoseSet._absolutePoses[index].rot;
-        jointDataOut.rotationSet = !isEqual(jointDataOut.rotation, _animSkeleton->getAbsoluteDefaultPose(index).rot);
-
-        // geometry offset is used here so that translations are in meters, this is what the avatar mixer expects
-        jointDataOut.translation = _geometryOffset * _internalPoseSet._absolutePoses[index].trans;
-        jointDataOut.translationSet = !isEqual(jointDataOut.translation, _animSkeleton->getAbsoluteDefaultPose(index).trans);
-        return true;
-    } else {
-        jointDataOut.translationSet = false;
-        jointDataOut.rotationSet = false;
-        return false;
-    }
-}
-
-
 void Rig::setEnableInverseKinematics(bool enable) {
     _enableInverseKinematics = enable;
 }
@@ -1230,10 +1213,22 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 }
 
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
+
+    const AnimPose geometryToRigPose(_geometryToRigTransform);
+
     jointDataVec.resize((int)getJointStateCount());
     for (auto i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
-        getJointData(i, data);
+        if (isIndexValid(i)) {
+            AnimPose defaultPose = geometryToRigPose * _animSkeleton->getAbsoluteDefaultPose(i);
+            data.rotation = _internalPoseSet._absolutePoses[i].rot;
+            data.rotationSet = !isEqual(data.rotation, defaultPose.rot);
+            data.translation = _internalPoseSet._absolutePoses[i].trans;
+            data.translationSet = !isEqual(data.translation, defaultPose.trans);
+        } else {
+            data.translationSet = false;
+            data.rotationSet = false;
+        }
     }
 }
 
@@ -1243,8 +1238,11 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
 
         std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
         AnimPoseVec overridePoses = _animSkeleton->getAbsoluteDefaultPoses();  // start with the default poses.
+        for (int i = 0; i < overridePoses.size(); i++) {
+            overridePoses[i] = AnimPose(_geometryToRigTransform) * overridePoses[i];
+        }
 
-        ASSERT(overrideFlags.size() == absoluteOverridePoses.size());
+        ASSERT(overrideFlags.size() == overridePoses.size());
 
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (isIndexValid(i)) {
@@ -1255,8 +1253,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
                 }
                 if (data.translationSet) {
                     overrideFlags[i] = true;
-                    // convert from meters back into geometry units.
-                    overridePoses[i].trans = _invGeometryOffset * data.translation;
+                    overridePoses[i].trans = data.translation;
                 }
             }
         }
@@ -1265,10 +1262,11 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
 
         _animSkeleton->convertAbsolutePosesToRelative(overridePoses);
 
+        AnimPose rigToGeometryPose(_rigToGeometryTransform);
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (overrideFlags[i]) {
                 _internalPoseSet._overrideFlags[i] = true;
-                _internalPoseSet._overridePoses[i] = overridePoses[i];
+                _internalPoseSet._overridePoses[i] = rigToGeometryPose * overridePoses[i];
             }
         }
     }
