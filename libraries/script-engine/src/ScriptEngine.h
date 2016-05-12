@@ -197,7 +197,10 @@ protected:
 
     void init();
     QString getFilename() const;
-    void waitTillDoneRunning();
+
+    // Stop any evaluating scripts and wait for the scripting thread to finish.
+    void wait();
+
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();

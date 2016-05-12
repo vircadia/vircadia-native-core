@@ -284,8 +284,7 @@ void ScriptEngine::runInThread() {
     workerThread->start();
 }
 
-void ScriptEngine::waitTillDoneRunning() {
-    // If the script never started running or finished running before we got here, we don't need to wait for it
+void ScriptEngine::wait() {
     auto workerThread = thread();
 
     if (_isThreaded && workerThread) {

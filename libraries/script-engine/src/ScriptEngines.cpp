@@ -149,6 +149,7 @@ void ScriptEngines::shutdownScripting() {
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
+        // TODO: Scripts could be shut down faster if we spread them across a threadpool.
         if (scriptEngine->isRunning()) {
             qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
@@ -165,12 +166,12 @@ void ScriptEngines::shutdownScripting() {
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
             // any application state after we leave this stopAllScripts() method
             qCDebug(scriptengine) << "waiting on script:" << scriptName;
-            scriptEngine->waitTillDoneRunning();
+            scriptEngine->wait();
             qCDebug(scriptengine) << "done waiting on script:" << scriptName;
 
             scriptEngine->deleteLater();
 
-            // If the script is stopped, we can remove it from our set
+            // Once the script is stopped, we can remove it from our set
             i.remove();
         }
     }
