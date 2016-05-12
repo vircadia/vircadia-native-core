@@ -83,8 +83,13 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 
     auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, [](ScriptEngine* engine){
+        // Gracefully exit
         engine->unloadAllEntityScripts();
         engine->stop();
+
+        // Disgracefully exit, if necessary
+        QTimer::singleShot(ScriptEngine::MAX_SCRIPT_EVALUATION_TIME, engine, &ScriptEngine::abort);
+
         engine->deleteLater();
     });
 

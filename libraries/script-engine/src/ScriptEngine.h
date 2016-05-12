@@ -67,6 +67,8 @@ public:
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
     Q_OBJECT
 public:
+    static const auto MAX_SCRIPT_EVALUATION_TIME = USECS_PER_SECOND;
+
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
 
     ~ScriptEngine();
@@ -164,6 +166,7 @@ public:
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
+    void abort() { abortEvaluation(); }
 
 signals:
     void scriptLoaded(const QString& scriptFilename);

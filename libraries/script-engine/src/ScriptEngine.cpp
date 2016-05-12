@@ -304,7 +304,6 @@ void ScriptEngine::wait() {
             QCoreApplication::processEvents();
 
             // If the final evaluation takes too long, then tell the script engine to stop evaluating
-            static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
             static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MAX_SCRIPT_EVALUATION_TIME;
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
             if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
