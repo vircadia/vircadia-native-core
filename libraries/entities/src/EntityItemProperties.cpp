@@ -1635,7 +1635,7 @@ void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
 QList<QString> EntityItemProperties::listChangedProperties() {
     QList<QString> out;
     if (containsPositionChange()) {
-        out += "posistion";
+        out += "position";
     }
     if (dimensionsChanged()) {
         out += "dimensions";

@@ -91,7 +91,7 @@ public:
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
     virtual ui::Menu* getPrimaryMenu() { return nullptr; }
     virtual bool isForeground() override { return true; }
-    virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
+    virtual const DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer();  }
 };
 
 class MyControllerScriptingInterface : public controller::ScriptingInterface {

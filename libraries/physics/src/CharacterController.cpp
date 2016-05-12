@@ -434,6 +434,14 @@ glm::vec3 CharacterController::getLinearVelocity() const {
     return velocity;
 }
 
+glm::vec3 CharacterController::getVelocityChange() const {
+    glm::vec3 velocity(0.0f);
+    if (_rigidBody) {
+        velocity = bulletToGLM(_rigidBody->getLinearVelocity());
+    }
+    return velocity;
+}
+
 void CharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
         quint64 now = usecTimestampNow();
@@ -441,6 +449,7 @@ void CharacterController::preSimulation() {
         // slam body to where it is supposed to be
         _rigidBody->setWorldTransform(_characterBodyTransform);
         btVector3 velocity = _rigidBody->getLinearVelocity();
+        _preSimulationVelocity = velocity;
 
         btVector3 actualVertVelocity = velocity.dot(_currentUp) * _currentUp;
         btVector3 actualHorizVelocity = velocity - actualVertVelocity;
@@ -535,6 +544,9 @@ void CharacterController::preSimulation() {
 
 void CharacterController::postSimulation() {
     // postSimulation() exists for symmetry and just in case we need to do something here later
+
+    btVector3 velocity = _rigidBody->getLinearVelocity();
+    _velocityChange = velocity - _preSimulationVelocity;
 }
 
 

@@ -28,6 +28,8 @@ public:
     static UserActivityLogger& getInstance();
     
 public slots:
+    bool isEnabled() { return !_disabled.get(); }
+
     void disable(bool disable);
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     

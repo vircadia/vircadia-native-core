@@ -22,9 +22,9 @@ public:
     Overlay2D() {}
     Overlay2D(const Overlay2D* overlay2D);
     
-    virtual AABox getBounds() const;
+    virtual AABox getBounds() const override;
     
-    virtual bool is3D() const { return false; }
+    virtual bool is3D() const override { return false; }
 
     // getters
     int getX() const { return _bounds.x(); }

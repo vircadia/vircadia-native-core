@@ -103,6 +103,7 @@ protected:
 
     virtual void updateFrameData();
 
+    QThread* _presentThread{ nullptr };
     ProgramPtr _program;
     int32_t _mvpUniform { -1 };
     int32_t _alphaUniform { -1 };

@@ -23,6 +23,11 @@ DebugDraw::~DebugDraw() {
 
 }
 
+// world space line, drawn only once
+void DebugDraw::drawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color) {
+    _rays.push_back(Ray(start, end, color));
+}
+
 void DebugDraw::addMarker(const std::string& key, const glm::quat& rotation, const glm::vec3& position, const glm::vec4& color) {
     _markers[key] = MarkerInfo(rotation, position, color);
 }

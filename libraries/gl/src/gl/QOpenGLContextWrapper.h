@@ -15,16 +15,19 @@
 class QOpenGLContext;
 class QSurface;
 class QSurfaceFormat;
+class QThread;
 
 class QOpenGLContextWrapper {
 public:
     QOpenGLContextWrapper();
+    QOpenGLContextWrapper(QOpenGLContext* context);
     void setFormat(const QSurfaceFormat& format);
     bool create();
     void swapBuffers(QSurface* surface);
     bool makeCurrent(QSurface* surface);
     void doneCurrent();
     void setShareContext(QOpenGLContext* otherContext);
+    void moveToThread(QThread* thread);
 
     static QOpenGLContext* currentContext();
 

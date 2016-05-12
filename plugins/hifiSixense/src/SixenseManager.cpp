@@ -136,7 +136,12 @@ void SixenseManager::setSixenseFilter(bool filter) {
 
 void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     BAIL_IF_NOT_LOADED
-    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->withLock([&, this]() {
+        _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+    });
+
     if (_inputDevice->_requestReset) {
         _container->requestReset();
         _inputDevice->_requestReset = false;

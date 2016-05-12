@@ -480,10 +480,8 @@ Menu::Menu() {
         avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderMyLookAtVectors, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderOtherLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
@@ -568,8 +566,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::LogExtraTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SupressDeadlockWatchdogStatus, 0, false,
-        qApp, SLOT(toggleSuppressDeadlockWatchdogStatus(bool)));
 
 
     // Developer > Audio >>>

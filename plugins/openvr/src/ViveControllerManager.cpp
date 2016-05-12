@@ -11,6 +11,8 @@
 
 #include "ViveControllerManager.h"
 
+#include <QtCore/QProcessEnvironment>
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
@@ -48,9 +50,11 @@ static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 const QString ViveControllerManager::NAME = "OpenVR";
+static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 bool ViveControllerManager::isSupported() const {
-    return !isOculusPresent() && vr::VR_IsHmdPresent();
+    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
 }
 
 bool ViveControllerManager::activate() {
@@ -211,8 +215,12 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
-    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+
+    // because update mutates the internal state we need to lock
+    userInputMapper->withLock([&, this]() {
+        _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+    });
 
     if (_inputDevice->_trackedControllers == 0 && _registeredWithInputMapper) {
         userInputMapper->removeDevice(_inputDevice->_deviceID);
@@ -270,7 +278,8 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
                 bool pressed = 0 != (controllerState.ulButtonPressed & mask);
-                handleButtonEvent(deltaTime, i, pressed, isLeftHand);
+                bool touched = 0 != (controllerState.ulButtonTouched & mask);
+                handleButtonEvent(deltaTime, i, pressed, touched, isLeftHand);
             }
 
             // process each axis
@@ -314,20 +323,26 @@ enum ViveButtonChannel {
 
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool isLeftHand) {
-    if (!pressed) {
-        return;
-    }
+void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand) {
 
     using namespace controller;
-    if (button == vr::k_EButton_ApplicationMenu) {
-        _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
-    } else if (button == vr::k_EButton_Grip) {
-        _buttonPressedMap.insert(isLeftHand ? LB : RB);
-    } else if (button == vr::k_EButton_SteamVR_Trigger) {
-        _buttonPressedMap.insert(isLeftHand ? LT : RT);
-    } else if (button == vr::k_EButton_SteamVR_Touchpad) {
-        _buttonPressedMap.insert(isLeftHand ? LS : RS);
+
+    if (pressed) {
+        if (button == vr::k_EButton_ApplicationMenu) {
+            _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
+        } else if (button == vr::k_EButton_Grip) {
+            _buttonPressedMap.insert(isLeftHand ? LEFT_GRIP : RIGHT_GRIP);
+        } else if (button == vr::k_EButton_SteamVR_Trigger) {
+            _buttonPressedMap.insert(isLeftHand ? LT : RT);
+        } else if (button == vr::k_EButton_SteamVR_Touchpad) {
+            _buttonPressedMap.insert(isLeftHand ? LS : RS);
+        }
+    }
+
+    if (touched) {
+         if (button == vr::k_EButton_SteamVR_Touchpad) {
+             _buttonPressedMap.insert(isLeftHand ? LS_TOUCH : RS_TOUCH);
+        }
     }
 }
 
@@ -424,18 +439,28 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LY, "LY"),
         makePair(RX, "RX"),
         makePair(RY, "RY"),
-        // trigger analogs
+
+        // capacitive touch on the touch pad
+        makePair(LS_TOUCH, "LSTouch"),
+        makePair(RS_TOUCH, "RSTouch"),
+
+        // touch pad press
+        makePair(LS, "LS"),
+        makePair(RS, "RS"),
+
+        // triggers
         makePair(LT, "LT"),
         makePair(RT, "RT"),
 
-        makePair(LB, "LB"),
-        makePair(RB, "RB"),
+        // low profile side grip button.
+        makePair(LEFT_GRIP, "LeftGrip"),
+        makePair(RIGHT_GRIP, "RightGrip"),
 
-        makePair(LS, "LS"),
-        makePair(RS, "RS"),
+        // 3d location of controller
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
+        // app button above trackpad.
         Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),
         Input::NamedPair(Input(_deviceID, RIGHT_APP_MENU, ChannelType::BUTTON), "RightApplicationMenu"),
     };

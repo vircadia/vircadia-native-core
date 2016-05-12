@@ -28,7 +28,11 @@
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning( disable : 4068 )
+#elif defined(Q_OS_MAC)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpessimizing-move"
 #endif
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -40,6 +44,8 @@
 
 #ifdef _WIN32
 #pragma warning(pop)
+#elif defined(Q_OS_MAC)
+#pragma clang diagnostic pop
 #endif
 
 #include "NumericalConstants.h"

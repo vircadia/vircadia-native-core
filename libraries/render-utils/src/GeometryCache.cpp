@@ -506,9 +506,9 @@ GeometryCache::GeometryCache() :
         std::make_shared<render::ShapePipeline>(getSimplePipeline(), nullptr,
             [](const render::ShapePipeline&, gpu::Batch& batch) {
                 // Set the defaults needed for a simple program
-                batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-                batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
                     DependencyManager::get<TextureCache>()->getNormalFittingTexture());
             }
         );
@@ -1736,11 +1736,11 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool cul
 
     // If not textured, set a default albedo map
     if (!textured) {
-        batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
+        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
             DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
     // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
         DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
@@ -1758,7 +1758,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled
         _emissiveShader = gpu::Shader::createProgram(VS, PSEmissive);
         
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::NORMAL_FITTING_MAP));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
         gpu::Shader::makeProgram(*_simpleShader, slotBindings);
         gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
     });

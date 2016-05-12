@@ -18,15 +18,15 @@ class Cube3DOverlay : public Volume3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Cube3DOverlay() {}
     Cube3DOverlay(const Cube3DOverlay* cube3DOverlay);
     
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
 
-    virtual Cube3DOverlay* createClone() const;
+    virtual Cube3DOverlay* createClone() const override;
 
     float getBorderSize() const { return _borderSize; }
 

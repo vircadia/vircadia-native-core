@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-Script.include("../libraries/utils.js");
+Script.include("/~/system/libraries/utils.js");
 
 
 //
@@ -28,7 +28,7 @@ var WANT_DEBUG_SEARCH_NAME = null;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
+var TRIGGER_GRAB_VALUE = 0.75; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
@@ -102,7 +102,6 @@ var ZERO_VEC = {
 };
 
 var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
-var MSEC_PER_SEC = 1000.0;
 
 // these control how long an abandoned pointer line or action will hang around
 var LIFETIME = 10;
@@ -740,10 +739,6 @@ function MyController(hand) {
     };
 
     this.propsArePhysical = function(props) {
-        if (!props.dynamic && props.parentID != MyAvatar.sessionUUID) {
-            // if we have parented something, don't do this check on dynamic.
-            return false;
-        }
         var isPhysical = (props.shapeType && props.shapeType != 'none');
         return isPhysical;
     }
@@ -837,7 +832,7 @@ function MyController(hand) {
     this.search = function() {
         this.grabbedEntity = null;
         this.isInitialGrab = false;
-        this.doubleParentGrab = false;
+        this.shouldResetParentOnRelease = false;
 
         this.checkForStrayChildren();
 
@@ -914,7 +909,7 @@ function MyController(hand) {
         candidateEntities = rayPickedCandidateEntities.concat(nearPickedCandidateEntities);
 
         var forbiddenNames = ["Grab Debug Entity", "grab pointer"];
-        var forbiddenTypes = ['Unknown', 'Light', 'ParticleEffect', 'PolyLine', 'Zone'];
+        var forbiddenTypes = ['Unknown', 'Light', 'PolyLine', 'Zone'];
 
         var minDistance = PICK_MAX_DISTANCE;
         var i, props, distance, grabbableData;
@@ -1019,6 +1014,10 @@ function MyController(hand) {
                 if (this.state == STATE_SEARCHING) {
                     this.setState(STATE_NEAR_GRABBING);
                 } else { // (this.state == STATE_HOLD_SEARCHING)
+                    // if there was already an action, we'll need to set the parent back to null once we release
+                    this.shouldResetParentOnRelease = true;
+                    this.previousParentID = props.parentID;
+                    this.previousParentJointIndex = props.parentJointIndex;
                     this.setState(STATE_HOLD);
                 }
                 return;
@@ -1064,7 +1063,7 @@ function MyController(hand) {
                 // it's not physical and it's already held via parenting.  go ahead and grab it, but
                 // save off the current parent and joint.  this wont always be right if there are more than
                 // two grabs and the order of release isn't opposite of the order of grabs.
-                this.doubleParentGrab = true;
+                this.shouldResetParentOnRelease = true;
                 this.previousParentID = props.parentID;
                 this.previousParentJointIndex = props.parentJointIndex;
                 if (this.state == STATE_SEARCHING) {
@@ -1149,7 +1148,7 @@ function MyController(hand) {
         if (this.actionID === NULL_UUID) {
             this.actionID = null;
         }
-        this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+        this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
 
         if (this.actionID !== null) {
             this.setState(STATE_CONTINUE_DISTANCE_HOLDING);
@@ -1184,7 +1183,7 @@ function MyController(hand) {
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
 
         var now = Date.now();
-        var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
+        var deltaTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
         this.currentObjectTime = now;
 
         // the action was set up when this.distanceHolding was called.  update the targets.
@@ -1302,7 +1301,7 @@ function MyController(hand) {
             ttl: ACTION_TTL
         });
         if (success) {
-            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+            this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
         } else {
             print("continueDistanceHolding -- updateAction failed");
         }
@@ -1327,7 +1326,7 @@ function MyController(hand) {
             return false;
         }
         var now = Date.now();
-        this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+        this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
         return true;
     };
 
@@ -1436,6 +1435,10 @@ function MyController(hand) {
             if (!this.setupHoldAction()) {
                 return;
             }
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'grab',
+                grabbedEntity: this.grabbedEntity
+            }));
         } else {
             // grab entity via parenting
             this.actionID = null;
@@ -1563,7 +1566,7 @@ function MyController(hand) {
         var now = Date.now();
 
         var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
-        var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
+        var deltaTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
 
         if (deltaTime > 0.0) {
             var worldDeltaPosition = Vec3.subtract(props.position, this.currentObjectPosition);
@@ -1590,7 +1593,7 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
-        if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
+        if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSECS_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
@@ -1603,7 +1606,7 @@ function MyController(hand) {
                 ignoreIK: this.ignoreIK
             });
             if (success) {
-                this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+                this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
             } else {
                 print("continueNearGrabbing -- updateAction failed");
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1838,12 +1841,12 @@ function MyController(hand) {
 
                 // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
                 // it looks like the dropped thing should fall, give it a little velocity.
-                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity"])
+                var props = Entities.getEntityProperties(entityID, ["parentID", "velocity", "dynamic", "shapeType"])
                 var parentID = props.parentID;
                 var forceVelocity = false;
 
                 var doSetVelocity = false;
-                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID) {
+                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID && this.propsArePhysical(props)) {
                     // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
                     // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
                     // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
@@ -1881,7 +1884,7 @@ function MyController(hand) {
                 }
 
                 data = null;
-            } else if (this.doubleParentGrab) {
+            } else if (this.shouldResetParentOnRelease) {
                 // we parent-grabbed this from another parent grab.  try to put it back where we found it.
                 var deactiveProps = {
                     parentID: this.previousParentID,
@@ -1892,7 +1895,8 @@ function MyController(hand) {
                 Entities.editEntity(entityID, deactiveProps);
             } else if (noVelocity) {
                 Entities.editEntity(entityID, {velocity: {x: 0.0, y: 0.0, z: 0.0},
-                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0}});
+                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               dynamic: data["dynamic"]});
             }
         } else {
             data = null;

@@ -152,14 +152,6 @@ void Rig::restoreRoleAnimation(const QString& role) {
     }
 }
 
-void Rig::prefetchAnimation(const QString& url) {
-
-    // This will begin loading the NetworkGeometry for the given URL.
-    // which should speed us up if we request it later via overrideAnimation.
-    auto clipNode = std::make_shared<AnimClip>("prefetch", url, 0, 0, 1.0, false, false);
-    _prefetchedAnimations.push_back(clipNode);
-}
-
 void Rig::destroyAnimGraph() {
     _animSkeleton.reset();
     _animLoader.reset();
@@ -1065,20 +1057,30 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 }
 
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
+
+    // TODO: does not properly handle avatar scale.
+
     if (isIndexValid(index)) {
         glm::mat4 rigToWorld = createMatFromQuatAndPos(modelRotation, modelTranslation);
         glm::mat4 worldToRig = glm::inverse(rigToWorld);
-        glm::vec3 zAxis = glm::normalize(_internalPoseSet._absolutePoses[index].trans - transformPoint(worldToRig, lookAtSpot));
+        glm::vec3 lookAtVector = glm::normalize(transformPoint(worldToRig, lookAtSpot) - _internalPoseSet._absolutePoses[index].trans);
 
-        glm::quat desiredQuat = rotationBetween(IDENTITY_FRONT, zAxis);
-        glm::quat headQuat;
         int headIndex = indexOfJoint("Head");
+        glm::quat headQuat;
         if (headIndex >= 0) {
             headQuat = _internalPoseSet._absolutePoses[headIndex].rot;
         }
+
+        glm::vec3 headUp = headQuat * Vectors::UNIT_Y;
+        glm::vec3 z, y, x;
+        generateBasisVectors(lookAtVector, headUp, z, y, x);
+        glm::mat3 m(glm::cross(y, z), y, z);
+        glm::quat desiredQuat = glm::normalize(glm::quat_cast(m));
+
         glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
 
-        // limit rotation
+        // limit swing rotation of the deltaQuat by a 30 degree cone.
+        // TODO: use swing twist decomposition constraint instead, for off axis rotation clamping.
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
         if (fabsf(glm::angle(deltaQuat)) > MAX_ANGLE) {
             deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));

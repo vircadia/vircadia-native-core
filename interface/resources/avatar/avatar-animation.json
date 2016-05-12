@@ -274,7 +274,7 @@
                                                         },
                                                         {
                                                             "id": "walkFwd",
-                                                            "interpTarget": 15,
+                                                            "interpTarget": 16,
                                                             "interpDuration": 6,
                                                             "transitions": [
                                                                 { "var": "isNotMoving", "state": "idle" },
@@ -497,7 +497,7 @@
                                                                 "data": {
                                                                     "url": "animations/idle.fbx",
                                                                     "startFrame": 0.0,
-                                                                    "endFrame": 90.0,
+                                                                    "endFrame": 300.0,
                                                                     "timeScale": 1.0,
                                                                     "loopFlag": true
                                                                 },
@@ -509,7 +509,7 @@
                                                                 "data": {
                                                                     "url": "animations/talk.fbx",
                                                                     "startFrame": 0.0,
-                                                                    "endFrame": 801.0,
+                                                                    "endFrame": 800.0,
                                                                     "timeScale": 1.0,
                                                                     "loopFlag": true
                                                                 },
@@ -572,7 +572,7 @@
                                                         "data": {
                                                             "url": "animations/idle_to_walk.fbx",
                                                             "startFrame": 1.0,
-                                                            "endFrame": 19.0,
+                                                            "endFrame": 13.0,
                                                             "timeScale": 1.0,
                                                             "loopFlag": false
                                                         },
@@ -631,11 +631,12 @@
                                                         "id": "turnRight",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "animations/turn_right.fbx",
+                                                            "url": "animations/turn_left.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 30.0,
                                                             "timeScale": 1.0,
-                                                            "loopFlag": true
+                                                            "loopFlag": true,
+                                                            "mirrorFlag": true
                                                         },
                                                         "children": []
                                                     },
