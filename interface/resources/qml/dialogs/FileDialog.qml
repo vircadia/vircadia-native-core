@@ -196,7 +196,7 @@ ModalWindow {
                 bottom: currentSelection.top
                 bottomMargin: hifi.dimensions.contentSpacing.y + currentSelection.controlHeight - currentSelection.height
             }
-            headerVisible: true
+            headerVisible: !selectDirectory
             onDoubleClicked: navigateToRow(row);
             focus: true
             Keys.onReturnPressed: navigateToCurrentRow();
@@ -275,7 +275,7 @@ ModalWindow {
                 id: fileNameColumn
                 role: "fileName"
                 title: "Name"
-                width: 0.5 * fileTableView.width
+                width: (selectDirectory ? 1.0 : 0.5) * fileTableView.width
                 resizable: true
             }
             TableViewColumn {
@@ -284,12 +284,14 @@ ModalWindow {
                 title: "Date"
                 width: 0.3 * fileTableView.width
                 resizable: true
+                visible: !selectDirectory
             }
             TableViewColumn {
                 role: "fileSize"
                 title: "Size"
                 width: fileTableView.width - fileNameColumn.width - fileMofifiedColumn.width
                 resizable: true
+                visible: !selectDirectory
             }
 
             function navigateToRow(row) {
