@@ -173,17 +173,18 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     _hasSupport = checkForSupport(collisionWorld);
 }
 
+const btScalar MIN_TARGET_SPEED = 0.001f;
+const btScalar MIN_TARGET_SPEED_SQUARED = MIN_TARGET_SPEED * MIN_TARGET_SPEED;
+
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 
-    const btScalar MIN_SPEED = 0.001f;
-
     btVector3 actualVelocity = _rigidBody->getLinearVelocity() - _parentVelocity;
-    if (actualVelocity.length() < MIN_SPEED) {
+    if (actualVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
         actualVelocity = btVector3(0.0f, 0.0f, 0.0f);
     }
 
     btVector3 desiredVelocity = _targetVelocity;
-    if (desiredVelocity.length() < MIN_SPEED) {
+    if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
         desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
     }
 
@@ -210,10 +211,11 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity;
 
         // only blend vertical part if the target velocity has non-zero vertical component
-        const btScalar MIN_VERT_TARGET_SPEED_SQUARED = 1.0e-6; // 1mm/sec
-        if (desiredVertVelocity.length2() > MIN_VERT_TARGET_SPEED_SQUARED) {
+        if (desiredVertVelocity.length2() > MIN_TARGET_SPEED_SQUARED) {
             tau = dt / FLY_ACCELERATION_TIMESCALE;
             finalVelocity += tau * desiredVertVelocity + (1.0f - tau) * actualVertVelocity;
+        } else {
+            finalVelocity += actualVertVelocity;
         }
     }
 
@@ -507,10 +509,17 @@ void CharacterController::preSimulation() {
         case State::InAir: {
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
-            } else if (jumpButtonHeld && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
-                SET_STATE(State::Hover, "double jump button");
-            } else if (jumpButtonHeld && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
-                SET_STATE(State::Hover, "jump button held");
+            } else {
+                btVector3 desiredVelocity = _targetVelocity;
+                if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+                    desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
+                }
+                bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
+                if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
+                    SET_STATE(State::Hover, "double jump button");
+                } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
+                    SET_STATE(State::Hover, "jump button held");
+                }
             }
             break;
         }
