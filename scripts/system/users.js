@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var PopUpMenu = function(properties) {
+var PopUpMenu = function (properties) {
     var value = properties.value,
         promptOverlay,
         valueOverlay,
@@ -21,9 +21,8 @@ var PopUpMenu = function(properties) {
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
-        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH;
-
-    MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
+        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH,
+        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
 
     function positionDisplayOptions() {
         var y,
@@ -218,11 +217,10 @@ var PopUpMenu = function(properties) {
     };
 };
 
-var usersWindow = (function() {
+var usersWindow = (function () {
 
-    var baseURL = Script.resolvePath("assets/images/tools/");
-
-    var WINDOW_WIDTH = 260,
+    var baseURL = Script.resolvePath("assets/images/tools/"),
+        WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
         WINDOW_FONT = {
@@ -383,7 +381,9 @@ var usersWindow = (function() {
         }
 
         // Reserve space for title, friends button, and option controls
-        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER + windowLineHeight + VISIBILITY_SPACER + windowLineHeight + WINDOW_BASE_MARGIN;
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER
+            + windowLineHeight + VISIBILITY_SPACER
+            + windowLineHeight + WINDOW_BASE_MARGIN;
 
         // Limit window to height of viewport minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
@@ -422,12 +422,15 @@ var usersWindow = (function() {
         Overlays.editOverlay(scrollbarBackground, {
             y: scrollbarBackgroundPosition.y
         });
-        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1 + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1
+            + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
         Overlays.editOverlay(scrollbarBar, {
             y: scrollbarBarPosition.y
         });
 
-        y = viewportHeight - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER - windowLineHeight - VISIBILITY_SPACER - windowLineHeight - WINDOW_BASE_MARGIN;
+        y = viewportHeight - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER
+            - windowLineHeight - VISIBILITY_SPACER
+            - windowLineHeight - WINDOW_BASE_MARGIN;
         Overlays.editOverlay(friendsButton, {
             y: y
         });
@@ -512,7 +515,7 @@ var usersWindow = (function() {
         usersRequest.send();
     }
 
-    processUsers = function() {
+    processUsers = function () {
         var response,
             myUsername,
             user,
@@ -565,7 +568,7 @@ var usersWindow = (function() {
         }
     };
 
-    pollUsersTimedOut = function() {
+    pollUsersTimedOut = function () {
         print("Error: Request for users status timed out");
         usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
     };
@@ -683,7 +686,8 @@ var usersWindow = (function() {
 
             userClicked = firstUserToDisplay + lineClicked;
 
-            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
+            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX
+                    && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
                 //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
@@ -740,8 +744,12 @@ var usersWindow = (function() {
 
     function onMouseMoveEvent(event) {
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
-                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y) / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
+                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
+                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
+                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
+                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
+                    / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
                 firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
                 updateOverlayPositions();
@@ -773,7 +781,8 @@ var usersWindow = (function() {
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
         isFullscreenMirror = Menu.isOptionChecked(FULLSCREEN_MIRROR_MENU_ITEM);
 
-        if (viewportHeight !== oldViewportHeight || isMirrorDisplay !== oldIsMirrorDisplay || isFullscreenMirror !== oldIsFullscreenMirror) {
+        if (viewportHeight !== oldViewportHeight || isMirrorDisplay !== oldIsMirrorDisplay
+                || isFullscreenMirror !== oldIsFullscreenMirror) {
             calculateWindowHeight();
             updateUsersDisplay();
             updateOverlayPositions();
