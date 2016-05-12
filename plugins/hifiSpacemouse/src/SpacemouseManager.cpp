@@ -17,13 +17,65 @@
 #include <plugins/PluginContainer.h>
 #include <controllers/UserInputMapper.h>
 
-#include "../../../interface/src/Menu.h"
+const QString SpacemouseManager::NAME { "Spacemouse" };
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
+#define LOGITECH_VENDOR_ID 0x46d
 
-static std::shared_ptr<SpacemouseDevice> instance = std::make_shared<SpacemouseDevice>();
+#ifndef RIDEV_DEVNOTIFY
+#define RIDEV_DEVNOTIFY 0x00002000
+#endif
 
-SpacemouseDevice::SpacemouseDevice() : InputDevice("Spacemouse")
+const int TRACE_RIDI_DEVICENAME = 0;
+const int TRACE_RIDI_DEVICEINFO = 0;
+
+#ifdef _WIN64
+typedef unsigned __int64 QWORD;
+#endif
+
+bool Is3dmouseAttached();
+
+std::shared_ptr<SpacemouseDevice> instance;
+
+bool SpacemouseManager::isSupported() const {
+    return Is3dmouseAttached();
+}
+
+bool SpacemouseManager::activate() {
+    fLast3dmouseInputTime = 0;
+
+    InitializeRawInput(GetActiveWindow());
+
+    QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
+
+    if (!instance) {
+        instance = std::make_shared<SpacemouseDevice>();
+    }
+
+    if (instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->registerDevice(instance);
+        UserActivityLogger::getInstance().connectedDevice("controller", NAME);
+    }
+    return true;
+}
+
+void SpacemouseManager::deactivate() {
+    QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
+    int deviceid = instance->getDeviceID();
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    userInputMapper->removeDevice(deviceid);
+}
+
+void SpacemouseManager::pluginFocusOutEvent() { 
+    instance->focusOutEvent(); 
+}
+
+void SpacemouseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    
+}
+
+SpacemouseDevice::SpacemouseDevice() : InputDevice(SpacemouseManager::NAME)
 {
 }
 
@@ -111,70 +163,79 @@ controller::Input::NamedPair SpacemouseDevice::makePair(SpacemouseDevice::Positi
     return controller::Input::NamedPair(makeInput(axis), name);
 }
 
-void SpacemouseDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void SpacemouseDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     // the update is done in the SpacemouseManager class.
     // for windows in the nativeEventFilter the inputmapper is connected or registed or removed when an 3Dconnnexion device is attached or detached
     // for osx the api will call DeviceAddedHandler or DeviceRemoveHandler when a 3Dconnexion device is attached or detached
 }
 
-void SpacemouseManager::ManagerFocusOutEvent() {
-    instance->focusOutEvent();
-}
-
-void SpacemouseManager::init() {
-}
-
-#ifdef HAVE_3DCONNEXIONCLIENT
-
 #ifdef Q_OS_WIN
 
 #include <VersionHelpers.h>
 
-void SpacemouseManager::toggleSpacemouse(bool shouldEnable) {
-   if (shouldEnable) {
-        init();
-    }
-    if (!shouldEnable && instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
-        destroy();
-    }
+bool SpacemouseManager::nativeEventFilter(const QByteArray& eventType, void* message, long* result) {
+    MSG* msg = static_cast< MSG * >(message);
+    return RawInputEventFilter(message, result);
 }
 
-void SpacemouseManager::init() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
-        fLast3dmouseInputTime = 0;
 
-        InitializeRawInput(GetActiveWindow());
+//Get an initialized array of PRAWINPUTDEVICE for the 3D devices
+//pNumDevices returns the number of devices to register. Currently this is always 1.
+static PRAWINPUTDEVICE GetDevicesToRegister(unsigned int* pNumDevices) {
+    // Array of raw input devices to register
+    static RAWINPUTDEVICE sRawInputDevices[] = {
+        { 0x01, 0x08, 0x00, 0x00 } // Usage Page = 0x01 Generic Desktop Page, Usage Id= 0x08 Multi-axis Controller
+    };
 
-        QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
+    if (pNumDevices) {
+        *pNumDevices = sizeof(sRawInputDevices) / sizeof(sRawInputDevices[0]);
+    }
 
-        if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
-            auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->registerDevice(instance);
-            UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
+    return sRawInputDevices;
+}
+
+
+//Detect the 3D mouse
+bool Is3dmouseAttached() {
+    unsigned int numDevicesOfInterest = 0;
+    PRAWINPUTDEVICE devicesToRegister = GetDevicesToRegister(&numDevicesOfInterest);
+
+    unsigned int nDevices = 0;
+
+    if (::GetRawInputDeviceList(NULL, &nDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
+        return false;
+    }
+
+    if (nDevices == 0) {
+        return false;
+    }
+
+    std::vector<RAWINPUTDEVICELIST> rawInputDeviceList(nDevices);
+    if (::GetRawInputDeviceList(&rawInputDeviceList[0], &nDevices, sizeof(RAWINPUTDEVICELIST)) == static_cast<unsigned int>(-1)) {
+        return false;
+    }
+
+    for (unsigned int i = 0; i < nDevices; ++i) {
+        RID_DEVICE_INFO rdi = { sizeof(rdi) };
+        unsigned int cbSize = sizeof(rdi);
+
+        if (GetRawInputDeviceInfo(rawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cbSize) > 0) {
+            //skip non HID and non logitec (3DConnexion) devices
+            if (rdi.dwType != RIM_TYPEHID || rdi.hid.dwVendorId != LOGITECH_VENDOR_ID) {
+                continue;
+            }
+
+            //check if devices matches Multi-axis Controller
+            for (unsigned int j = 0; j < numDevicesOfInterest; ++j) {
+                if (devicesToRegister[j].usUsage == rdi.hid.usUsage
+                    && devicesToRegister[j].usUsagePage == rdi.hid.usUsagePage) {
+                    return true;
+                }
+            }
         }
-        
     }
+    return false;
 }
-
-void SpacemouseManager::destroy() {
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
-    int deviceid = instance->getDeviceID();
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->removeDevice(deviceid);
-}
-
-#define LOGITECH_VENDOR_ID 0x46d
-
-#ifndef RIDEV_DEVNOTIFY
-#define RIDEV_DEVNOTIFY 0x00002000
-#endif
-
-const int TRACE_RIDI_DEVICENAME = 0;
-const int TRACE_RIDI_DEVICEINFO = 0;
-
-#ifdef _WIN64
-typedef unsigned __int64 QWORD;
-#endif
 
 // object angular velocity per mouse tick 0.008 milliradians per second per count
 static const double k3dmouseAngularVelocity = 8.0e-6; // radians per second per count
@@ -290,20 +351,9 @@ bool SpacemouseManager::RawInputEventFilter(void* msg, long* result) {
     return false;
 }
 
-// Access the mouse parameters structure
-I3dMouseParam& SpacemouseManager::MouseParams() {
-    return f3dMouseParams;
-}
-
-// Access the mouse parameters structure
-const I3dMouseParam& SpacemouseManager::MouseParams() const {
-    return f3dMouseParams;
-}
-
 //Called with the processed motion data when a 3D mouse event is received
 void SpacemouseManager::Move3d(HANDLE device, std::vector<float>& motionData) {
     Q_UNUSED(device);
-
     instance->cc_position = { motionData[0] * 1000, motionData[1] * 1000, motionData[2] * 1000 };
     instance->cc_rotation = { motionData[3] * 1500, motionData[4] * 1500, motionData[5] * 1500 };
     instance->handleAxisEvent();
@@ -321,62 +371,6 @@ void SpacemouseManager::On3dmouseKeyUp(HANDLE device, int virtualKeyCode) {
     instance->setButton(0);
 }
 
-//Get an initialized array of PRAWINPUTDEVICE for the 3D devices
-//pNumDevices returns the number of devices to register. Currently this is always 1.
-static PRAWINPUTDEVICE GetDevicesToRegister(unsigned int* pNumDevices) {
-    // Array of raw input devices to register
-    static RAWINPUTDEVICE sRawInputDevices[] = {
-        { 0x01, 0x08, 0x00, 0x00 } // Usage Page = 0x01 Generic Desktop Page, Usage Id= 0x08 Multi-axis Controller
-    };
-
-    if (pNumDevices) {
-        *pNumDevices = sizeof(sRawInputDevices) / sizeof(sRawInputDevices[0]);
-    }
-
-    return sRawInputDevices;
-}
-
-//Detect the 3D mouse
-bool SpacemouseManager::Is3dmouseAttached() {
-    unsigned int numDevicesOfInterest = 0;
-    PRAWINPUTDEVICE devicesToRegister = GetDevicesToRegister(&numDevicesOfInterest);
-
-    unsigned int nDevices = 0;
-
-    if (::GetRawInputDeviceList(NULL, &nDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
-        return false;
-    }
-
-    if (nDevices == 0) {
-        return false;
-    }
-
-    std::vector<RAWINPUTDEVICELIST> rawInputDeviceList(nDevices);
-    if (::GetRawInputDeviceList(&rawInputDeviceList[0], &nDevices, sizeof(RAWINPUTDEVICELIST)) == static_cast<unsigned int>(-1)) {
-        return false;
-    }
-
-    for (unsigned int i = 0; i < nDevices; ++i) {
-        RID_DEVICE_INFO rdi = { sizeof(rdi) };
-        unsigned int cbSize = sizeof(rdi);
-
-        if (GetRawInputDeviceInfo(rawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cbSize) > 0) {
-            //skip non HID and non logitec (3DConnexion) devices
-            if (rdi.dwType != RIM_TYPEHID || rdi.hid.dwVendorId != LOGITECH_VENDOR_ID) {
-                continue;
-            }
-
-            //check if devices matches Multi-axis Controller
-            for (unsigned int j = 0; j < numDevicesOfInterest; ++j) {
-                if (devicesToRegister[j].usUsage == rdi.hid.usUsage
-                    && devicesToRegister[j].usUsagePage == rdi.hid.usUsagePage) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
 
 // Initialize the window to recieve raw-input messages
 // This needs to be called initially so that Windows will send the messages from the 3D mouse to the window.
@@ -942,5 +936,3 @@ void MessageHandler(unsigned int connection, unsigned int messageType, void *mes
 }
 
 #endif // __APPLE__
-
-#endif 

@@ -50,11 +50,9 @@ static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 const QString ViveControllerManager::NAME = "OpenVR";
-static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
-static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 bool ViveControllerManager::isSupported() const {
-    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
+    return openVrSupported();
 }
 
 bool ViveControllerManager::activate() {
@@ -214,12 +212,13 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 }
 
 
-void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    _inputDevice->update(deltaTime, inputCalibrationData);
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
     // because update mutates the internal state we need to lock
     userInputMapper->withLock([&, this]() {
-        _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+        _inputDevice->update(deltaTime, inputCalibrationData);
     });
 
     if (_inputDevice->_trackedControllers == 0 && _registeredWithInputMapper) {
@@ -235,7 +234,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 }
 
-void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
@@ -244,10 +243,8 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     auto leftHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
     auto rightHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
 
-    if (!jointsCaptured) {
-        handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
-        handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
-    }
+    handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
+    handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
 
     int numTrackedControllers = 0;
     if (leftHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
