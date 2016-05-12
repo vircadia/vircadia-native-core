@@ -28,6 +28,7 @@ ModalWindow {
     //resizable: true
     implicitWidth: 640
     implicitHeight: 480
+
     HifiConstants { id: hifi }
 
     Settings {
@@ -184,8 +185,9 @@ ModalWindow {
             }
         }
 
-        FileTableView {
+        Table {
             id: fileTableView
+            colorScheme: hifi.colorSchemes.light
             anchors {
                 top: navControls.bottom
                 topMargin: hifi.dimensions.contentSpacing.y
@@ -194,10 +196,12 @@ ModalWindow {
                 bottom: currentSelection.top
                 bottomMargin: hifi.dimensions.contentSpacing.y + currentSelection.controlHeight - currentSelection.height
             }
+            headerVisible: true
             onDoubleClicked: navigateToRow(row);
             focus: true
             Keys.onReturnPressed: navigateToCurrentRow();
             Keys.onEnterPressed: navigateToCurrentRow();
+
             model: FolderListModel {
                 id: model
                 nameFilters: selectionType.currentFilter
@@ -216,6 +220,76 @@ ModalWindow {
                     fileTableView.selection.select(0);
                     fileTableView.currentRow = 0;
                 }
+            }
+
+            onActiveFocusChanged:  {
+                if (activeFocus && currentRow == -1) {
+                    fileTableView.selection.select(0)
+                }
+            }
+
+            itemDelegate: Item {
+                clip: true
+
+                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                FontLoader { id: firaSansRegular; source: "../../fonts/FiraSans-Regular.ttf"; }
+
+                FiraSansSemiBold {
+                    text: getText();
+                    elide: styleData.elideMode
+                    anchors {
+                        left: parent.left
+                        leftMargin: hifi.dimensions.tablePadding
+                        right: parent.right
+                        rightMargin: hifi.dimensions.tablePadding
+                        verticalCenter: parent.verticalCenter
+                    }
+                    size: hifi.fontSizes.tableText
+                    color: hifi.colors.baseGrayHighlight
+                    font.family: fileTableView.model.get(styleData.row, "fileIsDir") ? firaSansSemiBold.name : firaSansRegular.name
+
+                    function getText() {
+                        switch (styleData.column) {
+                            case 1: return fileTableView.model.get(styleData.row, "fileIsDir") ? "" : styleData.value;
+                            case 2: return fileTableView.model.get(styleData.row, "fileIsDir") ? "" : formatSize(styleData.value);
+                            default: return styleData.value;
+                        }
+                    }
+                    function formatSize(size) {
+                        var suffixes = [ "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" ];
+                        var suffixIndex = 0
+                        while ((size / 1024.0) > 1.1) {
+                            size /= 1024.0;
+                            ++suffixIndex;
+                        }
+
+                        size = Math.round(size*1000)/1000;
+                        size = size.toLocaleString()
+
+                        return size + " " + suffixes[suffixIndex];
+                    }
+                }
+            }
+
+            TableViewColumn {
+                id: fileNameColumn
+                role: "fileName"
+                title: "Name"
+                width: 0.5 * fileTableView.width
+                resizable: true
+            }
+            TableViewColumn {
+                id: fileMofifiedColumn
+                role: "fileModified"
+                title: "Date"
+                width: 0.3 * fileTableView.width
+                resizable: true
+            }
+            TableViewColumn {
+                role: "fileSize"
+                title: "Size"
+                width: fileTableView.width - fileNameColumn.width - fileMofifiedColumn.width
+                resizable: true
             }
 
             function navigateToRow(row) {
