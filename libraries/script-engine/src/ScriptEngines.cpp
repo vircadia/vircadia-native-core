@@ -428,7 +428,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return scriptEngine;
     }
 
-    scriptEngine = new ScriptEngine(NO_SCRIPT, "", true);
+    scriptEngine = new ScriptEngine(NO_SCRIPT, "");
     scriptEngine->setUserLoaded(isUserLoaded);
     connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
         scriptEngine->deleteLater();

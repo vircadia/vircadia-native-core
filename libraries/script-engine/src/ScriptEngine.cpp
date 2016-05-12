@@ -138,10 +138,9 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
     return false;
 }
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
+ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString) :
     _scriptContents(scriptContents),
     _timerFunctionMap(),
-    _wantSignals(wantSignals),
     _fileNameString(fileNameString),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
@@ -231,15 +230,14 @@ void ScriptEngine::runDebuggable() {
                 return;
             }
             stopAllTimers(); // make sure all our timers are stopped if the script is ending
-            if (_wantSignals) {
-                emit scriptEnding();
-                emit finished(_fileNameString, this);
-            }
+
+            emit scriptEnding();
+            emit finished(_fileNameString, this);
             _isRunning = false;
-            if (_wantSignals) {
-                emit runningStateChanged();
-                emit doneRunning();
-            }
+
+            emit runningStateChanged();
+            emit doneRunning();
+
             timer->deleteLater();
             return;
         }
@@ -249,9 +247,7 @@ void ScriptEngine::runDebuggable() {
         if (_lastUpdate < now) {
             float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
             if (!_isFinished) {
-                if (_wantSignals) {
-                    emit update(deltaTime);
-                }
+                emit update(deltaTime);
             }
         }
         _lastUpdate = now;
@@ -358,17 +354,13 @@ void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scrip
     if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
         _debuggable = true;
     }
-    if (_wantSignals) {
-        emit scriptLoaded(url.toString());
-    }
+    emit scriptLoaded(url.toString());
 }
 
 // FIXME - switch this to the new model of ScriptCache callbacks
 void ScriptEngine::errorInLoadingScript(const QUrl& url) {
     qCDebug(scriptengine) << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
-    if (_wantSignals) {
-        emit errorLoadingScript(_fileNameString); // ??
-    }
+    emit errorLoadingScript(_fileNameString); // ??
 }
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
@@ -785,9 +777,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     --_evaluatesPending;
 
     const auto hadUncaughtException = hadUncaughtExceptions(*this, program.fileName());
-    if (_wantSignals) {
-        emit evaluationFinished(result, hadUncaughtException);
-    }
+    emit evaluationFinished(result, hadUncaughtException);
     return result;
 }
 
@@ -801,9 +791,7 @@ void ScriptEngine::run() {
     }
 
     _isRunning = true;
-    if (_wantSignals) {
-        emit runningStateChanged();
-    }
+    emit runningStateChanged();
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
@@ -872,9 +860,7 @@ void ScriptEngine::run() {
         if (_lastUpdate < now) {
             float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
-                if (_wantSignals) {
-                    emit update(deltaTime);
-                }
+                emit update(deltaTime);
             }
         }
         _lastUpdate = now;
@@ -884,9 +870,7 @@ void ScriptEngine::run() {
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
-    if (_wantSignals) {
-        emit scriptEnding();
-    }
+    emit scriptEnding();
 
     if (entityScriptingInterface->getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
@@ -904,15 +888,11 @@ void ScriptEngine::run() {
         }
     }
 
-    if (_wantSignals) {
-        emit finished(_fileNameString, this);
-    }
+    emit finished(_fileNameString, this);
 
     _isRunning = false;
-    if (_wantSignals) {
-        emit runningStateChanged();
-        emit doneRunning();
-    }
+    emit runningStateChanged();
+    emit doneRunning();
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
@@ -950,9 +930,7 @@ void ScriptEngine::stop() {
             return;
         }
         _isFinished = true;
-        if (_wantSignals) {
-            emit runningStateChanged();
-        }
+        emit runningStateChanged();
     }
 }
 
@@ -1076,9 +1054,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
 }
 
 void ScriptEngine::print(const QString& message) {
-    if (_wantSignals) {
-        emit printedMessage(message);
-    }
+    emit printedMessage(message);
 }
 
 // If a callback is specified, the included files will be loaded asynchronously and the callback will be called
@@ -1214,13 +1190,9 @@ void ScriptEngine::load(const QString& loadFile) {
     if (_isReloading) {
         auto scriptCache = DependencyManager::get<ScriptCache>();
         scriptCache->deleteScript(url.toString());
-        if (_wantSignals) {
-            emit reloadScript(url.toString(), false);
-        }
+        emit reloadScript(url.toString(), false);
     } else {
-        if (_wantSignals) {
-            emit loadScript(url.toString(), false);
-        }
+        emit loadScript(url.toString(), false);
     }
 }
 

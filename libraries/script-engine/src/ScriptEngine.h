@@ -67,9 +67,7 @@ public:
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
     Q_OBJECT
 public:
-    ScriptEngine(const QString& scriptContents = NO_SCRIPT,
-                 const QString& fileNameString = QString(""),
-                 bool wantSignals = true);
+    ScriptEngine(const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
 
     ~ScriptEngine();
 
@@ -191,7 +189,6 @@ protected:
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
-    bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };
