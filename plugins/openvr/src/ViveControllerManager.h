@@ -59,7 +59,7 @@ private:
         virtual void focusOutEvent() override;
 
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
-        void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool isLeftHand);
+        void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
         void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                              const vec3& linearVelocity, const vec3& angularVelocity, bool isLeftHand);

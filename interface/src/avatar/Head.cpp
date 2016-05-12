@@ -46,8 +46,6 @@ Head::Head(Avatar* owningAvatar) :
     _mouth3(0.0f),
     _mouth4(0.0f),
     _mouthTime(0.0f),
-    _renderLookatVectors(false),
-    _renderLookatTarget(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlinkVelocity(0.0f),
@@ -316,19 +314,6 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::renderLookAts(RenderArgs* renderArgs) {
-    renderLookAts(renderArgs, _leftEyePosition, _rightEyePosition);
-}
-
-void Head::renderLookAts(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition) {
-    if (_renderLookatVectors) {
-        renderLookatVectors(renderArgs, leftEyePosition, rightEyePosition, getCorrectedLookAtPosition());
-    }
-    if (_renderLookatTarget) {
-        renderLookatTarget(renderArgs, getCorrectedLookAtPosition());
-    }
-}
-
 void Head::setScale (float scale) {
     if (_scale == scale) {
         return;
@@ -438,32 +423,4 @@ float Head::getFinalRoll() const {
 void Head::addLeanDeltas(float sideways, float forward) {
     _deltaLeanSideways += sideways;
     _deltaLeanForward += forward;
-}
-
-void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
-    auto& batch = *renderArgs->_batch;
-    auto transform = Transform{};
-    batch.setModelTransform(transform);
-    // FIXME: THe line width of 2.0f is not supported anymore, we ll need a workaround
-
-    glm::vec4 startColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glm::vec4 endColor(1.0f, 1.0f, 1.0f, 0.0f);
-    
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->bindSimpleProgram(batch);
-    geometryCache->renderLine(batch, leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
-    geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
-}
-
-void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) {
-    auto& batch = *renderArgs->_batch;
-    auto transform = Transform{};
-    transform.setTranslation(lookatPosition);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    const float LOOK_AT_TARGET_RADIUS = 0.075f;
-    transform.postScale(LOOK_AT_TARGET_RADIUS);
-    const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(batch, LOOK_AT_TARGET_COLOR);
 }

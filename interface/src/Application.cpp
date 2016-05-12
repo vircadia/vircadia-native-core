@@ -45,11 +45,13 @@
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AnimDebugDraw.h>
 #include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
+#include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
@@ -101,7 +103,7 @@
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
 
-#include "AnimDebugDraw.h"
+
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -673,9 +675,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
     UserActivityLogger::getInstance().launch(applicationVersion(), _previousSessionCrashed, sessionRunTime.get());
 
-    // once the event loop has started, check and signal for an access token
-    QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
-
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
@@ -1094,6 +1093,11 @@ void Application::checkChangeCursor() {
 
         _cursorNeedsChanging = false;
     }
+
+
+    // After all of the constructor is completed, then set firstRun to false.
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
+    firstRun.set(false);
 }
 
 void Application::showCursor(const QCursor& cursor) {
@@ -1303,8 +1307,6 @@ void Application::initializeGL() {
 
     // update before the first render
     update(0);
-
-    InfoView::show(INFO_HELP_PATH, true);
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -2964,7 +2966,21 @@ void Application::init() {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
-    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    if (addressLookupString.isEmpty() && firstRun.get()) {
+        qDebug() << "First run and no URL passed... attempting to go to Home or Entry...";
+        DependencyManager::get<AddressManager>()->ifLocalSandboxRunningElse([](){
+            qDebug() << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox();
+        }, 
+        [](){
+            qDebug() << "Home sandbox does not appear to be running, going to Entry.";
+            DependencyManager::get<AddressManager>()->goToEntry();
+        });
+    } else {
+        qDebug() << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+    }
 
     qCDebug(interfaceapp) << "Loaded settings";
 
@@ -3029,9 +3045,9 @@ void Application::updateLOD() const {
     }
 }
 
-void Application::pushPreRenderLambda(void* key, std::function<void()> func) {
-    std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
-    _preRenderLambdas[key] = func;
+void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
+    std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
+    _postUpdateLambdas[key] = func;
 }
 
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
@@ -3553,15 +3569,19 @@ void Application::update(float deltaTime) {
         }
     }
 
+    avatarManager->postUpdate(deltaTime);
+
     {
         PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
-        std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
-        for (auto& iter : _preRenderLambdas) {
+        std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
+        for (auto& iter : _postUpdateLambdas) {
             iter.second();
         }
-        _preRenderLambdas.clear();
+        _postUpdateLambdas.clear();
     }
+
+    AnimDebugDraw::getInstance().update();
 }
 
 
@@ -3983,13 +4003,10 @@ namespace render {
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
 
-    // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
+    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
     auto myAvatar = getMyAvatar();
-    myAvatar->preRender(renderArgs);
-
-    // Update animation debug draw renderer
-    AnimDebugDraw::getInstance().update();
+    myAvatar->preDisplaySide(renderArgs);
 
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
@@ -4941,24 +4958,19 @@ qreal Application::getDevicePixelRatio() {
     return (_window && _window->windowHandle()) ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
-DisplayPlugin* Application::getActiveDisplayPlugin() {
-    DisplayPlugin* result = nullptr;
-    if (QThread::currentThread() == thread()) {
-        if (nullptr == _displayPlugin) {
-            updateDisplayMode();
-            Q_ASSERT(_displayPlugin);
-        }
-        result = _displayPlugin.get();
-    } else {
+DisplayPluginPointer Application::getActiveDisplayPlugin() const {
+    if (QThread::currentThread() != thread()) {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
-        result = _displayPlugin.get();
+        return _displayPlugin;
     }
-    return result;
+
+    if (!_displayPlugin) {
+        const_cast<Application*>(this)->updateDisplayMode();
+        Q_ASSERT(_displayPlugin);
+    }
+    return _displayPlugin;
 }
 
-const DisplayPlugin* Application::getActiveDisplayPlugin() const {
-    return const_cast<Application*>(this)->getActiveDisplayPlugin();
-}
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();

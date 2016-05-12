@@ -175,8 +175,7 @@ public:
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
-    DisplayPlugin* getActiveDisplayPlugin();
-    const DisplayPlugin* getActiveDisplayPlugin() const;
+    DisplayPluginPointer getActiveDisplayPlugin() const;
 
     FileLogger* getLogger() const { return _logger; }
 
@@ -210,7 +209,7 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
-    virtual void pushPreRenderLambda(void* key, std::function<void()> func) override;
+    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
@@ -383,7 +382,7 @@ private:
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
-    std::mutex _displayPluginLock;
+    mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
@@ -509,8 +508,8 @@ private:
 
     QThread* _deadlockWatchdogThread;
 
-    std::map<void*, std::function<void()>> _preRenderLambdas;
-    std::mutex _preRenderLambdasLock;
+    std::map<void*, std::function<void()>> _postUpdateLambdas;
+    std::mutex _postUpdateLambdasLock;
 
     std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
