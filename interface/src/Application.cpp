@@ -1786,14 +1786,29 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
+    static bool justPresented = false;
     if ((int)event->type() == (int)Present) {
+        if (justPresented) {
+            justPresented = false;
+
+            // If presentation is hogging the main thread, repost as low priority to avoid hanging the GUI.
+            // This has the effect of allowing presentation to exceed the paint budget by X times and
+            // only dropping every (1/X) frames, instead of every ceil(X) frames.
+            // (e.g. at a 60FPS target, painting for 17us would fall to 58.82FPS instead of 30FPS).
+            removePostedEvents(this, Present);
+            postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
+            return true;
+        }
+
         idle();
-        removePostedEvents(this, Present); // clear pending presents so we don't clog the pipes
         return true;
     } else if ((int)event->type() == (int)Paint) {
+        justPresented = true;
         paintGL();
         return true;
-    } else if ((int)event->type() == (int)Lambda) {
+    }
+
+    if ((int)event->type() == (int)Lambda) {
         static_cast<LambdaEvent*>(event)->call();
         return true;
     }
@@ -2605,7 +2620,7 @@ void Application::idle() {
     _renderedFrameIndex = displayPlugin->presentCount();
 
     // Request a paint ASAP
-    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority + 1);
 
     // Update the deadlock watchdog
     updateHeartbeat();
