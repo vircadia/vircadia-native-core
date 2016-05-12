@@ -168,7 +168,7 @@ int main (int argc, char** argv) {
     auto scribe = std::make_shared<TextTemplate>(srcFilename, config);
 
     // ready to parse and generate
-    std::ostringstream destStringStream;
+    std::stringstream destStringStream;
     int numErrors = scribe->scribe(destStringStream, srcStream, vars);
     if (numErrors) {
         cerr << "Scribe " << srcFilename << "> failed: " << numErrors << " errors." << endl;
@@ -191,19 +191,34 @@ int main (int argc, char** argv) {
         targetStringStream << "#ifndef scribe_" << targetName << "_h" << std::endl;
         targetStringStream << "#define scribe_" << targetName << "_h" << std::endl << std::endl;
 
-        std::istringstream destStringStreamAgain(destStringStream.str());
         targetStringStream << "const char " << targetName << "[] = \n";
-        while (!destStringStreamAgain.eof()) {
-            std::string lineToken;
-            std::getline(destStringStreamAgain, lineToken);
-            targetStringStream << "R\"XXX(" << lineToken << ")XXX\"\"\\n\"\n";
+
+        // Because there is a maximum size for literal strings declared in source we need to partition the 
+        // full source string stream into pages that seems to be around that value...
+        const int MAX_STRING_LITERAL = 10000;
+        std::string lineToken;
+        auto pageSize = lineToken.length();
+        std::stringstream pageStringStream;
+
+        while (!destStringStream.eof()) {
+            std::getline(destStringStream, lineToken);
+            auto lineSize = lineToken.length() + 1;
+
+            if (pageSize + lineSize > MAX_STRING_LITERAL) {
+                targetStringStream << "R\"SCRIBE(\n" << pageStringStream.str() << "\n)SCRIBE\"\n";
+                // reset pageStringStream
+                pageStringStream = std::stringstream();
+                pageSize = 0;
+            }
+
+            pageStringStream << lineToken << std::endl;
+            pageSize += lineSize;
         }
+
+        // Write the last page content if reached eof
+        targetStringStream << "R\"SCRIBE(\n" << pageStringStream.str() << "\n)SCRIBE\"\n";
         targetStringStream << ";\n" << std::endl << std::endl;
-        /*
-        targetStringStream << "const char " << targetName << "[] = R\"SCRIBE(";
-        targetStringStream << destStringStream.str();
-        targetStringStream << "\n)SCRIBE\";\n\n";
-        */
+
         targetStringStream << "#endif" << std::endl;
     } else {
         targetStringStream << destStringStream.str();
