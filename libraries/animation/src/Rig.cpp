@@ -165,6 +165,7 @@ void Rig::destroyAnimGraph() {
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
 
     _geometryOffset = AnimPose(geometry.offset);
+    _invGeometryOffset = _geometryOffset.inverse();
     setModelOffset(modelOffset);
 
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
@@ -193,6 +194,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 
 void Rig::reset(const FBXGeometry& geometry) {
     _geometryOffset = AnimPose(geometry.offset);
+    _invGeometryOffset = _geometryOffset.inverse();
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
     _internalPoseSet._relativePoses.clear();
@@ -269,24 +271,6 @@ void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
 
         // rebuild cached default poses
         buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
-    }
-}
-
-bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
-    if (isIndexValid(index)) {
-        rotation = _internalPoseSet._relativePoses[index].rot;
-        return !isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
-    } else {
-        return false;
-    }
-}
-
-bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
-    if (isIndexValid(index)) {
-        translation = _internalPoseSet._relativePoses[index].trans;
-        return !isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
-    } else {
-        return false;
     }
 }
 
@@ -445,6 +429,23 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
 
     *alphaOut = alpha;
 }
+
+bool Rig::getJointData(int index, JointData& jointDataOut) const {
+    if (isIndexValid(index)) {
+        jointDataOut.rotation = _internalPoseSet._absolutePoses[index].rot;
+        jointDataOut.rotationSet = !isEqual(jointDataOut.rotation, _animSkeleton->getAbsoluteDefaultPose(index).rot);
+
+        // geometry offset is used here so that translations are in meters, this is what the avatar mixer expects
+        jointDataOut.translation = _geometryOffset * _internalPoseSet._absolutePoses[index].trans;
+        jointDataOut.translationSet = !isEqual(jointDataOut.translation, _animSkeleton->getAbsoluteDefaultPose(index).trans);
+        return true;
+    } else {
+        jointDataOut.translationSet = false;
+        jointDataOut.rotationSet = false;
+        return false;
+    }
+}
+
 
 void Rig::setEnableInverseKinematics(bool enable) {
     _enableInverseKinematics = enable;
@@ -1232,21 +1233,44 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
     jointDataVec.resize((int)getJointStateCount());
     for (auto i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
-        data.rotationSet |= getJointStateRotation(i, data.rotation);
-        // geometry offset is used here so that translations are in meters.
-        // this is what the avatar mixer expects
-        data.translationSet |= getJointStateTranslation(i, data.translation);
-        data.translation = _geometryOffset * data.translation;
+        getJointData(i, data);
     }
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-    AnimPose invGeometryOffset = _geometryOffset.inverse();
-    for (int i = 0; i < jointDataVec.size(); i++) {
-        const JointData& data = jointDataVec.at(i);
-        setJointRotation(i, data.rotationSet, data.rotation, 1.0f);
-        // geometry offset is used here to undo the fact that avatar mixer translations are in meters.
-        setJointTranslation(i, data.translationSet, invGeometryOffset * data.translation, 1.0f);
+
+    if (_animSkeleton) {
+
+        std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
+        AnimPoseVec overridePoses = _animSkeleton->getAbsoluteDefaultPoses();  // start with the default poses.
+
+        ASSERT(overrideFlags.size() == absoluteOverridePoses.size());
+
+        for (int i = 0; i < jointDataVec.size(); i++) {
+            if (isIndexValid(i)) {
+                const JointData& data = jointDataVec.at(i);
+                if (data.rotationSet) {
+                    overrideFlags[i] = true;
+                    overridePoses[i].rot = data.rotation;
+                }
+                if (data.translationSet) {
+                    overrideFlags[i] = true;
+                    // convert from meters back into geometry units.
+                    overridePoses[i].trans = _invGeometryOffset * data.translation;
+                }
+            }
+        }
+
+        ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
+
+        _animSkeleton->convertAbsolutePosesToRelative(overridePoses);
+
+        for (int i = 0; i < jointDataVec.size(); i++) {
+            if (overrideFlags[i]) {
+                _internalPoseSet._overrideFlags[i] = true;
+                _internalPoseSet._overridePoses[i] = overridePoses[i];
+            }
+        }
     }
 }
 

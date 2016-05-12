@@ -121,6 +121,8 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
 }
 
+#define WANT_DEBUG
+
 QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     // TODO: DRY this up to a shared method
     // that can pack any type given the number of bytes
@@ -329,7 +331,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     }
 
     #ifdef WANT_DEBUG
-    if (sendAll) {
+    //if (sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                  << "largest:" << maxTranslationDimension
@@ -339,7 +341,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
                  << (beforeTranslations - beforeRotations) << "+"
                  << (destinationBuffer - beforeTranslations) << "="
                  << (destinationBuffer - startPosition);
-    }
+    //}
     #endif
 
     return avatarDataByteArray.left(destinationBuffer - startPosition);
