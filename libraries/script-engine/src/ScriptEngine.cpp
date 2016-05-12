@@ -162,16 +162,15 @@ ScriptEngine::~ScriptEngine() {
     } else {
         qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
     }
-
-    waitTillDoneRunning();
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();
-    QThread* receiver;
+    QThread* workerThread;
     // Ensure the thread should be running, and does exist
-    if (_isRunning && _isThreaded && (receiver = thread())) {
-        connect(this, &ScriptEngine::doneRunning, receiver, &QThread::quit);
+    if (_isRunning && _isThreaded && (workerThread = thread())) {
+        connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+        connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
     }
 }
 
@@ -268,30 +267,33 @@ void ScriptEngine::runInThread() {
     }
 
     _isThreaded = true;
-    QThread* workerThread = new QThread();
-    QString scriptEngineName = QString("Script Thread:") + getFilename();
-    workerThread->setObjectName(scriptEngineName);
 
+    // The thread interface cannot live on itself, and we want to move this into the thread, so
+    // the thread cannot have this as a parent.
+    QThread* workerThread = new QThread();
+    workerThread->setObjectName(QString("Script Thread:") + getFilename());
+    moveToThread(workerThread);
+    
     // NOTE: If you connect any essential signals for proper shutdown or cleanup of
     // the script engine, make sure to add code to "reconnect" them to the
     // disconnectNonEssentialSignals() method
-
-    // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
-
-    // tell the thread to stop when the script engine is done
     connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+    connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
 
-    moveToThread(workerThread);
-
-    // Starts an event loop, and emits workerThread->started()
     workerThread->start();
 }
 
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
     auto workerThread = thread();
+
     if (_isThreaded && workerThread) {
+        // We should never be waiting (blocking) on our own thread
+        assert(workerThread != QThread::currentThread());
+
+        stop();
+
         QString scriptName = getFilename();
         auto startedWaiting = usecTimestampNow();
 
@@ -301,24 +303,28 @@ void ScriptEngine::waitTillDoneRunning() {
             //       the scripts will likely need to marshall messages across to the main thread, e.g.
             //       if they access Settings or Menu in any of their shutdown code. So:
             // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
-            QCoreApplication::processEvents(); // thread-safe :)
+            QCoreApplication::processEvents();
 
-            // If we've been waiting a second or more, then tell the script engine to stop evaluating
+            // If the final evaluation takes too long, then tell the script engine to stop evaluating
             static const auto MAX_SCRIPT_EVALUATION_TIME =  USECS_PER_SECOND;
+            static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MAX_SCRIPT_EVALUATION_TIME;
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
             if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
-                qCDebug(scriptengine) <<
-                    "Script " << scriptName << " has been running too long [" << elapsedUsecs << " usecs] quitting.";
-                abortEvaluation(); // to allow the thread to quit
-                workerThread->quit();
-                break;
+                qCDebug(scriptengine).nospace() <<
+                    "Script " << scriptName << " has been running too long [" << elapsedUsecs << "usecs] quitting.";
+                abortEvaluation(); // break out of current evaluation
+
+                // Wait for the scripting thread to stop running
+                if (!workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
+                    qCWarning(scriptengine).nospace() <<
+                        "Script " << scriptName << " has been quitting too long [" << elapsedUsecs << "usecs] terminating.";
+                    workerThread->terminate();
+                }
             }
 
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
         }
-
-        workerThread->deleteLater();
     }
 }
 
