@@ -202,7 +202,7 @@ var PopUpMenu = function (properties) {
             width: MIN_MAX_BUTTON_SVG_WIDTH,
             height: MIN_MAX_BUTTON_SVG_HEIGHT / 2
         },
-        color: properties.buttonColor,
+        //color: properties.buttonColor,
         alpha: properties.buttonAlpha,
         visible: properties.visible
     });
@@ -246,6 +246,17 @@ var usersWindow = (function () {
         WINDOW_BACKGROUND_ALPHA = 0.8,
         windowPane,
         windowHeading,
+
+        // Window border is similar to that of edit.js.
+        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_LEFT_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_RADIUS = 4,
+        WINDOW_BORDER_COLOR = { red: 255, green: 255, blue: 255 },
+        WINDOW_BORDER_ALPHA = 0.5,
+        windowBorder,
+
         MIN_MAX_BUTTON_SVG = baseURL + "min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
@@ -329,6 +340,7 @@ var usersWindow = (function () {
         visibilityControl,
 
         windowHeight,
+        windowBorderHeight,
         windowTextHeight,
         windowLineSpacing,
         windowLineHeight, // = windowTextHeight + windowLineSpacing
@@ -357,6 +369,7 @@ var usersWindow = (function () {
 
         isVisible = true,
         isMinimized = false,
+        isBorderVisible = false,
 
         viewportHeight,
         isMirrorDisplay = false,
@@ -377,6 +390,7 @@ var usersWindow = (function () {
 
         if (isMinimized) {
             windowHeight = windowTextHeight + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
+            windowBorderHeight = windowHeight + WINDOW_BORDER_TOP_MARGIN + WINDOW_BORDER_BOTTOM_MARGIN;
             return;
         }
 
@@ -392,6 +406,7 @@ var usersWindow = (function () {
             maxWindowHeight -= MIRROR_HEIGHT;
         }
         windowHeight = Math.max(Math.min(windowHeight, maxWindowHeight), nonUsersHeight);
+        windowBorderHeight = windowHeight + WINDOW_BORDER_TOP_MARGIN + WINDOW_BORDER_BOTTOM_MARGIN;
 
         // Corresponding number of users to actually display
         numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);
@@ -407,6 +422,9 @@ var usersWindow = (function () {
     function updateOverlayPositions() {
         var y;
 
+        Overlays.editOverlay(windowBorder, {
+            y: viewportHeight - windowHeight - WINDOW_BORDER_TOP_MARGIN
+        });
         Overlays.editOverlay(windowPane, {
             y: viewportHeight - windowHeight
         });
@@ -489,6 +507,10 @@ var usersWindow = (function () {
                 visible: isUsingScrollbars
             });
         }
+
+        Overlays.editOverlay(windowBorder, {
+            height: windowBorderHeight
+        });
 
         Overlays.editOverlay(windowPane, {
             height: windowHeight,
@@ -574,6 +596,10 @@ var usersWindow = (function () {
     };
 
     function updateOverlayVisibility() {
+        // TODO
+        //Overlays.editOverlay(windowBorder, {
+        //    visible: isVisible && isBorderVisible
+        //});
         Overlays.editOverlay(windowPane, {
             visible: isVisible
         });
@@ -805,6 +831,19 @@ var usersWindow = (function () {
 
         calculateWindowHeight();
 
+        windowBorder = Overlays.addOverlay("rectangle", {
+            x: -WINDOW_BORDER_LEFT_MARGIN,
+            y: viewportHeight,
+            width: WINDOW_BORDER_WIDTH,
+            height: windowBorderHeight,
+            radius: WINDOW_BORDER_RADIUS,
+            color: WINDOW_BORDER_COLOR,
+            alpha: WINDOW_BORDER_ALPHA,
+            // TODO
+            //visible: isVisible && isBorderVisible
+            visible: true
+        });
+
         windowPane = Overlays.addOverlay("text", {
             x: 0,
             y: viewportHeight, // Start up off-screen
@@ -988,6 +1027,7 @@ var usersWindow = (function () {
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);
+        Overlays.deleteOverlay(windowBorder);
         Overlays.deleteOverlay(windowPane);
         Overlays.deleteOverlay(windowHeading);
         Overlays.deleteOverlay(minimizeButton);
