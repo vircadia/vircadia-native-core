@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  overlay3D_translucent_emissive.frag
+//  overlay3D_translucent_unlit.frag
 //  fragment shader
 //
 //  Created by Zach Pomerantz on 2/2/2016.

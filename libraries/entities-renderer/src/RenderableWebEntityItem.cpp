@@ -210,7 +210,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     }
     
     DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, textured, culled, emissive);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {

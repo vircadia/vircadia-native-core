@@ -892,7 +892,10 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             properties = true;
                             propertyName = "P";
                             index = 4;
+                        } else if (subobject.name == "ShadingModel") {
+                            material.shadingModel = subobject.properties.at(0).toString();
                         }
+
                         if (properties) {
                             std::vector<std::string> unknowns;
                             foreach(const FBXNode& property, subobject.children) {
@@ -988,7 +991,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QString propname = subobject.name.data();
                             int unknown = 0;
                             if ( (propname == "Version")
-                                ||(propname == "ShadingModel")
                                 ||(propname == "Multilayer")) {
                             } else {
                                 unknown++;
@@ -1130,7 +1132,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_ao_map")) {
                             occlusionTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-
                         } else if (type == "lcl rotation") {
                             localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type == "lcl translation") {

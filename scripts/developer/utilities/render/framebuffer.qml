@@ -33,6 +33,7 @@ Column {
                 "Roughness",
                 "Metallic",     
                 "Emissive",
+                "Shaded/Lightmapped/Unlit",
                 "Occlusion",
                 "Lightmap",
                 "Lighting",
