@@ -65,15 +65,22 @@ public:
 
     class GLBuffer : public GPUObject {
     public:
-        Stamp _stamp;
-        GLuint _buffer;
-        GLuint _size;
+        const GLuint _buffer;
+        const GLuint _size;
+        const Stamp _stamp;
 
-        GLBuffer();
+        GLBuffer(const Buffer& buffer);
         ~GLBuffer();
 
-        void setSize(GLuint size);
+        void transfer(bool forceAll = false);
+
+    private:
+        bool getNextTransferBlock(GLintptr& outOffset, GLsizeiptr& outSize, size_t& currentPage) const;
+            
+        // The owning texture
+        const Buffer& _gpuBuffer;
     };
+
     static GLBuffer* syncGPUObject(const Buffer& buffer);
     static GLuint getBufferID(const Buffer& buffer);
 
