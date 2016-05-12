@@ -154,7 +154,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
-    qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
+    qCDebug(scriptengine) << "Script Engine shutting down:" << getFilename();
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
@@ -291,11 +291,10 @@ void ScriptEngine::wait() {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
+        // Engine should be stopped already, but be defensive
         stop();
 
-        QString scriptName = getFilename();
         auto startedWaiting = usecTimestampNow();
-
         while (workerThread->isRunning()) {
             // NOTE: This will be called on the main application thread from stopAllScripts.
             //       The application thread will need to continue to process events, because
@@ -310,13 +309,13 @@ void ScriptEngine::wait() {
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
             if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
                 qCDebug(scriptengine).nospace() <<
-                    "Script " << scriptName << " has been running too long [" << elapsedUsecs << "usecs] quitting.";
+                    "Script Engine has been running too long, aborting:" << getFilename();
                 abortEvaluation(); // break out of current evaluation
 
                 // Wait for the scripting thread to stop running
                 if (!workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
                     qCWarning(scriptengine).nospace() <<
-                        "Script " << scriptName << " has been quitting too long [" << elapsedUsecs << "usecs] terminating.";
+                        "Script Engine has been aborting too long, terminating:" << getFilename();
                     workerThread->terminate();
                 }
             }
@@ -324,6 +323,8 @@ void ScriptEngine::wait() {
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
         }
+
+        qCDebug(scriptengine) << "Script Engine has stopped:" << getFilename();
     }
 }
 
@@ -873,6 +874,8 @@ void ScriptEngine::run() {
         // Debug and clear exceptions
         hadUncaughtExceptions(*this, _fileNameString);
     }
+
+    qCDebug(scriptengine) << "Script Engine stopping:" << getFilename();
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
     emit scriptEnding();
