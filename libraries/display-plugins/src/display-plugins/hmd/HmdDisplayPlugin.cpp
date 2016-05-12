@@ -63,7 +63,7 @@ bool HmdDisplayPlugin::internalActivate() {
 }
 
 
-static const char * REPROJECTION_VS = R"VS(#version 450 core
+static const char * REPROJECTION_VS = R"VS(#version 410 core
 in vec3 Position;
 in vec2 TexCoord;
 
@@ -78,15 +78,15 @@ void main() {
 
 )VS";
 
-static const GLint REPROJECTION_MATRIX_LOCATION = 0;
-static const GLint INVERSE_PROJECTION_MATRIX_LOCATION = 4;
-static const GLint PROJECTION_MATRIX_LOCATION = 12;
-static const char * REPROJECTION_FS = R"FS(#version 450 core
+static GLint REPROJECTION_MATRIX_LOCATION = -1;
+static GLint INVERSE_PROJECTION_MATRIX_LOCATION = -1;
+static GLint PROJECTION_MATRIX_LOCATION = -1;
+static const char * REPROJECTION_FS = R"FS(#version 410 core
 
 uniform sampler2D sampler;
-layout (location = 0) uniform mat3 reprojection = mat3(1);
-layout (location = 4) uniform mat4 inverseProjections[2];
-layout (location = 12) uniform mat4 projections[2];
+uniform mat3 reprojection = mat3(1);
+uniform mat4 inverseProjections[2];
+uniform mat4 projections[2];
 
 in vec2 vTexCoord;
 in vec3 vPosition;
@@ -205,6 +205,11 @@ void HmdDisplayPlugin::customizeContext() {
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
     compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
+    
+    using namespace oglplus;
+    REPROJECTION_MATRIX_LOCATION = Uniform<glm::mat3>(*_reprojectionProgram, "reprojection").Location();
+    INVERSE_PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "inverseProjections").Location();
+    PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "projections").Location();
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {

@@ -64,7 +64,7 @@ public:
     virtual MainWindow* getPrimaryWindow() = 0;
     virtual QOpenGLContext* getPrimaryContext() = 0;
     virtual bool isForeground() = 0;
-    virtual const DisplayPlugin* getActiveDisplayPlugin() const = 0;
+    virtual const DisplayPluginPointer getActiveDisplayPlugin() const = 0;
 
     /// settings interface
     bool getBoolSetting(const QString& settingName, bool defaultValue);

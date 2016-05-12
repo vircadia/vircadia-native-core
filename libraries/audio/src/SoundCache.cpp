@@ -35,7 +35,7 @@ SharedSoundPointer SoundCache::getSound(const QUrl& url) {
 }
 
 QSharedPointer<Resource> SoundCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    bool delayLoad, const void* extra) {
+    const void* extra) {
     qCDebug(audio) << "Requesting sound at" << url.toString();
     return QSharedPointer<Resource>(new Sound(url), &Resource::deleter);
 }

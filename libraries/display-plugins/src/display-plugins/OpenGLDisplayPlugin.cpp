@@ -237,12 +237,6 @@ bool OpenGLDisplayPlugin::activate() {
 
     _vsyncSupported = _container->getPrimaryWidget()->isVsyncSupported();
 
-    // Child classes may override this in order to do things like initialize 
-    // libraries, etc
-    if (!internalActivate()) {
-        return false;
-    }
-
 
 #if THREADED_PRESENT
     // Start the present thread if necessary
@@ -258,8 +252,18 @@ bool OpenGLDisplayPlugin::activate() {
         // Start execution
         presentThread->start();
     }
+    _presentThread = presentThread.data();
+#endif
+    
+    // Child classes may override this in order to do things like initialize
+    // libraries, etc
+    if (!internalActivate()) {
+        return false;
+    }
 
-    // This should not return until the new context has been customized 
+#if THREADED_PRESENT
+
+    // This should not return until the new context has been customized
     // and the old context (if any) has been uncustomized
     presentThread->setNewDisplayPlugin(this);
 #else

@@ -20,10 +20,10 @@
 #include <udt/PacketHeaders.h>
 #include <RenderArgs.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "Octree.h"
 #include "OctreePacketData.h"
-#include "ViewFrustum.h"
 
 class OctreeRenderer;
 
@@ -51,8 +51,8 @@ public:
     /// render the content of the octree
     virtual void render(RenderArgs* renderArgs);
 
-    ViewFrustum* getViewFrustum() const { return _viewFrustum; }
-    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
+    const ViewFrustum& getViewFrustum() const { return _viewFrustum; }
+    void setViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustum = viewFrustum; }
 
     static bool renderOperation(OctreeElementPointer element, void* extraData);
 
@@ -75,7 +75,7 @@ protected:
 
     OctreePointer _tree;
     bool _managedTree;
-    ViewFrustum* _viewFrustum;
+    ViewFrustum _viewFrustum;
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;

@@ -218,15 +218,15 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
         float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
         // The view frustum is the mono frustum base
-        auto viewFrustum = args->_viewFrustum;
+        auto viewFrustum = args->getViewFrustum();
 
         // Eval the mono projection
         mat4 monoProjMat;
-        viewFrustum->evalProjectionMatrix(monoProjMat);
+        viewFrustum.evalProjectionMatrix(monoProjMat);
 
         // The mono view transform
         Transform monoViewTransform;
-        viewFrustum->evalViewTransform(monoViewTransform);
+        viewFrustum.evalViewTransform(monoViewTransform);
 
         // THe mono view matrix coming from the mono view transform
         glm::mat4 monoViewMat;
@@ -296,8 +296,8 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
             fetchTexcoordRects[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
         }
 
-        auto eyePoint = viewFrustum->getPosition();
-        float nearRadius = glm::distance(eyePoint, viewFrustum->getNearTopLeft());
+        auto eyePoint = viewFrustum.getPosition();
+        float nearRadius = glm::distance(eyePoint, viewFrustum.getNearTopLeft());
 
 
         for (int side = 0; side < numPasses; side++) {

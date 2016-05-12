@@ -167,7 +167,7 @@ ScriptableResource* TextureCache::prefetch(const QUrl& url, int type) {
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content) {
     TextureExtra extra = { type, content };
-    return ResourceCache::getResource(url, QUrl(), content.isEmpty(), &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
 
@@ -231,8 +231,8 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 
-QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+    const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     auto type = textureExtra ? textureExtra->type : Type::DEFAULT_TEXTURE;
     auto content = textureExtra ? textureExtra->content : QByteArray();
@@ -241,7 +241,7 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content) :
-    Resource(url, !content.isEmpty()),
+    Resource(url),
     _type(type)
 {
     _textureSource = std::make_shared<gpu::TextureSource>();

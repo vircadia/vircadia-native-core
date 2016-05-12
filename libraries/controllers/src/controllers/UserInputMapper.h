@@ -111,8 +111,17 @@ namespace controller {
 
         void loadDefaultMapping(uint16 deviceID);
         void enableMapping(const QString& mappingName, bool enable = true);
+
+        void unloadMappings(const QStringList& jsonFiles);
+        void unloadMapping(const QString& jsonFile);
+
         float getValue(const Input& input) const;
         Pose getPose(const Input& input) const;
+
+        // perform an action when the UserInputMapper mutex is acquired.
+        using Locker = std::unique_lock<std::recursive_mutex>;
+        template <typename F>
+        void withLock(F&& f) { Locker locker(_lock); f(); }
 
     signals:
         void actionEvent(int action, float state);
@@ -177,7 +186,7 @@ namespace controller {
         RouteList _deviceRoutes;
         RouteList _standardRoutes;
 
-        using Locker = std::unique_lock<std::recursive_mutex>;
+        QSet<QString> _loadedRouteJsonFiles;
 
         mutable std::recursive_mutex _lock;
     };

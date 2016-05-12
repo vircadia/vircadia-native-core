@@ -20,9 +20,9 @@
 
 #include <shared/ReadWriteLockable.h>
 #include <SimpleMovingAverage.h>
+#include <ViewFrustum.h>
 
 #include "JurisdictionMap.h"
-#include "ViewFrustum.h"
 #include "OctreeElement.h"
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
@@ -61,22 +61,22 @@ const int LOW_RES_MOVING_ADJUST  = 1;
 const quint64 IGNORE_LAST_SENT  = 0;
 
 #define IGNORE_SCENE_STATS       NULL
-#define IGNORE_VIEW_FRUSTUM      NULL
 #define IGNORE_COVERAGE_MAP      NULL
 #define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
+    ViewFrustum viewFrustum;
+    ViewFrustum lastViewFrustum;
+    quint64 lastViewFrustumSent;
     int maxEncodeLevel;
     int maxLevelReached;
-    const ViewFrustum* viewFrustum;
     bool includeExistsBits;
     int chopLevels;
-    bool deltaViewFrustum;
-    const ViewFrustum* lastViewFrustum;
+    bool deltaView;
+    bool recurseEverything { false };
     int boundaryLevelAdjust;
     float octreeElementSizeScale;
-    quint64 lastViewFrustumSent;
     bool forceSendScene;
     OctreeSceneStats* stats;
     JurisdictionMap* jurisdictionMap;
@@ -99,11 +99,9 @@ public:
 
     EncodeBitstreamParams(
         int maxEncodeLevel = INT_MAX,
-        const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
         bool includeExistsBits = WANT_EXISTS_BITS,
         int  chopLevels = 0,
-        bool deltaViewFrustum = false,
-        const ViewFrustum* lastViewFrustum = IGNORE_VIEW_FRUSTUM,
+        bool useDeltaView = false,
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
         quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
@@ -111,22 +109,22 @@ public:
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
         JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         OctreeElementExtraEncodeData* extraEncodeData = NULL) :
+            lastViewFrustumSent(lastViewFrustumSent),
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
-            viewFrustum(viewFrustum),
             includeExistsBits(includeExistsBits),
             chopLevels(chopLevels),
-            deltaViewFrustum(deltaViewFrustum),
-            lastViewFrustum(lastViewFrustum),
+            deltaView(useDeltaView),
             boundaryLevelAdjust(boundaryLevelAdjust),
             octreeElementSizeScale(octreeElementSizeScale),
-            lastViewFrustumSent(lastViewFrustumSent),
             forceSendScene(forceSendScene),
             stats(stats),
             jurisdictionMap(jurisdictionMap),
             extraEncodeData(extraEncodeData),
             stopReason(UNKNOWN)
-    {}
+    {
+        lastViewFrustum.invalidate();
+    }
 
     void displayStopReason() {
         printf("StopReason: ");
@@ -341,7 +339,7 @@ public:
 
     bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
     void setIsClient(bool isClient) { _isServer = !isClient; }
-    
+
     virtual void dumpTree() { }
     virtual void pruneTree() { }
 
@@ -351,7 +349,6 @@ public:
     virtual quint64 getAverageUpdateTime() const { return 0;  }
     virtual quint64 getAverageCreateTime() const { return 0;  }
     virtual quint64 getAverageLoggingTime() const { return 0;  }
-
 
 signals:
     void importSize(float x, float y, float z);

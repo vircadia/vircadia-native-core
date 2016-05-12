@@ -138,17 +138,17 @@ void ScriptableResource::setInScript(bool isInScript) {
 }
 
 void ScriptableResource::loadingChanged() {
-    emit stateChanged(LOADING);
+    setState(LOADING);
 }
 
 void ScriptableResource::loadedChanged() {
-    emit stateChanged(LOADED);
+    setState(LOADED);
 }
 
 void ScriptableResource::finished(bool success) {
     disconnectHelper();
 
-    emit stateChanged(success ? FINISHED : FAILED);
+    setState(success ? FINISHED : FAILED);
 }
 
 void ScriptableResource::disconnectHelper() {
@@ -179,7 +179,7 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
 
     result = new ScriptableResource(url);
 
-    auto resource = getResource(url, QUrl(), false, extra);
+    auto resource = getResource(url, QUrl(), extra);
     result->_resource = resource;
     result->setObjectName(url.toString());
 
@@ -316,25 +316,7 @@ void ResourceCache::setRequestLimit(int limit) {
     }
 }
 
-void ResourceCache::getResourceAsynchronously(const QUrl& url) {
-    qCDebug(networking) << "ResourceCache::getResourceAsynchronously" << url.toString();
-    QWriteLocker locker(&_resourcesToBeGottenLock);
-    _resourcesToBeGotten.enqueue(QUrl(url));
-}
-
-void ResourceCache::checkAsynchronousGets() {
-    assert(QThread::currentThread() == thread());
-    QWriteLocker locker(&_resourcesToBeGottenLock);
-    if (!_resourcesToBeGotten.isEmpty()) {
-        QUrl url = _resourcesToBeGotten.dequeue();
-
-        locker.unlock();
-        getResource(url);
-    }
-}
-
-QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
-                                                    bool delayLoad, void* extra) {
+QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra) {
     QSharedPointer<Resource> resource;
     {
         QReadLocker locker(&_resourcesLock);
@@ -346,17 +328,21 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     }
 
     if (QThread::currentThread() != thread()) {
-        assert(delayLoad);
-        getResourceAsynchronously(url);
+        qCDebug(networking) << "Fetching asynchronously:" << url;
+        QMetaObject::invokeMethod(this, "getResource",
+            Q_ARG(QUrl, url), Q_ARG(QUrl, fallback));
+            // Cannot use extra parameter as it might be freed before the invocation
         return QSharedPointer<Resource>();
     }
 
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
-        return getResource(fallback, QUrl(), delayLoad);
+        return getResource(fallback, QUrl());
     }
 
-    resource = createResource(url, fallback.isValid() ?
-                              getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
+    resource = createResource(
+        url,
+        fallback.isValid() ?  getResource(fallback, QUrl()) : QSharedPointer<Resource>(),
+        extra);
     resource->setSelf(resource);
     resource->setCache(this);
     connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
@@ -508,7 +494,7 @@ const int DEFAULT_REQUEST_LIMIT = 10;
 int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
 int ResourceCache::_requestsActive = 0;
 
-Resource::Resource(const QUrl& url, bool delayLoad) :
+Resource::Resource(const QUrl& url) :
     _url(url),
     _activeUrl(url),
     _request(nullptr) {
