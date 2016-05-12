@@ -66,25 +66,39 @@
 
     var TRANSFORMER_URL_MATTHEW = 'atp:/dressingRoom/matthew.fbx';
 
+    var BEAM_TRIGGER_THRESHOLD = 0.075;
+
+    var BEAM_POSITION = {
+        x: 1103.3876,
+        y: 460.4591,
+        z: -74.2998
+    };
+
+
+
     Reset.prototype = {
         tidying: false,
-
+        eyesOn: false,
+        flickerInterval: null,
         preload: function(entityID) {
             _this.entityID = entityID;
+            _this.tidySound = SoundCache.getSound("atp:/sounds/tidy.wav");
+            Script.update.connect(_this.update);
         },
 
         showTidyingButton: function() {
             var data = {
-                "Texture.001": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Head-Housing-Texture.png",
-                "button.tidy": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange.png",
-                "button.tidy-active": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange.png",
-                "button.tidy-active.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange-Emit.png",
-                "button.tidy.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Orange-Emit.png",
-                "tex.button.blanks": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks.png",
-                "tex.button.blanks.normal": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks-Normal.png",
-                "tex.face.sceen": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face.png",
-                "tex.face.screen.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face-Emit.png"
+                "Texture": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker.jpg",
+                "Texture.001": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Head-Housing-Texture.png",
+                "Texture.003": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker-Emit.jpg",
+                "tex.button.blanks": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-default.jpg",
+                "tex.face.screen-active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
+                "tex.glow.active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png",
+                "tex.glow.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png"
             }
+
 
             Entities.editEntity(_this.entityID, {
                 textures: JSON.stringify(data)
@@ -93,13 +107,15 @@
 
         showTidyButton: function() {
             var data = {
-                "Texture.001": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Head-Housing-Texture.png",
-                "button.tidy": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Green.png",
-                "button.tidy.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Tidy-Up-Button-Green-Emit.png",
-                "tex.button.blanks": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks.png",
-                "tex.button.blanks.normal": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/Button-Blanks-Normal.png",
-                "tex.face.sceen": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face.png",
-                "tex.face.screen.emit": "atp:/Tidyguy-7.fbx/Tidyguy-7.fbm/tidy-guy-face-Emit.png"
+                "Texture": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker.jpg",
+                "Texture.001": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Head-Housing-Texture.png",
+                "Texture.003": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker-Emit.jpg",
+                "tex.button.blanks": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-default.jpg",
+                "tex.face.screen-active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
+                "tex.glow.active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png",
+                "tex.glow.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-default.png"
             }
 
 
@@ -109,6 +125,18 @@
         },
 
         playTidyingSound: function() {
+            var location = {
+                x: 1102.7660,
+                y: 460.9814,
+                z: -78.6451
+            }
+
+            var injector = Audio.playSound(_this.tidySound, {
+                volume: 1,
+                position: location
+            });
+
+            print('INJECTOR IS: ' + injector)
 
         },
 
@@ -119,7 +147,7 @@
                 _this.tidying = true;
                 _this.showTidyingButton();
                 _this.playTidyingSound();
-
+                _this.flickerEyes();
                 _this.findAndDeleteHomeEntities();
                 Script.setTimeout(function() {
                     _this.showTidyButton();
@@ -130,10 +158,62 @@
                     _this.createKineticEntities();
                     _this.createScriptedEntities();
                     _this.setupDressingRoom();
-                }, 750)
-
+                }, 750);
 
             }
+        },
+
+        flickerEyes: function() {
+
+            this.flickerInterval = Script.setInterval(function() {
+                if (_this.eyesOn === true) {
+                    _this.turnEyesOff();
+                    _this.eyesOn = false;
+                } else if (_this.eyesOn === false) {
+                    _this.turnEyesOn();
+                    _this.eyesOn = true
+                }
+            }, 100);
+
+            Script.setTimeout(function() {
+                Script.clearInterval(_this.flickerInterval);
+            }, 2500)
+        },
+
+        turnEyesOn: function() {
+            var data = {
+                "Texture": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker.jpg",
+                "Texture.001": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Head-Housing-Texture.png",
+                "Texture.003": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker-Emit.jpg",
+                "tex.button.blanks": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
+                "tex.face.screen-active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
+                "tex.glow.active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png",
+                "tex.glow.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png"
+            };
+
+            Entities.editEntity(_this.entityID, {
+                textures: JSON.stringify(data)
+            });
+        },
+
+        turnEyesOff: function() {
+            var data = {
+                "Texture": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker.jpg",
+                "Texture.001": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Head-Housing-Texture.png",
+                "Texture.003": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Tidy-Swipe-Sticker-Emit.jpg",
+                "tex.button.blanks": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks.png",
+                "tex.button.blanks.normal": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/Button-Blanks-Normal.png",
+                "tex.face.sceen.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-default.jpg",
+                "tex.face.screen-active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
+                "tex.glow.active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png",
+                "tex.glow.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png"
+            };
+
+            Entities.editEntity(_this.entityID, {
+                textures: JSON.stringify(data)
+            });
         },
 
         clickReleaseOnEntity: function(entityID, mouseEvent) {
@@ -144,9 +224,9 @@
 
         },
 
-        startNearTrigger: function() {
-            _this.toggleButton();
-        },
+        // startNearTrigger: function() {
+        //     _this.toggleButton();
+        // },
 
         findAndDeleteHomeEntities: function() {
             print('HOME trying to find home entities to delete')
@@ -479,7 +559,28 @@
 
         },
 
+        update: function() {
+            if (_this.tidying === true) {
+                return
+            }
+
+            var leftHandPosition = MyAvatar.getLeftPalmPosition();
+            var rightHandPosition = MyAvatar.getRightPalmPosition();
+
+            var rightDistance = Vec3.distance(leftHandPosition, BEAM_POSITION)
+            var leftDistance = Vec3.distance(leftHandPosition, BEAM_POSITION)
+
+            if (rightDistance < BEAM_TRIGGER_THRESHOLD || leftDistance < BEAM_TRIGGER_THRESHOLD) {
+                _this.toggleButton();
+            } else {
+                //too far to toggle swipe
+            }
+        },
+
         unload: function() {
+            Script.update.disconnect(_this.update);
+
+            Script.clearInterval(_this.flickerInterval);
             // this.findAndDeleteHomeEntities();
         }
 
