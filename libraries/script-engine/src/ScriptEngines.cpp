@@ -158,8 +158,10 @@ void ScriptEngines::shutdownScripting() {
             // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(this);
 
-            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
-            // in the ScriptEngine gracefully ending it's run() method.
+            // If this is an entity script, we need to unload any entities
+            scriptEngine->unloadAllEntityScripts();
+
+            // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
 
             // We need to wait for the engine to be done running before we proceed, because we don't
