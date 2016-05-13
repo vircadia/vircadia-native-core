@@ -808,13 +808,26 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
 
-        auto myMetaItemCopy = _myMetaItem;
-
         void* key = (void*)this;
-        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [_myMetaItem]() {
+        std::weak_ptr<RenderableModelEntityItem> weakSelf =
+            std::static_pointer_cast<RenderableModelEntityItem>(getThisPointer());
+
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
+            auto self = weakSelf.lock();
+            if (!self) {
+                return;
+            }
+
+            render::ItemID myMetaItem = self->getMetaRenderItem();
+
+            if (myMetaItem == render::Item::INVALID_ITEM_ID) {
+                return;
+            }
+
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
             render::PendingChanges pendingChanges;
-            pendingChanges.updateItem<RenderableModelEntityItemMeta>(myMetaItemCopy, [](RenderableModelEntityItemMeta& data){});
+
+            pendingChanges.updateItem(myMetaItem);
             scene->enqueuePendingChanges(pendingChanges);
         });
     }
