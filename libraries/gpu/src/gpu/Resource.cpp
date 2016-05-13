@@ -270,7 +270,7 @@ Buffer::Size Buffer::resize(Size size) {
     if (prevSize < size) {
         auto newPages = getRequiredPageCount();
         auto newSize = newPages * _pageSize;
-        editSysmem().resize(size);
+        editSysmem().resize(newSize);
         // All new pages start off as clean, because they haven't been populated by data
         _pages.resize(newPages, 0);
         Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
@@ -278,7 +278,7 @@ Buffer::Size Buffer::resize(Size size) {
     return _end;
 }
 
-void Buffer::dirtyPages(Size offset, Size bytes) {
+void Buffer::markDirty(Size offset, Size bytes) {
     if (!bytes) {
         return;
     }
@@ -316,7 +316,7 @@ Buffer::Size Buffer::setData(Size size, const Byte* data) {
 Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
     auto changedBytes = editSysmem().setSubData(offset, size, data);
     if (changedBytes) {
-        dirtyPages(offset, changedBytes);
+        markDirty(offset, changedBytes);
     }
     return changedBytes;
 }

@@ -12,43 +12,42 @@
 
 using namespace gpu;
 
-static std::once_flag check_dsa;
-static bool DSA_SUPPORTED { false };
-
 GLuint allocateSingleBuffer() {
-    std::call_once(check_dsa, [&] {
-        DSA_SUPPORTED = (GLEW_VERSION_4_5 || GLEW_ARB_direct_state_access);
-    });
     GLuint result;
-    if (DSA_SUPPORTED) {
-        glCreateBuffers(1, &result);
-    } else {
-        glGenBuffers(1, &result);
-    }
+    glGenBuffers(1, &result);
+    (void)CHECK_GL_ERROR();
     return result;
 }
 
-GLBackend::GLBuffer::GLBuffer(const Buffer& buffer) : 
-    _buffer(allocateSingleBuffer()), 
-    _size(buffer._sysmem.getSize()), 
-    _stamp(buffer._sysmem.getStamp()), 
+GLBackend::GLBuffer::GLBuffer(const Buffer& buffer, GLBuffer* original) :
+    _buffer(allocateSingleBuffer()),
+    _size((GLuint)buffer._sysmem.getSize()),
+    _stamp(buffer._sysmem.getStamp()),
     _gpuBuffer(buffer) {
-    (void)CHECK_GL_ERROR();
-    Backend::setGPUObject(buffer, this);
-    if (DSA_SUPPORTED) {
-        glNamedBufferStorage(_buffer, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+    glBindBuffer(GL_ARRAY_BUFFER, _buffer);
+    if (GLEW_VERSION_4_4 || GLEW_ARB_buffer_storage) {
+        glBufferStorage(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
+        (void)CHECK_GL_ERROR();
     } else {
-        glBindBuffer(GL_ARRAY_BUFFER, _buffer);
-        if (GLEW_VERSION_4_4 || GLEW_ARB_buffer_storage) {
-            glBufferStorage(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
-        } else {
-            glBufferData(GL_ARRAY_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().readData(), GL_DYNAMIC_DRAW);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBufferData(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_DRAW);
+        (void)CHECK_GL_ERROR();
     }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    if (original) {
+        glBindBuffer(GL_COPY_WRITE_BUFFER, _buffer);
+        glBindBuffer(GL_COPY_READ_BUFFER, original->_buffer);
+        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, original->_size);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+        glBindBuffer(GL_COPY_READ_BUFFER, 0);
+        (void)CHECK_GL_ERROR();
+    }
+
+    Backend::setGPUObject(buffer, this);
     Backend::incrementBufferGPUCount();
 }
-    
+
 GLBackend::GLBuffer::~GLBuffer() {
     if (_buffer != 0) {
         glDeleteBuffers(1, &_buffer);
@@ -57,62 +56,20 @@ GLBackend::GLBuffer::~GLBuffer() {
     Backend::decrementBufferGPUCount();
 }
 
-void GLBackend::GLBuffer::transfer(bool forceAll) {
-    const auto& pageFlags = _gpuBuffer._pages;
-    if (!forceAll) {
-        size_t transitions = 0;
-        if (pageFlags.size()) {
-            bool lastDirty = (0 != (pageFlags[0] & Buffer::DIRTY));
-            for (size_t i = 1; i < pageFlags.size(); ++i) {
-                bool newDirty = (0 != (pageFlags[0] & Buffer::DIRTY));
-                if (newDirty != lastDirty) {
-                    ++transitions;
-                    lastDirty = newDirty;
-                }
-            }
-        }
-
-        // If there are no transitions (implying the whole buffer is dirty) 
-        // or more than 20 transitions, then just transfer the whole buffer
-        if (transitions == 0 || transitions > 20) {
-            forceAll = true;
-        }
-    }
-
-    // Are we transferring the whole buffer?
-    if (forceAll) {
-        if (DSA_SUPPORTED) {
-            glNamedBufferSubData(_buffer, 0, _size, _gpuBuffer.getSysmem().readData());
-        } else {
-            // Now let's update the content of the bo with the sysmem version
-            // TODO: in the future, be smarter about when to actually upload the glBO version based on the data that did change
-            //if () {
-            glBindBuffer(GL_ARRAY_BUFFER, _buffer);
-            glBufferData(GL_ARRAY_BUFFER, _gpuBuffer.getSysmem().getSize(), _gpuBuffer.getSysmem().readData(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-    } else {
-        if (!DSA_SUPPORTED) {
-            glBindBuffer(GL_ARRAY_BUFFER, _buffer);
-        }
-        GLintptr offset;
-        GLsizeiptr size;
-        size_t currentPage { 0 };
-        auto data = _gpuBuffer.getSysmem().readData();
-        while (getNextTransferBlock(offset, size, currentPage)) {
-            if (DSA_SUPPORTED) {
-                glNamedBufferSubData(_buffer, offset, size, data + offset);
-            } else {
-                glBufferSubData(GL_ARRAY_BUFFER, offset, size, data + offset);
-            }
-        }
-
-        if (!DSA_SUPPORTED) {
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-    }
-    _gpuBuffer._flags &= ~Buffer::DIRTY;
+void GLBackend::GLBuffer::transfer() {
+    glBindBuffer(GL_ARRAY_BUFFER, _buffer);
     (void)CHECK_GL_ERROR();
+    GLintptr offset;
+    GLsizeiptr size;
+    size_t currentPage { 0 };
+    auto data = _gpuBuffer.getSysmem().readData();
+    while (getNextTransferBlock(offset, size, currentPage)) {
+        glBufferSubData(GL_ARRAY_BUFFER, offset, size, data + offset);
+        (void)CHECK_GL_ERROR();
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    (void)CHECK_GL_ERROR();
+    _gpuBuffer._flags &= ~Buffer::DIRTY;
 }
 
 bool GLBackend::GLBuffer::getNextTransferBlock(GLintptr& outOffset, GLsizeiptr& outSize, size_t& currentPage) const {
@@ -130,6 +87,7 @@ bool GLBackend::GLBuffer::getNextTransferBlock(GLintptr& outOffset, GLsizeiptr& 
     // Advance to the next clean page
     outOffset = static_cast<GLintptr>(currentPage * _gpuBuffer._pageSize);
     while (currentPage < pageCount && (0 != (Buffer::DIRTY & _gpuBuffer._pages[currentPage]))) {
+        _gpuBuffer._pages[currentPage] &= ~Buffer::DIRTY;
         ++currentPage;
     }
     outSize = static_cast<GLsizeiptr>((currentPage * _gpuBuffer._pageSize) - outOffset);
@@ -139,15 +97,13 @@ bool GLBackend::GLBuffer::getNextTransferBlock(GLintptr& outOffset, GLsizeiptr& 
 GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
     GLBuffer* object = Backend::getGPUObject<GLBackend::GLBuffer>(buffer);
 
-    bool forceTransferAll = false;
     // Has the storage size changed?
     if (!object || object->_stamp != buffer.getSysmem().getStamp()) {
-        object = new GLBuffer(buffer);
-        forceTransferAll = true;
+        object = new GLBuffer(buffer, object);
     }
 
-    if (forceTransferAll || (0 != (buffer._flags & Buffer::DIRTY))) {
-        object->transfer(forceTransferAll);
+    if (0 != (buffer._flags & Buffer::DIRTY)) {
+        object->transfer();
     }
 
     return object;

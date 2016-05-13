@@ -136,8 +136,7 @@ public:
     // The size in bytes of data stored in the buffer
     Size getSize() const;
     const Byte* getData() const { return getSysmem().readData(); }
-    Byte* editData() { return editSysmem().editData(); }
-
+    
     // Resize the buffer
     // Keep previous data [0 to min(pSize, mSize)]
     Size resize(Size pSize);
@@ -159,6 +158,9 @@ public:
 
     template <typename T>
     Size setSubData(Size index, const std::vector<T>& t) {
+        if (t.empty()) {
+            return 0;
+        }
         Size offset = index * sizeof(T);
         Size size = t.size() * sizeof(T);
         return setSubData(offset, size, reinterpret_cast<const Byte*>(&t[0]));
@@ -176,18 +178,28 @@ public:
 
     template <typename T>
     Size append(const std::vector<T>& t) {
+        if (t.empty()) {
+            return _end;
+        }
         return append(sizeof(T) * t.size(), reinterpret_cast<const Byte*>(&t[0]));
     }
 
     const GPUObjectPointer gpuObject {};
     
 protected:
+    void markDirty(Size offset, Size bytes);
+
+    template <typename T>
+    void markDirty(Size index, Size count = 1) {
+        markDirty(sizeof(T) * index, sizeof(T) * count);
+    }
+
     // Access the sysmem object, limited to ourselves and GPUObject derived classes
     const Sysmem& getSysmem() const { return _sysmem; }
     Sysmem& editSysmem() { return _sysmem; }
+    Byte* editData() { return editSysmem().editData(); }
 
     Size getRequiredPageCount() const;
-    void dirtyPages(Size offset, Size bytes);
 
     Size _end { 0 };
     mutable uint8_t _flags;
@@ -197,6 +209,7 @@ protected:
 
     // FIXME find a more generic way to do this.
     friend class GLBackend;
+    friend class BufferView;
 };
 
 typedef std::shared_ptr<Buffer> BufferPointer;
@@ -320,8 +333,14 @@ public:
         int _stride;
     };
 
+#if 0
+    // Direct memory access to the buffer contents is incompatible with the paging memory scheme
     template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0), _stride); }
     template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
+#else 
+    template <typename T> Iterator<const T> begin() const { return Iterator<const T>(&get<T>(), _stride); }
+    template <typename T> Iterator<const T> end() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
+#endif
     template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(), _stride); }
     template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
 
@@ -358,6 +377,7 @@ public:
             qDebug() << "Accessing buffer outside the BufferView range, element size = " << sizeof(T) << " when bufferView size = " << _size;
         }
  #endif
+        _buffer->markDirty(_offset, sizeof(T));
         T* t = (reinterpret_cast<T*> (_buffer->editData() + _offset));
         return *(t);
     }
@@ -391,6 +411,7 @@ public:
             qDebug() << "Accessing buffer outside the BufferView range, index = " << index << " number elements = " << getNum<T>();
         }
  #endif
+        _buffer->markDirty(elementOffset, sizeof(T));
         return *(reinterpret_cast<T*> (_buffer->editData() + elementOffset));
     }
 };

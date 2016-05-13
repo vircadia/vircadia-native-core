@@ -69,10 +69,10 @@ public:
         const GLuint _size;
         const Stamp _stamp;
 
-        GLBuffer(const Buffer& buffer);
+        GLBuffer(const Buffer& buffer, GLBuffer* original = nullptr);
         ~GLBuffer();
 
-        void transfer(bool forceAll = false);
+        void transfer();
 
     private:
         bool getNextTransferBlock(GLintptr& outOffset, GLsizeiptr& outSize, size_t& currentPage) const;

@@ -118,29 +118,18 @@ AnimDebugDraw::AnimDebugDraw() :
 
     // HACK: add red, green and blue axis at (1,1,1)
     _animDebugDrawData->_vertexBuffer->resize(sizeof(Vertex) * 6);
-    Vertex* data = (Vertex*)_animDebugDrawData->_vertexBuffer->editData();
-
-    data[0].pos = glm::vec3(1.0, 1.0f, 1.0f);
-    data[0].rgba = toRGBA(255, 0, 0, 255);
-    data[1].pos = glm::vec3(2.0, 1.0f, 1.0f);
-    data[1].rgba = toRGBA(255, 0, 0, 255);
-
-    data[2].pos = glm::vec3(1.0, 1.0f, 1.0f);
-    data[2].rgba = toRGBA(0, 255, 0, 255);
-    data[3].pos = glm::vec3(1.0, 2.0f, 1.0f);
-    data[3].rgba = toRGBA(0, 255, 0, 255);
-
-    data[4].pos = glm::vec3(1.0, 1.0f, 1.0f);
-    data[4].rgba = toRGBA(0, 0, 255, 255);
-    data[5].pos = glm::vec3(1.0, 1.0f, 2.0f);
-    data[5].rgba = toRGBA(0, 0, 255, 255);
-
-    _animDebugDrawData->_indexBuffer->resize(sizeof(uint16_t) * 6);
-    uint16_t* indices = (uint16_t*)_animDebugDrawData->_indexBuffer->editData();
-    for (int i = 0; i < 6; i++) {
-        indices[i] = i;
-    }
-
+    
+    static std::vector<Vertex> vertices({ 
+        Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
+        Vertex { glm::vec3(2.0, 1.0f, 1.0f), toRGBA(255, 0, 0, 255) },
+        Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 255, 0, 255) },
+        Vertex { glm::vec3(1.0, 2.0f, 1.0f), toRGBA(0, 255, 0, 255) },
+        Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 0, 255, 255) },
+        Vertex { glm::vec3(1.0, 1.0f, 2.0f), toRGBA(0, 0, 255, 255) },
+    });
+    static std::vector<uint16_t> indices({ 0, 1, 2, 3, 4, 5 });
+    _animDebugDrawData->_vertexBuffer->setSubData<Vertex>(0, vertices);
+    _animDebugDrawData->_indexBuffer->setSubData<uint16_t>(0, indices);
 }
 
 AnimDebugDraw::~AnimDebugDraw() {
@@ -356,9 +345,13 @@ void AnimDebugDraw::update() {
         numVerts += (int)DebugDraw::getInstance().getRays().size() * VERTICES_PER_RAY;
 
         // allocate verts!
-        data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
-        Vertex* verts = (Vertex*)data._vertexBuffer->editData();
-        Vertex* v = verts;
+        std::vector<Vertex> vertices;
+        vertices.resize(numVerts);
+        //Vertex* verts = (Vertex*)data._vertexBuffer->editData();
+        Vertex* v = nullptr;
+        if (numVerts) {
+            v = &vertices[0];
+        }
 
         // draw absolute poses
         for (auto& iter : _absolutePoses) {
@@ -381,6 +374,8 @@ void AnimDebugDraw::update() {
                 }
             }
         }
+        data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
+        data._vertexBuffer->setSubData<Vertex>(0, vertices);
 
         // draw markers from shared DebugDraw singleton
         for (auto& iter : markerMap) {
@@ -408,20 +403,19 @@ void AnimDebugDraw::update() {
         }
         DebugDraw::getInstance().clearRays();
 
-        assert(numVerts == (v - verts));
+        assert((!numVerts && !v) || (numVerts == (v - &vertices[0])));
 
         render::Item::Bound theBound;
         for (int i = 0; i < numVerts; i++) {
-            theBound += verts[i].pos;
+            theBound += vertices[i].pos;
         }
         data._bound = theBound;
 
         data._isVisible = (numVerts > 0);
 
         data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
-        uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
         for (int i = 0; i < numVerts; i++) {
-            indices[i] = i;
+            data._indexBuffer->setSubData<uint16_t>(i, (uint16_t)i);;
         }
     });
     scene->enqueuePendingChanges(pendingChanges);
