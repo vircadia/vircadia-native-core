@@ -87,8 +87,6 @@ protected:
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
 
-
-    Setting::Handle<bool> _firstRun { "firstRun", true };
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;

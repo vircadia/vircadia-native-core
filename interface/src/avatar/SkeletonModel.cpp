@@ -13,6 +13,7 @@
 #include <QMultiMap>
 
 #include <recording/Deck.h>
+#include <DebugDraw.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -91,7 +92,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const FBXGeometry& geometry = getFBXGeometry();
 
     Head* head = _owningAvatar->getHead();
-
 
     // make sure lookAt is not too close to face (avoid crosseyes)
     glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();

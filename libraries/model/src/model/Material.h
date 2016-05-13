@@ -28,14 +28,15 @@ class MaterialKey {
 public:
    enum FlagBit {
         EMISSIVE_VAL_BIT = 0,
+        UNLIT_VAL_BIT,
         ALBEDO_VAL_BIT,
         METALLIC_VAL_BIT,
         GLOSSY_VAL_BIT,
         OPACITY_VAL_BIT,
-        OPACITY_MASK_MAP_BIT,           // OPacity Map and Opacity MASK map are mutually exclusive
+        OPACITY_MASK_MAP_BIT,           // Opacity Map and Opacity MASK map are mutually exclusive
         OPACITY_TRANSLUCENT_MAP_BIT,
 
-        // THe map bits must be in the smae sequence as the enum names for the map channels
+        // THe map bits must be in the same sequence as the enum names for the map channels
         EMISSIVE_MAP_BIT,
         ALBEDO_MAP_BIT,
         METALLIC_MAP_BIT,
@@ -74,9 +75,12 @@ public:
         MaterialKey build() const { return MaterialKey(_flags); }
 
         Builder& withEmissive() { _flags.set(EMISSIVE_VAL_BIT); return (*this); }
+        Builder& withUnlit() { _flags.set(UNLIT_VAL_BIT); return (*this); }
+
         Builder& withAlbedo() { _flags.set(ALBEDO_VAL_BIT); return (*this); }
         Builder& withMetallic() { _flags.set(METALLIC_VAL_BIT); return (*this); }
         Builder& withGlossy() { _flags.set(GLOSSY_VAL_BIT); return (*this); }
+
         Builder& withTranslucentFactor() { _flags.set(OPACITY_VAL_BIT); return (*this); }
 
         Builder& withEmissiveMap() { _flags.set(EMISSIVE_MAP_BIT); return (*this); }
@@ -97,6 +101,9 @@ public:
 
     void setEmissive(bool value) { _flags.set(EMISSIVE_VAL_BIT, value); }
     bool isEmissive() const { return _flags[EMISSIVE_VAL_BIT]; }
+
+    void setUnlit(bool value) { _flags.set(UNLIT_VAL_BIT, value); }
+    bool isUnlit() const { return _flags[UNLIT_VAL_BIT]; }
 
     void setEmissiveMap(bool value) { _flags.set(EMISSIVE_MAP_BIT, value); }
     bool isEmissiveMap() const { return _flags[EMISSIVE_MAP_BIT]; }
@@ -171,6 +178,9 @@ public:
 
         Builder& withoutEmissiveMap()       { _value.reset(MaterialKey::EMISSIVE_MAP_BIT); _mask.set(MaterialKey::EMISSIVE_MAP_BIT); return (*this); }
         Builder& withEmissiveMap()        { _value.set(MaterialKey::EMISSIVE_MAP_BIT);  _mask.set(MaterialKey::EMISSIVE_MAP_BIT); return (*this); }
+
+        Builder& withoutUnlit()       { _value.reset(MaterialKey::UNLIT_VAL_BIT); _mask.set(MaterialKey::UNLIT_VAL_BIT); return (*this); }
+        Builder& withUnlit()        { _value.set(MaterialKey::UNLIT_VAL_BIT);  _mask.set(MaterialKey::UNLIT_VAL_BIT); return (*this); }
 
         Builder& withoutAlbedo()       { _value.reset(MaterialKey::ALBEDO_VAL_BIT); _mask.set(MaterialKey::ALBEDO_VAL_BIT); return (*this); }
         Builder& withAlbedo()        { _value.set(MaterialKey::ALBEDO_VAL_BIT);  _mask.set(MaterialKey::ALBEDO_VAL_BIT); return (*this); }
@@ -249,6 +259,9 @@ public:
 
     void setOpacity(float opacity);
     float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
+
+    void setUnlit(bool value);
+    bool isUnlit() const { return _key.isUnlit(); }
 
     void setAlbedo(const Color& albedo, bool isSRGB = true);
     Color getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_schemaBuffer.get<Schema>()._albedo) : _schemaBuffer.get<Schema>()._albedo); }
