@@ -89,6 +89,8 @@ public:
     bool hasRenderAnimation() const { return !_renderAnimationProperties.getURL().isEmpty(); }
     const QString& getRenderAnimationURL() const { return _renderAnimationProperties.getURL(); }
 
+    render::ItemID getMetaRenderItem() { return _myMetaItem; }
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
