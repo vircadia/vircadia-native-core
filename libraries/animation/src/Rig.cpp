@@ -1220,11 +1220,16 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
     for (auto i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
         if (isIndexValid(i)) {
-            AnimPose defaultPose = geometryToRigPose * _animSkeleton->getAbsoluteDefaultPose(i);
+            // rotations are in absolute rig frame.
+            glm::quat defaultAbsRot = geometryToRigPose.rot * _animSkeleton->getAbsoluteDefaultPose(i).rot;
             data.rotation = _internalPoseSet._absolutePoses[i].rot;
-            data.rotationSet = !isEqual(data.rotation, defaultPose.rot);
-            data.translation = _internalPoseSet._absolutePoses[i].trans;
-            data.translationSet = !isEqual(data.translation, defaultPose.trans);
+            data.rotationSet = !isEqual(data.rotation, defaultAbsRot);
+
+            // translations are in relative frame but scaled so that they are in meters,
+            // instead of geometry units.
+            glm::vec3 defaultRelTrans = _geometryOffset.scale * _animSkeleton->getRelativeDefaultPose(i).trans;
+            data.translation = _geometryOffset.scale * _internalPoseSet._relativePoses[i].trans;
+            data.translationSet = !isEqual(data.translation, defaultRelTrans);
         } else {
             data.translationSet = false;
             data.rotationSet = false;
@@ -1239,44 +1244,57 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         // transform all the default poses into rig space.
         const AnimPose geometryToRigPose(_geometryToRigTransform);
         std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
-        AnimPoseVec overridePoses = _animSkeleton->getAbsoluteDefaultPoses();  // start with the default poses.
-        for (auto& pose : overridePoses) {
-            pose = geometryToRigPose * pose;
+
+        // start with the default rotations in absolute rig frame
+        std::vector<glm::quat> rotations;
+        rotations.reserve(_animSkeleton->getAbsoluteDefaultPoses().size());
+        for (auto& pose : _animSkeleton->getAbsoluteDefaultPoses()) {
+            rotations.push_back(geometryToRigPose.rot * pose.rot);
         }
 
-        ASSERT(overrideFlags.size() == overridePoses.size());
+        // start translations in relative frame but scaled to meters.
+        std::vector<glm::vec3> translations;
+        translations.reserve(_animSkeleton->getRelativeDefaultPoses().size());
+        for (auto& pose : _animSkeleton->getRelativeDefaultPoses()) {
+            translations.push_back(_geometryOffset.scale * pose.trans);
+        }
 
-        // copy over data from the jointDataVec, which is also in rig space.
+        ASSERT(overrideFlags.size() == rotations.size());
+
+        // copy over rotations from the jointDataVec, which is also in absolute rig frame
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (isIndexValid(i)) {
                 const JointData& data = jointDataVec.at(i);
                 if (data.rotationSet) {
                     overrideFlags[i] = true;
-                    overridePoses[i].rot = data.rotation;
+                    rotations[i] = data.rotation;
                 }
                 if (data.translationSet) {
                     overrideFlags[i] = true;
-                    overridePoses[i].trans = data.translation;
+                    translations[i] = data.translation;
                 }
             }
         }
 
         ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
 
-        // convert resulting poses into geometry space.
-        const AnimPose rigToGeometryPose(_rigToGeometryTransform);
-        for (auto& pose : overridePoses) {
-            pose = rigToGeometryPose * pose;
+        // convert resulting rotations into geometry space.
+        const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
+        for (auto& rot : rotations) {
+            rot = rigToGeometryRot * rot;
         }
 
-        // convert all poses from absolute to parent relative.
-        _animSkeleton->convertAbsolutePosesToRelative(overridePoses);
+        // convert all rotations from absolute to parent relative.
+        _animSkeleton->convertAbsoluteRotationsToRelative(rotations);
 
         // copy the geometry space parent relative poses into _overridePoses
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (overrideFlags[i]) {
                 _internalPoseSet._overrideFlags[i] = true;
-                _internalPoseSet._overridePoses[i] = overridePoses[i];
+                _internalPoseSet._overridePoses[i].scale = Vectors::ONE;
+                _internalPoseSet._overridePoses[i].rot = rotations[i];
+                // scale translations from meters back into geometry units.
+                _internalPoseSet._overridePoses[i].trans = _invGeometryOffset.scale * translations[i];
             }
         }
     }
