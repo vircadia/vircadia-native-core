@@ -88,16 +88,13 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
         public:
             WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
             virtual void run() override {
-                _engine->wait();
+                _engine->waitTillDoneRunning();
                 _engine->deleteLater();
             }
 
         private:
             ScriptEngine* _engine;
         };
-
-        engine->unloadAllEntityScripts();
-        engine->stop();
         // Wait for the scripting thread from the thread pool to avoid hanging the main thread
         QThreadPool::globalInstance()->start(new WaitRunnable(engine));
     });
@@ -109,6 +106,13 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
+
+    if (_entitiesScriptEngine) {
+        // Unload and stop the engine here (instead of in its deleter) to
+        // avoid marshalling unload signals back to this thread
+        _entitiesScriptEngine->unloadAllEntityScripts();
+        _entitiesScriptEngine->stop();
+    }
 
     if (_wantScripts && !_shuttingDown) {
         resetEntitiesScriptEngine();

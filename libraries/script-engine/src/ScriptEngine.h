@@ -67,10 +67,7 @@ public:
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
     Q_OBJECT
 public:
-    static const auto MAX_SCRIPT_EVALUATION_TIME = USECS_PER_SECOND;
-
     ScriptEngine(const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
-
     ~ScriptEngine();
 
     /// run the script in a dedicated thread. This will have the side effect of evalulating
@@ -88,7 +85,7 @@ public:
     Q_INVOKABLE void stop();
 
     // Stop any evaluating scripts and wait for the scripting thread to finish.
-    void wait();
+    void waitTillDoneRunning();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
@@ -169,7 +166,6 @@ public:
 public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
     void updateMemoryCost(const qint64&);
-    void abort() { abortEvaluation(); }
 
 signals:
     void scriptLoaded(const QString& scriptFilename);

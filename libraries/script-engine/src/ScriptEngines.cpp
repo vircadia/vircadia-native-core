@@ -158,9 +158,6 @@ void ScriptEngines::shutdownScripting() {
             // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(this);
 
-            // If this is an entity script, we need to unload any entities
-            scriptEngine->unloadAllEntityScripts();
-
             // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
 
@@ -168,7 +165,7 @@ void ScriptEngines::shutdownScripting() {
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
             // any application state after we leave this stopAllScripts() method
             qCDebug(scriptengine) << "waiting on script:" << scriptName;
-            scriptEngine->wait();
+            scriptEngine->waitTillDoneRunning();
             qCDebug(scriptengine) << "done waiting on script:" << scriptName;
 
             scriptEngine->deleteLater();

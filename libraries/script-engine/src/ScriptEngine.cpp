@@ -284,7 +284,7 @@ void ScriptEngine::runInThread() {
     workerThread->start();
 }
 
-void ScriptEngine::wait() {
+void ScriptEngine::waitTillDoneRunning() {
     auto workerThread = thread();
 
     if (_isThreaded && workerThread) {
@@ -303,8 +303,9 @@ void ScriptEngine::wait() {
             // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
             QCoreApplication::processEvents();
 
-            // If the final evaluation takes too long, then tell the script engine to stop evaluating
+            // If the final evaluation takes too long, then tell the script engine to stop running
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
+            static const auto MAX_SCRIPT_EVALUATION_TIME = USECS_PER_SECOND;
             if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
                 workerThread->quit();
 
