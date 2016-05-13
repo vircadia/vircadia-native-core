@@ -99,6 +99,7 @@ ModalWindow {
                 id: upButton
                 glyph: hifi.glyphs.levelUp
                 width: height
+                size: 30
                 enabled: model.parentFolder && model.parentFolder !== ""
                 onClicked: d.navigateUp();
             }
@@ -107,6 +108,7 @@ ModalWindow {
                 id: homeButton
                 property var destination: helper.home();
                 glyph: hifi.glyphs.home
+                size: 28
                 width: height
                 enabled: d.homeDestination ? true : false
                 onClicked: d.navigateHome();

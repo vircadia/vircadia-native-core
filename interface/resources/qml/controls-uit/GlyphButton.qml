@@ -19,6 +19,7 @@ Original.Button {
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
     property string glyph: ""
+    property int size: 32
 
     width: 120
     height: 28
@@ -65,7 +66,13 @@ Original.Button {
                            : hifi.buttons.disabledTextColor[control.colorScheme]
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
+            anchors {
+                // Tweak horizontal alignment so that it looks right.
+                left: parent.left
+                leftMargin: -0.5
+            }
             text: control.glyph
+            size: control.size
         }
     }
 }
