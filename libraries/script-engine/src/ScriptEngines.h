@@ -86,6 +86,7 @@ protected:
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
+    bool isStopped() const;
 
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
@@ -95,7 +96,7 @@ protected:
     mutable Setting::Handle<QString> _scriptsLocationHandle;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
-    std::atomic<bool> _stopped { false };
+    std::atomic<bool> _isStopped { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

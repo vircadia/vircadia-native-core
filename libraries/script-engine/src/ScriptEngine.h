@@ -83,6 +83,10 @@ public:
     /// run the script in the callers thread, exit when stop() is called.
     void run();
 
+    void waitTillDoneRunning();
+
+    QString getFilename() const;
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
@@ -199,8 +203,6 @@ protected:
     qint64 _lastUpdate;
 
     void init();
-    QString getFilename() const;
-    void waitTillDoneRunning();
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();
