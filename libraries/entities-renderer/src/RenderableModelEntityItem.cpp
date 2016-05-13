@@ -807,6 +807,16 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
+
+        auto myMetaItemCopy = _myMetaItem;
+
+        void* key = (void*)this;
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [_myMetaItem]() {
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            pendingChanges.updateItem<RenderableModelEntityItemMeta>(myMetaItemCopy, [](RenderableModelEntityItemMeta& data){});
+            scene->enqueuePendingChanges(pendingChanges);
+        });
     }
 }
 
