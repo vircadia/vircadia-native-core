@@ -263,7 +263,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     for (int i = 0; i < _jointData.size(); i ++) {
         const JointData& data = _jointData[ i ];
         if (validity & (1 << validityBit)) {
-            destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
+            destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -650,10 +650,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             if (validRotations[i]) {
                 _hasNewJointRotations = true;
                 data.rotationSet = true;
-                sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
+                sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
             }
         }
-    } // numJoints * 8 bytes
+    } // numJoints * 6 bytes
 
     // joint translations
     // get translation validity bits -- these indicate which translations were packed
