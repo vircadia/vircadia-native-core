@@ -24,7 +24,6 @@ GLBackend::GLBuffer::GLBuffer(const Buffer& buffer, GLBuffer* original) :
     _size((GLuint)buffer._sysmem.getSize()),
     _stamp(buffer._sysmem.getStamp()),
     _gpuBuffer(buffer) {
-
     glBindBuffer(GL_ARRAY_BUFFER, _buffer);
     if (GLEW_VERSION_4_4 || GLEW_ARB_buffer_storage) {
         glBufferStorage(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
@@ -46,6 +45,7 @@ GLBackend::GLBuffer::GLBuffer(const Buffer& buffer, GLBuffer* original) :
 
     Backend::setGPUObject(buffer, this);
     Backend::incrementBufferGPUCount();
+    Backend::updateBufferGPUMemoryUsage(0, _size);
 }
 
 GLBackend::GLBuffer::~GLBuffer() {
