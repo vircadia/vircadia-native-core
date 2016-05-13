@@ -371,7 +371,7 @@ var usersWindow = (function () {
         isMinimized = false,
         isBorderVisible = false,
 
-        viewportHeight,
+        viewport,
         isMirrorDisplay = false,
         isFullscreenMirror = false,
 
@@ -858,22 +858,37 @@ var usersWindow = (function () {
     }
 
     function onScriptUpdate() {
-        var oldViewportHeight = viewportHeight,
+        var oldViewport = viewport,
             oldIsMirrorDisplay = isMirrorDisplay,
             oldIsFullscreenMirror = isFullscreenMirror,
             MIRROR_MENU_ITEM = "Mirror",
             FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
 
-        viewportHeight = Controller.getViewportDimensions().y;
+        viewport = Controller.getViewportDimensions();
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
         isFullscreenMirror = Menu.isOptionChecked(FULLSCREEN_MIRROR_MENU_ITEM);
 
-        if (viewportHeight !== oldViewportHeight || isMirrorDisplay !== oldIsMirrorDisplay
+        if (viewport.y !== oldViewport.y || isMirrorDisplay !== oldIsMirrorDisplay
                 || isFullscreenMirror !== oldIsFullscreenMirror) {
             calculateWindowHeight();
             updateUsersDisplay();
-            updateOverlayPositions();
         }
+
+        if (viewport.y !== oldViewport.y) {
+            if (windowPosition.y > oldViewport.y / 2) {
+                // Maintain position w.r.t. bottom of window.
+                windowPosition.y = viewport.y - (oldViewport.y - windowPosition.y);
+            }
+        }
+
+        if (viewport.x !== oldViewport.x) {
+            if (windowPosition.x + (WINDOW_WIDTH / 2) > oldViewport.x / 2) {
+                // Maintain position w.r.t. right of window.
+                windowPosition.x = viewport.x - (oldViewport.x - windowPosition.x);
+            }
+        }
+
+        updateOverlayPositions();
     }
 
     function setUp() {
@@ -888,14 +903,14 @@ var usersWindow = (function () {
         windowLineHeight = windowTextHeight + windowLineSpacing;
         Overlays.deleteOverlay(textSizeOverlay);
 
-        viewportHeight = Controller.getViewportDimensions().y;
-        windowPosition = { x: 0, y: viewportHeight };
+        viewport = Controller.getViewportDimensions();
+        windowPosition = { x: 0, y: viewport.y };
 
         calculateWindowHeight();
 
         windowBorder = Overlays.addOverlay("rectangle", {
             x: 0,
-            y: viewportHeight,   // Start up off-screen
+            y: viewport.y,   // Start up off-screen
             width: WINDOW_BORDER_WIDTH,
             height: windowBorderHeight,
             radius: WINDOW_BORDER_RADIUS,
@@ -906,7 +921,7 @@ var usersWindow = (function () {
 
         windowPane = Overlays.addOverlay("text", {
             x: 0,
-            y: viewportHeight,
+            y: viewport.y,
             width: WINDOW_WIDTH,
             height: windowHeight,
             topMargin: WINDOW_MARGIN + windowLineHeight,
@@ -922,7 +937,7 @@ var usersWindow = (function () {
 
         windowHeading = Overlays.addOverlay("text", {
             x: 0,
-            y: viewportHeight,
+            y: viewport.y,
             width: WINDOW_WIDTH - 2 * WINDOW_MARGIN,
             height: windowTextHeight,
             topMargin: 0,
@@ -937,7 +952,7 @@ var usersWindow = (function () {
 
         minimizeButton = Overlays.addOverlay("image", {
             x: 0,
-            y: viewportHeight,
+            y: viewport.y,
             width: MIN_MAX_BUTTON_WIDTH,
             height: MIN_MAX_BUTTON_HEIGHT,
             imageURL: MIN_MAX_BUTTON_SVG,
@@ -954,7 +969,7 @@ var usersWindow = (function () {
 
         scrollbarBackgroundPosition = {
             x: 0,
-            y: viewportHeight
+            y: viewport.y
         };
         scrollbarBackground = Overlays.addOverlay("text", {
             x: 0,
@@ -969,7 +984,7 @@ var usersWindow = (function () {
 
         scrollbarBarPosition = {
             x: 0,
-            y: viewportHeight
+            y: viewport.y
         };
         scrollbarBar = Overlays.addOverlay("text", {
             x: 0,
@@ -984,7 +999,7 @@ var usersWindow = (function () {
 
         friendsButton = Overlays.addOverlay("image", {
             x: 0,
-            y: viewportHeight,
+            y: viewport.y,
             width: FRIENDS_BUTTON_WIDTH,
             height: FRIENDS_BUTTON_HEIGHT,
             imageURL: FRIENDS_BUTTON_SVG,
@@ -1004,7 +1019,7 @@ var usersWindow = (function () {
             values: DISPLAY_VALUES,
             displayValues: DISPLAY_DISPLAY_VALUES,
             x: 0,
-            y: viewportHeight,
+            y: viewport.y,
             width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
             promptWidth: DISPLAY_PROMPT_WIDTH,
             lineHeight: windowLineHeight,
@@ -1037,7 +1052,7 @@ var usersWindow = (function () {
             values: VISIBILITY_VALUES,
             displayValues: VISIBILITY_DISPLAY_VALUES,
             x: 0,
-            y: viewportHeight,
+            y: viewport.y,
             width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
             promptWidth: VISIBILITY_PROMPT_WIDTH,
             lineHeight: windowLineHeight,
