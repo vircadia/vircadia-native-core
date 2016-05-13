@@ -13,6 +13,7 @@
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
+#include <QThreadPool>
 
 #include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
@@ -83,14 +84,22 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 
     auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
     _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, [](ScriptEngine* engine){
-        // Gracefully exit
+        class WaitRunnable : public QRunnable {
+        public:
+            WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
+            virtual void run() override {
+                _engine->wait();
+                _engine->deleteLater();
+            }
+
+        private:
+            ScriptEngine* _engine;
+        };
+
         engine->unloadAllEntityScripts();
         engine->stop();
-
-        // Disgracefully exit, if necessary
-        QTimer::singleShot(ScriptEngine::MAX_SCRIPT_EVALUATION_TIME, engine, &ScriptEngine::abort);
-
-        engine->deleteLater();
+        // Wait for the scripting thread from the thread pool to avoid hanging the main thread
+        QThreadPool::globalInstance()->start(new WaitRunnable(engine));
     });
 
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());

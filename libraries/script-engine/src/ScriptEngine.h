@@ -84,6 +84,13 @@ public:
     void run();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
+    Q_INVOKABLE void stop();
+
+    // Stop any evaluating scripts and wait for the scripting thread to finish.
+    void wait();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
 
@@ -137,10 +144,6 @@ public:
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
-    Q_INVOKABLE void stop();
 
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
@@ -200,9 +203,6 @@ protected:
 
     void init();
     QString getFilename() const;
-
-    // Stop any evaluating scripts and wait for the scripting thread to finish.
-    void wait();
 
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
