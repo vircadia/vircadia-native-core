@@ -31,7 +31,7 @@
 
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
-#include "simple_textured_emisive_frag.h"
+#include "simple_textured_unlit_frag.h"
 
 #include "grid_frag.h"
 
@@ -1687,7 +1687,7 @@ public:
     enum FlagBit {
         IS_TEXTURED_FLAG = 0,
         IS_CULLED_FLAG,
-        IS_EMISSIVE_FLAG,
+        IS_UNLIT_FLAG,
         HAS_DEPTH_BIAS_FLAG,
 
         NUM_FLAGS,
@@ -1696,7 +1696,7 @@ public:
     enum Flag {
         IS_TEXTURED = (1 << IS_TEXTURED_FLAG),
         IS_CULLED = (1 << IS_CULLED_FLAG),
-        IS_EMISSIVE = (1 << IS_EMISSIVE_FLAG),
+        IS_UNLIT = (1 << IS_UNLIT_FLAG),
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
     };
     typedef unsigned short Flags;
@@ -1705,7 +1705,7 @@ public:
 
     bool isTextured() const { return isFlag(IS_TEXTURED); }
     bool isCulled() const { return isFlag(IS_CULLED); }
-    bool isEmissive() const { return isFlag(IS_EMISSIVE); }
+    bool isUnlit() const { return isFlag(IS_UNLIT); }
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
 
     Flags _flags = 0;
@@ -1715,9 +1715,9 @@ public:
 
 
     SimpleProgramKey(bool textured = false, bool culled = true,
-                     bool emissive = false, bool depthBias = false) {
+                     bool unlit = false, bool depthBias = false) {
         _flags = (textured ? IS_TEXTURED : 0) | (culled ? IS_CULLED : 0) |
-        (emissive ? IS_EMISSIVE : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
+            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -1731,8 +1731,8 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emissive, bool depthBiased) {
-    batch.setPipeline(getSimplePipeline(textured, culled, emissive, depthBiased));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool unlit, bool depthBiased) {
+    batch.setPipeline(getSimplePipeline(textured, culled, unlit, depthBiased));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -1744,23 +1744,23 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool cul
         DependencyManager::get<TextureCache>()->getNormalFittingTexture());
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled, bool emissive, bool depthBiased) {
-    SimpleProgramKey config{textured, culled, emissive, depthBiased};
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled, bool unlit, bool depthBiased) {
+    SimpleProgramKey config{ textured, culled, unlit, depthBiased };
 
     // Compile the shaders
     static std::once_flag once;
     std::call_once(once, [&]() {
         auto VS = gpu::Shader::createVertex(std::string(simple_vert));
         auto PS = gpu::Shader::createPixel(std::string(simple_textured_frag));
-        auto PSEmissive = gpu::Shader::createPixel(std::string(simple_textured_emisive_frag));
+        auto PSUnlit = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
         
         _simpleShader = gpu::Shader::createProgram(VS, PS);
-        _emissiveShader = gpu::Shader::createProgram(VS, PSEmissive);
+        _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), render::ShapePipeline::Slot::MAP::NORMAL_FITTING));
         gpu::Shader::makeProgram(*_simpleShader, slotBindings);
-        gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
+        gpu::Shader::makeProgram(*_unlitShader, slotBindings);
     });
 
     // If the pipeline already exists, return it
@@ -1785,7 +1785,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
+    gpu::ShaderPointer program = (config.isUnlit()) ? _unlitShader : _simpleShader;
     gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
     _simplePrograms.insert(config, pipeline);
     return pipeline;

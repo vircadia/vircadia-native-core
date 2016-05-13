@@ -179,9 +179,6 @@ public:
 signals:
     void dirty();
 
-public slots:
-    void checkAsynchronousGets();
-
 protected slots:
     void updateTotalSize(const qint64& deltaSize);
 
@@ -189,6 +186,14 @@ protected slots:
     // Left as a protected member so subclasses can overload prefetch
     // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
     ScriptableResource* prefetch(const QUrl& url, void* extra);
+
+    /// Loads a resource from the specified URL and returns it.
+    /// If the caller is on a different thread than the ResourceCache,
+    /// returns an empty smart pointer and loads its asynchronously.
+    /// \param fallback a fallback URL to load if the desired one is unavailable
+    /// \param extra extra data to pass to the creator, if appropriate
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
+        void* extra = NULL);
 
 private slots:
     void clearATPAssets();
@@ -200,16 +205,9 @@ protected:
     // the QScriptEngine will delete the pointer when it is garbage collected.
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
 
-    /// Loads a resource from the specified URL.
-    /// \param fallback a fallback URL to load if the desired one is unavailable
-    /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
-    /// \param extra extra data to pass to the creator, if appropriate
-    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-                                                     bool delayLoad = false, void* extra = NULL);
-
     /// Creates a new resource.
-    virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) = 0;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+        const void* extra) = 0;
     
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
@@ -260,7 +258,7 @@ class Resource : public QObject {
 
 public:
     
-    Resource(const QUrl& url, bool delayLoad = false);
+    Resource(const QUrl& url);
     ~Resource();
     
     /// Returns the key last used to identify this resource in the unused map.

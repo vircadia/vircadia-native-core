@@ -9,7 +9,8 @@
 #include "ScriptEngines.h"
 
 #include <QtCore/QStandardPaths>
-#include <QtCore/QCoreApplication>
+
+#include <QtWidgets/QApplication>
 
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
@@ -269,12 +270,12 @@ void ScriptEngines::loadOneScript(const QString& scriptFilename) {
 
 void ScriptEngines::loadScripts() {
     // check first run...
-    if (_firstRun.get()) {
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    if (firstRun.get()) {
         qCDebug(scriptengine) << "This is a first run...";
         // clear the scripts, and set out script to our default scripts
         clearScripts();
         loadDefaultScripts();
-        _firstRun.set(false);
         return;
     }
 
@@ -489,7 +490,12 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
     for (auto initializer : _scriptInitializers) {
         initializer(scriptEngine);
     }
-    scriptEngine->runInThread();
+    
+    if (scriptEngine->isDebuggable() || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier)) {
+        scriptEngine->runDebuggable();
+    } else {
+        scriptEngine->runInThread();
+    }
 }
 
 

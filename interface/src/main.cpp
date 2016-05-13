@@ -203,7 +203,7 @@ int main(int argc, const char* argv[]) {
     Application::shutdownPlugins();
 
     qCDebug(interfaceapp, "Normal exit.");
-#ifndef DEBUG
+#if !defined(DEBUG) && !defined(Q_OS_LINUX)
     // HACK: exit immediately (don't handle shutdown callbacks) for Release build
     _exit(exitCode);
 #endif

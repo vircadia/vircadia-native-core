@@ -9,17 +9,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFileInfo>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QRegularExpression>
+
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QApplication>
+
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QtScript/QScriptEngine>
+
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
-#include <QtCore/QStringList>
+
+#include <QtScriptTools/QScriptEngineDebugger>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -31,6 +40,7 @@
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
+#include <ui/Menu.h>
 
 #include <controllers/ScriptingInterface.h>
 #include <AnimationObject.h>
@@ -164,6 +174,93 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     }
 }
 
+void ScriptEngine::runDebuggable() {
+    static QMenuBar* menuBar { nullptr };
+    static QMenu* scriptDebugMenu { nullptr };
+    static size_t scriptMenuCount { 0 };
+    if (!scriptDebugMenu) {
+        for (auto window : qApp->topLevelWidgets()) {
+            auto mainWindow = qobject_cast<QMainWindow*>(window);
+            if (mainWindow) {
+                menuBar = mainWindow->menuBar();
+                break;
+            }
+        }
+        if (menuBar) {
+            scriptDebugMenu = menuBar->addMenu("Script Debug");
+        }
+    }
+
+    init();
+    _isRunning = true;
+    _debuggable = true;
+    _debugger = new QScriptEngineDebugger(this);
+    _debugger->attachTo(this);
+
+    QMenu* parentMenu = scriptDebugMenu;
+    QMenu* scriptMenu { nullptr };
+    if (parentMenu) {
+        ++scriptMenuCount;
+        scriptMenu = parentMenu->addMenu(_fileNameString);
+        scriptMenu->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
+    } else {
+        qWarning() << "Unable to add script debug menu";
+    }
+
+    QScriptValue result = evaluate(_scriptContents, _fileNameString);
+
+    _lastUpdate = usecTimestampNow();
+    QTimer* timer = new QTimer(this);
+    connect(this, &ScriptEngine::finished, [this, timer, parentMenu, scriptMenu] {
+        if (scriptMenu) {
+            parentMenu->removeAction(scriptMenu->menuAction());
+            --scriptMenuCount;
+            if (0 == scriptMenuCount) {
+                menuBar->removeAction(scriptDebugMenu->menuAction());
+                scriptDebugMenu = nullptr;
+            }
+        }
+        disconnect(timer); 
+    });
+
+    connect(timer, &QTimer::timeout, [this, timer] {
+        if (_isFinished) {
+            if (!_isRunning) {
+                return;
+            }
+            stopAllTimers(); // make sure all our timers are stopped if the script is ending
+            if (_wantSignals) {
+                emit scriptEnding();
+                emit finished(_fileNameString, this);
+            }
+            _isRunning = false;
+            if (_wantSignals) {
+                emit runningStateChanged();
+                emit doneRunning();
+            }
+            timer->deleteLater();
+            return;
+        }
+
+        qint64 now = usecTimestampNow();
+        // we check for 'now' in the past in case people set their clock back
+        if (_lastUpdate < now) {
+            float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
+            if (!_isFinished) {
+                if (_wantSignals) {
+                    emit update(deltaTime);
+                }
+            }
+        }
+        _lastUpdate = now;
+        // Debug and clear exceptions
+        hadUncaughtExceptions(*this, _fileNameString);
+    });
+
+    timer->start(10);
+}
+
+
 void ScriptEngine::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
 
@@ -255,6 +352,10 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 // FIXME - switch this to the new model of ScriptCache callbacks
 void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scriptContents) {
     _scriptContents = scriptContents;
+    static const QString DEBUG_FLAG("#debug");
+    if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
+        _debuggable = true;
+    }
     if (_wantSignals) {
         emit scriptLoaded(url.toString());
     }
@@ -704,22 +805,45 @@ void ScriptEngine::run() {
 
     QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
-    QElapsedTimer startTime;
-    startTime.start();
+#ifdef _WIN32
+    // VS13 does not sleep_until unless it uses the system_clock, see:
+    // https://www.reddit.com/r/cpp_questions/comments/3o71ic/sleep_until_not_working_with_a_time_pointsteady/
+    using clock = std::chrono::system_clock;
+#else
+    using clock = std::chrono::high_resolution_clock;
+#endif
 
+    clock::time_point startTime = clock::now();
     int thisFrame = 0;
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    qint64 lastUpdate = usecTimestampNow();
+    _lastUpdate = usecTimestampNow();
 
+    // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
-        int usecToSleep = (thisFrame++ * SCRIPT_DATA_CALLBACK_USECS) - startTime.nsecsElapsed() / 1000; // nsec to usec
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
+        // Throttle to SCRIPT_FPS
+        const std::chrono::microseconds FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
+        clock::time_point sleepTime(startTime + thisFrame++ * FRAME_DURATION);
+        std::this_thread::sleep_until(sleepTime);
 
+#ifdef SCRIPT_DELAY_DEBUG
+        {
+            auto now = clock::now();
+            uint64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+            if (seconds > 0) { // avoid division by zero and time travel
+                uint64_t fps = thisFrame / seconds;
+                // Overreporting artificially reduces the reported rate
+                if (thisFrame % SCRIPT_FPS == 0) {
+                    qCDebug(scriptengine) <<
+                        "Frame:" << thisFrame <<
+                        "Slept (us):" << std::chrono::duration_cast<std::chrono::microseconds>(now - sleepTime).count() <<
+                        "FPS:" << fps;
+                }
+            }
+        }
+#endif
         if (_isFinished) {
             break;
         }
@@ -743,15 +867,15 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
 
         // we check for 'now' in the past in case people set their clock back
-        if (lastUpdate < now) {
-            float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
+        if (_lastUpdate < now) {
+            float deltaTime = (float) (now - _lastUpdate) / (float) USECS_PER_SECOND;
             if (!_isFinished) {
                 if (_wantSignals) {
                     emit update(deltaTime);
                 }
             }
         }
-        lastUpdate = now;
+        _lastUpdate = now;
 
         // Debug and clear exceptions
         hadUncaughtExceptions(*this, _fileNameString);
@@ -967,7 +1091,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
     QList<QUrl> urls;
     bool knowsSensitivity = false;
-    Qt::CaseSensitivity sensitivity;
+    Qt::CaseSensitivity sensitivity { Qt::CaseSensitive };
     auto getSensitivity = [&]() {
         if (!knowsSensitivity) {
             QString path = currentSandboxURL.path();
@@ -984,6 +1108,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     const auto strippingFlags = QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment;
     for (QString file : includeFiles) {
         QUrl thisURL;
+        bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
             thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
             QUrl defaultScriptsLoc = defaultScriptsLocation();
@@ -991,21 +1116,17 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                 qDebug() << "ScriptEngine::include -- skipping" << file << "-- outside of standard libraries";
                 continue;
             }
+            isStandardLibrary = true;
         } else {
             thisURL = resolvePath(file);
         }
 
         if (!_includedURLs.contains(thisURL)) {
-            if (!currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
-                (
-                    (currentSandboxURL.scheme() != "file") ||
-                        (
-                            !thisURL.toString(strippingFlags).startsWith(defaultScriptsLocation().toString(), getSensitivity()) &&
-                            !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity())
-                        )
-                 )
-                ) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path" << thisURL << "outside of original entity script" << currentSandboxURL;
+            if (!isStandardLibrary && !currentSandboxURL.isEmpty() && (thisURL.scheme() == "file") &&
+                (currentSandboxURL.scheme() != "file" ||
+                 !thisURL.toString(strippingFlags).startsWith(currentSandboxURL.toString(strippingFlags), getSensitivity()))) {
+                qCWarning(scriptengine) << "Script.include() ignoring file path"
+                                        << thisURL << "outside of original entity script" << currentSandboxURL;
             } else {
                 // We could also check here for CORS, but we don't yet.
                 // It turns out that QUrl.resolve will not change hosts and copy authority, so we don't need to check that here.

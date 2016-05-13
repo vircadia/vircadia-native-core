@@ -18,8 +18,9 @@
 #include <QtCore/QUrl>
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
-#include <QtScript/QScriptEngine>
 #include <QtCore/QStringList>
+
+#include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
 #include <AnimVariant.h>
@@ -39,9 +40,11 @@
 #include "ScriptUUID.h"
 #include "Vec3.h"
 
-const QString NO_SCRIPT("");
+class QScriptEngineDebugger;
 
-const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0f / 60.0f) * 1000 * 1000) + 0.5f);
+static const QString NO_SCRIPT("");
+
+static const int SCRIPT_FPS = 60;
 
 class CallbackData {
 public:
@@ -74,6 +77,8 @@ public:
     /// the current script contents and calling run(). Callers will likely want to register the script with external
     /// services before calling this.
     void runInThread();
+
+    void runDebuggable();
 
     /// run the script in the callers thread, exit when stop() is called.
     void run();
@@ -140,6 +145,8 @@ public:
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
+    bool isDebuggable() const { return _debuggable; }
+
     void disconnectNonEssentialSignals();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -187,6 +194,9 @@ protected:
     bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     bool _isThreaded { false };
+    QScriptEngineDebugger* _debugger { nullptr };
+    bool _debuggable { false };
+    qint64 _lastUpdate;
 
     void init();
     QString getFilename() const;

@@ -147,9 +147,8 @@ namespace MenuOption {
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
-    const QString RenderFocusIndicator = "Show Eye Focus";
-    const QString RenderLookAtTargets = "Show Look-at Targets";
-    const QString RenderLookAtVectors = "Show Look-at Vectors";
+    const QString RenderMyLookAtVectors = "Show My Eye Vectors";
+    const QString RenderOtherLookAtVectors = "Show Other Eye Vectors";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
     const QString RenderMaxTexture64MB = "64 MB";
@@ -174,7 +173,6 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
-    const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
@@ -182,7 +180,6 @@ namespace MenuOption {
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
-    const QString SupressDeadlockWatchdogStatus = "Supress Deadlock Watchdog Status";
     const QString ThirdPerson = "Third Person";
     const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp

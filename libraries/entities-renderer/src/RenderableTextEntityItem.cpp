@@ -51,7 +51,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     }
     if (getFaceCamera()) {
         //rotate about vertical to face the camera
-        glm::vec3 dPosition = args->_viewFrustum->getPosition() - getPosition();
+        glm::vec3 dPosition = args->getViewFrustum().getPosition() - getPosition();
         // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
         float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
         glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));

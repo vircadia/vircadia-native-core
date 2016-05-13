@@ -212,6 +212,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setVelocityChanged(false);
                 properties.setAngularVelocityChanged(false);
                 properties.setAccelerationChanged(false);
+                properties.setParentIDChanged(false);
+                properties.setParentJointIndexChanged(false);
 
                 if (wantTerseEditLogging()) {
                     qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";
@@ -363,7 +365,7 @@ void EntityTree::notifyNewCollisionSoundURL(const QString& newURL, const EntityI
     emit newCollisionSoundURL(QUrl(newURL), entityID);
 }
 
-void EntityTree::setSimulation(EntitySimulation* simulation) {
+void EntityTree::setSimulation(EntitySimulationPointer simulation) {
     this->withWriteLock([&] {
         if (simulation) {
             // assert that the simulation's backpointer has already been properly connected
@@ -842,6 +844,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             QString::number((int)center.x) + "," +
             QString::number((int)center.y) + "," +
             QString::number((int)center.z);
+    }
+    if (properties.positionChanged()) {
+        int index = changedProperties.indexOf("position");
+        glm::vec3 pos = properties.getPosition();
+        changedProperties[index] = QString("position:") +
+            QString::number((int)pos.x) + "," +
+            QString::number((int)pos.y) + "," +
+            QString::number((int)pos.z);
     }
 }
 

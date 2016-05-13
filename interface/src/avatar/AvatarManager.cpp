@@ -156,6 +156,15 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
+void AvatarManager::postUpdate(float deltaTime) {
+    auto hashCopy = getHashCopy();
+    AvatarHash::iterator avatarIterator = hashCopy.begin();
+    for (avatarIterator = hashCopy.begin(); avatarIterator != hashCopy.end(); avatarIterator++) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        avatar->postUpdate(deltaTime);
+    }
+}
+
 void AvatarManager::simulateAvatarFades(float deltaTime) {
     QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarFades.begin();
 

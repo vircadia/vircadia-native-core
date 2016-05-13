@@ -20,6 +20,8 @@ class EntityItem;
 class EntitySimulation;
 using EntityItemPointer = std::shared_ptr<EntityItem>;
 using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
+class EntitySimulation;
+using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
 
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
@@ -39,7 +41,7 @@ public:
 
     bool isActive() { return _active; }
 
-    virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
+    virtual void removeFromSimulation(EntitySimulationPointer simulation) const = 0;
     virtual EntityItemWeakPointer getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     virtual bool updateArguments(QVariantMap arguments) = 0;
@@ -56,8 +58,6 @@ public:
 
     virtual bool isMine() { return _isMine; }
     virtual void setIsMine(bool value) { _isMine = value; }
-
-    bool locallyAddedButNotYetReceived = false;
 
     virtual bool shouldSuppressLocationEdits() { return false; }
 
