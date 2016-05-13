@@ -1292,8 +1292,23 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         setParentURL(scriptOrURL);
     }
 
+    const int SANDBOX_TIMEOUT = 0.25 * MSECS_PER_SECOND;
     QScriptEngine sandbox;
-    QScriptValue testConstructor = sandbox.evaluate(program);
+    sandbox.setProcessEventsInterval(SANDBOX_TIMEOUT);
+    QScriptValue testConstructor;
+    {
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        timeout.start(SANDBOX_TIMEOUT);
+        connect(&timeout, &QTimer::timeout, [&sandbox, SANDBOX_TIMEOUT]{
+            auto context = sandbox.currentContext();
+            if (context) {
+                // Guard against infinite loops and non-performant code
+                context->throwError(QString("Timed out (entity constructors are limited to %1ms)").arg(SANDBOX_TIMEOUT));
+            }
+        });
+        testConstructor = sandbox.evaluate(program);
+    }
     if (hadUncaughtExceptions(sandbox, program.fileName())) {
         return;
     }
