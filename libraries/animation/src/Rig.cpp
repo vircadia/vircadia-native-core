@@ -1236,14 +1236,17 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
 
     if (_animSkeleton) {
 
+        // transform all the default poses into rig space.
+        const AnimPose geometryToRigPose(_geometryToRigTransform);
         std::vector<bool> overrideFlags(_internalPoseSet._overridePoses.size(), false);
         AnimPoseVec overridePoses = _animSkeleton->getAbsoluteDefaultPoses();  // start with the default poses.
-        for (int i = 0; i < overridePoses.size(); i++) {
-            overridePoses[i] = AnimPose(_geometryToRigTransform) * overridePoses[i];
+        for (auto& pose : overridePoses) {
+            pose = geometryToRigPose * pose;
         }
 
         ASSERT(overrideFlags.size() == overridePoses.size());
 
+        // copy over data from the jointDataVec, which is also in rig space.
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (isIndexValid(i)) {
                 const JointData& data = jointDataVec.at(i);
@@ -1260,13 +1263,20 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
 
         ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
 
+        // convert resulting poses into geometry space.
+        const AnimPose rigToGeometryPose(_rigToGeometryTransform);
+        for (auto& pose : overridePoses) {
+            pose = rigToGeometryPose * pose;
+        }
+
+        // convert all poses from absolute to parent relative.
         _animSkeleton->convertAbsolutePosesToRelative(overridePoses);
 
-        AnimPose rigToGeometryPose(_rigToGeometryTransform);
+        // copy the geometry space parent relative poses into _overridePoses
         for (int i = 0; i < jointDataVec.size(); i++) {
             if (overrideFlags[i]) {
                 _internalPoseSet._overrideFlags[i] = true;
-                _internalPoseSet._overridePoses[i] = rigToGeometryPose * overridePoses[i];
+                _internalPoseSet._overridePoses[i] = overridePoses[i];
             }
         }
     }
