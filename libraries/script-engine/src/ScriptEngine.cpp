@@ -304,17 +304,25 @@ void ScriptEngine::wait() {
             QCoreApplication::processEvents();
 
             // If the final evaluation takes too long, then tell the script engine to stop evaluating
-            static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MAX_SCRIPT_EVALUATION_TIME;
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
             if (elapsedUsecs > MAX_SCRIPT_EVALUATION_TIME) {
-                qCDebug(scriptengine).nospace() <<
-                    "Script Engine has been running too long, aborting:" << getFilename();
-                abortEvaluation(); // break out of current evaluation
+                workerThread->quit();
 
-                // Wait for the scripting thread to stop running
-                if (!workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
-                    qCWarning(scriptengine).nospace() <<
-                        "Script Engine has been aborting too long, terminating:" << getFilename();
+                if (isEvaluating()) {
+                    qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
+                    abortEvaluation();
+                } else {
+                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
+                    auto context = currentContext();
+                    if (context) {
+                        context->throwError("Timed out during shutdown");
+                    }
+                }
+
+                // Wait for the scripting thread to stop running, as
+                // flooding it with aborts/exceptions will persist it longer
+                static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MSECS_PER_SECOND;
+                if (workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
                     workerThread->terminate();
                 }
             }
