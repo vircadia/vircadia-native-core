@@ -802,7 +802,7 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
         auto myMetaItemCopy = _myMetaItem;
 
         void* key = (void*)this;
-        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [_myMetaItem]() {
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [myMetaItemCopy]() {
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
             render::PendingChanges pendingChanges;
             pendingChanges.updateItem<RenderableModelEntityItemMeta>(myMetaItemCopy, [](RenderableModelEntityItemMeta& data){});
