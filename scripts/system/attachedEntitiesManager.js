@@ -27,8 +27,8 @@ var SHOW_TOOL_BAR = true;
 // tool bar
 
 if (SHOW_TOOL_BAR) {
-    var BUTTON_SIZE = 32;
-    var PADDING = 3;
+    var BUTTON_SIZE = 64;
+    var PADDING = 6;
     Script.include(["libraries/toolBars.js"]);
 
     var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.attachedEntities.toolbar");
