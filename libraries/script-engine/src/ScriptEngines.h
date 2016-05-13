@@ -87,17 +87,16 @@ protected:
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
 
-
     Setting::Handle<bool> _firstRun { "firstRun", true };
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
-    std::atomic<bool> _stoppingAllScripts { false };
     std::list<ScriptInitializer> _scriptInitializers;
     mutable Setting::Handle<QString> _scriptsLocationHandle;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
+    std::atomic<bool> _stopped { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

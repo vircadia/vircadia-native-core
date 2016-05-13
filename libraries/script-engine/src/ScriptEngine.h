@@ -222,9 +222,6 @@ protected:
     QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
-
-    friend class ScriptEngines;
-    static std::atomic<bool> _stoppingAllScripts;
 };
 
 #endif // hifi_ScriptEngine_h
