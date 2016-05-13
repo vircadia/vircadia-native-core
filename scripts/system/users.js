@@ -366,6 +366,8 @@ var usersWindow = (function () {
         MENU_ITEM_AFTER = "Chat...",
 
         SETTING_USERS_WINDOW_MINIMIZED = "UsersWindow.Minimized",
+        SETINGS_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
+        // +ve x, y values are offset from left, top of screen; -ve from right, bottom.
 
         isVisible = true,
         isMinimized = false,
@@ -816,7 +818,6 @@ var usersWindow = (function () {
             }
         }
 
-
         if (isMovingWindow) {
             windowPosition = {
                 x: event.x - movingClickOffset.x,
@@ -848,13 +849,22 @@ var usersWindow = (function () {
     }
 
     function onMouseReleaseEvent() {
+        var offset = {};
+
         if (isMovingScrollbar) {
             Overlays.editOverlay(scrollbarBar, {
                 backgroundAlpha: SCROLLBAR_BAR_ALPHA
             });
             isMovingScrollbar = false;
         }
-        isMovingWindow = false;
+
+        if (isMovingWindow) {
+            // Save offset of bottom of window to nearest edge of the window.
+            offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2) ? windowPosition.x : windowPosition.x - viewport.x;
+            offset.y = (windowPosition.y < viewport.y / 2) ? windowPosition.y : windowPosition.y - viewport.y;
+            Settings.setValue(SETINGS_USERS_WINDOW_OFFSET, JSON.stringify(offset));
+            isMovingWindow = false;
+        }
     }
 
     function onScriptUpdate() {
@@ -892,7 +902,9 @@ var usersWindow = (function () {
     }
 
     function setUp() {
-        var textSizeOverlay;
+        var textSizeOverlay,
+            offsetSetting,
+            offset = {};
 
         textSizeOverlay = Overlays.addOverlay("text", {
             font: WINDOW_FONT,
@@ -904,7 +916,18 @@ var usersWindow = (function () {
         Overlays.deleteOverlay(textSizeOverlay);
 
         viewport = Controller.getViewportDimensions();
-        windowPosition = { x: 0, y: viewport.y };
+
+        offsetSetting = Settings.getValue(SETINGS_USERS_WINDOW_OFFSET);
+        if (offsetSetting !== "") {
+            offset = JSON.parse(Settings.getValue(SETINGS_USERS_WINDOW_OFFSET));
+        }
+        if (offset.hasOwnProperty("x") && offset.hasOwnProperty("y")) {
+            windowPosition.x = offset.x < 0 ? viewport.x + offset.x : offset.x;
+            windowPosition.y = offset.y <= 0 ? viewport.y + offset.y : offset.y;
+
+        } else {
+            windowPosition = { x: 0, y: viewport.y };
+        }
 
         calculateWindowHeight();
 
