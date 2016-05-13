@@ -118,7 +118,9 @@ void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
 }
 
 void ScriptEngines::addScriptEngine(ScriptEngine* engine) {
-    if (!_stopped) {
+    if (_stopped) {
+        engine->deleteLater();
+    } else {
         QMutexLocker locker(&_allScriptsMutex);
         _allKnownScriptEngines.insert(engine);
     }
