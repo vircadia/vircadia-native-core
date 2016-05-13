@@ -70,8 +70,8 @@ void OverlayConductor::updateMode() {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     float speed = glm::length(myAvatar->getVelocity());
     bool nowDriving = _driving;
-    const float MIN_DRIVING = 0.2;
-    const float MAX_NOT_DRIVING = 0.01;
+    const float MIN_DRIVING = 0.2f;
+    const float MAX_NOT_DRIVING = 0.01f;
     if (speed > MIN_DRIVING) {
         nowDriving = true;
     }
