@@ -67,6 +67,32 @@ void OverlayConductor::update(float dt) {
 }
 
 void OverlayConductor::updateMode() {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    float speed = glm::length(myAvatar->getVelocity());
+    bool nowDriving = _driving;
+    const float MIN_DRIVING = 0.2;
+    const float MAX_NOT_DRIVING = 0.01;
+    if (speed > MIN_DRIVING) {
+        nowDriving = true;
+    }
+    else if (speed < MAX_NOT_DRIVING) {
+        nowDriving = false;
+    }
+    if (nowDriving != _driving) {
+        if (nowDriving) {
+            _wantsOverlays = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
+        }
+        else { // reset when coming out of driving
+            _mode = FLAT;  // Seems appropriate to let things reset, below, after the following.
+            // All reset of, e.g., room-scale location as though by apostrophe key, without all the other adjustments.
+            qApp->getActiveDisplayPlugin()->resetSensors();
+        }
+        if (_wantsOverlays) {
+            qDebug() << "flipping" << !nowDriving;
+            setEnabled(!nowDriving, false);
+        }
+        _driving = nowDriving;
+    }
 
     Mode newMode;
     if (qApp->isHMDMode()) {
@@ -84,10 +110,9 @@ void OverlayConductor::updateMode() {
             qApp->getApplicationCompositor().setModelTransform(identity);
             break;
         }
-        case STANDING: {
+        case STANDING: {  // STANDING mode is not currently used.
             // enter the STANDING state
             // place the overlay at the current hmd position in world space
-            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto camMat = cancelOutRollAndPitch(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
             Transform t;
             t.setTranslation(extractTranslation(camMat));
@@ -103,15 +128,18 @@ void OverlayConductor::updateMode() {
     }
 
     _mode = newMode;
+
 }
 
-void OverlayConductor::setEnabled(bool enabled) {
+void OverlayConductor::setEnabled(bool enabled, bool toggleQmlEvents) {
 
     if (enabled == _enabled) {
         return;
     }
 
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
+    if (toggleQmlEvents) { // Could recurse on us with the wrong toggleQmlEvents flag, and not need in the !toggleQmlEvent case anyway.
+        Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
+    }
 
     _enabled = enabled; // set the new value
 
@@ -124,8 +152,10 @@ void OverlayConductor::setEnabled(bool enabled) {
         qApp->getOverlays().enable();
 
         // enable QML events
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->getRootItem()->setEnabled(true);
+        if (toggleQmlEvents) {
+            auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            offscreenUi->getRootItem()->setEnabled(true);
+        }
 
         if (_mode == STANDING) {
             // place the overlay at the current hmd position in world space
@@ -144,8 +174,10 @@ void OverlayConductor::setEnabled(bool enabled) {
         qApp->getOverlays().disable();
 
         // disable QML events
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->getRootItem()->setEnabled(false);
+        if (toggleQmlEvents) { // I'd really rather always do this, but it looses drive state. bugzid:501
+            auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            offscreenUi->getRootItem()->setEnabled(false);
+        }
     }
 }
 
