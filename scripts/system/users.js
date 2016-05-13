@@ -403,9 +403,9 @@ var usersWindow = (function () {
             + windowLineHeight + VISIBILITY_SPACER
             + windowLineHeight + WINDOW_BASE_MARGIN;
 
-        // Limit window to height of viewport minus VU meter and mirror if displayed
+        // Limit window to height of viewport above window position minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
-        maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
+        maxWindowHeight = windowPosition.y - AUDIO_METER_HEIGHT;
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
         }
@@ -715,7 +715,7 @@ var usersWindow = (function () {
         if (clickedOverlay === windowPane) {
 
             overlayX = event.x - WINDOW_MARGIN;
-            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN - windowLineHeight;
+            overlayY = event.y - windowPosition.y + windowHeight - WINDOW_MARGIN - windowLineHeight;
 
             numLinesBefore = Math.round(overlayY / windowLineHeight);
             minY = numLinesBefore * windowLineHeight;
@@ -822,7 +822,9 @@ var usersWindow = (function () {
                 x: event.x - movingClickOffset.x,
                 y: event.y - movingClickOffset.y
             };
+            calculateWindowHeight();
             updateOverlayPositions();
+            updateUsersDisplay();
 
         } else {
 
