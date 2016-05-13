@@ -284,7 +284,7 @@ void AmbientOcclusionEffect::updateGaussianDistribution() {
 
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
 
@@ -309,7 +309,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     auto resolutionLevel = getResolutionLevel();
 
     // Update the depth info with near and far (same for stereo)
-    setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
+    setDepthInfo(args->getViewFrustum().getNearClip(), args->getViewFrustum().getFarClip());
 
     _frameTransformBuffer.edit<FrameTransform>().pixelInfo = args->_viewport;
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
@@ -319,7 +319,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     if (!isStereo) {
         // Eval the mono projection
         mat4 monoProjMat;
-        args->_viewFrustum->evalProjectionMatrix(monoProjMat);
+        args->getViewFrustum().evalProjectionMatrix(monoProjMat);
         _frameTransformBuffer.edit<FrameTransform>().projection[0] = monoProjMat;
         _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
 
@@ -365,7 +365,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
         // Pyramid pass
         batch.setFramebuffer(pyramidFBO);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(args->_viewFrustum->getFarClip(), 0.0f, 0.0f, 0.0f));
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(args->getViewFrustum().getFarClip(), 0.0f, 0.0f, 0.0f));
         batch.setPipeline(pyramidPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_DepthMapSlot, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);

@@ -25,11 +25,13 @@
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
+#include <OctreeUtils.h>
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <TextRenderer3D.h>
 #include <TextureCache.h>
+#include <DebugDraw.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -65,11 +67,6 @@ namespace render {
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
-        bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
-        avatarPtr->setDisplayingLookatVectors(renderLookAtVectors);
-        bool renderLookAtTarget = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtTargets);
-        avatarPtr->setDisplayingLookatTarget(renderLookAtTarget);
-
         if (avatarPtr->isInitialized() && args) {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             avatarPtr->render(args, qApp->getCamera()->getPosition());
@@ -171,7 +168,10 @@ void Avatar::simulate(float deltaTime) {
     // update the shouldAnimate flag to match whether or not we will render the avatar.
     const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
     const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
-    float visibility = qApp->getViewFrustum()->calculateRenderAccuracy(getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
+    ViewFrustum viewFrustum;
+    qApp->copyViewFrustum(viewFrustum);
+    float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
+            getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
     if (!_shouldAnimate) {
         if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
             _shouldAnimate = true;
@@ -184,8 +184,9 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool avatarPositionInView = qApp->getDisplayViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
-    bool avatarMeshInView = qApp->getDisplayViewFrustum()->boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
+    qApp->copyDisplayViewFrustum(viewFrustum);
+    bool avatarPositionInView = viewFrustum.sphereIntersectsFrustum(getPosition(), boundingRadius);
+    bool avatarMeshInView = viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
 
     if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
         {
@@ -318,6 +319,39 @@ void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
     }
 }
 
+void Avatar::postUpdate(float deltaTime) {
+
+    bool renderLookAtVectors;
+    if (isMyAvatar()) {
+        renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderMyLookAtVectors);
+    } else {
+        renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderOtherLookAtVectors);
+    }
+
+    if (renderLookAtVectors) {
+        const float EYE_RAY_LENGTH = 10.0;
+        const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+        const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+
+        int leftEyeJoint = getJointIndex("LeftEye");
+        glm::vec3 leftEyePosition;
+        glm::quat leftEyeRotation;
+
+        if (_skeletonModel->getJointPositionInWorldFrame(leftEyeJoint, leftEyePosition) &&
+            _skeletonModel->getJointRotationInWorldFrame(leftEyeJoint, leftEyeRotation)) {
+            DebugDraw::getInstance().drawRay(leftEyePosition, leftEyePosition + leftEyeRotation * Vectors::UNIT_Z * EYE_RAY_LENGTH, BLUE);
+        }
+
+        int rightEyeJoint = getJointIndex("RightEye");
+        glm::vec3 rightEyePosition;
+        glm::quat rightEyeRotation;
+        if (_skeletonModel->getJointPositionInWorldFrame(rightEyeJoint, rightEyePosition) &&
+            _skeletonModel->getJointRotationInWorldFrame(rightEyeJoint, rightEyeRotation)) {
+            DebugDraw::getInstance().drawRay(rightEyePosition, rightEyePosition + rightEyeRotation * Vectors::UNIT_Z * EYE_RAY_LENGTH, RED);
+        }
+    }
+}
+
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
@@ -381,39 +415,23 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         }
     }
 
-    // simple frustum check
-    float boundingRadius = getBoundingRadius();
-    ViewFrustum* frustum = nullptr;
-    if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-        frustum = qApp->getShadowViewFrustum();
-    } else {
-        frustum = qApp->getDisplayViewFrustum();
-    }
-
-    if (!frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
-        return;
+    { // simple frustum check
+        ViewFrustum frustum;
+        if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+            qApp->copyShadowViewFrustum(frustum);
+        } else {
+            qApp->copyDisplayViewFrustum(frustum);
+        }
+        if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
+            return;
+        }
     }
 
     glm::vec3 toTarget = cameraPosition - getPosition();
     float distanceToTarget = glm::length(toTarget);
 
     {
-        // glow when moving far away
-        const float GLOW_DISTANCE = 20.0f;
-        const float GLOW_MAX_LOUDNESS = 2500.0f;
-        const float MAX_GLOW = 0.5f;
-
-        float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
-                                            ? 0.0f
-                                            : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
-        GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
-
-        float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE
-                      ? 1.0f
-                      : GLOW_FROM_AVERAGE_LOUDNESS;
-
-        // render body
-        renderBody(renderArgs, frustum, glowLevel);
+        fixupModelsInScene();
 
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
@@ -437,64 +455,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             const float BOUNDING_SHAPE_ALPHA = 0.7f;
             _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
         }
-
-        // If this is the avatar being looked at, render a little ball above their head
-        if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-            static const float INDICATOR_OFFSET = 0.22f;
-            static const float INDICATOR_RADIUS = 0.03f;
-            static const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 avatarPosition = getPosition();
-            glm::vec3 position = glm::vec3(avatarPosition.x, getDisplayNamePosition().y + INDICATOR_OFFSET, avatarPosition.z);
-            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderFocusIndicator");
-            Transform transform;
-            transform.setTranslation(position);
-            transform.postScale(INDICATOR_RADIUS);
-            batch.setModelTransform(transform);
-            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, LOOK_AT_INDICATOR_COLOR);
-        }
-
-        // If the avatar is looking at me, indicate that they are
-        if (getHead()->isLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
-            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderLookingAtMe");
-            const glm::vec3 LOOKING_AT_ME_COLOR = { 1.0f, 1.0f, 1.0f };
-            const float LOOKING_AT_ME_ALPHA_START = 0.8f;
-            const float LOOKING_AT_ME_DURATION = 0.5f;  // seconds
-            quint64 now = usecTimestampNow();
-            float alpha = LOOKING_AT_ME_ALPHA_START
-                * (1.0f - ((float)(now - getHead()->getLookingAtMeStarted()))
-                / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
-            if (alpha > 0.0f) {
-                if (_skeletonModel->isLoaded()) {
-                    const auto& geometry = _skeletonModel->getFBXGeometry();
-                    const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
-                    const float RADIUS_INCREMENT = 0.005f;
-                    batch.setModelTransform(Transform());
-
-                    glm::vec3 position = getHead()->getLeftEyePosition();
-                    Transform transform;
-                    transform.setTranslation(position);
-                    float eyeDiameter = geometry.leftEyeSize;
-                    if (eyeDiameter == 0.0f) {
-                        eyeDiameter = DEFAULT_EYE_DIAMETER;
-                    }
-
-                    batch.setModelTransform(Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT));
-                    DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch,
-                                                                            glm::vec4(LOOKING_AT_ME_COLOR, alpha));
-
-                    position = getHead()->getRightEyePosition();
-                    transform.setTranslation(position);
-                    eyeDiameter = geometry.rightEyeSize;
-                    if (eyeDiameter == 0.0f) {
-                        eyeDiameter = DEFAULT_EYE_DIAMETER;
-                    }
-                    batch.setModelTransform(Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT));
-                    DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch,
-                                                                            glm::vec4(LOOKING_AT_ME_COLOR, alpha));
-
-                }
-            }
-        }
     }
 
     const float DISPLAYNAME_DISTANCE = 20.0f;
@@ -502,9 +462,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
     auto cameraMode = qApp->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        auto& frustum = *renderArgs->_viewFrustum;
+        auto& frustum = renderArgs->getViewFrustum();
         auto textPosition = getDisplayNamePosition();
-
         if (frustum.pointIntersectsFrustum(textPosition)) {
             renderDisplayName(batch, frustum, textPosition);
         }
@@ -551,11 +510,6 @@ void Avatar::fixupModelsInScene() {
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
-}
-
-void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
-    fixupModelsInScene();
-    getHead()->renderLookAts(renderArgs);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {

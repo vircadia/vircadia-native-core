@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <assert.h>
 
+#include <OctreeUtils.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
 
@@ -86,7 +87,7 @@ void DrawSceneOctree::configure(const Config& config) {
 void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
                           const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
@@ -97,8 +98,8 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
@@ -148,7 +149,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         }
         // Draw the LOD Reticle
         {
-            float angle = glm::degrees(args->_viewFrustum->getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+            float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
             Transform crosshairModel;
             crosshairModel.setTranslation(glm::vec3(0.0, 0.0, -1000.0));
             crosshairModel.setScale(1000.0 * tan(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
@@ -198,15 +199,15 @@ void DrawItemSelection::configure(const Config& config) {
 void DrawItemSelection::run(const SceneContextPointer& sceneContext,
     const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);

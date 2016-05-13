@@ -74,6 +74,11 @@ void Material::setOpacity(float opacity) {
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
 
+void Material::setUnlit(bool value) {
+    _key.setUnlit(value);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+}
+
 void Material::setAlbedo(const Color& albedo, bool isSRGB) {
     _key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();

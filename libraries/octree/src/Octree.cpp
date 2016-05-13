@@ -33,6 +33,7 @@
 #include <QString>
 
 #include <GeometryUtil.h>
+#include <Gzip.h>
 #include <LogHandler.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
@@ -40,12 +41,12 @@
 #include <ResourceManager.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
-#include <Gzip.h>
+#include <ViewFrustum.h>
 
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
-#include "ViewFrustum.h"
+#include "OctreeUtils.h"
 #include "OctreeLogging.h"
 
 
@@ -898,7 +899,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
     }
 
     // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
-    if (params.viewFrustum && !element->isInView(*params.viewFrustum)) {
+    if (!params.recurseEverything && !element->isInView(params.viewFrustum)) {
         params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
@@ -1014,15 +1015,12 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     }
 
     ViewFrustum::intersection nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
-
-    // caller can pass NULL as viewFrustum if they want everything
-    if (params.viewFrustum) {
-        float distance = element->distanceToCamera(*params.viewFrustum);
+    if (!params.recurseEverything) {
         float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
                                         params.octreeElementSizeScale);
 
         // If we're too far away for our render level, then just return
-        if (distance >= boundaryDistance) {
+        if (element->distanceToCamera(params.viewFrustum) >= boundaryDistance) {
             if (params.stats) {
                 params.stats->skippedDistance(element);
             }
@@ -1034,7 +1032,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // if we are INSIDE, INTERSECT, or OUTSIDE
         if (parentLocationThisView != ViewFrustum::INSIDE) {
             assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
-            nodeLocationThisView = element->computeViewIntersection(*params.viewFrustum);
+            nodeLocationThisView = element->computeViewIntersection(params.viewFrustum);
         }
 
         // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
@@ -1052,8 +1050,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // because we don't send nodes from the previously know in view frustum.
         bool wasInView = false;
 
-        if (params.deltaViewFrustum && params.lastViewFrustum) {
-            ViewFrustum::intersection location = element->computeViewIntersection(*params.lastViewFrustum);
+        if (params.deltaView) {
+            ViewFrustum::intersection location = element->computeViewIntersection(params.lastViewFrustum);
 
             // If we're a leaf, then either intersect or inside is considered "formerly in view"
             if (element->isLeaf()) {
@@ -1067,10 +1065,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             // to it, and so therefore it may now be visible from an LOD perspective, in which case we don't consider it
             // as "was in view"...
             if (wasInView) {
-                float distance = element->distanceToCamera(*params.lastViewFrustum);
                 float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
                                                                             params.octreeElementSizeScale);
-                if (distance >= boundaryDistance) {
+                if (element->distanceToCamera(params.lastViewFrustum) >= boundaryDistance) {
                     // This would have been invisible... but now should be visible (we wouldn't be here otherwise)...
                     wasInView = false;
                 }
@@ -1078,9 +1075,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         }
 
         // If we were previously in the view, then we normally will return out of here and stop recursing. But
-        // if we're in deltaViewFrustum mode, and this element has changed since it was last sent, then we do
+        // if we're in deltaView mode, and this element has changed since it was last sent, then we do
         // need to send it.
-        if (wasInView && !(params.deltaViewFrustum && element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
+        if (wasInView && !(params.deltaView && element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
             if (params.stats) {
                 params.stats->skippedWasInView(element);
             }
@@ -1090,7 +1087,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
         // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed,
         // then we can also bail early and save bits
-        if (!params.forceSendScene && !params.deltaViewFrustum &&
+        if (!params.forceSendScene && !params.deltaView &&
             !element->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
             if (params.stats) {
                 params.stats->skippedNoChange(element);
@@ -1179,10 +1176,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         int originalIndex = indexOfChildren[i];
 
         bool childIsInView  = (childElement &&
-                ( !params.viewFrustum || // no view frustum was given, everything is assumed in view
-                  (nodeLocationThisView == ViewFrustum::INSIDE) || // parent was fully in view, we can assume ALL children are
+                (params.recurseEverything ||
+                 (nodeLocationThisView == ViewFrustum::INSIDE) || // parent was fully in view, we can assume ALL children are
                   (nodeLocationThisView == ViewFrustum::INTERSECT &&
-                        childElement->isInView(*params.viewFrustum)) // the parent intersects and the child is in view
+                        childElement->isInView(params.viewFrustum)) // the parent intersects and the child is in view
                 ));
 
         if (!childIsInView) {
@@ -1192,12 +1189,11 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             }
         } else {
             // Before we consider this further, let's see if it's in our LOD scope...
-            float distance = distancesToChildren[i];
-            float boundaryDistance = !params.viewFrustum ? 1 :
-                                     boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
+            float boundaryDistance = params.recurseEverything ? 1 :
+                                    boundaryDistanceForRenderLevel(childElement->getLevel() + params.boundaryLevelAdjust,
                                             params.octreeElementSizeScale);
 
-            if (!(distance < boundaryDistance)) {
+            if (!(distancesToChildren[i] < boundaryDistance)) {
                 // don't need to check childElement here, because we can't get here with no childElement
                 if (params.stats) {
                     params.stats->skippedDistance(childElement);
@@ -1215,10 +1211,9 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
                 bool childIsOccluded = false; // assume it's not occluded
 
-                bool shouldRender = !params.viewFrustum
-                                    ? true
-                                    : childElement->calculateShouldRender(params.viewFrustum,
-                                                    params.octreeElementSizeScale, params.boundaryLevelAdjust);
+                bool shouldRender = params.recurseEverything ||
+                        childElement->calculateShouldRender(params.viewFrustum,
+                                params.octreeElementSizeScale, params.boundaryLevelAdjust);
 
                 // track some stats
                 if (params.stats) {
@@ -1236,8 +1231,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 if (shouldRender && !childIsOccluded) {
                     bool childWasInView = false;
 
-                    if (childElement && params.deltaViewFrustum && params.lastViewFrustum) {
-                        ViewFrustum::intersection location = childElement->computeViewIntersection(*params.lastViewFrustum);
+                    if (childElement && params.deltaView) {
+                        ViewFrustum::intersection location = childElement->computeViewIntersection(params.lastViewFrustum);
 
                         // If we're a leaf, then either intersect or inside is considered "formerly in view"
                         if (childElement->isLeaf()) {
@@ -1251,7 +1246,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                     // Or if we were previously in the view, but this element has changed since it was last sent, then we do
                     // need to send it.
                     if (!childWasInView ||
-                        (params.deltaViewFrustum &&
+                        (params.deltaView &&
                          childElement->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
 
                         childrenDataBits += (1 << (7 - originalIndex));
@@ -1456,7 +1451,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 // called databits), then we wouldn't send the children. So those types of Octree's should tell us to keep
                 // recursing, by returning TRUE in recurseChildrenWithData().
 
-                if (recurseChildrenWithData() || !params.viewFrustum || !oneAtBit(childrenDataBits, originalIndex)) {
+                if (params.recurseEverything || recurseChildrenWithData() || !oneAtBit(childrenDataBits, originalIndex)) {
 
                     // Allow the datatype a chance to determine if it really wants to recurse this tree. Usually this
                     // will be true. But if the tree has already been encoded, we will skip this.
@@ -1978,7 +1973,8 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         bool lastPacketWritten = false;
 
         while (OctreeElementPointer subTree = elementBag.extract()) {
-            EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, NO_EXISTS_BITS);
+            EncodeBitstreamParams params(INT_MAX, NO_EXISTS_BITS);
+            params.recurseEverything = true;
             withReadLock([&] {
                 params.extraEncodeData = &extraEncodeData;
                 bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);

@@ -37,13 +37,9 @@
 
     var whiteboardPath = Script.resolvePath("atp:/whiteboard/wrapper.js");
 
-    var plantPath = Script.resolvePath("atp:/growingPlant/wrapper.js");
-
     var cuckooClockPath = Script.resolvePath("atp:/cuckooClock/wrapper.js");
 
     var pingPongGunPath = Script.resolvePath("atp:/pingPongGun/wrapper.js");
-
-    var musicBoxPath = Script.resolvePath("musicBox/wrapper.js?" + Math.random());
 
     var transformerPath = Script.resolvePath("atp:/dressingRoom/wrapper.js");
 
@@ -54,10 +50,8 @@
     Script.include(fishTankPath);
     Script.include(tiltMazePath);
     Script.include(whiteboardPath);
-    Script.include(plantPath);
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
-    // Script.include(musicBoxPath);
     Script.include(transformerPath);
 
     var TRANSFORMER_URL_ROBOT = 'atp:/dressingRoom/simple_robot.fbx';
@@ -204,23 +198,13 @@
             });
 
             var whiteboard = new Whiteboard({
-                x: 1104,
-                y: 460.5,
-                z: -77
+                x: 1105.0955,
+                y: 460.5000,
+                z: -77.4409
             }, {
-                x: 0,
-                y: -133,
-                z: 0
-            });
-
-            var myPlant = new Plant({
-                x: 1099.8785,
-                y: 460.3115,
-                z: -84.7736
-            }, {
-                x: 0,
-                y: 0,
-                z: 0
+                x: -0.0013,
+                y: -133.0056,
+                z: -0.0013
             });
 
             var pingPongGun = new HomePingPongGun({
@@ -234,16 +218,15 @@
             });
 
             var cuckooClock = new MyCuckooClock({
-                x: 1105.267,
-                y: 461.44,
-                z: -81.9495
+                x: 1105.5237,
+                y: 461.4826,
+                z: -81.7524
             }, {
-                x: 0,
-                y: -57,
-                z: 0
+                x: -0.0013,
+                y: -57.0089,
+                z: -0.0013
             });
 
-            // var musicBox = new MusicBox();
             print('HOME after creating scripted entities')
 
         },

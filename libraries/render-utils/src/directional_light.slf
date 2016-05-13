@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBuffer.slh@>
+<@include DeferredBufferRead.slh@>
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
@@ -28,7 +28,9 @@ void main(void) {
     float shadowAttenuation = 1.0;
 
     // Light mapped or not ?
-    if (frag.mode == LIGHT_MAPPED) {
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        _fragColor = vec4(frag.diffuse, 1.0);
+    } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
          vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,
                         shadowAttenuation,

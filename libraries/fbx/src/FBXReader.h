@@ -154,6 +154,7 @@ public:
 
     QString materialID;
     QString name;
+    QString shadingModel;
     model::MaterialPointer _material;
 
     FBXTexture normalTexture;
