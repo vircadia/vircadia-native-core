@@ -498,10 +498,6 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
     }
 }
 
-bool ScriptEngines::isStopped() const {
-    return _isStopped;
-}
-
 void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* engine) {
     bool removed = false;
     {

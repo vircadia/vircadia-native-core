@@ -86,7 +86,7 @@ protected:
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
-    bool isStopped() const;
+    bool isStopped() const { return _isStopped; }
 
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
