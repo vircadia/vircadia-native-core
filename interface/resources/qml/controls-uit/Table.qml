@@ -29,6 +29,7 @@ TableView {
         color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
 
         RalewayRegular {
+            id: titleText
             text: styleData.value
             size: hifi.fontSizes.tableHeading
             font.capitalization: Font.AllUppercase
@@ -36,10 +37,23 @@ TableView {
             anchors {
                 left: parent.left
                 leftMargin: hifi.dimensions.tablePadding
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: parent.verticalCenter
             }
+        }
+
+        HiFiGlyphs {
+            id: titleSort
+            text:  sortIndicatorOrder == Qt.AscendingOrder ? hifi.glyphs.caratUp : hifi.glyphs.caratDn
+            color: hifi.colors.baseGrayHighlight
+            size: hifi.fontSizes.tableHeadingIcon
+            anchors {
+                left: titleText.right
+                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3
+                right: parent.right
+                rightMargin: hifi.dimensions.tablePadding
+                verticalCenter: titleText.verticalCenter
+            }
+            visible: sortIndicatorVisible && sortIndicatorColumn === styleData.column
         }
 
         Rectangle {

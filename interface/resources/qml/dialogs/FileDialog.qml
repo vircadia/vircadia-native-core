@@ -208,6 +208,10 @@ ModalWindow {
             Keys.onReturnPressed: navigateToCurrentRow();
             Keys.onEnterPressed: navigateToCurrentRow();
 
+            sortIndicatorColumn: 0
+            sortIndicatorOrder: Qt.AscendingOrder
+            sortIndicatorVisible: true
+
             model: FolderListModel {
                 id: model
                 nameFilters: selectionType.currentFilter
@@ -228,7 +232,18 @@ ModalWindow {
                 }
             }
 
-            onActiveFocusChanged:  {
+            function updateSort() {
+                model.sortReversed = sortIndicatorColumn == 0
+                    ? (sortIndicatorOrder == Qt.DescendingOrder)
+                    : (sortIndicatorOrder == Qt.AscendingOrder);  // Date and size fields have opposite sense
+                model.sortField = sortIndicatorColumn + 1;
+            }
+
+            onSortIndicatorColumnChanged: { updateSort(); }
+
+            onSortIndicatorOrderChanged: { updateSort(); }
+
+            onActiveFocusChanged: {
                 if (activeFocus && currentRow == -1) {
                     fileTableView.selection.select(0)
                 }
@@ -282,6 +297,7 @@ ModalWindow {
                 role: "fileName"
                 title: "Name"
                 width: (selectDirectory ? 1.0 : 0.5) * fileTableView.width
+                movable: false
                 resizable: true
             }
             TableViewColumn {
@@ -289,6 +305,7 @@ ModalWindow {
                 role: "fileModified"
                 title: "Date"
                 width: 0.3 * fileTableView.width
+                movable: false
                 resizable: true
                 visible: !selectDirectory
             }
@@ -296,6 +313,7 @@ ModalWindow {
                 role: "fileSize"
                 title: "Size"
                 width: fileTableView.width - fileNameColumn.width - fileMofifiedColumn.width
+                movable: false
                 resizable: true
                 visible: !selectDirectory
             }
