@@ -98,6 +98,7 @@ void Material::setFresnel(const Color& fresnel, bool isSRGB) {
 }
 
 void Material::setMetallic(float metallic) {
+    metallic = glm::clamp(metallic, 0.0f, 1.0f);
     _key.setMetallic(metallic > 0.0f);
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._metallic = metallic;
