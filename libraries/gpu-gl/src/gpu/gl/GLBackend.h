@@ -19,18 +19,46 @@
 #include <list>
 #include <array>
 
+#include <QtCore/QLoggingCategory>
+
 #include <gl/Config.h>
 
-#include "Context.h"
+#include <gpu/Forward.h>
+#include <gpu/Context.h>
 
-namespace gpu {
+
+#define GPU_CORE 1
+#define GPU_LEGACY 0
+#define GPU_CORE_41 410
+#define GPU_CORE_43 430
+#define GPU_CORE_MINIMUM GPU_CORE_41
+#define GPU_FEATURE_PROFILE GPU_CORE
+
+#if defined(__APPLE__)
+
+#define GPU_INPUT_PROFILE GPU_CORE_41
+
+#else
+
+#define GPU_INPUT_PROFILE GPU_CORE_43
+
+#endif
+
+
+#if (GPU_INPUT_PROFILE == GPU_CORE_43)
+// Deactivate SSBO for now, we've run into some issues
+// on GL 4.3 capable GPUs not behaving as expected
+//#define GPU_SSBO_DRAW_CALL_INFO
+#endif
+
+namespace gpu { namespace gl {
 
 class GLTextureTransferHelper;
 
 class GLBackend : public Backend {
 
     // Context Backend static interface required
-    friend class Context;
+    friend class gpu::Context;
     static void init();
     static Backend* createBackend();
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
@@ -54,11 +82,6 @@ public:
     // Just avoid using it, it's ugly and will break performances
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
 
-    static bool checkGLError(const char* name = nullptr);
-
-    // Only checks in debug builds
-    static bool checkGLErrorDebug(const char* name = nullptr);
-
     static void checkGLStackStable(std::function<void()> f);
 
     
@@ -72,7 +95,7 @@ public:
         GLBuffer(const Buffer& buffer, GLBuffer* original = nullptr);
         ~GLBuffer();
 
-        void transfer();
+        virtual void transfer();
 
     private:
         bool getNextTransferBlock(GLintptr& outOffset, GLsizeiptr& outSize, size_t& currentPage) const;
@@ -626,6 +649,9 @@ protected:
 
 };
 
-};
+} }
+
+Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
+
 
 #endif

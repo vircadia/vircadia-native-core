@@ -8,9 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GLBackend.h"
 #include "GLBackendShared.h"
 
 using namespace gpu;
+using namespace gpu::gl;
 
 void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);

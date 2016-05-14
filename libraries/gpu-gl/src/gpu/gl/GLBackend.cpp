@@ -8,112 +8,133 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackendShared.h"
+#include "GLBackend.h"
 
 #include <mutex>
 #include <queue>
 #include <list>
+#include <functional>
 #include <glm/gtc/type_ptr.hpp>
-#include <GPUIdent.h>
-#include <NumericalConstants.h>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 #endif
 
+#include <GPUIdent.h>
+#include <NumericalConstants.h>
+#include "GLBackendShared.h"
 
 using namespace gpu;
+using namespace gpu::gl;
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
-    (&::gpu::GLBackend::do_draw),
-    (&::gpu::GLBackend::do_drawIndexed),
-    (&::gpu::GLBackend::do_drawInstanced),
-    (&::gpu::GLBackend::do_drawIndexedInstanced),
-    (&::gpu::GLBackend::do_multiDrawIndirect),
-    (&::gpu::GLBackend::do_multiDrawIndexedIndirect),
+    (&::gpu::gl::GLBackend::do_draw),
+    (&::gpu::gl::GLBackend::do_drawIndexed),
+    (&::gpu::gl::GLBackend::do_drawInstanced),
+    (&::gpu::gl::GLBackend::do_drawIndexedInstanced),
+    (&::gpu::gl::GLBackend::do_multiDrawIndirect),
+    (&::gpu::gl::GLBackend::do_multiDrawIndexedIndirect),
 
-    (&::gpu::GLBackend::do_setInputFormat),
-    (&::gpu::GLBackend::do_setInputBuffer),
-    (&::gpu::GLBackend::do_setIndexBuffer),
-    (&::gpu::GLBackend::do_setIndirectBuffer),
+    (&::gpu::gl::GLBackend::do_setInputFormat),
+    (&::gpu::gl::GLBackend::do_setInputBuffer),
+    (&::gpu::gl::GLBackend::do_setIndexBuffer),
+    (&::gpu::gl::GLBackend::do_setIndirectBuffer),
 
-    (&::gpu::GLBackend::do_setModelTransform),
-    (&::gpu::GLBackend::do_setViewTransform),
-    (&::gpu::GLBackend::do_setProjectionTransform),
-    (&::gpu::GLBackend::do_setViewportTransform),
-    (&::gpu::GLBackend::do_setDepthRangeTransform),
+    (&::gpu::gl::GLBackend::do_setModelTransform),
+    (&::gpu::gl::GLBackend::do_setViewTransform),
+    (&::gpu::gl::GLBackend::do_setProjectionTransform),
+    (&::gpu::gl::GLBackend::do_setViewportTransform),
+    (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
-    (&::gpu::GLBackend::do_setPipeline),
-    (&::gpu::GLBackend::do_setStateBlendFactor),
-    (&::gpu::GLBackend::do_setStateScissorRect),
+    (&::gpu::gl::GLBackend::do_setPipeline),
+    (&::gpu::gl::GLBackend::do_setStateBlendFactor),
+    (&::gpu::gl::GLBackend::do_setStateScissorRect),
 
-    (&::gpu::GLBackend::do_setUniformBuffer),
-    (&::gpu::GLBackend::do_setResourceTexture),
+    (&::gpu::gl::GLBackend::do_setUniformBuffer),
+    (&::gpu::gl::GLBackend::do_setResourceTexture),
 
-    (&::gpu::GLBackend::do_setFramebuffer),
-    (&::gpu::GLBackend::do_clearFramebuffer),
-    (&::gpu::GLBackend::do_blit),
-    (&::gpu::GLBackend::do_generateTextureMips),
+    (&::gpu::gl::GLBackend::do_setFramebuffer),
+    (&::gpu::gl::GLBackend::do_clearFramebuffer),
+    (&::gpu::gl::GLBackend::do_blit),
+    (&::gpu::gl::GLBackend::do_generateTextureMips),
 
-    (&::gpu::GLBackend::do_beginQuery),
-    (&::gpu::GLBackend::do_endQuery),
-    (&::gpu::GLBackend::do_getQuery),
+    (&::gpu::gl::GLBackend::do_beginQuery),
+    (&::gpu::gl::GLBackend::do_endQuery),
+    (&::gpu::gl::GLBackend::do_getQuery),
 
-    (&::gpu::GLBackend::do_resetStages),
+    (&::gpu::gl::GLBackend::do_resetStages),
 
-    (&::gpu::GLBackend::do_runLambda),
+    (&::gpu::gl::GLBackend::do_runLambda),
 
-    (&::gpu::GLBackend::do_startNamedCall),
-    (&::gpu::GLBackend::do_stopNamedCall),
+    (&::gpu::gl::GLBackend::do_startNamedCall),
+    (&::gpu::gl::GLBackend::do_stopNamedCall),
 
-    (&::gpu::GLBackend::do_glActiveBindTexture),
+    (&::gpu::gl::GLBackend::do_glActiveBindTexture),
 
-    (&::gpu::GLBackend::do_glUniform1i),
-    (&::gpu::GLBackend::do_glUniform1f),
-    (&::gpu::GLBackend::do_glUniform2f),
-    (&::gpu::GLBackend::do_glUniform3f),
-    (&::gpu::GLBackend::do_glUniform4f),
-    (&::gpu::GLBackend::do_glUniform3fv),
-    (&::gpu::GLBackend::do_glUniform4fv),
-    (&::gpu::GLBackend::do_glUniform4iv),
-    (&::gpu::GLBackend::do_glUniformMatrix4fv),
+    (&::gpu::gl::GLBackend::do_glUniform1i),
+    (&::gpu::gl::GLBackend::do_glUniform1f),
+    (&::gpu::gl::GLBackend::do_glUniform2f),
+    (&::gpu::gl::GLBackend::do_glUniform3f),
+    (&::gpu::gl::GLBackend::do_glUniform4f),
+    (&::gpu::gl::GLBackend::do_glUniform3fv),
+    (&::gpu::gl::GLBackend::do_glUniform4fv),
+    (&::gpu::gl::GLBackend::do_glUniform4iv),
+    (&::gpu::gl::GLBackend::do_glUniformMatrix4fv),
 
-    (&::gpu::GLBackend::do_glColor4f),
+    (&::gpu::gl::GLBackend::do_glColor4f),
 
-    (&::gpu::GLBackend::do_pushProfileRange),
-    (&::gpu::GLBackend::do_popProfileRange),
+    (&::gpu::gl::GLBackend::do_pushProfileRange),
+    (&::gpu::gl::GLBackend::do_popProfileRange),
 };
+
+extern std::function<uint32(const Texture& texture)> TEXTURE_ID_RESOLVER;
 
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
+
+        TEXTURE_ID_RESOLVER = [](const Texture& texture)->uint32 {
+            auto object = Backend::getGPUObject<GLBackend::GLTexture>(texture);
+            if (!object) {
+                return 0;
+            }
+            
+            if (object->getSyncState() != GLTexture::Idle) {
+                if (object->_downsampleSource) {
+                    return object->_downsampleSource->_texture;
+                }
+                return 0;
+            }
+            return object->_texture;
+        };
+
         QString vendor{ (const char*)glGetString(GL_VENDOR) };
         QString renderer{ (const char*)glGetString(GL_RENDERER) };
-        qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-        qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qCDebug(gpulogging) << "GL Vendor: " << vendor;
-        qCDebug(gpulogging) << "GL Renderer: " << renderer;
+        qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qCDebug(gpugllogging) << "GL Vendor: " << vendor;
+        qCDebug(gpugllogging) << "GL Renderer: " << renderer;
         GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
         // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
-        qCDebug(gpulogging) << "GPU:";
-        qCDebug(gpulogging) << "\tcard:" << gpu->getName();
-        qCDebug(gpulogging) << "\tdriver:" << gpu->getDriver();
-        qCDebug(gpulogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+        qCDebug(gpugllogging) << "GPU:";
+        qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
+        qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
+        qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
 
         glewExperimental = true;
         GLenum err = glewInit();
         glGetError(); // clear the potential error from glewExperimental
         if (GLEW_OK != err) {
             // glewInit failed, something is seriously wrong.
-            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+            qCDebug(gpugllogging, "Error: %s\n", glewGetErrorString(err));
         }
-        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+        qCDebug(gpugllogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
 #if defined(Q_OS_WIN)
         if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
-            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+            qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
         }
 #endif
 
@@ -121,7 +142,7 @@ void GLBackend::init() {
         // TODO: Write the correct  code for Linux...
         /* if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
-            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+            qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
         }*/
 #endif
     });
@@ -316,47 +337,6 @@ void GLBackend::render(Batch& batch) {
     _stereo._enable = savedStereo;
 }
 
-bool GLBackend::checkGLError(const char* name) {
-    GLenum error = glGetError();
-    if (!error) {
-        return false;
-    }
-    else {
-        switch (error) {
-        case GL_INVALID_ENUM:
-            qCDebug(gpulogging) << "GLBackend::" << name << ": An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_INVALID_VALUE:
-            qCDebug(gpulogging) << "GLBackend" << name << ": A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
-            break;
-        case GL_INVALID_OPERATION:
-            qCDebug(gpulogging) << "GLBackend" << name << ": The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
-            break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-            qCDebug(gpulogging) << "GLBackend" << name << ": The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_OUT_OF_MEMORY:
-            qCDebug(gpulogging) << "GLBackend" << name << ": There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
-            break;
-        case GL_STACK_UNDERFLOW:
-            qCDebug(gpulogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to underflow.";
-            break;
-        case GL_STACK_OVERFLOW:
-            qCDebug(gpulogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to overflow.";
-            break;
-        }
-        return true;
-    }
-}
-
-bool GLBackend::checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
-    return checkGLError(name);
-#else
-    Q_UNUSED(name);
-    return false;
-#endif
-}
 
 void GLBackend::syncCache() {
     syncTransformStateCache();

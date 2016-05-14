@@ -208,7 +208,7 @@ protected:
     Sysmem _sysmem;
 
     // FIXME find a more generic way to do this.
-    friend class GLBackend;
+    friend class gl::GLBackend;
     friend class BufferView;
 };
 
