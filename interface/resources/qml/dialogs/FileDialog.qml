@@ -49,6 +49,8 @@ ModalWindow {
     // Set from OffscreenUi::getOpenFile()
     property int options; // <-- FIXME unused
 
+    property string iconText: text !== "" ? hifi.glyphs.scriptUpload : ""
+    property int iconSize: 40
 
     property bool selectDirectory: false;
     property bool showHidden: false;
@@ -69,6 +71,8 @@ ModalWindow {
         drivesSelector.onCurrentTextChanged.connect(function(){
             root.dir = helper.pathToUrl(drivesSelector.currentText);
         })
+
+        iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
     }
 
     Item {
