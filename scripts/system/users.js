@@ -904,7 +904,8 @@ var usersWindow = (function () {
     function setUp() {
         var textSizeOverlay,
             offsetSetting,
-            offset = {};
+            offset = {},
+            hmdViewport;
 
         textSizeOverlay = Overlays.addOverlay("text", {
             font: WINDOW_FONT,
@@ -926,7 +927,11 @@ var usersWindow = (function () {
             windowPosition.y = offset.y <= 0 ? viewport.y + offset.y : offset.y;
 
         } else {
-            windowPosition = { x: 0, y: viewport.y };
+            hmdViewport = Controller.getRecommendedOverlayRect();
+            windowPosition = {
+                x: (viewport.x - hmdViewport.width) / 2,  // HMD viewport is narrower than screen.
+                y: hmdViewport.height  // HMD viewport starts at top of screen but only extends down so far.
+            };
         }
 
         calculateWindowHeight();
