@@ -1071,6 +1071,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
+
+    // After all of the constructor is completed, then set firstRun to false.
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
+    firstRun.set(false);
 }
 
 
@@ -1088,11 +1092,6 @@ void Application::checkChangeCursor() {
 
         _cursorNeedsChanging = false;
     }
-
-
-    // After all of the constructor is completed, then set firstRun to false.
-    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
-    firstRun.set(false);
 }
 
 void Application::showCursor(const QCursor& cursor) {
