@@ -59,7 +59,8 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _deferredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _deferredFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
-    auto colorFormat = gpu::Element::COLOR_RGBA_32;
+   // auto colorFormat = gpu::Element::COLOR_RGBA_32;
+    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
     auto width = _frameBufferSize.width();
     auto height = _frameBufferSize.height();
 
@@ -95,10 +96,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
 
     auto smoothSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR);
 
-    // FIXME: Decide on the proper one, let s stick to R11G11B10 for now
-    //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, defaultSampler));
     _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10), width, height, defaultSampler));
-    //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
     _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
@@ -212,7 +210,7 @@ gpu::TexturePointer FramebufferCache::getLightingTexture() {
 
 gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
     if (_cachedFramebuffers.isEmpty()) {
-        _cachedFramebuffers.push_back(gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height())));
+        _cachedFramebuffers.push_back(gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_SRGBA_32, _frameBufferSize.width(), _frameBufferSize.height())));
     }
     gpu::FramebufferPointer result = _cachedFramebuffers.front();
     _cachedFramebuffers.pop_front();
