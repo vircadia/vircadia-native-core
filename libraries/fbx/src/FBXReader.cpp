@@ -1337,7 +1337,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     }
 
     // NOTE: shapeVertices are in joint-frame
-    QVector<ShapeVertices> shapeVertices;
+    std::vector<ShapeVertices> shapeVertices;
     shapeVertices.resize(geometry.joints.size());
 
     // find our special joints
@@ -1528,7 +1528,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                 float clusterScale = extractUniformScale(fbxCluster.inverseBindMatrix);
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
-                ShapeVertices& points = shapeVertices[jointIndex];
+                ShapeVertices& points = shapeVertices.at(jointIndex);
 
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1590,7 +1590,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             // transform cluster vertices to joint-frame and save for later
             float clusterScale = extractUniformScale(firstFBXCluster.inverseBindMatrix);
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
-            ShapeVertices& points = shapeVertices[jointIndex];
+            ShapeVertices& points = shapeVertices.at(jointIndex);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertex);
                 points.push_back(extractTranslation(vertexTransform) * clusterScale);
@@ -1631,7 +1631,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         FBXJoint& joint = geometry.joints[i];
 
         // NOTE: points are in joint-frame
-        ShapeVertices& points = shapeVertices[i];
+        ShapeVertices& points = shapeVertices.at(i);
         if (points.size() > 0) {
             // compute average point
             glm::vec3 avgPoint = glm::vec3(0.0f);
