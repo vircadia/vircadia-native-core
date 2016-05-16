@@ -117,10 +117,11 @@ function AttachedEntitiesManager() {
     this.handleEntityRelease = function(grabbedEntity, releasedFromJoint) {
         // if this is still equipped, just rewrite the position information.
         var grabData = getEntityCustomData('grabKey', grabbedEntity, {});
-        if ("refCount" in grabData && grabData.refCount > 0) {
-            manager.updateRelativeOffsets(grabbedEntity);
-            return;
-        }
+        // if ("refCount" in grabData && grabData.refCount > 0) {
+        //     // for adjusting things in your other hand
+        //     manager.updateRelativeOffsets(grabbedEntity);
+        //     return;
+        // }
 
         var allowedJoints = getEntityCustomData('wearable', grabbedEntity, DEFAULT_WEARABLE_DATA).joints;
 
@@ -156,9 +157,11 @@ function AttachedEntitiesManager() {
                 wearProps.parentID = MyAvatar.sessionUUID;
                 wearProps.parentJointIndex = bestJointIndex;
 
+                var updatePresets = false;
                 if (bestJointOffset && bestJointOffset.constructor === Array) {
                     if (!clothingLocked || bestJointOffset.length < 2) {
-                        this.updateRelativeOffsets(grabbedEntity);
+                        // we're unlocked or this thing didn't have a preset position, so update it
+                        updatePresets = true;
                     } else {
                         // don't snap the entity to the preferred position if unlocked
                         wearProps.localPosition = bestJointOffset[0];
@@ -167,7 +170,10 @@ function AttachedEntitiesManager() {
                 }
 
                 Entities.deleteEntity(grabbedEntity);
-                Entities.addEntity(wearProps, true);
+                grabbedEntity = Entities.addEntity(wearProps, true);
+                if (updatePresets) {
+                    this.updateRelativeOffsets(grabbedEntity);
+                }
             } else if (props.parentID != NULL_UUID) {
                 // drop the entity and set it to have no parent (not on the avatar), unless it's being equipped in a hand.
                 if (props.parentID === MyAvatar.sessionUUID &&
@@ -225,20 +231,20 @@ function AttachedEntitiesManager() {
         }
     }
 
-    this.saveAttachedEntities = function() {
-        print("--- saving attached entities ---");
-        saveData = [];
-        var nearbyEntities = Entities.findEntities(MyAvatar.position, ATTACHED_ENTITY_SEARCH_DISTANCE);
-        for (i = 0; i < nearbyEntities.length; i++) {
-            var entityID = nearbyEntities[i];
-            if (this.updateRelativeOffsets(entityID)) {
-                var props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
-                this.scrubProperties(props);
-                saveData.push(props);
-            }
-        }
-        Settings.setValue(ATTACHED_ENTITIES_SETTINGS_KEY, JSON.stringify(saveData));
-    }
+    // this.saveAttachedEntities = function() {
+    //     print("--- saving attached entities ---");
+    //     saveData = [];
+    //     var nearbyEntities = Entities.findEntities(MyAvatar.position, ATTACHED_ENTITY_SEARCH_DISTANCE);
+    //     for (i = 0; i < nearbyEntities.length; i++) {
+    //         var entityID = nearbyEntities[i];
+    //         if (this.updateRelativeOffsets(entityID)) {
+    //             var props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
+    //             this.scrubProperties(props);
+    //             saveData.push(props);
+    //         }
+    //     }
+    //     Settings.setValue(ATTACHED_ENTITIES_SETTINGS_KEY, JSON.stringify(saveData));
+    // }
 
     this.scrubProperties = function(props) {
         var toScrub = ["queryAACube", "position", "rotation",
@@ -262,37 +268,37 @@ function AttachedEntitiesManager() {
         }
     }
 
-    this.loadAttachedEntities = function(grabbedEntity) {
-        print("--- loading attached entities ---");
-        jsonAttachmentData = Settings.getValue(ATTACHED_ENTITIES_SETTINGS_KEY);
-        var loadData = [];
-        try {
-            loadData = JSON.parse(jsonAttachmentData);
-        } catch (e) {
-            print('error parsing saved attachment data');
-            return;
-        }
+    // this.loadAttachedEntities = function(grabbedEntity) {
+    //     print("--- loading attached entities ---");
+    //     jsonAttachmentData = Settings.getValue(ATTACHED_ENTITIES_SETTINGS_KEY);
+    //     var loadData = [];
+    //     try {
+    //         loadData = JSON.parse(jsonAttachmentData);
+    //     } catch (e) {
+    //         print('error parsing saved attachment data');
+    //         return;
+    //     }
 
-        for (i = 0; i < loadData.length; i ++) {
-            var savedProps = loadData[ i ];
-            var currentProps = Entities.getEntityProperties(savedProps.id);
-            if (currentProps.id == savedProps.id &&
-                // TODO -- also check that parentJointIndex matches?
-                currentProps.parentID == MyAvatar.sessionUUID) {
-                // entity is already in-world.  TODO -- patch it up?
-                continue;
-            }
-            this.scrubProperties(savedProps);
-            delete savedProps["id"];
-            savedProps.parentID = MyAvatar.sessionUUID; // this will change between sessions
-            var loadedEntityID = Entities.addEntity(savedProps, true);
+    //     for (i = 0; i < loadData.length; i ++) {
+    //         var savedProps = loadData[ i ];
+    //         var currentProps = Entities.getEntityProperties(savedProps.id);
+    //         if (currentProps.id == savedProps.id &&
+    //             // TODO -- also check that parentJointIndex matches?
+    //             currentProps.parentID == MyAvatar.sessionUUID) {
+    //             // entity is already in-world.  TODO -- patch it up?
+    //             continue;
+    //         }
+    //         this.scrubProperties(savedProps);
+    //         delete savedProps["id"];
+    //         savedProps.parentID = MyAvatar.sessionUUID; // this will change between sessions
+    //         var loadedEntityID = Entities.addEntity(savedProps, true);
 
-            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
-                action: 'loaded',
-                grabbedEntity: loadedEntityID
-            }));
-        }
-    }
+    //         Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+    //             action: 'loaded',
+    //             grabbedEntity: loadedEntityID
+    //         }));
+    //     }
+    // }
 }
 
 var manager = new AttachedEntitiesManager();
