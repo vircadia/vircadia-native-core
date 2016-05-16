@@ -892,7 +892,10 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             properties = true;
                             propertyName = "P";
                             index = 4;
+                        } else if (subobject.name == "ShadingModel") {
+                            material.shadingModel = subobject.properties.at(0).toString();
                         }
+
                         if (properties) {
                             std::vector<std::string> unknowns;
                             foreach(const FBXNode& property, subobject.children) {
@@ -988,7 +991,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QString propname = subobject.name.data();
                             int unknown = 0;
                             if ( (propname == "Version")
-                                ||(propname == "ShadingModel")
                                 ||(propname == "Multilayer")) {
                             } else {
                                 unknown++;
@@ -1130,7 +1132,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_ao_map")) {
                             occlusionTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-
                         } else if (type == "lcl rotation") {
                             localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type == "lcl translation") {
@@ -1331,7 +1332,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     }
 
     // NOTE: shapeVertices are in joint-frame
-    QVector<ShapeVertices> shapeVertices;
+    std::vector<ShapeVertices> shapeVertices;
     shapeVertices.resize(geometry.joints.size());
 
     // find our special joints
@@ -1522,7 +1523,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                 float clusterScale = extractUniformScale(fbxCluster.inverseBindMatrix);
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
-                ShapeVertices& points = shapeVertices[jointIndex];
+                ShapeVertices& points = shapeVertices.at(jointIndex);
 
                 float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
@@ -1584,7 +1585,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             // transform cluster vertices to joint-frame and save for later
             float clusterScale = extractUniformScale(firstFBXCluster.inverseBindMatrix);
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
-            ShapeVertices& points = shapeVertices[jointIndex];
+            ShapeVertices& points = shapeVertices.at(jointIndex);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertex);
                 points.push_back(extractTranslation(vertexTransform) * clusterScale);
@@ -1625,7 +1626,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         FBXJoint& joint = geometry.joints[i];
 
         // NOTE: points are in joint-frame
-        ShapeVertices& points = shapeVertices[i];
+        ShapeVertices& points = shapeVertices.at(i);
         if (points.size() > 0) {
             // compute average point
             glm::vec3 avgPoint = glm::vec3(0.0f);
