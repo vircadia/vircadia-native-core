@@ -47,7 +47,8 @@ public:
         Back,
         Forward,
         StartupFromSettings,
-        DomainPathResponse
+        DomainPathResponse,
+        Internal
     };
 
     bool isConnected();
@@ -118,14 +119,15 @@ private slots:
 private:
     void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 
-    void setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    void setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
+    // Set host and port, and return `true` if it was changed.
+    bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
+    bool setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
     bool handleUrl(const QUrl& lookupUrl, LookupTrigger trigger = UserInput);
 
-    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger);
+    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
     bool handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
                          bool definitelyPathOnly = false, const QString& pathString = QString());

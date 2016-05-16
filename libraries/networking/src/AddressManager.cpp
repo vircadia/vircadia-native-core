@@ -147,8 +147,14 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         if (!handleUsername(lookupUrl.authority())) {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
+            bool hostChanged;
             if (handleNetworkAddress(lookupUrl.host()
-                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger)) {
+                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger, hostChanged)) {
+
+                // If the host changed then we have already saved to history
+                if (hostChanged) {
+                    trigger = Internal;
+                }
 
                 // if we were not passed a path, use the index path
                 auto path = lookupUrl.path();
@@ -170,13 +176,13 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         }
 
         return true;
+
     } else if (lookupUrl.toString().startsWith('/')) {
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
 
         // if this is a relative path then handle it as a relative viewpoint
         handlePath(lookupUrl.path(), trigger, true);
         emit lookupResultsFinished();
-
         return true;
     }
 
@@ -286,13 +292,19 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString PLACE_ID_KEY = "id";
                 _rootPlaceID = rootMap[PLACE_ID_KEY].toUuid();
 
+                bool addressChanged = false;
+
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
                 QString placeName = rootMap[PLACE_NAME_KEY].toString();
                 if (!placeName.isEmpty()) {
-                    setHost(placeName, trigger);
+                    if (setHost(placeName, trigger)) {
+                        trigger = LookupTrigger::Internal;
+                    }
                 } else {
-                    setHost(domainIDString, trigger);
+                    if (setHost(domainIDString, trigger)) {
+                        trigger = LookupTrigger::Internal;
+                    }
                 }
 
                 // check if we had a path to override the path returned
@@ -394,7 +406,7 @@ void AddressManager::attemptDomainIDLookup(const QString& lookupString, const QS
                                                 QByteArray(), NULL, requestParams);
 }
 
-bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTrigger trigger) {
+bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged) {
     const QString IP_ADDRESS_REGEX_STRING = "^((?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
         "(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(?::(\\d{1,5}))?$";
 
@@ -412,7 +424,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         }
 
         emit lookupResultsFinished();
-        setDomainInfo(domainIPString, domainPort, trigger);
+        hostChanged = setDomainInfo(domainIPString, domainPort, trigger);
 
         return true;
     }
@@ -429,10 +441,12 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         }
 
         emit lookupResultsFinished();
-        setDomainInfo(domainHostname, domainPort, trigger);
+        hostChanged = setDomainInfo(domainHostname, domainPort, trigger);
 
         return true;
     }
+
+    hostChanged = false;
 
     return false;
 }
@@ -547,24 +561,27 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     return false;
 }
 
-void AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
+bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
     if (host != _host || port != _port) {
         
-        _port = port;
-        
-        // if the host is being changed we should store current address in the history
         addCurrentAddressToHistory(trigger);
+
+        _port = port;
 
         if (host != _host) {
             _host = host;
             emit hostChanged(_host);
         }
+
+        return true;
     }
+
+    return false;
 }
 
 
-void AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
-    setHost(hostname, trigger, port);
+bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
+    bool hostChanged = setHost(hostname, trigger, port);
 
     _rootPlaceID = QUuid();
 
@@ -573,6 +590,8 @@ void AddressManager::setDomainInfo(const QString& hostname, quint16 port, Lookup
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
     emit possibleDomainChangeRequired(hostname, port);
+
+    return hostChanged;
 }
 
 void AddressManager::goToUser(const QString& username) {
