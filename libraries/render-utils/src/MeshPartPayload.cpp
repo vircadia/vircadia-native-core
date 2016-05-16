@@ -144,6 +144,11 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto materialKey = _drawMaterial->getKey();
     auto textureMaps = _drawMaterial->getTextureMaps();
 
+    int numUnlit = 0;
+    if (materialKey.isUnlit()) {
+        numUnlit++;
+    }
+
     // Albedo
     if (materialKey.isAlbedoMap()) {
         auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
@@ -414,6 +419,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
+    bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
     bool wireframe = _model->isWireframe();
@@ -434,6 +440,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
     if (hasLightmap) {
         builder.withLightmap();
+    }
+    if (isUnlit) {
+        builder.withUnlit();
     }
     if (isSkinned) {
         builder.withSkinned();

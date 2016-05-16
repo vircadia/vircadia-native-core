@@ -686,7 +686,11 @@ void MyAvatar::saveData() {
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
 
-    settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
+    settings.setValue("fullAvatarURL",
+                      _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                      "" :
+                      _fullAvatarURLFromPreferences.toString());
+
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
     settings.setValue("animGraphURL", _animGraphUrl);
 

@@ -53,6 +53,7 @@ protected:
         RoughnessMode,
         MetallicMode,
         EmissiveMode,
+        UnlitMode,
         OcclusionMode,
         LightmapMode,
         LightingMode,

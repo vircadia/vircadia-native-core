@@ -62,7 +62,6 @@ class Overlays : public QObject {
 
 public:
     Overlays();
-    ~Overlays();
 
     void init();
     void update(float deltatime);
@@ -72,6 +71,8 @@ public:
 
     Overlay::Pointer getOverlay(unsigned int id) const;
     OverlayPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
+
+    void cleanupAllOverlays();
 
 public slots:
     /// adds an overlay with the specific properties
@@ -145,7 +146,6 @@ signals:
 
 private:
     void cleanupOverlaysToDelete();
-    void cleanupAllOverlays();
 
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;

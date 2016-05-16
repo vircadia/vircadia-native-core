@@ -88,10 +88,10 @@ protected:
         // Access the byte array.
         // The edit version allow to map data.
         const Byte* readData() const { return _data; } 
-        Byte* editData() { _stamp++; return _data; }
+        Byte* editData() { return _data; }
 
         template< typename T > const T* read() const { return reinterpret_cast< T* > ( _data ); } 
-        template< typename T > T* edit() { _stamp++; return reinterpret_cast< T* > ( _data ); } 
+        template< typename T > T* edit() { return reinterpret_cast< T* > ( _data ); } 
 
         // Access the current version of the sysmem, used to compare if copies are in sync
         Stamp getStamp() const { return _stamp; }
@@ -102,9 +102,9 @@ protected:
         bool isAvailable() const { return (_data != 0); }
 
     private:
-        Stamp _stamp;
-        Size  _size;
-        Byte* _data;
+        Stamp _stamp { 0 };
+        Size  _size { 0 };
+        Byte* _data { nullptr };
     };
 
 };
@@ -115,22 +115,28 @@ class Buffer : public Resource {
     static void updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
 
 public:
+    enum Flag {
+        DIRTY = 0x01,
+    };
+
+    // Currently only one flag... 'dirty'
+    using PageFlags = std::vector<uint8_t>;
+    static const Size DEFAULT_PAGE_SIZE = 4096;
     static uint32_t getBufferCPUCount();
     static Size getBufferCPUMemoryUsage();
     static uint32_t getBufferGPUCount();
     static Size getBufferGPUMemoryUsage();
 
-    Buffer();
-    Buffer(Size size, const Byte* bytes);
+    Buffer(Size pageSize = DEFAULT_PAGE_SIZE);
+    Buffer(Size size, const Byte* bytes, Size pageSize = DEFAULT_PAGE_SIZE);
     Buffer(const Buffer& buf); // deep copy of the sysmem buffer
     Buffer& operator=(const Buffer& buf); // deep copy of the sysmem buffer
     ~Buffer();
 
     // The size in bytes of data stored in the buffer
-    Size getSize() const { return getSysmem().getSize(); }
+    Size getSize() const;
     const Byte* getData() const { return getSysmem().readData(); }
-    Byte* editData() { return editSysmem().editData(); }
-
+    
     // Resize the buffer
     // Keep previous data [0 to min(pSize, mSize)]
     Size resize(Size pSize);
@@ -142,6 +148,23 @@ public:
     // Assign data bytes and size (allocate for size, then copy bytes if exists)
     // \return the number of bytes copied
     Size setSubData(Size offset, Size size, const Byte* data);
+
+    template <typename T>
+    Size setSubData(Size index, const T& t) {
+        Size offset = index * sizeof(T);
+        Size size = sizeof(T);
+        return setSubData(offset, size, reinterpret_cast<const Byte*>(&t));
+    }
+
+    template <typename T>
+    Size setSubData(Size index, const std::vector<T>& t) {
+        if (t.empty()) {
+            return 0;
+        }
+        Size offset = index * sizeof(T);
+        Size size = t.size() * sizeof(T);
+        return setSubData(offset, size, reinterpret_cast<const Byte*>(&t[0]));
+    }
 
     // Append new data at the end of the current buffer
     // do a resize( size + getSize) and copy the new data
@@ -155,18 +178,38 @@ public:
 
     template <typename T>
     Size append(const std::vector<T>& t) {
+        if (t.empty()) {
+            return _end;
+        }
         return append(sizeof(T) * t.size(), reinterpret_cast<const Byte*>(&t[0]));
     }
-
-    // Access the sysmem object.
-    const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
-    Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
 
     const GPUObjectPointer gpuObject {};
     
 protected:
+    void markDirty(Size offset, Size bytes);
 
-    Sysmem* _sysmem = NULL;
+    template <typename T>
+    void markDirty(Size index, Size count = 1) {
+        markDirty(sizeof(T) * index, sizeof(T) * count);
+    }
+
+    // Access the sysmem object, limited to ourselves and GPUObject derived classes
+    const Sysmem& getSysmem() const { return _sysmem; }
+    Sysmem& editSysmem() { return _sysmem; }
+    Byte* editData() { return editSysmem().editData(); }
+
+    Size getRequiredPageCount() const;
+
+    Size _end { 0 };
+    mutable uint8_t _flags;
+    mutable PageFlags _pages;
+    const Size _pageSize;
+    Sysmem _sysmem;
+
+    // FIXME find a more generic way to do this.
+    friend class GLBackend;
+    friend class BufferView;
 };
 
 typedef std::shared_ptr<Buffer> BufferPointer;
@@ -290,8 +333,14 @@ public:
         int _stride;
     };
 
+#if 0
+    // Direct memory access to the buffer contents is incompatible with the paging memory scheme
     template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0), _stride); }
     template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
+#else 
+    template <typename T> Iterator<const T> begin() const { return Iterator<const T>(&get<T>(), _stride); }
+    template <typename T> Iterator<const T> end() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
+#endif
     template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(), _stride); }
     template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
 
@@ -328,6 +377,7 @@ public:
             qDebug() << "Accessing buffer outside the BufferView range, element size = " << sizeof(T) << " when bufferView size = " << _size;
         }
  #endif
+        _buffer->markDirty(_offset, sizeof(T));
         T* t = (reinterpret_cast<T*> (_buffer->editData() + _offset));
         return *(t);
     }
@@ -361,6 +411,7 @@ public:
             qDebug() << "Accessing buffer outside the BufferView range, index = " << index << " number elements = " << getNum<T>();
         }
  #endif
+        _buffer->markDirty(elementOffset, sizeof(T));
         return *(reinterpret_cast<T*> (_buffer->editData() + elementOffset));
     }
 };
