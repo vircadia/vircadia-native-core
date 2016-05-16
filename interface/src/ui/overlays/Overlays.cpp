@@ -36,15 +36,8 @@
 #include <QtQuick/QQuickWindow>
 
 
-Overlays::Overlays() : _nextOverlayID(1) {
-    connect(qApp, &Application::beforeAboutToQuit, [=] {
-        cleanupAllOverlays();
-    });
-}
-
-Overlays::~Overlays() {
-}
-
+Overlays::Overlays() :
+    _nextOverlayID(1) {}
 
 void Overlays::cleanupAllOverlays() {
     {
