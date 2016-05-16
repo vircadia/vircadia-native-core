@@ -1,59 +1,15 @@
 //
-//  Created by Bradley Austin Davis on 2016/05/14
+//  Created by Bradley Austin Davis on 2016/05/15
 //  Copyright 2013-2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackendShared.h"
 
-#include <QLoggingCategory>
+#include "GLTexelFormat.h"
 
-Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
-Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
-
-namespace gpu { namespace gl {
-
-bool checkGLError(const char* name) {
-    GLenum error = glGetError();
-    if (!error) {
-        return false;
-    } else {
-        switch (error) {
-        case GL_INVALID_ENUM:
-            qCDebug(gpugllogging) << "GLBackend::" << name << ": An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_INVALID_VALUE:
-            qCDebug(gpugllogging) << "GLBackend" << name << ": A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
-            break;
-        case GL_INVALID_OPERATION:
-            qCDebug(gpugllogging) << "GLBackend" << name << ": The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
-            break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-            qCDebug(gpugllogging) << "GLBackend" << name << ": The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_OUT_OF_MEMORY:
-            qCDebug(gpugllogging) << "GLBackend" << name << ": There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
-            break;
-        case GL_STACK_UNDERFLOW:
-            qCDebug(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to underflow.";
-            break;
-        case GL_STACK_OVERFLOW:
-            qCDebug(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to overflow.";
-            break;
-        }
-        return true;
-    }
-}
-
-bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
-    return checkGLError(name);
-#else
-    Q_UNUSED(name);
-    return false;
-#endif
-}
+using namespace gpu;
+using namespace gpu::gl;
 
 
 GLTexelFormat GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
@@ -68,7 +24,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
             texel.format = GL_RED;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -96,7 +52,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
         case gpu::VEC2: {
             texel.format = GL_RG;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -113,7 +69,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         case gpu::VEC3: {
             texel.format = GL_RGB;
 
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -135,7 +91,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
         case gpu::VEC4: {
             texel.format = GL_RGBA;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (srcFormat.getSemantic()) {
             case gpu::BGRA:
@@ -205,7 +161,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
             texel.format = GL_RED;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::COMPRESSED_R: {
@@ -340,7 +296,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
         case gpu::VEC2: {
             texel.format = GL_RG;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -357,7 +313,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         case gpu::VEC3: {
             texel.format = GL_RGB;
 
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -382,7 +338,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
         case gpu::VEC4: {
             texel.format = GL_RGBA;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -468,5 +424,3 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         return texel;
     }
 }
-
-} }

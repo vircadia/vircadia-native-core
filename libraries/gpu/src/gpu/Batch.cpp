@@ -10,8 +10,9 @@
 //
 #include "Batch.h"
 
-#include <QDebug>
 #include <string.h>
+
+#include <QDebug>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -480,4 +481,107 @@ void Batch::popProfileRange() {
 #if defined(NSIGHT_FOUND)
     ADD_COMMAND(popProfileRange);
 #endif
+}
+
+#define GL_TEXTURE0 0x84C0
+
+void Batch::_glActiveBindTexture(uint32 unit, uint32 target, uint32 texture) {
+    // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
+    setResourceTexture(unit - GL_TEXTURE0, nullptr);
+
+    ADD_COMMAND(glActiveBindTexture);
+    _params.push_back(texture);
+    _params.push_back(target);
+    _params.push_back(unit);
+}
+
+void Batch::_glUniform1i(int32 location, int32 v0) {
+    if (location < 0) {
+        return;
+    }
+    ADD_COMMAND(glUniform1i);
+    _params.push_back(v0);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform1f(int32 location, float v0) {
+    if (location < 0) {
+        return;
+    }
+    ADD_COMMAND(glUniform1f);
+    _params.push_back(v0);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform2f(int32 location, float v0, float v1) {
+    ADD_COMMAND(glUniform2f);
+
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform3f(int32 location, float v0, float v1, float v2) {
+    ADD_COMMAND(glUniform3f);
+
+    _params.push_back(v2);
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform4f(int32 location, float v0, float v1, float v2, float v3) {
+    ADD_COMMAND(glUniform4f);
+
+    _params.push_back(v3);
+    _params.push_back(v2);
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform3fv(int32 location, int count, const float* value) {
+    ADD_COMMAND(glUniform3fv);
+
+    const int VEC3_SIZE = 3 * sizeof(float);
+    _params.push_back(cacheData(count * VEC3_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform4fv(int32 location, int count, const float* value) {
+    ADD_COMMAND(glUniform4fv);
+
+    const int VEC4_SIZE = 4 * sizeof(float);
+    _params.push_back(cacheData(count * VEC4_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+}
+
+void Batch::_glUniform4iv(int32 location, int count, const int32* value) {
+    ADD_COMMAND(glUniform4iv);
+
+    const int VEC4_SIZE = 4 * sizeof(int);
+    _params.push_back(cacheData(count * VEC4_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+}
+
+void Batch::_glUniformMatrix4fv(int32 location, int count, uint8 transpose, const float* value) {
+    ADD_COMMAND(glUniformMatrix4fv);
+
+    const int MATRIX4_SIZE = 16 * sizeof(float);
+    _params.push_back(cacheData(count * MATRIX4_SIZE, value));
+    _params.push_back(transpose);
+    _params.push_back(count);
+    _params.push_back(location);
+}
+
+void Batch::_glColor4f(float red, float green, float blue, float alpha) {
+    ADD_COMMAND(glColor4f);
+
+    _params.push_back(alpha);
+    _params.push_back(blue);
+    _params.push_back(green);
+    _params.push_back(red);
 }

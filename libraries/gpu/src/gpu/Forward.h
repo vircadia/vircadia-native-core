@@ -84,6 +84,13 @@ namespace gpu {
 
     namespace gl {
         class GLBuffer;
+    }
+
+    namespace gl41 {
+        class GLBackend;
+    }
+
+    namespace gl45 {
         class GLBackend;
     }
 }
