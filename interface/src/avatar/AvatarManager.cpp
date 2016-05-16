@@ -73,7 +73,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 AvatarManager::~AvatarManager() {
@@ -154,6 +153,15 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
+}
+
+void AvatarManager::postUpdate(float deltaTime) {
+    auto hashCopy = getHashCopy();
+    AvatarHash::iterator avatarIterator = hashCopy.begin();
+    for (avatarIterator = hashCopy.begin(); avatarIterator != hashCopy.end(); avatarIterator++) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        avatar->postUpdate(deltaTime);
+    }
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {

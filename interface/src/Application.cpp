@@ -45,11 +45,13 @@
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AnimDebugDraw.h>
 #include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
+#include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
@@ -101,7 +103,7 @@
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
 
-#include "AnimDebugDraw.h"
+
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -862,10 +864,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto reticlePos = getApplicationCompositor().getReticlePosition();
-            QPoint globalPos(reticlePos.x, reticlePos.y);
-
-            // FIXME - it would be nice if this was self contained in the _compositor or Reticle class
-            auto localPos = isHMDMode() ? globalPos : _glWidget->mapFromGlobal(globalPos);
+            QPoint localPos(reticlePos.x, reticlePos.y); // both hmd and desktop already handle this in our coordinates.
             if (state) {
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mousePress);
@@ -886,15 +885,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
                 if (!offscreenUi->navigationFocused()) {
                     auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                    offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                    offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
                 }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
             } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
                 if (!offscreenUi->navigationFocused()) {
                     auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                    offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+                    offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
                 }
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
@@ -1069,6 +1068,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
+
+    // After all of the constructor is completed, then set firstRun to false.
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
+    firstRun.set(false);
 }
 
 
@@ -1086,11 +1089,6 @@ void Application::checkChangeCursor() {
 
         _cursorNeedsChanging = false;
     }
-
-
-    // After all of the constructor is completed, then set firstRun to false.
-    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
-    firstRun.set(false);
 }
 
 void Application::showCursor(const QCursor& cursor) {
@@ -1158,9 +1156,15 @@ void Application::cleanupBeforeQuit() {
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
 
+    // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
+    QThreadPool::globalInstance()->clear();
+
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
+
+    // Cleanup all overlays after the scripts, as scripts might add more
+    _overlays.cleanupAllOverlays();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -2267,7 +2271,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto reticlePosition = getApplicationCompositor().getReticlePosition();
-        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+        offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
     }
 
     _keysPressed.remove(event->key());
@@ -2736,15 +2740,7 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 }
 
 ivec2 Application::getMouse() const {
-    auto reticlePosition = getApplicationCompositor().getReticlePosition();
-
-    // in the HMD, the reticlePosition is the mouse position
-    if (isHMDMode()) {
-        return reticlePosition;
-    }
-
-    // in desktop mode, we need to map from global to widget space
-    return toGlm(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
+    return getApplicationCompositor().getReticlePosition();
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -3038,9 +3034,9 @@ void Application::updateLOD() const {
     }
 }
 
-void Application::pushPreRenderLambda(void* key, std::function<void()> func) {
-    std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
-    _preRenderLambdas[key] = func;
+void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
+    std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
+    _postUpdateLambdas[key] = func;
 }
 
 // Called during Application::update immediately before AvatarManager::updateMyAvatar, updating my data that is then sent to everyone.
@@ -3562,15 +3558,19 @@ void Application::update(float deltaTime) {
         }
     }
 
+    avatarManager->postUpdate(deltaTime);
+
     {
         PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
-        std::unique_lock<std::mutex> guard(_preRenderLambdasLock);
-        for (auto& iter : _preRenderLambdas) {
+        std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
+        for (auto& iter : _postUpdateLambdas) {
             iter.second();
         }
-        _preRenderLambdas.clear();
+        _postUpdateLambdas.clear();
     }
+
+    AnimDebugDraw::getInstance().update();
 }
 
 
@@ -3992,13 +3992,10 @@ namespace render {
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
 
-    // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
+    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
     auto myAvatar = getMyAvatar();
-    myAvatar->preRender(renderArgs);
-
-    // Update animation debug draw renderer
-    AnimDebugDraw::getInstance().update();
+    myAvatar->preDisplaySide(renderArgs);
 
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);

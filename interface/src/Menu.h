@@ -147,9 +147,8 @@ namespace MenuOption {
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
-    const QString RenderFocusIndicator = "Show Eye Focus";
-    const QString RenderLookAtTargets = "Show Look-at Targets";
-    const QString RenderLookAtVectors = "Show Look-at Vectors";
+    const QString RenderMyLookAtVectors = "Show My Eye Vectors";
+    const QString RenderOtherLookAtVectors = "Show Other Eye Vectors";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
     const QString RenderMaxTexture64MB = "64 MB";
@@ -174,7 +173,6 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
-    const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";

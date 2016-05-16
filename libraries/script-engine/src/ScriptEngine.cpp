@@ -62,8 +62,6 @@
 
 #include "MIDIEvent.h"
 
-std::atomic<bool> ScriptEngine::_stoppingAllScripts { false };
-
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
@@ -756,7 +754,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
 
 
 QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fileName, int lineNumber) {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return QScriptValue(); // bail early
     }
 
@@ -792,7 +790,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         return; // bail early - avoid setting state in init(), as evaluate() will bail too
     }
 
@@ -1025,7 +1023,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 }
 
 QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         qCDebug(scriptengine) << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
@@ -1034,7 +1032,7 @@ QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS)
 }
 
 QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         qCDebug(scriptengine) << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
@@ -1086,7 +1084,7 @@ void ScriptEngine::print(const QString& message) {
 // If no callback is specified, the included files will be loaded synchronously and will block execution until
 // all of the files have finished loading.
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         qCDebug(scriptengine) << "Script.include() while shutting down is ignored..."
         << "includeFiles:" << includeFiles << "parent script:" << getFilename();
         return; // bail early
@@ -1184,7 +1182,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 }
 
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         qCDebug(scriptengine) << "Script.include() while shutting down is ignored... "
             << "includeFile:" << includeFile << "parent script:" << getFilename();
         return; // bail early
@@ -1199,7 +1197,7 @@ void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
 // as a stand-alone script. To accomplish this, the ScriptEngine class just emits a signal which
 // the Application or other context will connect to in order to know to actually load the script
 void ScriptEngine::load(const QString& loadFile) {
-    if (_stoppingAllScripts) {
+    if (DependencyManager::get<ScriptEngines>()->isStopped()) {
         qCDebug(scriptengine) << "Script.load() while shutting down is ignored... "
             << "loadFile:" << loadFile << "parent script:" << getFilename();
         return; // bail early

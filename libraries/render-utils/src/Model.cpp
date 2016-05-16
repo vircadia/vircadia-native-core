@@ -132,7 +132,7 @@ void Model::updateRenderItems() {
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
     std::weak_ptr<Model> weakSelf = shared_from_this();
-    AbstractViewStateInterface::instance()->pushPreRenderLambda(key, [weakSelf]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();

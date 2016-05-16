@@ -162,6 +162,19 @@ void RenderableModelEntityItem::remapTextures() {
     }
 }
 
+void RenderableModelEntityItem::doInitialModelSimulation() {
+    _model->setScaleToFit(true, getDimensions());
+    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+    _model->setRotation(getRotation());
+    _model->setTranslation(getPosition());
+    {
+        PerformanceTimer perfTimer("_model->simulate");
+        _model->simulate(0.0f);
+    }
+    _needsInitialSimulation = false;
+}
+
+
 // TODO: we need a solution for changes to the postion/rotation/etc of a model...
 // this current code path only addresses that in this setup case... not the changing/moving case
 bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
@@ -172,22 +185,12 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         getModel(renderer);
     }
     if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
-        _model->setScaleToFit(true, getDimensions());
-        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
-    
         // make sure to simulate so everything gets set up correctly for rendering
-        {
-            PerformanceTimer perfTimer("_model->simulate");
-            _model->simulate(0.0f);
-        }
-        _needsInitialSimulation = false;
-
+        doInitialModelSimulation();
         _model->renderSetup(renderArgs);
     }
     bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
-    return ready; 
+    return ready;
 }
 
 class RenderableModelEntityItemMeta {
@@ -348,18 +351,7 @@ void RenderableModelEntityItem::updateModelBounds() {
          _model->getRotation() != getRotation() ||
          _model->getRegistrationPoint() != getRegistrationPoint())
         && _model->isActive() && _dimensionsInitialized) {
-        _model->setScaleToFit(true, dimensions);
-        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
-
-        // make sure to simulate so everything gets set up correctly for rendering
-        {
-            PerformanceTimer perfTimer("_model->simulate");
-            _model->simulate(0.0f);
-        }
-
-        _needsInitialSimulation = false;
+        doInitialModelSimulation();
         _needsJointSimulation = false;
     }
 }
@@ -592,8 +584,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
             if (_needsInitialSimulation) {
                 // the _model's offset will be wrong until _needsInitialSimulation is false
                 PerformanceTimer perfTimer("_model->simulate");
-                _model->simulate(0.0f);
-                _needsInitialSimulation = false;
+                doInitialModelSimulation();
             }
 
             return true;
@@ -807,6 +798,29 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
+
+        void* key = (void*)this;
+        std::weak_ptr<RenderableModelEntityItem> weakSelf =
+            std::static_pointer_cast<RenderableModelEntityItem>(getThisPointer());
+
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
+            auto self = weakSelf.lock();
+            if (!self) {
+                return;
+            }
+
+            render::ItemID myMetaItem = self->getMetaRenderItem();
+
+            if (myMetaItem == render::Item::INVALID_ITEM_ID) {
+                return;
+            }
+
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+
+            pendingChanges.updateItem(myMetaItem);
+            scene->enqueuePendingChanges(pendingChanges);
+        });
     }
 }
 
