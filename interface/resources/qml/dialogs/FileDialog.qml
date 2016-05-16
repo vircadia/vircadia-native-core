@@ -72,6 +72,12 @@ ModalWindow {
             root.dir = helper.pathToUrl(drivesSelector.currentText);
         })
 
+        // HACK: The following two lines force the model to initialize properly such that:
+        // - Selecting a different drive at the initial screen updates the path displayed.
+        // - The go-up button works properly from the initial screen.
+        root.dir = helper.pathToUrl(drivesSelector.currentText);
+        root.dir = helper.pathToUrl(currentDirectory.lastValidFolder);
+
         iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
     }
 
