@@ -78,13 +78,8 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 
-void EntityTreeRenderer::resetEntitiesScriptEngine() {
-    // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
-    auto oldEngine = _entitiesScriptEngine;
-
-    auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
-    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, [](ScriptEngine* engine){
-        class WaitRunnable : public QRunnable {
+void entitiesScriptEngineDeleter(ScriptEngine* engine) {
+    class WaitRunnable : public QRunnable {
         public:
             WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
             virtual void run() override {
@@ -94,10 +89,18 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
 
         private:
             ScriptEngine* _engine;
-        };
-        // Wait for the scripting thread from the thread pool to avoid hanging the main thread
-        QThreadPool::globalInstance()->start(new WaitRunnable(engine));
-    });
+    };
+
+    // Wait for the scripting thread from the thread pool to avoid hanging the main thread
+    QThreadPool::globalInstance()->start(new WaitRunnable(engine));
+}
+
+void EntityTreeRenderer::resetEntitiesScriptEngine() {
+    // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
+    auto oldEngine = _entitiesScriptEngine;
+
+    auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
+    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
 
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
     _entitiesScriptEngine->runInThread();
