@@ -126,7 +126,7 @@ protected:
     }
 
 private:
-    void setupEntitiesScriptEngine();
+    void resetEntitiesScriptEngine();
 
     void addEntityToScene(EntityItemPointer entity);
     bool findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar);
