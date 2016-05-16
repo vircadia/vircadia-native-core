@@ -73,7 +73,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 AvatarManager::~AvatarManager() {
