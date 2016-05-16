@@ -292,8 +292,6 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString PLACE_ID_KEY = "id";
                 _rootPlaceID = rootMap[PLACE_ID_KEY].toUuid();
 
-                bool addressChanged = false;
-
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
                 QString placeName = rootMap[PLACE_NAME_KEY].toString();
