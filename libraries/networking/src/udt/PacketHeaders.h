@@ -175,7 +175,7 @@ const PacketVersion VERSION_LIGHT_HAS_FALLOFF_RADIUS = 57;
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,
-    AbsoluteFortyEightBitRotations
+    AbsoluteSixByteRotations
 };
 
 #endif // hifi_PacketHeaders_h

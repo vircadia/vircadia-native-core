@@ -45,6 +45,9 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
 }
 
 AvatarMixer::~AvatarMixer() {
@@ -509,6 +512,19 @@ void AvatarMixer::domainSettingsRequestComplete() {
     _broadcastThread.start();
 }
 
+void AvatarMixer::handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID) {
+    // if this client is using packet versions we don't expect.
+    if ((type == PacketTypeEnum::Value::AvatarIdentity || type == PacketTypeEnum::Value::AvatarData) && !senderUUID.isNull()) {
+        // Echo an empty AvatarIdentity packet back to that client.
+        // This should trigger a version mismatch dialog on their side.
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto node = nodeList->nodeWithUUID(senderUUID);
+        if (node) {
+            auto poisonPacket = NLPacket::create(PacketType::AvatarIdentity, 0);
+            nodeList->sendPacket(std::move(poisonPacket), *node);
+        }
+    }
+}
 
 void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";
