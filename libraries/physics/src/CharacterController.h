@@ -31,7 +31,7 @@ class btRigidBody;
 class btCollisionWorld;
 class btDynamicsWorld;
 
-#define DEBUG_STATE_CHANGE
+//#define DEBUG_STATE_CHANGE
 
 const btScalar MAX_CHARACTER_MOTOR_TIMESCALE = 60.0f; // one minute
 const btScalar MIN_CHARACTER_MOTOR_TIMESCALE = 0.05f;
