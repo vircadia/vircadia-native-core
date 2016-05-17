@@ -37,6 +37,8 @@
 
 #include "AvatarLogging.h"
 
+#define WANT_DEBUG
+
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
@@ -120,8 +122,6 @@ void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     // store relative to position/orientation
     _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
 }
-
-#define WANT_DEBUG
 
 QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     // TODO: DRY this up to a shared method
@@ -331,7 +331,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     }
 
     #ifdef WANT_DEBUG
-    //if (sendAll) {
+    if (sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                  << "largest:" << maxTranslationDimension
@@ -341,7 +341,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
                  << (beforeTranslations - beforeRotations) << "+"
                  << (destinationBuffer - beforeTranslations) << "="
                  << (destinationBuffer - startPosition);
-    //}
+    }
     #endif
 
     return avatarDataByteArray.left(destinationBuffer - startPosition);
@@ -372,6 +372,12 @@ void AvatarData::doneEncoding(bool cullSmallChanges) {
 }
 
 bool AvatarData::shouldLogError(const quint64& now) {
+#ifdef WANT_DEBUG
+    if (now > 0) {
+        return true;
+    }
+#endif
+
     if (now > _errorLogExpiry) {
         _errorLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
         return true;
@@ -631,9 +637,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     } // 1 + bytesOfValidity bytes
 
-    // each joint rotation component is stored in two bytes (sizeof(uint16_t))
-    int COMPONENTS_PER_QUATERNION = 4;
-    minPossibleSize += numValidJointRotations * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
+    // each joint rotation is stored in 6 bytes.
+    const size_t COMPRESSED_QUATERNION_SIZE = 6;
+    minPossibleSize += numValidJointRotations * COMPRESSED_QUATERNION_SIZE;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
             qCDebug(avatars) << "Malformed AvatarData packet after JointData rotation validity;"
