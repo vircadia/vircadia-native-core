@@ -33,6 +33,7 @@
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
+#include <plugins/DisplayPlugin.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <SimpleMovingAverage.h>
@@ -93,6 +94,12 @@ class Application : public QApplication, public AbstractViewStateInterface, publ
     friend class PluginContainerProxy;
 
 public:
+    enum Event {
+        Present = DisplayPlugin::Present,
+        Paint = Present + 1,
+        Lambda = Paint + 1
+    };
+
     // FIXME? Empty methods, do we still need them?
     static void initPlugins();
     static void shutdownPlugins();
@@ -281,7 +288,6 @@ public slots:
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
-    void idle(uint64_t now);
     void aboutToQuit();
 
     void resettingDomain();
@@ -320,6 +326,7 @@ private:
 
     void cleanupBeforeQuit();
 
+    void idle();
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -497,7 +504,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
 
