@@ -489,7 +489,7 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     velocities.reserve(_motors.size());
     std::vector<btScalar> weights;
     weights.reserve(_motors.size());
-    for (size_t i = 0; i < _motors.size(); ++i) {
+    for (int i = 0; i < (int)_motors.size(); ++i) {
         applyMotor(i, dt, velocity, velocities, weights);
     }
     assert(velocities.size() == weights.size());
