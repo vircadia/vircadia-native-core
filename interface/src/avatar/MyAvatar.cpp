@@ -60,7 +60,7 @@ const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.6f; // human walking speed
-const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
+const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
 const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
 
@@ -70,7 +70,7 @@ const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
 float MAX_AVATAR_SPEED = 30.0f;
-float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
+float MAX_ACTION_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
@@ -92,7 +92,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _yawSpeed(YAW_SPEED_DEFAULT),
     _pitchSpeed(PITCH_SPEED_DEFAULT),
     _thrust(0.0f),
-    _keyboardMotorVelocity(0.0f),
+    _actionMotorVelocity(0.0f),
     _scriptedMotorVelocity(0.0f),
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
@@ -1168,7 +1168,7 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
-    if (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED) {
+    if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover) {
             motorRotation = getHead()->getCameraOrientation();
         } else {
@@ -1178,11 +1178,11 @@ void MyAvatar::updateMotors() {
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
         if (_isPushing || _isBraking || !_isBeingPushed) {
-            _characterController.addMotor(_keyboardMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+            _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
         } else {
-            // _isBeingPushed must be true --> disable keyboard motor by giving it a long timescale,
+            // _isBeingPushed must be true --> disable action motor by giving it a long timescale,
             // otherwise it's attempt to "stand in in place" could defeat scripted motor/thrusts
-            _characterController.addMotor(_keyboardMotorVelocity, motorRotation, INVALID_MOTOR_TIMESCALE);
+            _characterController.addMotor(_actionMotorVelocity, motorRotation, INVALID_MOTOR_TIMESCALE);
         }
     }
     if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
@@ -1542,22 +1542,22 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
-void MyAvatar::updateKeyboardMotor(float deltaTime) {
+void MyAvatar::updateActionMotor(float deltaTime) {
     bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
     bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
         && _scriptedMotorTimescale < MAX_CHARACTER_MOTOR_TIMESCALE;
     _isBeingPushed = thrustIsPushing || scriptedMotorIsPushing;
     if (_isPushing || _isBeingPushed) {
-        // we don't want the keyboard to brake if a script is pushing the avatar around
+        // we don't want the motor to brake if a script is pushing the avatar around
         // (we assume the avatar is driving itself via script)
         _isBraking = false;
     } else {
-        float speed = glm::length(_keyboardMotorVelocity);
-        const float MIN_KEYBOARD_BRAKE_SPEED = 0.1f;
-        _isBraking = _wasPushing || (_isBraking && speed > MIN_KEYBOARD_BRAKE_SPEED);
+        float speed = glm::length(_actionMotorVelocity);
+        const float MIN_ACTION_BRAKE_SPEED = 0.1f;
+        _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
     }
 
-    // compute keyboard input
+    // compute action input
     glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
     glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
 
@@ -1582,8 +1582,8 @@ void MyAvatar::updateKeyboardMotor(float deltaTime) {
 
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
-        float motorSpeed = glm::length(_keyboardMotorVelocity);
-        float finalMaxMotorSpeed = getUniformScale() * MAX_KEYBOARD_MOTOR_SPEED;
+        float motorSpeed = glm::length(_actionMotorVelocity);
+        float finalMaxMotorSpeed = getUniformScale() * MAX_ACTION_MOTOR_SPEED;
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
@@ -1591,17 +1591,17 @@ void MyAvatar::updateKeyboardMotor(float deltaTime) {
 
         if (_isPushing) {
             if (motorSpeed < maxBoostSpeed) {
-                // an active keyboard motor should never be slower than this
+                // an active action motor should never be slower than this
                 float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
                 motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
             } else if (motorSpeed > finalMaxMotorSpeed) {
                 motorSpeed = finalMaxMotorSpeed;
             }
         }
-        _keyboardMotorVelocity = motorSpeed * direction;
+        _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = MAX_WALKING_SPEED * direction;
     }
 
     float boomChange = _driveKeys[ZOOM];
@@ -1610,8 +1610,8 @@ void MyAvatar::updateKeyboardMotor(float deltaTime) {
 }
 
 void MyAvatar::updatePosition(float deltaTime) {
-    if (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED) {
-        updateKeyboardMotor(deltaTime);
+    if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
+        updateActionMotor(deltaTime);
     }
 
     vec3 velocity = getVelocity();
@@ -1779,10 +1779,10 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     }
 
     Menu* menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
-        _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
+    if (menu->isOptionChecked(MenuOption::ActionMotorControl)) {
+        _motionBehaviors |= AVATAR_MOTION_ACTION_MOTOR_ENABLED;
     } else {
-        _motionBehaviors &= ~AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
+        _motionBehaviors &= ~AVATAR_MOTION_ACTION_MOTOR_ENABLED;
     }
     if (menu->isOptionChecked(MenuOption::ScriptedMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
