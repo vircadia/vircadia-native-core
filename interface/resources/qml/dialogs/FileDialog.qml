@@ -144,7 +144,16 @@ ModalWindow {
                 leftMargin: hifi.dimensions.contentSpacing.x
                 right: parent.right
             }
-            onLastValidFolderChanged: text = lastValidFolder;
+
+            function capitalizeDrive(path) {
+                // Consistently capitalize drive letter for Windows.
+                if (/[a-zA-Z]:/.test(path)) {
+                    return path.charAt(0).toUpperCase() + path.slice(1);
+                }
+                return path;
+            }
+
+            onLastValidFolderChanged: text = capitalizeDrive(lastValidFolder);
 
             // FIXME add support auto-completion
             onAccepted: {
