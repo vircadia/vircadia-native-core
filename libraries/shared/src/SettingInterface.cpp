@@ -97,7 +97,7 @@ namespace Setting {
     }
 
     void Interface::deinit() {
-        if (privateInstance) {
+        if (_isInitialized && privateInstance) {
             // Save value to disk
             save();
 
