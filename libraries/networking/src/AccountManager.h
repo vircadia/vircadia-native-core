@@ -53,11 +53,12 @@ Q_DECLARE_METATYPE(AccountManagerAuth::Type);
 const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 
 using UserAgentGetter = std::function<QString()>;
+auto DEFAULT_USER_AGENT_GETTER = []() -> QString { return HIGH_FIDELITY_USER_AGENT; };
 
 class AccountManager : public QObject, public Dependency {
     Q_OBJECT
 public:
-    AccountManager(UserAgentGetter = []() -> QString { return HIGH_FIDELITY_USER_AGENT; });
+    AccountManager(UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
 
     Q_INVOKABLE void sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
