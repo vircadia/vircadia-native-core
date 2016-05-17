@@ -218,6 +218,7 @@ public:
     MyCharacterController* getCharacterController() { return &_characterController; }
     const MyCharacterController* getCharacterController() const { return &_characterController; }
 
+    void updateMotors();
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
@@ -350,6 +351,7 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
+    bool _isBeingPushed;
     bool _isBraking;
 
     float _boomLength;
@@ -359,7 +361,6 @@ private:
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
     glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)
-    float _keyboardMotorTimescale; // timescale for avatar to achieve its target velocity
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (script)
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
@@ -384,8 +385,7 @@ private:
 
     // private methods
     void updateOrientation(float deltaTime);
-    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
-    glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
+    void updateKeyboardMotor(float deltaTime);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
