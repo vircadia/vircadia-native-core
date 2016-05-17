@@ -515,13 +515,13 @@ void AvatarMixer::domainSettingsRequestComplete() {
 void AvatarMixer::handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID) {
     // if this client is using packet versions we don't expect.
     if ((type == PacketTypeEnum::Value::AvatarIdentity || type == PacketTypeEnum::Value::AvatarData) && !senderUUID.isNull()) {
-        // Echo an empty AvatarIdentity packet back to that client.
+        // Echo an empty AvatarData packet back to that client.
         // This should trigger a version mismatch dialog on their side.
         auto nodeList = DependencyManager::get<NodeList>();
         auto node = nodeList->nodeWithUUID(senderUUID);
         if (node) {
-            auto poisonPacket = NLPacket::create(PacketType::AvatarIdentity, 0);
-            nodeList->sendPacket(std::move(poisonPacket), *node);
+            auto emptyPacket = NLPacket::create(PacketType::AvatarData, 0);
+            nodeList->sendPacket(std::move(emptyPacket), *node);
         }
     }
 }
