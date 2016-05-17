@@ -34,6 +34,7 @@ void main(void) {
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
