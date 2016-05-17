@@ -64,7 +64,14 @@ JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(
 }
 
 void JurisdictionMap::copyContents(const OctalCodePtr& rootCodeIn, const OctalCodePtrList& endNodesIn) {
-    init(rootCodeIn, endNodesIn);
+    OctalCodePtr rootCode = rootCodeIn;
+    if (!rootCode) {
+        rootCode = createOctalCodePtr(1);
+        *rootCode = 0;
+    }
+
+    OctalCodePtrList emptyEndNodes;
+    init(rootCode, endNodesIn);
 }
 
 void JurisdictionMap::copyContents(const JurisdictionMap& other) {
