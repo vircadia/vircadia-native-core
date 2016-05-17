@@ -1174,7 +1174,6 @@ void MyAvatar::updateMotors() {
         } else {
             motorRotation = getOrientation();
         }
-        //const float DEFAULT_MOTOR_TIMESCALE = 0.7f;
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
         if (_isPushing || _isBraking || !_isBeingPushed) {
