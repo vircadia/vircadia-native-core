@@ -13,8 +13,6 @@
 
 #include "AccountScriptingInterface.h"
 
-#include <DependencyManager.h>
-
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
     return &sharedInstance;
