@@ -53,7 +53,6 @@ private slots:
     
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    void processAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:

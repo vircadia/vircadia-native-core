@@ -67,10 +67,7 @@ public:
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
     Q_OBJECT
 public:
-    ScriptEngine(const QString& scriptContents = NO_SCRIPT,
-                 const QString& fileNameString = QString(""),
-                 bool wantSignals = true);
-
+    ScriptEngine(const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString(""));
     ~ScriptEngine();
 
     /// run the script in a dedicated thread. This will have the side effect of evalulating
@@ -82,6 +79,15 @@ public:
 
     /// run the script in the callers thread, exit when stop() is called.
     void run();
+
+    QString getFilename() const;
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
+    Q_INVOKABLE void stop();
+
+    // Stop any evaluating scripts and wait for the scripting thread to finish.
+    void waitTillDoneRunning();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
@@ -138,10 +144,6 @@ public:
 
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
-    Q_INVOKABLE void stop();
-
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
@@ -191,7 +193,6 @@ protected:
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
-    bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };
@@ -199,8 +200,7 @@ protected:
     qint64 _lastUpdate;
 
     void init();
-    QString getFilename() const;
-    void waitTillDoneRunning();
+
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();
@@ -232,9 +232,6 @@ protected:
     QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
-
-    friend class ScriptEngines;
-    static std::atomic<bool> _stoppingAllScripts;
 };
 
 #endif // hifi_ScriptEngine_h
