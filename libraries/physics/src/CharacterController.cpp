@@ -424,7 +424,6 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
     btVector3 axis = motor.rotation.getAxis();
     btScalar angle = motor.rotation.getAngle();
     btVector3 velocity = worldVelocity.rotate(axis, -angle);
-    btVector3 oldVelocity = velocity;
 
     if (_state == State::Hover || motor.hTimescale == motor.vTimescale) {
         // modify velocity
