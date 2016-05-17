@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <chrono>
+#include <thread>
+
 #include <NodeList.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
@@ -101,13 +104,16 @@ bool OctreeSendThread::process() {
         int elapsed = (usecTimestampNow() - start);
         int usecToSleep =  OCTREE_SEND_INTERVAL_USECS - elapsed;
 
-        if (usecToSleep > 0) {
-            PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
-            usleep(usecToSleep);
-        } else {
+        if (usecToSleep <= 0) {
             const int MIN_USEC_TO_SLEEP = 1;
-            usleep(MIN_USEC_TO_SLEEP);
+            usecToSleep = MIN_USEC_TO_SLEEP;
         }
+
+        {
+            PerformanceWarning warn(false,"OctreeSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
+            std::this_thread::sleep_for(std::chrono::microseconds(usecToSleep));
+        }
+
     }
 
     return isStillRunning();  // keep running till they terminate us
@@ -332,8 +338,6 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
 
     _packetData.changeSettings(true, targetSize); // FIXME - eventually support only compressed packets
 
-    const ViewFrustum* lastViewFrustum = viewFrustumChanged ? &nodeData->getLastKnownViewFrustum() : NULL;
-
     // If the current view frustum has changed OR we have nothing to send, then search against
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->elementBag.isEmpty()) {
@@ -411,7 +415,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     quint64 lockWaitEnd = usecTimestampNow();
                     lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
                     quint64 encodeStart = usecTimestampNow();
-                    
+
                     OctreeElementPointer subTree = nodeData->elementBag.extract();
                     if (!subTree) {
                         return;
@@ -420,18 +424,22 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     float octreeSizeScale = nodeData->getOctreeSizeScale();
                     int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
 
-                    int boundaryLevelAdjust = boundaryLevelAdjustClient + 
+                    int boundaryLevelAdjust = boundaryLevelAdjustClient +
                                               (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
-                    EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), 
-                                                 WANT_EXISTS_BITS, DONT_CHOP, viewFrustumChanged, lastViewFrustum,
+                    EncodeBitstreamParams params(INT_MAX, WANT_EXISTS_BITS, DONT_CHOP,
+                                                 viewFrustumChanged,
                                                  boundaryLevelAdjust, octreeSizeScale,
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData);
+                    nodeData->copyCurrentViewFrustum(params.viewFrustum);
+                    if (viewFrustumChanged) {
+                        nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);
+                    }
 
                     // Our trackSend() function is implemented by the server subclass, and will be called back
-                    // during the encodeTreeBitstream() as new entities/data elements are sent 
+                    // during the encodeTreeBitstream() as new entities/data elements are sent
                     params.trackSend = [this, node](const QUuid& dataID, quint64 dataEdited) {
                         _myServer->trackSend(dataID, dataEdited, node->getUUID());
                     };

@@ -86,18 +86,17 @@ protected:
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
+    bool isStopped() const { return _isStopped; }
 
-
-    Setting::Handle<bool> _firstRun { "firstRun", true };
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
-    std::atomic<bool> _stoppingAllScripts { false };
     std::list<ScriptInitializer> _scriptInitializers;
     mutable Setting::Handle<QString> _scriptsLocationHandle;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
+    std::atomic<bool> _isStopped { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

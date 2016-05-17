@@ -31,10 +31,12 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) :
 
     _releaseNotes = "";
     for (int i = latestVersion; i > currentVersion; i--) {
-        QString releaseNotes = applicationUpdater.data()->getBuildData()[i]["releaseNotes"];
-        releaseNotes.remove("<br />");
-        releaseNotes.remove(QRegExp("^\n+"));
-        _releaseNotes += "\n" + QString().sprintf("%d", i) + "\n" + releaseNotes + "\n";
+        if (applicationUpdater.data()->getBuildData().contains(i)) {
+            QString releaseNotes = applicationUpdater.data()->getBuildData()[i]["releaseNotes"];
+            releaseNotes.remove("<br />");
+            releaseNotes.remove(QRegExp("^\n+"));
+            _releaseNotes += "\n" + QString().sprintf("%d", i) + "\n" + releaseNotes + "\n";
+        }
     }
 }
 

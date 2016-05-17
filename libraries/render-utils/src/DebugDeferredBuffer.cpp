@@ -90,14 +90,21 @@ static const std::string DEFAULT_OCCLUSION_SHADER{
 static const std::string DEFAULT_EMISSIVE_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode != LIGHT_MAPPED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    " }"
+};
+
+static const std::string DEFAULT_UNLIT_SHADER{
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return (frag.mode == FRAG_MODE_UNLIT ? vec4(pow(frag.diffuse, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
 static const std::string DEFAULT_LIGHTMAP_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == LIGHT_MAPPED ? vec4(frag.emissive, 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 
@@ -184,6 +191,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_DEPTH_SHADER;
         case EmissiveMode:
             return DEFAULT_EMISSIVE_SHADER;
+        case UnlitMode:
+            return DEFAULT_UNLIT_SHADER;
         case OcclusionMode:
             return DEFAULT_OCCLUSION_SHADER;
         case LightmapMode:
@@ -275,7 +284,7 @@ void DebugDeferredBuffer::configure(const Config& config) {
 
 void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -283,20 +292,20 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
         const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-        
+
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
 
         // TODO REMOVE: Temporary until UI
         auto first = _customPipelines.begin()->first;
-        
+
         batch.setPipeline(getPipeline(_mode, first));
-        
+
         batch.setResourceTexture(Albedo, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());

@@ -23,7 +23,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AudioClient.h>
-#include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <FSTReader.h>
 #include <GeometryUtil.h>
@@ -32,6 +31,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <SoundCache.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -97,7 +97,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _collisionSoundURL(""),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -546,7 +545,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
     } else {
-        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() / _realWorldFieldOfView.get();
+        ViewFrustum viewFrustum;
+        qApp->copyViewFrustum(viewFrustum);
+        float magnifyFieldOfView = viewFrustum.getFieldOfView() / _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
@@ -674,7 +675,11 @@ void MyAvatar::saveData() {
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
 
-    settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
+    settings.setValue("fullAvatarURL",
+                      _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                      "" :
+                      _fullAvatarURLFromPreferences.toString());
+
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
     settings.setValue("animGraphURL", _animGraphUrl);
 
@@ -929,15 +934,17 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
                 glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
 
+                 ViewFrustum viewFrustum;
+                 qApp->copyViewFrustum(viewFrustum);
+
                 // scale gazeOffset by IPD, if wearing an HMD.
                 if (qApp->isHMDMode()) {
                     glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
                     glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                     glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                     glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
-                    auto humanSystem = qApp->getViewFrustum();
-                    glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
-                    glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
+                    glm::vec3 humanLeftEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * leftEyeHeadLocal);
+                    glm::vec3 humanRightEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * rightEyeHeadLocal);
 
                     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
                     float ipdScale = hmdInterface->getIPDScale();
@@ -951,7 +958,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 }
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
+                glm::vec3 corrected = viewFrustum.getPosition() + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1232,10 +1239,18 @@ void MyAvatar::clearScriptableSettings() {
 }
 
 void MyAvatar::setCollisionSoundURL(const QString& url) {
-    _collisionSoundURL = url;
-    if (!url.isEmpty() && (url != _collisionSoundURL)) {
-        emit newCollisionSoundURL(QUrl(url));
+    if (url != _collisionSoundURL) {
+        _collisionSoundURL = url;
+
+        emit newCollisionSoundURL(QUrl(_collisionSoundURL));
     }
+}
+
+SharedSoundPointer MyAvatar::getCollisionSound() {
+    if (!_collisionSound) {
+        _collisionSound = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
+    }
+    return _collisionSound;
 }
 
 void MyAvatar::attach(const QString& modelURL, const QString& jointName,
@@ -1257,40 +1272,6 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
         }
     }
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
-}
-
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
-
-    if (!_skeletonModel->isRenderable()) {
-        return; // wait until all models are loaded
-    }
-
-    fixupModelsInScene();
-
-    //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum);
-    }
-
-    // This is drawing the lookat vectors from our avatar to wherever we're looking.
-    if (qApp->isHMDMode()) {
-        glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-
-        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
-        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
-        leftEyePose = leftEyePose * headPose;
-        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
-        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
-        rightEyePose = rightEyePose * headPose;
-        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
-        glm::vec3 headPosition = extractTranslation(headPose);
-
-        getHead()->renderLookAts(renderArgs,
-            cameraPosition + getOrientation() * (leftEyePosition - headPosition),
-            cameraPosition + getOrientation() * (rightEyePosition - headPosition));
-    } else {
-        getHead()->renderLookAts(renderArgs);
-    }
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
@@ -1349,11 +1330,11 @@ void MyAvatar::destroyAnimGraph() {
     _rig->destroyAnimGraph();
 }
 
-void MyAvatar::preRender(RenderArgs* renderArgs) {
+void MyAvatar::postUpdate(float deltaTime) {
+
+    Avatar::postUpdate(deltaTime);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    const bool shouldDrawHead = shouldRenderHead(renderArgs);
-
     if (_skeletonModel->initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
@@ -1403,7 +1384,13 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
+}
 
+
+void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
+
+    // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setCauterizeBones(!shouldDrawHead);
     }

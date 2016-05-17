@@ -58,7 +58,7 @@ controller::UserInputMapper::UserInputMapper() {
 
 namespace controller {
 
-    
+
 UserInputMapper::~UserInputMapper() {
 }
 
@@ -80,6 +80,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     recordDeviceOfType(device->getName());
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
+
     for (const auto& inputMapping : device->getAvailableInputs()) {
         const auto& input = inputMapping.first;
         // Ignore aliases
@@ -102,6 +103,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
 
     _registeredDevices[deviceID] = device;
+
     auto mapping = loadMappings(device->getDefaultMappingConfigs());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
@@ -111,15 +113,21 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     emit hardwareChanged();
 }
 
-// FIXME remove the associated device mappings
 void UserInputMapper::removeDevice(int deviceID) {
+
     Locker locker(_lock);
     auto proxyEntry = _registeredDevices.find(deviceID);
+
     if (_registeredDevices.end() == proxyEntry) {
         qCWarning(controllers) << "Attempted to remove unknown device " << deviceID;
         return;
     }
-    auto proxy = proxyEntry->second;
+
+    auto device = proxyEntry->second;
+    qCDebug(controllers) << "Unregistering input device <" << device->getName() << "> deviceID = " << deviceID;
+
+    unloadMappings(device->getDefaultMappingConfigs());
+
     auto mappingsEntry = _mappingsByDevice.find(deviceID);
     if (_mappingsByDevice.end() != mappingsEntry) {
         disableMapping(mappingsEntry->second);
@@ -244,7 +252,7 @@ void UserInputMapper::update(float deltaTime) {
     for (auto& channel : _actionStates) {
         channel = 0.0f;
     }
-    
+
     for (auto& channel : _poseStates) {
         channel = Pose();
     }
@@ -705,11 +713,10 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile, bool enab
         return Mapping::Pointer();
     }
     // Each mapping only needs to be loaded once
-    static QSet<QString> loaded;
-    if (loaded.contains(jsonFile)) {
+    if (_loadedRouteJsonFiles.contains(jsonFile)) {
         return Mapping::Pointer();
     }
-    loaded.insert(jsonFile);
+    _loadedRouteJsonFiles.insert(jsonFile);
     QString json;
     {
         QFile file(jsonFile);
@@ -741,6 +748,18 @@ MappingPointer UserInputMapper::loadMappings(const QStringList& jsonFiles) {
     return result;
 }
 
+void UserInputMapper::unloadMappings(const QStringList& jsonFiles) {
+    for (const QString& jsonFile : jsonFiles) {
+        unloadMapping(jsonFile);
+    }
+}
+
+void UserInputMapper::unloadMapping(const QString& jsonFile) {
+    auto entry = _loadedRouteJsonFiles.find(jsonFile);
+    if (entry != _loadedRouteJsonFiles.end()) {
+        _loadedRouteJsonFiles.erase(entry);
+    }
+}
 
 static const QString JSON_NAME = QStringLiteral("name");
 static const QString JSON_CHANNELS = QStringLiteral("channels");

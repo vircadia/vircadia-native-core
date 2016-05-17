@@ -37,7 +37,6 @@ private:
     bool _foundOld;
     bool _foundNew;
     bool _removeOld;
-    bool _dontMove;
     quint64 _changeTime;
 
     AACube _oldEntityCube;

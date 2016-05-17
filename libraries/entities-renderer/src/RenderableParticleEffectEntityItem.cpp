@@ -267,7 +267,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         if (numBytes == 0) {
             return;
         }
-        memcpy(particleBuffer->editData(), particlePrimitives->data(), numBytes);
+        particleBuffer->setData(numBytes, (const gpu::Byte*)particlePrimitives->data());
 
         // Update transform and bounds
         payload.setModelTransform(transform);

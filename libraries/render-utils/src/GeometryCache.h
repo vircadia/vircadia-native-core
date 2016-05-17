@@ -153,10 +153,10 @@ public:
     
     // Bind the pipeline and get the state to render static geometry
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
-                                          bool emissive = false, bool depthBias = false);
+                                          bool unlit = false, bool depthBias = false);
     // Get the pipeline to render static geometry
     gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
-                                          bool emissive = false, bool depthBias = false);
+                                          bool unlit = false, bool depthBias = false);
     render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
     
     // Static (instanced) geometry
@@ -393,7 +393,7 @@ private:
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
     
     gpu::ShaderPointer _simpleShader;
-    gpu::ShaderPointer _emissiveShader;
+    gpu::ShaderPointer _unlitShader;
     static render::ShapePipelinePointer _simplePipeline;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 };

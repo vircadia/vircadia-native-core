@@ -290,7 +290,6 @@ void Agent::executeScript() {
     packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
 
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
@@ -341,15 +340,12 @@ void Agent::setIsAvatar(bool isAvatar) {
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
-        _avatarBillboardTimer = new QTimer(this);
 
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
-        connect(_avatarBillboardTimer, &QTimer::timeout, this, &Agent::sendAvatarBillboardPacket);
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
-        _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
     }
 
     if (!_isAvatar) {
@@ -358,12 +354,6 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
-        }
-
-        if (_avatarBillboardTimer) {
-            _avatarBillboardTimer->stop();
-            delete _avatarBillboardTimer;
-            _avatarBillboardTimer = nullptr;
         }
     }
 }
@@ -375,19 +365,10 @@ void Agent::sendAvatarIdentityPacket() {
     }
 }
 
-void Agent::sendAvatarBillboardPacket() {
-    if (_isAvatar) {
-        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        scriptedAvatar->sendBillboardPacket();
-    }
-}
-
-
 void Agent::processAgentAvatarAndAudio(float deltaTime) {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
-            / (1000 * 1000)) + 0.5);
+        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / SCRIPT_FPS + 0.5;
         const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
         QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
@@ -492,7 +473,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
-    setIsAvatar(false);// will stop timers for sending billboards and identity packets
+    setIsAvatar(false);// will stop timers for sending identity packets
 
     if (_scriptEngine) {
         _scriptEngine->stop();

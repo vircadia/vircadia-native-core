@@ -38,6 +38,8 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    void doInitialModelSimulation();
+
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
@@ -86,6 +88,8 @@ public:
     // without having the entityTree lock.
     bool hasRenderAnimation() const { return !_renderAnimationProperties.getURL().isEmpty(); }
     const QString& getRenderAnimationURL() const { return _renderAnimationProperties.getURL(); }
+
+    render::ItemID getMetaRenderItem() { return _myMetaItem; }
 
 private:
     QVariantMap parseTexturesToMap(QString textures);

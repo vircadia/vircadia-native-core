@@ -21,9 +21,9 @@
 
 #include <OctalCode.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "AACube.h"
-#include "ViewFrustum.h"
 #include "OctreeConstants.h"
 
 using AtomicUIntStat = std::atomic<uintmax_t>;
@@ -139,7 +139,7 @@ public:
     float distanceToCamera(const ViewFrustum& viewFrustum) const;
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
 
-    bool calculateShouldRender(const ViewFrustum* viewFrustum,
+    bool calculateShouldRender(const ViewFrustum& viewFrustum,
                 float voxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
 
     // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)

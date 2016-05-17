@@ -54,7 +54,7 @@ QOpenGLContext* PluginContainerProxy::getPrimaryContext() {
     return qApp->_glWidget->context()->contextHandle();
 }
 
-const DisplayPlugin* PluginContainerProxy::getActiveDisplayPlugin() const {
+const DisplayPluginPointer PluginContainerProxy::getActiveDisplayPlugin() const {
     return qApp->getActiveDisplayPlugin();
 }
 

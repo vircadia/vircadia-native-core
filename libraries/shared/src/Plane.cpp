@@ -1,6 +1,6 @@
 //
 //  Plane.cpp
-//  libraries/octree/src/
+//  libraries/shared/src/
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -13,12 +13,12 @@
 //
 
 #include "Plane.h"
-#include "OctreeLogging.h"
-
-
-#include <QtCore/QDebug>
 
 #include <stdio.h>
+#include <QtCore/QDebug>
+
+#include "SharedLogging.h"
+
 
 void Plane::set3Points(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) {
     glm::vec3 linev1v2, linev1v3;
@@ -65,7 +65,7 @@ float Plane::distance(const glm::vec3 &point) const {
 }
 
 void Plane::print() const {
-    qCDebug(octree, "Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
+    qCDebug(shared, "Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
             (double)_point.x, (double)_point.y, (double)_point.z,
             (double)_normal.x, (double)_normal.y, (double)_normal.z, (double)_dCoefficient);
 }
