@@ -1174,9 +1174,6 @@ void AvatarData::setJointMappingsFromNetworkReply() {
         _jointIndices.insert(_jointNames.at(i), i + 1);
     }
 
-    // now that we have the jointIndices send them to the AvatarMixer.
-    sendIdentityPacket();
-
     networkReply->deleteLater();
 }
 
