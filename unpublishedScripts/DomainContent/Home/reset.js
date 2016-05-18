@@ -74,8 +74,6 @@
         z: -74.2998
     };
 
-
-
     Reset.prototype = {
         tidying: false,
         eyesOn: false,
@@ -97,7 +95,7 @@
                 "tex.face.screen-active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
                 "tex.glow.active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png",
                 "tex.glow.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png"
-            }
+            };
 
 
             Entities.editEntity(_this.entityID, {
@@ -106,34 +104,31 @@
         },
 
         tidyGlowActive: function() {
-            print('tidy glow active')
             var res = Entities.findEntities(MyAvatar.position, 30);
             var glow = null;
+
             res.forEach(function(item) {
                 var props = Entities.getEntityProperties(item);
                 if (props.name === "Tidyguy-Glow") {
                     glow = item;
                 }
+            });
 
-
-            })
             if (glow !== null) {
-                print('editing glow' + glow)
                 Entities.editEntity(glow, {
                     color: {
                         red: 255,
                         green: 140,
                         blue: 20
                     }
-                })
+                });
             }
         },
 
         tidyGlowDefault: function() {
-           print('tidy glow default')
-
             var res = Entities.findEntities(MyAvatar.position, 30);
             var glow = null;
+
             res.forEach(function(item) {
                 var props = Entities.getEntityProperties(item);
                 if (props.name === "Tidyguy-Glow") {
@@ -143,16 +138,13 @@
             });
 
             if (glow !== null) {
-                print('editing glow' + glow)
-
                 Entities.editEntity(glow, {
-
                     color: {
                         red: 92,
                         green: 255,
                         blue: 209
                     }
-                })
+                });
             }
         },
 
@@ -167,8 +159,7 @@
                 "tex.face.screen-active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/face-active.jpg",
                 "tex.glow.active": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-active.png",
                 "tex.glow.default": "atp:/Tidyguy-4d.fbx/Tidyguy-4d.fbm/glow-default.png"
-            }
-
+            };
 
             Entities.editEntity(_this.entityID, {
                 textures: JSON.stringify(data)
@@ -186,9 +177,6 @@
                 volume: 1,
                 position: location
             });
-
-            print('INJECTOR IS: ' + injector)
-
         },
 
         toggleButton: function() {
@@ -212,12 +200,10 @@
                     _this.createScriptedEntities();
                     _this.setupDressingRoom();
                 }, 750);
-
             }
         },
 
         flickerEyes: function() {
-
             this.flickerInterval = Script.setInterval(function() {
                 if (_this.eyesOn === true) {
                     _this.turnEyesOff();
@@ -230,7 +216,7 @@
 
             Script.setTimeout(function() {
                 Script.clearInterval(_this.flickerInterval);
-            }, 2500)
+            }, 2500);
         },
 
         turnEyesOn: function() {
@@ -274,12 +260,7 @@
                 return;
             }
             _this.toggleButton();
-
         },
-
-        // startNearTrigger: function() {
-        //     _this.toggleButton();
-        // },
 
         findAndDeleteHomeEntities: function() {
             print('HOME trying to find home entities to delete')
@@ -288,12 +269,10 @@
             var found = [];
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
-
                 if (properties.userData === "" || properties.userData === undefined) {
                     print('no userdata -- its blank or undefined')
                     return;
                 }
-
                 var userData = null;
                 try {
                     userData = JSON.parse(properties.userData);
@@ -307,10 +286,9 @@
                         Entities.deleteEntity(result);
                     }
                 }
-
-
             })
-            print('HOME after deleting home entities')
+
+            print('HOME after deleting home entities');
         },
 
         createScriptedEntities: function() {
@@ -444,11 +422,11 @@
                 y: 461,
                 z: -73.3
             });
-            print('HOME after creating kinetic entities')
+            print('HOME after creating kinetic entities');
         },
 
         setupDressingRoom: function() {
-            print('HOME setup dressing room')
+            print('HOME setup dressing room');
             this.createRotatorBlock();
             this.createTransformingDais();
             this.createTransformers();
@@ -495,7 +473,7 @@
             }
 
             var rotatorBlock = Entities.addEntity(rotatorBlockProps);
-            print('HOME created rotator block')
+            print('HOME created rotator block');
         },
 
         createTransformingDais: function() {
@@ -625,16 +603,12 @@
 
             if (rightDistance < BEAM_TRIGGER_THRESHOLD || leftDistance < BEAM_TRIGGER_THRESHOLD) {
                 _this.toggleButton();
-            } else {
-                //too far to toggle swipe
             }
         },
 
         unload: function() {
             Script.update.disconnect(_this.update);
-
             Script.clearInterval(_this.flickerInterval);
-            // this.findAndDeleteHomeEntities();
         }
 
     }
