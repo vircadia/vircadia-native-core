@@ -119,26 +119,27 @@ void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
 }
 
 void ScriptEngines::addScriptEngine(ScriptEngine* engine) {
-    _allScriptsMutex.lock();
-    _allKnownScriptEngines.insert(engine);
-    _allScriptsMutex.unlock();
+    if (_isStopped) {
+        engine->deleteLater();
+    } else {
+        QMutexLocker locker(&_allScriptsMutex);
+        _allKnownScriptEngines.insert(engine);
+    }
 }
 
 void ScriptEngines::removeScriptEngine(ScriptEngine* engine) {
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
-    if (!_stoppingAllScripts) {
-        _allScriptsMutex.lock();
+    if (!_isStopped) {
+        QMutexLocker locker(&_allScriptsMutex);
         _allKnownScriptEngines.remove(engine);
-        _allScriptsMutex.unlock();
     }
 }
 
 void ScriptEngines::shutdownScripting() {
-    _allScriptsMutex.lock();
-    _stoppingAllScripts = true;
-    ScriptEngine::_stoppingAllScripts = true;
+    _isStopped = true;
+    QMutexLocker locker(&_allScriptsMutex);
     qCDebug(scriptengine) << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
 
     QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
@@ -149,6 +150,7 @@ void ScriptEngines::shutdownScripting() {
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
+        // TODO: Scripts could be shut down faster if we spread them across a threadpool.
         if (scriptEngine->isRunning()) {
             qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
@@ -157,8 +159,7 @@ void ScriptEngines::shutdownScripting() {
             // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(this);
 
-            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
-            // in the ScriptEngine gracefully ending it's run() method.
+            // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
 
             // We need to wait for the engine to be done running before we proceed, because we don't
@@ -170,12 +171,10 @@ void ScriptEngines::shutdownScripting() {
 
             scriptEngine->deleteLater();
 
-            // If the script is stopped, we can remove it from our set
+            // Once the script is stopped, we can remove it from our set
             i.remove();
         }
     }
-    _stoppingAllScripts = false;
-    _allScriptsMutex.unlock();
     qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
 
@@ -428,7 +427,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return scriptEngine;
     }
 
-    scriptEngine = new ScriptEngine(NO_SCRIPT, "", true);
+    scriptEngine = new ScriptEngine(NO_SCRIPT, "");
     scriptEngine->setUserLoaded(isUserLoaded);
     connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
         scriptEngine->deleteLater();
@@ -498,7 +497,6 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
         scriptEngine->runInThread();
     }
 }
-
 
 void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* engine) {
     bool removed = false;

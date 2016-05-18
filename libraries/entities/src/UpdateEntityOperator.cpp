@@ -45,23 +45,17 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
     _newEntityCube = newQueryAACube;
     _newEntityBox = _newEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
-    // If our new properties don't have bounds details (no change to position, etc) or if this containing element would
-    // be the best fit for our new properties, then just do the new portion of the store pass, since the change path will
-    // be the same for both parts of the update
+    // set oldElementBestFit true if the entity was in the correct element before this operator was run.
     bool oldElementBestFit = _containingElement->bestFitBounds(_oldEntityBox);
 
     // For some reason we've seen a case where the original containing element isn't a best fit for the old properties
     // in this case we want to move it, even if the properties haven't changed.
-    if (oldElementBestFit) {
-        if (_wantDebug) {
-            qCDebug(entities) << "    **** TYPICAL NO MOVE CASE **** oldElementBestFit:" << oldElementBestFit;
-        }
-    } else {
+    if (!oldElementBestFit) {
         _oldEntityBox = _existingEntity->getElement()->getAACube();
         _removeOld = true; // our properties are going to move us, so remember this for later processing
 
         if (_wantDebug) {
-            qCDebug(entities) << "    **** UNUSUAL CASE ****  no changes, but not best fit... consider it a move.... **";
+            qCDebug(entities) << "    **** UNUSUAL CASE ****  not best fit.... **";
         }
     }
 

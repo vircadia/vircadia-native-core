@@ -140,17 +140,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     }
 }
 
-void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-    auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
-
-    QByteArray billboard = message->read(message->getBytesLeftToRead());
-    if (avatar->getBillboard() != billboard) {
-        avatar->setBillboard(billboard);
-    }
-}
-
 void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));

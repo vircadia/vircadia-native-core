@@ -109,7 +109,6 @@ static const float MIN_AVATAR_SCALE = .005f;
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
-const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
@@ -166,7 +165,6 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
-    Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
@@ -294,8 +292,6 @@ public:
     bool hasIdentityChangedAfterParsing(const QByteArray& data);
     QByteArray identityByteArray();
 
-    bool hasBillboardChangedAfterParsing(const QByteArray& data);
-
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
@@ -312,12 +308,6 @@ public:
 
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
-
-    virtual void setBillboard(const QByteArray& billboard);
-    const QByteArray& getBillboard() const { return _billboard; }
-
-    void setBillboardFromURL(const QString& billboardURL);
-    const QString& getBillboardURL() { return _billboardURL; }
 
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
@@ -350,9 +340,7 @@ public:
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
-    void sendBillboardPacket();
 
-    void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
 
@@ -390,9 +378,6 @@ protected:
 
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
-
-    QByteArray _billboard;
-    QString _billboardURL;
 
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal
