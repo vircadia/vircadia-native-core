@@ -151,12 +151,12 @@ void GLBackend::updateInput() {
                     uint8_t locationCount = attrib._element.getLocationCount();
                     GLenum type = _elementTypeToGLType[attrib._element.getType()];
 
-                    GLuint offset = attrib._offset;;
+                    GLuint offset = (GLuint)attrib._offset;;
                     GLboolean isNormalized = attrib._element.isNormalized();
 
                     GLenum perLocationSize = attrib._element.getLocationSize();
-                    for (size_t locNum = 0; locNum < locationCount; ++locNum) {
-                        auto attriNum = slot + locNum;
+                    for (GLuint locNum = 0; locNum < locationCount; ++locNum) {
+                        GLuint attriNum = (GLuint)(slot + locNum);
                         newActivation.set(attriNum);
                         if (!_input._attributeActivation[attriNum]) {
                             _input._attributeActivation.set(attriNum);
@@ -180,7 +180,7 @@ void GLBackend::updateInput() {
 
             // Manage Activation what was and what is expected now
             // This should only disable VertexAttribs since the one in use have been disabled above
-            for (size_t i = 0; i < newActivation.size(); i++) {
+            for (GLuint i = 0; i < (GLuint)newActivation.size(); i++) {
                 bool newState = newActivation[i];
                 if (newState != _input._attributeActivation[i]) {
                     if (newState) {
@@ -200,21 +200,16 @@ void GLBackend::updateInput() {
     }
 
     if (_input._invalidBuffers.any()) {
-        int numBuffers = _input._buffers.size();
-        auto buffer = _input._buffers.data();
         auto vbo = _input._bufferVBOs.data();
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
-        for (int bufferNum = 0; bufferNum < numBuffers; bufferNum++) {
-            if (_input._invalidBuffers.test(bufferNum)) {
-                glBindVertexBuffer(bufferNum, (*vbo), (*offset), (*stride));
+        for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
+            if (_input._invalidBuffers.test(buffer)) {
+                glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
             }
-            buffer++;
-            vbo++;
-            offset++;
-            stride++;
         }
+
         _input._invalidBuffers.reset();
         (void) CHECK_GL_ERROR();
     }
