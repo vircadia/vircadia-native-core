@@ -23,13 +23,13 @@ GLBackend::GLInputFormat:: ~GLInputFormat() {
 GLBackend::GLInputFormat* GLBackend::syncGPUObject(const Stream::Format& inputFormat) {
     GLInputFormat* object = Backend::getGPUObject<GLBackend::GLInputFormat>(inputFormat);
 
-    if (object) {
-        return object;
+    if (!object) {
+        object = new GLInputFormat();
+        object->key = inputFormat.getKey();
+        Backend::setGPUObject(inputFormat, object);
     }
 
-    object = new GLInputFormat();
-    object->key = inputFormat.getKey();
-    Backend::setGPUObject(inputFormat, object);
+    return object;
 }
 
 void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
