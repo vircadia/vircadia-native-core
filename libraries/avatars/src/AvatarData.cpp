@@ -612,7 +612,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // the wrong bones, resulting in a twisted avatar, An un-animated avatar is preferable to this.
     bool skipJoints = false;
     if (_networkJointIndexMap.empty()) {
-        skipJoints = true;
+        qCDebug(avatars) << "AJT: parseAvatarDataPacket _networkJointIndexMap.size = " << _networkJointIndexMap.size();
+        skipJoints = false;
     }
 
     int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
@@ -726,7 +727,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
                 }
             }
         }
-    } // numJoints * 12 bytes
+    } // numJoints * 6 bytes
 
     #ifdef WANT_DEBUG
     if (numValidJointRotations > 15) {
@@ -981,42 +982,45 @@ void AvatarData::clearJointsData() {
     }
 }
 
-bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
+void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
+    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.jointIndices;
 
-    QUuid avatarUUID;
-    QUrl skeletonModelURL;
-    QVector<AttachmentData> attachmentData;
-    QString displayName;
-    QHash <QString, int> networkJointIndices;
-    packetStream >> avatarUUID >> skeletonModelURL >> attachmentData >> displayName >> networkJointIndices;
+    // AJT: just got a new networkJointIndicesMap.
+    qCDebug(avatars) << "AJT: receiving identity.jointIndices.size = " << identityOut.jointIndices.size();
+}
+
+bool AvatarData::processAvatarIdentity(const Identity& identity) {
+
     bool hasIdentityChanged = false;
 
-    if (!_jointIndices.empty() && _networkJointIndexMap.empty() && !networkJointIndices.empty()) {
+    qCDebug(avatars) << "AJT: processAvatarIdentity got here!";
+
+    if (!_jointIndices.empty() && _networkJointIndexMap.empty() && !identity.jointIndices.empty()) {
         // build networkJointIndexMap from _jointIndices and networkJointIndices.
-        _networkJointIndexMap.fill(networkJointIndices.size(), -1);
-        for (auto iter = networkJointIndices.cbegin(); iter != networkJointIndices.end(); ++iter) {
+        _networkJointIndexMap.fill(identity.jointIndices.size(), -1);
+        for (auto iter = identity.jointIndices.cbegin(); iter != identity.jointIndices.end(); ++iter) {
             int jointIndex = getJointIndex(iter.key());
             _networkJointIndexMap[iter.value()] = jointIndex;
+            qCDebug(avatars) << "AJT: mapping " << iter.value() << " -> " << jointIndex;
         }
     }
 
-    // AJT: just got a new networkJointIndicesMap.
-    qCDebug(avatars) << "AJT: receiving networkJointIndices.size = " << networkJointIndices.size();
+    qCDebug(avatars) << "AJT: processAvatarIdentity got here!";
 
-    if (_firstSkeletonCheck || (skeletonModelURL != _skeletonModelURL)) {
-        setSkeletonModelURL(skeletonModelURL);
+    if (_firstSkeletonCheck || (identity.skeletonModelURL != _skeletonModelURL)) {
+        setSkeletonModelURL(identity.skeletonModelURL);
         hasIdentityChanged = true;
         _firstSkeletonCheck = false;
     }
 
-    if (displayName != _displayName) {
-        setDisplayName(displayName);
+    if (identity.displayName != _displayName) {
+        setDisplayName(identity.displayName);
         hasIdentityChanged = true;
     }
 
-    if (attachmentData != _attachmentData) {
-        setAttachmentData(attachmentData);
+    if (identity.attachmentData != _attachmentData) {
+        setAttachmentData(identity.attachmentData);
         hasIdentityChanged = true;
     }
 
@@ -1204,6 +1208,8 @@ void AvatarData::sendIdentityPacket() {
 
     QByteArray identityData = identityByteArray();
 
+    qCDebug(avatars) << "AJT: sendIdentityPacket() size = " << identityData.size();
+
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     packetList->write(identityData);
     nodeList->eachMatchingNode(
@@ -1213,6 +1219,8 @@ void AvatarData::sendIdentityPacket() {
         [&](const SharedNodePointer& node) {
             nodeList->sendPacketList(std::move(packetList), *node);
         });
+
+    qCDebug(avatars) << "AJT: sendIdentityPacket() done!";
 }
 
 void AvatarData::updateJointMappings() {

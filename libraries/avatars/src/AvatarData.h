@@ -280,7 +280,19 @@ public:
 
     const HeadData* getHeadData() const { return _headData; }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& data);
+    struct Identity {
+        QUuid uuid;
+        QUrl skeletonModelURL;
+        QVector<AttachmentData> attachmentData;
+        QString displayName;
+        QHash<QString, int> jointIndices;
+    };
+
+    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
+
+    // returns true if identity has changed, false otherwise.
+    bool processAvatarIdentity(const Identity& identity);
+
     QByteArray identityByteArray();
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }

@@ -417,7 +417,9 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             AvatarData& avatar = nodeData->getAvatar();
 
             // parse the identity packet and update the change timestamp if appropriate
-            if (avatar.hasIdentityChangedAfterParsing(message->getMessage())) {
+            AvatarData::Identity identity;
+            AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
+            if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
             }
