@@ -63,7 +63,6 @@ var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 var allowLargeModels = true;
 var allowSmallModels = true;
-var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
@@ -715,7 +714,6 @@ function mousePressEvent(event) {
     }
 }
 
-var highlightedEntityID = null;
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
@@ -780,38 +778,6 @@ function mouseMove(event) {
 function handleIdleMouse() {
     idleMouseTimerId = null;
 }
-
-function highlightEntityUnderCursor(position, accurateRay) {
-    var pickRay = Camera.computePickRay(position.x, position.y);
-    var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
-    if (entityIntersection.accurate) {
-        if (highlightedEntityID && highlightedEntityID != entityIntersection.entityID) {
-            selectionDisplay.unhighlightSelectable(highlightedEntityID);
-            highlightedEntityID = {
-                id: -1
-            };
-        }
-
-        var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-
-        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
-            entityIntersection.properties.position)) * 180 / 3.14;
-
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-        if (entityIntersection.entityID && sizeOK) {
-            if (wantEntityGlow) {
-                Entities.editEntity(entityIntersection.entityID, {
-                    glowLevel: 0.25
-                });
-            }
-            highlightedEntityID = entityIntersection.entityID;
-            selectionDisplay.highlightSelectable(entityIntersection.entityID);
-        }
-
-    }
-}
-
 
 function mouseReleaseEvent(event) {
     mouseDown = false;

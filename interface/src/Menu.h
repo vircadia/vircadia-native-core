@@ -111,7 +111,6 @@ namespace MenuOption {
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Mirror";
-    const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString Help = "Help...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
