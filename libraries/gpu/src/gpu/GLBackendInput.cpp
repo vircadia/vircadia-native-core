@@ -37,11 +37,14 @@ void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     if(GLBackend::syncGPUObject(*format)) {
         if (format != _input._format) {
             _input._format = format;
-            _input._invalidFormat = true;
             if (format) {
-                _input._formatKey = format->getKey();
+                if (_input._formatKey != format->getKey()) {
+                    _input._formatKey = format->getKey();
+                    _input._invalidFormat = true;
+                }
             } else {
                 _input._formatKey.clear();
+                _input._invalidFormat = true;
             }
         }
     }
