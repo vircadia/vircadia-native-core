@@ -366,6 +366,7 @@ protected:
     float _displayNameAlpha;
 
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
+    QVector<int> _networkJointIndexMap; // maps network joint indices to local model joint indices.
     QStringList _jointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error

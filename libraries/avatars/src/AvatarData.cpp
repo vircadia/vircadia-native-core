@@ -602,8 +602,19 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
     } // 1 byte
 
+
     // joint rotations
     int numJoints = *sourceBuffer++;
+
+
+    // do not process any jointData until we've received a valid jointIndices hash from
+    // an earlier AvatarIdentity packet.  Because if we do, we risk applying the joint data
+    // the wrong bones, resulting in a twisted avatar, An un-animated avatar is preferable to this.
+    bool skipJoints = false;
+    if (_networkJointIndexMap.empty()) {
+        skipJoints = true;
+    }
+
     int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
     minPossibleSize += bytesOfValidity;
     if (minPossibleSize > maxAvailableSize) {
@@ -654,9 +665,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
             if (validRotations[i]) {
-                _hasNewJointRotations = true;
-                data.rotationSet = true;
-                sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
+                if (skipJoints) {
+                    sourceBuffer += COMPRESSED_QUATERNION_SIZE;
+                } else {
+                    sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
+                    _hasNewJointRotations = true;
+                    data.rotationSet = true;
+                }
             }
         }
     } // numJoints * 6 bytes
@@ -684,7 +699,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     } // 1 + bytesOfValidity bytes
 
     // each joint translation component is stored in 6 bytes.  1 byte for translationCompressionRadix
-    minPossibleSize += numValidJointTranslations * 6 + 1;
+    const size_t COMPRESSED_TRANSLATION_SIZE = 6;
+    minPossibleSize += numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE + 1;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
             qCDebug(avatars) << "Malformed AvatarData packet after JointData translation validity;"
@@ -701,10 +717,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
             if (validTranslations[i]) {
-                sourceBuffer +=
-                    unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, translationCompressionRadix);
-                _hasNewJointTranslations = true;
-                data.translationSet = true;
+                if (skipJoints) {
+                    sourceBuffer += COMPRESSED_TRANSLATION_SIZE;
+                } else {
+                    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, translationCompressionRadix);
+                    _hasNewJointTranslations = true;
+                    data.translationSet = true;
+                }
             }
         }
     } // numJoints * 12 bytes
@@ -966,13 +985,24 @@ bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
     QDataStream packetStream(data);
 
     QUuid avatarUUID;
-    QUrl unusedModelURL; // legacy faceModel support
     QUrl skeletonModelURL;
     QVector<AttachmentData> attachmentData;
     QString displayName;
-    packetStream >> avatarUUID >> unusedModelURL >> skeletonModelURL >> attachmentData >> displayName;
-
+    QHash <QString, int> networkJointIndices;
+    packetStream >> avatarUUID >> skeletonModelURL >> attachmentData >> displayName >> networkJointIndices;
     bool hasIdentityChanged = false;
+
+    if (!_jointIndices.empty() && _networkJointIndexMap.empty() && !networkJointIndices.empty()) {
+        // build networkJointIndexMap from _jointIndices and networkJointIndices.
+        _networkJointIndexMap.fill(networkJointIndices.size(), -1);
+        for (auto iter = networkJointIndices.cbegin(); iter != networkJointIndices.end(); ++iter) {
+            int jointIndex = getJointIndex(iter.key());
+            _networkJointIndexMap[iter.value()] = jointIndex;
+        }
+    }
+
+    // AJT: just got a new networkJointIndicesMap.
+    qCDebug(avatars) << "AJT: receiving networkJointIndices.size = " << networkJointIndices.size();
 
     if (_firstSkeletonCheck || (skeletonModelURL != _skeletonModelURL)) {
         setSkeletonModelURL(skeletonModelURL);
@@ -999,9 +1029,10 @@ QByteArray AvatarData::identityByteArray() {
     QUrl emptyURL("");
     const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 
-    QUrl unusedModelURL; // legacy faceModel support
+    // AJT: just got a sending networkJointIndices
+    qCDebug(avatars) << "AJT: sending _jointIndices.size = " << _jointIndices.size();
 
-    identityStream << QUuid() << unusedModelURL << urlToSend << _attachmentData << _displayName;
+    identityStream << QUuid() << urlToSend << _attachmentData << _displayName << _jointIndices;
 
     return identityData;
 }
@@ -1106,6 +1137,8 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 void AvatarData::setJointMappingsFromNetworkReply() {
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
+    qCDebug(avatars) << "AJT: GOT HERE! finished fst network request";
+
     QByteArray line;
     while (!(line = networkReply->readLine()).isEmpty()) {
         line = line.trimmed();
@@ -1139,6 +1172,11 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     for (int i = 0; i < _jointNames.size(); i++) {
         _jointIndices.insert(_jointNames.at(i), i + 1);
     }
+
+    // now that we have the jointIndices send them to the AvatarMixer.
+    sendIdentityPacket();
+
+    qCDebug(avatars) << "AJT: _jointIndices.size = " << _jointIndices.size();
 
     networkReply->deleteLater();
 }
@@ -1180,6 +1218,9 @@ void AvatarData::sendIdentityPacket() {
 void AvatarData::updateJointMappings() {
     _jointIndices.clear();
     _jointNames.clear();
+    _networkJointIndexMap.clear();
+
+    qCDebug(avatars) << "AJT: GOT HERE! kicking off fst network request";
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
