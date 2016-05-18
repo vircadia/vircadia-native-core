@@ -112,14 +112,14 @@ public:
         const std::string& getKey() const { return _key; }
 
         const GPUObjectPointer gpuObject{};
+
     protected:
         AttributeMap _attributes;
         ChannelMap _channels;
         uint32 _elementTotalSize { 0 };
+        std::string _key;
 
         void evaluateCache();
-
-        std::string _key;
     };
 
     typedef std::shared_ptr<Format> FormatPointer;
