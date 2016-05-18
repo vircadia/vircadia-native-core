@@ -151,7 +151,7 @@ int packOrientationQuatToSixBytes(unsigned char* buffer, const glm::quat& quatIn
     // ensure that the sign of the dropped component is always negative.
     glm::quat q = quatInput[largestComponent] > 0 ? -quatInput : quatInput;
 
-    const float MAGNITUDE = 1.0f / sqrt(2.0f);
+    const float MAGNITUDE = 1.0f / sqrtf(2.0f);
     const uint32_t NUM_BITS_PER_COMPONENT = 15;
     const uint32_t RANGE = (1 << NUM_BITS_PER_COMPONENT) - 1;
 
