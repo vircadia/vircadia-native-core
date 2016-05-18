@@ -34,7 +34,7 @@ GLBackend::GLBuffer::GLBuffer(const Buffer& buffer, GLBuffer* original) :
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    if (original) {
+    if (original && original->_size) {
         glBindBuffer(GL_COPY_WRITE_BUFFER, _buffer);
         glBindBuffer(GL_COPY_READ_BUFFER, original->_buffer);
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, original->_size);

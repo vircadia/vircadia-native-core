@@ -23,19 +23,18 @@ GLBackend::GLInputFormat:: ~GLInputFormat() {
 GLBackend::GLInputFormat* GLBackend::syncGPUObject(const Stream::Format& inputFormat) {
     GLInputFormat* object = Backend::getGPUObject<GLBackend::GLInputFormat>(inputFormat);
 
-    if (object) {
-        return object;
+    if (!object) {
+        object = new GLInputFormat();
+        object->key = inputFormat.getKey();
+        Backend::setGPUObject(inputFormat, object);
     }
 
-    object = new GLInputFormat();
-    object->key = inputFormat.getKey();
-    Backend::setGPUObject(inputFormat, object);
+    return object;
 }
 
 void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
-    GLInputFormat* ifo = GLBackend::syncGPUObject(*format);
-    if (ifo) {
+    if(GLBackend::syncGPUObject(*format)) {
         if (format != _input._format) {
             _input._format = format;
             if (format) {
@@ -44,8 +43,8 @@ void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
                     _input._invalidFormat = true;
                 }
             } else {
-                _input._invalidFormat = true;
                 _input._formatKey.clear();
+                _input._invalidFormat = true;
             }
         }
     }
@@ -87,9 +86,6 @@ void GLBackend::do_setInputBuffer(Batch& batch, size_t paramOffset) {
     }
 }
 
-
-
-
 void GLBackend::initInput() {
     if(!_input._defaultVAO) {
         glGenVertexArrays(1, &_input._defaultVAO);
@@ -115,15 +111,6 @@ void GLBackend::syncInputStateCache() {
     //_input._defaultVAO
     glBindVertexArray(_input._defaultVAO);
 }
-
-// Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
-// Core 43 does :)
-// FIXME crashing problem with glVertexBindingDivisor / glVertexAttribFormat
-#if(GPU_INPUT_PROFILE == GPU_CORE_41)
-#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
-#define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
 
 void GLBackend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
@@ -151,12 +138,12 @@ void GLBackend::updateInput() {
                     uint8_t locationCount = attrib._element.getLocationCount();
                     GLenum type = _elementTypeToGLType[attrib._element.getType()];
 
-                    GLuint offset = attrib._offset;;
+                    GLuint offset = (GLuint)attrib._offset;;
                     GLboolean isNormalized = attrib._element.isNormalized();
 
                     GLenum perLocationSize = attrib._element.getLocationSize();
-                    for (size_t locNum = 0; locNum < locationCount; ++locNum) {
-                        auto attriNum = slot + locNum;
+                    for (GLuint locNum = 0; locNum < locationCount; ++locNum) {
+                        GLuint attriNum = (GLuint)(slot + locNum);
                         newActivation.set(attriNum);
                         if (!_input._attributeActivation[attriNum]) {
                             _input._attributeActivation.set(attriNum);
@@ -180,7 +167,7 @@ void GLBackend::updateInput() {
 
             // Manage Activation what was and what is expected now
             // This should only disable VertexAttribs since the one in use have been disabled above
-            for (size_t i = 0; i < newActivation.size(); i++) {
+            for (GLuint i = 0; i < (GLuint)newActivation.size(); i++) {
                 bool newState = newActivation[i];
                 if (newState != _input._attributeActivation[i]) {
                     if (newState) {
@@ -200,21 +187,16 @@ void GLBackend::updateInput() {
     }
 
     if (_input._invalidBuffers.any()) {
-        int numBuffers = _input._buffers.size();
-        auto buffer = _input._buffers.data();
         auto vbo = _input._bufferVBOs.data();
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
-        for (int bufferNum = 0; bufferNum < numBuffers; bufferNum++) {
-            if (_input._invalidBuffers.test(bufferNum)) {
-                glBindVertexBuffer(bufferNum, (*vbo), (*offset), (*stride));
+        for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
+            if (_input._invalidBuffers.test(buffer)) {
+                glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
             }
-            buffer++;
-            vbo++;
-            offset++;
-            stride++;
         }
+
         _input._invalidBuffers.reset();
         (void) CHECK_GL_ERROR();
     }
