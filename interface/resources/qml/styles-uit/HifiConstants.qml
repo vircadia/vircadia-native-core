@@ -141,7 +141,7 @@ Item {
         readonly property real textPadding: 8
         readonly property real sliderHandleSize: 18
         readonly property real sliderGrooveHeight: 8
-        readonly property real spinnerSize: 42
+        readonly property real spinnerSize: 50
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23
         readonly property real tableHeaderHeight: 29

@@ -56,7 +56,7 @@ SpinBox {
         incrementControl: HiFiGlyphs {
             id: incrementButton
             text: hifi.glyphs.caratUp
-            x: 6
+            x: 10
             y: 1
             size: hifi.dimensions.spinnerSize
             color: styleData.upPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
@@ -64,8 +64,8 @@ SpinBox {
 
         decrementControl: HiFiGlyphs {
             text: hifi.glyphs.caratDn
-            x: 6
-            y: -3
+            x: 10
+            y: -1
             size: hifi.dimensions.spinnerSize
             color: styleData.downPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
