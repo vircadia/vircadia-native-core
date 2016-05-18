@@ -116,15 +116,6 @@ void GLBackend::syncInputStateCache() {
     glBindVertexArray(_input._defaultVAO);
 }
 
-// Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
-// Core 43 does :)
-// FIXME crashing problem with glVertexBindingDivisor / glVertexAttribFormat
-#if(GPU_INPUT_PROFILE == GPU_CORE_41)
-#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
-#define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
-
 void GLBackend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
     if (_input._invalidFormat) {

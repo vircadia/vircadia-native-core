@@ -201,12 +201,6 @@ void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
     }
 }
 
-#if(GPU_INPUT_PROFILE == GPU_CORE_41)
-#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
-#define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
-
 void GLBackend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
 
