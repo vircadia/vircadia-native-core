@@ -592,7 +592,7 @@
 
         update: function() {
             if (_this.tidying === true) {
-                return
+                return;
             }
 
             var leftHandPosition = MyAvatar.getLeftPalmPosition();
