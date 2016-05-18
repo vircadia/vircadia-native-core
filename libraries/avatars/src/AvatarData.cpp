@@ -606,7 +606,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // joint rotations
     int numJoints = *sourceBuffer++;
 
-
     // do not process any jointData until we've received a valid jointIndices hash from
     // an earlier AvatarIdentity packet.  Because if we do, we risk applying the joint data
     // the wrong bones, resulting in a twisted avatar, An un-animated avatar is preferable to this.
@@ -1034,14 +1033,13 @@ QByteArray AvatarData::identityByteArray() {
     const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 
 #ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    identityStream << QUuid() << urlToSend << _attachmentData << _displayName << _jointIndices;
+    identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _jointIndices;
 #else
-    identityStream << QUuid() << urlToSend << _attachmentData << _displayName;
+    identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName;
 #endif
 
     return identityData;
 }
-
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     const QUrl& expanded = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
@@ -1049,7 +1047,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         return;
     }
     _skeletonModelURL = expanded;
-    qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
 }
