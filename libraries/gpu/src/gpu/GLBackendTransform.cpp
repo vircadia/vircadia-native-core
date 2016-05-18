@@ -221,8 +221,10 @@ void GLBackend::updateTransform(const Batch& batch) {
             glVertexBindingDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
             _transform._enabledDrawcallInfoBuffer = true;
         }
-        glBindVertexBuffer(gpu::Stream::DRAW_CALL_INFO, _transform._drawCallInfoBuffer, (GLintptr)_transform._drawCallInfoOffsets[batch._currentNamedCall], 0);
-
+        // NOTE: A stride of zero in BindVertexBuffer signifies that all elements are sourced from the same location,
+        //       so we must provide a stride.
+        //       This is in contrast to VertexAttrib*Pointer, where a zero signifies tightly-packed elements.
+        glBindVertexBuffer(gpu::Stream::DRAW_CALL_INFO, _transform._drawCallInfoBuffer, (GLintptr)_transform._drawCallInfoOffsets[batch._currentNamedCall], 2 * sizeof(GLushort));
 #else 
         if (!_transform._enabledDrawcallInfoBuffer) {
             glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
@@ -232,7 +234,6 @@ void GLBackend::updateTransform(const Batch& batch) {
         }
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
 #endif
-
     }
     
     (void)CHECK_GL_ERROR();
