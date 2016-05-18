@@ -171,7 +171,7 @@
                 x: 1102.7660,
                 y: 460.9814,
                 z: -78.6451
-            }
+            };
 
             var injector = Audio.playSound(_this.tidySound, {
                 volume: 1,
