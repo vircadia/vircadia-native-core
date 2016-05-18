@@ -184,7 +184,7 @@ ModalWindow {
                     return;
                 }
 
-                currentSelectionUrl = fileTableView.model.get(row, "fileURL");
+                currentSelectionUrl = helper.pathToUrl(fileTableView.model.get(row).filePath);
                 currentSelectionIsFolder = fileTableView.model.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = helper.urlToPath(currentSelectionUrl);
@@ -220,9 +220,46 @@ ModalWindow {
                 showFiles = !root.selectDirectory
             }
             onFolderChanged: {
+                fileTableModel.update();
                 fileTableView.selection.clear();
                 fileTableView.selection.select(0);
                 fileTableView.currentRow = 0;
+            }
+        }
+
+        ListModel {
+            id: fileTableModel
+
+            // FolderListModel has a couple of problems:
+            // 1) Files and directories sort case-sensitively: https://bugreports.qt.io/browse/QTBUG-48757
+            // 2) Cannot browse up to the "computer" level to view Windows drives: https://bugreports.qt.io/browse/QTBUG-42901
+            //
+            // To solve these problems an intermediary ListModel is used that implements proper sorting and can be populated with
+            // drive information when viewing at the computer level.
+
+            property var folder
+
+            onFolderChanged: folderListModel.folder = folder;
+
+            function isFolder(row) {
+                if (row === -1) {
+                    return false;
+                }
+                return get(row).fileIsDir;
+            }
+
+            function update() {
+                var i;
+                clear();
+                for (i = 0; i < folderListModel.count; i++) {
+                    append({
+                       fileName: folderListModel.get(i, "fileName"),
+                       fileModified: folderListModel.get(i, "fileModified"),
+                       fileSize: folderListModel.get(i, "fileSize"),
+                       filePath: folderListModel.get(i, "filePath"),
+                       fileIsDir: folderListModel.get(i, "fileIsDir")
+                    });
+                }
             }
         }
 
@@ -247,7 +284,7 @@ ModalWindow {
             sortIndicatorOrder: Qt.AscendingOrder
             sortIndicatorVisible: true
 
-            model: folderListModel
+            model: fileTableModel
 
             function updateSort() {
                 model.sortReversed = sortIndicatorColumn == 0
@@ -284,12 +321,17 @@ ModalWindow {
                     }
                     size: hifi.fontSizes.tableText
                     color: hifi.colors.baseGrayHighlight
-                    font.family: fileTableView.model.get(styleData.row, "fileIsDir") ? firaSansSemiBold.name : firaSansRegular.name
+                    font.family: (styleData.row !== -1 && fileTableView.model.get(styleData.row).fileIsDir)
+                        ? firaSansSemiBold.name : firaSansRegular.name
 
                     function getText() {
+                        if (styleData.row === -1) {
+                            return styleData.value;
+                        }
+
                         switch (styleData.column) {
-                            case 1: return fileTableView.model.get(styleData.row, "fileIsDir") ? "" : styleData.value;
-                            case 2: return fileTableView.model.get(styleData.row, "fileIsDir") ? "" : formatSize(styleData.value);
+                            case 1: return fileTableView.model.get(styleData.row).fileIsDir ? "" : styleData.value;
+                            case 2: return fileTableView.model.get(styleData.row).fileIsDir ? "" : formatSize(styleData.value);
                             default: return styleData.value;
                         }
                     }
@@ -343,9 +385,9 @@ ModalWindow {
             function navigateToCurrentRow() {
                 var row = fileTableView.currentRow
                 var isFolder = model.isFolder(row);
-                var file = model.get(row, "fileURL");
+                var file = model.get(row).filePath;
                 if (isFolder) {
-                    fileTableView.model.folder = file;
+                    fileTableView.model.folder = helper.pathToUrl(file);
                 } else {
                     okAction.trigger();
                 }
@@ -360,7 +402,7 @@ ModalWindow {
                 var newPrefix = prefix + event.text.toLowerCase();
                 var matchedIndex = -1;
                 for (var i = 0; i < model.count; ++i) {
-                    var name = model.get(i, "fileName").toLowerCase();
+                    var name = model.get(i).fileName.toLowerCase();
                     if (0 === name.indexOf(newPrefix)) {
                         matchedIndex = i;
                         break;
@@ -401,7 +443,6 @@ ModalWindow {
                     }
                     break;
                 }
-
             }
         }
 
