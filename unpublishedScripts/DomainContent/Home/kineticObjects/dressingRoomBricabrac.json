@@ -1,7 +1,7 @@
 {
     "Entities": [{
         "collisionsWillMove": 1,
-        "compoundShapeURL": "https://hifi-content.s3.amazonaws.com/DomainContent/Home/skully/573a170808bd0_vhacd_skully.obj",
+        "compoundShapeURL": "atp:/kineticObjects/skully/skullyhull.obj",
         "created": "2016-05-16T19:34:28Z",
         "dimensions": {
             "x": 0.19080814719200134,
@@ -15,7 +15,7 @@
             "z": 0
         },
         "id": "{cef37b0a-bb3d-4549-a645-f3a934f82148}",
-        "modelURL": "https://hifi-content.s3.amazonaws.com/DomainContent/Home/skully/skully.fbx",
+        "modelURL": "atp:/kineticObjects/skully/skully.fbx",
         "position": {
             "x": 0.254150390625,
             "y": 0.4500732421875,
@@ -500,7 +500,7 @@
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/snapback/snapbackFinal.OBJ",
+        "compoundShapeURL": "atp:/kineticObjects/snapback/snapback.obj",
         "created": "2016-05-16T17:01:33Z",
         "dimensions": {
             "x": 0.19942393898963928,
@@ -514,7 +514,7 @@
             "z": 0
         },
         "id": "{26e895b7-4a83-45fe-a3e9-5b6ba5f5717e}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/snapback/snapback.fbx",
+        "modelURL": "atp:/kineticObjects/snapback/snapback.fbx",
         "position": {
             "x": 0.7891845703125,
             "y": 0.492218017578125,

@@ -1,9 +1,10 @@
 {
     "Entities": [{
+        "name": "home_model_umbrella",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "atp:/kineticObjects/umbrellaopen_ch.obj",
+        "compoundShapeURL": "atp:/kineticObjects/umbrella/umbrellaopen_ch.obj",
         "created": "2016-05-16T22:48:54Z",
         "dimensions": {
             "x": 1.2649545669555664,
@@ -17,7 +18,7 @@
             "z": 0
         },
         "id": "{59f5cc21-c6e8-4deb-a1e2-0364e82fe062}",
-        "modelURL": "atp:/kineticObjects/umbrella_open.fbx",
+        "modelURL": "atp:/kineticObjects/umbrella/umbrella_open.fbx",
         "queryAACube": {
             "scale": 2.0602173805236816,
             "x": -1.0301086902618408,

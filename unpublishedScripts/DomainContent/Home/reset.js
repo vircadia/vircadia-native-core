@@ -418,9 +418,9 @@
             });
 
             var dressingRoomBricabrac = new Bricabrac({
-                x: 1107.6450,
+                x: 1105.8,
                 y: 460.4309,
-                z: -72.6496
+                z: -72.6
             });
 
             var bench = new Bench({

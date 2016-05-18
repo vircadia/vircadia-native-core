@@ -1,5 +1,6 @@
 {
     "Entities": [{
+        "name": "home_model_bench",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/kineticObjects/bench/Bench.obj",
         "created": "2016-05-17T19:27:31Z",
