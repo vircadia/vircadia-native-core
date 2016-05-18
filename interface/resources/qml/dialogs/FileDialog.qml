@@ -43,7 +43,7 @@ ModalWindow {
     // Set from OffscreenUi::getOpenFile()
     property alias caption: root.title;
     // Set from OffscreenUi::getOpenFile()
-    property alias dir: model.folder;
+    property alias dir: folderListModel.folder;
     // Set from OffscreenUi::getOpenFile()
     property alias filter: selectionType.filtersString;
     // Set from OffscreenUi::getOpenFile()
@@ -110,7 +110,7 @@ ModalWindow {
                 glyph: hifi.glyphs.levelUp
                 width: height
                 size: 30
-                enabled: model.parentFolder && model.parentFolder !== ""
+                enabled: folderListModel.parentFolder && folderListModel.parentFolder !== ""
                 onClicked: d.navigateUp();
             }
 
@@ -135,7 +135,7 @@ ModalWindow {
 
         TextField {
             id: currentDirectory
-            property var lastValidFolder: helper.urlToPath(model.folder)
+            property var lastValidFolder: helper.urlToPath(folderListModel.folder)
             height: homeButton.height
             anchors {
                 top: parent.top
@@ -161,7 +161,7 @@ ModalWindow {
                     text = lastValidFolder;
                     return
                 }
-                model.folder = helper.pathToUrl(text);
+                folderListModel.folder = helper.pathToUrl(text);
             }
         }
 
@@ -172,7 +172,7 @@ ModalWindow {
             property bool currentSelectionIsFolder;
             property var backStack: []
             property var tableViewConnection: Connections { target: fileTableView; onCurrentRowChanged: d.update(); }
-            property var modelConnection: Connections { target: model; onFolderChanged: d.update(); }
+            property var modelConnection: Connections { target: model; onFolderChanged: d.update(); }  // DJRTODO
             property var homeDestination: helper.home();
             Component.onCompleted: update();
 
@@ -194,15 +194,35 @@ ModalWindow {
             }
 
             function navigateUp() {
-                if (model.parentFolder && model.parentFolder !== "") {
-                    model.folder = model.parentFolder
+                if (folderListModel.parentFolder && folderListModel.parentFolder !== "") {
+                    folderListModel.folder = folderListModel.parentFolder
                     return true;
                 }
             }
 
             function navigateHome() {
-                model.folder = homeDestination;
+                folderListModel.folder = homeDestination;
                 return true;
+            }
+        }
+
+        FolderListModel {
+            id: folderListModel
+            nameFilters: selectionType.currentFilter
+            showDirsFirst: true
+            showDotAndDotDot: false
+            showFiles: !root.selectDirectory
+            // For some reason, declaring these bindings directly in the targets doesn't
+            // work for setting the initial state
+            Component.onCompleted: {
+                currentDirectory.lastValidFolder  = Qt.binding(function() { return helper.urlToPath(folder); });
+                upButton.enabled = Qt.binding(function() { return (parentFolder && parentFolder != "") ? true : false; });
+                showFiles = !root.selectDirectory
+            }
+            onFolderChanged: {
+                fileTableView.selection.clear();
+                fileTableView.selection.select(0);
+                fileTableView.currentRow = 0;
             }
         }
 
@@ -227,25 +247,7 @@ ModalWindow {
             sortIndicatorOrder: Qt.AscendingOrder
             sortIndicatorVisible: true
 
-            model: FolderListModel {
-                id: model
-                nameFilters: selectionType.currentFilter
-                showDirsFirst: true
-                showDotAndDotDot: false
-                showFiles: !root.selectDirectory
-                // For some reason, declaring these bindings directly in the targets doesn't
-                // work for setting the initial state
-                Component.onCompleted: {
-                    currentDirectory.lastValidFolder  = Qt.binding(function() { return helper.urlToPath(model.folder); });
-                    upButton.enabled = Qt.binding(function() { return (model.parentFolder && model.parentFolder != "") ? true : false; });
-                    showFiles = !root.selectDirectory
-                }
-                onFolderChanged: {
-                    fileTableView.selection.clear();
-                    fileTableView.selection.select(0);
-                    fileTableView.currentRow = 0;
-                }
-            }
+            model: folderListModel
 
             function updateSort() {
                 model.sortReversed = sortIndicatorColumn == 0
@@ -343,7 +345,7 @@ ModalWindow {
                 var isFolder = model.isFolder(row);
                 var file = model.get(row, "fileURL");
                 if (isFolder) {
-                    fileTableView.model.folder = file
+                    fileTableView.model.folder = file;
                 } else {
                     okAction.trigger();
                 }
