@@ -380,12 +380,6 @@
                 z: -79.8097
             });
 
-            var blueChair = new BlueChair({
-                x: 1100.4821,
-                y: 459.9147,
-                z: -75.9071
-            });
-
 
             var stuffOnShelves = new StuffOnShelves({
                 x: 1105.9432,
@@ -422,6 +416,25 @@
                 y: 461,
                 z: -73.3
             });
+
+            var dressingRoomBricabrac = new Bricabrac({
+                x: 1107.6450,
+                y: 460.4309,
+                z: -72.6496
+            });
+
+            var bench = new Bench({
+                x: 1100.1210,
+                y: 459.4552,
+                z: -75.4537
+            });
+
+            var umbrella = new Umbrella({
+                x: 1097.5510,
+                y: 459.5230,
+                z: -84.3897
+            });
+            
             print('HOME after creating kinetic entities');
         },
 
