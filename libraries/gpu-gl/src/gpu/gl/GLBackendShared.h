@@ -12,11 +12,10 @@
 #define hifi_gpu_GLBackend_Shared_h
 
 #include <gl/Config.h>
+#include <gpu/Forward.h>
+#include <gpu/Format.h>
 
-#include <QDebug>
-
-#include "GPULogging.h"
-#include "GLBackend.h"
+namespace gpu { namespace gl { 
 
 static const GLenum _primitiveToGLmode[gpu::NUM_PRIMITIVES] = {
     GL_POINTS,
@@ -59,10 +58,11 @@ public:
     static GLTexelFormat evalGLTexelFormat(const gpu::Element& dstFormat, const gpu::Element& srcFormat);
 };
 
-// Stupid preprocessor trick to turn the line macro into a string
-#define CHECK_GL_ERROR_HELPER(x) #x
-// FIXME doesn't build on Linux or Mac.  Hmmmm
-// #define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__ ":" CHECK_GL_ERROR_HELPER(__LINE__))
-#define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__)
+bool checkGLError(const char* name = nullptr);
+bool checkGLErrorDebug(const char* name = nullptr);
+
+} }
+
+#define CHECK_GL_ERROR() gpu::gl::checkGLErrorDebug(__FUNCTION__)
 
 #endif

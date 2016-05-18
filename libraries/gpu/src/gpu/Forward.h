@@ -31,6 +31,7 @@ namespace gpu {
     using int8 = int8_t;
 
     using Byte = uint8;
+    using Size = size_t;
     using Offset = size_t;
     using Offsets = std::vector<Offset>;
 
@@ -80,6 +81,11 @@ namespace gpu {
     using Textures = std::vector<TexturePointer>;
     class TextureView;
     using TextureViews = std::vector<TextureView>;
+
+    namespace gl {
+        class GLBuffer;
+        class GLBackend;
+    }
 }
 
 #endif

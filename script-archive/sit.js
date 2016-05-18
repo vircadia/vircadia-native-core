@@ -319,8 +319,6 @@ function addIndicators(modelID) {
         }
         
         models[modelID] = modelID;
-    } else {
-        Entities.editEntity(modelID, { glowLevel: 0.0 });
     }
 }
 

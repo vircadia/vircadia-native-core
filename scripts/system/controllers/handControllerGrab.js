@@ -739,6 +739,9 @@ function MyController(hand) {
     };
 
     this.propsArePhysical = function(props) {
+        if (!props.dynamic) {
+            return false;
+        }
         var isPhysical = (props.shapeType && props.shapeType != 'none');
         return isPhysical;
     }

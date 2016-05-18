@@ -46,7 +46,9 @@ public:
         UserInput,
         Back,
         Forward,
-        StartupFromSettings
+        StartupFromSettings,
+        DomainPathResponse,
+        Internal
     };
 
     bool isConnected();
@@ -77,7 +79,7 @@ public slots:
 
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
     bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
-        { return handleViewpoint(viewpointString, false, false, pathString); }
+        { return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString); }
 
     void goBack();
     void goForward();
@@ -114,18 +116,20 @@ private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
 
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 private:
-    void setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    void setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
+
+    // Set host and port, and return `true` if it was changed.
+    bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
+    bool setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
     bool handleUrl(const QUrl& lookupUrl, LookupTrigger trigger = UserInput);
 
-    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger);
+    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
-    bool handleViewpoint(const QString& viewpointString, bool shouldFace = false,
+    bool handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
                          bool definitelyPathOnly = false, const QString& pathString = QString());
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);

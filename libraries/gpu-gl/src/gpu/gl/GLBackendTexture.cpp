@@ -8,16 +8,19 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GPULogging.h"
+#include "GLBackend.h"
 
 #include <unordered_set>
 #include <unordered_map>
 #include <QtCore/QThread>
 
 #include "GLBackendShared.h"
+
 #include "GLBackendTextureTransfer.h"
 
 using namespace gpu;
+using namespace gpu::gl;
+
 
 GLenum gpuToGLTextureType(const Texture& texture) {
     switch (texture.getType()) {
@@ -408,7 +411,7 @@ void GLBackend::GLTexture::transfer() const {
             break;
 
         default:
-            qCWarning(gpulogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
+            qCWarning(gpugllogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
             break;
         }
     }
@@ -449,7 +452,7 @@ void GLBackend::GLTexture::postTransfer() {
             break;
 
         default:
-            qCWarning(gpulogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
+            qCWarning(gpugllogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
             break;
     }
 }
@@ -535,13 +538,12 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, const GL
         GLint minFilter;
         GLint magFilter;
     };
-    static const GLFilterMode filterModes[] = {
+    static const GLFilterMode filterModes[Sampler::NUM_FILTERS] = {
         { GL_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_POINT,
         { GL_NEAREST, GL_LINEAR },  //FILTER_MIN_POINT_MAG_LINEAR,
         { GL_LINEAR, GL_NEAREST },  //FILTER_MIN_LINEAR_MAG_POINT,
         { GL_LINEAR, GL_LINEAR },  //FILTER_MIN_MAG_LINEAR,
 
-        { GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_MIP_POINT,
         { GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_MIP_POINT,
         { GL_NEAREST_MIPMAP_LINEAR, GL_NEAREST },  //FILTER_MIN_MAG_POINT_MIP_LINEAR,
         { GL_NEAREST_MIPMAP_NEAREST, GL_LINEAR },  //FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT,
@@ -557,7 +559,7 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, const GL
     glTexParameteri(object->_target, GL_TEXTURE_MIN_FILTER, fm.minFilter);
     glTexParameteri(object->_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
-    static const GLenum comparisonFuncs[] = {
+    static const GLenum comparisonFuncs[NUM_COMPARISON_FUNCS] = {
         GL_NEVER,
         GL_LESS,
         GL_EQUAL,
@@ -574,7 +576,7 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, const GL
         glTexParameteri(object->_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     }
 
-    static const GLenum wrapModes[] = {
+    static const GLenum wrapModes[Sampler::NUM_WRAP_MODES] = {
         GL_REPEAT,                         // WRAP_REPEAT,
         GL_MIRRORED_REPEAT,                // WRAP_MIRROR,
         GL_CLAMP_TO_EDGE,                  // WRAP_CLAMP,

@@ -10,6 +10,7 @@
 #include <QSharedPointer>
 #include <GenericQueueThread.h>
 #include "GLBackendShared.h"
+#include "GLBackend.h"
 
 #ifdef Q_OS_WIN
 #define THREADED_TEXTURE_TRANSFER
@@ -17,7 +18,7 @@
 
 class OffscreenGLCanvas;
 
-namespace gpu {
+namespace gpu { namespace gl {
 
 struct TextureTransferPackage {
     std::weak_ptr<Texture> texture;
@@ -41,4 +42,4 @@ private:
     QSharedPointer<OffscreenGLCanvas> _canvas;
 };
 
-}
+} }

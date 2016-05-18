@@ -157,6 +157,11 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
 
     auto updateFunctor = functors.begin();
     for (auto updateID : ids) {
+        if (updateID == Item::INVALID_ITEM_ID) {
+            updateFunctor++;
+            continue;
+        }
+
         // Access the true item
         auto& item = _items[updateID];
         auto oldCell = item.getCell();

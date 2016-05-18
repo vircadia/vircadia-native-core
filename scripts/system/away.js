@@ -262,6 +262,14 @@ eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(goActive);
+eventMapping.from(Controller.Standard.LT).peek().to(goActive);
+eventMapping.from(Controller.Standard.LB).peek().to(goActive);
+eventMapping.from(Controller.Standard.LS).peek().to(goActive);
+eventMapping.from(Controller.Standard.RT).peek().to(goActive);
+eventMapping.from(Controller.Standard.RB).peek().to(goActive);
+eventMapping.from(Controller.Standard.RS).peek().to(goActive);
+eventMapping.from(Controller.Standard.Back).peek().to(goActive);
+eventMapping.from(Controller.Standard.Start).peek().to(goActive);
 Controller.enableMapping(eventMappingName);
 
 Script.scriptEnding.connect(function () {
