@@ -1,5 +1,6 @@
 {
     "Entities": [{
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/kineticObjects/skully/skullyhull.obj",
         "created": "2016-05-16T19:34:28Z",
@@ -37,6 +38,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/dressingRoom/trump.obj",
         "created": "2016-05-18T00:02:46Z",
@@ -74,6 +76,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/dressingRoom/dreads.obj",
         "created": "2016-05-18T00:02:46Z",
@@ -111,10 +114,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tophat/tophat.obj",
+        "compoundShapeURL": "atp:/kineticObjects/tophat/tophat.obj",
         "created": "2016-05-16T16:59:22Z",
         "dimensions": {
             "x": 0.38495281338691711,
@@ -128,7 +132,7 @@
             "z": 0
         },
         "id": "{8cff801b-cb50-47d2-a1e8-4f7ee245d2ee}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tophat/tophat.fbx",
+        "modelURL": "atp:/kineticObjects/tophat/tophat.fbx",
         "position": {
             "x": 0,
             "y": 0.541900634765625,
@@ -150,10 +154,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/m2.obj",
+        "compoundShapeURL": "atp:/kineticObjects/hair/m2.obj",
         "created": "2016-05-16T17:12:28Z",
         "dimensions": {
             "x": 0.094467177987098694,
@@ -167,7 +172,7 @@
             "z": 0
         },
         "id": "{0805851a-4ef1-4075-b4b3-5692ca7d6352}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/m2.fbx",
+        "modelURL": "atp:/kineticObjects/hair/m3.fbx",
         "position": {
             "x": 0.0111083984375,
             "y": 0.00689697265625,
@@ -189,6 +194,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/dressingRoom/rectangleFrames.obj",
         "created": "2016-05-18T15:50:52Z",
@@ -227,10 +233,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/b3.obj",
+        "compoundShapeURL": "atp:/kineticObjects/hair/b3.obj",
         "created": "2016-05-16T17:10:17Z",
         "dimensions": {
             "x": 0.19054701924324036,
@@ -244,7 +251,7 @@
             "z": 0
         },
         "id": "{32926ddc-7c3b-49ca-97da-56e69af211af}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/b3.fbx",
+        "modelURL": "atp:/kineticObjects/hair/b3.fbx",
         "position": {
             "x": 0.75,
             "y": 0.0643310546875,
@@ -266,10 +273,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/b1.obj",
+        "compoundShapeURL": "atp:/kineticObjects/hair/b1.obj",
         "created": "2016-05-16T17:05:55Z",
         "dimensions": {
             "x": 0.18918535113334656,
@@ -283,7 +291,7 @@
             "z": 0
         },
         "id": "{c412654f-9feb-489d-91f9-6f4eb369afe7}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/b1.fbx",
+        "modelURL": "atp:/kineticObjects/hair/b1.fbx",
         "position": {
             "x": 0.55712890625,
             "y": 0.0443115234375,
@@ -305,10 +313,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/m3.obj",
+        "compoundShapeURL": "atp:/kineticObjects/hair/m3.obj",
         "created": "2016-05-16T17:12:28Z",
         "dimensions": {
             "x": 0.15590831637382507,
@@ -322,7 +331,7 @@
             "z": 0
         },
         "id": "{c2df6722-e970-4c36-bf42-b117e2bc13c4}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/m3.fbx",
+        "modelURL": "atp:/kineticObjects/hair/m3.fbx",
         "position": {
             "x": 0.1549072265625,
             "y": 0.006439208984375,
@@ -344,6 +353,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/dressingRoom/Elvis.obj",
         "created": "2016-05-17T23:58:24Z",
@@ -381,6 +391,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/dressingRoom/roundFrames.obj",
         "created": "2016-05-18T15:55:14Z",
@@ -419,10 +430,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/m1.obj",
+        "compoundShapeURL": "atp:/kineticObjects/hair/m1.obj",
         "created": "2016-05-16T17:10:17Z",
         "dimensions": {
             "x": 0.10473950952291489,
@@ -436,7 +448,7 @@
             "z": 0
         },
         "id": "{448c53c2-bf1e-44f5-b28f-06da33a4145d}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/m1.fbx",
+        "modelURL": "atp:/kineticObjects/hair/m1.fbx",
         "position": {
             "x": 0.29052734375,
             "y": 0,
@@ -458,10 +470,11 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
-        "compoundShapeURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/b2.obj",
+        "compoundShapeURL": "atp:/kineticObjects/hair/b2.obj",
         "created": "2016-05-16T17:05:55Z",
         "dimensions": {
             "x": 0.12604480981826782,
@@ -475,7 +488,7 @@
             "z": 0
         },
         "id": "{33d3ba77-d2c9-4a5f-ba1c-f6f731d05221}",
-        "modelURL": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/JJAssets/Stache%26Beard_Home/b2.fbx",
+        "modelURL": "atp:/kineticObjects/hair/b3.fbx",
         "position": {
             "x": 0.4130859375,
             "y": 0.030181884765625,
@@ -497,6 +510,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
         "collisionMask": 23,
         "collisionsWillMove": 1,
@@ -536,6 +550,7 @@
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }, {
+        "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
         "compoundShapeURL": "atp:/dressingRoom/afro.obj",
         "created": "2016-05-17T23:58:24Z",

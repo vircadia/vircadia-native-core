@@ -418,8 +418,8 @@
             });
 
             var dressingRoomBricabrac = new Bricabrac({
-                x: 1105.8,
-                y: 460.4309,
+                x: 1106.8,
+                y: 460.3909,
                 z: -72.6
             });
 
