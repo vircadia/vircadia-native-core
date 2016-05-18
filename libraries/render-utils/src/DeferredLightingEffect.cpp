@@ -149,17 +149,12 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
 
         batch.setFramebuffer(deferredFbo);
 
-        // Clear Color, Depth and Stencil
+        // Clear Color, Depth and Stencil for deferred buffer
         batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 |
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-
-        // clear the normal and specular buffers
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
-        const float MAX_SPECULAR_EXPONENT = 128.0f;
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT), true);
+            vec4(vec3(0), 0), 1.0, 0.0, true);
     });
 }
 
@@ -469,9 +464,15 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                         batch.setInputBuffer(0, mesh->getVertexBuffer());
                         batch.setInputFormat(mesh->getVertexFormat());
 
-                        auto& part = mesh->getPartBuffer().get<model::Mesh::Part>();
-
-                        batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
+                        {
+                            auto& part = mesh->getPartBuffer().get<model::Mesh::Part>(0);
+                            batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
+                        }
+                        // keep for debug
+                   /*     {
+                            auto& part = mesh->getPartBuffer().get<model::Mesh::Part>(1);
+                            batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
+                        }*/
                     }
                 }
             }
@@ -548,14 +549,13 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     // Stencil test all the light passes for objects pixels only, not the background
     state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-
+    
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
-        
-        // No need for z test since the depth buffer is not bound state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        // TODO: We should bind the true depth buffer both as RT and texture for the depth test
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
-        state->setDepthClampEnable(true);
+        //state->setDepthClampEnable(true);
 
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -662,10 +662,14 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         _spotLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(unsigned short) * indices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
         delete[] indexData;
 
-        model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);
-        //DEBUG: model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
         
-        _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
+        std::vector<model::Mesh::Part> parts;
+        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::TRIANGLES));
+        //DEBUG: 
+        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::LINE_STRIP));
+
+        
+        _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
     }
     return _spotLightMesh;
 }
