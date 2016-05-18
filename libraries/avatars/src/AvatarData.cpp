@@ -219,9 +219,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
 
-    // pupil dilation
-    destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
-
     // joint rotation data
     *destinationBuffer++ = _jointData.size();
     unsigned char* validityPosition = destinationBuffer;
@@ -306,15 +303,11 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
-
     if (validityBit != 0) {
         *destinationBuffer++ = validity;
     }
 
-    // TODO -- automatically pick translationCompressionRadix
-    int translationCompressionRadix = 12;
-
-    *destinationBuffer++ = translationCompressionRadix;
+    const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     validityBit = 0;
     validity = *validityPosition++;
@@ -322,7 +315,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         const JointData& data = _jointData[ i ];
         if (validity & (1 << validityBit)) {
             destinationBuffer +=
-                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, translationCompressionRadix);
+                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -335,7 +328,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                  << "largest:" << maxTranslationDimension
-                 << "radix:" << translationCompressionRadix
                  << "size:"
                  << (beforeRotations - startPosition) << "+"
                  << (beforeTranslations - beforeRotations) << "+"
@@ -408,7 +400,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     //     audioLoudness =  4
     // }
     // + 1 byte for varying data
-    // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
     // = 39 bytes
     int minPossibleSize = 39;
@@ -598,11 +589,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     } // 1 + bitItemsDataSize bytes
 
-    { // pupil dilation
-        sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
-    } // 1 byte
-
-
     // joint rotations
     int numJoints = *sourceBuffer++;
 
@@ -650,6 +636,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     } // 1 + bytesOfValidity bytes
 
     // each joint rotation is stored in 6 bytes.
+
     const size_t COMPRESSED_QUATERNION_SIZE = 6;
     minPossibleSize += numValidJointRotations * COMPRESSED_QUATERNION_SIZE;
     if (minPossibleSize > maxAvailableSize) {
@@ -699,9 +686,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     } // 1 + bytesOfValidity bytes
 
-    // each joint translation component is stored in 6 bytes.  1 byte for translationCompressionRadix
+    // each joint translation component is stored in 6 bytes.
     const size_t COMPRESSED_TRANSLATION_SIZE = 6;
-    minPossibleSize += numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE + 1;
+    minPossibleSize += numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE;
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
             qCDebug(avatars) << "Malformed AvatarData packet after JointData translation validity;"
@@ -712,7 +699,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         return maxAvailableSize;
     }
 
-    int translationCompressionRadix = *sourceBuffer++;
+    const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     { // joint data
         for (int i = 0; i < numJoints; i++) {
@@ -721,7 +708,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
                 if (skipJoints) {
                     sourceBuffer += COMPRESSED_TRANSLATION_SIZE;
                 } else {
-                    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, translationCompressionRadix);
+                    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
                     _hasNewJointTranslations = true;
                     data.translationSet = true;
                 }
@@ -733,7 +720,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     if (numValidJointRotations > 15) {
         qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
                  << "translations:" << numValidJointTranslations
-                 << "radix:" << translationCompressionRadix
                  << "size:" << (int)(sourceBuffer - startPosition);
     }
     #endif
