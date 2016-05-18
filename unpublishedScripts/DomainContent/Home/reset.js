@@ -621,7 +621,7 @@
             var rightHandPosition = MyAvatar.getRightPalmPosition();
 
             var rightDistance = Vec3.distance(leftHandPosition, BEAM_POSITION)
-            var leftDistance = Vec3.distance(leftHandPosition, BEAM_POSITION)
+            var leftDistance = Vec3.distance(rightHandPosition, BEAM_POSITION)
 
             if (rightDistance < BEAM_TRIGGER_THRESHOLD || leftDistance < BEAM_TRIGGER_THRESHOLD) {
                 _this.toggleButton();
