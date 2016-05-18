@@ -422,8 +422,8 @@ protected:
         ActivationCache _attributeActivation;
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
-        BuffersState _invalidBuffers;
-        BuffersState _attribBindingBuffers;
+        BuffersState _invalidBuffers{ 0 };
+        BuffersState _attribBindingBuffers{ 0 };
 
         Buffers _buffers;
         Offsets _bufferOffsets;
@@ -447,7 +447,6 @@ protected:
             _format(0),
             _formatKey(),
             _attributeActivation(0),
-            _invalidBuffers(0),
             _buffers(_invalidBuffers.size(), BufferPointer(0)),
             _bufferOffsets(_invalidBuffers.size(), 0),
             _bufferStrides(_invalidBuffers.size(), 0),
