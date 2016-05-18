@@ -13,6 +13,17 @@
 
 #include <QOpenGLContext>
 
+uint32_t QOpenGLContextWrapper::currentContextVersion() {
+    QOpenGLContext* context = QOpenGLContext::currentContext();
+    if (!context) {
+        return 0;
+    }
+    auto format = context->format();
+    auto version = (format.majorVersion() << 8) + format.minorVersion();
+    return version;
+}
+
+
 QOpenGLContext* QOpenGLContextWrapper::currentContext() {
     return QOpenGLContext::currentContext();
 }

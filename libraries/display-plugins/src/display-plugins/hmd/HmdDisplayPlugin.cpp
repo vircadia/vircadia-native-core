@@ -16,7 +16,6 @@
 
 #include <GLMHelpers.h>
 #include <plugins/PluginContainer.h>
-#include <gpu/GLBackend.h>
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>

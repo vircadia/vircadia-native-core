@@ -8,10 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GLBackend.h"
 #include "GLBackendShared.h"
-#include "Format.h"
 
 using namespace gpu;
+using namespace gpu::gl;
 
 GLBackend::GLShader::GLShader()
 {
@@ -30,14 +31,14 @@ GLBackend::GLShader::~GLShader() {
 
 bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject) {
     if (shaderSource.empty()) {
-        qCDebug(gpulogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
+        qCDebug(gpugllogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
         return false;
     }
 
     // Create the shader object
     GLuint glshader = glCreateShader(shaderDomain);
     if (!glshader) {
-        qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader object";
+        qCDebug(gpugllogging) << "GLShader::compileShader - failed to create the gl shader object";
         return false;
     }
 
@@ -79,12 +80,12 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
         }
         */
 
-        qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        qCWarning(gpugllogging) << "GLShader::compileShader - failed to compile the gl shader object:";
         for (auto s : srcstr) {
-            qCWarning(gpulogging) << s;
+            qCWarning(gpugllogging) << s;
         }
-        qCWarning(gpulogging) << "GLShader::compileShader - errors:";
-        qCWarning(gpulogging) << temp;
+        qCWarning(gpugllogging) << "GLShader::compileShader - errors:";
+        qCWarning(gpugllogging) << temp;
         delete[] temp;
 
         glDeleteShader(glshader);
@@ -96,7 +97,7 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
     // so far so good, program is almost done, need to link:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
-        qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader & gl program object";
+        qCDebug(gpugllogging) << "GLShader::compileShader - failed to create the gl shader & gl program object";
         return false;
     }
 
@@ -124,8 +125,8 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
         char* temp = new char[infoLength];
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qCDebug(gpulogging) << "GLShader::compileShader -  failed to LINK the gl program object :";
-        qCDebug(gpulogging) << temp;
+        qCDebug(gpugllogging) << "GLShader::compileShader -  failed to LINK the gl program object :";
+        qCDebug(gpugllogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -152,7 +153,7 @@ GLuint compileProgram(const std::vector<GLuint>& glshaders) {
     // A brand new program:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
-        qCDebug(gpulogging) << "GLShader::compileProgram - failed to create the gl program object";
+        qCDebug(gpugllogging) << "GLShader::compileProgram - failed to create the gl program object";
         return 0;
     }
 
@@ -185,8 +186,8 @@ GLuint compileProgram(const std::vector<GLuint>& glshaders) {
         char* temp = new char[infoLength];
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qCDebug(gpulogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
-        qCDebug(gpulogging) << temp;
+        qCDebug(gpugllogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
+        qCDebug(gpugllogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -264,7 +265,7 @@ void makeProgramBindings(GLBackend::GLShader::ShaderObject& shaderObject) {
     GLint linked = 0;
     glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
     if (!linked) {
-        qCDebug(gpulogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
+        qCDebug(gpugllogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
     }
 
     // now assign the ubo binding, then DON't relink!
@@ -358,7 +359,7 @@ GLBackend::GLShader* compileBackendProgram(const Shader& program) {
             if (object) {
                 shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
             } else {
-                qCDebug(gpulogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
+                qCDebug(gpugllogging) << "GLShader::compileBackendProgram - One of the shaders of the program is not compiled?";
                 return nullptr;
             }
         }
@@ -559,18 +560,8 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 
 
 int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
-    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers
-#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-    , Shader::SlotSet& fakeBuffers
-#endif
-) {
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
     GLint uniformsCount = 0;
-
-#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-    GLint currentProgram = 0;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
-    glUseProgram(glprogram);
-#endif
 
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
 
@@ -604,15 +595,6 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
             }
 
             if (elementResource._resource == Resource::BUFFER) {
-#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-                // if in legacy profile, we fake the uniform buffer with an array
-                // this is where we detect it assuming it's explicitely assinged a binding
-                auto requestedBinding = slotBindings.find(std::string(sname));
-                if (requestedBinding != slotBindings.end()) {
-                    // found one buffer!
-                    fakeBuffers.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
-                }
-#endif
                 uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
             } else {
                 // For texture/Sampler, the location is the actual binding value
@@ -623,11 +605,7 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
                 if (requestedBinding != slotBindings.end()) {
                     if (binding != (*requestedBinding)._location) {
                         binding = (*requestedBinding)._location;
-#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-                        glUniform1i(location, binding);
-#else
                         glProgramUniform1i(glprogram, location, binding);
-#endif
                     }
                 }
 
@@ -636,10 +614,6 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
             }
         }
     }
-
-#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-    glUseProgram(currentProgram);
-#endif
 
     return uniformsCount;
 }

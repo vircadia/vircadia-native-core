@@ -60,7 +60,7 @@
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <InfoView.h>
@@ -1245,8 +1245,7 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
-    gpu::Context::init<gpu::GLBackend>();
+    gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
