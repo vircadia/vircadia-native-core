@@ -8,11 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GLBackend.h"
 #include "GLBackendShared.h"
 
-#include "Format.h"
-
 using namespace gpu;
+using namespace gpu::gl;
 
 GLBackend::GLPipeline::GLPipeline() :
     _program(nullptr),
@@ -157,7 +157,6 @@ void GLBackend::resetPipelineStage() {
 
 
 void GLBackend::releaseUniformBuffer(uint32_t slot) {
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     auto& buf = _uniform._buffers[slot];
     if (buf) {
         auto* object = Backend::getGPUObject<GLBackend::GLBuffer>(*buf);
@@ -168,7 +167,6 @@ void GLBackend::releaseUniformBuffer(uint32_t slot) {
         }
         buf.reset();
     }
-#endif
 }
 
 void GLBackend::resetUniformStage() {
@@ -186,7 +184,6 @@ void GLBackend::do_setUniformBuffer(Batch& batch, size_t paramOffset) {
 
 
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     if (!uniformBuffer) {
         releaseUniformBuffer(slot);
         return;
@@ -208,21 +205,6 @@ void GLBackend::do_setUniformBuffer(Batch& batch, size_t paramOffset) {
         releaseResourceTexture(slot);
         return;
     }
-#else
-    // because we rely on the program uniform mechanism we need to have
-    // the program bound, thank you MacOSX Legacy profile.
-    updatePipeline();
-    
-    GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
-    glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
- 
-    // NOT working so we ll stick to the uniform float array until we move to core profile
-    // GLuint bo = getBufferID(*uniformBuffer);
-    //glUniformBufferEXT(_shader._program, slot, bo);
-
-    (void) CHECK_GL_ERROR();
-
-#endif
 }
 
 void GLBackend::releaseResourceTexture(uint32_t slot) {

@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/QOpenGLDebugLoggerWrapper.h>
@@ -111,7 +111,7 @@ public:
         show();
         makeCurrent();
 
-        gpu::Context::init<gpu::GLBackend>();
+        gpu::Context::init<gpu::gl::GLBackend>();
 
 
         setupDebugLogger(this);

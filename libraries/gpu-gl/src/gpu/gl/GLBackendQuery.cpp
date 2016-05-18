@@ -8,10 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "GLBackend.h"
 #include "GLBackendShared.h"
 
-
 using namespace gpu;
+using namespace gpu::gl;
 
 GLBackend::GLQuery::GLQuery() {}
 
@@ -64,12 +65,7 @@ void GLBackend::do_beginQuery(Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-            // (EXT_TIMER_QUERY)
-            glBeginQuery(GL_TIME_ELAPSED_EXT, glquery->_qo);
-        #else
-            glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
-        #endif
+        glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
         (void)CHECK_GL_ERROR();
     }
 }
@@ -78,12 +74,7 @@ void GLBackend::do_endQuery(Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-            // (EXT_TIMER_QUERY)
-            glEndQuery(GL_TIME_ELAPSED_EXT);
-        #else
-            glEndQuery(GL_TIME_ELAPSED);
-        #endif
+        glEndQuery(GL_TIME_ELAPSED);
         (void)CHECK_GL_ERROR();
     }
 }
@@ -92,18 +83,11 @@ void GLBackend::do_getQuery(Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) { 
-        #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-            // (EXT_TIMER_QUERY)
-            #if !defined(Q_OS_LINUX)
-            glGetQueryObjectui64vEXT(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
-            #endif
-        #else
-            glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
-            if (glquery->_result == GL_TRUE) {
-                glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
-                query->triggerReturnHandler(glquery->_result);
-            }
-        #endif
+        glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
+        if (glquery->_result == GL_TRUE) {
+            glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+            query->triggerReturnHandler(glquery->_result);
+        }
         (void)CHECK_GL_ERROR();
     }
 }

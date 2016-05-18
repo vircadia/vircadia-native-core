@@ -150,6 +150,7 @@ void ScriptEngines::shutdownScripting() {
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
+        // TODO: Scripts could be shut down faster if we spread them across a threadpool.
         if (scriptEngine->isRunning()) {
             qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
@@ -158,8 +159,7 @@ void ScriptEngines::shutdownScripting() {
             // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(this);
 
-            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
-            // in the ScriptEngine gracefully ending it's run() method.
+            // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
 
             // We need to wait for the engine to be done running before we proceed, because we don't
@@ -171,7 +171,7 @@ void ScriptEngines::shutdownScripting() {
 
             scriptEngine->deleteLater();
 
-            // If the script is stopped, we can remove it from our set
+            // Once the script is stopped, we can remove it from our set
             i.remove();
         }
     }
@@ -427,7 +427,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return scriptEngine;
     }
 
-    scriptEngine = new ScriptEngine(NO_SCRIPT, "", true);
+    scriptEngine = new ScriptEngine(NO_SCRIPT, "");
     scriptEngine->setUserLoaded(isUserLoaded);
     connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
         scriptEngine->deleteLater();

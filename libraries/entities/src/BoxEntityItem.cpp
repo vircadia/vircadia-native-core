@@ -36,9 +36,6 @@ EntityItemProperties BoxEntityItem::getProperties(EntityPropertyFlags desiredPro
     properties._color = getXColor();
     properties._colorChanged = false;
 
-    properties._glowLevel = getGlowLevel();
-    properties._glowLevelChanged = false;
-
     return properties;
 }
 
