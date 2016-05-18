@@ -34,17 +34,13 @@ GLBackend::GLInputFormat* GLBackend::syncGPUObject(const Stream::Format& inputFo
 
 void GLBackend::do_setInputFormat(Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
-    GLInputFormat* ifo = GLBackend::syncGPUObject(*format);
-    if (ifo) {
+    if(GLBackend::syncGPUObject(*format)) {
         if (format != _input._format) {
             _input._format = format;
+            _input._invalidFormat = true;
             if (format) {
-                if (_input._formatKey != format->getKey()) {
-                    _input._formatKey = format->getKey();
-                    _input._invalidFormat = true;
-                }
+                _input._formatKey = format->getKey();
             } else {
-                _input._invalidFormat = true;
                 _input._formatKey.clear();
             }
         }
@@ -86,9 +82,6 @@ void GLBackend::do_setInputBuffer(Batch& batch, size_t paramOffset) {
         }
     }
 }
-
-
-
 
 void GLBackend::initInput() {
     if(!_input._defaultVAO) {
