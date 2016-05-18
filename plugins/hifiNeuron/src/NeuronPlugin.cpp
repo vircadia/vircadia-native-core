@@ -458,7 +458,7 @@ void NeuronPlugin::InputDevice::update(float deltaTime, const controller::InputC
         const glm::vec3& pos = joints[i].pos;
         const glm::vec3& rotEuler = joints[i].euler;
 
-        if ((Vectors::ZERO == pos && Vectors::ZERO == rotEuler)) {
+        if (Vectors::ZERO == pos && Vectors::ZERO == rotEuler) {
             _poseStateMap[poseIndex] = controller::Pose();
             continue;
         }

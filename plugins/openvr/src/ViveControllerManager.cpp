@@ -213,7 +213,6 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
-    _inputDevice->update(deltaTime, inputCalibrationData);
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
     // because update mutates the internal state we need to lock

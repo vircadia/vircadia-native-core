@@ -11,6 +11,10 @@
 
 #include "SpacemouseManager.h"
 
+#ifdef Q_OS_WIN
+#include <VersionHelpers.h>
+#endif
+
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
@@ -170,8 +174,6 @@ void SpacemouseDevice::update(float deltaTime, const controller::InputCalibratio
 }
 
 #ifdef Q_OS_WIN
-
-#include <VersionHelpers.h>
 
 bool SpacemouseManager::nativeEventFilter(const QByteArray& eventType, void* message, long* result) {
     MSG* msg = static_cast< MSG * >(message);
