@@ -12,6 +12,7 @@
 #include "ViveControllerManager.h"
 
 #include <QtCore/QProcessEnvironment>
+#include <QtQuick/QQuickWindow>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -22,6 +23,7 @@
 #include <NumericalConstants.h>
 #include <plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
+#include <OffscreenUi.h>
 
 #include <controllers/UserInputMapper.h>
 
@@ -55,6 +57,9 @@ bool ViveControllerManager::isSupported() const {
     return openVrSupported();
 }
 
+QMetaObject::Connection _focusConnection;
+extern bool _openVrDisplayActive;
+
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
 
@@ -67,7 +72,20 @@ bool ViveControllerManager::activate() {
         _system = acquireOpenVrSystem();
     }
     Q_ASSERT(_system);
-
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    _focusConnection = connect(offscreenUi.data(), &OffscreenUi::focusTextChanged, [this](bool focusText) {
+        if (_openVrDisplayActive) {
+            auto overlay = vr::VROverlay();
+            if (overlay) {
+                if (focusText) {
+                    //virtual EVROverlayError ShowKeyboard( eInputMode, EGamepadTextInputLineMode eLineInputMode, const char *pchDescription, uint32_t unCharMax, const char *pchExistingText, bool bUseMinimalMode, uint64_t uUserValue) = 0;
+                    overlay->ShowKeyboard(vr::EGamepadTextInputMode::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine, "Test", 1024, "", false, 0);
+                } else {
+                    overlay->HideKeyboard();
+                }
+            }
+        }
+    });
     // OpenVR provides 3d mesh representations of the controllers
     // Disabled controller rendering code
     /*
@@ -131,6 +149,8 @@ bool ViveControllerManager::activate() {
 
 void ViveControllerManager::deactivate() {
     InputPlugin::deactivate();
+
+    disconnect(_focusConnection);
 
     _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     _container->removeMenu(MENU_PATH);
@@ -218,6 +238,18 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     if (openVrQuitRequested()) {
         deactivate();
         return;
+    }
+
+    vr::VREvent_t vrEvent;
+    static char textArray[8192];
+    while (vr::VRSystem()->PollNextEvent(&vrEvent, sizeof(vrEvent))) {
+        if (vrEvent.eventType == vr::VREvent_KeyboardDone) {
+            auto chars = vr::VROverlay()->GetKeyboardText(textArray, 8192);
+            QInputMethodEvent* event = new QInputMethodEvent();
+            event->setCommitString(QString(QByteArray(textArray, chars)), 0, 0);
+            auto focusObject = DependencyManager::get<OffscreenUi>()->getWindow()->focusObject();
+            qApp->postEvent(focusObject, event);
+        }
     }
 
     // because update mutates the internal state we need to lock

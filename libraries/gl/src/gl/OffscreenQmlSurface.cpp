@@ -396,6 +396,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     _renderer->_renderControl->_renderWindow = _proxyWindow;
 
+    connect(_renderer->_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
     if (!_qmlEngine->incubationController()) {
@@ -741,4 +743,43 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     }
 
     return function();
+}
+
+void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    if (!object) {
+        setFocusText(false);
+        return;
+    }
+
+    QVariant result;
+#if 1
+    auto invokeResult = QMetaObject::invokeMethod(object, "inputMethodQuery", Q_RETURN_ARG(QVariant, result),
+        Q_ARG(Qt::InputMethodQuery, Qt::ImEnabled),
+        Q_ARG(QVariant, QVariant()));
+#else
+
+    //static const char* INPUT_METHOD_QUERY_METHOD_NAME = "inputMethodQuery(Qt::InputMethodQuery, QVariant)";
+    static const char* INPUT_METHOD_QUERY_METHOD_NAME = "inputMethodQuery";
+    auto meta = object->metaObject();
+    qDebug() << "new focus " << object;
+    auto index = meta->indexOfMethod(INPUT_METHOD_QUERY_METHOD_NAME);
+    if (index < 0 || index >= meta->methodCount()) {
+        setFocusText(false);
+        return;
+    }
+
+    auto method = meta->method(index);
+    auto invokeResult = method.invoke(object,
+        Q_RETURN_ARG(QVariant, result),
+        Q_ARG(Qt::InputMethodQuery, Qt::ImEnabled),
+        Q_ARG(QVariant, QVariant()));
+#endif
+    setFocusText(invokeResult && result.toBool());
+}
+
+void OffscreenQmlSurface::setFocusText(bool newFocusText) {
+    if (newFocusText != _focusText) {
+        _focusText = newFocusText;
+        emit focusTextChanged(_focusText);
+    }
 }
