@@ -147,7 +147,7 @@ public:
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
     bool isStopping() const { return _isStopping; }
-    void flagAsStopping() { _isStopping = true; }
+    void setIsStopping() { _isStopping = true; }
 
     bool isDebuggable() const { return _debuggable; }
 

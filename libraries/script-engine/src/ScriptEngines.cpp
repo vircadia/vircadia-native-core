@@ -351,7 +351,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
                 reloadScript(scriptName);
             });
         }
-        it.value()->flagAsStopping();
+        it.value()->setIsStopping();
         QMetaObject::invokeMethod(it.value(), "stop");
         //it.value()->stop();
         qCDebug(scriptengine) << "stopping script..." << it.key();
@@ -370,7 +370,7 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
         if (_scriptEnginesHash.contains(scriptURL)) {
             ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURL];
             if (restart) {
-                scriptEngine->flagAsStopping();
+                scriptEngine->setIsStopping();
                 auto scriptCache = DependencyManager::get<ScriptCache>();
                 scriptCache->deleteScript(scriptURL);
                 connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
