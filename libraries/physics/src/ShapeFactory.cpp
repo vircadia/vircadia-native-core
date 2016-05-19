@@ -10,6 +10,7 @@
 //
 
 #include <glm/gtx/norm.hpp>
+#include <BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
@@ -64,6 +65,23 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
         correctedPoint = (points[i] - center) * relativeScale + center;
         hull->addPoint(btVector3(correctedPoint[0], correctedPoint[1], correctedPoint[2]), false);
     }
+
+    const int MAX_HULL_POINTS = 42;
+    if (points.size() > MAX_HULL_POINTS) {
+        // create hull approximation
+        btShapeHull* shapeHull = new btShapeHull(hull);
+        shapeHull->buildHull(margin);
+        btConvexHullShape* newHull = new btConvexHullShape();
+        const btVector3* newPoints = shapeHull->getVertexPointer();
+        for (int i = 0; i < shapeHull->numVertices(); ++i) {
+            newHull->addPoint(newPoints[i], false);
+        }
+        delete hull;
+        delete shapeHull;
+        hull = newHull;
+        qDebug() << "reduced hull with" << points.size() << "points down to" << hull->getNumPoints(); // TODO: remove after testing
+    }
+
     hull->recalcLocalAabb();
     return hull;
 }

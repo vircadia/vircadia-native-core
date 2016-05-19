@@ -61,6 +61,7 @@ public:
 
     void clearPoints () { _points.clear(); }
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
+    int getMaxNumPoints() const;
 
     float computeVolume() const;
 
