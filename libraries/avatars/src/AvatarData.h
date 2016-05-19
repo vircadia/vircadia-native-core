@@ -128,6 +128,8 @@ enum KeyState {
     DELETE_KEY_DOWN
 };
 
+#define TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
+
 class QDataStream;
 
 class AttachmentData;

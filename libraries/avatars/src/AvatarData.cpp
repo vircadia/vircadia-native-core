@@ -37,7 +37,7 @@
 
 #include "AvatarLogging.h"
 
-#define WANT_DEBUG
+//#define WANT_DEBUG
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
@@ -984,11 +984,15 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
 
  #ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
     if (!_jointIndices.empty() && _networkJointIndexMap.empty() && !identity.jointIndices.empty()) {
+
         // build networkJointIndexMap from _jointIndices and networkJointIndices.
-        _networkJointIndexMap.fill(identity.jointIndices.size(), -1);
+        _networkJointIndexMap.fill(-1, identity.jointIndices.size());
         for (auto iter = identity.jointIndices.cbegin(); iter != identity.jointIndices.end(); ++iter) {
             int jointIndex = getJointIndex(iter.key());
-            _networkJointIndexMap[iter.value()] = jointIndex;
+            int networkJointIndex = iter.value();
+            if (networkJointIndex >= 0 && networkJointIndex < identity.jointIndices.size()) {
+                _networkJointIndexMap[networkJointIndex - 1] = jointIndex;
+            }
         }
     }
 #endif
