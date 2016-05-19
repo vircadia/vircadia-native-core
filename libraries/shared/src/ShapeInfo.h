@@ -21,6 +21,7 @@
 #include "DoubleHashKey.h"
 
 const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
+const int MAX_HULL_POINTS = 42;
 
 enum ShapeType {
     SHAPE_TYPE_NONE,

@@ -218,7 +218,6 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
             int numPoints = shapeInfo.getMaxNumPoints();
-            const int MAX_HULL_POINTS = 42;
             if (numPoints > MAX_HULL_POINTS) {
                 glm::vec3 p = entity->getPosition();
                 qWarning().nospace() << "convex hull with " << numPoints
