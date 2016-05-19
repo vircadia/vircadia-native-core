@@ -86,6 +86,7 @@ void OverlayConductor::updateMode() {
             _mode = FLAT;  // Seems appropriate to let things reset, below, after the following.
             // All reset of, e.g., room-scale location as though by apostrophe key, without all the other adjustments.
             qApp->getActiveDisplayPlugin()->resetSensors();
+            myAvatar->reset(true, false);
         }
         if (_wantsOverlays) {
             qDebug() << "flipping" << !nowDriving;

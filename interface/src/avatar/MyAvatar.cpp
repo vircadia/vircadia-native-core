@@ -234,7 +234,7 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andRecenter) {
+void MyAvatar::reset(bool andRecenter, bool andReload) {
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter));
@@ -244,7 +244,9 @@ void MyAvatar::reset(bool andRecenter) {
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
     _follow.deactivate();
-    _skeletonModel->reset();
+    if (andReload) {
+        _skeletonModel->reset();
+    }
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
