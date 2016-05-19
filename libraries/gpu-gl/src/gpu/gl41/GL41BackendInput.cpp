@@ -1,5 +1,5 @@
 //
-//  GLBackendInput.cpp
+//  GL41BackendInput.cpp
 //  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 3/8/2015.
@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
+#include "GL41Backend.h"
 
 using namespace gpu;
 using namespace gpu::gl41;
@@ -22,7 +22,7 @@ using namespace gpu::gl41;
 #define SUPPORT_VERTEX_ATTRIB_FORMAT
 #endif
 
-void GLBackend::updateInput() {
+void GL41Backend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
     if (_input._invalidFormat) {
 
@@ -36,7 +36,7 @@ void GLBackend::updateInput() {
                 GLuint slot = attrib._slot;
                 GLuint count = attrib._element.getLocationScalarCount();
                 uint8_t locationCount = attrib._element.getLocationCount();
-                GLenum type = _elementTypeToGLType[attrib._element.getType()];
+                GLenum type = _elementTypeToGL41Type[attrib._element.getType()];
                 GLuint offset = attrib._offset;;
                 GLboolean isNormalized = attrib._element.isNormalized();
 
@@ -142,7 +142,7 @@ void GLBackend::updateInput() {
                     int bufferNum = (channelIt).first;
 
                     if (_input._invalidBuffers.test(bufferNum) || _input._invalidFormat) {
-                      //  GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
+                      //  GLuint vbo = gpu::GL41Backend::getBufferID((*buffers[bufferNum]));
                         GLuint vbo = _input._bufferVBOs[bufferNum];
                         if (boundVBO != vbo) {
                             glBindBuffer(GL_ARRAY_BUFFER, vbo);

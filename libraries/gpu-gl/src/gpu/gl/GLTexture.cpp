@@ -182,7 +182,7 @@ GLTexture::~GLTexture() {
         if (0 == numTexturesForMipCount) {
             _textureCountByMips.erase(mipCount);
             if (mipCount == _currentMaxMipCount) {
-                _currentMaxMipCount = _textureCountByMips.rbegin()->first;
+                _currentMaxMipCount = (_textureCountByMips.empty() ? 0 : _textureCountByMips.rbegin()->first);
             }
         }
     }

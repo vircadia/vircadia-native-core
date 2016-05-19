@@ -102,6 +102,13 @@ public:
         return result;
     }
 
+    // Used by derived classes and helpers to ensure the actual GL object exceeds the lifetime of `this`
+    GLuint takeOwnership() {
+        GLuint result = _id;
+        const_cast<GLuint&>(_id) = 0;
+        return result;
+    }
+
     ~GLTexture();
 
     const GLuint& _texture { _id };

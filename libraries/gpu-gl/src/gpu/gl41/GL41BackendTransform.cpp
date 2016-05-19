@@ -1,5 +1,5 @@
 //
-//  GLBackendTransform.cpp
+//  GL41BackendTransform.cpp
 //  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 3/8/2015.
@@ -8,12 +8,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
+#include "GL41Backend.h"
 
 using namespace gpu;
 using namespace gpu::gl41;
 
-void GLBackend::initTransform() {
+void GL41Backend::initTransform() {
     glGenBuffers(1, &_transform._objectBuffer);
     glGenBuffers(1, &_transform._cameraBuffer);
     glGenBuffers(1, &_transform._drawCallInfoBuffer);
@@ -24,7 +24,7 @@ void GLBackend::initTransform() {
     }
 }
 
-void GLBackend::transferTransformState(const Batch& batch) const {
+void GL41Backend::transferTransformState(const Batch& batch) const {
     // FIXME not thread safe
     static std::vector<uint8_t> bufferData;
     if (!_transform._cameras.empty()) {

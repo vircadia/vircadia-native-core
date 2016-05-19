@@ -14,7 +14,6 @@
 #include <GenericQueueThread.h>
 
 #include "GLShared.h"
-#include "GLTexture.h"
 
 #ifdef Q_OS_WIN
 #define THREADED_TEXTURE_TRANSFER

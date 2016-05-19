@@ -128,13 +128,6 @@ public:
 
     virtual ~GLObject() { }
 
-    // Used by derived classes and helpers to ensure the actual GL object exceeds the lifetime of `this`
-    GLuint takeOwnership() { 
-        GLuint result = _id;
-        const_cast<GLuint&>(_id) = 0;
-        return result;
-    }
-
     const GPUType& _gpuObject;
     const GLuint _id;
 };
@@ -146,7 +139,6 @@ class GLQuery;
 class GLState;
 class GLShader;
 class GLTexture;
-class GLTextureTransferHelper;
 
 } } // namespace gpu::gl 
 

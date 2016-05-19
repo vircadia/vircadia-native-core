@@ -1,5 +1,5 @@
 //
-//  GLBackendTexture.cpp
+//  GL41BackendTexture.cpp
 //  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 1/19/2015.
@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
+#include "GL41Backend.h"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -19,29 +19,29 @@
 using namespace gpu;
 using namespace gpu::gl41;
 
-using GLTexelFormat = gl::GLTexelFormat;
-using GLTexture = GLBackend::GLTexture;
+using GL41TexelFormat = gl::GLTexelFormat;
+using GL41Texture = GL41Backend::GL41Texture;
 
-GLuint GLTexture::allocate() {
+GLuint GL41Texture::allocate() {
     Backend::incrementTextureGPUCount();
     GLuint result;
     glGenTextures(1, &result);
     return result;
 }
 
-GLuint GLBackend::getTextureID(const TexturePointer& texture, bool transfer) {
-    return GLTexture::getId<GLTexture>(texture, transfer);
+GLuint GL41Backend::getTextureID(const TexturePointer& texture, bool transfer) {
+    return GL41Texture::getId<GL41Texture>(texture, transfer);
 }
 
-gl::GLTexture* GLBackend::syncGPUObject(const TexturePointer& texture, bool transfer) {
-    return GLTexture::sync<GLTexture>(texture, transfer);
+gl::GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texture, bool transfer) {
+    return GL41Texture::sync<GL41Texture>(texture, transfer);
 }
 
-GLTexture::GLTexture(const Texture& texture, bool transferrable) : gl::GLTexture(texture, allocate(), transferrable) {}
+GL41Texture::GL41Texture(const Texture& texture, bool transferrable) : gl::GLTexture(texture, allocate(), transferrable) {}
 
-GLTexture::GLTexture(const Texture& texture, GLTexture* original) : gl::GLTexture(texture, allocate(), original) {}
+GL41Texture::GL41Texture(const Texture& texture, GL41Texture* original) : gl::GLTexture(texture, allocate(), original) {}
 
-void GLBackend::GLTexture::withPreservedTexture(std::function<void()> f) const  {
+void GL41Backend::GL41Texture::withPreservedTexture(std::function<void()> f) const  {
     GLint boundTex = -1;
     switch (_target) {
     case GL_TEXTURE_2D:
@@ -63,14 +63,14 @@ void GLBackend::GLTexture::withPreservedTexture(std::function<void()> f) const  
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::GLTexture::generateMips() const {
+void GL41Backend::GL41Texture::generateMips() const {
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
     });
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::GLTexture::allocateStorage() const {
+void GL41Backend::GL41Texture::allocateStorage() const {
     gl::GLTexelFormat texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
     (void)CHECK_GL_ERROR();
@@ -93,7 +93,7 @@ void GLBackend::GLTexture::allocateStorage() const {
     }
 }
 
-void GLBackend::GLTexture::updateSize() const {
+void GL41Backend::GL41Texture::updateSize() const {
     setSize(_virtualSize);
     if (!_id) {
         return;
@@ -129,7 +129,7 @@ void GLBackend::GLTexture::updateSize() const {
 }
 
 // Move content bits from the CPU to the GPU for a given mip / face
-void GLBackend::GLTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
+void GL41Backend::GL41Texture::transferMip(uint16_t mipLevel, uint8_t face) const {
     auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
     gl::GLTexelFormat texelFormat = gl::GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
     //GLenum target = getFaceTargets()[face];
@@ -141,7 +141,7 @@ void GLBackend::GLTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 
 // This should never happen on the main thread
 // Move content bits from the CPU to the GPU
-void GLBackend::GLTexture::transfer() const {
+void GL41Backend::GL41Texture::transfer() const {
     PROFILE_RANGE(__FUNCTION__);
     //qDebug() << "Transferring texture: " << _privateTexture;
     // Need to update the content of the GPU object from the source sysmem of the texture
@@ -208,11 +208,8 @@ void GLBackend::GLTexture::transfer() const {
     }
 }
 
-void GLBackend::GLTexture::syncSampler() const {
+void GL41Backend::GL41Texture::syncSampler() const {
     const Sampler& sampler = _gpuObject.getSampler();
-    Texture::Type type = _gpuObject.getType();
-    auto object = this;
-
     const auto& fm = FILTER_MODES[sampler.getFilter()];
     glTexParameteri(_target, GL_TEXTURE_MIN_FILTER, fm.minFilter);
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);

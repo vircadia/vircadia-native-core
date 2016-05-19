@@ -87,11 +87,11 @@ namespace gpu {
     }
 
     namespace gl41 {
-        class GLBackend;
+        class GL41Backend;
     }
 
     namespace gl45 {
-        class GLBackend;
+        class GL45Backend;
     }
 }
 

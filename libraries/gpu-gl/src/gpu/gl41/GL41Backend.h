@@ -1,5 +1,5 @@
 //
-//  GLBackend.h
+//  GL41Backend.h
 //  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 10/27/2014.
@@ -8,8 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_gpu_41_GLBackend_h
-#define hifi_gpu_41_GLBackend_h
+#ifndef hifi_gpu_41_GL41Backend_h
+#define hifi_gpu_41_GL41Backend_h
 
 #include <gl/Config.h>
 
@@ -27,21 +27,21 @@
 
 namespace gpu { namespace gl41 {
 
-class GLBackend : public gl::GLBackend {
+class GL41Backend : public gl::GLBackend {
     using Parent = gl::GLBackend;
     // Context Backend static interface required
     friend class Context;
 
 public:
-    explicit GLBackend(bool syncCache) : Parent(syncCache) {}
-    GLBackend() : Parent() {}
+    explicit GL41Backend(bool syncCache) : Parent(syncCache) {}
+    GL41Backend() : Parent() {}
 
-    class GLTexture : public gpu::gl::GLTexture {
+    class GL41Texture : public gpu::gl::GLTexture {
         using Parent = gpu::gl::GLTexture;
         GLuint allocate();
     public:
-        GLTexture(const Texture& buffer, bool transferrable);
-        GLTexture(const Texture& buffer, GLTexture* original);
+        GL41Texture(const Texture& buffer, bool transferrable);
+        GL41Texture(const Texture& buffer, GL41Texture* original);
 
     protected:
         void transferMip(uint16_t mipLevel, uint8_t face = 0) const;

@@ -1,5 +1,5 @@
 //
-//  GLBackendTexture.cpp
+//  GL41BackendTexture.cpp
 //  libraries/gpu/src/gpu
 //
 //  Created by Sam Gateau on 1/19/2015.
@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
+#include "GL41Backend.h"
 
 #include <QtGui/QImage>
 
@@ -17,7 +17,7 @@
 
 namespace gpu { namespace gl41 { 
 
-class GLFramebuffer : public gl::GLFramebuffer {
+class GL41Framebuffer : public gl::GLFramebuffer {
     using Parent = gl::GLFramebuffer;
     static GLuint allocate() {
         GLuint result;
@@ -56,7 +56,7 @@ public:
                 for (auto& b : _gpuObject.getRenderBuffers()) {
                     surface = b._texture;
                     if (surface) {
-                        gltexture = gl::GLTexture::sync<GLBackend::GLTexture>(surface, false); // Grab the gltexture and don't transfer
+                        gltexture = gl::GLTexture::sync<GL41Backend::GL41Texture>(surface, false); // Grab the gltexture and don't transfer
                     } else {
                         gltexture = nullptr;
                     }
@@ -83,7 +83,7 @@ public:
         if (_gpuObject.getDepthStamp() != _depthStamp) {
             auto surface = _gpuObject.getDepthStencilBuffer();
             if (_gpuObject.hasDepthStencil() && surface) {
-                gltexture = gl::GLTexture::sync<GLBackend::GLTexture>(surface, false); // Grab the gltexture and don't transfer
+                gltexture = gl::GLTexture::sync<GL41Backend::GL41Texture>(surface, false); // Grab the gltexture and don't transfer
             }
 
             if (gltexture) {
@@ -115,19 +115,19 @@ public:
 
 
 public:
-    GLFramebuffer(const gpu::Framebuffer& framebuffer) 
+    GL41Framebuffer(const gpu::Framebuffer& framebuffer) 
         : Parent(framebuffer, allocate()) { }
 };
 
-gl::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffer) {
-    return GLFramebuffer::sync<GLFramebuffer>(framebuffer);
+gl::GLFramebuffer* GL41Backend::syncGPUObject(const Framebuffer& framebuffer) {
+    return GL41Framebuffer::sync<GL41Framebuffer>(framebuffer);
 }
 
-GLuint GLBackend::getFramebufferID(const FramebufferPointer& framebuffer) {
-    return framebuffer ? GLFramebuffer::getId<GLFramebuffer>(*framebuffer) : 0;
+GLuint GL41Backend::getFramebufferID(const FramebufferPointer& framebuffer) {
+    return framebuffer ? GL41Framebuffer::getId<GL41Framebuffer>(*framebuffer) : 0;
 }
 
-void GLBackend::do_blit(Batch& batch, size_t paramOffset) {
+void GL41Backend::do_blit(Batch& batch, size_t paramOffset) {
     auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     Vec4i srcvp;
     for (auto i = 0; i < 4; ++i) {

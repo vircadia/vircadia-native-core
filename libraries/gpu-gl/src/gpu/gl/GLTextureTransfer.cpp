@@ -13,6 +13,7 @@
 #endif
 
 #include "GLShared.h"
+#include "GLTexture.h"
 
 using namespace gpu;
 using namespace gpu::gl;

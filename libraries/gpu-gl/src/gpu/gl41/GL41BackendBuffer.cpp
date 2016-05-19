@@ -5,13 +5,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GLBackend.h"
+#include "GL41Backend.h"
 #include "../gl/GLBuffer.h"
 
 using namespace gpu;
 using namespace gpu::gl41;
 
-class GLBuffer : public gl::GLBuffer {
+class GL41Buffer : public gl::GLBuffer {
     using Parent = gpu::gl::GLBuffer;
     static GLuint allocate() {
         GLuint result;
@@ -20,7 +20,7 @@ class GLBuffer : public gl::GLBuffer {
     }
 
 public:
-    GLBuffer(const Buffer& buffer, GLBuffer* original) : Parent(buffer, allocate()) {
+    GL41Buffer(const Buffer& buffer, GL41Buffer* original) : Parent(buffer, allocate()) {
         glBindBuffer(GL_ARRAY_BUFFER, _buffer);
         glBufferData(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -53,10 +53,10 @@ public:
     }
 };
 
-GLuint GLBackend::getBufferID(const Buffer& buffer) {
-    return GLBuffer::getId<GLBuffer>(buffer);
+GLuint GL41Backend::getBufferID(const Buffer& buffer) {
+    return GL41Buffer::getId<GL41Buffer>(buffer);
 }
 
-gl::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
-    return GLBuffer::sync<GLBuffer>(buffer);
+gl::GLBuffer* GL41Backend::syncGPUObject(const Buffer& buffer) {
+    return GL41Buffer::sync<GL41Buffer>(buffer);
 }
