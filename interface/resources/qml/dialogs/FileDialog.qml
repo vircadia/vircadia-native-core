@@ -194,10 +194,8 @@ ModalWindow {
 
             function navigateUp() {
                 if (fileTableModel.parentFolder && fileTableModel.parentFolder !== "") {
-                    fileTableModel.folder = fileTableModel.parentFolder
+                    fileTableModel.folder = fileTableModel.parentFolder;
                     return true;
-                } else if (true) {
-
                 }
             }
 
@@ -222,6 +220,42 @@ ModalWindow {
             onFolderChanged: {
                 fileTableModel.update();  // Update once the data from the folder change is available.
             }
+
+            function getItem(index, field) {
+                return get(index, field);
+            }
+        }
+
+        ListModel {
+            // Emulates FolderListModel but contains drive data.
+            id: driveListModel
+
+            property int count: 1
+
+            Component.onCompleted: initialize();
+
+            function initialize() {
+                var drive,
+                    i;
+
+                count = drives.length;
+
+                for (i = 0; i < count; i++) {
+                    drive = drives[i].slice(0, -1);  // Remove trailing "/".
+                    append({
+                       fileName: drive,
+                       fileModified: new Date(0),
+                       fileSize: 0,
+                       filePath: drive + "/",
+                       fileIsDir: true,
+                       fileNameSort: drive.toLowerCase()
+                    });
+                }
+            }
+
+            function getItem(index, field) {
+                return get(index)[field];
+            }
         }
 
         ListModel {
@@ -237,10 +271,37 @@ ModalWindow {
             property var folder
             property int sortOrder: Qt.AscendingOrder
             property int sortColumn: 0
-            property string parentFolder: folderListModel.parentFolder
+            property var model: folderListModel
+            property string parentFolder: calculateParentFolder();
+
+            readonly property string rootFolder: "file:///"
+
+            function calculateParentFolder() {
+                if (model === folderListModel) {
+                    if (folderListModel.parentFolder.toString() === "" && driveListModel.count > 1) {
+                        return rootFolder;
+                    } else {
+                        return folderListModel.parentFolder;
+                    }
+                } else {
+                    return "";
+                }
+            }
 
             onFolderChanged: {
-                folderListModel.folder = folder;
+                if (folder === rootFolder) {
+                    model = driveListModel;
+                    update();
+                } else {
+                    var needsUpdate = model === driveListModel && folder === folderListModel.folder;
+
+                    model = folderListModel;
+                    folderListModel.folder = folder;
+
+                    if (needsUpdate) {
+                        update();
+                    }
+                }
                 currentDirectory.lastValidFolder = helper.urlToPath(folder);
             }
 
@@ -265,18 +326,18 @@ ModalWindow {
                     upper,
                     rows = 0,
                     i;
+
                 clear();
 
                 comparisonFunction = sortOrder === Qt.AscendingOrder
                     ? function(a, b) { return a < b; }
                     : function(a, b) { return a > b; }
 
-                for (i = 0; i < folderListModel.count; i++) {
-                    fileName = folderListModel.get(i, "fileName");
-                    fileIsDir = folderListModel.get(i, "fileIsDir");
+                for (i = 0; i < model.count; i++) {
+                    fileName = model.getItem(i, "fileName");
+                    fileIsDir = model.getItem(i, "fileIsDir");
 
-                    sortValue = folderListModel.get(i, dataField);
-
+                    sortValue = model.getItem(i, dataField);
                     if (dataField === "fileName") {
                         // Directories first by prefixing a "*".
                         // Case-insensitive.
@@ -299,9 +360,9 @@ ModalWindow {
 
                     insert(lower, {
                        fileName: fileName,
-                       fileModified: (fileIsDir ? new Date(0) : folderListModel.get(i, "fileModified")),
-                       fileSize: folderListModel.get(i, "fileSize"),
-                       filePath: folderListModel.get(i, "filePath"),
+                       fileModified: (fileIsDir ? new Date(0) : model.getItem(i, "fileModified")),
+                       fileSize: model.getItem(i, "fileSize"),
+                       filePath: model.getItem(i, "filePath"),
                        fileIsDir: fileIsDir,
                        fileNameSort: (fileIsDir ? "*" : "") + fileName.toLowerCase()
                     });
