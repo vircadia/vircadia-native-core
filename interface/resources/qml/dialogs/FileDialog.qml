@@ -43,7 +43,7 @@ ModalWindow {
     // Set from OffscreenUi::getOpenFile()
     property alias caption: root.title;
     // Set from OffscreenUi::getOpenFile()
-    property alias dir: folderListModel.folder;
+    property alias dir: fileTableModel.folder;
     // Set from OffscreenUi::getOpenFile()
     property alias filter: selectionType.filtersString;
     // Set from OffscreenUi::getOpenFile()
@@ -75,8 +75,9 @@ ModalWindow {
         // HACK: The following two lines force the model to initialize properly such that:
         // - Selecting a different drive at the initial screen updates the path displayed.
         // - The go-up button works properly from the initial screen.
+        var initialFolder = currentDirectory.lastValidFolder;
         root.dir = helper.pathToUrl(drivesSelector.currentText);
-        root.dir = helper.pathToUrl(currentDirectory.lastValidFolder);
+        root.dir = helper.pathToUrl(initialFolder);
 
         iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
     }
@@ -110,7 +111,7 @@ ModalWindow {
                 glyph: hifi.glyphs.levelUp
                 width: height
                 size: 30
-                enabled: folderListModel.parentFolder && folderListModel.parentFolder !== ""
+                enabled: fileTableModel.parentFolder && fileTableModel.parentFolder !== ""
                 onClicked: d.navigateUp();
             }
 
@@ -135,7 +136,7 @@ ModalWindow {
 
         TextField {
             id: currentDirectory
-            property var lastValidFolder: helper.urlToPath(folderListModel.folder)
+            property var lastValidFolder: helper.urlToPath(fileTableModel.folder)
             height: homeButton.height
             anchors {
                 top: parent.top
@@ -161,7 +162,7 @@ ModalWindow {
                     text = lastValidFolder;
                     return
                 }
-                folderListModel.folder = helper.pathToUrl(text);
+                fileTableModel.folder = helper.pathToUrl(text);
             }
         }
 
@@ -172,15 +173,13 @@ ModalWindow {
             property bool currentSelectionIsFolder;
             property var backStack: []
             property var tableViewConnection: Connections { target: fileTableView; onCurrentRowChanged: d.update(); }
-            property var modelConnection: Connections { target: model; onFolderChanged: d.update(); }  // DJRTODO
+            property var modelConnection: Connections { target: fileTableModel; onFolderChanged: d.update(); }
             property var homeDestination: helper.home();
-            Component.onCompleted: update();
 
             function update() {
                 var row = fileTableView.currentRow;
-                if (row === -1 && root.selectDirectory) {
-                    currentSelectionUrl = fileTableView.model.folder;
-                    currentSelectionIsFolder = true;
+
+                if (row === -1) {
                     return;
                 }
 
@@ -189,19 +188,21 @@ ModalWindow {
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = helper.urlToPath(currentSelectionUrl);
                 } else {
-                    currentSelection.text = ""
+                    currentSelection.text = "";
                 }
             }
 
             function navigateUp() {
-                if (folderListModel.parentFolder && folderListModel.parentFolder !== "") {
-                    folderListModel.folder = folderListModel.parentFolder
+                if (fileTableModel.parentFolder && fileTableModel.parentFolder !== "") {
+                    fileTableModel.folder = fileTableModel.parentFolder
                     return true;
+                } else if (true) {
+
                 }
             }
 
             function navigateHome() {
-                folderListModel.folder = homeDestination;
+                fileTableModel.folder = homeDestination;
                 return true;
             }
         }
@@ -215,15 +216,11 @@ ModalWindow {
             // For some reason, declaring these bindings directly in the targets doesn't
             // work for setting the initial state
             Component.onCompleted: {
-                currentDirectory.lastValidFolder  = Qt.binding(function() { return helper.urlToPath(folder); });
-                upButton.enabled = Qt.binding(function() { return (parentFolder && parentFolder != "") ? true : false; });
+                currentDirectory.lastValidFolder = helper.urlToPath(folder);
                 showFiles = !root.selectDirectory
             }
             onFolderChanged: {
-                fileTableModel.update();
-                fileTableView.selection.clear();
-                fileTableView.selection.select(0);
-                fileTableView.currentRow = 0;
+                fileTableModel.update();  // Update once the data from the folder change is available.
             }
         }
 
@@ -240,8 +237,12 @@ ModalWindow {
             property var folder
             property int sortOrder: Qt.AscendingOrder
             property int sortColumn: 0
+            property string parentFolder: folderListModel.parentFolder
 
-            onFolderChanged: folderListModel.folder = folder;
+            onFolderChanged: {
+                folderListModel.folder = folder;
+                currentDirectory.lastValidFolder = helper.urlToPath(folder);
+            }
 
             function isFolder(row) {
                 if (row === -1) {
