@@ -219,11 +219,9 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
             entity->computeShapeInfo(shapeInfo);
             int numPoints = shapeInfo.getMaxNumPoints();
             if (numPoints > MAX_HULL_POINTS) {
-                glm::vec3 p = entity->getPosition();
-                qWarning().nospace() << "convex hull with " << numPoints
-                    << " points for entity " << entity->getName()
-                    << " at <" << p.x << ", " << p.y << ", " << p.z << ">"
-                    << " will be reduced";
+                qWarning() << "convex hull with" << numPoints
+                    << "points for entity" << entity->getName()
+                    << "at" << entity->getPosition() << " will be reduced";
             }
             btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
             if (shape) {
