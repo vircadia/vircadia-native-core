@@ -17,6 +17,7 @@
 #include "NetworkLogging.h"
 
 #include "UserActivityLogger.h"
+#include <DependencyManager.h>
 
 static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
 
@@ -34,7 +35,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         return;
     }
     
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     QHttpMultiPart* multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
     
     // Adding the action name
@@ -59,7 +60,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         params.errorCallbackMethod = "requestError";
     }
     
-    accountManager.sendRequest(USER_ACTIVITY_URL,
+    accountManager->sendRequest(USER_ACTIVITY_URL,
                                AccountManagerAuth::Optional,
                                QNetworkAccessManager::PostOperation,
                                params, NULL, multipart);

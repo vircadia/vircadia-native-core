@@ -374,7 +374,7 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
     // remember how this lookup was triggered for history storage handling later
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
 
-    AccountManager::getInstance().sendRequest(GET_PLACE.arg(placeName),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_PLACE.arg(placeName),
                                               AccountManagerAuth::None,
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
@@ -397,7 +397,7 @@ void AddressManager::attemptDomainIDLookup(const QString& lookupString, const QS
     // remember how this lookup was triggered for history storage handling later
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
 
-    AccountManager::getInstance().sendRequest(GET_DOMAIN_ID.arg(domainID),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_DOMAIN_ID.arg(domainID),
                                                 AccountManagerAuth::None,
                                                 QNetworkAccessManager::GetOperation,
                                                 apiCallbackParameters(),
@@ -577,7 +577,6 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
     return false;
 }
 
-
 bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
     bool hostChanged = setHost(hostname, trigger, port);
 
@@ -600,7 +599,7 @@ void AddressManager::goToUser(const QString& username) {
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(LookupTrigger::UserInput));
 
     // this is a username - pull the captured name and lookup that user's location
-    AccountManager::getInstance().sendRequest(GET_USER_LOCATION.arg(formattedUsername),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_USER_LOCATION.arg(formattedUsername),
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
