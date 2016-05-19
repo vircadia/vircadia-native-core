@@ -176,6 +176,14 @@ ModalWindow {
             property var modelConnection: Connections { target: fileTableModel; onFolderChanged: d.update(); }
             property var homeDestination: helper.home();
 
+            function capitalizeDrive(path) {
+                // Consistently capitalize drive letter for Windows.
+                if (/[a-zA-Z]:/.test(path)) {
+                    return path.charAt(0).toUpperCase() + path.slice(1);
+                }
+                return path;
+            }
+
             function update() {
                 var row = fileTableView.currentRow;
 
@@ -186,7 +194,7 @@ ModalWindow {
                 currentSelectionUrl = helper.pathToUrl(fileTableView.model.get(row).filePath);
                 currentSelectionIsFolder = fileTableView.model.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
-                    currentSelection.text = helper.urlToPath(currentSelectionUrl);
+                    currentSelection.text = capitalizeDrive(helper.urlToPath(currentSelectionUrl));
                 } else {
                     currentSelection.text = "";
                 }
