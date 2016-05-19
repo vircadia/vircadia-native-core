@@ -3688,11 +3688,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
+                    voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
@@ -3752,11 +3752,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
+                    voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
@@ -4283,9 +4283,9 @@ void Application::nodeKilled(SharedNodePointer node) {
                 return;
             }
 
-            unsigned char* rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
+            auto rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
-            voxelDetailsForCode(rootCode, rootDetails);
+            voxelDetailsForCode(rootCode.get(), rootDetails);
 
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
@@ -4404,27 +4404,33 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
             serverType = "Entity";
         }
 
+        bool found = false;
+
         jurisdiction->withReadLock([&] {
             if (jurisdiction->find(nodeUUID) != jurisdiction->end()) {
+                found = true;
                 return;
             }
 
             VoxelPositionSize rootDetails;
-            voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
+            voxelDetailsForCode(octreeStats.getJurisdictionRoot().get(), rootDetails);
 
             qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
         });
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-        // details from the OctreeSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
-        jurisdiction->withWriteLock([&] {
-            (*jurisdiction)[nodeUUID] = jurisdictionMap;
-        });
+
+        if (!found) {
+            // store jurisdiction details for later use
+            // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+            // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+            // details from the OctreeSceneStats to construct the JurisdictionMap
+            JurisdictionMap jurisdictionMap;
+            jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
+            jurisdiction->withWriteLock([&] {
+                (*jurisdiction)[nodeUUID] = jurisdictionMap;
+            });
+        }
     });
 
     return statsMessageLength;
