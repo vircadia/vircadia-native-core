@@ -10,7 +10,8 @@
 //
 
 (function() {
-
+    var ON_MODEL_URL = "atp:/switches/lightswitch_on.fbx";
+    var OFF_MODEL_URL = "atp:/switches/lightswitch_off.fbx";
     var SEARCH_RADIUS = 100;
 
     var _this;
@@ -142,6 +143,9 @@
                 setEntityCustomData('home-switch', _this.entityID, {
                     state: 'on'
                 });
+                Entities.editEntity(this.entityID, {
+                    modelURL: ON_MODEL_URL
+                });
 
             } else {
                 glowLights.forEach(function(glowLight) {
@@ -156,29 +160,17 @@
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'off'
                 });
+
+                Entities.editEntity(this.entityID, {
+                    modelURL: OFF_MODEL_URL
+                });
             }
 
-            this.flipSwitch();
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
                 position: this.position
             });
 
-        },
-
-        flipSwitch: function() {
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var axis = {
-                x: 0,
-                y: 1,
-                z: 0
-            };
-            var dQ = Quat.angleAxis(180, axis);
-            rotation = Quat.multiply(rotation, dQ);
-
-            Entities.editEntity(this.entityID, {
-                rotation: rotation
-            });
         },
 
         preload: function(entityID) {
