@@ -5,17 +5,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
 #include "GLBackendTextureTransfer.h"
-
-#include "GLBackendShared.h"
 
 #ifdef THREADED_TEXTURE_TRANSFER
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/QOpenGLContextWrapper.h>
 #endif
 
+
+#include "GLBackendShared.h"
+
 using namespace gpu;
+using namespace gpu::gl;
+
+#include "GLBackend.h"
 
 GLTextureTransferHelper::GLTextureTransferHelper() {
 #ifdef THREADED_TEXTURE_TRANSFER

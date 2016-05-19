@@ -8,13 +8,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <qimage.h>
+#include "GLBackend.h"
 
-#include "GPULogging.h"
+#include <QtGui/QImage>
+
 #include "GLBackendShared.h"
 
-
 using namespace gpu;
+using namespace gpu::gl;
 
 GLBackend::GLFramebuffer::GLFramebuffer() {}
 
@@ -97,19 +98,6 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
                     unit++;
                 }
             }
-    #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-            // for reasons that i don't understand yet, it seems that on mac gl, a fbo must have a color buffer...
-            else {
-                GLuint renderBuffer = 0;
-                glGenRenderbuffers(1, &renderBuffer);
-                glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
-                glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, framebuffer.getWidth(), framebuffer.getHeight());
-                glBindRenderbuffer(GL_RENDERBUFFER, 0);
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
-                (void) CHECK_GL_ERROR();
-            }
-            //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    #endif
             object->_colorStamps = framebuffer.getColorStamps();
         }
 
@@ -157,19 +145,19 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             result = true;
             break;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT :
-            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
+            qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
             break;
         case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT :
-            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
+            qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
             break;
         case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER :
-            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
+            qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
             break;
         case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER :
-            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
+            qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
             break;
         case GL_FRAMEBUFFER_UNSUPPORTED :
-            qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
+            qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
             break;
         }
         if (!result && object->_fbo) {
@@ -354,26 +342,26 @@ void GLBackend::do_blit(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
-    auto readFBO = gpu::GLBackend::getFramebufferID(srcFramebuffer);
+    auto readFBO = getFramebufferID(srcFramebuffer);
     if (srcFramebuffer && readFBO) {
         if ((srcFramebuffer->getWidth() < (region.x + region.z)) || (srcFramebuffer->getHeight() < (region.y + region.w))) {
-          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
+          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
           return;
         }
     }
 
     if ((destImage.width() < region.z) || (destImage.height() < region.w)) {
-          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
+          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
           return;
     }
 
     GLenum format = GL_BGRA;
     if (destImage.format() != QImage::Format_ARGB32) {
-          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
+          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
           return;
     }
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(srcFramebuffer));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, getFramebufferID(srcFramebuffer));
     glReadPixels(region.x, region.y, region.z, region.w, format, GL_UNSIGNED_BYTE, destImage.bits());
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 

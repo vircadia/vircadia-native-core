@@ -30,7 +30,7 @@
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/QOpenGLDebugLoggerWrapper.h>
@@ -87,7 +87,6 @@ uint32_t toCompactColor(const glm::vec4& color);
 
 
 const char* VERTEX_SHADER = R"SHADER(
-#version 450 core
 
 layout(location = 0) in vec4 inPosition;
 layout(location = 3) in vec2 inTexCoord0;
@@ -157,7 +156,6 @@ void main(void) {
 })SHADER";
 
 const char* FRAGMENT_SHADER = R"SHADER(
-#version 450 core
 
 uniform sampler2D originalTexture;
 
@@ -246,7 +244,7 @@ public:
         makeCurrent();
         setupDebugLogger(this);
 
-        gpu::Context::init<gpu::GLBackend>();
+        gpu::Context::init<gpu::gl::GLBackend>();
         _context = std::make_shared<gpu::Context>();
         makeCurrent();
         auto shader = makeShader(unlit_vert, unlit_frag, gpu::Shader::BindingSet{});
