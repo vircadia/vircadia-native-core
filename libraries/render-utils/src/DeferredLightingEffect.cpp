@@ -468,11 +468,6 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                             auto& part = mesh->getPartBuffer().get<model::Mesh::Part>(0);
                             batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
                         }
-                        // keep for debug
-                   /*     {
-                            auto& part = mesh->getPartBuffer().get<model::Mesh::Part>(1);
-                            batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
-                        }*/
                     }
                 }
             }
@@ -555,7 +550,6 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
 
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
-        //state->setDepthClampEnable(true);
 
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -665,8 +659,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         
         std::vector<model::Mesh::Part> parts;
         parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::TRIANGLES));
-        //DEBUG: 
-        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::LINE_STRIP));
+        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::LINE_STRIP)); // outline version
 
         
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
