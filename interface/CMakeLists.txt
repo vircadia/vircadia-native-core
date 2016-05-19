@@ -44,7 +44,7 @@ else ()
 endif ()
 
 find_package(Qt5 COMPONENTS
-    Gui Multimedia Network OpenGL Qml Quick Script Svg
+    Gui Multimedia Network OpenGL Qml Quick Script ScriptTools Svg
     WebChannel WebEngine WebEngineWidgets WebKitWidgets WebSockets)
 
 # grab the ui files in resources/ui
@@ -139,7 +139,7 @@ if (WIN32)
 endif()
 
 # link required hifi libraries
-link_hifi_libraries(shared octree gpu gl procedural model render
+link_hifi_libraries(shared octree gpu gl gpu-gl procedural model render
                     recording fbx networking model-networking entities avatars
                     audio audio-client animation script-engine physics
                     render-utils entities-renderer ui auto-updater
@@ -201,7 +201,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
-  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::ScriptTools Qt5::Svg
   Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets Qt5::WebKitWidgets
 )
 

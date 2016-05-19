@@ -23,7 +23,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AudioClient.h>
-#include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <FSTReader.h>
 #include <GeometryUtil.h>
@@ -32,6 +31,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <SoundCache.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -59,9 +59,10 @@ using namespace std;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
-const float MAX_WALKING_SPEED = 2.5f; // human walking speed
-const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
-const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
+const float MAX_WALKING_SPEED = 2.6f; // human walking speed
+const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // action motor gets additive boost below this speed
+const float MIN_AVATAR_SPEED = 0.05f;
+const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
 
 const float YAW_SPEED_DEFAULT = 120.0f;   // degrees/sec
 const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
@@ -69,8 +70,7 @@ const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
 float MAX_AVATAR_SPEED = 30.0f;
-float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
-float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
+float MAX_ACTION_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
@@ -86,18 +86,17 @@ MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
     _wasPushing(false),
     _isPushing(false),
+    _isBeingPushed(false),
     _isBraking(false),
     _boomLength(ZOOM_DEFAULT),
     _yawSpeed(YAW_SPEED_DEFAULT),
     _pitchSpeed(PITCH_SPEED_DEFAULT),
     _thrust(0.0f),
-    _keyboardMotorVelocity(0.0f),
-    _keyboardMotorTimescale(DEFAULT_KEYBOARD_MOTOR_TIMESCALE),
+    _actionMotorVelocity(0.0f),
     _scriptedMotorVelocity(0.0f),
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _collisionSoundURL(""),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -247,7 +246,6 @@ void MyAvatar::reset(bool andRecenter) {
     _follow.deactivate();
     _skeletonModel->reset();
     getHead()->reset();
-    _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
 
     if (andRecenter) {
@@ -546,7 +544,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
     } else {
-        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() / _realWorldFieldOfView.get();
+        ViewFrustum viewFrustum;
+        qApp->copyViewFrustum(viewFrustum);
+        float magnifyFieldOfView = viewFrustum.getFieldOfView() / _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
@@ -674,7 +674,11 @@ void MyAvatar::saveData() {
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
 
-    settings.setValue("fullAvatarURL", _fullAvatarURLFromPreferences);
+    settings.setValue("fullAvatarURL",
+                      _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                      "" :
+                      _fullAvatarURLFromPreferences.toString());
+
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
     settings.setValue("animGraphURL", _animGraphUrl);
 
@@ -929,15 +933,17 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
                 glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
 
+                 ViewFrustum viewFrustum;
+                 qApp->copyViewFrustum(viewFrustum);
+
                 // scale gazeOffset by IPD, if wearing an HMD.
                 if (qApp->isHMDMode()) {
                     glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
                     glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                     glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                     glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
-                    auto humanSystem = qApp->getViewFrustum();
-                    glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
-                    glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
+                    glm::vec3 humanLeftEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * leftEyeHeadLocal);
+                    glm::vec3 humanRightEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * rightEyeHeadLocal);
 
                     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
                     float ipdScale = hmdInterface->getIPDScale();
@@ -951,7 +957,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 }
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
+                glm::vec3 corrected = viewFrustum.getPosition() + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1159,8 +1165,46 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
     return getRightHandControllerPoseInWorldFrame().transform(invAvatarMatrix);
 }
 
+void MyAvatar::updateMotors() {
+    _characterController.clearMotors();
+    glm::quat motorRotation;
+    if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
+        if (_characterController.getState() == CharacterController::State::Hover) {
+            motorRotation = getHead()->getCameraOrientation();
+        } else {
+            motorRotation = getOrientation();
+        }
+        const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
+        const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
+        if (_isPushing || _isBraking || !_isBeingPushed) {
+            _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+        } else {
+            // _isBeingPushed must be true --> disable action motor by giving it a long timescale,
+            // otherwise it's attempt to "stand in in place" could defeat scripted motor/thrusts
+            _characterController.addMotor(_actionMotorVelocity, motorRotation, INVALID_MOTOR_TIMESCALE);
+        }
+    }
+    if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
+        if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
+            motorRotation = getHead()->getCameraOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
+        } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
+            motorRotation = getOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
+        } else {
+            // world-frame
+            motorRotation = glm::quat();
+        }
+        _characterController.addMotor(_scriptedMotorVelocity, motorRotation, _scriptedMotorTimescale);
+    }
+
+    // legacy support for 'MyAvatar::applyThrust()', which has always been implemented as a
+    // short-lived linearAcceleration
+    _characterController.setLinearAcceleration(_thrust);
+    _thrust = Vectors::ZERO;
+}
+
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
+    updateMotors();
 
     bool success;
     glm::vec3 parentVelocity = getParentVelocity(success);
@@ -1170,7 +1214,6 @@ void MyAvatar::prepareForPhysicsSimulation() {
     }
     _characterController.setParentVelocity(parentVelocity);
 
-    _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         bool hasDriveInput = fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
@@ -1183,11 +1226,17 @@ void MyAvatar::prepareForPhysicsSimulation() {
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
-    _characterController.getPositionAndOrientation(position, orientation);
+    if (_characterController.isEnabled()) {
+        _characterController.getPositionAndOrientation(position, orientation);
+    }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
-    setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
+    if (_characterController.isEnabled()) {
+        setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
+    } else {
+        setVelocity(getVelocity() + _characterController.getFollowVelocity());
+    }
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1227,15 +1276,23 @@ void MyAvatar::setScriptedMotorFrame(QString frame) {
 }
 
 void MyAvatar::clearScriptableSettings() {
-    _scriptedMotorVelocity = glm::vec3(0.0f);
+    _scriptedMotorVelocity = Vectors::ZERO;
     _scriptedMotorTimescale = DEFAULT_SCRIPTED_MOTOR_TIMESCALE;
 }
 
 void MyAvatar::setCollisionSoundURL(const QString& url) {
-    _collisionSoundURL = url;
-    if (!url.isEmpty() && (url != _collisionSoundURL)) {
-        emit newCollisionSoundURL(QUrl(url));
+    if (url != _collisionSoundURL) {
+        _collisionSoundURL = url;
+
+        emit newCollisionSoundURL(QUrl(_collisionSoundURL));
     }
+}
+
+SharedSoundPointer MyAvatar::getCollisionSound() {
+    if (!_collisionSound) {
+        _collisionSound = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
+    }
+    return _collisionSound;
 }
 
 void MyAvatar::attach(const QString& modelURL, const QString& jointName,
@@ -1257,40 +1314,6 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
         }
     }
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
-}
-
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
-
-    if (!_skeletonModel->isRenderable()) {
-        return; // wait until all models are loaded
-    }
-
-    fixupModelsInScene();
-
-    //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum);
-    }
-
-    // This is drawing the lookat vectors from our avatar to wherever we're looking.
-    if (qApp->isHMDMode()) {
-        glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-
-        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
-        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
-        leftEyePose = leftEyePose * headPose;
-        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
-        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
-        rightEyePose = rightEyePose * headPose;
-        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
-        glm::vec3 headPosition = extractTranslation(headPose);
-
-        getHead()->renderLookAts(renderArgs,
-            cameraPosition + getOrientation() * (leftEyePosition - headPosition),
-            cameraPosition + getOrientation() * (rightEyePosition - headPosition));
-    } else {
-        getHead()->renderLookAts(renderArgs);
-    }
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
@@ -1349,11 +1372,11 @@ void MyAvatar::destroyAnimGraph() {
     _rig->destroyAnimGraph();
 }
 
-void MyAvatar::preRender(RenderArgs* renderArgs) {
+void MyAvatar::postUpdate(float deltaTime) {
+
+    Avatar::postUpdate(deltaTime);
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    const bool shouldDrawHead = shouldRenderHead(renderArgs);
-
     if (_skeletonModel->initWhenReady(scene)) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
@@ -1403,7 +1426,13 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
+}
 
+
+void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
+
+    // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setCauterizeBones(!shouldDrawHead);
     }
@@ -1512,163 +1541,97 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
-glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool isHovering) {
-    if (! (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED)) {
-        return localVelocity;
-    }
-    // compute motor efficiency
-    // The timescale of the motor is the approximate time it takes for the motor to
-    // accomplish its intended localVelocity.  A short timescale makes the motor strong,
-    // and a long timescale makes it weak.  The value of timescale to use depends
-    // on what the motor is doing:
-    //
-    // (1) braking --> short timescale (aggressive motor assertion)
-    // (2) pushing --> medium timescale (mild motor assertion)
-    // (3) inactive --> long timescale (gentle friction for low speeds)
-    const float MIN_KEYBOARD_MOTOR_TIMESCALE = 0.125f;
-    const float MAX_KEYBOARD_MOTOR_TIMESCALE = 0.4f;
-    const float MIN_KEYBOARD_BRAKE_SPEED = 0.3f;
-    float timescale = MAX_KEYBOARD_MOTOR_TIMESCALE;
-    bool isThrust = (glm::length2(_thrust) > EPSILON);
-    if (_isPushing || isThrust ||
-            (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE &&
-            (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED))) {
-        // we don't want to brake if something is pushing the avatar around
-        timescale = _keyboardMotorTimescale;
+void MyAvatar::updateActionMotor(float deltaTime) {
+    bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
+    bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
+        && _scriptedMotorTimescale < MAX_CHARACTER_MOTOR_TIMESCALE;
+    _isBeingPushed = thrustIsPushing || scriptedMotorIsPushing;
+    if (_isPushing || _isBeingPushed) {
+        // we don't want the motor to brake if a script is pushing the avatar around
+        // (we assume the avatar is driving itself via script)
         _isBraking = false;
     } else {
-        float speed = glm::length(localVelocity);
-        _isBraking = _wasPushing || (_isBraking && speed > MIN_KEYBOARD_BRAKE_SPEED);
-        if (_isBraking) {
-            timescale = MIN_KEYBOARD_MOTOR_TIMESCALE;
-        }
+        float speed = glm::length(_actionMotorVelocity);
+        const float MIN_ACTION_BRAKE_SPEED = 0.1f;
+        _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
     }
-    _wasPushing = _isPushing || isThrust;
-    _isPushing = false;
-    float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
-    glm::vec3 newLocalVelocity = localVelocity;
+    // compute action input
+    glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
+    glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
 
-    // FIXME how do I implement step translation as well?
-
-
-    float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
-    if (keyboardInput) {
-        // Compute keyboard input
-        glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
-        glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+    glm::vec3 direction = front + right;
+    CharacterController::State state = _characterController.getState();
+    if (state == CharacterController::State::Hover) {
+        // we're flying --> support vertical motion
         glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
+        direction += up;
+    }
 
-        glm::vec3 direction = front + right + up;
-        float directionLength = glm::length(direction);
+    _wasPushing = _isPushing;
+    float directionLength = glm::length(direction);
+    _isPushing = directionLength > EPSILON;
 
-        //qCDebug(interfaceapp, "direction = (%.5f, %.5f, %.5f)", direction.x, direction.y, direction.z);
-
-        // Compute motor magnitude
-        if (directionLength > EPSILON) {
-            direction /= directionLength;
-
-            if (isHovering) {
-                // we're flying --> complex acceleration curve with high max speed
-                float motorSpeed = glm::length(_keyboardMotorVelocity);
-                float finalMaxMotorSpeed = getUniformScale() * MAX_KEYBOARD_MOTOR_SPEED;
-                float speedGrowthTimescale  = 2.0f;
-                float speedIncreaseFactor = 1.8f;
-                motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-                const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
-
-                if (motorSpeed < maxBoostSpeed) {
-                    // an active keyboard motor should never be slower than this
-                    float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
-                    motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
-                    motorEfficiency += (1.0f - motorEfficiency) * boostCoefficient;
-                } else if (motorSpeed > finalMaxMotorSpeed) {
-                    motorSpeed = finalMaxMotorSpeed;
-                }
-                _keyboardMotorVelocity = motorSpeed * direction;
-
-            } else {
-                // we're using a floor --> simple exponential decay toward target walk speed
-                const float WALK_ACCELERATION_TIMESCALE = 0.7f;  // seconds to decrease delta to 1/e
-                _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
-                motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
-            }
-            _isPushing = true;
-        }
-        newLocalVelocity = localVelocity + motorEfficiency * (_keyboardMotorVelocity - localVelocity);
+    // normalize direction
+    if (_isPushing) {
+        direction /= directionLength;
     } else {
-        _keyboardMotorVelocity = glm::vec3(0.0f);
-        newLocalVelocity = (1.0f - motorEfficiency) * localVelocity;
-        if (!isHovering && !_wasPushing) {
-            float speed = glm::length(newLocalVelocity);
-            if (speed > MIN_AVATAR_SPEED) {
-                // add small constant friction to help avatar drift to a stop sooner at low speeds
-                const float CONSTANT_FRICTION_DECELERATION = MIN_AVATAR_SPEED / 0.20f;
-                newLocalVelocity *= (speed - timescale * CONSTANT_FRICTION_DECELERATION) / speed;
+        direction = Vectors::ZERO;
+    }
+
+    if (state == CharacterController::State::Hover) {
+        // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
+        float motorSpeed = glm::length(_actionMotorVelocity);
+        float finalMaxMotorSpeed = getUniformScale() * MAX_ACTION_MOTOR_SPEED;
+        float speedGrowthTimescale  = 2.0f;
+        float speedIncreaseFactor = 1.8f;
+        motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
+        const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
+
+        if (_isPushing) {
+            if (motorSpeed < maxBoostSpeed) {
+                // an active action motor should never be slower than this
+                float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
+                motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
+            } else if (motorSpeed > finalMaxMotorSpeed) {
+                motorSpeed = finalMaxMotorSpeed;
             }
         }
+        _actionMotorVelocity = motorSpeed * direction;
+    } else {
+        // we're interacting with a floor --> simple horizontal speed and exponential decay
+        _actionMotorVelocity = MAX_WALKING_SPEED * direction;
     }
 
     float boomChange = _driveKeys[ZOOM];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
-
-    return newLocalVelocity;
-}
-
-glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVelocity) {
-    // NOTE: localVelocity is in camera-frame because that's the frame of the default avatar motor
-    if (! (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
-        return localVelocity;
-    }
-    glm::vec3 deltaVelocity(0.0f);
-    if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
-        // camera frame
-        deltaVelocity = _scriptedMotorVelocity - localVelocity;
-    } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
-        // avatar frame
-        glm::quat rotation = glm::inverse(getHead()->getCameraOrientation()) * getOrientation();
-        deltaVelocity = rotation * _scriptedMotorVelocity - localVelocity;
-    } else {
-        // world-frame
-        glm::quat rotation = glm::inverse(getHead()->getCameraOrientation());
-        deltaVelocity = rotation * _scriptedMotorVelocity - localVelocity;
-    }
-    float motorEfficiency = glm::clamp(deltaTime / _scriptedMotorTimescale, 0.0f, 1.0f);
-    return localVelocity + motorEfficiency * deltaVelocity;
 }
 
 void MyAvatar::updatePosition(float deltaTime) {
-    // rotate velocity into camera frame
-    glm::quat rotation = getHead()->getCameraOrientation();
-    glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
-    bool isHovering = _characterController.getState() == CharacterController::State::Hover;
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
-    newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
-
-    // rotate back into world-frame
-    _targetVelocity = rotation * newLocalVelocity;
-
-    _targetVelocity += _thrust * deltaTime;
-    _thrust = glm::vec3(0.0f);
-
-    // cap avatar speed
-    float speed = glm::length(_targetVelocity);
-    if (speed > MAX_AVATAR_SPEED) {
-        _targetVelocity *= MAX_AVATAR_SPEED / speed;
-        speed = MAX_AVATAR_SPEED;
+    if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
+        updateActionMotor(deltaTime);
     }
 
-    if (speed > MIN_AVATAR_SPEED && !_characterController.isEnabled()) {
-        // update position ourselves
-        applyPositionDelta(deltaTime * _targetVelocity);
+    vec3 velocity = getVelocity();
+    const float MOVING_SPEED_THRESHOLD_SQUARED = 0.0001f; // 0.01 m/s
+    if (!_characterController.isEnabled()) {
+        // _characterController is not in physics simulation but it can still compute its target velocity
+        updateMotors();
+        _characterController.computeNewVelocity(deltaTime, velocity);
+
+        float speed2 = glm::length2(velocity);
+        if (speed2 > MIN_AVATAR_SPEED_SQUARED) {
+            // update position ourselves
+            applyPositionDelta(deltaTime * velocity);
+        }
         measureMotionDerivatives(deltaTime);
-    } // else physics will move avatar later
-
-    // update _moving flag based on speed
-    const float MOVING_SPEED_THRESHOLD = 0.01f;
-    _moving = speed > MOVING_SPEED_THRESHOLD;
-
+        _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
+    } else {
+        // physics physics simulation updated elsewhere
+        float speed2 = glm::length2(velocity);
+        _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
+    }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
     if (!_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) > 0.1f || fabs(_driveKeys[TRANSLATE_X]) > 0.1f)) {
@@ -1815,10 +1778,10 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     }
 
     Menu* menu = Menu::getInstance();
-    if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
-        _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
+    if (menu->isOptionChecked(MenuOption::ActionMotorControl)) {
+        _motionBehaviors |= AVATAR_MOTION_ACTION_MOTOR_ENABLED;
     } else {
-        _motionBehaviors &= ~AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
+        _motionBehaviors &= ~AVATAR_MOTION_ACTION_MOTOR_ENABLED;
     }
     if (menu->isOptionChecked(MenuOption::ScriptedMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;

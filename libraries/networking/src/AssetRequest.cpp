@@ -106,9 +106,13 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
+        auto that = QPointer<AssetRequest>(this); // Used to track the request's lifetime
         _assetRequestID = assetClient->getAsset(_hash, start, end,
-                [this, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
-
+                [this, that, start, end](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+            if (!that) {
+                // If the request is dead, return
+                return;
+            }
             _assetRequestID = AssetClient::INVALID_MESSAGE_ID;
 
             if (!responseReceived) {
@@ -148,7 +152,11 @@ void AssetRequest::start() {
             
             _state = Finished;
             emit finished(this);
-        }, [this](qint64 totalReceived, qint64 total) {
+        }, [this, that](qint64 totalReceived, qint64 total) {
+            if (!that) {
+                // If the request is dead, return
+                return;
+            }
             emit progress(totalReceived, total);
         });
     });

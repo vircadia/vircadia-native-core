@@ -33,7 +33,6 @@ signals:
 protected:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
-    void hide();
 
     Q_INVOKABLE void loadAddress(const QString& address);
     Q_INVOKABLE void loadHome();

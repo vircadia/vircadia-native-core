@@ -13,7 +13,7 @@
 //
 
 <@include Shadow.slh@>
-<@include DeferredBuffer.slh@>
+<@include DeferredBufferRead.slh@>
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
@@ -29,7 +29,9 @@ void main(void) {
     vec4 worldPos = deferredTransform.viewInverse * vec4(frag.position.xyz, 1.0);
     float shadowAttenuation = evalShadowAttenuation(worldPos);
 
-    if (frag.mode == LIGHT_MAPPED) {
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        _fragColor = vec4(frag.diffuse, 1.0);
+    } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
         vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,
                         shadowAttenuation,

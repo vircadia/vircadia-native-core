@@ -64,6 +64,7 @@ class ResourceCacheSharedItems : public Dependency  {
 
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
+
 public:
     void appendPendingRequest(QWeakPointer<Resource> newRequest);
     void appendActiveRequest(QWeakPointer<Resource> newRequest);
@@ -112,6 +113,9 @@ public:
 signals:
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
     void stateChanged(int state);
+
+protected:
+    void setState(State state) { _state = state; emit stateChanged(_state); }
 
 private slots:
     void loadingChanged();
@@ -175,9 +179,6 @@ public:
 signals:
     void dirty();
 
-public slots:
-    void checkAsynchronousGets();
-
 protected slots:
     void updateTotalSize(const qint64& deltaSize);
 
@@ -185,6 +186,14 @@ protected slots:
     // Left as a protected member so subclasses can overload prefetch
     // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
     ScriptableResource* prefetch(const QUrl& url, void* extra);
+
+    /// Loads a resource from the specified URL and returns it.
+    /// If the caller is on a different thread than the ResourceCache,
+    /// returns an empty smart pointer and loads its asynchronously.
+    /// \param fallback a fallback URL to load if the desired one is unavailable
+    /// \param extra extra data to pass to the creator, if appropriate
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
+        void* extra = NULL);
 
 private slots:
     void clearATPAssets();
@@ -196,16 +205,9 @@ protected:
     // the QScriptEngine will delete the pointer when it is garbage collected.
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
 
-    /// Loads a resource from the specified URL.
-    /// \param fallback a fallback URL to load if the desired one is unavailable
-    /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
-    /// \param extra extra data to pass to the creator, if appropriate
-    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-                                                     bool delayLoad = false, void* extra = NULL);
-
     /// Creates a new resource.
-    virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) = 0;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+        const void* extra) = 0;
     
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
@@ -224,26 +226,30 @@ private:
     void resetResourceCounters();
     void removeResource(const QUrl& url, qint64 size = 0);
 
-    QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
-    QHash<QUrl, QWeakPointer<Resource>> _resources;
-    int _lastLRUKey = 0;
-    
+    void getResourceAsynchronously(const QUrl& url);
+
     static int _requestLimit;
     static int _requestsActive;
 
-    void getResourceAsynchronously(const QUrl& url);
-    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
-    QQueue<QUrl> _resourcesToBeGotten;
-    
-    std::atomic<size_t> _numTotalResources { 0 };
-    std::atomic<size_t> _numUnusedResources { 0 };
+    // Resources
+    QHash<QUrl, QWeakPointer<Resource>> _resources;
+    QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
+    int _lastLRUKey = 0;
 
+    std::atomic<size_t> _numTotalResources { 0 };
     std::atomic<qint64> _totalResourcesSize { 0 };
+
+    // Cached resources
+    QMap<int, QSharedPointer<Resource>> _unusedResources;
+    QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
+    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
+
+    std::atomic<size_t> _numUnusedResources { 0 };
     std::atomic<qint64> _unusedResourcesSize { 0 };
 
-    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
-    QReadWriteLock _unusedResourcesLock { QReadWriteLock::Recursive };
-    QMap<int, QSharedPointer<Resource>> _unusedResources;
+    // Pending resources
+    QQueue<QUrl> _resourcesToBeGotten;
+    QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
 };
 
 /// Base class for resources.
@@ -252,7 +258,7 @@ class Resource : public QObject {
 
 public:
     
-    Resource(const QUrl& url, bool delayLoad = false);
+    Resource(const QUrl& url);
     ~Resource();
     
     /// Returns the key last used to identify this resource in the unused map.

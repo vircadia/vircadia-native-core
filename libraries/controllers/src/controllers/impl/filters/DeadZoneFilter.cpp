@@ -13,11 +13,12 @@
 
 using namespace controller;
 float DeadZoneFilter::apply(float value) const {
-    float scale = 1.0f / (1.0f - _min);
-    if (std::abs(value) < _min) {
+    float scale = ((value < 0.0f) ? -1.0f : 1.0f) / (1.0f - _min);
+    float magnitude = std::abs(value);
+    if (magnitude < _min) {
         return 0.0f;
     }
-    return (value - _min) * scale;
+    return (magnitude - _min) * scale;
 }
 
 bool DeadZoneFilter::parseParameters(const QJsonValue& parameters) {

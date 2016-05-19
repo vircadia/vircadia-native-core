@@ -24,6 +24,8 @@
 
 const QString HIFI_URL_SCHEME = "hifi";
 const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
+const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
+const QString SANDBOX_STATUS_URL = "http://localhost:60332/status";
 const QString INDEX_PATH = "/";
 
 const QString GET_PLACE = "/api/v1/places/%1";
@@ -44,7 +46,9 @@ public:
         UserInput,
         Back,
         Forward,
-        StartupFromSettings
+        StartupFromSettings,
+        DomainPathResponse,
+        Internal
     };
 
     bool isConnected();
@@ -65,15 +69,22 @@ public:
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
+    /// determines if the local sandbox is likely running. It does not account for custom setups, and is only 
+    /// intended to detect the standard local sandbox install.
+    void ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
+                                   std::function<void()> localSandboxNotRunningDoThat);
+
 public slots:
     void handleLookupString(const QString& lookupString);
 
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
     bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
-        { return handleViewpoint(viewpointString, false, false, pathString); }
+        { return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString); }
 
     void goBack();
     void goForward();
+    void goToLocalSandbox(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS, trigger); }
+    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
 
     void goToUser(const QString& username);
 
@@ -105,18 +116,20 @@ private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
 
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 private:
-    void setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    void setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
+
+    // Set host and port, and return `true` if it was changed.
+    bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
+    bool setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
     bool handleUrl(const QUrl& lookupUrl, LookupTrigger trigger = UserInput);
 
-    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger);
+    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
-    bool handleViewpoint(const QString& viewpointString, bool shouldFace = false,
+    bool handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
                          bool definitelyPathOnly = false, const QString& pathString = QString());
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);

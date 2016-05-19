@@ -194,8 +194,8 @@ public:
 
     void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
 
-    void setSimulation(EntitySimulation* simulation);
-    EntitySimulation* getSimulation() const { return _simulation; }
+    void setSimulation(EntitySimulationPointer simulation);
+    EntitySimulationPointer getSimulation() const { return _simulation; }
 
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
@@ -249,6 +249,8 @@ public:
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
 
+    void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
+
 public slots:
     void callLoader(EntityItemID entityID);
 
@@ -256,7 +258,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
-    void newCollisionSoundURL(const QUrl& url);
+    void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
 
 protected:
@@ -297,11 +299,10 @@ protected:
     mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
 
-    EntitySimulation* _simulation;
+    EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
     bool _wantTerseEditLogging = false;
-    void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 
 
     // some performance tracking properties - only used in server trees

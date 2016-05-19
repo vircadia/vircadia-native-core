@@ -9,6 +9,7 @@
 
 #include <memory>
 
+#include <QtCore/QThread.h>
 #include <QtWidgets/QMainWindow>
 #include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>
@@ -16,7 +17,11 @@
 #include <QtGui/QResizeEvent>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
+#include <gl/GLWindow.h>
+#include <gl/GLWidget.h>
+#include <MainWindow.h>
 
+#include <gl/QOpenGLContextWrapper.h>
 #include <PerfStat.h>
 #include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
@@ -39,7 +44,7 @@ void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
-    _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
+    _currentRenderFrameInfo.rawRenderPose = _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
     Lock lock(_mutex);
     _frameInfos[frameIndex] = _currentRenderFrameInfo;
 }
@@ -72,14 +77,34 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
 }
 
 bool OculusLegacyDisplayPlugin::internalActivate() {
-    Parent::internalActivate();
-    
+    if (!Parent::internalActivate()) {
+        return false;
+    }
+
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
         return false;
     }
     
+    
+    _hmdWindow = new GLWindow();
+    _hmdWindow->create();
+    _hmdWindow->createContext(_container->getPrimaryContext());
+    auto hmdScreen = qApp->screens()[_hmdScreen];
+    auto hmdGeometry = hmdScreen->geometry();
+    _hmdWindow->setGeometry(hmdGeometry);
+    _hmdWindow->showFullScreen();
+  
+    _hmdWindow->makeCurrent();
+    glClearColor(1, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    _hmdWindow->swapBuffers();
+    
+    _container->makeRenderingContextCurrent();
+    
+    QOpenGLContextWrapper(_hmdWindow->context()).moveToThread(_presentThread);
+
     _hswDismissed = false;
     _hmd = ovrHmd_Create(0);
     if (!_hmd) {
@@ -96,7 +121,8 @@ bool OculusLegacyDisplayPlugin::internalActivate() {
         ovrMatrix4f ovrPerspectiveProjection =
             ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-        _eyeOffsets[eye] = glm::translate(mat4(), toGlm(erd.HmdToEyeViewOffset));
+        _ovrEyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        _eyeOffsets[eye] = glm::translate(mat4(), -1.0f * toGlm(_ovrEyeOffsets[eye]));
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
     
@@ -121,6 +147,11 @@ void OculusLegacyDisplayPlugin::internalDeactivate() {
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
+    _hmdWindow->showNormal();
+    _hmdWindow->destroy();
+    _hmdWindow->deleteLater();
+    _hmdWindow = nullptr;
+    _container->makeRenderingContextCurrent();
 }
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
@@ -131,20 +162,21 @@ void OculusLegacyDisplayPlugin::customizeContext() {
         glewInit();
         glGetError();
     });
+    _hmdWindow->requestActivate();
+    QThread::msleep(1000);
     Parent::customizeContext();
-#if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;
     header.API = ovrRenderAPI_OpenGL;
     header.BackBufferSize = _hmd->Resolution;
     header.Multisample = 1;
-    int distortionCaps = ovrDistortionCap_TimeWarp;
+    int distortionCaps = ovrDistortionCap_TimeWarp | ovrDistortionCap_Vignette;
     
     memset(_eyeTextures, 0, sizeof(ovrTexture) * 2);
     ovr_for_each_eye([&](ovrEyeType eye) {
         auto& header = _eyeTextures[eye].Header;
         header.API = ovrRenderAPI_OpenGL;
-        header.TextureSize = { (int)_desiredFramebufferSize.x, (int)_desiredFramebufferSize.y };
+        header.TextureSize = { (int)_renderTargetSize.x, (int)_renderTargetSize.y };
         header.RenderViewport.Size = header.TextureSize;
         header.RenderViewport.Size.w /= 2;
         if (eye == ovrEye_Right) {
@@ -152,29 +184,57 @@ void OculusLegacyDisplayPlugin::customizeContext() {
         }
     });
     
+    if (_hmdWindow->makeCurrent()) {
 #ifndef NDEBUG
-    ovrBool result =
+        ovrBool result =
 #endif
-    ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
-    assert(result);
-#endif
+        ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
+        assert(result);
+        _hmdWindow->doneCurrent();
+    }
+
     
 }
 
-#if 0
 void OculusLegacyDisplayPlugin::uncustomizeContext() {
-    HmdDisplayPlugin::uncustomizeContext();
+    _hmdWindow->doneCurrent();
+    QOpenGLContextWrapper(_hmdWindow->context()).moveToThread(qApp->thread());
+    Parent::uncustomizeContext();
 }
 
-void OculusLegacyDisplayPlugin::internalPresent() {
-    ovrHmd_BeginFrame(_hmd, 0);
-    ovr_for_each_eye([&](ovrEyeType eye) {
-        reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]).OGL.TexId = _currentSceneTexture;
-    });
-    ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
-}
+void OculusLegacyDisplayPlugin::hmdPresent() {
+    if (!_hswDismissed) {
+        ovrHSWDisplayState hswState;
+        ovrHmd_GetHSWDisplayState(_hmd, &hswState);
+        if (hswState.Displayed) {
+            ovrHmd_DismissHSWDisplay(_hmd);
+        }
 
-#endif
+    }
+    auto r = glm::quat_cast(_currentPresentFrameInfo.presentPose);
+    ovrQuatf ovrRotation = { r.x, r.y, r.z, r.w };
+    ovrPosef eyePoses[2];
+    memset(eyePoses, 0, sizeof(ovrPosef) * 2);
+    eyePoses[0].Orientation = eyePoses[1].Orientation = ovrRotation;
+    
+    GLint texture = oglplus::GetName(_compositeFramebuffer->color);
+    auto sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    glFlush();
+    if (_hmdWindow->makeCurrent()) {
+        glClearColor(0, 0.4, 0.8, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ovrHmd_BeginFrame(_hmd, _currentPresentFrameIndex);
+        glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+        glDeleteSync(sync);
+        ovr_for_each_eye([&](ovrEyeType eye) {
+            reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]).OGL.TexId = texture;
+        });
+        ovrHmd_EndFrame(_hmd, eyePoses, _eyeTextures);
+        _hmdWindow->doneCurrent();
+    }
+    static auto widget = _container->getPrimaryWidget();
+    widget->makeCurrent();
+}
 
 int OculusLegacyDisplayPlugin::getHmdScreen() const {
     return _hmdScreen;
@@ -183,5 +243,4 @@ int OculusLegacyDisplayPlugin::getHmdScreen() const {
 float OculusLegacyDisplayPlugin::getTargetFrameRate() const {
     return TARGET_RATE_OculusLegacy;
 }
-
 

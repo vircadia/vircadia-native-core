@@ -23,7 +23,7 @@ AssignmentAction::AssignmentAction(EntityActionType type, const QUuid& id, Entit
 AssignmentAction::~AssignmentAction() {
 }
 
-void AssignmentAction::removeFromSimulation(EntitySimulation* simulation) const {
+void AssignmentAction::removeFromSimulation(EntitySimulationPointer simulation) const {
     withReadLock([&]{
         simulation->removeAction(_id);
         simulation->applyActionChanges();

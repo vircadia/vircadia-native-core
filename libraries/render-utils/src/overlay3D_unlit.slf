@@ -1,0 +1,32 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  overlay3D_unlit.frag
+//  fragment shader
+//
+//  Created by Zach Pomerantz on 2/2/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform sampler2D originalTexture;
+
+in vec2 _texCoord0;
+in vec3 _color;
+
+out vec4 _fragColor;
+
+void main(void) {
+    vec4 albedo = texture(originalTexture, _texCoord0);
+
+    if (albedo.a <= 0.1) {
+        discard;
+    }
+    vec4 color = vec4(albedo.rgb * _color, albedo.a);
+
+    // Apply standard tone mapping
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
+}

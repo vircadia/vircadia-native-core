@@ -64,7 +64,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity->isDead());
     if (entity->isSimulated()) {
         QMutexLocker lock(&_mutex);
-        entity->clearActions(this);
+        entity->clearActions(getThisPointer());
         removeEntityInternal(entity);
         _entitiesToDelete.insert(entity);
     }

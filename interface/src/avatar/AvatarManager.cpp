@@ -73,7 +73,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 AvatarManager::~AvatarManager() {
@@ -154,6 +153,15 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
+}
+
+void AvatarManager::postUpdate(float deltaTime) {
+    auto hashCopy = getHashCopy();
+    AvatarHash::iterator avatarIterator = hashCopy.begin();
+    for (avatarIterator = hashCopy.begin(); avatarIterator != hashCopy.end(); avatarIterator++) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        avatar->postUpdate(deltaTime);
+    }
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
@@ -309,9 +317,11 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
         // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
             MyAvatar* myAvatar = getMyAvatar();
-            const QString& collisionSoundURL = myAvatar->getCollisionSoundURL();
-            if (!collisionSoundURL.isEmpty()) {
-                const float velocityChange = glm::length(collision.velocityChange);
+            auto collisionSound = myAvatar->getCollisionSound();
+            if (collisionSound) {
+                const auto characterController = myAvatar->getCharacterController();
+                const float avatarVelocityChange = (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
+                const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
                 const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01f;
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
@@ -327,7 +337,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
+                AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
                 myAvatar->collisionWithEntity(collision);
                 return;
             }

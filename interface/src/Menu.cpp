@@ -54,7 +54,7 @@ Menu* Menu::getInstance() {
 
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
@@ -64,9 +64,9 @@ Menu::Menu() {
         addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
 
         // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
-        connect(&accountManager, &AccountManager::profileChanged,
+        connect(accountManager.data(), &AccountManager::profileChanged,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
-        connect(&accountManager, &AccountManager::logoutComplete,
+        connect(accountManager.data(), &AccountManager::logoutComplete,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
 
@@ -480,10 +480,8 @@ Menu::Menu() {
         avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderMyLookAtVectors, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderOtherLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
@@ -502,7 +500,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSensorToWorldMatrix, 0, false,
         avatar, SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::KeyboardMotorControl,
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
@@ -568,8 +566,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::LogExtraTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SupressDeadlockWatchdogStatus, 0, false,
-        qApp, SLOT(toggleSuppressDeadlockWatchdogStatus(bool)));
 
 
     // Developer > Audio >>>

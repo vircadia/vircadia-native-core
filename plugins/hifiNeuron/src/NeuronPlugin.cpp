@@ -509,7 +509,12 @@ void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrat
         std::lock_guard<std::mutex> guard(_jointsMutex);
         joints = _joints;
     }
-    _inputDevice->update(deltaTime, inputCalibrationData, joints, _prevJoints);
+
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->withLock([&, this]() {
+        _inputDevice->update(deltaTime, inputCalibrationData, joints, _prevJoints);
+    });
+
     _prevJoints = joints;
 }
 

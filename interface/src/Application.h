@@ -33,6 +33,7 @@
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
+#include <plugins/DisplayPlugin.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <SimpleMovingAverage.h>
@@ -93,6 +94,12 @@ class Application : public QApplication, public AbstractViewStateInterface, publ
     friend class PluginContainerProxy;
 
 public:
+    enum Event {
+        Present = DisplayPlugin::Present,
+        Paint = Present + 1,
+        Lambda = Paint + 1
+    };
+
     // FIXME? Empty methods, do we still need them?
     static void initPlugins();
     static void shutdownPlugins();
@@ -104,6 +111,9 @@ public:
 
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
+
+    // Return an HTTP User-Agent string with OS and device information.
+    Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
     void initializeUi();
@@ -128,14 +138,12 @@ public:
     Camera* getCamera() { return &_myCamera; }
     const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
-    ViewFrustum* getViewFrustum();
-    const ViewFrustum* getViewFrustum() const;
+    void copyViewFrustum(ViewFrustum& viewOut) const;
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
-    ViewFrustum* getDisplayViewFrustum();
-    const ViewFrustum* getDisplayViewFrustum() const;
-    ViewFrustum* getShadowViewFrustum() override { return &_shadowViewFrustum; }
+    void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -169,7 +177,7 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
+    virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { copyDisplayViewFrustum(viewOut); }
     virtual QThread* getMainThread() override { return thread(); }
     virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;
@@ -177,8 +185,7 @@ public:
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
-    DisplayPlugin* getActiveDisplayPlugin();
-    const DisplayPlugin* getActiveDisplayPlugin() const;
+    DisplayPluginPointer getActiveDisplayPlugin() const;
 
     FileLogger* getLogger() const { return _logger; }
 
@@ -212,7 +219,7 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
-    virtual void pushPreRenderLambda(void* key, std::function<void()> func) override;
+    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
@@ -223,8 +230,6 @@ public:
 
 signals:
     void svoImportRequested(const QString& url);
-
-    void checkBackgroundDownloads();
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
@@ -255,7 +260,6 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
-    void toggleSuppressDeadlockWatchdogStatus(bool checked);
 
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
@@ -287,7 +291,6 @@ public slots:
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
-    void idle(uint64_t now);
     void aboutToQuit();
 
     void resettingDomain();
@@ -326,6 +329,7 @@ private:
 
     void cleanupBeforeQuit();
 
+    void idle();
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -388,7 +392,7 @@ private:
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
-    std::mutex _displayPluginLock;
+    mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
@@ -408,12 +412,13 @@ private:
     QElapsedTimer _lastTimeUpdated;
 
     ShapeManager _shapeManager;
-    PhysicalEntitySimulation _entitySimulation;
+    PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
+    mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
@@ -502,7 +507,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
 
@@ -513,8 +517,8 @@ private:
 
     QThread* _deadlockWatchdogThread;
 
-    std::map<void*, std::function<void()>> _preRenderLambdas;
-    std::mutex _preRenderLambdasLock;
+    std::map<void*, std::function<void()>> _postUpdateLambdas;
+    std::mutex _postUpdateLambdasLock;
 
     std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
