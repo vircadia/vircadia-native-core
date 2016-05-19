@@ -17,6 +17,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../gl41/GL41Backend.h"
+#include "../gl45/GL45Backend.h"
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -31,25 +32,19 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-
 static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
 bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 Backend* GLBackend::createBackend() {
-
-#if 0
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     GLBackend* result; 
     if (enableOpenGL45 && version >= 0x0405) {
-        result = new gpu::gl45::GLBackend;
+        result = new gpu::gl45::GL45Backend();
     } else {
-        result = new gpu::gl41::GLBackend;
+        result = new gpu::gl41::GL41Backend();
     }
-#else 
-    GLBackend* result = new gpu::gl41::GL41Backend;
-#endif
     result->initInput();
     result->initTransform();
     gl::GLTexture::initTextureTransferHelper();
