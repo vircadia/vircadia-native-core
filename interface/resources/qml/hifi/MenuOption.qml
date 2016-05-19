@@ -76,7 +76,6 @@ QtObject {
     readonly property string forward: "Forward";
     readonly property string frameTimer: "Show Timer";
     readonly property string fullscreenMirror: "Mirror";
-    readonly property string glowWhenSpeaking: "Glow When Speaking";
     readonly property string help: "Help...";
     readonly property string increaseAvatarSize: "Increase Avatar Size";
     readonly property string independentMode: "Independent Mode";

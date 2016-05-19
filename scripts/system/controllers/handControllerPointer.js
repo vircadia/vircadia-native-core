@@ -405,6 +405,9 @@ function update() {
     if (!Menu.isOptionChecked("First Person")) {
         return turnOffVisualization();
     }  // What to do? menus can be behind hand!
+    if (!Window.hasFocus()) { // Don't mess with other apps
+        return turnOffVisualization();
+    }
     var controllerPose = Controller.getPoseValue(activeHand);
     // Vive is effectively invalid when not in HMD
     if (!controllerPose.valid || ((hardware === 'Vive') && !HMD.active)) {

@@ -67,11 +67,11 @@ using AvatarEntityIDs = QSet<QUuid>;
 using AvatarDataSequenceNumber = uint16_t;
 
 // avatar motion behaviors
-const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
+const quint32 AVATAR_MOTION_ACTION_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
 const quint32 AVATAR_MOTION_DEFAULTS =
-        AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
+        AVATAR_MOTION_ACTION_MOTOR_ENABLED |
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed

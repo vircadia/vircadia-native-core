@@ -186,9 +186,6 @@ public:
     inline const glm::vec3 getDimensions() const { return getScale(); }
     virtual void setDimensions(const glm::vec3& value);
 
-    float getGlowLevel() const { return _glowLevel; }
-    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
-
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
@@ -468,7 +465,6 @@ protected:
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
 
-    float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class

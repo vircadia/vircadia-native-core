@@ -8,16 +8,19 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "GPULogging.h"
+#include "GLBackend.h"
 
 #include <unordered_set>
 #include <unordered_map>
 #include <QtCore/QThread>
 
 #include "GLBackendShared.h"
+
 #include "GLBackendTextureTransfer.h"
 
 using namespace gpu;
+using namespace gpu::gl;
+
 
 GLenum gpuToGLTextureType(const Texture& texture) {
     switch (texture.getType()) {
@@ -408,7 +411,7 @@ void GLBackend::GLTexture::transfer() const {
             break;
 
         default:
-            qCWarning(gpulogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
+            qCWarning(gpugllogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
             break;
         }
     }
@@ -449,7 +452,7 @@ void GLBackend::GLTexture::postTransfer() {
             break;
 
         default:
-            qCWarning(gpulogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
+            qCWarning(gpugllogging) << __FUNCTION__ << " case for Texture Type " << _gpuTexture.getType() << " not supported";
             break;
     }
 }
