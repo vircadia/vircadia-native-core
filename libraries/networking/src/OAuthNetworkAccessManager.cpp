@@ -32,14 +32,14 @@ OAuthNetworkAccessManager* OAuthNetworkAccessManager::getInstance() {
 
 QNetworkReply* OAuthNetworkAccessManager::createRequest(QNetworkAccessManager::Operation op, const QNetworkRequest& req,
                                                         QIODevice* outgoingData) {
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     
-    if (accountManager.hasValidAccessToken()
+    if (accountManager->hasValidAccessToken()
         && req.url().host() == NetworkingConstants::METAVERSE_SERVER_URL.host()) {
         QNetworkRequest authenticatedRequest(req);
         authenticatedRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         authenticatedRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
-                                          accountManager.getAccountInfo().getAccessToken().authorizationHeaderValue());
+                                          accountManager->getAccountInfo().getAccessToken().authorizationHeaderValue());
         
         return QNetworkAccessManager::createRequest(op, authenticatedRequest, outgoingData);
     } else {

@@ -112,6 +112,9 @@ public:
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
 
+    // Return an HTTP User-Agent string with OS and device information.
+    Q_INVOKABLE QString getUserAgent();
+
     void initializeGL();
     void initializeUi();
     void paintGL();

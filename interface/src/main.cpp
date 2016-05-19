@@ -144,11 +144,11 @@ int main(int argc, const char* argv[]) {
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
-            auto& accountManager = AccountManager::getInstance();
-            if (accountManager.isLoggedIn()) {
+            auto accountManager = DependencyManager::get<AccountManager>();
+            if (accountManager->isLoggedIn()) {
                 UserActivityLogger::getInstance().insufficientGLVersion(glData);
             } else {
-                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glData](){
+                QObject::connect(accountManager.data(), &AccountManager::loginComplete, [glData](){
                     static bool loggedInsufficientGL = false;
                     if (!loggedInsufficientGL) {
                         UserActivityLogger::getInstance().insufficientGLVersion(glData);
@@ -168,9 +168,9 @@ int main(int argc, const char* argv[]) {
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
 #ifdef HAS_BUGSPLAT
-        AccountManager& accountManager = AccountManager::getInstance();
-        crashReporter.mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
-        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&crashReporter](const QString& newUsername) {
+        auto accountManager = DependencyManager::get<AccountManager>();
+        crashReporter.mpSender.setDefaultUserName(qPrintable(accountManager->getAccountInfo().getUsername()));
+        QObject::connect(accountManager.data(), &AccountManager::usernameChanged, &app, [&crashReporter](const QString& newUsername) {
             crashReporter.mpSender.setDefaultUserName(qPrintable(newUsername));
         });
 

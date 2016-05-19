@@ -53,8 +53,8 @@ QString fixupHifiUrl(const QString& urlString) {
     QUrl url(urlString);
 	QUrlQuery query(url);
 	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-	    AccountManager& accountManager = AccountManager::getInstance();
-	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+	    auto accountManager = DependencyManager::get<AccountManager>();
+	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager->getAccountInfo().getAccessToken().token);
 	    url.setQuery(query.query());
 	    return url.toString();
 	}

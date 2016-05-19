@@ -78,12 +78,12 @@ void OctreeHeadlessViewer::queryOctree() {
                 }
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
                 if (!rootCode) {
                     return;
                 }
 
-                voxelDetailsForCode(rootCode, rootDetails);
+                voxelDetailsForCode(rootCode.get(), rootDetails);
                 foundRootDetails = true;
             });
 
@@ -146,7 +146,7 @@ void OctreeHeadlessViewer::queryOctree() {
                 }
 
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (!rootCode) {
                     if (wantExtraDebugging) {
@@ -154,7 +154,7 @@ void OctreeHeadlessViewer::queryOctree() {
                     }
                     return;
                 }
-                voxelDetailsForCode(rootCode, rootDetails);
+                voxelDetailsForCode(rootCode.get(), rootDetails);
                 foundRootDetails = true;
             });
 
