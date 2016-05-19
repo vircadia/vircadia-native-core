@@ -626,18 +626,19 @@
                                 var parsedUserData = {}
                                 try {
                                     parsedUserData = JSON.parse(properties.userData);
+                                                            
+                                    if ("grabbableKey" in parsedUserData) {
+                                        if ("grabbable" in parsedUserData["grabbableKey"]) {
+                                            elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
+                                        }
+                                        if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
+                                            elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
+                                        }
+                                        if ("ignoreIK" in parsedUserData["grabbableKey"]) {
+                                            elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
+                                        }
+                                    }
                                 } catch(e) {}
-                                if ("grabbableKey" in parsedUserData) {
-                                    if ("grabbable" in parsedUserData["grabbableKey"]) {
-                                        elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
-                                    }
-                                    if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
-                                        elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
-                                    }
-                                    if ("ignoreIK" in parsedUserData["grabbableKey"]) {
-                                        elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
-                                    }
-                                }
 
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
