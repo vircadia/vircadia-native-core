@@ -128,8 +128,6 @@ enum KeyState {
     DELETE_KEY_DOWN
 };
 
-#define TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-
 class QDataStream;
 
 class AttachmentData;
@@ -287,9 +285,6 @@ public:
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
-#ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-        QHash<QString, int> jointIndices;
-#endif
     };
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
@@ -382,9 +377,6 @@ protected:
     float _displayNameAlpha;
 
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
-#ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    QVector<int> _networkJointIndexMap; // maps network joint indices to local model joint indices.
-#endif
     QStringList _jointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error

@@ -592,16 +592,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // joint rotations
     int numJoints = *sourceBuffer++;
 
-    // do not process any jointData until we've received a valid jointIndices hash from
-    // an earlier AvatarIdentity packet.  Because if we do, we risk applying the joint data
-    // the wrong bones, resulting in a twisted avatar, An un-animated avatar is preferable to this.
-    bool skipJoints = false;
-#ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    if (_networkJointIndexMap.empty()) {
-        skipJoints = true;
-    }
-#endif
-
     int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
     minPossibleSize += bytesOfValidity;
     if (minPossibleSize > maxAvailableSize) {
@@ -653,13 +643,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
             if (validRotations[i]) {
-                if (skipJoints) {
-                    sourceBuffer += COMPRESSED_QUATERNION_SIZE;
-                } else {
-                    sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
-                    _hasNewJointRotations = true;
-                    data.rotationSet = true;
-                }
+                sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
+                _hasNewJointRotations = true;
+                data.rotationSet = true;
             }
         }
     } // numJoints * 6 bytes
@@ -705,13 +691,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         for (int i = 0; i < numJoints; i++) {
             JointData& data = _jointData[i];
             if (validTranslations[i]) {
-                if (skipJoints) {
-                    sourceBuffer += COMPRESSED_TRANSLATION_SIZE;
-                } else {
-                    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
-                    _hasNewJointTranslations = true;
-                    data.translationSet = true;
-                }
+                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                _hasNewJointTranslations = true;
+                data.translationSet = true;
             }
         }
     } // numJoints * 6 bytes
@@ -971,31 +953,12 @@ void AvatarData::clearJointsData() {
 void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
 
-#ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.jointIndices;
-#else
     packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName;
-#endif
 }
 
 bool AvatarData::processAvatarIdentity(const Identity& identity) {
 
     bool hasIdentityChanged = false;
-
- #ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    if (!_jointIndices.empty() && _networkJointIndexMap.empty() && !identity.jointIndices.empty()) {
-
-        // build networkJointIndexMap from _jointIndices and networkJointIndices.
-        _networkJointIndexMap.fill(-1, identity.jointIndices.size());
-        for (auto iter = identity.jointIndices.cbegin(); iter != identity.jointIndices.end(); ++iter) {
-            int jointIndex = getJointIndex(iter.key());
-            int networkJointIndex = iter.value();
-            if (networkJointIndex >= 0 && networkJointIndex < identity.jointIndices.size()) {
-                _networkJointIndexMap[networkJointIndex - 1] = jointIndex;
-            }
-        }
-    }
-#endif
 
     if (_firstSkeletonCheck || (identity.skeletonModelURL != _skeletonModelURL)) {
         setSkeletonModelURL(identity.skeletonModelURL);
@@ -1021,12 +984,7 @@ QByteArray AvatarData::identityByteArray() {
     QDataStream identityStream(&identityData, QIODevice::Append);
     QUrl emptyURL("");
     const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
-
-#ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _jointIndices;
-#else
     identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName;
-#endif
 
     return identityData;
 }
@@ -1204,10 +1162,6 @@ void AvatarData::sendIdentityPacket() {
 void AvatarData::updateJointMappings() {
     _jointIndices.clear();
     _jointNames.clear();
-
-#ifdef TRANSMIT_JOINT_INDICES_IN_IDENTITY_PACKET
-    _networkJointIndexMap.clear();
-#endif
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
