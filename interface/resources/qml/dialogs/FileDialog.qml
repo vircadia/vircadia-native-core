@@ -238,6 +238,8 @@ ModalWindow {
             // drive information when viewing at the computer level.
 
             property var folder
+            property int sortOrder: Qt.AscendingOrder
+            property int sortColumn: 0
 
             onFolderChanged: folderListModel.folder = folder;
 
@@ -249,16 +251,61 @@ ModalWindow {
             }
 
             function update() {
-                var i;
+                var dataFields = ["fileName", "fileModified", "fileSize"],
+                    sortFields = ["fileNameSort", "fileModified", "fileSize"],
+                    dataField = dataFields[sortColumn],
+                    sortField = sortFields[sortColumn],
+                    sortValue,
+                    fileName,
+                    fileIsDir,
+                    comparisonFunction,
+                    lower,
+                    middle,
+                    upper,
+                    rows = 0,
+                    i;
                 clear();
+
+                comparisonFunction = sortOrder === Qt.AscendingOrder
+                    ? function(a, b) { return a < b; }
+                    : function(a, b) { return a > b; }
+
                 for (i = 0; i < folderListModel.count; i++) {
-                    append({
-                       fileName: folderListModel.get(i, "fileName"),
-                       fileModified: folderListModel.get(i, "fileModified"),
+                    fileName = folderListModel.get(i, "fileName");
+                    fileIsDir = folderListModel.get(i, "fileIsDir");
+
+                    sortValue = folderListModel.get(i, dataField);
+
+                    if (dataField === "fileName") {
+                        // Directories first by prefixing a "*".
+                        // Case-insensitive.
+                        sortValue = (fileIsDir ? "*" : "") + sortValue.toLowerCase();
+                    }
+
+                    lower = 0;
+                    upper = rows;
+                    while (lower < upper) {
+                        middle = Math.floor((lower + upper) / 2);
+                        var lessThan;
+                        if (comparisonFunction(sortValue, get(middle)[sortField])) {
+                            lessThan = true;
+                            upper = middle;
+                        } else {
+                            lessThan = false;
+                            lower = middle + 1;
+                        }
+                    }
+
+                    insert(lower, {
+                       fileName: fileName,
+                       fileModified: (fileIsDir ? new Date(0) : folderListModel.get(i, "fileModified")),
                        fileSize: folderListModel.get(i, "fileSize"),
                        filePath: folderListModel.get(i, "filePath"),
-                       fileIsDir: folderListModel.get(i, "fileIsDir")
+                       fileIsDir: fileIsDir,
+                       fileNameSort: (fileIsDir ? "*" : "") + fileName.toLowerCase()
                     });
+
+                    rows++;
                 }
             }
         }
@@ -287,10 +334,9 @@ ModalWindow {
             model: fileTableModel
 
             function updateSort() {
-                model.sortReversed = sortIndicatorColumn == 0
-                    ? (sortIndicatorOrder == Qt.DescendingOrder)
-                    : (sortIndicatorOrder == Qt.AscendingOrder);  // Date and size fields have opposite sense
-                model.sortField = sortIndicatorColumn + 1;
+                model.sortOrder = sortIndicatorOrder;
+                model.sortColumn = sortIndicatorColumn;
+                model.update();
             }
 
             onSortIndicatorColumnChanged: { updateSort(); }
