@@ -178,7 +178,10 @@ var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.01;
 function updateSeeking() {
     if (!Reticle.visible || isShakingMouse()) {
-        isSeeking = true;
+        if (!isSeeking) {
+            print('Start seeking mouse.');
+            isSeeking = true;
+        }
     } // e.g., if we're about to turn it on with first movement.
     if (!isSeeking) {
         return;
@@ -203,6 +206,7 @@ function updateSeeking() {
     }
     var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
     if (okX && okY) {
+        print('Finished seeking mouse');
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
@@ -444,7 +448,7 @@ function update() {
     updateVisualization(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
 }
 
-var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
+var UPDATE_INTERVAL = 50; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(updater);

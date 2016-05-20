@@ -352,7 +352,9 @@ var toolBar = (function() {
                     gridTool.setVisible(true);
                     grid.setEnabled(true);
                     propertiesTool.setVisible(true);
-                    Window.setFocus();
+                    // Not sure what the following was meant to accomplish, but it currently causes
+                    // everybody else to think that Interface has lost focus overall. fogbugzid:558
+                    // Window.setFocus();
                 }
                 that.showTools(isActive);
             }
