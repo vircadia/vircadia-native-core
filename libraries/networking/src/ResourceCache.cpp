@@ -40,15 +40,14 @@ void ResourceCacheSharedItems::appendPendingRequest(QWeakPointer<Resource> resou
 
 QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getPendingRequests() {
     QList<QSharedPointer<Resource>> result;
+    Lock lock(_mutex);
 
-    {
-        Lock lock(_mutex);
-        foreach(QSharedPointer<Resource> resource, _pendingRequests) {
-            if (resource) {
-                result.append(resource);
-            }
+    foreach(QSharedPointer<Resource> resource, _pendingRequests) {
+        if (resource) {
+            result.append(resource);
         }
     }
+
     return result;
 }
 
@@ -59,20 +58,20 @@ uint32_t ResourceCacheSharedItems::getPendingRequestsCount() const {
 
 QList<QSharedPointer<Resource>> ResourceCacheSharedItems::getLoadingRequests() {
     QList<QSharedPointer<Resource>> result;
+    Lock lock(_mutex);
 
-    {
-        Lock lock(_mutex);
-        foreach(QSharedPointer<Resource> resource, _loadingRequests) {
-            if (resource) {
-                result.append(resource);
-            }
+    foreach(QSharedPointer<Resource> resource, _loadingRequests) {
+        if (resource) {
+            result.append(resource);
         }
     }
+
     return result;
 }
 
 void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     Lock lock(_mutex);
+
     // resource can only be removed if it still has a ref-count, as
     // QWeakPointer has no operator== implementation for two weak ptrs, so
     // manually loop in case resource has been freed.
@@ -88,11 +87,11 @@ void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
 }
 
 QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
-    Lock lock(_mutex);
     // look for the highest priority pending request
     int highestIndex = -1;
     float highestPriority = -FLT_MAX;
     QSharedPointer<Resource> highestResource;
+    Lock lock(_mutex);
 
     for (int i = 0; i < _pendingRequests.size();) {
         // Clear any freed resources
@@ -117,6 +116,92 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     }
 
     return highestResource;
+}
+
+ScriptableResource::ScriptableResource(const QUrl& url) :
+    QObject(nullptr),
+    _url(url) { }
+
+void ScriptableResource::release() {
+    disconnectHelper();
+    _resource.reset();
+}
+
+bool ScriptableResource::isInScript() const {
+    return _resource && _resource->isInScript();
+}
+
+void ScriptableResource::setInScript(bool isInScript) {
+    if (_resource) {
+        _resource->setInScript(isInScript);
+    }
+}
+
+void ScriptableResource::loadingChanged() {
+    setState(LOADING);
+}
+
+void ScriptableResource::loadedChanged() {
+    setState(LOADED);
+}
+
+void ScriptableResource::finished(bool success) {
+    disconnectHelper();
+
+    setState(success ? FINISHED : FAILED);
+}
+
+void ScriptableResource::disconnectHelper() {
+    if (_progressConnection) {
+        disconnect(_progressConnection);
+    }
+    if (_loadingConnection) {
+        disconnect(_loadingConnection);
+    }
+    if (_loadedConnection) {
+        disconnect(_loadedConnection);
+    }
+    if (_finishedConnection) {
+        disconnect(_finishedConnection);
+    }
+}
+
+ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
+    ScriptableResource* result = nullptr;
+
+    if (QThread::currentThread() != thread()) {
+        // Must be called in thread to ensure getResource returns a valid pointer
+        QMetaObject::invokeMethod(this, "prefetch", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(ScriptableResource*, result),
+            Q_ARG(QUrl, url), Q_ARG(void*, extra));
+        return result;
+    }
+
+    result = new ScriptableResource(url);
+
+    auto resource = getResource(url, QUrl(), extra);
+    result->_resource = resource;
+    result->setObjectName(url.toString());
+
+    result->_resource = resource;
+    if (resource->isLoaded()) {
+        result->finished(!resource->_failedToLoad);
+    } else {
+        result->_progressConnection = connect(
+            resource.data(), &Resource::onProgress,
+            result, &ScriptableResource::progressChanged);
+        result->_loadingConnection = connect(
+            resource.data(), &Resource::loading,
+            result, &ScriptableResource::loadingChanged);
+        result->_loadedConnection = connect(
+            resource.data(), &Resource::loaded,
+            result, &ScriptableResource::loadedChanged);
+        result->_finishedConnection = connect(
+            resource.data(), &Resource::finished,
+            result, &ScriptableResource::finished);
+    }
+
+    return result;
 }
 
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
@@ -176,12 +261,14 @@ void ResourceCache::refreshAll() {
     clearUnusedResource();
     resetResourceCounters();
 
-    _resourcesLock.lockForRead();
-    auto resourcesCopy = _resources;
-    _resourcesLock.unlock();
+    QHash<QUrl, QWeakPointer<Resource>> resources;
+    {
+        QReadLocker locker(&_resourcesLock);
+        resources = _resources;
+    }
 
     // Refresh all remaining resources in use
-    foreach (QSharedPointer<Resource> resource, resourcesCopy) {
+    foreach (QSharedPointer<Resource> resource, resources) {
         if (resource) {
             resource->refresh();
         }
@@ -219,7 +306,7 @@ QVariantList ResourceCache::getResourceList() {
 
     return list;
 }
-
+ 
 void ResourceCache::setRequestLimit(int limit) {
     _requestLimit = limit;
 
@@ -229,25 +316,7 @@ void ResourceCache::setRequestLimit(int limit) {
     }
 }
 
-void ResourceCache::getResourceAsynchronously(const QUrl& url) {
-    qCDebug(networking) << "ResourceCache::getResourceAsynchronously" << url.toString();
-    _resourcesToBeGottenLock.lockForWrite();
-    _resourcesToBeGotten.enqueue(QUrl(url));
-    _resourcesToBeGottenLock.unlock();
-}
-
-void ResourceCache::checkAsynchronousGets() {
-    assert(QThread::currentThread() == thread());
-    if (!_resourcesToBeGotten.isEmpty()) {
-        _resourcesToBeGottenLock.lockForWrite();
-        QUrl url = _resourcesToBeGotten.dequeue();
-        _resourcesToBeGottenLock.unlock();
-        getResource(url);
-    }
-}
-
-QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback,
-                                                    bool delayLoad, void* extra) {
+QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra) {
     QSharedPointer<Resource> resource;
     {
         QReadLocker locker(&_resourcesLock);
@@ -259,19 +328,24 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
     }
 
     if (QThread::currentThread() != thread()) {
-        assert(delayLoad);
-        getResourceAsynchronously(url);
+        qCDebug(networking) << "Fetching asynchronously:" << url;
+        QMetaObject::invokeMethod(this, "getResource",
+            Q_ARG(QUrl, url), Q_ARG(QUrl, fallback));
+            // Cannot use extra parameter as it might be freed before the invocation
         return QSharedPointer<Resource>();
     }
 
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
-        return getResource(fallback, QUrl(), delayLoad);
+        return getResource(fallback, QUrl());
     }
 
-    resource = createResource(url, fallback.isValid() ?
-                              getResource(fallback, QUrl(), true) : QSharedPointer<Resource>(), delayLoad, extra);
+    resource = createResource(
+        url,
+        fallback.isValid() ?  getResource(fallback, QUrl()) : QSharedPointer<Resource>(),
+        extra);
     resource->setSelf(resource);
     resource->setCache(this);
+    connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
     {
         QWriteLocker locker(&_resourcesLock);
         _resources.insert(url, resource);
@@ -312,8 +386,10 @@ void ResourceCache::removeUnusedResource(const QSharedPointer<Resource>& resourc
     if (_unusedResources.contains(resource->getLRUKey())) {
         _unusedResources.remove(resource->getLRUKey());
         _unusedResourcesSize -= resource->getBytes();
+
+        locker.unlock();
+        resetResourceCounters();
     }
-    resetResourceCounters();
 }
 
 void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
@@ -326,7 +402,9 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         it.value()->setCache(nullptr);
         auto size = it.value()->getBytes();
 
+        locker.unlock();
         removeResource(it.value()->getURL(), size);
+        locker.relock();
 
         _unusedResourcesSize -= size;
         _unusedResources.erase(it);
@@ -346,8 +424,16 @@ void ResourceCache::clearUnusedResource() {
 }
 
 void ResourceCache::resetResourceCounters() {
-    _numTotalResources = _resources.size();
-    _numUnusedResources = _unusedResources.size();
+    {
+        QReadLocker locker(&_resourcesLock);
+        _numTotalResources = _resources.size();
+    }
+
+    {
+        QReadLocker locker(&_unusedResourcesLock);
+        _numUnusedResources = _unusedResources.size();
+    }
+
     emit dirty();
 }
 
@@ -357,8 +443,13 @@ void ResourceCache::removeResource(const QUrl& url, qint64 size) {
     _totalResourcesSize -= size;
 }
 
-void ResourceCache::updateTotalSize(const qint64& oldSize, const qint64& newSize) {
-    _totalResourcesSize += (newSize - oldSize);
+void ResourceCache::updateTotalSize(const qint64& deltaSize) {
+    _totalResourcesSize += deltaSize;
+
+    // Sanity checks
+    assert(_totalResourcesSize >= 0);
+    assert(_totalResourcesSize < (1024 * BYTES_PER_GIGABYTES));
+
     emit dirty();
 }
  
@@ -403,7 +494,7 @@ const int DEFAULT_REQUEST_LIMIT = 10;
 int ResourceCache::_requestLimit = DEFAULT_REQUEST_LIMIT;
 int ResourceCache::_requestsActive = 0;
 
-Resource::Resource(const QUrl& url, bool delayLoad) :
+Resource::Resource(const QUrl& url) :
     _url(url),
     _activeUrl(url),
     _request(nullptr) {
@@ -543,7 +634,7 @@ void Resource::finishedLoading(bool success) {
 }
 
 void Resource::setSize(const qint64& bytes) {
-    QMetaObject::invokeMethod(_cache.data(), "updateTotalSize", Q_ARG(qint64, _bytes), Q_ARG(qint64, bytes));
+    emit updateSize(bytes - _bytes);
     _bytes = bytes;
 }
 
@@ -569,8 +660,11 @@ void Resource::makeRequest() {
     }
     
     qCDebug(networking).noquote() << "Starting request for:" << _url.toDisplayString();
+    emit loading();
 
-    connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
+    connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
+    connect(this, &Resource::onProgress, this, &Resource::handleDownloadProgress);
+
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
 
     _bytesReceived = _bytesTotal = _bytes = 0;

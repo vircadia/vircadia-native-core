@@ -29,8 +29,13 @@ public:
 
     void setupMenus(Menu* menubar, MenuWrapper* menu);
 
+    QString addressForBookmark(const QString& name) const;
+
+    static const QString HOME_BOOKMARK;
+
 private slots:
     void bookmarkLocation();
+    void setHomeLocation();
     void teleportToBookmark();
     void deleteBookmark();
     

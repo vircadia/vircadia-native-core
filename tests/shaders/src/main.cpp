@@ -8,7 +8,7 @@
 #include <iostream>
 #include <mutex>
 
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <QLoggingCategory>
 #include <QResizeEvent>
@@ -26,7 +26,7 @@
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
 #include <render-utils/simple_textured_frag.h>
-#include <render-utils/simple_textured_emisive_frag.h>
+#include <render-utils/simple_textured_unlit_frag.h>
 
 #include <render-utils/deferred_light_vert.h>
 #include <render-utils/deferred_light_limited_vert.h>
@@ -114,7 +114,7 @@ public:
         show();
         makeCurrent();
 
-        gpu::Context::init<gpu::GLBackend>();
+        gpu::Context::init<gpu::gl::GLBackend>();
         setupDebugLogger(this);
         makeCurrent();
         resize(QSize(800, 600));
@@ -160,7 +160,7 @@ void QTestWindow::draw() {
         testShaderBuild(skybox_vert, skybox_frag);
         testShaderBuild(simple_vert, simple_frag);
         testShaderBuild(simple_vert, simple_textured_frag);
-        testShaderBuild(simple_vert, simple_textured_emisive_frag);
+        testShaderBuild(simple_vert, simple_textured_unlit_frag);
         testShaderBuild(deferred_light_vert, directional_light_frag);
         testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
         testShaderBuild(deferred_light_vert, directional_skybox_light_frag);

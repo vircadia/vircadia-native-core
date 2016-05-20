@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <assert.h>
 
+#include <OctreeUtils.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
@@ -23,10 +24,10 @@ using namespace render;
 void render::cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
                        const ItemBounds& inItems, ItemBounds& outItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
-    ViewFrustum* frustum = args->_viewFrustum;
+    const ViewFrustum& frustum = args->getViewFrustum();
 
     details._considered += (int)inItems.size();
 
@@ -42,7 +43,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
         bool inView;
         {
             PerformanceTimer perfTimer("boxIntersectsFrustum");
-            inView = frustum->boxIntersectsFrustum(item.bound);
+            inView = frustum.boxIntersectsFrustum(item.bound);
         }
         if (inView) {
             bool bigEnoughToRender;
@@ -64,7 +65,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
 
 void FetchNonspatialItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     auto& scene = sceneContext->_scene;
 
     outItems.clear();
@@ -85,7 +86,7 @@ void FetchSpatialTree::configure(const Config& config) {
 
 void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
@@ -93,22 +94,18 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
     outSelection.clear();
 
     // Eventually use a frozen frustum
-    auto queryFrustum = *args->_viewFrustum;
+    auto queryFrustum = args->getViewFrustum();
     if (_freezeFrustum) {
         if (_justFrozeFrustum) {
             _justFrozeFrustum = false;
-            _frozenFrutstum = *args->_viewFrustum;
+            _frozenFrutstum = args->getViewFrustum();
         }
         queryFrustum = _frozenFrutstum;
     }
 
     // Octree selection!
-
-    float angle = glm::degrees(queryFrustum.getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
-
-
+    float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
     scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, angle);
-
 }
 
 void CullSpatialSelection::configure(const Config& config) {
@@ -120,7 +117,7 @@ void CullSpatialSelection::configure(const Config& config) {
 void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
     const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
@@ -128,13 +125,12 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     details._considered += (int)inSelection.numItems();
 
     // Eventually use a frozen frustum
-    auto argFrustum = args->_viewFrustum;
     if (_freezeFrustum) {
         if (_justFrozeFrustum) {
             _justFrozeFrustum = false;
-            _frozenFrutstum = *args->_viewFrustum;
+            _frozenFrutstum = args->getViewFrustum();
         }
-        args->_viewFrustum = &_frozenFrutstum; // replace the true view frustum by the frozen one
+        args->pushViewFrustum(_frozenFrutstum); // replace the true view frustum by the frozen one
     }
 
     // Culling Frustum / solidAngle test helper class
@@ -151,8 +147,8 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             _renderDetails(renderDetails)
         {
             // FIXME: Keep this code here even though we don't use it yet
-            /*_eyePos = _args->_viewFrustum->getPosition();
-            float a = glm::degrees(_args->_viewFrustum->getAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
+            /*_eyePos = _args->getViewFrustum().getPosition();
+            float a = glm::degrees(Octree::getAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
             auto angle = std::min(glm::radians(45.0f), a); // no worse than 45 degrees
             angle = std::max(glm::radians(1.0f / 60.0f), a); // no better than 1 minute of degree
             auto tanAlpha = tan(angle);
@@ -161,7 +157,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         }
 
         bool frustumTest(const AABox& bound) {
-            if (!_args->_viewFrustum->boxIntersectsFrustum(bound)) {
+            if (!_args->getViewFrustum().boxIntersectsFrustum(bound)) {
                 _renderDetails._outOfView++;
                 return false;
             }
@@ -305,7 +301,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
 
     // Restore frustum if using the frozen one:
     if (_freezeFrustum) {
-        args->_viewFrustum = argFrustum;
+        args->popViewFrustum();
     }
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();

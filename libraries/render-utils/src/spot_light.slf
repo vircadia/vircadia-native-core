@@ -13,7 +13,7 @@
 //
 
 // Everything about deferred buffer
-<@include DeferredBuffer.slh@>
+<@include DeferredBufferRead.slh@>
 
 //Everything about deferred lighting
 <@include DeferredLighting.slh@>
@@ -31,6 +31,10 @@ void main(void) {
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    }
 
     mat4 invViewMat = deferredTransform.viewInverse;
 

@@ -45,7 +45,6 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
-static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
@@ -59,7 +58,6 @@ AvatarData::AvatarData() :
     _headData(NULL),
     _displayNameTargetAlpha(1.0f),
     _displayNameAlpha(1.0f),
-    _billboard(),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
     _targetVelocity(0.0f),
@@ -991,7 +989,7 @@ QByteArray AvatarData::identityByteArray() {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     QUrl emptyURL("");
-    const QUrl& urlToSend = (_skeletonModelURL == AvatarData::defaultFullAvatarModelUrl()) ? emptyURL : _skeletonModelURL;
+    const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 
     QUrl unusedModelURL; // legacy faceModel support
 
@@ -1000,13 +998,6 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
-bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& data) {
-    if (data == _billboard) {
-        return false;
-    }
-    _billboard = data;
-    return true;
-}
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     const QUrl& expanded = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
@@ -1104,33 +1095,6 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
     setAttachmentData(attachmentData);
 }
 
-void AvatarData::setBillboard(const QByteArray& billboard) {
-    _billboard = billboard;
-
-    qCDebug(avatars) << "Changing billboard for avatar.";
-}
-
-void AvatarData::setBillboardFromURL(const QString &billboardURL) {
-    _billboardURL = billboardURL;
-
-
-    qCDebug(avatars) << "Changing billboard for avatar to PNG at" << qPrintable(billboardURL);
-
-    QNetworkRequest billboardRequest;
-    billboardRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    billboardRequest.setUrl(QUrl(billboardURL));
-
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkReply* networkReply = networkAccessManager.get(billboardRequest);
-    connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
-}
-
-void AvatarData::setBillboardFromNetworkReply() {
-    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
-    setBillboard(networkReply->readAll());
-    networkReply->deleteLater();
-}
-
 void AvatarData::setJointMappingsFromNetworkReply() {
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
@@ -1194,25 +1158,15 @@ void AvatarData::sendIdentityPacket() {
 
     QByteArray identityData = identityByteArray();
 
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, identityData.size());
-    identityPacket->write(identityData);
-
-    nodeList->broadcastToNodes(std::move(identityPacket), NodeSet() << NodeType::AvatarMixer);
-}
-
-void AvatarData::sendBillboardPacket() {
-    if (!_billboard.isEmpty()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-
-        // This makes sure the billboard won't be too large to send.
-        // Once more protocol changes are done and we can send blocks of data we can support sending > MTU sized billboards.
-        if (_billboard.size() <= NLPacket::maxPayloadSize(PacketType::AvatarBillboard)) {
-            auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, _billboard.size());
-            billboardPacket->write(_billboard);
-
-            nodeList->broadcastToNodes(std::move(billboardPacket), NodeSet() << NodeType::AvatarMixer);
-        }
-    }
+    auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+    packetList->write(identityData);
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+        },
+        [&](const SharedNodePointer& node) {
+            nodeList->sendPacketList(std::move(packetList), *node);
+        });
 }
 
 void AvatarData::updateJointMappings() {

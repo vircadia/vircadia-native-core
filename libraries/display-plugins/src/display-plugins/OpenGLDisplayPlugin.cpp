@@ -17,7 +17,7 @@
 #include <QtGui/QImage>
 
 #include <gl/QOpenGLContextWrapper.h>
-
+#include <gpu/Texture.h>
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -26,7 +26,6 @@
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackend.h>
 #include <CursorManager.h>
 #include "CompositorHelper.h"
 
@@ -237,12 +236,6 @@ bool OpenGLDisplayPlugin::activate() {
 
     _vsyncSupported = _container->getPrimaryWidget()->isVsyncSupported();
 
-    // Child classes may override this in order to do things like initialize 
-    // libraries, etc
-    if (!internalActivate()) {
-        return false;
-    }
-
 
 #if THREADED_PRESENT
     // Start the present thread if necessary
@@ -258,8 +251,18 @@ bool OpenGLDisplayPlugin::activate() {
         // Start execution
         presentThread->start();
     }
+    _presentThread = presentThread.data();
+#endif
+    
+    // Child classes may override this in order to do things like initialize
+    // libraries, etc
+    if (!internalActivate()) {
+        return false;
+    }
 
-    // This should not return until the new context has been customized 
+#if THREADED_PRESENT
+
+    // This should not return until the new context has been customized
     // and the old context (if any) has been uncustomized
     presentThread->setNewDisplayPlugin(this);
 #else
@@ -625,14 +628,15 @@ uint32_t OpenGLDisplayPlugin::getSceneTextureId() const {
     if (!_currentSceneTexture) {
         return 0;
     }
-    return gpu::GLBackend::getTextureID(_currentSceneTexture, false);
+    
+    return _currentSceneTexture->getHardwareId(); 
 }
 
 uint32_t OpenGLDisplayPlugin::getOverlayTextureId() const {
     if (!_currentOverlayTexture) {
         return 0;
     }
-    return gpu::GLBackend::getTextureID(_currentOverlayTexture, false);
+    return _currentOverlayTexture->getHardwareId();
 }
 
 void OpenGLDisplayPlugin::eyeViewport(Eye eye) const {

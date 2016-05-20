@@ -12,21 +12,27 @@
 #ifndef hifi_QOpenGLContextWrapper_h
 #define hifi_QOpenGLContextWrapper_h
 
+#include <stdint.h>
+
 class QOpenGLContext;
 class QSurface;
 class QSurfaceFormat;
+class QThread;
 
 class QOpenGLContextWrapper {
 public:
     QOpenGLContextWrapper();
+    QOpenGLContextWrapper(QOpenGLContext* context);
     void setFormat(const QSurfaceFormat& format);
     bool create();
     void swapBuffers(QSurface* surface);
     bool makeCurrent(QSurface* surface);
     void doneCurrent();
     void setShareContext(QOpenGLContext* otherContext);
+    void moveToThread(QThread* thread);
 
     static QOpenGLContext* currentContext();
+    static uint32_t currentContextVersion();
 
     QOpenGLContext* getContext() {
         return _context;

@@ -14,7 +14,7 @@
     Script.include(utilsScript);
 
     var self = this;
-    var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
+    var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
 
     this.preload = function(entityId) {
         this.entityId = entityId;

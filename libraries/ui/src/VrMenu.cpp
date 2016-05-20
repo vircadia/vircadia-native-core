@@ -234,7 +234,5 @@ void VrMenu::removeAction(QAction* action) {
     QObject* menu = item->parent();
     // Proxy QuickItem requests through the QML layer
     QQuickMenuBase* qmlItem = reinterpret_cast<QQuickMenuBase*>(item);
-    bool invokeResult = QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection,
-        Q_ARG(QQuickMenuBase*, qmlItem));
-    Q_ASSERT(invokeResult);
+    QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection, Q_ARG(QQuickMenuBase*, qmlItem));
 }

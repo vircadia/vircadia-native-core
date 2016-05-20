@@ -35,6 +35,16 @@ TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
     setObjectName("TextureCache");
+
+    // Expose enum Type to JS/QML via properties
+    // Despite being one-off, this should be fine, because TextureCache is a SINGLETON_DEPENDENCY
+    QObject* type = new QObject(this);
+    type->setObjectName("TextureType");
+    setProperty("Type", QVariant::fromValue(type));
+    auto metaEnum = QMetaEnum::fromType<Type>();
+    for (int i = 0; i < metaEnum.keyCount(); ++i) {
+        type->setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
 }
 
 TextureCache::~TextureCache() {
@@ -145,60 +155,68 @@ const gpu::TexturePointer& TextureCache::getNormalFittingTexture() {
 /// Extra data for creating textures.
 class TextureExtra {
 public:
-    TextureType type;
+    NetworkTexture::Type type;
     const QByteArray& content;
 };
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type, const QByteArray& content) {
+ScriptableResource* TextureCache::prefetch(const QUrl& url, int type) {
+    auto byteArray = QByteArray();
+    TextureExtra extra = { (Type)type, byteArray };
+    return ResourceCache::prefetch(url, &extra);
+}
+
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, Type type, const QByteArray& content) {
     TextureExtra extra = { type, content };
-    return ResourceCache::getResource(url, QUrl(), content.isEmpty(), &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
 
-TextureCache::TextureLoaderFunc getTextureLoaderForType(TextureType type) {
+NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type type) {
+    using Type = NetworkTexture;
+
     switch (type) {
-        case ALBEDO_TEXTURE: {
+        case Type::ALBEDO_TEXTURE: {
             return model::TextureUsage::createAlbedoTextureFromImage;
             break;
         }
-        case EMISSIVE_TEXTURE: {
+        case Type::EMISSIVE_TEXTURE: {
             return model::TextureUsage::createEmissiveTextureFromImage;
             break;
         }
-        case LIGHTMAP_TEXTURE: {
+        case Type::LIGHTMAP_TEXTURE: {
             return model::TextureUsage::createLightmapTextureFromImage;
             break;
         }
-        case CUBE_TEXTURE: {
+        case Type::CUBE_TEXTURE: {
             return model::TextureUsage::createCubeTextureFromImage;
             break;
         }
-        case BUMP_TEXTURE: {
+        case Type::BUMP_TEXTURE: {
             return model::TextureUsage::createNormalTextureFromBumpImage;
             break;
         }
-        case NORMAL_TEXTURE: {
+        case Type::NORMAL_TEXTURE: {
             return model::TextureUsage::createNormalTextureFromNormalImage;
             break;
         }
-        case ROUGHNESS_TEXTURE: {
+        case Type::ROUGHNESS_TEXTURE: {
             return model::TextureUsage::createRoughnessTextureFromImage;
             break;
         }
-        case GLOSS_TEXTURE: {
+        case Type::GLOSS_TEXTURE: {
             return model::TextureUsage::createRoughnessTextureFromGlossImage;
             break;
         }
-        case SPECULAR_TEXTURE: {
+        case Type::SPECULAR_TEXTURE: {
             return model::TextureUsage::createMetallicTextureFromImage;
             break;
         }
-        case CUSTOM_TEXTURE: {
+        case Type::CUSTOM_TEXTURE: {
             Q_ASSERT(false);
-            return TextureCache::TextureLoaderFunc();
+            return NetworkTexture::TextureLoaderFunc();
             break;
         }
-        case DEFAULT_TEXTURE:
+        case Type::DEFAULT_TEXTURE:
         default: {
             return model::TextureUsage::create2DTextureFromImage;
             break;
@@ -207,21 +225,23 @@ TextureCache::TextureLoaderFunc getTextureLoaderForType(TextureType type) {
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path, TextureType type) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type) {
     QImage image = QImage(path);
     auto loader = getTextureLoaderForType(type);
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 
-QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra) {
+QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
+    const void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    return QSharedPointer<Resource>(new NetworkTexture(url, textureExtra->type, textureExtra->content),
+    auto type = textureExtra ? textureExtra->type : Type::DEFAULT_TEXTURE;
+    auto content = textureExtra ? textureExtra->content : QByteArray();
+    return QSharedPointer<Resource>(new NetworkTexture(url, type, content),
         &Resource::deleter);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
-    Resource(url, !content.isEmpty()),
+NetworkTexture::NetworkTexture(const QUrl& url, Type type, const QByteArray& content) :
+    Resource(url),
     _type(type)
 {
     _textureSource = std::make_shared<gpu::TextureSource>();

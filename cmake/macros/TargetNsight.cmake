@@ -7,18 +7,21 @@
 #
 macro(TARGET_NSIGHT)
     if (WIN32 AND USE_NSIGHT)
-
+    
       # grab the global CHECKED_FOR_NSIGHT_ONCE property
-      get_property(NSIGHT_CHECKED GLOBAL PROPERTY CHECKED_FOR_NSIGHT_ONCE)
+      get_property(NSIGHT_UNAVAILABLE GLOBAL PROPERTY CHECKED_FOR_NSIGHT_ONCE)
 
-      if (NOT NSIGHT_CHECKED)
+      if (NOT NSIGHT_UNAVAILABLE)
         # try to find the Nsight package and add it to the build if we find it
         find_package(NSIGHT)
 
-        # set the global CHECKED_FOR_NSIGHT_ONCE property so that we only debug that we couldn't find it once
-        set_property(GLOBAL PROPERTY CHECKED_FOR_NSIGHT_ONCE TRUE)
+        # Cache the failure to find nsight, so that we don't check over and over
+        if (NOT NSIGHT_FOUND)
+            set_property(GLOBAL PROPERTY CHECKED_FOR_NSIGHT_ONCE TRUE)
+        endif()
       endif ()
-
+    
+      # try to find the Nsight package and add it to the build if we find it
       if (NSIGHT_FOUND)
         include_directories(${NSIGHT_INCLUDE_DIRS})
         add_definitions(-DNSIGHT_FOUND)

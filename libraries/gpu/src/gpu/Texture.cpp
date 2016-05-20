@@ -18,6 +18,8 @@
 #include "GPULogging.h"
 #include "Context.h"
 
+#include "ColorUtils.h"
+
 using namespace gpu;
 
 static int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
@@ -637,18 +639,6 @@ void SphericalHarmonics::assignPreset(int p) {
     }
 }
 
-
-
-glm::vec3 sRGBToLinear(glm::vec3& color) {
-    const float GAMMA_CORRECTION = 2.2f;
-    return glm::pow(color, glm::vec3(GAMMA_CORRECTION));
-}
-
-glm::vec3 linearTosRGB(glm::vec3& color) {
-    const float GAMMA_CORRECTION_INV = 1.0f / 2.2f;
-    return glm::pow(color, glm::vec3(GAMMA_CORRECTION_INV));
-}
-
 // Originial code for the Spherical Harmonics taken from "Sun and Black Cat- Igor Dykhta (igor dykhta email) � 2007-2014 "
 void sphericalHarmonicsAdd(float * result, int order, const float * inputA, const float * inputB) {
    const int numCoeff = order * order;
@@ -803,7 +793,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                             float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
 
                 // Gamma correct
-                clr = sRGBToLinear(clr);
+                clr = ColorUtils::sRGBToLinearVec3(clr);
 
                 // scale color and add to previously accumulated coefficients
                 sphericalHarmonicsScale(shBuffB.data(), order,
@@ -893,4 +883,13 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     auto dimensions = getDimensions();
     dimensions >>= level; 
     return glm::max(dimensions, Vec3u(1));
+}
+
+std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
+
+uint32 Texture::getHardwareId() const {
+    if (TEXTURE_ID_RESOLVER) {
+        return TEXTURE_ID_RESOLVER(*this);
+    }
+    return 0;
 }

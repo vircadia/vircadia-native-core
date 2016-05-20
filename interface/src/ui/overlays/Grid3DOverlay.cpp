@@ -65,7 +65,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
             // Get the camera position rounded to the nearest major grid line
             // This grid is for UI and should lie on worldlines
             auto cameraPosition =
-                (float)_majorGridEvery * glm::round(args->_viewFrustum->getPosition() / (float)_majorGridEvery);
+                (float)_majorGridEvery * glm::round(args->getViewFrustum().getPosition() / (float)_majorGridEvery);
 
             position += glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z);
         }

@@ -16,6 +16,7 @@
 
 #include <SettingHandle.h>
 #include <Rig.h>
+#include <Sound.h>
 
 #include <controllers/Pose.h>
 
@@ -95,7 +96,8 @@ public:
 
     Q_INVOKABLE void reset(bool andRecenter = false);
     void update(float deltaTime);
-    void preRender(RenderArgs* renderArgs);
+    virtual void postUpdate(float deltaTime) override;
+    void preDisplaySide(RenderArgs* renderArgs);
 
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
@@ -142,9 +144,6 @@ public:
 
     // remove an animation role override and return to the standard animation.
     Q_INVOKABLE void restoreRoleAnimation(const QString& role);
-
-    // prefetch animation
-    Q_INVOKABLE void prefetchAnimation(const QString& url);
 
     // Adds handler(animStateDictionaryIn) => animStateDictionaryOut, which will be invoked just before each animGraph state update.
     // The handler will be called with an animStateDictionaryIn that has all those properties specified by the (possibly empty)
@@ -219,11 +218,15 @@ public:
     MyCharacterController* getCharacterController() { return &_characterController; }
     const MyCharacterController* getCharacterController() const { return &_characterController; }
 
+    void updateMotors();
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
+
+    SharedSoundPointer getCollisionSound();
+    void setCollisionSound(SharedSoundPointer sound) { _collisionSound = sound; }
 
     void clearScriptableSettings();
 
@@ -309,7 +312,6 @@ private:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
@@ -349,6 +351,7 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
+    bool _isBeingPushed;
     bool _isBraking;
 
     float _boomLength;
@@ -357,13 +360,14 @@ private:
 
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
-    glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)
-    float _keyboardMotorTimescale; // timescale for avatar to achieve its target velocity
-    glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (script)
+    glm::vec3 _actionMotorVelocity; // target local-frame velocity of avatar (default controller actions)
+    glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
+
+    SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
 
@@ -381,8 +385,7 @@ private:
 
     // private methods
     void updateOrientation(float deltaTime);
-    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
-    glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
+    void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();

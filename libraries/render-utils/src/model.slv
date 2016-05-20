@@ -16,8 +16,8 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-const int MAX_TEXCOORDS = 2;
-uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
 
 out vec3 _color;
 out float _alpha;
@@ -29,7 +29,8 @@ void main(void) {
     _color = colorToLinearRGB(inColor.xyz);
     _alpha = inColor.w;
 
-    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();

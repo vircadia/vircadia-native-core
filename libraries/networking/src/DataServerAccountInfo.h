@@ -43,13 +43,6 @@ public:
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
 
-    qint64 getBalance() const { return _balance; }
-    float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
-    void setBalance(qint64 balance);
-    bool hasBalance() const { return _hasBalance; }
-    void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
-    Q_INVOKABLE void setBalanceFromJSON(QNetworkReply& requestReply);
-
     QByteArray getUsernameSignature(const QUuid& connectionToken);
     bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
     void setPrivateKey(const QByteArray& privateKey) { _privateKey = privateKey; }
@@ -65,8 +58,7 @@ public:
 
     friend QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info);
     friend QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info);
-signals:
-    qint64 balanceChanged(qint64 newBalance);
+
 private:
     void swap(DataServerAccountInfo& otherInfo);
 
@@ -75,8 +67,6 @@ private:
     QString _xmppPassword;
     QString _discourseApiKey;
     QUuid _walletID;
-    qint64 _balance { 0 };
-    bool _hasBalance { false };
     QUuid _domainID; // if this holds account info for a domain, this holds the ID of that domain
     QByteArray _privateKey;
 

@@ -46,7 +46,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastEditedFromRemoteInRemoteTime(0),
     _created(UNKNOWN_CREATED_TIME),
     _changedOnServer(0),
-    _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
     _volumeMultiplier(1.0f),
@@ -89,7 +88,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 EntityItem::~EntityItem() {
     // clear out any left-over actions
     EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
-    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
     if (simulation) {
         clearActions(simulation);
     }
@@ -655,9 +654,33 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
             qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
-        if (_simulationOwner.set(newSimOwner)) {
+        if (weOwnSimulation) {
+            if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
+                // entity-server is trying to clear our ownership (probably at our own request)
+                // but we actually want to own it, therefore we ignore this clear event
+                // and pretend that we own it (we assume we'll recover it soon)
+            } else if (_simulationOwner.set(newSimOwner)) {
+                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                somethingChanged = true;
+                // recompute weOwnSimulation for later
+                weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+            }
+        } else if (newSimOwner.getID().isNull() && _simulationOwner.pendingTake(lastEditedFromBufferAdjusted)) {
+            // entity-server is trying to clear someone  else's ownership
+            // but we want to own it, therefore we ignore this clear event
+            // and pretend that we own it (we assume we'll get it soon)
+            weOwnSimulation = true;
+            if (!_simulationOwner.isNull()) {
+                // someone else really did own it
+                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                somethingChanged = true;
+                _simulationOwner.clearCurrentOwner();
+            }
+        } else if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             somethingChanged = true;
+            // recompute weOwnSimulation for later
+            weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -702,8 +725,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
-    READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
-    READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+    {   // parentID and parentJointIndex are also protected by simulation ownership
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+        overwriteLocalData = oldOverwrite;
+    }
 
     READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
 
@@ -781,7 +809,8 @@ void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSk
 }
 
 float EntityItem::computeMass() const {
-    return _density * _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
+    glm::vec3 dimensions = getDimensions();
+    return _density * _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 }
 
 void EntityItem::setDensity(float density) {
@@ -801,7 +830,8 @@ void EntityItem::setMass(float mass) {
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
 
-    float volume = _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
+    glm::vec3 dimensions = getDimensions();
+    float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
@@ -824,6 +854,23 @@ void EntityItem::setHref(QString value) {
         return;
     }
     _href = value;
+}
+
+void EntityItem::setCollisionSoundURL(const QString& value) {
+    if (_collisionSoundURL != value) {
+        _collisionSoundURL = value;
+
+        if (auto myTree = getTree()) {
+            myTree->notifyNewCollisionSoundURL(_collisionSoundURL, getEntityItemID());
+        }
+    }
+}
+
+SharedSoundPointer EntityItem::getCollisionSound() {
+    if (!_collisionSound) {
+        _collisionSound = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
+    }
+    return _collisionSound;
 }
 
 void EntityItem::simulate(const quint64& now) {
@@ -1068,7 +1115,6 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
@@ -1107,6 +1153,30 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
+void EntityItem::pokeSimulationOwnership() {
+    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE;
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        // we already own it
+        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    } else {
+        // we don't own it yet
+        _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
+    }
+}
+
+void EntityItem::grabSimulationOwnership() {
+    _dirtyFlags |= Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB;
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
+        // we already own it
+        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+    } else {
+        // we don't own it yet
+        _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
+    }
+}
+
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
@@ -1139,7 +1209,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptTimestamp, setScriptTimestamp);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
@@ -1222,11 +1291,13 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
         // * we know that the position is the center of rotation
         glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
         if (success) {
+            _recalcMaxAACube = false;
             // * we know that the registration point is the center of rotation
             // * we can calculate the length of the furthest extent from the registration point
             //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
-            glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
-            glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
+            glm::vec3 dimensions = getDimensions();
+            glm::vec3 registrationPoint = (dimensions * _registrationPoint);
+            glm::vec3 registrationRemainder = (dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
             glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
 
             // * we know that if you rotate in any direction you would create a sphere
@@ -1238,7 +1309,6 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
             glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
 
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
-            _recalcMaxAACube = false;
         }
     } else {
         success = true;
@@ -1251,28 +1321,27 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
 ///
 AACube EntityItem::getMinimumAACube(bool& success) const {
     if (_recalcMinAACube) {
-        // _position represents the position of the registration point.
-        glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
-
-        glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * getRegistrationPoint());
-        glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
-        Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-        Extents rotatedExtentsRelativeToRegistrationPoint =
-            unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
-
-        // shift the extents to be relative to the position/registration point
-        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition(success));
-
+        // position represents the position of the registration point.
+        glm::vec3 position = getPosition(success);
         if (success) {
+            _recalcMinAACube = false;
+            glm::vec3 dimensions = getDimensions();
+            glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
+            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
+            Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+            extents.rotate(getRotation());
+
+            // shift the extents to be relative to the position/registration point
+            extents.shiftBy(position);
+
             // the cube that best encompasses extents is...
-            AABox box(rotatedExtentsRelativeToRegistrationPoint);
+            AABox box(extents);
             glm::vec3 centerOfBox = box.calcCenter();
             float longestSide = box.getLargestDimension();
             float halfLongestSide = longestSide / 2.0f;
             glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
 
             _minAACube = AACube(cornerOfCube, longestSide);
-            _recalcMinAACube = false;
         }
     } else {
         success = true;
@@ -1282,21 +1351,20 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
 
 AABox EntityItem::getAABox(bool& success) const {
     if (_recalcAABox) {
-        // _position represents the position of the registration point.
-        glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
-
-        glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * _registrationPoint);
-        glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
-        Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-        Extents rotatedExtentsRelativeToRegistrationPoint =
-            unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
-
-        // shift the extents to be relative to the position/registration point
-        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition(success));
-
+        // position represents the position of the registration point.
+        glm::vec3 position = getPosition(success);
         if (success) {
-            _cachedAABox = AABox(rotatedExtentsRelativeToRegistrationPoint);
             _recalcAABox = false;
+            glm::vec3 dimensions = getDimensions();
+            glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
+            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
+            Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+            extents.rotate(getRotation());
+
+            // shift the extents to be relative to the position/registration point
+            extents.shiftBy(position);
+
+            _cachedAABox = AABox(extents);
         }
     } else {
         success = true;
@@ -1373,6 +1441,11 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     adjustShapeInfoByRegistration(info);
 }
 
+float EntityItem::getVolumeEstimate() const {
+    glm::vec3 dimensions = getDimensions();
+    return dimensions.x * dimensions.y * dimensions.z;
+}
+
 void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         setRegistrationPoint(value);
@@ -1433,7 +1506,8 @@ void EntityItem::updateMass(float mass) {
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
 
-    float volume = _volumeMultiplier * getDimensions().x * getDimensions().y * getDimensions().z;
+    glm::vec3 dimensions = getDimensions();
+    float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
     float newDensity = _density;
@@ -1636,29 +1710,47 @@ void EntityItem::clearSimulationOwnership() {
 
     _simulationOwner.clear();
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
-    // is only ever called entity-server-side and the flags are only used client-side
+    // is only ever called on the entity-server and the flags are only used client-side
     //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
 
 }
 
+void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
+    _simulationOwner.setPendingPriority(priority, timestamp);
+}
 
-bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
+QString EntityItem::actionsToDebugString() {
+    QString result;
+    QVector<QByteArray> serializedActions;
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        EntityActionPointer action = _objectActions[id];
+        EntityActionType actionType = action->getType();
+        result += QString("") + actionType + ":" + action->getID().toString() + " ";
+        i++;
+    }
+    return result;
+}
+
+bool EntityItem::addAction(EntitySimulationPointer simulation, EntityActionPointer action) {
     bool result;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
 
         result = addActionInternal(simulation, action);
-        if (!result) {
-            removeActionInternal(action->getID());
+        if (result) {
+            action->setIsMine(true);
+            _actionDataDirty = true;
         } else {
-            action->locallyAddedButNotYetReceived = true;
+            removeActionInternal(action->getID());
         }
     });
 
     return result;
 }
 
-bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPointer action) {
+bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityActionPointer action) {
     assert(action);
     assert(simulation);
     auto actionOwnerEntity = action->getOwnerEntity().lock();
@@ -1682,7 +1774,7 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
     return success;
 }
 
-bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
+bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& actionID, const QVariantMap& arguments) {
     bool success = false;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
@@ -1695,6 +1787,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 
         success = action->updateArguments(arguments);
         if (success) {
+            action->setIsMine(true);
             serializeActions(success, _allActionsDataCache);
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         } else {
@@ -1704,7 +1797,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
     return success;
 }
 
-bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
+bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& actionID) {
     bool success = false;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
@@ -1713,7 +1806,7 @@ bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionI
     return success;
 }
 
-bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* simulation) {
+bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation) {
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
@@ -1724,6 +1817,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         EntityActionPointer action = _objectActions[actionID];
 
         action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
         _objectActions.remove(actionID);
 
         if (simulation) {
@@ -1739,7 +1833,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
     return false;
 }
 
-bool EntityItem::clearActions(EntitySimulation* simulation) {
+bool EntityItem::clearActions(EntitySimulationPointer simulation) {
     withWriteLock([&] {
         QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
         while (i != _objectActions.end()) {
@@ -1775,7 +1869,7 @@ void EntityItem::deserializeActionsInternal() {
 
     EntityTreePointer entityTree = getTree();
     assert(entityTree);
-    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
     assert(simulation);
 
     QVector<QByteArray> serializedActions;
@@ -1801,8 +1895,9 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
-            action->deserialize(serializedAction);
-            action->locallyAddedButNotYetReceived = false;
+            if (!action->isMine()) {
+                action->deserialize(serializedAction);
+            }
             updated << actionID;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
@@ -1810,7 +1905,6 @@ void EntityItem::deserializeActionsInternal() {
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
                 entity->addActionInternal(simulation, action);
-                action->locallyAddedButNotYetReceived = false;
                 updated << actionID;
             } else {
                 static QString repeatedMessage =
@@ -1828,8 +1922,12 @@ void EntityItem::deserializeActionsInternal() {
         QUuid id = i.key();
         if (!updated.contains(id)) {
             EntityActionPointer action = i.value();
-            // if we've just added this action, don't remove it due to lack of mention in an incoming packet.
-            if (! action->locallyAddedButNotYetReceived) {
+
+            if (action->isMine()) {
+                // we just received an update that didn't include one of our actions.  tell the server about it (again).
+                setActionDataNeedsTransmit(true);
+            } else {
+                // don't let someone else delete my action.
                 _actionsToRemove << id;
                 _previouslyDeletedActions.insert(id, now);
             }
@@ -1851,7 +1949,7 @@ void EntityItem::deserializeActionsInternal() {
     return;
 }
 
-void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
+void EntityItem::checkWaitingToRemove(EntitySimulationPointer simulation) {
     foreach(QUuid actionID, _actionsToRemove) {
         removeActionInternal(actionID, simulation);
     }

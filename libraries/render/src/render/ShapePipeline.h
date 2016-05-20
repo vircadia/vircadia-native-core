@@ -12,6 +12,8 @@
 #ifndef hifi_render_ShapePipeline_h
 #define hifi_render_ShapePipeline_h
 
+#include <unordered_set>
+
 #include <gpu/Batch.h>
 #include <RenderArgs.h>
 
@@ -24,7 +26,7 @@ public:
         LIGHTMAP,
         TANGENTS,
         SPECULAR,
-        EMISSIVE,
+        UNLIT,
         SKINNED,
         STEREO,
         DEPTH_ONLY,
@@ -55,7 +57,7 @@ public:
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
         Builder& withSpecular() { _flags.set(SPECULAR); return (*this); }
-        Builder& withEmissive() { _flags.set(EMISSIVE); return (*this); }
+        Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
         Builder& withStereo() { _flags.set(STEREO); return (*this); }
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
@@ -99,8 +101,8 @@ public:
             Builder& withSpecular() { _flags.set(SPECULAR); _mask.set(SPECULAR); return (*this); }
             Builder& withoutSpecular() { _flags.reset(SPECULAR); _mask.set(SPECULAR); return (*this); }
 
-            Builder& withEmissive() { _flags.set(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
-            Builder& withoutEmissive() { _flags.reset(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
+            Builder& withUnlit() { _flags.set(UNLIT); _mask.set(UNLIT); return (*this); }
+            Builder& withoutUnlit() { _flags.reset(UNLIT); _mask.set(UNLIT); return (*this); }
 
             Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
             Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
@@ -135,7 +137,7 @@ public:
     bool hasLightmap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool hasSpecular() const { return _flags[SPECULAR]; }
-    bool hasEmissive() const { return _flags[EMISSIVE]; }
+    bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
     bool isSkinned() const { return _flags[SKINNED]; }
     bool isStereo() const { return _flags[STEREO]; }
@@ -147,7 +149,7 @@ public:
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
 
-    // Hasher for use in unordered_maps
+    // Comparator for use in stl containers
     class Hash {
     public:
         size_t operator() (const ShapeKey& key) const {
@@ -155,7 +157,7 @@ public:
         }
     };
 
-    // Comparator for use in unordered_maps
+    // Comparator for use in stl containers
     class KeyEqual {
     public:
         bool operator()(const ShapeKey& lhs, const ShapeKey& rhs) const { return lhs._flags == rhs._flags; }
@@ -171,7 +173,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "hasLightmap:" << key.hasLightmap()
                 << "hasTangents:" << key.hasTangents()
                 << "hasSpecular:" << key.hasSpecular()
-                << "hasEmissive:" << key.hasEmissive()
+                << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
                 << "isSkinned:" << key.isSkinned()
                 << "isStereo:" << key.isStereo()
@@ -193,33 +195,40 @@ class ShapePipeline {
 public:
     class Slot {
     public:
-        static const int SKINNING_GPU = 2;
-        static const int MATERIAL_GPU = 3;
-        static const int ALBEDO_MAP = 0;
-        static const int NORMAL_MAP = 1;
-        static const int METALLIC_MAP = 2;
-        static const int EMISSIVE_LIGHTMAP_MAP = 3;
-        static const int ROUGHNESS_MAP = 4;
-        static const int OCCLUSION_MAP = 5;
+        enum BUFFER {
+            SKINNING = 2,
+            MATERIAL,
+            TEXMAPARRAY,
+            LIGHT
+        };
 
-        static const int LIGHT_BUFFER = 4;
-        static const int NORMAL_FITTING_MAP = 10;
+        enum MAP {
+            ALBEDO = 0,
+            NORMAL,
+            METALLIC,
+            EMISSIVE_LIGHTMAP,
+            ROUGHNESS,
+            OCCLUSION,
+            LIGHT_AMBIENT,
+
+            NORMAL_FITTING = 10,
+        };
     };
 
     class Locations {
     public:
-        int texcoordMatrices;
         int albedoTextureUnit;
         int normalTextureUnit;
         int roughnessTextureUnit;
         int metallicTextureUnit;
         int emissiveTextureUnit;
         int occlusionTextureUnit;
-        int emissiveParams;
         int normalFittingMapUnit;
         int skinClusterBufferUnit;
         int materialBufferUnit;
+        int texMapArrayBufferUnit;
         int lightBufferUnit;
+        int lightAmbientMapUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
@@ -264,7 +273,11 @@ public:
 protected:
     void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
     PipelineMap _pipelineMap;
+
+private:
+    mutable std::unordered_set<Key, Key::Hash, Key::KeyEqual> _missingKeys;
 };
+
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 
 }

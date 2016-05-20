@@ -11,6 +11,39 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
+
+<@func declareMaterialTexMapArrayBuffer()@>
+
+const int MAX_TEXCOORDS = 2;
+
+struct TexMapArray { 
+    mat4 _texcoordTransforms[MAX_TEXCOORDS];
+    vec4 _lightmapParams;
+};
+
+uniform texMapArrayBuffer {
+    TexMapArray _texMapArray;
+};
+
+TexMapArray getTexMapArray() {
+    return _texMapArray;
+}
+
+<@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
+{
+    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms[0] * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
+}
+<@endfunc@>
+
+<@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, outTexcoord1)@>
+{
+    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms[1] * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
+}
+<@endfunc@>
+
+<@endfunc@>
+
+
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion)@>
 
 <@if withAlbedo@>
@@ -80,9 +113,12 @@ float fetchOcclusionMap(vec2 uv) {
 
 
 <@func declareMaterialLightmap()@>
+
+<$declareMaterialTexMapArrayBuffer()$>
+
 uniform sampler2D emissiveMap;
-uniform vec2 emissiveParams;
 vec3 fetchLightmapMap(vec2 uv) {
+    vec2 emissiveParams = getTexMapArray()._lightmapParams.xy;
     return (vec3(emissiveParams.x) + emissiveParams.y * texture(emissiveMap, uv).rgb);
 }
 <@endfunc@>
@@ -121,7 +157,7 @@ vec3 fetchLightmapMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func $discardTransparent(opacity)@>
+<@func discardTransparent(opacity)@>
 {
     if (<$opacity$> < 1.0) {
         discard;

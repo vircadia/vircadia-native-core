@@ -13,6 +13,7 @@
 #include <QMultiMap>
 
 #include <recording/Deck.h>
+#include <DebugDraw.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -85,11 +86,21 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
     };
 }
 
+
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     const FBXGeometry& geometry = getFBXGeometry();
 
     Head* head = _owningAvatar->getHead();
+
+    // make sure lookAt is not too close to face (avoid crosseyes)
+    glm::vec3 lookAt = _owningAvatar->isMyAvatar() ?  head->getLookAtPosition() : head->getCorrectedLookAtPosition();
+    glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
+    float focusDistance = glm::length(focusOffset);
+    const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
+    if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
+        lookAt = _owningAvatar->getHead()->getEyePosition() + (MIN_LOOK_AT_FOCUS_DISTANCE / focusDistance) * focusOffset;
+    }
 
     if (_owningAvatar->isMyAvatar()) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
@@ -164,7 +175,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::EyeParameters eyeParams;
         eyeParams.worldHeadOrientation = headParams.worldHeadOrientation;
-        eyeParams.eyeLookAt = head->getLookAtPosition();
+        eyeParams.eyeLookAt = lookAt;
         eyeParams.eyeSaccade = head->getSaccade();
         eyeParams.modelRotation = getRotation();
         eyeParams.modelTranslation = getTranslation();
@@ -196,8 +207,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::EyeParameters eyeParams;
         eyeParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
-        eyeParams.eyeLookAt = head->getCorrectedLookAtPosition();
-        eyeParams.eyeSaccade = glm::vec3();
+        eyeParams.eyeLookAt = lookAt;
+        eyeParams.eyeSaccade = glm::vec3(0.0f);
         eyeParams.modelRotation = getRotation();
         eyeParams.modelTranslation = getTranslation();
         eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;

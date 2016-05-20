@@ -18,13 +18,15 @@ using namespace gpu;
 Material::Material() :
     _key(0),
     _schemaBuffer(),
+    _texMapArrayBuffer(),
     _textureMaps()
 {
     // created from nothing: create the Buffer to store the properties
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
-        
 
+    TexMapArraySchema TexMapArraySchema;
+    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &TexMapArraySchema));
 }
 
 Material::Material(const Material& material) :
@@ -35,6 +37,10 @@ Material::Material(const Material& material) :
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
+
+    TexMapArraySchema texMapArraySchema;
+    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &texMapArraySchema));
+    _texMapArrayBuffer.edit<TexMapArraySchema>() = material._texMapArrayBuffer.get<TexMapArraySchema>();
 }
 
 Material& Material::operator= (const Material& material) {
@@ -46,6 +52,10 @@ Material& Material::operator= (const Material& material) {
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
     _schemaBuffer.edit<Schema>() = material._schemaBuffer.get<Schema>();
 
+    TexMapArraySchema texMapArraySchema;
+    _texMapArrayBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(TexMapArraySchema), (const gpu::Byte*) &texMapArraySchema));
+    _texMapArrayBuffer.edit<TexMapArraySchema>() = material._texMapArrayBuffer.get<TexMapArraySchema>();
+
     return (*this);
 }
 
@@ -55,7 +65,7 @@ Material::~Material() {
 void Material::setEmissive(const Color&  emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._key = (uint32) _key._flags.to_ulong();
-    _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
+    _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::sRGBToLinearVec3(emissive) : emissive);
 }
 
 void Material::setOpacity(float opacity) {
@@ -64,10 +74,15 @@ void Material::setOpacity(float opacity) {
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
 
+void Material::setUnlit(bool value) {
+    _key.setUnlit(value);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+}
+
 void Material::setAlbedo(const Color& albedo, bool isSRGB) {
     _key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
-    _schemaBuffer.edit<Schema>()._albedo = (isSRGB ? ColorUtils::toLinearVec3(albedo) : albedo);
+    _schemaBuffer.edit<Schema>()._albedo = (isSRGB ? ColorUtils::sRGBToLinearVec3(albedo) : albedo);
 }
 
 void Material::setRoughness(float roughness) {
@@ -79,10 +94,11 @@ void Material::setRoughness(float roughness) {
 
 void Material::setFresnel(const Color& fresnel, bool isSRGB) {
     //_key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._fresnel = (isSRGB ? ColorUtils::toLinearVec3(fresnel) : fresnel);
+    _schemaBuffer.edit<Schema>()._fresnel = (isSRGB ? ColorUtils::sRGBToLinearVec3(fresnel) : fresnel);
 }
 
 void Material::setMetallic(float metallic) {
+    metallic = glm::clamp(metallic, 0.0f, 1.0f);
     _key.setMetallic(metallic > 0.0f);
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._metallic = metallic;
@@ -101,6 +117,15 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
 
     if (channel == MaterialKey::ALBEDO_MAP) {
         resetOpacityMap();
+
+        // update the texcoord0 with albedo
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[0] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+    }
+
+    if (channel == MaterialKey::LIGHTMAP_MAP) {
+        // update the texcoord1 with lightmap
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._lightmapParams = (textureMap ? glm::vec4(textureMap->getLightmapOffsetScale(), 0.0, 0.0) : glm::vec4(0.0, 1.0, 0.0, 0.0));
     }
 
     _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
