@@ -73,7 +73,6 @@ void OverlayConductor::updateMode() {
     const float MAX_NOT_DRIVING = 0.01f;
     const quint64 REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE = 200 * 1000;
     const quint64 REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE = 1000 * 1000;
-    int fixmeDiff;
     bool nowDriving = _driving; // Assume current _driving mode unless...
     if (speed > MIN_DRIVING) {  // ... we're definitely moving...
         nowDriving = true;
@@ -85,14 +84,8 @@ void OverlayConductor::updateMode() {
         _timeInPotentialMode = 0;
     } else if (_timeInPotentialMode == 0) { // We've just changed with no timer, so start timing now.
         _timeInPotentialMode = usecTimestampNow();
-        nowDriving = _driving;
-    } else if ((fixmeDiff = (usecTimestampNow() - _timeInPotentialMode)) < (nowDriving ? REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE : REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE)) {
-        nowDriving = _driving; // Haven't accumulated enough time in new mode, but keep timing.
-    } else { // a real transition
-         _timeInPotentialMode = 0;
-    }
-    // If we're really in a transition
-    if (nowDriving != _driving) {
+    } else if ((usecTimestampNow() - _timeInPotentialMode) > (nowDriving ? REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE : REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE)) {
+        _timeInPotentialMode = 0; // a real transition
         if (nowDriving) {
             _wantsOverlays = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
         } else { // reset when coming out of driving
@@ -105,7 +98,7 @@ void OverlayConductor::updateMode() {
             setEnabled(!nowDriving, false);
         }
         _driving = nowDriving;
-    }
+    } // Else haven't accumulated enough time in new mode, but keep timing.
 
     Mode newMode;
     if (qApp->isHMDMode()) {
