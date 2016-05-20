@@ -184,8 +184,34 @@ public:
         return append(sizeof(T) * t.size(), reinterpret_cast<const Byte*>(&t[0]));
     }
 
+    bool getNextTransferBlock(Size& outOffset, Size& outSize, Size& currentPage) const {
+        Size pageCount = _pages.size();
+        // Advance to the first dirty page
+        while (currentPage < pageCount && (0 == (Buffer::DIRTY & _pages[currentPage]))) {
+            ++currentPage;
+        }
+
+        // If we got to the end, we're done
+        if (currentPage >= pageCount) {
+            return false;
+        }
+
+        // Advance to the next clean page
+        outOffset = static_cast<Size>(currentPage * _pageSize);
+        while (currentPage < pageCount && (0 != (Buffer::DIRTY & _pages[currentPage]))) {
+            _pages[currentPage] &= ~Buffer::DIRTY;
+            ++currentPage;
+        }
+        outSize = static_cast<Size>((currentPage * _pageSize) - outOffset);
+        return true;
+    }
+
     const GPUObjectPointer gpuObject {};
     
+    // Access the sysmem object, limited to ourselves and GPUObject derived classes
+    const Sysmem& getSysmem() const { return _sysmem; }
+    // FIXME find a better access mechanism for clearing this
+    mutable uint8_t _flags;
 protected:
     void markDirty(Size offset, Size bytes);
 
@@ -194,21 +220,18 @@ protected:
         markDirty(sizeof(T) * index, sizeof(T) * count);
     }
 
-    // Access the sysmem object, limited to ourselves and GPUObject derived classes
-    const Sysmem& getSysmem() const { return _sysmem; }
     Sysmem& editSysmem() { return _sysmem; }
     Byte* editData() { return editSysmem().editData(); }
 
     Size getRequiredPageCount() const;
 
     Size _end { 0 };
-    mutable uint8_t _flags;
     mutable PageFlags _pages;
     const Size _pageSize;
     Sysmem _sysmem;
 
     // FIXME find a more generic way to do this.
-    friend class gl::GLBackend;
+    friend class gl::GLBuffer;
     friend class BufferView;
 };
 

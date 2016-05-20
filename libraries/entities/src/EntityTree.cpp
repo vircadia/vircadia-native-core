@@ -1376,6 +1376,10 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
             }
         }
+
+        // set creation time to "now" for imported entities
+        properties.setCreated(usecTimestampNow());
+
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
         // queue the packet to send to the server
