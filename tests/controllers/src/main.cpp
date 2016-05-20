@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
         };
 
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-            inputPlugin->pluginUpdate(delta, calibrationData, false);
+            inputPlugin->pluginUpdate(delta, calibrationData);
         }
 
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
             if (name == KeyboardMouseDevice::NAME) {
                 userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
             }
-            inputPlugin->pluginUpdate(0, calibrationData, false);
+            inputPlugin->pluginUpdate(0, calibrationData);
         }
         rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }

@@ -9,7 +9,6 @@
 
 #include <memory>
 
-#include <QtCore/QProcessEnvironment>
 #include <QMainWindow>
 #include <QLoggingCategory>
 #include <QGLWidget>
@@ -30,10 +29,6 @@ Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
 
-static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
-static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-
-
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
@@ -43,7 +38,7 @@ static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
+    return openVrSupported();
 }
 
 bool OpenVrDisplayPlugin::internalActivate() {
