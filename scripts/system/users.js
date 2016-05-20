@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var PopUpMenu = function(properties) {
+var PopUpMenu = function (properties) {
     var value = properties.value,
         promptOverlay,
         valueOverlay,
@@ -21,9 +21,8 @@ var PopUpMenu = function(properties) {
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
         MIN_MAX_BUTTON_WIDTH = 14,
-        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH;
-
-    MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
+        MIN_MAX_BUTTON_HEIGHT = MIN_MAX_BUTTON_WIDTH,
+        MIN_MAX_BUTTON_SVG = Script.resolvePath("assets/images/tools/min-max-toggle.svg");
 
     function positionDisplayOptions() {
         var y,
@@ -203,7 +202,7 @@ var PopUpMenu = function(properties) {
             width: MIN_MAX_BUTTON_SVG_WIDTH,
             height: MIN_MAX_BUTTON_SVG_HEIGHT / 2
         },
-        color: properties.buttonColor,
+        //color: properties.buttonColor,
         alpha: properties.buttonAlpha,
         visible: properties.visible
     });
@@ -218,11 +217,10 @@ var PopUpMenu = function(properties) {
     };
 };
 
-var usersWindow = (function() {
+var usersWindow = (function () {
 
-    var baseURL = Script.resolvePath("assets/images/tools/");
-
-    var WINDOW_WIDTH = 260,
+    var baseURL = Script.resolvePath("assets/images/tools/"),
+        WINDOW_WIDTH = 260,
         WINDOW_MARGIN = 12,
         WINDOW_BASE_MARGIN = 6, // A little less is needed in order look correct
         WINDOW_FONT = {
@@ -248,6 +246,17 @@ var usersWindow = (function() {
         WINDOW_BACKGROUND_ALPHA = 0.8,
         windowPane,
         windowHeading,
+
+        // Window border is similar to that of edit.js.
+        WINDOW_BORDER_WIDTH = WINDOW_WIDTH + 2 * WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_TOP_MARGIN = 2 * WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_BOTTOM_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_LEFT_MARGIN = WINDOW_BASE_MARGIN,
+        WINDOW_BORDER_RADIUS = 4,
+        WINDOW_BORDER_COLOR = { red: 255, green: 255, blue: 255 },
+        WINDOW_BORDER_ALPHA = 0.5,
+        windowBorder,
+
         MIN_MAX_BUTTON_SVG = baseURL + "min-max-toggle.svg",
         MIN_MAX_BUTTON_SVG_WIDTH = 17.1,
         MIN_MAX_BUTTON_SVG_HEIGHT = 32.5,
@@ -331,6 +340,7 @@ var usersWindow = (function() {
         visibilityControl,
 
         windowHeight,
+        windowBorderHeight,
         windowTextHeight,
         windowLineSpacing,
         windowLineHeight, // = windowTextHeight + windowLineSpacing
@@ -356,13 +366,20 @@ var usersWindow = (function() {
         MENU_ITEM_AFTER = "Chat...",
 
         SETTING_USERS_WINDOW_MINIMIZED = "UsersWindow.Minimized",
+        SETINGS_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
+        // +ve x, y values are offset from left, top of screen; -ve from right, bottom.
 
         isVisible = true,
         isMinimized = false,
+        isBorderVisible = false,
 
-        viewportHeight,
+        viewport,
         isMirrorDisplay = false,
         isFullscreenMirror = false,
+
+        windowPosition = { },  // Bottom left corner of window pane.
+        isMovingWindow = false,
+        movingClickOffset = { x: 0, y: 0 },
 
         isUsingScrollbars = false,
         isMovingScrollbar = false,
@@ -379,19 +396,23 @@ var usersWindow = (function() {
 
         if (isMinimized) {
             windowHeight = windowTextHeight + WINDOW_MARGIN + WINDOW_BASE_MARGIN;
+            windowBorderHeight = windowHeight + WINDOW_BORDER_TOP_MARGIN + WINDOW_BORDER_BOTTOM_MARGIN;
             return;
         }
 
         // Reserve space for title, friends button, and option controls
-        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER + windowLineHeight + VISIBILITY_SPACER + windowLineHeight + WINDOW_BASE_MARGIN;
+        nonUsersHeight = WINDOW_MARGIN + windowLineHeight + FRIENDS_BUTTON_SPACER + FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER
+            + windowLineHeight + VISIBILITY_SPACER
+            + windowLineHeight + WINDOW_BASE_MARGIN;
 
-        // Limit window to height of viewport minus VU meter and mirror if displayed
+        // Limit window to height of viewport above window position minus VU meter and mirror if displayed
         windowHeight = linesOfUsers.length * windowLineHeight - windowLineSpacing + nonUsersHeight;
-        maxWindowHeight = viewportHeight - AUDIO_METER_HEIGHT;
+        maxWindowHeight = windowPosition.y - AUDIO_METER_HEIGHT;
         if (isMirrorDisplay && !isFullscreenMirror) {
             maxWindowHeight -= MIRROR_HEIGHT;
         }
         windowHeight = Math.max(Math.min(windowHeight, maxWindowHeight), nonUsersHeight);
+        windowBorderHeight = windowHeight + WINDOW_BORDER_TOP_MARGIN + WINDOW_BORDER_BOTTOM_MARGIN;
 
         // Corresponding number of users to actually display
         numUsersToDisplay = Math.max(Math.round((windowHeight - nonUsersHeight) / windowLineHeight), 0);
@@ -405,38 +426,57 @@ var usersWindow = (function() {
     }
 
     function updateOverlayPositions() {
-        var y;
+        // Overlay positions are all relative to windowPosition; windowPosition is the position of the windowPane overlay.
+        var windowLeft = windowPosition.x,
+            windowTop = windowPosition.y - windowHeight,
+            x,
+            y;
 
+        Overlays.editOverlay(windowBorder, {
+            x: windowPosition.x - WINDOW_BORDER_LEFT_MARGIN,
+            y: windowTop - WINDOW_BORDER_TOP_MARGIN
+        });
         Overlays.editOverlay(windowPane, {
-            y: viewportHeight - windowHeight
+            x: windowLeft,
+            y: windowTop
         });
         Overlays.editOverlay(windowHeading, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN
+            x: windowLeft + WINDOW_MARGIN,
+            y: windowTop + WINDOW_MARGIN
         });
 
         Overlays.editOverlay(minimizeButton, {
-            y: viewportHeight - windowHeight + WINDOW_MARGIN / 2
+            x: windowLeft + WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH,
+            y: windowTop + WINDOW_MARGIN / 2
         });
 
-        scrollbarBackgroundPosition.y = viewportHeight - windowHeight + WINDOW_MARGIN + windowTextHeight;
+        scrollbarBackgroundPosition.x = windowLeft + WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH;
+        scrollbarBackgroundPosition.y = windowTop + WINDOW_MARGIN + windowTextHeight;
         Overlays.editOverlay(scrollbarBackground, {
+            x: scrollbarBackgroundPosition.x,
             y: scrollbarBackgroundPosition.y
         });
-        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1 + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+        scrollbarBarPosition.y = scrollbarBackgroundPosition.y + 1
+            + scrollbarValue * (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
         Overlays.editOverlay(scrollbarBar, {
+            x: scrollbarBackgroundPosition.x + 1,
             y: scrollbarBarPosition.y
         });
 
-        y = viewportHeight - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER - windowLineHeight - VISIBILITY_SPACER - windowLineHeight - WINDOW_BASE_MARGIN;
+        x = windowLeft + WINDOW_MARGIN;
+        y = windowPosition.y - FRIENDS_BUTTON_HEIGHT - DISPLAY_SPACER
+            - windowLineHeight - VISIBILITY_SPACER
+            - windowLineHeight - WINDOW_BASE_MARGIN;
         Overlays.editOverlay(friendsButton, {
+            x: x,
             y: y
         });
 
         y += FRIENDS_BUTTON_HEIGHT + DISPLAY_SPACER;
-        displayControl.updatePosition(WINDOW_MARGIN, y);
+        displayControl.updatePosition(x, y);
 
         y += windowLineHeight + VISIBILITY_SPACER;
-        visibilityControl.updatePosition(WINDOW_MARGIN, y);
+        visibilityControl.updatePosition(x, y);
     }
 
     function updateUsersDisplay() {
@@ -487,6 +527,10 @@ var usersWindow = (function() {
             });
         }
 
+        Overlays.editOverlay(windowBorder, {
+            height: windowBorderHeight
+        });
+
         Overlays.editOverlay(windowPane, {
             height: windowHeight,
             text: displayText
@@ -512,7 +556,7 @@ var usersWindow = (function() {
         usersRequest.send();
     }
 
-    processUsers = function() {
+    processUsers = function () {
         var response,
             myUsername,
             user,
@@ -565,12 +609,15 @@ var usersWindow = (function() {
         }
     };
 
-    pollUsersTimedOut = function() {
+    pollUsersTimedOut = function () {
         print("Error: Request for users status timed out");
         usersTimer = Script.setTimeout(pollUsers, HTTP_GET_TIMEOUT); // Try again after a longer delay.
     };
 
     function updateOverlayVisibility() {
+        Overlays.editOverlay(windowBorder, {
+            visible: isVisible && isBorderVisible
+        });
         Overlays.editOverlay(windowPane, {
             visible: isVisible
         });
@@ -670,7 +717,7 @@ var usersWindow = (function() {
         if (clickedOverlay === windowPane) {
 
             overlayX = event.x - WINDOW_MARGIN;
-            overlayY = event.y - viewportHeight + windowHeight - WINDOW_MARGIN - windowLineHeight;
+            overlayY = event.y - windowPosition.y + windowHeight - WINDOW_MARGIN - windowLineHeight;
 
             numLinesBefore = Math.round(overlayY / windowLineHeight);
             minY = numLinesBefore * windowLineHeight;
@@ -683,7 +730,8 @@ var usersWindow = (function() {
 
             userClicked = firstUserToDisplay + lineClicked;
 
-            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
+            if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX
+                    && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
                 //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
@@ -735,13 +783,29 @@ var usersWindow = (function() {
             friendsWindow.setURL(FRIENDS_WINDOW_URL);
             friendsWindow.setVisible(true);
             friendsWindow.raise();
+            return;
+        }
+
+        if (clickedOverlay === windowBorder) {
+            movingClickOffset = {
+                x: event.x - windowPosition.x,
+                y: event.y - windowPosition.y
+            };
+
+            isMovingWindow = true;
         }
     }
 
     function onMouseMoveEvent(event) {
+        var isVisible;
+
         if (isMovingScrollbar) {
-            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
-                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y) / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
+            if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
+                    && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
+                    && scrollbarBackgroundPosition.y - WINDOW_MARGIN <= event.y
+                    && event.y <= scrollbarBackgroundPosition.y + scrollbarBackgroundHeight + WINDOW_MARGIN) {
+                scrollbarValue = (event.y - scrollbarBarClickedAt * scrollbarBarHeight - scrollbarBackgroundPosition.y)
+                    / (scrollbarBackgroundHeight - scrollbarBarHeight - 2);
                 scrollbarValue = Math.min(Math.max(scrollbarValue, 0.0), 1.0);
                 firstUserToDisplay = Math.floor(scrollbarValue * (linesOfUsers.length - numUsersToDisplay));
                 updateOverlayPositions();
@@ -753,35 +817,95 @@ var usersWindow = (function() {
                 isMovingScrollbar = false;
             }
         }
+
+        if (isMovingWindow) {
+            windowPosition = {
+                x: event.x - movingClickOffset.x,
+                y: event.y - movingClickOffset.y
+            };
+            calculateWindowHeight();
+            updateOverlayPositions();
+            updateUsersDisplay();
+
+        } else {
+
+            isVisible = isBorderVisible;
+            if (isVisible) {
+                isVisible = windowPosition.x - WINDOW_BORDER_LEFT_MARGIN <= event.x
+                    && event.x <= windowPosition.x - WINDOW_BORDER_LEFT_MARGIN + WINDOW_BORDER_WIDTH
+                    && windowPosition.y - windowHeight - WINDOW_BORDER_TOP_MARGIN <= event.y
+                    && event.y <= windowPosition.y + WINDOW_BORDER_BOTTOM_MARGIN;
+            } else {
+                isVisible = windowPosition.x <= event.x && event.x <= windowPosition.x + WINDOW_WIDTH
+                    && windowPosition.y - windowHeight <= event.y && event.y <= windowPosition.y;
+            }
+            if (isVisible !== isBorderVisible) {
+                isBorderVisible = isVisible;
+                Overlays.editOverlay(windowBorder, {
+                    visible: isBorderVisible
+                });
+            }
+        }
     }
 
     function onMouseReleaseEvent() {
-        Overlays.editOverlay(scrollbarBar, {
-            backgroundAlpha: SCROLLBAR_BAR_ALPHA
-        });
-        isMovingScrollbar = false;
+        var offset = {};
+
+        if (isMovingScrollbar) {
+            Overlays.editOverlay(scrollbarBar, {
+                backgroundAlpha: SCROLLBAR_BAR_ALPHA
+            });
+            isMovingScrollbar = false;
+        }
+
+        if (isMovingWindow) {
+            // Save offset of bottom of window to nearest edge of the window.
+            offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2) ? windowPosition.x : windowPosition.x - viewport.x;
+            offset.y = (windowPosition.y < viewport.y / 2) ? windowPosition.y : windowPosition.y - viewport.y;
+            Settings.setValue(SETINGS_USERS_WINDOW_OFFSET, JSON.stringify(offset));
+            isMovingWindow = false;
+        }
     }
 
     function onScriptUpdate() {
-        var oldViewportHeight = viewportHeight,
+        var oldViewport = viewport,
             oldIsMirrorDisplay = isMirrorDisplay,
             oldIsFullscreenMirror = isFullscreenMirror,
             MIRROR_MENU_ITEM = "Mirror",
             FULLSCREEN_MIRROR_MENU_ITEM = "Fullscreen Mirror";
 
-        viewportHeight = Controller.getViewportDimensions().y;
+        viewport = Controller.getViewportDimensions();
         isMirrorDisplay = Menu.isOptionChecked(MIRROR_MENU_ITEM);
         isFullscreenMirror = Menu.isOptionChecked(FULLSCREEN_MIRROR_MENU_ITEM);
 
-        if (viewportHeight !== oldViewportHeight || isMirrorDisplay !== oldIsMirrorDisplay || isFullscreenMirror !== oldIsFullscreenMirror) {
+        if (viewport.y !== oldViewport.y || isMirrorDisplay !== oldIsMirrorDisplay
+                || isFullscreenMirror !== oldIsFullscreenMirror) {
             calculateWindowHeight();
             updateUsersDisplay();
-            updateOverlayPositions();
         }
+
+        if (viewport.y !== oldViewport.y) {
+            if (windowPosition.y > oldViewport.y / 2) {
+                // Maintain position w.r.t. bottom of window.
+                windowPosition.y = viewport.y - (oldViewport.y - windowPosition.y);
+            }
+        }
+
+        if (viewport.x !== oldViewport.x) {
+            if (windowPosition.x + (WINDOW_WIDTH / 2) > oldViewport.x / 2) {
+                // Maintain position w.r.t. right of window.
+                windowPosition.x = viewport.x - (oldViewport.x - windowPosition.x);
+            }
+        }
+
+        updateOverlayPositions();
     }
 
     function setUp() {
-        var textSizeOverlay;
+        var textSizeOverlay,
+            offsetSetting,
+            offset = {},
+            hmdViewport;
 
         textSizeOverlay = Overlays.addOverlay("text", {
             font: WINDOW_FONT,
@@ -792,13 +916,40 @@ var usersWindow = (function() {
         windowLineHeight = windowTextHeight + windowLineSpacing;
         Overlays.deleteOverlay(textSizeOverlay);
 
-        viewportHeight = Controller.getViewportDimensions().y;
+        viewport = Controller.getViewportDimensions();
+
+        offsetSetting = Settings.getValue(SETINGS_USERS_WINDOW_OFFSET);
+        if (offsetSetting !== "") {
+            offset = JSON.parse(Settings.getValue(SETINGS_USERS_WINDOW_OFFSET));
+        }
+        if (offset.hasOwnProperty("x") && offset.hasOwnProperty("y")) {
+            windowPosition.x = offset.x < 0 ? viewport.x + offset.x : offset.x;
+            windowPosition.y = offset.y <= 0 ? viewport.y + offset.y : offset.y;
+
+        } else {
+            hmdViewport = Controller.getRecommendedOverlayRect();
+            windowPosition = {
+                x: (viewport.x - hmdViewport.width) / 2,  // HMD viewport is narrower than screen.
+                y: hmdViewport.height  // HMD viewport starts at top of screen but only extends down so far.
+            };
+        }
 
         calculateWindowHeight();
 
+        windowBorder = Overlays.addOverlay("rectangle", {
+            x: 0,
+            y: viewport.y,   // Start up off-screen
+            width: WINDOW_BORDER_WIDTH,
+            height: windowBorderHeight,
+            radius: WINDOW_BORDER_RADIUS,
+            color: WINDOW_BORDER_COLOR,
+            alpha: WINDOW_BORDER_ALPHA,
+            visible: isVisible && isBorderVisible
+        });
+
         windowPane = Overlays.addOverlay("text", {
             x: 0,
-            y: viewportHeight, // Start up off-screen
+            y: viewport.y,
             width: WINDOW_WIDTH,
             height: windowHeight,
             topMargin: WINDOW_MARGIN + windowLineHeight,
@@ -813,8 +964,8 @@ var usersWindow = (function() {
         });
 
         windowHeading = Overlays.addOverlay("text", {
-            x: WINDOW_MARGIN,
-            y: viewportHeight,
+            x: 0,
+            y: viewport.y,
             width: WINDOW_WIDTH - 2 * WINDOW_MARGIN,
             height: windowTextHeight,
             topMargin: 0,
@@ -828,8 +979,8 @@ var usersWindow = (function() {
         });
 
         minimizeButton = Overlays.addOverlay("image", {
-            x: WINDOW_WIDTH - WINDOW_MARGIN / 2 - MIN_MAX_BUTTON_WIDTH,
-            y: viewportHeight,
+            x: 0,
+            y: viewport.y,
             width: MIN_MAX_BUTTON_WIDTH,
             height: MIN_MAX_BUTTON_HEIGHT,
             imageURL: MIN_MAX_BUTTON_SVG,
@@ -845,11 +996,11 @@ var usersWindow = (function() {
         });
 
         scrollbarBackgroundPosition = {
-            x: WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH,
-            y: viewportHeight
+            x: 0,
+            y: viewport.y
         };
         scrollbarBackground = Overlays.addOverlay("text", {
-            x: scrollbarBackgroundPosition.x,
+            x: 0,
             y: scrollbarBackgroundPosition.y,
             width: SCROLLBAR_BACKGROUND_WIDTH,
             height: windowTextHeight,
@@ -860,11 +1011,11 @@ var usersWindow = (function() {
         });
 
         scrollbarBarPosition = {
-            x: WINDOW_WIDTH - 0.5 * WINDOW_MARGIN - SCROLLBAR_BACKGROUND_WIDTH + 1,
-            y: viewportHeight
+            x: 0,
+            y: viewport.y
         };
         scrollbarBar = Overlays.addOverlay("text", {
-            x: scrollbarBarPosition.x,
+            x: 0,
             y: scrollbarBarPosition.y,
             width: SCROLLBAR_BACKGROUND_WIDTH - 2,
             height: windowTextHeight,
@@ -875,8 +1026,8 @@ var usersWindow = (function() {
         });
 
         friendsButton = Overlays.addOverlay("image", {
-            x: WINDOW_MARGIN,
-            y: viewportHeight,
+            x: 0,
+            y: viewport.y,
             width: FRIENDS_BUTTON_WIDTH,
             height: FRIENDS_BUTTON_HEIGHT,
             imageURL: FRIENDS_BUTTON_SVG,
@@ -895,8 +1046,8 @@ var usersWindow = (function() {
             value: DISPLAY_VALUES[0],
             values: DISPLAY_VALUES,
             displayValues: DISPLAY_DISPLAY_VALUES,
-            x: WINDOW_MARGIN,
-            y: viewportHeight,
+            x: 0,
+            y: viewport.y,
             width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
             promptWidth: DISPLAY_PROMPT_WIDTH,
             lineHeight: windowLineHeight,
@@ -928,8 +1079,8 @@ var usersWindow = (function() {
             value: myVisibility,
             values: VISIBILITY_VALUES,
             displayValues: VISIBILITY_DISPLAY_VALUES,
-            x: WINDOW_MARGIN,
-            y: viewportHeight,
+            x: 0,
+            y: viewport.y,
             width: WINDOW_WIDTH - 1.5 * WINDOW_MARGIN,
             promptWidth: VISIBILITY_PROMPT_WIDTH,
             lineHeight: windowLineHeight,
@@ -979,6 +1130,7 @@ var usersWindow = (function() {
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);
+        Overlays.deleteOverlay(windowBorder);
         Overlays.deleteOverlay(windowPane);
         Overlays.deleteOverlay(windowHeading);
         Overlays.deleteOverlay(minimizeButton);

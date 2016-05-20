@@ -304,7 +304,6 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType); // FIXME - this doesn't appear to get used
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
@@ -343,7 +342,6 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);

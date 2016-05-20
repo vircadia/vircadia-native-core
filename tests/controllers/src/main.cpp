@@ -89,7 +89,7 @@ public:
     virtual GLWidget* getPrimaryWidget() override { return nullptr; }
     virtual MainWindow* getPrimaryWindow() override { return nullptr; }
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
-    virtual ui::Menu* getPrimaryMenu() { return nullptr; }
+    virtual ui::Menu* getPrimaryMenu() override { return nullptr; }
     virtual bool isForeground() override { return true; }
     virtual const DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer();  }
 };

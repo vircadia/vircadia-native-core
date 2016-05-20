@@ -485,7 +485,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
     
     qDebug() << "Requesting public key for user" << username;
     
-    AccountManager::getInstance().sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
+    DependencyManager::get<AccountManager>()->sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
                                               AccountManagerAuth::None,
                                               QNetworkAccessManager::GetOperation, callbackParams);
 }

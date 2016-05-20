@@ -13,7 +13,7 @@
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
 (function() {
-    Script.include("libraries/utils.js");
+    Script.include("../libraries/utils.js");
     var _this;
     // this is the "constructor" for the entity as a JS object we don't do much here
     var Doll = function() {

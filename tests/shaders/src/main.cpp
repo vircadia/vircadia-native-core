@@ -8,7 +8,7 @@
 #include <iostream>
 #include <mutex>
 
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <QLoggingCategory>
 #include <QResizeEvent>
@@ -114,7 +114,7 @@ public:
         show();
         makeCurrent();
 
-        gpu::Context::init<gpu::GLBackend>();
+        gpu::Context::init<gpu::gl::GLBackend>();
         setupDebugLogger(this);
         makeCurrent();
         resize(QSize(800, 600));

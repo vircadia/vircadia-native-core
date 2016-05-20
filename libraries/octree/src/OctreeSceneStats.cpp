@@ -110,29 +110,21 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _treesRemoved = other._treesRemoved;
 
     // before copying the jurisdictions, delete any current values...
-    if (_jurisdictionRoot) {
-        delete[] _jurisdictionRoot;
-        _jurisdictionRoot = NULL;
-    }
-    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
-        if (_jurisdictionEndNodes[i]) {
-            delete[] _jurisdictionEndNodes[i];
-        }
-    }
+    _jurisdictionRoot = nullptr;
     _jurisdictionEndNodes.clear();
 
     // Now copy the values from the other
     if (other._jurisdictionRoot) {
-        auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot));
-        _jurisdictionRoot = new unsigned char[bytes];
-        memcpy(_jurisdictionRoot, other._jurisdictionRoot, bytes);
+        auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot.get()));
+        _jurisdictionRoot = createOctalCodePtr(bytes);
+        memcpy(_jurisdictionRoot.get(), other._jurisdictionRoot.get(), bytes);
     }
     for (size_t i = 0; i < other._jurisdictionEndNodes.size(); i++) {
-        unsigned char* endNodeCode = other._jurisdictionEndNodes[i];
+        auto& endNodeCode = other._jurisdictionEndNodes[i];
         if (endNodeCode) {
-            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
-            unsigned char* endNodeCodeCopy = new unsigned char[bytes];
-            memcpy(endNodeCodeCopy, endNodeCode, bytes);
+            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode.get()));
+            auto endNodeCodeCopy = createOctalCodePtr(bytes);
+            memcpy(endNodeCodeCopy.get(), endNodeCode.get(), bytes);
             _jurisdictionEndNodes.push_back(endNodeCodeCopy);
         }
     }
@@ -162,37 +154,12 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
     _isFullScene = isFullScene;
     _isMoving = isMoving;
 
-    if (_jurisdictionRoot) {
-        delete[] _jurisdictionRoot;
-        _jurisdictionRoot = NULL;
-    }
-    // clear existing endNodes before copying new ones...
-    for (size_t i=0; i < _jurisdictionEndNodes.size(); i++) {
-        if (_jurisdictionEndNodes[i]) {
-            delete[] _jurisdictionEndNodes[i];
-        }
-    }
-    _jurisdictionEndNodes.clear();
-
     // setup jurisdictions
     if (jurisdictionMap) {
-        unsigned char* jurisdictionRoot = jurisdictionMap->getRootOctalCode();
-        if (jurisdictionRoot) {
-            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(jurisdictionRoot));
-            _jurisdictionRoot = new unsigned char[bytes];
-            memcpy(_jurisdictionRoot, jurisdictionRoot, bytes);
-        }
-
-        // copy new endNodes...
-        for (int i = 0; i < jurisdictionMap->getEndNodeCount(); i++) {
-            unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
-            if (endNodeCode) {
-                auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
-                unsigned char* endNodeCodeCopy = new unsigned char[bytes];
-                memcpy(endNodeCodeCopy, endNodeCode, bytes);
-                _jurisdictionEndNodes.push_back(endNodeCodeCopy);
-            }
-        }
+        std::tie(_jurisdictionRoot, _jurisdictionEndNodes) = jurisdictionMap->getRootAndEndNodeOctalCodes();
+    } else {
+        _jurisdictionRoot = nullptr;
+        _jurisdictionEndNodes.clear();
     }
 }
 
@@ -270,15 +237,7 @@ void OctreeSceneStats::reset() {
     _existsInPacketBitsWritten = 0;
     _treesRemoved = 0;
 
-    if (_jurisdictionRoot) {
-        delete[] _jurisdictionRoot;
-        _jurisdictionRoot = NULL;
-    }
-    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
-        if (_jurisdictionEndNodes[i]) {
-            delete[] _jurisdictionEndNodes[i];
-        }
-    }
+    _jurisdictionRoot = nullptr;
     _jurisdictionEndNodes.clear();
 }
 
@@ -418,9 +377,9 @@ int OctreeSceneStats::packIntoPacket() {
     // add the root jurisdiction
     if (_jurisdictionRoot) {
         // copy the
-        int bytes = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
+        int bytes = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot.get()));
         _statsPacket->writePrimitive(bytes);
-        _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
+        _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
         int endNodeCount = (int)_jurisdictionEndNodes.size();
@@ -428,10 +387,10 @@ int OctreeSceneStats::packIntoPacket() {
         _statsPacket->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
-            unsigned char* endNodeCode = _jurisdictionEndNodes[i];
-            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            auto& endNodeCode = _jurisdictionEndNodes[i];
+            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode.get()));
             _statsPacket->writePrimitive(bytes);
-            _statsPacket->write(reinterpret_cast<char*>(endNodeCode), bytes);
+            _statsPacket->write(reinterpret_cast<char*>(endNodeCode.get()), bytes);
         }
     } else {
         int bytes = 0;
@@ -500,17 +459,7 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
     packet.readPrimitive(&_existsInPacketBitsWritten);
     packet.readPrimitive(&_treesRemoved);
     // before allocating new juridiction, clean up existing ones
-    if (_jurisdictionRoot) {
-        delete[] _jurisdictionRoot;
-        _jurisdictionRoot = NULL;
-    }
-    
-    // clear existing endNodes before copying new ones...
-    for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
-        if (_jurisdictionEndNodes[i]) {
-            delete[] _jurisdictionEndNodes[i];
-        }
-    }
+    _jurisdictionRoot = nullptr;
     _jurisdictionEndNodes.clear();
 
     // read the root jurisdiction
@@ -518,11 +467,11 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
     packet.readPrimitive(&bytes);
 
     if (bytes == 0) {
-        _jurisdictionRoot = NULL;
+        _jurisdictionRoot = nullptr;
         _jurisdictionEndNodes.clear();
     } else {
-        _jurisdictionRoot = new unsigned char[bytes];
-        packet.read(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
+        _jurisdictionRoot = createOctalCodePtr(bytes);
+        packet.read(reinterpret_cast<char*>(_jurisdictionRoot.get()), bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
         _jurisdictionEndNodes.clear();
@@ -535,8 +484,8 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
             
             packet.readPrimitive(&bytes);
             
-            unsigned char* endNodeCode = new unsigned char[bytes];
-            packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
+            auto endNodeCode = createOctalCodePtr(bytes);
+            packet.read(reinterpret_cast<char*>(endNodeCode.get()), bytes);
             
             _jurisdictionEndNodes.push_back(endNodeCode);
         }

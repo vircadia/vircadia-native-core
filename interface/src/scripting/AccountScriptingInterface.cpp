@@ -19,14 +19,14 @@ AccountScriptingInterface* AccountScriptingInterface::getInstance() {
 }
 
 bool AccountScriptingInterface::isLoggedIn() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    return accountManager.isLoggedIn();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->isLoggedIn();
 }
 
 QString AccountScriptingInterface::getUsername() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    if (accountManager.isLoggedIn()) {
-        return accountManager.getAccountInfo().getUsername();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        return accountManager->getAccountInfo().getUsername();
     } else {
         return "Unknown user";
     }

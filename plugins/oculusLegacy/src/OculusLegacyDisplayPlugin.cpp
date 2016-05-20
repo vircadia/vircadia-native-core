@@ -19,7 +19,6 @@
 #include <QtGui/QScreen>
 #include <gl/GLWindow.h>
 #include <gl/GLWidget.h>
-#include <gpu/GLBackend.h>
 #include <MainWindow.h>
 
 #include <gl/QOpenGLContextWrapper.h>

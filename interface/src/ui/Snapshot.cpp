@@ -92,7 +92,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentAddress();
     shot.setText(URL, currentURL.toString());
 
-    QString username = AccountManager::getInstance().getAccountInfo().getUsername();
+    QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
     // normalize username, replace all non alphanumeric with '-'
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
 
@@ -144,14 +144,15 @@ const QString SUCCESS_LABEL_TEMPLATE = "Success!!! Go check out your image ...<b
 
 
 QString SnapshotUploader::uploadSnapshot(const QUrl& fileUrl) {
-    if (AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().isEmpty()) {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->getAccountInfo().getDiscourseApiKey().isEmpty()) {
         OffscreenUi::warning(nullptr, "", "Your Discourse API key is missing, you cannot share snapshots. Please try to relog.");
         return QString();
     }
 
     QHttpPart apiKeyPart;
     apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"api_key\""));
-    apiKeyPart.setBody(AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().toLatin1());
+    apiKeyPart.setBody(accountManager->getAccountInfo().getDiscourseApiKey().toLatin1());
 
     QString filename = fileUrl.toLocalFile();
     qDebug() << filename;
@@ -206,7 +207,7 @@ QString SnapshotUploader::sendForumPost(const QString& snapshotPath, const QStri
     QUrl forumUrl(FORUM_POST_URL);
 
     QUrlQuery query;
-    query.addQueryItem("api_key", AccountManager::getInstance().getAccountInfo().getDiscourseApiKey());
+    query.addQueryItem("api_key", DependencyManager::get<AccountManager>()->getAccountInfo().getDiscourseApiKey());
     query.addQueryItem("topic_id", FORUM_REPLY_TO_TOPIC);
     query.addQueryItem("raw", FORUM_POST_TEMPLATE.arg(snapshotPath, notes));
     forumUrl.setQuery(query);
