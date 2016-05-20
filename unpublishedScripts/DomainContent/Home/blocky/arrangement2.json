@@ -1,0 +1,179 @@
+{
+    "Entities": [{
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:46:06Z",
+        "dimensions": {
+            "x": 0.10000000149011612,
+            "y": 0.10000000149011612,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{e4fd5fc4-10b9-4d84-b6ba-b732cc7de7b7}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0.0531005859375,
+            "y": 0.17498779296875,
+            "z": 0.10013580322265625
+        },
+        "queryAACube": {
+            "scale": 0.28722813725471497,
+            "x": -0.090513482689857483,
+            "y": 0.031373724341392517,
+            "z": -0.043478265404701233
+        },
+        "rotation": {
+            "w": 0.70144569873809814,
+            "x": 0.089502327144145966,
+            "y": 0.089585684239864349,
+            "z": 0.70138269662857056
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:28:38Z",
+        "dimensions": {
+            "x": 0.05000000074505806,
+            "y": 0.05000000074505806,
+            "z": 0.05000000074505806
+        },
+        "dynamic": 0,
+        "id": "{82c627f6-d296-4ee9-9206-56aa06846013}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_natural.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0.0238037109375,
+            "y": 0.5,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.086602538824081421,
+            "x": -0.01949755847454071,
+            "y": 0.4566987156867981,
+            "z": -0.04330126941204071
+        },
+        "rotation": {
+            "w": 0.00020232143288012594,
+            "x": 0.89600801467895508,
+            "y": 0.00046253428445197642,
+            "z": 0.44403755664825439
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}",
+        "velocity": {
+            "x": -0.007318682037293911,
+            "y": -0.0010040029883384705,
+            "z": -9.1018431703560054e-05
+        }
+    }, {
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:33:00Z",
+        "dimensions": {
+            "x": 0.10000000149011612,
+            "y": 0.05000000074505806,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{c07b3366-9fb2-4192-a2aa-963bbfa46de1}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0.11705780029296875
+        },
+        "queryAACube": {
+            "scale": 0.27386128902435303,
+            "x": -0.13693064451217651,
+            "y": -0.13693064451217651,
+            "z": -0.019872844219207764
+        },
+        "rotation": {
+            "w": 0.52331775426864624,
+            "x": -0.52310466766357422,
+            "y": -0.47588011622428894,
+            "z": -0.47543454170227051
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:46:06Z",
+        "dimensions": {
+            "x": 0.029999999329447746,
+            "y": 0.05000000074505806,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{1fa9f95d-b040-4d52-8c50-6ceaaf794bba}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_yellow.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0.024658203125,
+            "y": 0.3499755859375,
+            "z": 0.00504302978515625
+        },
+        "queryAACube": {
+            "scale": 0.25670996308326721,
+            "x": -0.10369677841663361,
+            "y": 0.22162060439586639,
+            "z": -0.12331195175647736
+        },
+        "rotation": {
+            "w": 0.69705569744110107,
+            "x": 0.69662469625473022,
+            "y": 0.11998884379863739,
+            "z": -0.12012538313865662
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}",
+        "velocity": {
+            "x": -0.0049706185236573219,
+            "y": 0.0010576546192169189,
+            "z": 0.00093202776042744517
+        }
+    }, {
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T19:28:29Z",
+        "dimensions": {
+            "x": 0.10000000149011612,
+            "y": 0.05000000074505806,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{02fb5b0d-17cb-44b2-ad41-9dbe24bcd606}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_red.fbx",
+        "name": "home_model_block",
+        "position": {
+            "x": 0.1104736328125,
+            "y": 0,
+            "z": 0.097320556640625
+        },
+        "queryAACube": {
+            "scale": 0.27386128902435303,
+            "x": -0.026457011699676514,
+            "y": -0.13693064451217651,
+            "z": -0.039610087871551514
+        },
+        "rotation": {
+            "w": 0.58954423666000366,
+            "x": 0.58955228328704834,
+            "y": -0.39041024446487427,
+            "z": 0.39044272899627686
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}

@@ -1,0 +1,103 @@
+{
+    "Entities": [{
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:46:06Z",
+        "dimensions": {
+            "x": 0.10000000149011612,
+            "y": 0.10000000149011612,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{e4fd5fc4-10b9-4d84-b6ba-b732cc7de7b7}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0.0147705078125,
+            "y": 0.5,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.28722813725471497,
+            "x": -0.12884356081485748,
+            "y": 0.35638594627380371,
+            "z": -0.14361406862735748
+        },
+        "rotation": {
+            "w": -0.31651788949966431,
+            "x": -0.31587702035903931,
+            "y": -0.63225758075714111,
+            "z": 0.63265430927276611
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:46:06Z",
+        "dimensions": {
+            "x": 0.10000000149011612,
+            "y": 0.10000000149011612,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{1e310b85-7823-414b-8448-4435e056c07a}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0.0084075927734375
+        },
+        "queryAACube": {
+            "scale": 0.28722813725471497,
+            "x": -0.14361406862735748,
+            "y": -0.14361406862735748,
+            "z": -0.13520647585391998
+        },
+        "rotation": {
+            "w": 0.34120702743530273,
+            "x": -0.34154266119003296,
+            "y": 0.61931788921356201,
+            "z": 0.61916530132293701
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+        "collisionsWillMove": 1,
+        "created": "2016-05-09T21:28:38Z",
+        "dimensions": {
+            "x": 0.10000000149011612,
+            "y": 0.10000000149011612,
+            "z": 0.25
+        },
+        "dynamic": 0,
+        "id": "{1f07cd0e-f9d1-46f3-b71a-ad7127d1a0b0}",
+        "modelURL": "atp:/kineticObjects/blocks/planky_green.fbx",
+        "name": "home_model_blocky_block",
+        "position": {
+            "x": 0.0155029296875,
+            "y": 0.25,
+            "z": 0.0084686279296875
+        },
+        "queryAACube": {
+            "scale": 0.28722813725471497,
+            "x": -0.12811113893985748,
+            "y": 0.10638593137264252,
+            "z": -0.13514544069766998
+        },
+        "rotation": {
+            "w": 0.62478065490722656,
+            "x": -0.62526893615722656,
+            "y": -0.33089190721511841,
+            "z": -0.33040362596511841
+        },
+        "shapeType": "box",
+        "type": "Model",
+        "userData": "{\"grabbableKey\":{\"grabbable\":true},\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}
