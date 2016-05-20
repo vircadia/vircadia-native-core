@@ -23,7 +23,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
-    connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
     connect(addressManager.data(), &AddressManager::goBackPossible, this, [this] (bool isPossible) {
         if (isPossible != _backEnabled) {
             _backEnabled = isPossible;
@@ -38,10 +37,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     });
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
-}
-
-void AddressBarDialog::hide() {
-    ((QQuickItem*)parent())->setEnabled(false);
 }
 
 void AddressBarDialog::loadAddress(const QString& address) {

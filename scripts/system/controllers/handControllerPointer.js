@@ -186,7 +186,9 @@ function updateSeeking() {
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
     if (!lookAt2D) {
-        print('Cannot seek without lookAt position');
+        // FIXME - determine if this message is useful but make it so it doesn't spam the
+        // log in the case that it is happening
+        //print('Cannot seek without lookAt position');
         return;
     } // E.g., if parallel to location in HUD
     var copy = Reticle.position;
@@ -405,6 +407,9 @@ function update() {
     if (!Menu.isOptionChecked("First Person")) {
         return turnOffVisualization();
     }  // What to do? menus can be behind hand!
+    if (!Window.hasFocus()) { // Don't mess with other apps
+        return turnOffVisualization();
+    }
     var controllerPose = Controller.getPoseValue(activeHand);
     // Vive is effectively invalid when not in HMD
     if (!controllerPose.valid || ((hardware === 'Vive') && !HMD.active)) {
@@ -417,7 +422,9 @@ function update() {
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
-        print('Controller is parallel to HUD');
+        // FIXME - determine if this message is useful but make it so it doesn't spam the
+        // log in the case that it is happening
+        //print('Controller is parallel to HUD');
         return turnOffVisualization();
     }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);

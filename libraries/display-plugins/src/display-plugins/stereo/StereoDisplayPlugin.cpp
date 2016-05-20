@@ -13,7 +13,6 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 
-#include <gpu/GLBackend.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
 #include <plugins/PluginContainer.h>

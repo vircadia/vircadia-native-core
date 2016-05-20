@@ -11,7 +11,7 @@
 
 (function() {
 
-    Script.include("libraries/utils.js");
+    Script.include("../libraries/utils.js");
 
     var NOTCH_ARROW_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/notch.wav';
     var SHOOT_ARROW_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/String_release2.L.wav';

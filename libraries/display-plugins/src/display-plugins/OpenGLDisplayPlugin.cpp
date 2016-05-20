@@ -17,7 +17,7 @@
 #include <QtGui/QImage>
 
 #include <gl/QOpenGLContextWrapper.h>
-
+#include <gpu/Texture.h>
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -26,7 +26,6 @@
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackend.h>
 #include <CursorManager.h>
 #include "CompositorHelper.h"
 
@@ -629,14 +628,15 @@ uint32_t OpenGLDisplayPlugin::getSceneTextureId() const {
     if (!_currentSceneTexture) {
         return 0;
     }
-    return gpu::GLBackend::getTextureID(_currentSceneTexture, false);
+    
+    return _currentSceneTexture->getHardwareId(); 
 }
 
 uint32_t OpenGLDisplayPlugin::getOverlayTextureId() const {
     if (!_currentOverlayTexture) {
         return 0;
     }
-    return gpu::GLBackend::getTextureID(_currentOverlayTexture, false);
+    return _currentOverlayTexture->getHardwareId();
 }
 
 void OpenGLDisplayPlugin::eyeViewport(Eye eye) const {

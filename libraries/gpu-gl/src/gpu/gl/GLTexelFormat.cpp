@@ -1,14 +1,16 @@
 //
-//  Created by Bradley Austin Davis on 2016/04/03
+//  Created by Bradley Austin Davis on 2016/05/15
 //  Copyright 2013-2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GLBackendShared.h"
+#include "GLTexelFormat.h"
 
 using namespace gpu;
+using namespace gpu::gl;
+
 
 GLTexelFormat GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
     GLTexelFormat texel = { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };
@@ -22,7 +24,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
             texel.format = GL_RED;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -43,14 +45,14 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_DEPTH24_STENCIL8;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         case gpu::VEC2: {
             texel.format = GL_RG;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -58,7 +60,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_RG8;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -67,7 +69,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         case gpu::VEC3: {
             texel.format = GL_RGB;
 
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -81,7 +83,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_SRGB;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -89,7 +91,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
         case gpu::VEC4: {
             texel.format = GL_RGBA;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (srcFormat.getSemantic()) {
             case gpu::BGRA:
@@ -123,7 +125,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
             case gpu::COMPRESSED_SRGBA:
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
-                
+
                 break;
 
                 // FIXME: WE will want to support this later
@@ -144,13 +146,13 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 */
 
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         default:
-            qCDebug(gpulogging) << "Unknown combination of texel format";
+            qCDebug(gpugllogging) << "Unknown combination of texel format";
         }
         return texel;
     } else {
@@ -159,7 +161,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
             texel.format = GL_RED;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::COMPRESSED_R: {
@@ -286,7 +288,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_DEPTH24_STENCIL8;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -294,7 +296,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
         case gpu::VEC2: {
             texel.format = GL_RG;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -302,7 +304,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_RG8;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
 
             break;
@@ -311,7 +313,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         case gpu::VEC3: {
             texel.format = GL_RGB;
 
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -329,14 +331,14 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_SRGB;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         case gpu::VEC4: {
             texel.format = GL_RGBA;
-            texel.type = _elementTypeToGLType[dstFormat.getType()];
+            texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
             case gpu::RGB:
@@ -411,13 +413,13 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_COMPRESSED_SRGB_ALPHA;
                 break;
             default:
-                qCDebug(gpulogging) << "Unknown combination of texel format";
+                qCDebug(gpugllogging) << "Unknown combination of texel format";
             }
             break;
         }
 
         default:
-            qCDebug(gpulogging) << "Unknown combination of texel format";
+            qCDebug(gpugllogging) << "Unknown combination of texel format";
         }
         return texel;
     }
