@@ -57,9 +57,9 @@ public:
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
-    virtual void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) = 0;
+    virtual void update(float deltaTime, const InputCalibrationData& inputCalibrationData) {};
 
-    virtual void focusOutEvent() = 0;
+    virtual void focusOutEvent() {};
 
     int getDeviceID() { return _deviceID; }
     void setDeviceID(int deviceID) { _deviceID = deviceID; }

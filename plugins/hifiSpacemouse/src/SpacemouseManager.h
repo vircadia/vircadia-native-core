@@ -17,22 +17,8 @@
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
-#include "InputPlugin.h"
+#include <plugins/InputPlugin.h>
 
-#ifndef HAVE_3DCONNEXIONCLIENT
-class SpacemouseManager : public QObject {
-    Q_OBJECT
-public:
-    void ManagerFocusOutEvent();
-    void init();
-    void destroy() {};
-    bool Is3dmouseAttached() { return false; };
-    public slots:
-    void toggleSpacemouse(bool shouldEnable) {};
-};
-#endif
-
-#ifdef HAVE_3DCONNEXIONCLIENT
 // the windows connexion rawinput
 #ifdef Q_OS_WIN
 
@@ -85,42 +71,26 @@ private:
     Speed fSpeed;
 };
 
-class SpacemouseManager : public QObject, public QAbstractNativeEventFilter {
+class SpacemouseManager : public InputPlugin, public QAbstractNativeEventFilter {
    
     Q_OBJECT
 public:
-    SpacemouseManager() {};
+    bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
+    const QString& getID() const override { return NAME; }
 
-    void init();
-    void destroy();
-    bool Is3dmouseAttached();
+    bool activate() override;
+    void deactivate() override;
 
-    SpacemouseManager* client;
+    void pluginFocusOutEvent() override;
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
-    void ManagerFocusOutEvent();
-
-    I3dMouseParam& MouseParams();
-    const I3dMouseParam& MouseParams() const;
-
-    virtual void Move3d(HANDLE device, std::vector<float>& motionData);
-    virtual void On3dmouseKeyDown(HANDLE device, int virtualKeyCode);
-    virtual void On3dmouseKeyUp(HANDLE device, int virtualKeyCode);
-
-    virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) Q_DECL_OVERRIDE
-    {
-        MSG* msg = static_cast< MSG * >(message);
-        return RawInputEventFilter(message, result);
-    }
-
-        public slots:
-    void toggleSpacemouse(bool shouldEnable);  
-
-signals:
-    void Move3d(std::vector<float>& motionData);
-    void On3dmouseKeyDown(int virtualKeyCode);
-    void On3dmouseKeyUp(int virtualKeyCode);
+    bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) override;
 
 private:
+    void Move3d(HANDLE device, std::vector<float>& motionData);
+    void On3dmouseKeyDown(HANDLE device, int virtualKeyCode);
+    void On3dmouseKeyUp(HANDLE device, int virtualKeyCode);
     bool InitializeRawInput(HWND hwndTarget);
 
     bool RawInputEventFilter(void* msg, long* result);
@@ -156,6 +126,9 @@ private:
 
     // use to calculate distance traveled since last event
     DWORD fLast3dmouseInputTime;
+
+    static const QString NAME;
+    friend class SpacemouseDevice;
 };
 
 // the osx connexion api
@@ -175,8 +148,6 @@ public:
 };
 
 #endif // __APPLE__
-
-#endif 
 
 
 // connnects to the userinputmapper
@@ -214,7 +185,7 @@ public:
 
     virtual controller::Input::NamedVector getAvailableInputs() const override;
     virtual QString getDefaultMappingConfig() const override;
-    virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
     virtual void focusOutEvent() override;
 
     glm::vec3 cc_position;

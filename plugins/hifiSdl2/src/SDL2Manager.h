@@ -12,9 +12,7 @@
 #ifndef hifi__SDL2Manager_h
 #define hifi__SDL2Manager_h
 
-#ifdef HAVE_SDL2
 #include <SDL.h>
-#endif
 
 #include <controllers/UserInputMapper.h>
 #include <input-plugins/InputPlugin.h>
@@ -24,30 +22,26 @@ class SDL2Manager : public InputPlugin {
     Q_OBJECT
     
 public:
-    SDL2Manager();
-    
     // Plugin functions
-    virtual bool isSupported() const override;
-    virtual bool isJointController() const override { return false; }
-    virtual const QString& getName() const override { return NAME; }
+    bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
 
-    virtual void init() override;
-    virtual void deinit() override;
+    void init() override;
+    void deinit() override;
 
     /// Called when a plugin is being activated for use.  May be called multiple times.
-    virtual bool activate() override;
+    bool activate() override;
     /// Called when a plugin is no longer being used.  May be called multiple times.
-    virtual void deactivate() override;
+    void deactivate() override;
 
-    virtual void pluginFocusOutEvent() override;
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    void pluginFocusOutEvent() override;
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
     
 signals:
     void joystickAdded(Joystick* joystick);
     void joystickRemoved(Joystick* joystick);
     
 private:
-#ifdef HAVE_SDL2
     SDL_JoystickID getInstanceId(SDL_GameController* controller);
     
     int axisInvalid() const { return SDL_CONTROLLER_AXIS_INVALID; }
@@ -81,8 +75,7 @@ private:
     int buttonRelease() const { return SDL_RELEASED; }
 
     QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
-#endif
-    bool _isInitialized;
+    bool _isInitialized { false } ;
     static const QString NAME;
 };
 

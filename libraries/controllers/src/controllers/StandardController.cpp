@@ -22,12 +22,6 @@ StandardController::StandardController() : InputDevice("Standard") {
     _deviceID = UserInputMapper::STANDARD_DEVICE; 
 }
 
-StandardController::~StandardController() {
-}
-
-void StandardController::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
-}
-
 void StandardController::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
