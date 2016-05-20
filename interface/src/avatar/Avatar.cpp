@@ -197,18 +197,15 @@ void Avatar::updateAvatarEntities() {
     QScriptEngine scriptEngine;
     entityTree->withWriteLock([&] {
         AvatarEntityMap avatarEntities = getAvatarEntityData();
-        qDebug() << "---------------";
         for (auto entityID : avatarEntities.keys()) {
             // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
             // and either add or update the entity.
             QByteArray jsonByteArray = avatarEntities.value(entityID);
             QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(jsonByteArray);
             if (!jsonProperties.isObject()) {
-                qDebug() << "got bad avatarEntity json";
+                qCDebug(interfaceapp) << "got bad avatarEntity json" << QString(jsonByteArray.toHex());
                 continue;
             }
-
-            qDebug() << jsonProperties.toJson();
 
             QVariant variantProperties = jsonProperties.toVariant();
             QVariantMap asMap = variantProperties.toMap();
@@ -229,19 +226,14 @@ void Avatar::updateAvatarEntities() {
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
 
             if (entity) {
-                qDebug() << "avatar-entities existing entity, element =" << entity->getElement().get();
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
-                    qDebug() << "avatar-entities after entityTree->updateEntity(), element =" << entity->getElement().get();
                 } else {
-                    qDebug() << "AVATAR-ENTITIES -- updateEntity failed: " << properties.getType();
                     success = false;
                 }
             } else {
-                qDebug() << "avatar-entities new entity";
                 entity = entityTree->addEntity(entityID, properties);
                 if (!entity) {
-                    qDebug() << "AVATAR-ENTITIES -- addEntity failed: " << properties.getType();
                     success = false;
                 }
             }
@@ -1194,7 +1186,7 @@ void Avatar::setParentID(const QUuid& parentID) {
     if (success) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
-            qDebug() << "Avatar::setParentID failed to reset avatar's location.";
+            qCDebug(interfaceapp) << "Avatar::setParentID failed to reset avatar's location.";
         }
     }
 }
@@ -1209,7 +1201,7 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     if (success) {
         setTransform(beforeChangeTransform, success);
         if (!success) {
-            qDebug() << "Avatar::setParentJointIndex failed to reset avatar's location.";
+            qCDebug(interfaceapp) << "Avatar::setParentJointIndex failed to reset avatar's location.";
         }
     }
 }
