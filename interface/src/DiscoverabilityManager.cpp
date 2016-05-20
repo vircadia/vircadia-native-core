@@ -35,9 +35,9 @@ const QString API_USER_HEARTBEAT_PATH = "/api/v1/user/heartbeat";
 const QString SESSION_ID_KEY = "session_id";
 
 void DiscoverabilityManager::updateLocation() {
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     
-    if (_mode.get() != Discoverability::None && accountManager.isLoggedIn()) {
+    if (_mode.get() != Discoverability::None && accountManager->isLoggedIn()) {
         auto addressManager = DependencyManager::get<AddressManager>();
         DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
 
@@ -98,7 +98,7 @@ void DiscoverabilityManager::updateLocation() {
             apiPath = API_USER_LOCATION_PATH;
         }
 
-        accountManager.sendRequest(apiPath, AccountManagerAuth::Required,
+        accountManager->sendRequest(apiPath, AccountManagerAuth::Required,
                                    QNetworkAccessManager::PutOperation,
                                    callbackParameters, QJsonDocument(rootObject).toJson());
 
@@ -116,7 +116,7 @@ void DiscoverabilityManager::updateLocation() {
             heartbeatObject[SESSION_ID_KEY] = QJsonValue();
         }
 
-        accountManager.sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
+        accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
                                    QNetworkAccessManager::PutOperation, callbackParameters,
                                    QJsonDocument(heartbeatObject).toJson());
     }
@@ -131,8 +131,8 @@ void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply
 }
 
 void DiscoverabilityManager::removeLocation() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required, QNetworkAccessManager::DeleteOperation);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->sendRequest(API_USER_LOCATION_PATH, AccountManagerAuth::Required, QNetworkAccessManager::DeleteOperation);
 }
 
 void DiscoverabilityManager::setDiscoverabilityMode(Discoverability::Mode discoverabilityMode) {

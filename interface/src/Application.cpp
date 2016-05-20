@@ -60,7 +60,7 @@
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <InfoView.h>
@@ -402,6 +402,7 @@ bool setupEssentials(int& argc, char** argv) {
     Setting::init();
 
     // Set dependencies
+    DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<ScriptEngines>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
@@ -656,15 +657,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-    connect(&accountManager, &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
-    connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
+    connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
-    accountManager.setIsAgent(true);
-    accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -1057,6 +1058,38 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     firstRun.set(false);
 }
 
+QString Application::getUserAgent() {
+    if (QThread::currentThread() != thread()) {
+        QString userAgent;
+
+        QMetaObject::invokeMethod(this, "getUserAgent", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, userAgent));
+
+        return userAgent;
+    }
+
+    QString userAgent = "Mozilla/5.0 (HighFidelityInterface/" + BuildInfo::VERSION + "; "
+        + QSysInfo::productType() + " " + QSysInfo::productVersion() + ")";
+
+    auto formatPluginName = [](QString name) -> QString { return name.trimmed().replace(" ", "-");  };
+
+    // For each plugin, add to userAgent
+    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    for (auto& dp : displayPlugins) {
+        if (dp->isActive() && dp->isHmd()) {
+            userAgent += " " + formatPluginName(dp->getName());
+        }
+    }
+    auto inputPlugins= PluginManager::getInstance()->getInputPlugins();
+    for (auto& ip : inputPlugins) {
+        if (ip->isActive()) {
+            userAgent += " " + formatPluginName(ip->getName());
+        }
+    }
+
+    return userAgent;
+}
+
+
 
 void Application::checkChangeCursor() {
     QMutexLocker locker(&_changeCursorLock);
@@ -1245,8 +1278,7 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
-    gpu::Context::init<gpu::GLBackend>();
+    gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
@@ -1478,17 +1510,17 @@ void Application::paintGL() {
         renderArgs._context->syncCache();
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+    auto inputs = AvatarInputs::getInstance();
+    if (inputs->mirrorVisible()) {
         PerformanceTimer perfTimer("Mirror");
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
 
-        auto inputs = AvatarInputs::getInstance();
         _mirrorViewRect.moveTo(inputs->x(), inputs->y());
 
-        renderRearViewMirror(&renderArgs, _mirrorViewRect);
+        renderRearViewMirror(&renderArgs, _mirrorViewRect, inputs->mirrorZoomed());
 
         renderArgs._blitFramebuffer.reset();
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -1790,25 +1822,37 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
-    static bool justPresented = false;
+    // Presentation/painting logic
+    // TODO: Decouple presentation and painting loops
+    static bool isPainting = false;
     if ((int)event->type() == (int)Present) {
-        if (justPresented) {
-            justPresented = false;
-
-            // If presentation is hogging the main thread, repost as low priority to avoid hanging the GUI.
+        if (isPainting) {
+            // If painting (triggered by presentation) is hogging the main thread,
+            // repost as low priority to avoid hanging the GUI.
             // This has the effect of allowing presentation to exceed the paint budget by X times and
-            // only dropping every (1/X) frames, instead of every ceil(X) frames.
+            // only dropping every (1/X) frames, instead of every ceil(X) frames
             // (e.g. at a 60FPS target, painting for 17us would fall to 58.82FPS instead of 30FPS).
             removePostedEvents(this, Present);
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
+            isPainting = false;
             return true;
         }
 
         idle();
+
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+        isPainting = true;
+
         return true;
     } else if ((int)event->type() == (int)Paint) {
-        justPresented = true;
+        // NOTE: This must be updated as close to painting as possible,
+        //       or AvatarInputs will mysteriously move to the bottom-right
+        AvatarInputs::getInstance()->update();
+
         paintGL();
+
+        isPainting = false;
+
         return true;
     }
 
@@ -2623,9 +2667,6 @@ void Application::idle() {
     // Sync up the _renderedFrameIndex
     _renderedFrameIndex = displayPlugin->presentCount();
 
-    // Request a paint ASAP
-    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority + 1);
-
     // Update the deadlock watchdog
     updateHeartbeat();
 
@@ -2638,9 +2679,6 @@ void Application::idle() {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
-    } else {
-        // FIXME: AvatarInputs are positioned incorrectly if instantiated before the first paint
-        AvatarInputs::getInstance()->update();
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -2654,8 +2692,6 @@ void Application::idle() {
     } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
         _keyboardDeviceHasFocus = true;
     }
-
-
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
@@ -3656,11 +3692,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
+                    voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
@@ -3720,11 +3756,11 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
+                    voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
@@ -4069,7 +4105,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region) {
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed) {
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
 
@@ -4079,7 +4115,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     auto myAvatar = getMyAvatar();
 
     // bool eyeRelativeCamera = false;
-    if (!AvatarInputs::getInstance()->mirrorZoomed()) {
+    if (!isZoomed) {
         _mirrorCamera.setPosition(myAvatar->getChestPosition() +
                                   myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
 
@@ -4136,7 +4172,7 @@ void Application::updateWindowTitle() const {
     auto nodeList = DependencyManager::get<NodeList>();
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
-    QString username = AccountManager::getInstance().getAccountInfo().getUsername();
+    QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
     QString currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
 
     if (currentPlaceName.isEmpty()) {
@@ -4251,9 +4287,9 @@ void Application::nodeKilled(SharedNodePointer node) {
                 return;
             }
 
-            unsigned char* rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
+            auto rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
-            voxelDetailsForCode(rootCode, rootDetails);
+            voxelDetailsForCode(rootCode.get(), rootDetails);
 
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
@@ -4372,27 +4408,33 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
             serverType = "Entity";
         }
 
+        bool found = false;
+
         jurisdiction->withReadLock([&] {
             if (jurisdiction->find(nodeUUID) != jurisdiction->end()) {
+                found = true;
                 return;
             }
 
             VoxelPositionSize rootDetails;
-            voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
+            voxelDetailsForCode(octreeStats.getJurisdictionRoot().get(), rootDetails);
 
             qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
         });
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-        // details from the OctreeSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
-        jurisdiction->withWriteLock([&] {
-            (*jurisdiction)[nodeUUID] = jurisdictionMap;
-        });
+
+        if (!found) {
+            // store jurisdiction details for later use
+            // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+            // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+            // details from the OctreeSceneStats to construct the JurisdictionMap
+            JurisdictionMap jurisdictionMap;
+            jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
+            jurisdiction->withWriteLock([&] {
+                (*jurisdiction)[nodeUUID] = jurisdictionMap;
+            });
+        }
     });
 
     return statsMessageLength;
@@ -4776,8 +4818,8 @@ void Application::takeSnapshot() {
 
     QString fileName = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
 
-    AccountManager& accountManager = AccountManager::getInstance();
-    if (!accountManager.isLoggedIn()) {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (!accountManager->isLoggedIn()) {
         return;
     }
 

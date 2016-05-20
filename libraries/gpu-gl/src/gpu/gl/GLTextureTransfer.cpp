@@ -5,17 +5,18 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-#include "GLBackendTextureTransfer.h"
-
-#include "GLBackendShared.h"
+#include "GLTextureTransfer.h"
 
 #ifdef THREADED_TEXTURE_TRANSFER
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/QOpenGLContextWrapper.h>
 #endif
 
+#include "GLShared.h"
+#include "GLTexture.h"
+
 using namespace gpu;
+using namespace gpu::gl;
 
 GLTextureTransferHelper::GLTextureTransferHelper() {
 #ifdef THREADED_TEXTURE_TRANSFER
@@ -42,7 +43,7 @@ GLTextureTransferHelper::~GLTextureTransferHelper() {
 }
 
 void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texturePointer) {
-    GLBackend::GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texturePointer);
+    GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
     Backend::incrementTextureGPUTransferCount();
 #ifdef THREADED_TEXTURE_TRANSFER
     GLsync fence { 0 };
@@ -50,14 +51,14 @@ void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texture
     //glFlush();
 
     TextureTransferPackage package { texturePointer, fence };
-    object->setSyncState(GLBackend::GLTexture::Pending);
+    object->setSyncState(GLSyncState::Pending);
     queueItem(package);
 #else
     object->withPreservedTexture([&] {
         do_transfer(*object);
     });
     object->_contentStamp = texturePointer->getDataStamp();
-    object->setSyncState(GLBackend::GLTexture::Transferred);
+    object->setSyncState(GLSyncState::Transferred);
 #endif
 }
 
@@ -75,7 +76,7 @@ void GLTextureTransferHelper::shutdown() {
 #endif
 }
 
-void GLTextureTransferHelper::do_transfer(GLBackend::GLTexture& texture) {
+void GLTextureTransferHelper::do_transfer(GLTexture& texture) {
     texture.createTexture();
     texture.transfer();
     texture.updateSize();
@@ -96,7 +97,7 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
             package.fence = 0;
         }
 
-        GLBackend::GLTexture* object = Backend::getGPUObject<GLBackend::GLTexture>(*texturePointer);
+        GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
         do_transfer(*object);
         glBindTexture(object->_target, 0);
 
@@ -105,7 +106,7 @@ bool GLTextureTransferHelper::processQueueItems(const Queue& messages) {
         glDeleteSync(writeSync);
 
         object->_contentStamp = texturePointer->getDataStamp();
-        object->setSyncState(GLBackend::GLTexture::Transferred);
+        object->setSyncState(GLSyncState::Transferred);
     }
     return true;
 }

@@ -435,8 +435,8 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
 #ifndef NDEBUG
     const float MIN_LENGTH_SQUARED = 1.0e-6f;
 #endif
-    assert(fabsf(glm::length2(primaryAxis) > MIN_LENGTH_SQUARED));
-    assert(fabsf(glm::length2(secondaryAxis) > MIN_LENGTH_SQUARED));
+    assert(glm::length2(primaryAxis) > MIN_LENGTH_SQUARED);
+    assert(glm::length2(secondaryAxis) > MIN_LENGTH_SQUARED);
 
     uAxisOut = glm::normalize(primaryAxis);
     glm::vec3 normSecondary = glm::normalize(secondaryAxis);

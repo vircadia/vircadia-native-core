@@ -433,13 +433,13 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                 } 
                 const JurisdictionMap& map = serverJurisdictions[nodeUUID];
 
-                unsigned char* rootCode = map.getRootOctalCode();
+                auto rootCode = map.getRootOctalCode();
 
                 if (rootCode) {
-                    QString rootCodeHex = octalCodeToHexString(rootCode);
+                    QString rootCodeHex = octalCodeToHexString(rootCode.get());
 
                     VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode, rootDetails);
+                    voxelDetailsForCode(rootCode.get(), rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverDetails << " jurisdiction: "
                         << qPrintable(rootCodeHex)

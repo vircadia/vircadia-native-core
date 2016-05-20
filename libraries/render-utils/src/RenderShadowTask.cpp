@@ -52,17 +52,19 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
         batch.setFramebuffer(fbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(1.0, 1.0, 1.0), 1.0), 1.0, 0, true);
+            vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);
 
         batch.setProjectionTransform(shadow.getProjection());
         batch.setViewTransform(shadow.getView());
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, ShapeKey());
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, ShapeKey::Builder().withSkinned());
-        args->_pipeline = shadowPipeline;
-        batch.setPipeline(shadowPipeline->pipeline);
 
         std::vector<ShapeKey> skinnedShapeKeys{};
+
+        // Iterate through all inShapes and render the unskinned
+        args->_pipeline = shadowPipeline;
+        batch.setPipeline(shadowPipeline->pipeline);
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
                 skinnedShapeKeys.push_back(items.first);
@@ -71,6 +73,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
             }
         }
 
+        // Reiterate to render the skinned
         args->_pipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
