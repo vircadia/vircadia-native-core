@@ -1515,17 +1515,17 @@ void Application::paintGL() {
         renderArgs._context->syncCache();
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+    auto inputs = AvatarInputs::getInstance();
+    if (inputs->mirrorVisible()) {
         PerformanceTimer perfTimer("Mirror");
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
 
-        auto inputs = AvatarInputs::getInstance();
         _mirrorViewRect.moveTo(inputs->x(), inputs->y());
 
-        renderRearViewMirror(&renderArgs, _mirrorViewRect);
+        renderRearViewMirror(&renderArgs, _mirrorViewRect, inputs->mirrorZoomed());
 
         renderArgs._blitFramebuffer.reset();
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -1827,25 +1827,37 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
-    static bool justPresented = false;
+    // Presentation/painting logic
+    // TODO: Decouple presentation and painting loops
+    static bool isPainting = false;
     if ((int)event->type() == (int)Present) {
-        if (justPresented) {
-            justPresented = false;
-
-            // If presentation is hogging the main thread, repost as low priority to avoid hanging the GUI.
+        if (isPainting) {
+            // If painting (triggered by presentation) is hogging the main thread,
+            // repost as low priority to avoid hanging the GUI.
             // This has the effect of allowing presentation to exceed the paint budget by X times and
-            // only dropping every (1/X) frames, instead of every ceil(X) frames.
+            // only dropping every (1/X) frames, instead of every ceil(X) frames
             // (e.g. at a 60FPS target, painting for 17us would fall to 58.82FPS instead of 30FPS).
             removePostedEvents(this, Present);
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
+            isPainting = false;
             return true;
         }
 
         idle();
+
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+        isPainting = true;
+
         return true;
     } else if ((int)event->type() == (int)Paint) {
-        justPresented = true;
+        // NOTE: This must be updated as close to painting as possible,
+        //       or AvatarInputs will mysteriously move to the bottom-right
+        AvatarInputs::getInstance()->update();
+
         paintGL();
+
+        isPainting = false;
+
         return true;
     }
 
@@ -2660,9 +2672,6 @@ void Application::idle() {
     // Sync up the _renderedFrameIndex
     _renderedFrameIndex = displayPlugin->presentCount();
 
-    // Request a paint ASAP
-    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority + 1);
-
     // Update the deadlock watchdog
     updateHeartbeat();
 
@@ -2675,9 +2684,6 @@ void Application::idle() {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
         _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
-    } else {
-        // FIXME: AvatarInputs are positioned incorrectly if instantiated before the first paint
-        AvatarInputs::getInstance()->update();
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -2691,8 +2697,6 @@ void Application::idle() {
     } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
         _keyboardDeviceHasFocus = true;
     }
-
-
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
@@ -4106,7 +4110,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region) {
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed) {
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
 
@@ -4116,7 +4120,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     auto myAvatar = getMyAvatar();
 
     // bool eyeRelativeCamera = false;
-    if (!AvatarInputs::getInstance()->mirrorZoomed()) {
+    if (!isZoomed) {
         _mirrorCamera.setPosition(myAvatar->getChestPosition() +
                                   myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
 
