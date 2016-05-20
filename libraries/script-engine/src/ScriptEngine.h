@@ -149,7 +149,6 @@ public:
 
     // these are used by code in ScriptEngines.cpp during the "reload all" operation
     bool isStopping() const { return _isStopping; }
-    void setIsStopping() { _isStopping = true; }
 
     bool isDebuggable() const { return _debuggable; }
 
