@@ -69,27 +69,39 @@ void OverlayConductor::update(float dt) {
 void OverlayConductor::updateMode() {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     float speed = glm::length(myAvatar->getVelocity());
-    bool nowDriving = _driving;
     const float MIN_DRIVING = 0.2f;
     const float MAX_NOT_DRIVING = 0.01f;
-    if (speed > MIN_DRIVING) {
+    const quint64 REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE = 200 * 1000;
+    const quint64 REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE = 1000 * 1000;
+    int fixmeDiff;
+    bool nowDriving = _driving; // Assume current _driving mode unless...
+    if (speed > MIN_DRIVING) {  // ... we're definitely moving...
         nowDriving = true;
-    }
-    else if (speed < MAX_NOT_DRIVING) {
+    } else if (speed < MAX_NOT_DRIVING) { // ... or definitely not.
         nowDriving = false;
     }
+    // Check that we're in this new mode for long enough to really trigger a transition.
+    if (nowDriving == _driving) {  // If there's no change in state, clear any attepted timer.
+        _timeInPotentialMode = 0;
+    } else if (_timeInPotentialMode == 0) { // We've just changed with no timer, so start timing now.
+        _timeInPotentialMode = usecTimestampNow();
+        nowDriving = _driving;
+    } else if ((fixmeDiff = (usecTimestampNow() - _timeInPotentialMode)) < (nowDriving ? REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE : REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE)) {
+        nowDriving = _driving; // Haven't accumulated enough time in new mode, but keep timing.
+    } else { // a real transition
+         _timeInPotentialMode = 0;
+    }
+    // If we're really in a transition
     if (nowDriving != _driving) {
         if (nowDriving) {
             _wantsOverlays = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-        }
-        else { // reset when coming out of driving
+        } else { // reset when coming out of driving
             _mode = FLAT;  // Seems appropriate to let things reset, below, after the following.
             // All reset of, e.g., room-scale location as though by apostrophe key, without all the other adjustments.
             qApp->getActiveDisplayPlugin()->resetSensors();
             myAvatar->reset(true, false);
         }
         if (_wantsOverlays) {
-            qDebug() << "flipping" << !nowDriving;
             setEnabled(!nowDriving, false);
         }
         _driving = nowDriving;
