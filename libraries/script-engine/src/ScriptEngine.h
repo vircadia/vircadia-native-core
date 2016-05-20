@@ -147,7 +147,7 @@ public:
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
-    // these are used by code in ScriptEngines.cpp during the "reload all" operation
+    // this is used by code in ScriptEngines.cpp during the "reload all" operation
     bool isStopping() const { return _isStopping; }
 
     bool isDebuggable() const { return _debuggable; }
