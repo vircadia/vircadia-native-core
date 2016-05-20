@@ -68,16 +68,12 @@ ModalWindow {
 
     Component.onCompleted: {
         console.log("Helper " + helper + " drives " + drives)
-        drivesSelector.onCurrentTextChanged.connect(function(){
-            root.dir = helper.pathToUrl(drivesSelector.currentText);
-        })
 
-        // HACK: The following two lines force the model to initialize properly such that:
-        // - Selecting a different drive at the initial screen updates the path displayed.
-        // - The go-up button works properly from the initial screen.
-        var initialFolder = currentDirectory.lastValidFolder;
-        root.dir = helper.pathToUrl(drivesSelector.currentText);
-        root.dir = helper.pathToUrl(initialFolder);
+        // HACK: The following lines force the model to initialize properly such that the go-up button
+        // works properly from the initial screen.
+        var initialFolder = folderListModel.folder;
+        fileTableModel.folder = helper.pathToUrl(drives[0]);
+        fileTableModel.folder = initialFolder;
 
         iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
     }
@@ -97,15 +93,6 @@ ModalWindow {
             }
             spacing: hifi.dimensions.contentSpacing.x
 
-            // FIXME implement back button
-            //VrControls.ButtonAwesome {
-            //    id: backButton
-            //    text: "\uf0a8"
-            //    size: currentDirectory.height
-            //    enabled: d.backStack.length != 0
-            //    MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
-            //}
-
             GlyphButton {
                 id: upButton
                 glyph: hifi.glyphs.levelUp
@@ -124,20 +111,10 @@ ModalWindow {
                 enabled: d.homeDestination ? true : false
                 onClicked: d.navigateHome();
             }
-
-            ComboBox {
-                id: drivesSelector
-                width: 62
-                model: drives
-                visible: drives.length > 1
-                currentIndex: 0
-            }
         }
 
-        TextField {
-            id: currentDirectory
-            property var lastValidFolder: helper.urlToPath(fileTableModel.folder)
-            height: homeButton.height
+        ComboBox {
+            id: pathSelector
             anchors {
                 top: parent.top
                 topMargin: hifi.dimensions.contentMargin.y
@@ -146,23 +123,54 @@ ModalWindow {
                 right: parent.right
             }
 
-            function capitalizeDrive(path) {
-                // Consistently capitalize drive letter for Windows.
-                if (/[a-zA-Z]:/.test(path)) {
-                    return path.charAt(0).toUpperCase() + path.slice(1);
+            property var lastValidFolder: helper.urlToPath(fileTableModel.folder)
+
+            function calculatePathChoices(folder) {
+                var folders = folder.split("/"),
+                    choices = [],
+                    i, length;
+
+                if (folders[folders.length - 1] === "") {
+                    folders.pop();
                 }
-                return path;
+
+                if (folders[0] !== "") {
+                    choices.push(folders[0]);
+                }
+
+                for (i = 1, length = folders.length; i < length; i++) {
+                    choices.push(choices[i - 1] + "/" + folders[i]);
+                }
+                choices.reverse();
+
+                if (drives && drives.length > 1) {
+                    choices.push("This PC");
+                }
+
+                if (choices.length > 0) {
+                    pathSelector.model = choices;
+                }
             }
 
-            onLastValidFolderChanged: text = capitalizeDrive(lastValidFolder);
+            onLastValidFolderChanged: {
+                var folder = d.capitalizeDrive(lastValidFolder);
+                calculatePathChoices(folder);
+            }
 
-            // FIXME add support auto-completion
-            onAccepted: {
-                if (!helper.validFolder(text)) {
-                    text = lastValidFolder;
-                    return
+            onCurrentTextChanged: {
+                var folder = currentText;
+
+                if (/^[a-zA-z]:$/.test(folder)) {
+                    folder = "file:///" + folder + "/";
+                } else if (folder === "This PC") {
+                    folder = "file:///";
+                } else {
+                    folder = helper.pathToUrl(folder);
                 }
-                fileTableModel.folder = helper.pathToUrl(text);
+
+                if (helper.urlToPath(folder).toLowerCase() !== helper.urlToPath(fileTableModel.folder).toLowerCase()) {
+                    fileTableModel.folder = folder;
+                }
             }
         }
 
@@ -219,12 +227,10 @@ ModalWindow {
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
-            // For some reason, declaring these bindings directly in the targets doesn't
-            // work for setting the initial state
             Component.onCompleted: {
-                currentDirectory.lastValidFolder = helper.urlToPath(folder);
                 showFiles = !root.selectDirectory
             }
+
             onFolderChanged: {
                 fileTableModel.update();  // Update once the data from the folder change is available.
             }
@@ -310,7 +316,6 @@ ModalWindow {
                         update();
                     }
                 }
-                currentDirectory.lastValidFolder = helper.urlToPath(folder);
             }
 
             function isFolder(row) {
