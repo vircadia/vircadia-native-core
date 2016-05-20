@@ -101,9 +101,9 @@ AvatarData::AvatarData() :
     setBodyYaw(-90.0f);
     setBodyRoll(0.0f);
 
-    ASSERT(sizeof AvatarDataPacket::Header == AvatarDataPacket::HEADER_SIZE);
-    ASSERT(sizeof AvatarDataPacket::ParentInfo == AvatarDataPacket::PARENT_INFO_SIZE);
-    ASSERT(sizeof AvatarDataPacket::FaceTrackerInfo == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
 }
 
 AvatarData::~AvatarData() {
@@ -598,7 +598,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     // each joint translation component is stored in 6 bytes.
     const int COMPRESSED_TRANSLATION_SIZE = 6;
-    PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_QUATERNION_SIZE);
+    PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
     const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     for (int i = 0; i < numJoints; i++) {
