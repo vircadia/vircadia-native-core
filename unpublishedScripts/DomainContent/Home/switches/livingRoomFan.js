@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() {
+(function() {   
+    var ON_MODEL_URL="atp:/switches/fanswitch_on.fbx";
+    var OFF_MODEL_URL="atp:/switches/fanswitch_off.fbx";
 
     var FAN_SOUND_ENTITY_NAME = "home_sfx_ceiling_fan"
     var SEARCH_RADIUS = 100;
@@ -129,12 +131,15 @@
             if (this._switch.state === 'off') {
                 this.fanRotationOn();
                 this.fanSoundOn();
+                
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'on'
                 });
+
                 Entities.editEntity(this.entityID, {
                     modelURL: ON_MODEL_URL
-                })
+                });
+
             } else {
                 this.fanRotationOff();
                 this.fanSoundOff();
