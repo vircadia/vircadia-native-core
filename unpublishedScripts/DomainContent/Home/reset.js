@@ -344,12 +344,6 @@
 
         createKineticEntities: function() {
 
-            var blocks = new Blocks({
-                x: 1097.1383,
-                y: 460.3790,
-                z: -66.4895
-            });
-
             var fruitBowl = new FruitBowl({
                 x: 1105.3185,
                 y: 460.3221,
