@@ -98,6 +98,9 @@ float getLightShowContour(Light l) {
     return l._control.w;
 }
 
+// Light is the light source its self, d is the light's distance, and ulightvec is the unnormalized light vector.
+// Note that ulightvec should be calculated as light position - fragment position.
+// Additionally, length(light position) != dot(light position, light position).
 float evalLightAttenuation(Light l, float d, vec3 ulightvec) {
     float radius = getLightRadius(l);
     float denom = d / radius + 1.0;
