@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var blockyPath = Script.resolvePath('wrapper.js?'+Math.random());
+var blockyPath = Script.resolvePath('wrapper.js');
 Script.include(blockyPath);
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,

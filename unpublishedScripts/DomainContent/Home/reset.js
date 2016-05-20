@@ -338,6 +338,12 @@
                 z: -0.0013
             });
 
+            var blocky = new BlockyGame({
+                x: 1098.27,
+                y: 460.43,
+                z: -66.15
+            })
+
             print('HOME after creating scripted entities')
 
         },
@@ -428,7 +434,7 @@
                 y: 459.5230,
                 z: -84.3897
             });
-            
+
             print('HOME after creating kinetic entities');
         },
 

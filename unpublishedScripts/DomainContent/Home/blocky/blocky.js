@@ -93,7 +93,7 @@ var TARGET_BLOCKS_POSITION = {
     }
 
     Blocky.prototype = {
-        debug: true,
+        debug: false,
         playableBlocks: [],
         targetBlocks: [],
         preload: function(entityID) {
