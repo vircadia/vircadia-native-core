@@ -53,6 +53,7 @@ typedef unsigned long long quint64;
 #include <SimpleMovingAverage.h>
 #include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
+#include <Packed.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -165,6 +166,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
 public:
+
     static const QString FRAME_NAME;
 
     static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
