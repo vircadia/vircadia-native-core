@@ -938,6 +938,13 @@ void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
 }
 
 void ScriptEngine::stop() {
+    _isStopping = true; // this can be done on any thread
+
+    // marshal us over to the correct thread
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stop");
+        return;
+    }
     if (!_isFinished) {
         _isFinished = true;
         emit runningStateChanged();

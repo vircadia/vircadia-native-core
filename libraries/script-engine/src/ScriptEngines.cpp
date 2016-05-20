@@ -160,7 +160,6 @@ void ScriptEngines::shutdownScripting() {
             scriptEngine->disconnect(this);
 
             // Gracefully stop the engine's scripting thread
-            scriptEngine->setIsStopping();
             scriptEngine->stop();
 
             // We need to wait for the engine to be done running before we proceed, because we don't
@@ -352,8 +351,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
                 reloadScript(scriptName);
             });
         }
-        it.value()->setIsStopping();
-        QMetaObject::invokeMethod(it.value(), "stop");
+        it.value()->stop();
         qCDebug(scriptengine) << "stopping script..." << it.key();
     }
 }
@@ -376,7 +374,6 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                     reloadScript(scriptName);
                 });
             }
-            scriptEngine->setIsStopping();
             scriptEngine->stop();
             stoppedScript = true;
             qCDebug(scriptengine) << "stopping script..." << scriptURL;

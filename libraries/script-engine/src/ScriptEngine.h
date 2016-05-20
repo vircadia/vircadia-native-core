@@ -84,7 +84,7 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
-    Q_INVOKABLE void stop();
+    Q_INVOKABLE void stop(); // this can be called from any thread
 
     // Stop any evaluating scripts and wait for the scripting thread to finish.
     void waitTillDoneRunning();
@@ -146,6 +146,8 @@ public:
 
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
+
+    // these are used by code in ScriptEngines.cpp during the "reload all" operation
     bool isStopping() const { return _isStopping; }
     void setIsStopping() { _isStopping = true; }
 
