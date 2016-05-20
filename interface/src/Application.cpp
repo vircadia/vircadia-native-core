@@ -1822,28 +1822,37 @@ bool Application::event(QEvent* event) {
         return false;
     }
 
-    static bool justPresented = false;
+    // Presentation/painting logic
+    // TODO: Decouple presentation and painting loops
+    static bool isPainting = false;
     if ((int)event->type() == (int)Present) {
-        if (justPresented) {
-            justPresented = false;
-
-            // If presentation is hogging the main thread, repost as low priority to avoid hanging the GUI.
+        if (isPainting) {
+            // If painting (triggered by presentation) is hogging the main thread,
+            // repost as low priority to avoid hanging the GUI.
             // This has the effect of allowing presentation to exceed the paint budget by X times and
-            // only dropping every (1/X) frames, instead of every ceil(X) frames.
+            // only dropping every (1/X) frames, instead of every ceil(X) frames
             // (e.g. at a 60FPS target, painting for 17us would fall to 58.82FPS instead of 30FPS).
             removePostedEvents(this, Present);
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
+            isPainting = false;
             return true;
         }
 
         idle();
+
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+        isPainting = true;
+
         return true;
     } else if ((int)event->type() == (int)Paint) {
         // NOTE: This must be updated as close to painting as possible,
         //       or AvatarInputs will mysteriously move to the bottom-right
         AvatarInputs::getInstance()->update();
-        justPresented = true;
+
         paintGL();
+
+        isPainting = false;
+
         return true;
     }
 
@@ -2658,9 +2667,6 @@ void Application::idle() {
     // Sync up the _renderedFrameIndex
     _renderedFrameIndex = displayPlugin->presentCount();
 
-    // Request a paint ASAP
-    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority + 1);
-
     // Update the deadlock watchdog
     updateHeartbeat();
 
@@ -2686,8 +2692,6 @@ void Application::idle() {
     } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
         _keyboardDeviceHasFocus = true;
     }
-
-
 
     // We're going to execute idle processing, so restart the last idle timer
     _lastTimeUpdated.start();
