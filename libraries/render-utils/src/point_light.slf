@@ -66,8 +66,8 @@ void main(void) {
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     vec4 shading = evalFragShading(fragNormal, fragLightDir, fragEyeDir, frag.metallic, frag.specular, frag.roughness);
 
-    // Eval attenuation
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+    // Eval attenuation  
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance, fragLightVec);
 
     // Final Lighting color
     vec3 fragColor = (shading.w * frag.diffuse + shading.xyz);
