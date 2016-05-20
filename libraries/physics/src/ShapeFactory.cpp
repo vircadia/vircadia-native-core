@@ -70,14 +70,15 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
         // create hull approximation
         btShapeHull shapeHull(hull);
         shapeHull.buildHull(margin);
+        // we cannot copy Bullet shapes so we must create a new one...
         btConvexHullShape* newHull = new btConvexHullShape();
         const btVector3* newPoints = shapeHull.getVertexPointer();
         for (int i = 0; i < shapeHull.numVertices(); ++i) {
             newHull->addPoint(newPoints[i], false);
         }
+        // ...and delete the old one
         delete hull;
         hull = newHull;
-        qDebug() << "reduced hull with" << points.size() << "points down to" << hull->getNumPoints(); // TODO: remove after testing
     }
 
     hull->recalcLocalAabb();
