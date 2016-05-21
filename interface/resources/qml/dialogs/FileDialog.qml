@@ -130,17 +130,23 @@ ModalWindow {
                     choices = [],
                     i, length;
 
+                console.log("####### folder parts: " + JSON.stringify(folders));
+
                 if (folders[folders.length - 1] === "") {
                     folders.pop();
                 }
 
-                if (folders[0] !== "") {
-                    choices.push(folders[0]);
-                }
+                choices.push(folders[0]);
 
                 for (i = 1, length = folders.length; i < length; i++) {
                     choices.push(choices[i - 1] + "/" + folders[i]);
                 }
+
+                if (folders[0] === "") {
+                    // Special handling for OSX root dir.
+                    choices[0] = "/";
+                }
+
                 choices.reverse();
 
                 if (drives && drives.length > 1) {
@@ -154,6 +160,9 @@ ModalWindow {
 
             onLastValidFolderChanged: {
                 var folder = d.capitalizeDrive(lastValidFolder);
+
+                console.log("####### lastValidFolder: " + folder);
+
                 calculatePathChoices(folder);
             }
 
