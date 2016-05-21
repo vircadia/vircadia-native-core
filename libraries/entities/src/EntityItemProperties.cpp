@@ -690,13 +690,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
 
-<<<<<<< HEAD
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
-=======
     COPY_PROPERTY_FROM_QSCRIPTVALUE(flyingAllowed, bool, setFlyingAllowed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
->>>>>>> e012630db23d8aba81fae0721f69322220b21be2
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1592,13 +1590,11 @@ void EntityItemProperties::markAllChanged() {
 
     _queryAACubeChanged = true;
 
-<<<<<<< HEAD
-    _clientOnlyChanged = true;
-    _owningAvatarIDChanged = true;
-=======
     _flyingAllowedChanged = true;
     _ghostingAllowedChanged = true;
->>>>>>> e012630db23d8aba81fae0721f69322220b21be2
+
+    _clientOnlyChanged = true;
+    _owningAvatarIDChanged = true;
 }
 
 // The minimum bounding box for the entity.
