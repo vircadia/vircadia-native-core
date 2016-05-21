@@ -18,8 +18,7 @@ var RESETTER_POSITION = {
 
 BlockyGame = function(spawnPosition, spawnRotation) {
 
-  var scriptURL = Script.resolvePath("blocky.js?" + Math.random());
-  print('SCIRPT?!?' + scriptURL)
+  var scriptURL ="atp:/blocky/blocky.js";
 
   var blockyProps = {
     type: 'Box',
