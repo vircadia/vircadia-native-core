@@ -309,6 +309,10 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
+    if (_avatarEntityDataLocallyEdited) {
+        sendIdentityPacket();
+    }
+
     simulate(deltaTime);
 
     currentEnergy += energyChargeRate;
@@ -448,7 +452,8 @@ void MyAvatar::simulate(float deltaTime) {
                         EntityItemProperties properties = entity->getProperties();
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
-                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+
+                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entity->getID(), properties);
                         entity->setLastBroadcast(usecTimestampNow());
                     }
                 }
@@ -464,6 +469,8 @@ void MyAvatar::simulate(float deltaTime) {
             _characterController.setEnabled(true);
         }
     }
+
+    updateAvatarEntities();
 }
 
 // thread-safe
@@ -711,6 +718,16 @@ void MyAvatar::saveData() {
     }
     settings.endArray();
 
+    settings.beginWriteArray("avatarEntityData");
+    int avatarEntityIndex = 0;
+    for (auto entityID : _avatarEntityData.keys()) {
+        settings.setArrayIndex(avatarEntityIndex);
+        settings.setValue("id", entityID);
+        settings.setValue("properties", _avatarEntityData.value(entityID));
+        avatarEntityIndex++;
+    }
+    settings.endArray();
+
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
@@ -821,6 +838,17 @@ void MyAvatar::loadData() {
     }
     settings.endArray();
     setAttachmentData(attachmentData);
+
+    int avatarEntityCount = settings.beginReadArray("avatarEntityData");
+    for (int i = 0; i < avatarEntityCount; i++) {
+        settings.setArrayIndex(i);
+        QUuid entityID = settings.value("id").toUuid();
+        // QUuid entityID = QUuid::createUuid(); // generate a new ID
+        QByteArray properties = settings.value("properties").toByteArray();
+        updateAvatarEntity(entityID, properties);
+    }
+    settings.endArray();
+    setAvatarEntityDataChanged(true);
 
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());

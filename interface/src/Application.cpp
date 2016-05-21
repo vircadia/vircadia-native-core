@@ -762,6 +762,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
+    _entityEditSender.setMyAvatar(getMyAvatar());
 
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
@@ -1049,6 +1050,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
+
+    OctreeEditPacketSender* packetSender = entityScriptingInterface->getPacketSender();
+    EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+    entityPacketSender->setMyAvatar(getMyAvatar());
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
@@ -4194,6 +4199,7 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
 
     resetPhysicsReadyInformation();
+    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {
