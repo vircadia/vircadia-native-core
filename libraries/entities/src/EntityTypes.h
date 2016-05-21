@@ -69,7 +69,7 @@ private:
 /// named NameEntityItem and must of a static method called factory that takes an EnityItemID, and EntityItemProperties and return a newly
 /// constructed (heap allocated) instance of your type. e.g. The following prototype:
 //        static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-#define REGISTER_ENTITY_TYPE(x) static bool x##Registration = \
+#define REGISTER_ENTITY_TYPE(x) bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, x##EntityItem::factory);
 
 /// Macro for registering entity types with an overloaded factory. Like using the REGISTER_ENTITY_TYPE macro: Make sure to add

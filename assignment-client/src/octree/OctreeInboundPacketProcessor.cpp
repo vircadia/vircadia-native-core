@@ -153,7 +153,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage>
                 qDebug() << "    maxSize=" << maxSize;
                 qDebug("OctreeInboundPacketProcessor::processPacket() %hhu "
                        "payload=%p payloadLength=%lld editData=%p payloadPosition=%lld maxSize=%d",
-                        packetType, message->getRawMessage(), message->getSize(), editData,
+                       (int)packetType, message->getRawMessage(), message->getSize(), editData,
                         message->getPosition(), maxSize);
             }
 
@@ -191,7 +191,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage>
         if (debugProcessPacket) {
             qDebug("OctreeInboundPacketProcessor::processPacket() DONE LOOPING FOR %hhu "
                    "payload=%p payloadLength=%lld editData=%p payloadPosition=%lld",
-                    packetType, message->getRawMessage(), message->getSize(), editData, message->getPosition());
+                   (int)packetType, message->getRawMessage(), message->getSize(), editData, message->getPosition());
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
@@ -208,7 +208,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage>
         }
         trackInboundPacket(nodeUUID, sequence, transitTime, editsInPacket, processTime, lockWaitTime);
     } else {
-        qDebug("unknown packet ignored... packetType=%hhu", packetType);
+        qDebug("unknown packet ignored... packetType=%hhu", (int)packetType);
     }
 }
 
