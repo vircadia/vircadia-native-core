@@ -33,7 +33,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
     if (!fbx.open(QIODevice::ReadOnly)) {
         return false;
     }
-    std::cout << "Reading FBX.....\n";
+    qDebug() << "reading FBX file =" << filename << "...";
     try {
         QByteArray fbxContents = fbx.readAll();
         FBXGeometry* geom;
@@ -182,31 +182,34 @@ AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
 bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                                     VHACD::IVHACD::Parameters params,
                                     FBXGeometry& result,
-                                    int startMeshIndex,
-                                    int endMeshIndex,
+                                    int startPartIndex,
+                                    int endPartIndex,
                                     float minimumMeshSize, float maximumMeshSize) {
+    qDebug() << "num meshes =" << geometry.meshes.size();
+
     // count the mesh-parts
-    int meshCount = 0;
+    int numParts = 0;
     foreach (const FBXMesh& mesh, geometry.meshes) {
-        meshCount += mesh.parts.size();
+        numParts += mesh.parts.size();
     }
 
     VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
 
-    if (startMeshIndex < 0) {
-        startMeshIndex = 0;
+    if (startPartIndex < 0) {
+        startPartIndex = 0;
     }
-    if (endMeshIndex < 0) {
-        endMeshIndex = meshCount;
+    if (endPartIndex < 0) {
+        endPartIndex = numParts;
     }
-
-    std::cout << "Performing V-HACD computation on " << endMeshIndex - startMeshIndex << " meshes ..... " << std::endl;
+    qDebug() << "num parts of interest =" << (endPartIndex - startPartIndex);
 
     result.meshExtents.reset();
     result.meshes.append(FBXMesh());
     FBXMesh &resultMesh = result.meshes.last();
 
-    int count = 0;
+    int meshIndex = 0;
+    int partIndex = 0;
+    int validPartsFound = 0;
     foreach (const FBXMesh& mesh, geometry.meshes) {
 
         // each mesh has its own transform to move it to model-space
@@ -214,51 +217,55 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
         foreach (glm::vec3 vertex, mesh.vertices) {
             vertices.push_back(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
         }
+        auto numVertices = vertices.size();
+
+        qDebug() << "mesh" << meshIndex << ": "
+            << " parts =" << mesh.parts.size() << " clusters =" << mesh.clusters.size()
+            << " vertices =" << numVertices;
+        ++meshIndex;
 
         foreach (const FBXMeshPart &meshPart, mesh.parts) {
-
-            if (count < startMeshIndex || count >= endMeshIndex) {
-                count ++;
+            if (partIndex < startPartIndex || partIndex >= endPartIndex) {
+                ++partIndex;
                 continue;
             }
-
-            qDebug() << "--------------------";
 
             std::vector<int> triangles;
             unsigned int triangleCount = getTrianglesInMeshPart(meshPart, triangles);
 
             // only process meshes with triangles
             if (triangles.size() <= 0) {
-                qDebug() << " Skipping (no triangles)...";
-                count++;
+                qDebug() << "  part" << partIndex << ":";
+                qDebug() << "  skip (zero triangles)";
+                ++partIndex;
                 continue;
             }
 
-            auto nPoints = vertices.size();
             AABox aaBox = getAABoxForMeshPart(mesh, meshPart);
             const float largestDimension = aaBox.getLargestDimension();
 
-            qDebug() << "Mesh " << count << " -- " << nPoints << " points, " << triangleCount << " triangles, "
-                     << "size =" << largestDimension;
+            qDebug() << "  part" << partIndex << ": "
+                << " triangles =" << triangleCount
+                << " largestDimension =" << largestDimension;
 
             if (largestDimension < minimumMeshSize) {
-                qDebug() << " Skipping (too small)...";
-                count++;
+                qDebug() << "  skip (too small)";
+                ++partIndex;
                 continue;
             }
 
             if (maximumMeshSize > 0.0f && largestDimension > maximumMeshSize) {
-                qDebug() << " Skipping (too large)...";
-                count++;
+                qDebug() << "  skip (too large)";
+                ++partIndex;
                 continue;
             }
 
 
             // compute approximate convex decomposition
-            bool res = interfaceVHACD->Compute(&vertices[0].x, 3, (uint)nPoints, &triangles[0], 3, triangleCount, params);
-            if (!res){
-                qDebug() << "V-HACD computation failed for Mesh : " << count;
-                count++;
+            bool success = interfaceVHACD->Compute(&vertices[0].x, 3, (uint)numVertices, &triangles[0], 3, triangleCount, params);
+            if (!success){
+                qDebug() << "  failed to convexify";
+                ++partIndex;
                 continue;
             }
 
@@ -290,8 +297,8 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                     resultMeshPart.triangleIndices.append(index2);
                 }
             }
-
-            count++;
+            ++partIndex;
+            ++validPartsFound;
         }
     }
 
@@ -299,12 +306,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
     interfaceVHACD->Clean();
     interfaceVHACD->Release();
 
-    if (count > 0){
-        return true;
-    }        
-    else{
-        return false;
-    }
+    return validPartsFound > 0;
 }
 
 vhacd::VHACDUtil:: ~VHACDUtil(){
@@ -319,16 +321,9 @@ void vhacd::ProgressCallback::Update(const double overallProgress,
                                      const char* const operation) {
     int progress = (int)(overallProgress + 0.5);
 
-    if (progress < 10){
-        std::cout << "\b\b";
-    }
-    else{
-        std::cout << "\b\b\b";
-    }
-
+    std::cout << "\b\b\b";
     std::cout << progress << "%";
-
-    if (progress >= 100){
+    if (progress >= 100) {
         std::cout << std::endl;
     }
 }

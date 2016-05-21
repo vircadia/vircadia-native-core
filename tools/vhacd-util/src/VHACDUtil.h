@@ -34,7 +34,7 @@ namespace vhacd {
         bool computeVHACD(FBXGeometry& geometry,
                           VHACD::IVHACD::Parameters params,
                           FBXGeometry& result,
-                          int startMeshIndex, int endMeshIndex,
+                          int startPartIndex, int endPartIndex,
                           float minimumMeshSize, float maximumMeshSize);
         ~VHACDUtil();
     };

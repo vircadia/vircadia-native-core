@@ -301,17 +301,17 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-
-    // load the mesh 
-
+    // load the mesh
     FBXGeometry fbx;
     auto begin = std::chrono::high_resolution_clock::now();
     if (!vUtil.loadFBX(inputFilename, fbx)){
-        cout << "Error in opening FBX file....";
+        qDebug() << "error reading input file" << inputFilename;
+        return;
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
+    qDebug() << "load time =" << (double)loadDuration / 1000000000.00 << "seconds";
 
     if (splitModel) {
         QVector<QString> infileExtensions = {"fbx", "obj"};
@@ -352,38 +352,37 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         params.m_oclAcceleration = true; // true
 
         //perform vhacd computation
+        qDebug() << "running V-HACD algorithm ...";
         begin = std::chrono::high_resolution_clock::now();
 
         FBXGeometry result;
-        if (!vUtil.computeVHACD(fbx, params, result, startMeshIndex, endMeshIndex,
-                                minimumMeshSize, maximumMeshSize)) {
-            cout << "Compute Failed...";
-        }
+        bool success = vUtil.computeVHACD(fbx, params, result, startMeshIndex, endMeshIndex, minimumMeshSize, maximumMeshSize);
+
         end = std::chrono::high_resolution_clock::now();
         auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        qDebug() << "run time =" << (double)computeDuration / 1000000000.00 << " seconds";
+
+        if (!success) {
+            qDebug() << "failed to convexify model";
+            return;
+        }
 
         int totalVertices = 0;
         int totalTriangles = 0;
-        int totalMeshParts = 0;
         foreach (const FBXMesh& mesh, result.meshes) {
             totalVertices += mesh.vertices.size();
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
                 totalTriangles += meshPart.triangleIndices.size() / 3;
                 // each quad was made into two triangles
                 totalTriangles += 2 * meshPart.quadIndices.size() / 4;
-                totalMeshParts++;
             }
         }
 
         int totalHulls = result.meshes[0].parts.size();
-        cout << endl << "Summary of V-HACD Computation..................." << endl;
-        cout << "File Path          : " << inputFilename.toStdString() << endl;
-        cout << "Number Of Meshes   : " << totalMeshParts << endl;
-        cout << "Total vertices     : " << totalVertices << endl;
-        cout << "Total Triangles    : " << totalTriangles << endl;
-        cout << "Total Convex Hulls : " << totalHulls << endl;
-        cout << "Total FBX load time: " << (double)loadDuration / 1000000000.00 << " seconds" << endl;
-        cout << "V-HACD Compute time: " << (double)computeDuration / 1000000000.00 << " seconds" << endl;
+        qDebug() << "output file =" << outputFilename;
+        qDebug() << "vertices =" << totalVertices;
+        qDebug() << "triangles =" << totalTriangles;
+        qDebug() << "hulls =" << totalHulls;
 
         writeOBJ(outputFilename, result, outputCentimeters);
     }
