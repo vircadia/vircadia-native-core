@@ -56,6 +56,12 @@ public:
     
     void addOverrideForKey(const QString& key, const QString& value, const QString& overrideValue);
     void removeOverrideForKey(const QString& key, const QString& value);
+
+    const QString& getPlaceName() { return _placeName; }
+    void setPlaceName(const QString& placeName) { _placeName = placeName; }
+
+    bool wasAssigned() const { return _wasAssigned; };
+    void setWasAssigned(bool wasAssigned) { _wasAssigned = wasAssigned; }
     
 private:
     QJsonObject overrideValuesIfNeeded(const QJsonObject& newStats);
@@ -75,6 +81,10 @@ private:
     bool _isAuthenticated = true;
     NodeSet _nodeInterestSet;
     QString _nodeVersion;
+
+    QString _placeName;
+
+    bool _wasAssigned { false };
 };
 
 #endif // hifi_DomainServerNodeData_h

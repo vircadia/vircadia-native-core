@@ -112,6 +112,9 @@ public:
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
 
+    // Return an HTTP User-Agent string with OS and device information.
+    Q_INVOKABLE QString getUserAgent();
+
     void initializeGL();
     void initializeUi();
     void paintGL();
@@ -339,7 +342,7 @@ private:
 
     glm::vec3 getSunDirection() const;
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
 

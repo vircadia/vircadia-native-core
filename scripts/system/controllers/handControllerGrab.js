@@ -1112,8 +1112,8 @@ function MyController(hand) {
             Controller.getPoseValue((this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
 
         // transform it into world frame
-        var controllerPosition = Vec3.sum(MyAvatar.position,
-                                          Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+        var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
+        var controllerPosition = Vec3.sum(MyAvatar.position, controllerPositionVSAvatar);
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
@@ -1161,7 +1161,7 @@ function MyController(hand) {
 
         this.turnOffVisualizations();
 
-        this.previousControllerPosition = controllerPosition;
+        this.previousControllerPositionVSAvatar = controllerPositionVSAvatar;
         this.previousControllerRotation = controllerRotation;
     };
 
@@ -1179,8 +1179,8 @@ function MyController(hand) {
                                                            Controller.Standard.RightHand : Controller.Standard.LeftHand);
 
         // transform it into world frame
-        var controllerPosition = Vec3.sum(MyAvatar.position,
-                                          Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation));
+        var controllerPositionVSAvatar = Vec3.multiplyQbyV(MyAvatar.orientation, avatarControllerPose.translation);
+        var controllerPosition = Vec3.sum(MyAvatar.position, controllerPositionVSAvatar);
         var controllerRotation = Quat.multiply(MyAvatar.orientation, avatarControllerPose.rotation);
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
@@ -1197,7 +1197,8 @@ function MyController(hand) {
         }
 
         // scale delta controller hand movement by radius.
-        var handMoved = Vec3.multiply(Vec3.subtract(controllerPosition, this.previousControllerPosition), radius);
+        var handMoved = Vec3.multiply(Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar),
+                                      radius);
 
         // double delta controller rotation
         var handChange = Quat.multiply(Quat.slerp(this.previousControllerRotation,
@@ -1218,7 +1219,7 @@ function MyController(hand) {
         var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
 
         //  Update radialVelocity
-        var lastVelocity = Vec3.subtract(controllerPosition, this.previousControllerPosition);
+        var lastVelocity = Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar);
         lastVelocity = Vec3.multiply(lastVelocity, 1.0 / deltaTime);
         var newRadialVelocity = Vec3.dot(lastVelocity,
                                          Vec3.normalize(Vec3.subtract(grabbedProperties.position, controllerPosition)));
@@ -1266,7 +1267,9 @@ function MyController(hand) {
         var clampedVector;
         var targetPosition;
         if (constraintData.axisStart !== false) {
-            clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition, constraintData.axisStart, constraintData.axisEnd);
+            clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition,
+                                                        constraintData.axisStart,
+                                                        constraintData.axisEnd);
             targetPosition = clampedVector;
         } else {
             targetPosition = {
@@ -1309,7 +1312,7 @@ function MyController(hand) {
             print("continueDistanceHolding -- updateAction failed");
         }
 
-        this.previousControllerPosition = controllerPosition;
+        this.previousControllerPositionVSAvatar = controllerPositionVSAvatar;
         this.previousControllerRotation = controllerRotation;
     };
 

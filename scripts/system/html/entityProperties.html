@@ -484,6 +484,9 @@
                 var elZoneSkyboxColorGreen = document.getElementById("property-zone-skybox-color-green");
                 var elZoneSkyboxColorBlue = document.getElementById("property-zone-skybox-color-blue");
                 var elZoneSkyboxURL = document.getElementById("property-zone-skybox-url");
+
+                var elZoneFlyingAllowed = document.getElementById("property-zone-flying-allowed");
+                var elZoneGhostingAllowed = document.getElementById("property-zone-ghosting-allowed");
     
                 var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
                 allSections.push(elPolyVoxSections);
@@ -626,18 +629,19 @@
                                 var parsedUserData = {}
                                 try {
                                     parsedUserData = JSON.parse(properties.userData);
+                                                            
+                                    if ("grabbableKey" in parsedUserData) {
+                                        if ("grabbable" in parsedUserData["grabbableKey"]) {
+                                            elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
+                                        }
+                                        if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
+                                            elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
+                                        }
+                                        if ("ignoreIK" in parsedUserData["grabbableKey"]) {
+                                            elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
+                                        }
+                                    }
                                 } catch(e) {}
-                                if ("grabbableKey" in parsedUserData) {
-                                    if ("grabbable" in parsedUserData["grabbableKey"]) {
-                                        elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
-                                    }
-                                    if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
-                                        elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
-                                    }
-                                    if ("ignoreIK" in parsedUserData["grabbableKey"]) {
-                                        elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
-                                    }
-                                }
 
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
@@ -770,6 +774,9 @@
                                     elZoneSkyboxColorGreen.value = properties.skybox.color.green;
                                     elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
                                     elZoneSkyboxURL.value = properties.skybox.url;
+
+                                    elZoneFlyingAllowed.checked = properties.flyingAllowed;
+                                    elZoneGhostingAllowed.checked = properties.ghostingAllowed;
     
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                                 } else if (properties.type == "PolyVox") {
@@ -1076,7 +1083,10 @@
                 }));
     
                 elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
-    
+
+                elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
+                elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
+
                 var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
                     'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
                 elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
@@ -1789,6 +1799,15 @@
         <div class="zone-group zone-section skybox-section property url ">
             <label for="property-zone-skybox-url">Skybox URL</label>
             <input type="text" id="property-zone-skybox-url">
+        </div>
+
+        <div class="zone-group zone-section property checkbox">
+          <input type="checkbox" id="property-zone-flying-allowed">
+          <label for="property-zone-flying-allowed">&nbsp;Flying Allowed</label>
+        </div>
+        <div class="zone-group zone-section property checkbox">
+          <input type="checkbox" id="property-zone-ghosting-allowed">
+          <label for="property-zone-ghosting-allowed">&nbsp;Ghosting Allowed</label>
         </div>
 
 
