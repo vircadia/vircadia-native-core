@@ -169,6 +169,9 @@ enum EntityPropertyList {
 
     PROP_FALLOFF_RADIUS, // for Light entity
 
+    PROP_FLYING_ALLOWED, // can avatars in a zone fly?
+    PROP_GHOSTING_ALLOWED, // can avatars in a zone turn off physics?
+
     PROP_CLIENT_ONLY, // doesn't go over wire
     PROP_OWNING_AVATAR_ID, // doesn't go over wire
 

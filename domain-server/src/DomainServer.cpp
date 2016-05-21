@@ -462,7 +462,7 @@ void DomainServer::setupAutomaticNetworking() {
                 nodeList->startSTUNPublicSocketUpdate();
             } else {
                 // send our heartbeat to data server so it knows what our network settings are
-                sendHeartbeatToDataServer();
+                sendHeartbeatToMetaverse();
             }
         } else {
             qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
@@ -471,7 +471,7 @@ void DomainServer::setupAutomaticNetworking() {
             return;
         }
     } else {
-        sendHeartbeatToDataServer();
+        sendHeartbeatToMetaverse();
     }
 
     qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
@@ -480,7 +480,7 @@ void DomainServer::setupAutomaticNetworking() {
     const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
 
     QTimer* dataHeartbeatTimer = new QTimer(this);
-    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
+    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToMetaverse()));
     dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
@@ -677,6 +677,9 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     // update the NodeInterestSet in case there have been any changes
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
+
+    // update the connecting hostname in case it has changed
+    nodeData->setPlaceName(nodeRequestData.placeName);
 
     sendDomainListToNode(sendingNode, message->getSenderSockAddr());
 }
@@ -1029,11 +1032,11 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
 }
 
 
-void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
+void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -1056,20 +1059,34 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     domainObject[RESTRICTED_ACCESS_FLAG] =
         _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
-    // add the number of currently connected agent users
-    int numConnectedAuthedUsers = 0;
+    // figure out the breakdown of currently connected interface clients
+    int numConnectedUnassigned = 0;
+    QJsonObject userHostnames;
 
-    nodeList->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
-        if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
-            ++numConnectedAuthedUsers;
+    static const QString DEFAULT_HOSTNAME = "*";
+
+    nodeList->eachNode([&numConnectedUnassigned, &userHostnames](const SharedNodePointer& node) {
+        if (node->getLinkedData()) {
+            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+
+            if (!nodeData->wasAssigned()) {
+                ++numConnectedUnassigned;
+
+                // increment the count for this hostname (or the default if we don't have one)
+                auto hostname = nodeData->getPlaceName().isEmpty() ? DEFAULT_HOSTNAME : nodeData->getPlaceName();
+                userHostnames[hostname] = userHostnames[hostname].toInt() + 1;
+            }
         }
     });
 
-    const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
+    static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+    static const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
+    static const QString HEARTBEAT_USER_HOSTNAMES_KEY = "user_hostnames";
 
     QJsonObject heartbeatObject;
-    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedAuthedUsers;
+    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
+    heartbeatObject[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
+
     domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
 
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));

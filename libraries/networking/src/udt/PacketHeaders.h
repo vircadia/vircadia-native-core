@@ -171,6 +171,7 @@ const PacketVersion VERSION_ENTITITES_HAVE_QUERY_BOX = 54;
 const PacketVersion VERSION_ENTITITES_HAVE_COLLISION_MASK = 55;
 const PacketVersion VERSION_ATMOSPHERE_REMOVED = 56;
 const PacketVersion VERSION_LIGHT_HAS_FALLOFF_RADIUS = 57;
+const PacketVersion VERSION_ENTITIES_NO_FLY_ZONES = 58;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,

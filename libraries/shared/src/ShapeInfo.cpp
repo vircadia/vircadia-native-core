@@ -99,6 +99,18 @@ uint32_t ShapeInfo::getNumSubShapes() const {
     }
     return 1;
 }
+
+int ShapeInfo::getMaxNumPoints() const {
+    int numPoints = 0;
+    for (int i = 0; i < _points.size(); ++i) {
+        int n = _points[i].size();
+        if (n > numPoints) {
+            numPoints = n;
+        }
+    }
+    return numPoints;
+}
+
 float ShapeInfo::computeVolume() const {
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;

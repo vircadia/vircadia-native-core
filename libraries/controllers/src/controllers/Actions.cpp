@@ -121,16 +121,8 @@ namespace controller {
         return availableInputs;
     }
 
-    void ActionsDevice::update(float deltaTime, const InputCalibrationData& inpuCalibrationData, bool jointsCaptured) {
-    }
-
-    void ActionsDevice::focusOutEvent() {
-    }
-
     ActionsDevice::ActionsDevice() : InputDevice("Actions") {
         _deviceID = UserInputMapper::ACTIONS_DEVICE;
     }
-
-    ActionsDevice::~ActionsDevice() {}
 
 }
