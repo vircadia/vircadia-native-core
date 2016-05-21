@@ -311,7 +311,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result = NULL;
 
-    if (getIsClient()) {
+    bool clientOnly = properties.getClientOnly();
+
+    if (!clientOnly && getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
         if (nodeList && !nodeList->getThisNodeCanRez()) {
@@ -1382,8 +1384,11 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
 
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
+        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+        EntityTreePointer tree = entityTreeElement->getTree();
+
         // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
+        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, tree, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->otherTree) {

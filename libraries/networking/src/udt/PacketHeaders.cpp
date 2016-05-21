@@ -47,16 +47,19 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_LIGHT_HAS_FALLOFF_RADIUS;
+            return VERSION_ENTITIES_NO_FLY_ZONES;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarEntities);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
             // Removal of extension from Asset requests
+            return 18;
+        case PacketType::DomainConnectRequest:
+            // addition of referring hostname information
             return 18;
         default:
             return 17;

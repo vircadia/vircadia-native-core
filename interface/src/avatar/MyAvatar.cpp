@@ -309,6 +309,10 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
+    if (_avatarEntityDataLocallyEdited) {
+        sendIdentityPacket();
+    }
+
     simulate(deltaTime);
 
     currentEnergy += energyChargeRate;
@@ -424,7 +428,14 @@ void MyAvatar::simulate(float deltaTime) {
     EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
+        bool flyingAllowed = true;
+        bool ghostingAllowed = true;
         entityTree->withWriteLock([&] {
+            std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
+            if (zone) {
+                flyingAllowed = zone->getFlyingAllowed();
+                ghostingAllowed = zone->getGhostingAllowed();
+            }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             MovingEntitiesOperator moveOperator(entityTree);
@@ -441,7 +452,8 @@ void MyAvatar::simulate(float deltaTime) {
                         EntityItemProperties properties = entity->getProperties();
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
-                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+
+                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entity->getID(), properties);
                         entity->setLastBroadcast(usecTimestampNow());
                     }
                 }
@@ -452,7 +464,13 @@ void MyAvatar::simulate(float deltaTime) {
                 entityTree->recurseTreeWithOperator(&moveOperator);
             }
         });
+        _characterController.setFlyingAllowed(flyingAllowed);
+        if (!_characterController.isEnabled() && !ghostingAllowed) {
+            _characterController.setEnabled(true);
+        }
     }
+
+    updateAvatarEntities();
 }
 
 // thread-safe
@@ -700,6 +718,16 @@ void MyAvatar::saveData() {
     }
     settings.endArray();
 
+    settings.beginWriteArray("avatarEntityData");
+    int avatarEntityIndex = 0;
+    for (auto entityID : _avatarEntityData.keys()) {
+        settings.setArrayIndex(avatarEntityIndex);
+        settings.setValue("id", entityID);
+        settings.setValue("properties", _avatarEntityData.value(entityID));
+        avatarEntityIndex++;
+    }
+    settings.endArray();
+
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
@@ -810,6 +838,17 @@ void MyAvatar::loadData() {
     }
     settings.endArray();
     setAttachmentData(attachmentData);
+
+    int avatarEntityCount = settings.beginReadArray("avatarEntityData");
+    for (int i = 0; i < avatarEntityCount; i++) {
+        settings.setArrayIndex(i);
+        QUuid entityID = settings.value("id").toUuid();
+        // QUuid entityID = QUuid::createUuid(); // generate a new ID
+        QByteArray properties = settings.value("properties").toByteArray();
+        updateAvatarEntity(entityID, properties);
+    }
+    settings.endArray();
+    setAvatarEntityDataChanged(true);
 
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
@@ -1788,7 +1827,21 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
+
+    bool ghostingAllowed = true;
+    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    if (entityTreeRenderer) {
+        std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
+        if (zone) {
+            ghostingAllowed = zone->getGhostingAllowed();
+        }
+    }
+    bool checked = menu->isOptionChecked(MenuOption::EnableCharacterController);
+    if (!ghostingAllowed) {
+        checked = true;
+    }
+
+    _characterController.setEnabled(checked);
 }
 
 void MyAvatar::clearDriveKeys() {

@@ -22,6 +22,10 @@
 
 const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 
+// Bullet has a mesh generation util for convex shapes that we used to
+// trim convex hulls with many points down to only 42 points.
+const int MAX_HULL_POINTS = 42;
+
 enum ShapeType {
     SHAPE_TYPE_NONE,
     SHAPE_TYPE_BOX,
@@ -61,6 +65,7 @@ public:
 
     void clearPoints () { _points.clear(); }
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
+    int getMaxNumPoints() const;
 
     float computeVolume() const;
 
