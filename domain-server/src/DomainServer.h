@@ -71,7 +71,7 @@ private slots:
     void sendPendingTransactionsToServer();
 
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
-    void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }
+    void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString()); }
     void sendHeartbeatToIceServer();
     
     void handleConnectedNode(SharedNodePointer newNode);
@@ -103,7 +103,7 @@ private:
 
     void setupAutomaticNetworking();
     void setupICEHeartbeatForFullNetworking();
-    void sendHeartbeatToDataServer(const QString& networkAddress);
+    void sendHeartbeatToMetaverse(const QString& networkAddress);
 
     void randomizeICEServerAddress(bool shouldTriggerHostLookup);
 

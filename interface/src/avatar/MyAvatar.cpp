@@ -424,7 +424,14 @@ void MyAvatar::simulate(float deltaTime) {
     EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
+        bool flyingAllowed = true;
+        bool ghostingAllowed = true;
         entityTree->withWriteLock([&] {
+            std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
+            if (zone) {
+                flyingAllowed = zone->getFlyingAllowed();
+                ghostingAllowed = zone->getGhostingAllowed();
+            }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             MovingEntitiesOperator moveOperator(entityTree);
@@ -452,6 +459,10 @@ void MyAvatar::simulate(float deltaTime) {
                 entityTree->recurseTreeWithOperator(&moveOperator);
             }
         });
+        _characterController.setFlyingAllowed(flyingAllowed);
+        if (!_characterController.isEnabled() && !ghostingAllowed) {
+            _characterController.setEnabled(true);
+        }
     }
 }
 
@@ -1788,7 +1799,21 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
+
+    bool ghostingAllowed = true;
+    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    if (entityTreeRenderer) {
+        std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
+        if (zone) {
+            ghostingAllowed = zone->getGhostingAllowed();
+        }
+    }
+    bool checked = menu->isOptionChecked(MenuOption::EnableCharacterController);
+    if (!ghostingAllowed) {
+        checked = true;
+    }
+
+    _characterController.setEnabled(checked);
 }
 
 void MyAvatar::clearDriveKeys() {

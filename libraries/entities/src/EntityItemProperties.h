@@ -205,6 +205,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, QVector<glm::vec3>());
 
+    DEFINE_PROPERTY(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool, ZoneEntityItem::DEFAULT_FLYING_ALLOWED);
+    DEFINE_PROPERTY(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool, ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED);
+
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
@@ -415,6 +418,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotations, jointRotations, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslationsSet, jointTranslationsSet, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslations, jointTranslations, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, FlyingAllowed, flyingAllowed, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, GhostingAllowed, ghostingAllowed, "");
 
     properties.getAnimation().debugDump();
     properties.getSkybox().debugDump();

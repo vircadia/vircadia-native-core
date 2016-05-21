@@ -58,6 +58,7 @@ public:
     const QString currentPath(bool withOrientation = true) const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
+    const QString& getPlaceName() const { return _placeName; }
 
     const QString& getHost() const { return _host; }
 
@@ -141,6 +142,7 @@ private:
 
     QString _host;
     quint16 _port;
+    QString _placeName;
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;

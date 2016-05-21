@@ -76,12 +76,12 @@ void OculusControllerManager::deactivate() {
     }
 }
 
-void OculusControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void OculusControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     PerformanceTimer perfTimer("OculusControllerManager::TouchDevice::update");
 
     if (_touch) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Touch, &_inputState))) {
-            _touch->update(deltaTime, inputCalibrationData, jointsCaptured);
+            _touch->update(deltaTime, inputCalibrationData);
         } else {
             qCWarning(oculus) << "Unable to read Oculus touch input state";
         }
@@ -89,7 +89,7 @@ void OculusControllerManager::pluginUpdate(float deltaTime, const controller::In
 
     if (_remote) {
         if (OVR_SUCCESS(ovr_GetInputState(_session, ovrControllerType_Remote, &_inputState))) {
-            _remote->update(deltaTime, inputCalibrationData, jointsCaptured);
+            _remote->update(deltaTime, inputCalibrationData);
         } else {
             qCWarning(oculus) << "Unable to read Oculus remote input state";
         }
@@ -158,7 +158,7 @@ QString OculusControllerManager::RemoteDevice::getDefaultMappingConfig() const {
     return MAPPING_JSON;
 }
 
-void OculusControllerManager::RemoteDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void OculusControllerManager::RemoteDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _buttonPressedMap.clear();
     const auto& inputState = _parent._inputState;
     for (const auto& pair : BUTTON_MAP) {
@@ -172,21 +172,19 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 }
 
-void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
-    if (!jointsCaptured) {
-        int numTrackedControllers = 0;
-        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
-        auto tracking = ovr_GetTrackingState(_parent._session, 0, false);
-        ovr_for_each_hand([&](ovrHandType hand) {
-            ++numTrackedControllers;
-            if (REQUIRED_HAND_STATUS == (tracking.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
-                handlePose(deltaTime, inputCalibrationData, hand, tracking.HandPoses[hand]);
-            }
-        });
-    }
+    int numTrackedControllers = 0;
+    static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+    auto tracking = ovr_GetTrackingState(_parent._session, 0, false);
+    ovr_for_each_hand([&](ovrHandType hand) {
+        ++numTrackedControllers;
+        if (REQUIRED_HAND_STATUS == (tracking.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
+            handlePose(deltaTime, inputCalibrationData, hand, tracking.HandPoses[hand]);
+        }
+    });
     using namespace controller;
     // Axes
     const auto& inputState = _parent._inputState;

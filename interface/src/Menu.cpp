@@ -34,7 +34,6 @@
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -327,12 +326,6 @@ Menu::Menu() {
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
-    // Settings > Input Devices
-    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu, "Advanced");
-    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
-    inputModeGroup->setExclusive(false);
-
-
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
@@ -409,6 +402,12 @@ Menu::Menu() {
 
     // Developer > Avatar >>>
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
+
+    // Settings > Input Devices
+    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu, "Advanced");
+    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
+    inputModeGroup->setExclusive(false);
+
 
     // Developer > Avatar > Face Tracking
     MenuWrapper* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
