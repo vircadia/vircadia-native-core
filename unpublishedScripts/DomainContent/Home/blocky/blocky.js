@@ -42,33 +42,33 @@ var BLOCK_NATURAL = {
 };
 
 var blocks = [
-    BLOCK_RED, BLOCK_BLUE, BLOCK_YELLOW, BLOCK_GREEN, BLOCK_SMALL_CUBE
+    BLOCK_RED, BLOCK_BLUE, BLOCK_YELLOW, BLOCK_GREEN, BLOCK_NATURAL
 ];
 
 var arrangements = [{
     name: 'tall',
-    blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN, ],
-    target: Script.resolvePath("arrangement1.json")
+    blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN],
+    target: "atp:/blocky/arrangement1A.json"
 }, {
     name: 'ostrich',
     blocks: [BLOCK_RED, BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_NATURAL],
-    target: Script.resolvePath("arrangement2.json")
+    target: "atp:/blocky/arrangement2A.json"
 }, {
     name: 'froglog',
     blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
-    target: Script.resolvePath("arrangement3.json")
+    target: "atp:/blocky/arrangement3A.json"
 }, {
     name: 'allOneLeg',
     blocks: [BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_BLUE, BLOCK_BLUE, BLOCK_NATURAL],
-    target: Script.resolvePath("arrangement4.json")
+    target: "atp:/blocky/arrangement4A.json"
 }, {
     name: 'threeppl',
-    blocks: [BLOCK_BLUE BLOCK_YELLOW, BLOCK_BLUE, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
-    target: Script.resolvePath("arrangement5.json")
+    blocks: [BLOCK_BLUE, BLOCK_YELLOW, BLOCK_BLUE, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
+    target: "atp:/blocky/arrangement5B.json"
 }, {
     name: 'dominoes',
     blocks: [BLOCK_RED, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW],
-    target: Script.resolvePath("arrangement6.json")
+    target: "atp:/blocky/arrangement6B.json"
 }]
 
 var PLAYABLE_BLOCKS_POSITION = {
@@ -115,8 +115,9 @@ var TARGET_BLOCKS_POSITION = {
             print('BLOCKY TARGET BLOCKS:: ' + this.targetBlocks);
         },
         createPlayableBlocks: function(arrangement) {
-            print('BLOCKY creating playable blocks');
+            print('BLOCKY creating playable blocks' + arrangement.blocks.length);
             arrangement.blocks.forEach(function(block) {
+                print('BLOCKY in a block loop')
                 var blockProps = {
                     name: "home_model_blocky_block",
                     type: 'Model',
@@ -145,9 +146,13 @@ var TARGET_BLOCKS_POSITION = {
                     },
                     position: PLAYABLE_BLOCKS_POSITION
                 }
-                this.playableBlocks.push(Entities.addEntity(blockProps));
-
+                var newBlock = Entities.addEntity(blockProps);
+                print('BLOCKY made a playable block' + newBlock)
+                _this.playableBlocks.push(newBlock);
+                print('BLOCKY pushing it into playable blocks');
             })
+
+            print('BLOCKY after going through playable arrangement')
         },
         startNearTrigger: function() {
             print('BLOCKY got a near trigger');

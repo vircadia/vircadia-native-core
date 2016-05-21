@@ -43,6 +43,8 @@
 
     var transformerPath = Script.resolvePath("atp:/dressingRoom/wrapper.js");
 
+    var blockyPath = Script.resolvePath("atp:/blocky/wrapper.js");
+
     Script.include(utilsPath);
 
     Script.include(kineticPath);
@@ -53,6 +55,7 @@
     Script.include(cuckooClockPath);
     Script.include(pingPongGunPath);
     Script.include(transformerPath);
+    Script.include(blockyPath);
 
     var TRANSFORMER_URL_ROBOT = 'atp:/dressingRoom/simple_robot.fbx';
 
@@ -327,6 +330,7 @@
                 y: 179.0293,
                 z: 89.9698
             });
+            print('home before cuckooClock')
 
             var cuckooClock = new MyCuckooClock({
                 x: 1105.5237,
@@ -337,7 +341,7 @@
                 y: -57.0089,
                 z: -0.0013
             });
-
+            print('home after cuckooClock')
             var blocky = new BlockyGame({
                 x: 1098.27,
                 y: 460.43,
