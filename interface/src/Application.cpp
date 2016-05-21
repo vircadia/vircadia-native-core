@@ -3594,10 +3594,6 @@ void Application::update(float deltaTime) {
 
 int Application::sendNackPackets() {
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-        return 0;
-    }
-
     // iterates through all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
 

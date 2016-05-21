@@ -47,10 +47,8 @@ public:
 
 public slots:
     void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    void toggleNackPackets() { _shouldProcessNack = !_shouldProcessNack; }
 
 private:
-    bool _shouldProcessNack = true;
     AvatarData* _myAvatar { nullptr };
     QScriptEngine _scriptEngine;
 };
