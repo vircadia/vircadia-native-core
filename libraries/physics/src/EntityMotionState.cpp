@@ -404,6 +404,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     assert(_body);
     assert(entityTreeIsLocked());
 
+    if (_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
+        // don't send updates for someone else's avatarEntities
+        return false;
+    }
+
     if (_entity->actionDataNeedsTransmit()) {
         return true;
     }
@@ -547,8 +552,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
     #endif
 
-    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
-    _entity->setLastBroadcast(usecTimestampNow());
+    EntityTreeElementPointer element = _entity->getElement();
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+
+    properties.setClientOnly(_entity->getClientOnly());
+    properties.setOwningAvatarID(_entity->getOwningAvatarID());
+
+    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree, id, properties);
+    _entity->setLastBroadcast(now);
 
     // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
     // if they've changed.
@@ -559,8 +570,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 newQueryCubeProperties.setLastEdited(properties.getLastEdited());
-                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
-                entityDescendant->setLastBroadcast(usecTimestampNow());
+
+                newQueryCubeProperties.setClientOnly(entityDescendant->getClientOnly());
+                newQueryCubeProperties.setOwningAvatarID(entityDescendant->getOwningAvatarID());
+
+                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, tree,
+                                                           descendant->getID(), newQueryCubeProperties);
+                entityDescendant->setLastBroadcast(now);
             }
         }
     });

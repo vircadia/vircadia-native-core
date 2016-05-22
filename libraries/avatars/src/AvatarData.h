@@ -61,6 +61,8 @@ typedef unsigned long long quint64;
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
+using AvatarEntityMap = QMap<QUuid, QByteArray>;
+using AvatarEntityIDs = QSet<QUuid>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
@@ -133,6 +135,10 @@ class QDataStream;
 class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
+
+// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
+// the value to be reset when the sessionID changes.
+const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
 
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
@@ -272,6 +278,9 @@ public:
     Q_INVOKABLE QVariantList getAttachmentsVariant() const;
     Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
+    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
+
     void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -322,6 +331,11 @@ public:
     void fromJson(const QJsonObject& json);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
+
+    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+    void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
 public slots:
     void sendAvatarDataPacket();
@@ -389,6 +403,11 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
+
+    AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityMap _avatarEntityData;
+    bool _avatarEntityDataLocallyEdited { false };
+    bool _avatarEntityDataChanged { false };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
