@@ -32,17 +32,19 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
-bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
+bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 Backend* GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     GLBackend* result; 
-    if (enableOpenGL45 && version >= 0x0405) {
+    if (!disableOpenGL45 && version >= 0x0405) {
+        qDebug() << "OpenGL 4.5 detected";
         result = new gpu::gl45::GL45Backend();
     } else {
+        qDebug() << "OpenGL 4.5 not detected / enabled, using compatibility backend";
         result = new gpu::gl41::GL41Backend();
     }
     result->initInput();
