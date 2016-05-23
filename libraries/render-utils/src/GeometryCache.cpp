@@ -51,8 +51,8 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
-static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT16;
-static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint16);
+static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT32;
+static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint32);
 
 void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices) {
     vertexBuffer->append(vertices);
@@ -112,102 +112,7 @@ void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count
     }
 }
 
-// The golden ratio
-static const float PHI = 1.61803398874f;
-
-const VertexVector& icosahedronVertices() {
-    static const float a = 1;
-    static const float b = PHI / 2.0f;
-
-    static const VertexVector vertices{ //
-        vec3(0, b, -a), vec3(-b, a, 0), vec3(b, a, 0), // 
-        vec3(0, b, a), vec3(b, a, 0), vec3(-b, a, 0), //
-        vec3(0, b, a), vec3(-a, 0, b), vec3(0, -b, a), //
-        vec3(0, b, a), vec3(0, -b, a), vec3(a, 0, b),  //
-        vec3(0, b, -a), vec3(a, 0, -b), vec3(0, -b, -a),// 
-        vec3(0, b, -a), vec3(0, -b, -a), vec3(-a, 0, -b), //
-        vec3(0, -b, a), vec3(-b, -a, 0), vec3(b, -a, 0), //
-        vec3(0, -b, -a), vec3(b, -a, 0), vec3(-b, -a, 0), //
-        vec3(-b, a, 0), vec3(-a, 0, -b),  vec3(-a, 0, b), //
-        vec3(-b, -a, 0), vec3(-a, 0, b),  vec3(-a, 0, -b), //
-        vec3(b, a, 0), vec3(a, 0, b), vec3(a, 0, -b),   //
-        vec3(b, -a, 0), vec3(a, 0, -b), vec3(a, 0, b),  //
-        vec3(0, b, a), vec3(-b, a, 0),  vec3(-a, 0, b), //
-        vec3(0, b, a), vec3(a, 0, b), vec3(b, a, 0), //
-        vec3(0, b, -a), vec3(-a, 0, -b), vec3(-b, a, 0), // 
-        vec3(0, b, -a), vec3(b, a, 0),  vec3(a, 0, -b), //
-        vec3(0, -b, -a), vec3(-b, -a, 0), vec3(-a, 0, -b), // 
-        vec3(0, -b, -a), vec3(a, 0, -b), vec3(b, -a, 0), //
-        vec3(0, -b, a), vec3(-a, 0, b),  vec3(-b, -a, 0), //
-        vec3(0, -b, a), vec3(b, -a, 0), vec3(a, 0, b)
-    }; //
-    return vertices;
-}
-
-const VertexVector& tetrahedronVertices() {
-    static const auto A = vec3(1, 1, 1);
-    static const auto B = vec3(1, -1, -1);
-    static const auto C = vec3(-1, 1, -1);
-    static const auto D = vec3(-1, -1, 1);
-    static const VertexVector vertices{
-        A, B, C,
-        D, B, A,
-        C, D, A,
-        C, B, D,
-    };
-    return vertices;
-}
-
-static const size_t TESSELTATION_MULTIPLIER = 4;
 static const size_t ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT = 3;
-static const size_t VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER = 2;
-
-
-VertexVector tesselate(const VertexVector& startingTriangles, int count) {
-    VertexVector triangles = startingTriangles;
-    if (0 != (triangles.size() % 3)) {
-        throw std::runtime_error("Bad number of vertices for tesselation");
-    }
-
-    for (size_t i = 0; i < triangles.size(); ++i) {
-        triangles[i] = glm::normalize(triangles[i]);
-    }
-
-    VertexVector newTriangles;
-    while (count) {
-        newTriangles.clear();
-        // Tesselation takes one triangle and makes it into 4 triangles
-        // See https://en.wikipedia.org/wiki/Space-filling_tree#/media/File:Space_Filling_Tree_Tri_iter_1_2_3.png
-        newTriangles.reserve(triangles.size() * TESSELTATION_MULTIPLIER);
-        for (size_t i = 0; i < triangles.size(); i += VERTICES_PER_TRIANGLE) {
-            const vec3& a = triangles[i];
-            const vec3& b = triangles[i + 1];
-            const vec3& c = triangles[i + 2];
-            vec3 ab = glm::normalize(a + b);
-            vec3 bc = glm::normalize(b + c);
-            vec3 ca = glm::normalize(c + a);
-
-            newTriangles.push_back(a);
-            newTriangles.push_back(ab);
-            newTriangles.push_back(ca);
-
-            newTriangles.push_back(b);
-            newTriangles.push_back(bc);
-            newTriangles.push_back(ab);
-
-            newTriangles.push_back(c);
-            newTriangles.push_back(ca);
-            newTriangles.push_back(bc);
-
-            newTriangles.push_back(ab);
-            newTriangles.push_back(bc);
-            newTriangles.push_back(ca);
-        }
-        triangles.swap(newTriangles);
-        --count;
-    }
-    return triangles;
-}
 
 size_t GeometryCache::getShapeTriangleCount(Shape shape) {
     return _shapes[shape]._indexCount / VERTICES_PER_TRIANGLE;
@@ -221,6 +126,324 @@ size_t GeometryCache::getCubeTriangleCount() {
     return getShapeTriangleCount(Cube);
 }
 
+using Index = uint32_t;
+using IndexPair = uint64_t;
+using IndexPairs = std::unordered_set<IndexPair>;
+
+template <size_t N>
+using Face = std::array<Index, N>;
+
+template <size_t N>
+using FaceVector = std::vector<Face<N>>;
+
+template <size_t N>
+struct Solid {
+    VertexVector vertices;
+    FaceVector<N> faces;
+
+    Solid<N>& fitDimension(float newMaxDimension) {
+        float maxDimension = 0;
+        for (const auto& vertex : vertices) {
+            maxDimension = std::max(maxDimension, std::max(std::max(vertex.x, vertex.y), vertex.z));
+        }
+        float multiplier = newMaxDimension / maxDimension;
+        for (auto& vertex : vertices) {
+            vertex *= multiplier;
+        }
+        return *this;
+    }
+
+    vec3 getFaceNormal(size_t faceIndex) const {
+        vec3 result;
+        const auto& face = faces[faceIndex];
+        for (size_t i = 0; i < N; ++i) {
+            result += vertices[face[i]];
+        }
+        result /= N;
+        return glm::normalize(result);
+    }
+};
+
+template <size_t N>
+static size_t triangulatedFaceTriangleCount() {
+    return N - 2;
+}
+
+template <size_t N> 
+static size_t triangulatedFaceIndexCount() {
+    return triangulatedFaceTriangleCount<N>() * VERTICES_PER_TRIANGLE;
+}
+
+static IndexPair indexToken(Index a, Index b) {
+    if (a > b) {
+        std::swap(a, b);
+    }
+    return (((IndexPair)a) << 32) | ((IndexPair)b);
+}
+
+static Solid<3> tesselate(Solid<3> solid, int count) {
+    float length = glm::length(solid.vertices[0]);
+    for (int i = 0; i < count; ++i) {
+        Solid<3> result { solid.vertices, {} };
+        result.vertices.reserve(solid.vertices.size() + solid.faces.size() * 3);
+        for (size_t f = 0; f < solid.faces.size(); ++f) {
+            Index baseVertex = (Index)result.vertices.size();
+            const Face<3>& oldFace = solid.faces[f];
+            const vec3& a = solid.vertices[oldFace[0]];
+            const vec3& b = solid.vertices[oldFace[1]];
+            const vec3& c = solid.vertices[oldFace[2]];
+            vec3 ab = glm::normalize(a + b) * length;
+            vec3 bc = glm::normalize(b + c) * length;
+            vec3 ca = glm::normalize(c + a) * length;
+            result.vertices.push_back(ab);
+            result.vertices.push_back(bc);
+            result.vertices.push_back(ca);
+            result.faces.push_back(Face<3>{ { oldFace[0], baseVertex, baseVertex + 2 } });
+            result.faces.push_back(Face<3>{ { baseVertex, oldFace[1], baseVertex + 1 } });
+            result.faces.push_back(Face<3>{ { baseVertex + 1, oldFace[2], baseVertex + 2 } });
+            result.faces.push_back(Face<3>{ { baseVertex, baseVertex + 1, baseVertex + 2 } });
+        }
+        solid = result;
+    }
+    return solid;
+}
+
+template <size_t N>
+void setupFlatShape(GeometryCache::ShapeData& shapeData, const Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
+    VertexVector vertices;
+    IndexVector solidIndices, wireIndices;
+    IndexPairs wireSeenIndices;
+
+    size_t faceCount = shape.faces.size();
+    size_t faceIndexCount = triangulatedFaceIndexCount<N>();
+
+    vertices.reserve(N * faceCount * 2);
+    solidIndices.reserve(faceIndexCount * faceCount);
+
+    for (size_t f = 0; f < faceCount; ++f) {
+        const Face<N>& face = shape.faces[f];
+        // Compute the face normal
+        vec3 faceNormal = shape.getFaceNormal(f);
+
+        // Create the vertices for the face
+        for (Index i = 0; i < N; ++i) {
+            Index originalIndex = face[i];
+            vertices.push_back(shape.vertices[originalIndex]);
+            vertices.push_back(faceNormal);
+        }
+
+        // Create the wire indices for unseen edges
+        for (Index i = 0; i < N; ++i) {
+            Index a = i;
+            Index b = (i + 1) % N;
+            auto token = indexToken(face[a], face[b]);
+            if (0 == wireSeenIndices.count(token)) {
+                wireSeenIndices.insert(token);
+                wireIndices.push_back(a + baseVertex);
+                wireIndices.push_back(b + baseVertex);
+            }
+        }
+
+        // Create the solid face indices
+        for (Index i = 0; i < N - 2; ++i) {
+            solidIndices.push_back(0 + baseVertex);
+            solidIndices.push_back(i + 1 + baseVertex);
+            solidIndices.push_back(i + 2 + baseVertex);
+        }
+        baseVertex += (Index)N;
+    }
+
+    shapeData.setupVertices(vertexBuffer, vertices);
+    shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
+}
+
+template <size_t N>
+void setupSmoothShape(GeometryCache::ShapeData& shapeData, const Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
+
+    VertexVector vertices;
+    vertices.reserve(shape.vertices.size() * 2);
+    for (const auto& vertex : shape.vertices) {
+        vertices.push_back(vertex);
+        vertices.push_back(vertex);
+    }
+
+    IndexVector solidIndices, wireIndices;
+    IndexPairs wireSeenIndices;
+
+    size_t faceCount = shape.faces.size();
+    size_t faceIndexCount = triangulatedFaceIndexCount<N>();
+
+    solidIndices.reserve(faceIndexCount * faceCount);
+
+    for (size_t f = 0; f < faceCount; ++f) {
+        const Face<N>& face = shape.faces[f];
+        // Create the wire indices for unseen edges
+        for (Index i = 0; i < N; ++i) {
+            Index a = face[i];
+            Index b = face[(i + 1) % N];
+            auto token = indexToken(a, b);
+            if (0 == wireSeenIndices.count(token)) {
+                wireSeenIndices.insert(token);
+                wireIndices.push_back(a + baseVertex);
+                wireIndices.push_back(b + baseVertex);
+            }
+        }
+
+        // Create the solid face indices
+        for (Index i = 0; i < N - 2; ++i) {
+            solidIndices.push_back(face[i] + baseVertex);
+            solidIndices.push_back(face[i + 1] + baseVertex);
+            solidIndices.push_back(face[i + 2] + baseVertex);
+        }
+    }
+
+    shapeData.setupVertices(vertexBuffer, vertices);
+    shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
+}
+
+// The golden ratio
+static const float PHI = 1.61803398874f;
+
+static const Solid<3>& tetrahedron() {
+    static const auto A = vec3(1, 1, 1);
+    static const auto B = vec3(1, -1, -1);
+    static const auto C = vec3(-1, 1, -1);
+    static const auto D = vec3(-1, -1, 1);
+    static const Solid<3> TETRAHEDRON = Solid<3>{
+        { A, B, C, D },
+        FaceVector<3>{
+            Face<3> { { 0, 1, 2 } },
+                Face<3> { { 3, 1, 0 } },
+                Face<3> { { 2, 3, 0 } },
+                Face<3> { { 2, 1, 3 } },
+        }
+    }.fitDimension(0.5f);
+    return TETRAHEDRON;
+}
+
+static const Solid<4>& cube() {
+    static const auto A = vec3(1, 1, 1);
+    static const auto B = vec3(-1, 1, 1);
+    static const auto C = vec3(-1, 1, -1);
+    static const auto D = vec3(1, 1, -1);
+    static const Solid<4> CUBE = Solid<4>{
+        { A, B, C, D, -A, -B, -C, -D },
+        FaceVector<4>{
+            Face<4> { { 3, 2, 1, 0 } },
+                Face<4> { { 0, 1, 7, 6 } },
+                Face<4> { { 1, 2, 4, 7 } },
+                Face<4> { { 2, 3, 5, 4 } },
+                Face<4> { { 3, 0, 6, 5 } },
+                Face<4> { { 4, 5, 6, 7 } },
+        }
+    }.fitDimension(0.5f);
+    return CUBE;
+}
+
+static const Solid<3>& octahedron() {
+    static const auto A = vec3(0, 1, 0);
+    static const auto B = vec3(0, -1, 0);
+    static const auto C = vec3(0, 0, 1);
+    static const auto D = vec3(0, 0, -1);
+    static const auto E = vec3(1, 0, 0);
+    static const auto F = vec3(-1, 0, 0);
+    static const Solid<3> OCTAHEDRON = Solid<3>{
+        { A, B, C, D, E, F},
+        FaceVector<3> {
+            Face<3> { { 0, 2, 4, } },
+            Face<3> { { 0, 4, 3, } },
+            Face<3> { { 0, 3, 5, } },
+            Face<3> { { 0, 5, 2, } },
+            Face<3> { { 1, 4, 2, } },
+            Face<3> { { 1, 3, 4, } },
+            Face<3> { { 1, 5, 3, } },
+            Face<3> { { 1, 2, 5, } },
+        }
+    }.fitDimension(0.5f);
+    return OCTAHEDRON;
+}
+
+static const Solid<5>& dodecahedron() {
+    static const float P = PHI;
+    static const float IP = 1.0f / PHI;
+    static const vec3 A = vec3(IP, P, 0);
+    static const vec3 B = vec3(-IP, P, 0);
+    static const vec3 C = vec3(-1, 1, 1);
+    static const vec3 D = vec3(0, IP, P);
+    static const vec3 E = vec3(1, 1, 1);
+    static const vec3 F = vec3(1, 1, -1);
+    static const vec3 G = vec3(-1, 1, -1);
+    static const vec3 H = vec3(-P, 0, IP);
+    static const vec3 I = vec3(0, -IP, P);
+    static const vec3 J = vec3(P, 0, IP);
+
+    static const Solid<5> DODECAHEDRON = Solid<5>{
+        { 
+            A,  B,  C,  D,  E,  F,  G,  H,  I,  J, 
+            -A, -B, -C, -D, -E, -F, -G, -H, -I, -J, 
+        },
+        FaceVector<5> {
+            Face<5> { { 0, 1, 2, 3, 4 } },
+            Face<5> { { 0, 5, 18, 6, 1 } },
+            Face<5> { { 1, 6, 19, 7, 2 } },
+            Face<5> { { 2, 7, 15, 8, 3 } },
+            Face<5> { { 3, 8, 16, 9, 4 } },
+            Face<5> { { 4, 9, 17, 5, 0 } },
+            Face<5> { { 14, 13, 12, 11, 10 } },
+            Face<5> { { 11, 16, 8, 15, 10 } },
+            Face<5> { { 12, 17, 9, 16, 11 } },
+            Face<5> { { 13, 18, 5, 17, 12 } },
+            Face<5> { { 14, 19, 6, 18, 13 } },
+            Face<5> { { 10, 15, 7, 19, 14 } },
+        }
+    }.fitDimension(0.5f);
+    return DODECAHEDRON;
+}
+
+static const Solid<3>& icosahedron() {
+    static const float N = 1.0f / PHI;
+    static const float P = 1.0f;
+    static const auto A = vec3(N, P, 0);
+    static const auto B = vec3(-N, P, 0);
+    static const auto C = vec3(0, N, P);
+    static const auto D = vec3(P, 0, N);
+    static const auto E = vec3(P, 0, -N);
+    static const auto F = vec3(0, N, -P);
+
+    static const Solid<3> ICOSAHEDRON = Solid<3> {
+        {
+            A, B, C, D, E, F,
+            -A, -B, -C, -D, -E, -F,
+        },
+        FaceVector<3> {
+            Face<3> { { 1, 2, 0 } },
+            Face<3> { { 2, 3, 0 } }, 
+            Face<3> { { 3, 4, 0 } },
+            Face<3> { { 4, 5, 0 } },
+            Face<3> { { 5, 1, 0 } },
+
+            Face<3> { { 1, 10, 2 } },
+            Face<3> { { 11, 2, 10 } },
+            Face<3> { { 2, 11, 3 } },
+            Face<3> { { 7, 3, 11 } },
+            Face<3> { { 3, 7, 4 } },
+            Face<3> { { 8, 4, 7 } },
+            Face<3> { { 4, 8, 5 } },
+            Face<3> { { 9, 5, 8 } },
+            Face<3> { { 5, 9, 1 } },
+            Face<3> { { 10, 1, 9 } },
+
+            Face<3> { { 8, 7, 6 } },
+            Face<3> { { 9, 8, 6 } },
+            Face<3> { { 10, 9, 6 } },
+            Face<3> { { 11, 10, 6 } },
+            Face<3> { { 7, 11, 6 } },
+        }
+    }.fitDimension(0.5f);
+    return ICOSAHEDRON;
+}
 
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
@@ -230,229 +453,28 @@ size_t GeometryCache::getCubeTriangleCount() {
 void GeometryCache::buildShapes() {
     auto vertexBuffer = std::make_shared<gpu::Buffer>();
     auto indexBuffer = std::make_shared<gpu::Buffer>();
-    size_t startingIndex = 0;
-    
     // Cube 
-    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
-    {
-        ShapeData& shapeData = _shapes[Cube];
-        VertexVector vertices;
-        // front
-        vertices.push_back(vec3(1, 1, 1));
-        vertices.push_back(vec3(0, 0, 1));
-        vertices.push_back(vec3(-1, 1, 1));
-        vertices.push_back(vec3(0, 0, 1));
-        vertices.push_back(vec3(-1, -1, 1));
-        vertices.push_back(vec3(0, 0, 1));
-        vertices.push_back(vec3(1, -1, 1));
-        vertices.push_back(vec3(0, 0, 1));
-
-        // right
-        vertices.push_back(vec3(1, 1, 1));
-        vertices.push_back(vec3(1, 0, 0));
-        vertices.push_back(vec3(1, -1, 1));
-        vertices.push_back(vec3(1, 0, 0));
-        vertices.push_back(vec3(1, -1, -1));
-        vertices.push_back(vec3(1, 0, 0));
-        vertices.push_back(vec3(1, 1, -1));
-        vertices.push_back(vec3(1, 0, 0));
-
-        // top
-        vertices.push_back(vec3(1, 1, 1));
-        vertices.push_back(vec3(0, 1, 0));
-        vertices.push_back(vec3(1, 1, -1));
-        vertices.push_back(vec3(0, 1, 0));
-        vertices.push_back(vec3(-1, 1, -1));
-        vertices.push_back(vec3(0, 1, 0));
-        vertices.push_back(vec3(-1, 1, 1));
-        vertices.push_back(vec3(0, 1, 0));
-
-        // left
-        vertices.push_back(vec3(-1, 1, 1));
-        vertices.push_back(vec3(-1, 0, 0));
-        vertices.push_back(vec3(-1, 1, -1));
-        vertices.push_back(vec3(-1, 0, 0));
-        vertices.push_back(vec3(-1, -1, -1));
-        vertices.push_back(vec3(-1, 0, 0));
-        vertices.push_back(vec3(-1, -1, 1));
-        vertices.push_back(vec3(-1, 0, 0));
-
-        // bottom
-        vertices.push_back(vec3(-1, -1, -1));
-        vertices.push_back(vec3(0, -1, 0));
-        vertices.push_back(vec3(1, -1, -1));
-        vertices.push_back(vec3(0, -1, 0));
-        vertices.push_back(vec3(1, -1, 1));
-        vertices.push_back(vec3(0, -1, 0));
-        vertices.push_back(vec3(-1, -1, 1));
-        vertices.push_back(vec3(0, -1, 0));
-
-        // back
-        vertices.push_back(vec3(1, -1, -1));
-        vertices.push_back(vec3(0, 0, -1));
-        vertices.push_back(vec3(-1, -1, -1));
-        vertices.push_back(vec3(0, 0, -1));
-        vertices.push_back(vec3(-1, 1, -1));
-        vertices.push_back(vec3(0, 0, -1));
-        vertices.push_back(vec3(1, 1, -1));
-        vertices.push_back(vec3(0, 0, -1));
-
-        static const size_t VERTEX_FORMAT_SIZE = 2;
-        static const size_t VERTEX_OFFSET = 0;
-
-        for (size_t i = 0; i < vertices.size(); ++i) {
-            auto vertexIndex = i;
-            // Make a unit cube by having the vertices (at index N) 
-            // while leaving the normals (at index N + 1) alone
-            if (VERTEX_OFFSET == vertexIndex % VERTEX_FORMAT_SIZE) {
-                vertices[vertexIndex] *= 0.5f;
-            }
-        }
-        shapeData.setupVertices(_shapeVertices, vertices);
-
-        IndexVector indices{
-            0, 1, 2, 2, 3, 0, // front
-            4, 5, 6, 6, 7, 4, // right
-            8, 9, 10, 10, 11, 8, // top
-            12, 13, 14, 14, 15, 12, // left
-            16, 17, 18, 18, 19, 16, // bottom
-            20, 21, 22, 22, 23, 20  // back
-        };
-        for (auto& index : indices) {
-            index += (uint16_t)startingIndex;
-        }
-
-        IndexVector wireIndices{
-            0, 1, 1, 2, 2, 3, 3, 0, // front
-            20, 21, 21, 22, 22, 23, 23, 20, // back
-            0, 23, 1, 22, 2, 21, 3, 20 // sides
-        };
-
-        for (size_t i = 0; i < wireIndices.size(); ++i) {
-            indices[i] += (uint16_t)startingIndex;
-        }
-
-        shapeData.setupIndices(_shapeIndices, indices, wireIndices);
-    }
-
+    setupFlatShape(_shapes[Cube], cube(), _shapeVertices, _shapeIndices);
     // Tetrahedron
-    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
-    {
-        ShapeData& shapeData = _shapes[Tetrahedron];
-        size_t vertexCount = 4;
-        VertexVector vertices;
-        {
-            VertexVector originalVertices = tetrahedronVertices();
-            vertexCount = originalVertices.size();
-            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
-            for (size_t i = 0; i < originalVertices.size(); i += VERTICES_PER_TRIANGLE) {
-                auto triangleStartIndex = i;
-                vec3 faceNormal;
-                for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
-                    auto triangleVertexIndex = j;
-                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    faceNormal += originalVertices[vertexIndex];
-                }
-                faceNormal = glm::normalize(faceNormal);
-                for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
-                    auto triangleVertexIndex = j;
-                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    vertices.push_back(originalVertices[vertexIndex]);
-                    vertices.push_back(faceNormal);
-                }
-            }
-        }
-        shapeData.setupVertices(_shapeVertices, vertices);
-
-        IndexVector indices;
-        for (size_t i = 0; i < vertexCount; i += VERTICES_PER_TRIANGLE) {
-            auto triangleStartIndex = i;
-            for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
-                auto triangleVertexIndex = j;
-                auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                indices.push_back((uint16_t)(vertexIndex + startingIndex));
-            }
-        }
-
-        IndexVector wireIndices{
-            0, 1, 1, 2, 2, 0,
-            0, 3, 1, 3, 2, 3,
-        };
-
-        for (size_t i = 0; i < wireIndices.size(); ++i) {
-            wireIndices[i] += (uint16_t)startingIndex;
-        }
-
-        shapeData.setupIndices(_shapeIndices, indices, wireIndices);
-    }
-
+    setupFlatShape(_shapes[Tetrahedron], tetrahedron(), _shapeVertices, _shapeIndices);
+    // Icosahedron
+    setupFlatShape(_shapes[Icosahedron], icosahedron(), _shapeVertices, _shapeIndices);
+    // Octahedron
+    setupFlatShape(_shapes[Octahedron], octahedron(), _shapeVertices, _shapeIndices);
+    // Dodecahedron
+    setupFlatShape(_shapes[Dodecahedron], dodecahedron(), _shapeVertices, _shapeIndices);
+    
     // Sphere
     // FIXME this uses way more vertices than required.  Should find a way to calculate the indices
     // using shared vertices for better vertex caching
-    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
-    {
-        ShapeData& shapeData = _shapes[Sphere];
-        VertexVector vertices;
-        IndexVector indices;
-        {
-            VertexVector originalVertices = tesselate(icosahedronVertices(), ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT);
-            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
-            for (size_t i = 0; i < originalVertices.size(); i += VERTICES_PER_TRIANGLE) {
-                auto triangleStartIndex = i;
-                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
-                    auto triangleVertexIndex = j;
-                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    const auto& vertex = originalVertices[i + j];
-                    // Spheres use the same values for vertices and normals
-                    vertices.push_back(vertex);
-                    vertices.push_back(vertex);
-                    indices.push_back((uint16_t)(vertexIndex + startingIndex));
-                }
-            }
-        }
-        
-        shapeData.setupVertices(_shapeVertices, vertices);
-        // FIXME don't use solid indices for wire drawing.  
-        shapeData.setupIndices(_shapeIndices, indices, indices);
-    }
-
-    // Icosahedron
-    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
-    {
-        ShapeData& shapeData = _shapes[Icosahedron];
-
-        VertexVector vertices;
-        IndexVector indices;
-        {
-            const VertexVector& originalVertices = icosahedronVertices();
-            vertices.reserve(originalVertices.size() * VECTOR_TO_VECTOR_WITH_NORMAL_MULTIPLER);
-            for (size_t i = 0; i < originalVertices.size(); i += 3) {
-                auto triangleStartIndex = i;
-                vec3 faceNormal;
-                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
-                    auto triangleVertexIndex = j;
-                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    faceNormal += originalVertices[vertexIndex];
-                }
-                faceNormal = glm::normalize(faceNormal);
-                for (int j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
-                    auto triangleVertexIndex = j;
-                    auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                    vertices.push_back(originalVertices[vertexIndex]);
-                    vertices.push_back(faceNormal);
-                    indices.push_back((uint16_t)(vertexIndex + startingIndex));
-                }
-            }
-        }
-
-        shapeData.setupVertices(_shapeVertices, vertices);
-        // FIXME don't use solid indices for wire drawing.  
-        shapeData.setupIndices(_shapeIndices, indices, indices);
-    }
+    Solid<3> sphere = icosahedron();
+    sphere = tesselate(sphere, ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT); 
+    sphere.fitDimension(1.0f);
+    setupSmoothShape(_shapes[Sphere], sphere, _shapeVertices, _shapeIndices);
 
     // Line
-    startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
     {
+        Index baseVertex = (Index)(_shapeVertices->getSize() / SHAPE_VERTEX_STRIDE);
         ShapeData& shapeData = _shapes[Line];
         shapeData.setupVertices(_shapeVertices, VertexVector{
             vec3(-0.5, 0, 0), vec3(-0.5f, 0, 0),
@@ -460,9 +482,8 @@ void GeometryCache::buildShapes() {
         });
         IndexVector wireIndices;
         // Only two indices
-        wireIndices.push_back(0 + (uint16_t)startingIndex);
-        wireIndices.push_back(1 + (uint16_t)startingIndex);
-
+        wireIndices.push_back(0 + baseVertex);
+        wireIndices.push_back(1 + baseVertex);
         shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
     }
 

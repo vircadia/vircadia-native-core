@@ -19,7 +19,7 @@ namespace entity {
         Cube,
         Sphere,
         Tetrahedron,
-        Octahetron,
+        Octahedron,
         Dodecahedron,
         Icosahedron,
         Torus,

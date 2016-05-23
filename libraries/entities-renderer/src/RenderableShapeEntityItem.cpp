@@ -30,7 +30,7 @@ static GeometryCache::Shape MAPPING[entity::NUM_SHAPES] = {
     GeometryCache::Cube,
     GeometryCache::Sphere,
     GeometryCache::Tetrahedron,
-    GeometryCache::Octahetron,
+    GeometryCache::Octahedron,
     GeometryCache::Dodecahedron,
     GeometryCache::Icosahedron,
     GeometryCache::Torus,
@@ -93,7 +93,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (!success) {
         return;
     }
-    if (_shape != entity::Cube) {
+    if (_shape == entity::Sphere) {
         modelTransform.postScale(SPHERE_ENTITY_SCALE);
     }
     batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation

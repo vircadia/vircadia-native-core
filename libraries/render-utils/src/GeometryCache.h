@@ -121,8 +121,8 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 seed);
 }
 
+using IndexVector = std::vector<uint32_t>;
 using VertexVector = std::vector<glm::vec3>;
-using IndexVector = std::vector<uint16_t>;
 
 /// Stores cached geometry.
 class GeometryCache : public Dependency {
@@ -137,7 +137,7 @@ public:
         Cube,
         Sphere,
         Tetrahedron,
-        Octahetron,
+        Octahedron,
         Dodecahedron,
         Icosahedron,
         Torus,
