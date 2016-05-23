@@ -377,7 +377,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             // figure out if the mesh is a closed manifold or not
             bool closed = isClosedManifold(triangles);
             if (closed) {
-                unsigned int triangleCount = triangles.size() / 3;
+                unsigned int triangleCount = (unsigned int)(triangles.size()) / 3;
                 if (_verbose) {
                     qDebug() << "  process closed part" << partIndex << ": " << " triangles =" << triangleCount;
                 }
@@ -413,7 +413,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             }
 
             // this time we don't care if the parts are close or not
-            unsigned int triangleCount = triangles.size() / 3;
+            unsigned int triangleCount = (unsigned int)(triangles.size()) / 3;
             if (_verbose) {
                 qDebug() << "  process remaining open parts =" << openParts.size() << ": "
                     << " triangles =" << triangleCount;
