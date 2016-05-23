@@ -106,9 +106,11 @@ float evalLightAttenuation(Light l, float d, vec3 ulightvec) {
     float denom = d / radius + 1.0;
     float attenuation = 1.0 / (denom * denom);
     
+    float cutoff = getLightCutoffRadius(l);
+    
     // "Fade" the edges of light sources to make things look a bit more attractive.
     // Note: this tends to look a bit odd at lower exponents.
-    attenuation *= clamp(0, 1, mix(0, 1, getLightCutoffSquareRadius(l) - dot(ulightvec, ulightvec)));
+    attenuation *= min(1, max(0, -(d - cutoff)));
     
     return attenuation;
 }
