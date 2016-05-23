@@ -130,8 +130,6 @@ ModalWindow {
                     choices = [],
                     i, length;
 
-                console.log("####### folder parts: " + JSON.stringify(folders));
-
                 if (folders[folders.length - 1] === "") {
                     folders.pop();
                 }
@@ -160,9 +158,6 @@ ModalWindow {
 
             onLastValidFolderChanged: {
                 var folder = d.capitalizeDrive(lastValidFolder);
-
-                console.log("####### lastValidFolder: " + folder);
-
                 calculatePathChoices(folder);
             }
 
