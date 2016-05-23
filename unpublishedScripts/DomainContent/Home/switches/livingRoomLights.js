@@ -39,7 +39,7 @@
                 "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
                 "Tex.CeilingLight.Emit": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",
                 "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
-            }
+            };
 
             Entities.editEntity(glowDisc, {
                 textures: JSON.stringify(data)
@@ -51,7 +51,7 @@
                 "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
                 "Tex.CeilingLight.Emit": "",
                 "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
-            }
+            };
 
             Entities.editEntity(glowDisc, {
                 textures: JSON.stringify(data)
@@ -119,62 +119,70 @@
             return found;
         },
 
-        findSwitch: function() {
-            var found = [];
-            var results = Entities.findEntities(this.position, SEARCH_RADIUS);
-            results.forEach(function(result) {
-                var properties = Entities.getEntityProperties(result);
-                if (properties.name === "hifi-home-living-room-light-switch-down") {
-                    found.push(result);
-                }
-            });
-            return found;
-        },
-
         toggleLights: function() {
+
+            _this._switch = getEntityCustomData('home-switch', _this.entityID, {
+                state: 'off'
+            });
 
             var glowLights = this.findGlowLights();
             var masterLights = this.findMasterLights();
             var emitModels = this.findEmitModels();
 
-            glowLights.forEach(function(glowLight) {
-                //     _this.glowLightOff(glowLight);
-            });
+            if (this._switch.state === 'off') {
+                glowLights.forEach(function(glowLight) {
+                    _this.glowLightOn(glowLight);
+                });
+                masterLights.forEach(function(masterLight) {
+                    _this.masterLightOn(masterLight);
+                });
+                emitModels.forEach(function(emitModel) {
+                    _this.modelEmitOn(emitModel);
+                });
+                setEntityCustomData('home-switch', _this.entityID, {
+                    state: 'on'
+                });
 
-            masterLights.forEach(function(masterLight) {
-                _this.masterLightOff(masterLight);
-            });
+                Entities.editEntity(this.entityID, {
+                    "animation": {
+                        "currentFrame": 1,
+                        "firstFrame": 1,
+                        "hold": 1,
+                        "lastFrame": 2,
+                        "url": "atp:/switches/lightswitch.fbx"
+                    },
+                });
 
-            emitModels.forEach(function(emitModel) {
-                _this.modelEmitOff(emitModel);
-            });
+            } else {
+                glowLights.forEach(function(glowLight) {
+                    _this.glowLightOff(glowLight);
+                });
+                masterLights.forEach(function(masterLight) {
+                    _this.masterLightOff(masterLight);
+                });
+                emitModels.forEach(function(emitModel) {
+                    _this.modelEmitOff(emitModel);
+                });
+                setEntityCustomData('home-switch', this.entityID, {
+                    state: 'off'
+                });
 
+                Entities.editEntity(this.entityID, {
+                    "animation": {
+                        "currentFrame": 3,
+                        "firstFrame": 3,
+                        "hold": 1,
+                        "lastFrame": 4,
+                        "url": "atp:/switches/lightswitch.fbx"
+                    },
+                });
+            }
 
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
                 position: this.position
             });
 
-            Entities.editEntity(this.entityID, {
-                position: {
-                    x: 1103.9894,
-                    y: 460.6867,
-                    z: -75.5650
-                }
-            });
-
-            var otherSwitch = this.findSwitch();
-
-            print('other switch:: ' + otherSwitch)
-
-            var success = Entities.editEntity(otherSwitch.toString(), {
-                position: {
-                    x: 1103.5823,
-                    y: 460.6867,
-                    z: -75.6313
-                }
-            })
-            print('edit success ' + success)
         },
 
         preload: function(entityID) {
@@ -184,6 +192,7 @@
             });
 
             var properties = Entities.getEntityProperties(this.entityID);
+
 
             //The light switch is static, so just cache its position once
             this.position = Entities.getEntityProperties(this.entityID, "position").position;

@@ -171,8 +171,27 @@ var TARGET_BLOCKS_POSITION = {
 
             }
         },
+        findBlocks: function() {
+            var found = [];
+            var results = Entities.findEntities(this.position, 10);
+            results.forEach(function(result) {
+                var properties = Entities.getEntityProperties(result);
+                print('got result props')
+                if (properties.name.indexOf('blocky_block') > -1) {
+                    found.push(result);
+                }
+            });
+            return found;
+        },
+
         cleanup: function() {
             print('BLOCKY cleanup');
+            var blocks = this.findBlocks();
+            print('BLOCKY cleanup2')
+            blocks.forEach(function(block) {
+                Entities.deleteEntity(block);
+            })
+            print('BLOCKY after find and delete')
             this.targetBlocks.forEach(function(block) {
                 Entities.deleteEntity(block);
             });
