@@ -22,7 +22,9 @@ class GL45Buffer : public gl::GLBuffer {
 public:
     GL45Buffer(const Buffer& buffer, GLBuffer* original) : Parent(buffer, allocate()) {
         glNamedBufferStorage(_buffer, _size, nullptr, GL_DYNAMIC_STORAGE_BIT);
-        glCopyNamedBufferSubData(original->_buffer, _buffer, 0, 0, std::min(original->_size, _size));
+        if (original && original->_size) {
+            glCopyNamedBufferSubData(original->_buffer, _buffer, 0, 0, std::min(original->_size, _size));
+        }
         Backend::setGPUObject(buffer, this);
     }
 
