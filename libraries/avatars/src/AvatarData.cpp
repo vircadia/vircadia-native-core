@@ -49,6 +49,7 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
 namespace AvatarDataPacket {
+    // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
         float position[3];            // skeletal model's position
