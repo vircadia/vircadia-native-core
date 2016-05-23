@@ -17,8 +17,8 @@
         { "from": "Vive.RS", "to": "Standard.RS" },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
 
-        { "from": "Vive.LeftApplicationMenu", "to": "Standard.Back" },
-        { "from": "Vive.RightApplicationMenu", "to": "Standard.Start" },
+        { "from": "Vive.LeftApplicationMenu", "to": "Standard.LeftSecondaryThumb" },
+        { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
         { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
         { "from": "Vive.RightHand", "to": "Standard.RightHand" }
