@@ -137,6 +137,9 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
 
+    requestedProperties += PROP_CLIENT_ONLY;
+    requestedProperties += PROP_OWNING_AVATAR_ID;
+
     return requestedProperties;
 }
 
@@ -1093,6 +1096,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     properties._id = getID();
     properties._idSet = true;
     properties._created = _created;
+    properties.setClientOnly(_clientOnly);
+    properties.setOwningAvatarID(_owningAvatarID);
 
     properties._type = getType();
 
@@ -1132,6 +1137,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(clientOnly, getClientOnly);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
 
     properties._defaultSettings = false;
 
@@ -1221,6 +1229,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(clientOnly, setClientOnly);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
     AACube saveQueryAACube = _queryAACube;
     checkAndAdjustQueryAACube();

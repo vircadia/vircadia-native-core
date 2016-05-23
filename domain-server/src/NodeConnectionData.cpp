@@ -23,7 +23,7 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
     
     dataStream >> newHeader.nodeType
         >> newHeader.publicSockAddr >> newHeader.localSockAddr
-        >> newHeader.interestList;
+        >> newHeader.interestList >> newHeader.placeName;
 
     newHeader.senderSockAddr = senderSockAddr;
     

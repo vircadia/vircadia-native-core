@@ -27,7 +27,6 @@ public:
 
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual bool isJointController() const override { return true; }
     virtual const QString& getName() const override { return NAME; }
     const QString& getID() const override { return NEURON_ID_STRING; }
 
@@ -35,7 +34,7 @@ public:
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
@@ -56,7 +55,7 @@ protected:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override {};
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override {};
         virtual void focusOutEvent() override {};
 
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints);

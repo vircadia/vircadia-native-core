@@ -89,7 +89,7 @@ public:
     virtual GLWidget* getPrimaryWidget() override { return nullptr; }
     virtual MainWindow* getPrimaryWindow() override { return nullptr; }
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
-    virtual ui::Menu* getPrimaryMenu() { return nullptr; }
+    virtual ui::Menu* getPrimaryMenu() override { return nullptr; }
     virtual bool isForeground() override { return true; }
     virtual const DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer();  }
 };
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
         };
 
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-            inputPlugin->pluginUpdate(delta, calibrationData, false);
+            inputPlugin->pluginUpdate(delta, calibrationData);
         }
 
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
             if (name == KeyboardMouseDevice::NAME) {
                 userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
             }
-            inputPlugin->pluginUpdate(0, calibrationData, false);
+            inputPlugin->pluginUpdate(0, calibrationData);
         }
         rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }

@@ -295,14 +295,20 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 // set our current root place name to the name that came back
                 const QString PLACE_NAME_KEY = "name";
                 QString placeName = rootMap[PLACE_NAME_KEY].toString();
+
                 if (!placeName.isEmpty()) {
                     if (setHost(placeName, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
+
+                    _placeName = placeName;
                 } else {
                     if (setHost(domainIDString, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
+                    
+                    // this isn't a place, so clear the place name
+                    _placeName.clear();
                 }
 
                 // check if we had a path to override the path returned
@@ -374,7 +380,7 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
     // remember how this lookup was triggered for history storage handling later
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
 
-    AccountManager::getInstance().sendRequest(GET_PLACE.arg(placeName),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_PLACE.arg(placeName),
                                               AccountManagerAuth::None,
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
@@ -397,7 +403,7 @@ void AddressManager::attemptDomainIDLookup(const QString& lookupString, const QS
     // remember how this lookup was triggered for history storage handling later
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
 
-    AccountManager::getInstance().sendRequest(GET_DOMAIN_ID.arg(domainID),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_DOMAIN_ID.arg(domainID),
                                                 AccountManagerAuth::None,
                                                 QNetworkAccessManager::GetOperation,
                                                 apiCallbackParameters(),
@@ -577,11 +583,12 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
     return false;
 }
 
-
 bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
     bool hostChanged = setHost(hostname, trigger, port);
 
+    // clear any current place information
     _rootPlaceID = QUuid();
+    _placeName.clear();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
 
@@ -600,7 +607,7 @@ void AddressManager::goToUser(const QString& username) {
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(LookupTrigger::UserInput));
 
     // this is a username - pull the captured name and lookup that user's location
-    AccountManager::getInstance().sendRequest(GET_USER_LOCATION.arg(formattedUsername),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_USER_LOCATION.arg(formattedUsername),
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),

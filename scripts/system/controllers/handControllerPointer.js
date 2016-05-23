@@ -178,7 +178,10 @@ var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.01;
 function updateSeeking() {
     if (!Reticle.visible || isShakingMouse()) {
-        isSeeking = true;
+        if (!isSeeking) {
+            print('Start seeking mouse.');
+            isSeeking = true;
+        }
     } // e.g., if we're about to turn it on with first movement.
     if (!isSeeking) {
         return;
@@ -186,7 +189,9 @@ function updateSeeking() {
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
     if (!lookAt2D) {
-        print('Cannot seek without lookAt position');
+        // FIXME - determine if this message is useful but make it so it doesn't spam the
+        // log in the case that it is happening
+        //print('Cannot seek without lookAt position');
         return;
     } // E.g., if parallel to location in HUD
     var copy = Reticle.position;
@@ -201,6 +206,7 @@ function updateSeeking() {
     }
     var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
     if (okX && okY) {
+        print('Finished seeking mouse');
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
@@ -420,7 +426,9 @@ function update() {
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
-        print('Controller is parallel to HUD');
+        // FIXME - determine if this message is useful but make it so it doesn't spam the
+        // log in the case that it is happening
+        //print('Controller is parallel to HUD');
         return turnOffVisualization();
     }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
@@ -440,7 +448,7 @@ function update() {
     updateVisualization(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
 }
 
-var UPDATE_INTERVAL = 20; // milliseconds. Script.update is too frequent.
+var UPDATE_INTERVAL = 50; // milliseconds. Script.update is too frequent.
 var updater = Script.setInterval(update, UPDATE_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(updater);

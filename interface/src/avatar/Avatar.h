@@ -64,6 +64,7 @@ public:
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
+    void updateAvatarEntities();
     void simulate(float deltaTime);
     virtual void simulateAttachments(float deltaTime);
 

@@ -15,7 +15,6 @@
 
 const float CONTROLLER_THRESHOLD = 0.3f;
 
-#ifdef HAVE_SDL2
 const float MAX_AXIS = 32768.0f;
 
 Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameController) :
@@ -27,19 +26,15 @@ Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameControl
     
 }
 
-#endif
-
 Joystick::~Joystick() {
     closeJoystick();
 }
 
 void Joystick::closeJoystick() {
-#ifdef HAVE_SDL2
     SDL_GameControllerClose(_sdlGameController);
-#endif
 }
 
-void Joystick::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void Joystick::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     for (auto axisState : _axisStateMap) {
         if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
             _axisStateMap[axisState.first] = 0.0f;
@@ -51,8 +46,6 @@ void Joystick::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
 };
-
-#ifdef HAVE_SDL2
 
 void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
     SDL_GameControllerAxis axis = (SDL_GameControllerAxis) event.axis;
@@ -68,8 +61,6 @@ void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
         _buttonPressedMap.erase(input.getChannel());
     }
 }
-
-#endif
 
 controller::Input::NamedVector Joystick::getAvailableInputs() const {
     using namespace controller;

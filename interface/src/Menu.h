@@ -84,7 +84,6 @@ namespace MenuOption {
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
     const QString DisableLightEntities = "Disable Light Entities";
-    const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHandTargets = "Show Hand Targets";
@@ -114,7 +113,7 @@ namespace MenuOption {
     const QString Help = "Help...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
-    const QString InputMenu = "Avatar>Input Devices";
+    const QString InputMenu = "Developer>Avatar>Input Devices";
     const QString ActionMotorControl = "Enable Default Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
