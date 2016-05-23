@@ -296,7 +296,7 @@ public:
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
-        AvatarEntityMap avatarEntityMap;
+        AvatarEntityMap avatarEntityData;
     };
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
