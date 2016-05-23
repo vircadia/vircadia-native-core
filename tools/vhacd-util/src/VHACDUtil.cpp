@@ -310,8 +310,9 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
         for (int i = 0; i < mesh.vertices.size(); ++i) {
             dupeIndexMap.push_back(i);
             for (int j = 0; j < i; ++j) {
-                float distance = glm::distance(mesh.vertices[i], mesh.vertices[j]);
-                if (distance < 0.0001f) {
+                float distance = glm::distance2(mesh.vertices[i], mesh.vertices[j]);
+                const float MAX_DUPE_DISTANCE_SQUARED = 0.000001f;
+                if (distance < MAX_DUPE_DISTANCE_SQUARED) {
                     dupeIndexMap[i] = j;
                     ++numDupes;
                     break;
