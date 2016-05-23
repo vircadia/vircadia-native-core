@@ -356,7 +356,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         begin = std::chrono::high_resolution_clock::now();
 
         FBXGeometry result;
-        bool success = vUtil.computeVHACD(fbx, params, result, startMeshIndex, endMeshIndex, minimumMeshSize, maximumMeshSize);
+        bool success = vUtil.computeVHACD(fbx, params, result, minimumMeshSize, maximumMeshSize);
 
         end = std::chrono::high_resolution_clock::now();
         auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();

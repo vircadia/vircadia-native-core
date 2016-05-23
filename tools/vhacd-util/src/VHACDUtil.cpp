@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <unordered_map>
 #include <QVector>
 #include "VHACDUtil.h"
 
@@ -49,7 +50,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 
         reSortFBXGeometryMeshes(result);
     } catch (const QString& error) {
-        qDebug() << "Error reading " << filename << ": " << error;
+        qDebug() << "Error reading" << filename << ":" << error;
         return false;
     }
 
@@ -57,13 +58,12 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 }
 
 
-unsigned int getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangles) {
+void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangles) {
     // append all the triangles (and converted quads) from this mesh-part to triangles
     std::vector<int> meshPartTriangles = meshPart.triangleIndices.toStdVector();
     triangles.insert(triangles.end(), meshPartTriangles.begin(), meshPartTriangles.end());
 
     // convert quads to triangles
-    unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
     unsigned int quadCount = meshPart.quadIndices.size() / 4;
     for (unsigned int i = 0; i < quadCount; i++) {
         unsigned int p0Index = meshPart.quadIndices[i * 4];
@@ -77,10 +77,7 @@ unsigned int getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int
         triangles.push_back(p0Index);
         triangles.push_back(p2Index);
         triangles.push_back(p3Index);
-        triangleCount += 2;
     }
-
-    return triangleCount;
 }
 
 
@@ -177,40 +174,139 @@ AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
     return aaBox;
 }
 
+struct TriangleEdge {
+    int indexA { -1 };
+    int indexB { -1 };
+    TriangleEdge() {}
+    TriangleEdge(int A, int B) : indexA(A), indexB(B) {}
+    bool operator==(const TriangleEdge& other) const {
+        return indexA == other.indexA && indexB == other.indexB;
+    }
+    void sortIndices() {
+        if (indexB < indexA) {
+            int t = indexA;
+            indexA = indexB;
+            indexB = t;
+        }
+    }
+};
 
+namespace std {
+    template <>
+    struct hash<TriangleEdge> {
+        std::size_t operator()(const TriangleEdge& edge) const {
+            return (hash<int>()(edge.indexA) ^ (hash<int>()(edge.indexB) << 1));
+        }
+    };
+}
+
+// returns false if any edge has only one adjacent triangle
+bool isClosedManifold(const std::vector<int>& triangles) {
+    using EdgeList = std::unordered_map<TriangleEdge, int>;
+    EdgeList edges;
+
+    // count the triangles for each edge
+    for (size_t i = 0; i < triangles.size(); i += 3) {
+        TriangleEdge edge;
+        for (int j = 0; j < 3; ++j) {
+            edge.indexA = triangles[(int)i + j];
+            edge.indexB = triangles[i + ((j + 1) % 3)];
+            edge.sortIndices();
+
+            EdgeList::iterator edgeEntry = edges.find(edge);
+            if (edgeEntry == edges.end()) {
+                edges.insert(std::pair<TriangleEdge, int>(edge, 1));
+            } else {
+                edgeEntry->second += 1;
+            }
+        }
+    }
+    // scan for outside edge
+    for (auto& edgeEntry : edges) {
+        if (edgeEntry.second == 1) {
+             return false;
+        }
+    }
+    return true;
+}
+
+void getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& resultMesh) {
+    // Number of hulls for this input meshPart
+    unsigned int numHulls = convexifier->GetNConvexHulls();
+    qDebug() << "  hulls =" << numHulls;
+
+    // create an output meshPart for each convex hull
+    for (unsigned int j = 0; j < numHulls; j++) {
+        VHACD::IVHACD::ConvexHull hull;
+        convexifier->GetConvexHull(j, hull);
+
+        resultMesh.parts.append(FBXMeshPart());
+        FBXMeshPart& resultMeshPart = resultMesh.parts.last();
+
+        int hullIndexStart = resultMesh.vertices.size();
+        for (unsigned int i = 0; i < hull.m_nPoints; i++) {
+            float x = hull.m_points[i * 3];
+            float y = hull.m_points[i * 3 + 1];
+            float z = hull.m_points[i * 3 + 2];
+            resultMesh.vertices.append(glm::vec3(x, y, z));
+        }
+
+        for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
+            int index0 = hull.m_triangles[i * 3] + hullIndexStart;
+            int index1 = hull.m_triangles[i * 3 + 1] + hullIndexStart;
+            int index2 = hull.m_triangles[i * 3 + 2] + hullIndexStart;
+            resultMeshPart.triangleIndices.append(index0);
+            resultMeshPart.triangleIndices.append(index1);
+            resultMeshPart.triangleIndices.append(index2);
+        }
+        qDebug() << "    hull" << j << " vertices =" << hull.m_nPoints
+            << " triangles =" << hull.m_nTriangles
+            << " FBXMeshVertices =" << resultMesh.vertices.size();
+    }
+}
+
+float computeDt(uint64_t start) {
+    return (float)(usecTimestampNow() - start) / 1.0e6f;
+}
 
 bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                                     VHACD::IVHACD::Parameters params,
                                     FBXGeometry& result,
-                                    int startPartIndex,
-                                    int endPartIndex,
                                     float minimumMeshSize, float maximumMeshSize) {
-    qDebug() << "num meshes =" << geometry.meshes.size();
+    qDebug() << "meshes =" << geometry.meshes.size();
 
     // count the mesh-parts
     int numParts = 0;
     foreach (const FBXMesh& mesh, geometry.meshes) {
         numParts += mesh.parts.size();
     }
+    qDebug() << "total parts =" << numParts;
 
-    VHACD::IVHACD * interfaceVHACD = VHACD::CreateVHACD();
-
-    if (startPartIndex < 0) {
-        startPartIndex = 0;
-    }
-    if (endPartIndex < 0) {
-        endPartIndex = numParts;
-    }
-    qDebug() << "num parts of interest =" << (endPartIndex - startPartIndex);
+    VHACD::IVHACD * convexifier = VHACD::CreateVHACD();
 
     result.meshExtents.reset();
     result.meshes.append(FBXMesh());
     FBXMesh &resultMesh = result.meshes.last();
 
     int meshIndex = 0;
-    int partIndex = 0;
     int validPartsFound = 0;
     foreach (const FBXMesh& mesh, geometry.meshes) {
+
+        // find duplicate points
+        int numDupes = 0;
+        std::vector<int> dupeIndexMap;
+        dupeIndexMap.reserve(mesh.vertices.size());
+        for (int i = 0; i < mesh.vertices.size(); ++i) {
+            dupeIndexMap.push_back(i);
+            for (int j = 0; j < i; ++j) {
+                float distance = glm::distance(mesh.vertices[i], mesh.vertices[j]);
+                if (distance < 0.0001f) {
+                    dupeIndexMap[i] = j;
+                    ++numDupes;
+                    break;
+                }
+            }
+        }
 
         // each mesh has its own transform to move it to model-space
         std::vector<glm::vec3> vertices;
@@ -224,87 +320,93 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             << " vertices =" << numVertices;
         ++meshIndex;
 
+        std::vector<int> openParts;
+
+        int partIndex = 0;
         foreach (const FBXMeshPart &meshPart, mesh.parts) {
-            if (partIndex < startPartIndex || partIndex >= endPartIndex) {
+            std::vector<int> triangles;
+            getTrianglesInMeshPart(meshPart, triangles);
+
+            // only process meshes with triangles
+            if (triangles.size() <= 0) {
+                qDebug() << "  skip part" << partIndex << "(zero triangles)";
                 ++partIndex;
                 continue;
             }
 
-            std::vector<int> triangles;
-            unsigned int triangleCount = getTrianglesInMeshPart(meshPart, triangles);
-
-            // only process meshes with triangles
-            if (triangles.size() <= 0) {
-                qDebug() << "  part" << partIndex << ":";
-                qDebug() << "  skip (zero triangles)";
-                ++partIndex;
-                continue;
+            // collapse dupe indices
+            for (auto& i : triangles) {
+                i = dupeIndexMap[i];
             }
 
             AABox aaBox = getAABoxForMeshPart(mesh, meshPart);
             const float largestDimension = aaBox.getLargestDimension();
 
-            qDebug() << "  part" << partIndex << ": "
-                << " triangles =" << triangleCount
-                << " largestDimension =" << largestDimension;
-
             if (largestDimension < minimumMeshSize) {
-                qDebug() << "  skip (too small)";
+                qDebug() << "  skip part" << partIndex << ":  dimension =" << largestDimension << "(too small)";
                 ++partIndex;
                 continue;
             }
 
             if (maximumMeshSize > 0.0f && largestDimension > maximumMeshSize) {
-                qDebug() << "  skip (too large)";
+                qDebug() << "  skip part" << partIndex << ":  dimension =" << largestDimension << "(too large)";
                 ++partIndex;
                 continue;
             }
 
+            // figure out if the mesh is a closed manifold or not
+            bool closed = isClosedManifold(triangles);
+            if (closed) {
+                unsigned int triangleCount = triangles.size() / 3;
+                qDebug() << "  process closed part" << partIndex << ": "
+                    << " triangles =" << triangleCount;
 
-            // compute approximate convex decomposition
-            bool success = interfaceVHACD->Compute(&vertices[0].x, 3, (uint)numVertices, &triangles[0], 3, triangleCount, params);
-            if (!success){
-                qDebug() << "  failed to convexify";
-                ++partIndex;
-                continue;
-            }
-
-            // Number of hulls for this input meshPart
-            unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
-
-            // create an output meshPart for each convex hull
-            for (unsigned int j = 0; j < nConvexHulls; j++) {
-                VHACD::IVHACD::ConvexHull hull;
-                interfaceVHACD->GetConvexHull(j, hull);
-
-                resultMesh.parts.append(FBXMeshPart());
-                FBXMeshPart &resultMeshPart = resultMesh.parts.last();
-
-                int hullIndexStart = resultMesh.vertices.size();
-                for (unsigned int i = 0; i < hull.m_nPoints; i++) {
-                    float x = hull.m_points[i * 3];
-                    float y = hull.m_points[i * 3 + 1];
-                    float z = hull.m_points[i * 3 + 2];
-                    resultMesh.vertices.append(glm::vec3(x, y, z));
+                // compute approximate convex decomposition
+                bool success = convexifier->Compute(&vertices[0].x, 3, (uint)numVertices, &triangles[0], 3, triangleCount, params);
+                if (success) {
+                    getConvexResults(convexifier, resultMesh);
+                } else {
+                    qDebug() << "  failed to convexify";
                 }
-
-                for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
-                    int index0 = hull.m_triangles[i * 3] + hullIndexStart;
-                    int index1 = hull.m_triangles[i * 3 + 1] + hullIndexStart;
-                    int index2 = hull.m_triangles[i * 3 + 2] + hullIndexStart;
-                    resultMeshPart.triangleIndices.append(index0);
-                    resultMeshPart.triangleIndices.append(index1);
-                    resultMeshPart.triangleIndices.append(index2);
-                }
+            } else {
+                qDebug() << "  postpone open part" << partIndex;
+                openParts.push_back(partIndex);
             }
             ++partIndex;
             ++validPartsFound;
         }
+        if (! openParts.empty()) {
+            // combine open meshes in an attempt to produce a closed mesh
+
+            std::vector<int> triangles;
+            for (auto index : openParts) {
+                const FBXMeshPart &meshPart = mesh.parts[index];
+                getTrianglesInMeshPart(meshPart, triangles);
+            }
+
+            // collapse dupe indices
+            for (auto& i : triangles) {
+                i = dupeIndexMap[i];
+            }
+
+            // this time we don't care if the parts are close or not
+            unsigned int triangleCount = triangles.size() / 3;
+            qDebug() << "  process remaining open parts =" << openParts.size() << ": "
+                << " triangles =" << triangleCount;
+
+            // compute approximate convex decomposition
+            bool success = convexifier->Compute(&vertices[0].x, 3, (uint)numVertices, &triangles[0], 3, triangleCount, params);
+            if (success) {
+                getConvexResults(convexifier, resultMesh);
+            } else {
+                qDebug() << "  failed to convexify";
+            }
+        }
     }
 
     //release memory
-    interfaceVHACD->Clean();
-    interfaceVHACD->Release();
+    convexifier->Clean();
+    convexifier->Release();
 
     return validPartsFound > 0;
 }
