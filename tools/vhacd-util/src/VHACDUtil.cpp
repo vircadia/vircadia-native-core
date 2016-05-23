@@ -424,7 +424,7 @@ void vhacd::ProgressCallback::Update(const double overallProgress,
     int progress = (int)(overallProgress + 0.5);
 
     std::cout << "\b\b\b";
-    std::cout << progress << "%";
+    std::cout << progress << "%" << std::flush;
     if (progress >= 100) {
         std::cout << std::endl;
     }

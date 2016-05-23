@@ -329,10 +329,10 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     if (generateHulls) {
         VHACD::IVHACD::Parameters params;
-        vhacd::ProgressCallback pCallBack;
+        vhacd::ProgressCallback progressCallback;
 
         //set parameters for V-HACD
-        params.m_callback = &pCallBack; //progress callback
+        params.m_callback = &progressCallback; //progress callback
         params.m_resolution = vHacdResolution;
         params.m_depth = vHacdDepth;
         params.m_concavity = vHacdConcavity;
@@ -346,7 +346,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
         params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
         params.m_minVolumePerCH = 0.0001; // 0.0001
-        params.m_callback = 0; // 0
         params.m_logger = 0; // 0
         params.m_convexhullApproximation = true; // true
         params.m_oclAcceleration = true; // true
