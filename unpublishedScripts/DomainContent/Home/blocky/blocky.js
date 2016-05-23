@@ -48,23 +48,23 @@ var blocks = [
 var arrangements = [{
     name: 'tall',
     blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN],
-    target: "atp:/blocky/arrangement1A.json"
+    target: "atp:/blocky/newblocks1.json"
 }, {
     name: 'ostrich',
     blocks: [BLOCK_RED, BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_NATURAL],
-    target: "atp:/blocky/arrangement2A.json"
+    target: "atp:/blocky/newblocks5.json"
 }, {
     name: 'froglog',
     blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
-    target: "atp:/blocky/arrangement3A.json"
+    target: "atp:/blocky/newblocks2.json"
 }, {
     name: 'allOneLeg',
     blocks: [BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_BLUE, BLOCK_BLUE, BLOCK_NATURAL],
-    target: "atp:/blocky/arrangement4A.json"
+    target: "atp:/blocky/newblocks3.json"
 }, {
     name: 'threeppl',
     blocks: [BLOCK_BLUE, BLOCK_YELLOW, BLOCK_BLUE, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
-    target: "atp:/blocky/arrangement5B.json"
+    target: "atp:/blocky/newblocks4.json"
 }, {
     name: 'dominoes',
     blocks: [BLOCK_RED, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW],
@@ -82,9 +82,9 @@ var TARGET_BLOCKS_POSITION = {
     y: 460.5,
     z: -67.689
 };
-
+//#debug
 (function() {
-    //#debug
+
     print('BLOCK ENTITY SCRIPT')
     var _this;
 
@@ -93,7 +93,7 @@ var TARGET_BLOCKS_POSITION = {
     }
 
     Blocky.prototype = {
-        debug: false,
+        debug: true,
         playableBlocks: [],
         targetBlocks: [],
         preload: function(entityID) {
@@ -122,7 +122,8 @@ var TARGET_BLOCKS_POSITION = {
                     name: "home_model_blocky_block",
                     type: 'Model',
                     collisionSoundURL: "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
-                    dynamic: true,
+                    dynamic: false,
+                    collisionless: true,
                     gravity: {
                         x: 0,
                         y: -9.8,
@@ -173,7 +174,7 @@ var TARGET_BLOCKS_POSITION = {
         },
         findBlocks: function() {
             var found = [];
-            var results = Entities.findEntities(this.position, 10);
+            var results = Entities.findEntities(MyAvatar.position, 10);
             results.forEach(function(result) {
                 var properties = Entities.getEntityProperties(result);
                 print('got result props')
@@ -187,7 +188,7 @@ var TARGET_BLOCKS_POSITION = {
         cleanup: function() {
             print('BLOCKY cleanup');
             var blocks = this.findBlocks();
-            print('BLOCKY cleanup2')
+            print('BLOCKY cleanup2' + blocks.length)
             blocks.forEach(function(block) {
                 Entities.deleteEntity(block);
             })
@@ -211,12 +212,13 @@ var TARGET_BLOCKS_POSITION = {
                     name: "home_model_blocky_block",
                     type: 'Model',
                     collisionSoundURL: "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
-                    dynamic: true,
-                    gravity: {
-                        x: 0,
-                        y: -9.8,
-                        z: 0
-                    },
+                    dynamic: false,
+                    collisionless: true,
+                    // gravity: {
+                    //     x: 0,
+                    //     y: -9.8,
+                    //     z: 0
+                    // },
                     userData: JSON.stringify({
                         grabbableKey: {
                             grabbable: true
