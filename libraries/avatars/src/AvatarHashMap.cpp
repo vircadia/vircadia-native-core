@@ -112,7 +112,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 
     // mesh URL for a UUID, find avatar in our list
     auto avatar = newOrExistingAvatar(identity.uuid, sendingNode);
-
     avatar->processAvatarIdentity(identity);
 }
 

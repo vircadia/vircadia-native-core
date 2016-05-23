@@ -53,10 +53,6 @@ EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredPr
     
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
 
-
-    properties._glowLevel = getGlowLevel();
-    properties._glowLevelChanged = false;
-
     return properties;
 }
 

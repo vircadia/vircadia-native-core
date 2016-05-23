@@ -202,7 +202,7 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data) {
 }
 
 MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end,
-                           ReceivedAssetCallback callback, ProgressCallback progressCallback) {
+                                ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
@@ -238,8 +238,6 @@ MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffse
         callback(false, AssetServerError::NoError, QByteArray());
         return INVALID_MESSAGE_ID;
     }
-
-
 }
 
 MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callback) {

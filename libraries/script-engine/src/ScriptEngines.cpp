@@ -150,6 +150,7 @@ void ScriptEngines::shutdownScripting() {
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
         // them. We don't need to stop scripts that aren't running.
+        // TODO: Scripts could be shut down faster if we spread them across a threadpool.
         if (scriptEngine->isRunning()) {
             qCDebug(scriptengine) << "about to shutdown script:" << scriptName;
 
@@ -158,8 +159,7 @@ void ScriptEngines::shutdownScripting() {
             // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(this);
 
-            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
-            // in the ScriptEngine gracefully ending it's run() method.
+            // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
 
             // We need to wait for the engine to be done running before we proceed, because we don't
@@ -171,7 +171,7 @@ void ScriptEngines::shutdownScripting() {
 
             scriptEngine->deleteLater();
 
-            // If the script is stopped, we can remove it from our set
+            // Once the script is stopped, we can remove it from our set
             i.remove();
         }
     }
@@ -256,7 +256,7 @@ QVariantList ScriptEngines::getRunning() {
 }
 
 
-static const QString SETTINGS_KEY = "Settings";
+static const QString SETTINGS_KEY = "RunningScripts";
 
 void ScriptEngines::loadDefaultScripts() {
     QUrl defaultScriptsLoc = defaultScriptsLocation();
@@ -281,6 +281,43 @@ void ScriptEngines::loadScripts() {
 
     // loads all saved scripts
     Settings settings;
+
+
+    // START of backward compatibility code
+    // This following if statement is only meant to update the settings file still using the old setting key.
+    // If you read that comment and it has been more than a couple months since it was merged,
+    // then by all means, feel free to remove it.
+    if (!settings.childGroups().contains(SETTINGS_KEY)) {
+        qWarning() << "Detected old script settings config, loading from previous location";
+        const QString oldKey = "Settings";
+
+        // Load old scripts array from settings
+        int size = settings.beginReadArray(oldKey);
+        for (int i = 0; i < size; ++i) {
+            settings.setArrayIndex(i);
+            QString string = settings.value("script").toString();
+            if (!string.isEmpty()) {
+                loadScript(string);
+            }
+        }
+        settings.endArray();
+
+        // Cleanup old scripts array from settings
+        settings.beginWriteArray(oldKey);
+        for (int i = 0; i < size; ++i) {
+            settings.setArrayIndex(i);
+            settings.remove("");
+        }
+        settings.endArray();
+        settings.beginGroup(oldKey);
+        settings.remove("size");
+        settings.endGroup();
+
+        return;
+    }
+    // END of backward compatibility code
+
+
     int size = settings.beginReadArray(SETTINGS_KEY);
     for (int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);
@@ -427,7 +464,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return scriptEngine;
     }
 
-    scriptEngine = new ScriptEngine(NO_SCRIPT, "", true);
+    scriptEngine = new ScriptEngine(NO_SCRIPT, "");
     scriptEngine->setUserLoaded(isUserLoaded);
     connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
         scriptEngine->deleteLater();

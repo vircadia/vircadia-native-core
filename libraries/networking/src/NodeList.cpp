@@ -80,16 +80,16 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // send a ping punch immediately
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
-    auto &accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
     
     // assume that we may need to send a new DS check in anytime a new keypair is generated 
-    connect(&accountManager, &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
+    connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished
-    connect(&accountManager, &AccountManager::loginComplete , this, &NodeList::reset);
+    connect(accountManager.data(), &AccountManager::loginComplete , this, &NodeList::reset);
 
     // clear our NodeList when logout is requested
-    connect(&accountManager, &AccountManager::logoutComplete , this, &NodeList::reset);
+    connect(accountManager.data(), &AccountManager::logoutComplete , this, &NodeList::reset);
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -273,7 +273,7 @@ void NodeList::sendDomainServerCheckIn() {
         }
 
         // check if we're missing a keypair we need to verify ourselves with the domain-server
-        auto& accountManager = AccountManager::getInstance();
+        auto accountManager = DependencyManager::get<AccountManager>();
         const QUuid& connectionToken = _domainHandler.getConnectionToken();
 
         // we assume that we're on the same box as the DS if it has the same local address and
@@ -283,10 +283,10 @@ void NodeList::sendDomainServerCheckIn() {
 
         bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull() && !localhostDomain;
 
-        if (requiresUsernameSignature && !accountManager.getAccountInfo().hasPrivateKey()) {
+        if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
             qWarning() << "A keypair is required to present a username signature to the domain-server"
                 << "but no keypair is present. Waiting for keypair generation to complete.";
-            accountManager.generateNewUserKeypair();
+            accountManager->generateNewUserKeypair();
 
             // don't send the check in packet - wait for the keypair first
             return;
@@ -314,16 +314,18 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << connectUUID;
         }
 
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        // pack our data to send to the domain-server including
+        // the hostname information (so the domain-server can see which place name we came in on)
+        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList()
+            << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {
-            DataServerAccountInfo& accountInfo = accountManager.getAccountInfo();
+            DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
 
             // if this is a connect request, and we can present a username signature, send it along
-            if (requiresUsernameSignature && accountManager.getAccountInfo().hasPrivateKey()) {
-                const QByteArray& usernameSignature = accountManager.getAccountInfo().getUsernameSignature(connectionToken);
+            if (requiresUsernameSignature && accountManager->getAccountInfo().hasPrivateKey()) {
+                const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
                 packetStream << usernameSignature;
             }
         }

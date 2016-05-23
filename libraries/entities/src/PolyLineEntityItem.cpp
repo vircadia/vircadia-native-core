@@ -58,9 +58,6 @@ EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desir
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
-
-    properties._glowLevel = getGlowLevel();
-    properties._glowLevelChanged = false;
     return properties;
 }
 
