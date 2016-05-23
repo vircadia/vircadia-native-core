@@ -61,12 +61,14 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t HEADER_SIZE = 49;
 
+    // only present if HAS_REFERENTIAL flag is set in header.flags
     PACKED_BEGIN struct ParentInfo {
         uint8_t parentUUID[16];       // rfc 4122 encoded
         uint16_t parentJointIndex;
     } PACKED_END;
     const size_t PARENT_INFO_SIZE = 18;
 
+    // only present if IS_FACESHIFT_CONNECTED flag is set in header.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
         float rightEyeBlink;
@@ -76,6 +78,17 @@ namespace AvatarDataPacket {
         // float blendshapeCoefficients[numBlendshapeCoefficients];
     } PACKED_END;
     const size_t FACE_TRACKER_INFO_SIZE = 17;
+
+    // variable length structure follows
+    /*
+    struct JointData {
+        uint8_t numJoints;
+        uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
+        SixByteQuat rotation[numValidRotations];  // encodeded and compressed by packOrientationQuatToSixBytes()
+        uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
+        SixByteTrans translation[numValidTranslations];  // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+    };
+    */
 }
 
 #define ASSERT(COND)  do { if (!(COND)) { int* bad = nullptr; *bad = 0xbad; } } while(0)
