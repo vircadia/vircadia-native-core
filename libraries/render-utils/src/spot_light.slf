@@ -74,7 +74,7 @@ void main(void) {
     vec4 shading = evalFragShading(fragNormal, fragLightDir, fragEyeDir, frag.metallic, frag.specular, frag.roughness);
  
     // Eval attenuation
-    float radialAttenuation = evalLightAttenuation(light, fragLightDistance4);
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
     float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
 
     // Final Lighting color
