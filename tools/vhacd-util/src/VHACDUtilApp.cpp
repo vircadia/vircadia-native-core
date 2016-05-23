@@ -18,6 +18,9 @@
 using namespace std;
 using namespace VHACD;
 
+const int VHACD_RETURN_CODE_FAILURE_TO_READ = 1;
+const int VHACD_RETURN_CODE_FAILURE_TO_WRITE = 2;
+const int VHACD_RETURN_CODE_FAILURE_TO_CONVEXIFY = 3;
 
 
 QString formatFloat(double n) {
@@ -33,14 +36,15 @@ QString formatFloat(double n) {
 }
 
 
-bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart = -1) {
+bool VHACDUtilApp::writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart) {
     QFile file(outFileName);
     if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "Unable to write to " << outFileName;
+        qWarning() << "unable to write to" << outFileName;
+        _returnCode = VHACD_RETURN_CODE_FAILURE_TO_WRITE;
         return false;
     }
-    QTextStream out(&file);
 
+    QTextStream out(&file);
     if (outputCentimeters) {
         out << "# This file uses centimeters as units\n\n";
     }
@@ -104,6 +108,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     parser.addHelpOption();
 
     const QCommandLineOption helpOption = parser.addHelpOption();
+
+    const QCommandLineOption verboseOutput("v", "verbose output");
+    parser.addOption(verboseOutput);
 
     const QCommandLineOption splitOption("split", "split input-file into one mesh per output-file");
     parser.addOption(splitOption);
@@ -195,8 +202,10 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-    bool outputCentimeters = parser.isSet(outputCentimetersOption);
+    bool verbose = parser.isSet(verboseOutput);
+    vUtil.setVerbose(verbose);
 
+    bool outputCentimeters = parser.isSet(outputCentimetersOption);
     bool fattenFaces = parser.isSet(fattenFacesOption);
     bool generateHulls = parser.isSet(generateHullsOption);
     bool splitModel = parser.isSet(splitOption);
@@ -305,13 +314,15 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     FBXGeometry fbx;
     auto begin = std::chrono::high_resolution_clock::now();
     if (!vUtil.loadFBX(inputFilename, fbx)){
-        qDebug() << "error reading input file" << inputFilename;
+        _returnCode = VHACD_RETURN_CODE_FAILURE_TO_READ;
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
-    qDebug() << "load time =" << (double)loadDuration / 1000000000.00 << "seconds";
+    if (verbose) {
+        qDebug() << "load time =" << (double)loadDuration / 1000000000.00 << "seconds";
+    }
 
     if (splitModel) {
         QVector<QString> infileExtensions = {"fbx", "obj"};
@@ -332,7 +343,11 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         vhacd::ProgressCallback progressCallback;
 
         //set parameters for V-HACD
-        params.m_callback = &progressCallback; //progress callback
+        if (verbose) {
+            params.m_callback = &progressCallback; //progress callback
+        } else {
+            params.m_callback = nullptr;
+        }
         params.m_resolution = vHacdResolution;
         params.m_depth = vHacdDepth;
         params.m_concavity = vHacdConcavity;
@@ -346,12 +361,14 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
         params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
         params.m_minVolumePerCH = 0.0001; // 0.0001
-        params.m_logger = 0; // 0
+        params.m_logger = nullptr;
         params.m_convexhullApproximation = true; // true
         params.m_oclAcceleration = true; // true
 
         //perform vhacd computation
-        qDebug() << "running V-HACD algorithm ...";
+        if (verbose) {
+            qDebug() << "running V-HACD algorithm ...";
+        }
         begin = std::chrono::high_resolution_clock::now();
 
         FBXGeometry result;
@@ -359,10 +376,15 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
         end = std::chrono::high_resolution_clock::now();
         auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
-        qDebug() << "run time =" << (double)computeDuration / 1000000000.00 << " seconds";
+        if (verbose) {
+            qDebug() << "run time =" << (double)computeDuration / 1000000000.00 << " seconds";
+        }
 
         if (!success) {
-            qDebug() << "failed to convexify model";
+            if (verbose) {
+                qDebug() << "failed to convexify model";
+            }
+            _returnCode = VHACD_RETURN_CODE_FAILURE_TO_CONVEXIFY;
             return;
         }
 
@@ -377,11 +399,13 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
             }
         }
 
-        int totalHulls = result.meshes[0].parts.size();
-        qDebug() << "output file =" << outputFilename;
-        qDebug() << "vertices =" << totalVertices;
-        qDebug() << "triangles =" << totalTriangles;
-        qDebug() << "hulls =" << totalHulls;
+        if (verbose) {
+            int totalHulls = result.meshes[0].parts.size();
+            qDebug() << "output file =" << outputFilename;
+            qDebug() << "vertices =" << totalVertices;
+            qDebug() << "triangles =" << totalTriangles;
+            qDebug() << "hulls =" << totalHulls;
+        }
 
         writeOBJ(outputFilename, result, outputCentimeters);
     }

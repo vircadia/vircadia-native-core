@@ -15,12 +15,21 @@
 
 #include <QApplication>
 
+#include <FBXReader.h>
+
 
 class VHACDUtilApp : public QCoreApplication {
     Q_OBJECT
- public:
+public:
     VHACDUtilApp(int argc, char* argv[]);
     ~VHACDUtilApp();
+
+    bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart = -1);
+
+    int getReturnCode() const { return _returnCode; }
+
+private:
+    int _returnCode { 0 };
 };
 
 

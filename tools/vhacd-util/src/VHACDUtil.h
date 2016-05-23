@@ -25,6 +25,8 @@
 namespace vhacd {
     class VHACDUtil {
     public:
+        void setVerbose(bool verbose) { _verbose = verbose; }
+
         bool loadFBX(const QString filename, FBXGeometry& result);
 
         void fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
@@ -35,7 +37,13 @@ namespace vhacd {
                           VHACD::IVHACD::Parameters params,
                           FBXGeometry& result,
                           float minimumMeshSize, float maximumMeshSize);
+
+        void getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& resultMesh) const;
+
         ~VHACDUtil();
+
+    private:
+        bool _verbose { false };
     };
 
     class ProgressCallback : public VHACD::IVHACD::IUserCallback {
@@ -44,7 +52,7 @@ namespace vhacd {
         ~ProgressCallback();
 
         // Couldn't follow coding guideline here due to virtual function declared in IUserCallback
-        void Update(const double overallProgress, const double stageProgress, const double operationProgress, 
+        void Update(const double overallProgress, const double stageProgress, const double operationProgress,
             const char * const stage, const char * const operation);
     };
 }
