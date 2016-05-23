@@ -48,7 +48,8 @@ public:
         Forward,
         StartupFromSettings,
         DomainPathResponse,
-        Internal
+        Internal,
+        AttemptedRefresh
     };
 
     bool isConnected();
@@ -89,6 +90,8 @@ public slots:
 
     void goToUser(const QString& username);
 
+    void refreshPreviousLookup();
+
     void storeCurrentAddress();
 
     void copyAddress();
@@ -99,7 +102,7 @@ signals:
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
 
-    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort);
+    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort, const QUuid& domainID);
     void possibleDomainChangeRequiredViaICEForID(const QString& iceServerHostname, const QUuid& domainID);
 
     void locationChangeRequired(const glm::vec3& newPosition,
@@ -152,6 +155,8 @@ private:
     quint64 _lastBackPush = 0;
 
     QString _newHostLookupPath;
+    
+    QUrl _previousLookup;
 };
 
 #endif // hifi_AddressManager_h
