@@ -330,7 +330,6 @@
                 y: 179.0293,
                 z: 89.9698
             });
-            print('home before cuckooClock')
 
             var cuckooClock = new MyCuckooClock({
                 x: 1105.5237,
@@ -341,11 +340,11 @@
                 y: -57.0089,
                 z: -0.0013
             });
-            print('home after cuckooClock')
+
             var blocky = new BlockyGame({
-                x: 1098.27,
-                y: 460.43,
-                z: -66.15
+                x: 1098.5159,
+                y: 460.0490,
+                z: -66.3012
             })
 
             print('HOME after creating scripted entities')

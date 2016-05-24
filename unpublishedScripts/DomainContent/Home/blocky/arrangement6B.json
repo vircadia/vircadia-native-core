@@ -200,11 +200,6 @@
         },
         {
             "angularDamping": 0,
-            "angularVelocity": {
-                "x": 0,
-                "y": -0.2617993950843811,
-                "z": 0
-            },
             "collisionSoundURL": "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
             "created": "2016-05-09T19:30:40Z",
             "dimensions": {
