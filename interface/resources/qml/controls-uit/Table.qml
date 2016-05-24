@@ -17,20 +17,68 @@ import "../styles-uit"
 TableView {
     id: tableView
 
-    property var tableModel: ListModel { }
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
+    property bool expandSelectedRow: false
 
-    model: tableModel
-
-    TableViewColumn {
-        role: "name"
-    }
-
-    anchors { left: parent.left; right: parent.right }
+    model: ListModel { }
 
     headerVisible: false
-    headerDelegate: Item { }  // Fix OSX QML bug that displays scrollbar starting too low.
+    headerDelegate: Rectangle {
+        height: hifi.dimensions.tableHeaderHeight
+        color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
+
+        RalewayRegular {
+            id: titleText
+            text: styleData.value
+            size: hifi.fontSizes.tableHeading
+            font.capitalization: Font.AllUppercase
+            color: hifi.colors.baseGrayHighlight
+            anchors {
+                left: parent.left
+                leftMargin: hifi.dimensions.tablePadding
+                verticalCenter: parent.verticalCenter
+            }
+        }
+
+        HiFiGlyphs {
+            id: titleSort
+            text:  sortIndicatorOrder == Qt.AscendingOrder ? hifi.glyphs.caratUp : hifi.glyphs.caratDn
+            color: hifi.colors.baseGrayHighlight
+            size: hifi.fontSizes.tableHeadingIcon
+            anchors {
+                left: titleText.right
+                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3
+                right: parent.right
+                rightMargin: hifi.dimensions.tablePadding
+                verticalCenter: titleText.verticalCenter
+            }
+            visible: sortIndicatorVisible && sortIndicatorColumn === styleData.column
+        }
+
+        Rectangle {
+            width: 1
+            anchors {
+                left: parent.left
+                top: parent.top
+                topMargin: 1
+                bottom: parent.bottom
+                bottomMargin: 2
+            }
+            color: isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
+            visible: styleData.column > 0
+        }
+
+        Rectangle {
+            height: 1
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
+            color: isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
+        }
+    }
 
     // Use rectangle to draw border with rounded corners.
     frameVisible: false
@@ -50,8 +98,10 @@ TableView {
 
     style: TableViewStyle {
         // Needed in order for rows to keep displaying rows after end of table entries.
-        backgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightEven : hifi.colors.tableRowDarkEven
-        alternateBackgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
+        backgroundColor: tableView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
+        alternateBackgroundColor: tableView.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
+
+        padding.top: headerVisible ? hifi.dimensions.tableHeaderHeight: 0
 
         handle: Item {
             id: scrollbarHandle
@@ -59,33 +109,38 @@ TableView {
             Rectangle {
                 anchors {
                     fill: parent
+                    topMargin: 3
+                    bottomMargin: 3     // ""
                     leftMargin: 2       // Move it right
                     rightMargin: -2     // ""
-                    topMargin: 3        // Shrink vertically
-                    bottomMargin: 3     // ""
                 }
                 radius: 3
-                color: hifi.colors.tableScrollHandle
+                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
             }
         }
 
         scrollBarBackground: Item {
-            implicitWidth: 10
+            implicitWidth: 9
             Rectangle {
                 anchors {
                     fill: parent
                     margins: -1     // Expand
+                    topMargin: headerVisible ? -hifi.dimensions.tableHeaderHeight : -1
                 }
-                color: hifi.colors.baseGrayHighlight
-            }
+                color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
 
-            Rectangle {
-                anchors {
-                    fill: parent
-                    margins: 1      // Shrink
+                Rectangle {
+                    // Extend header bottom border
+                    anchors {
+                        top: parent.top
+                        topMargin: hifi.dimensions.tableHeaderHeight - 1
+                        left: parent.left
+                        right: parent.right
+                    }
+                    height: 1
+                    color: isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
+                    visible: headerVisible
                 }
-                radius: 4
-                color: hifi.colors.tableScrollBackground
             }
         }
 
@@ -99,85 +154,11 @@ TableView {
     }
 
     rowDelegate: Rectangle {
-        height: (styleData.selected ? 1.8 : 1) * hifi.dimensions.tableRowHeight
+        height: (styleData.selected && expandSelectedRow ? 1.8 : 1) * hifi.dimensions.tableRowHeight
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : tableView.isLightColorScheme
                    ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
                    : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
-    }
-
-    itemDelegate: Item {
-        anchors {
-            left: parent ? parent.left : undefined
-            leftMargin: hifi.dimensions.tablePadding
-            right: parent ? parent.right : undefined
-            rightMargin: hifi.dimensions.tablePadding
-        }
-
-        FiraSansSemiBold {
-            id: textItem
-            text: styleData.value
-            size: hifi.fontSizes.tableText
-            color: colorScheme == hifi.colorSchemes.light
-                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: parent.top
-                topMargin: 3
-            }
-
-            // FIXME: Put reload item in tableModel passed in from RunningScripts.
-            HiFiGlyphs {
-                id: reloadButton
-                text: hifi.glyphs.reloadSmall
-                color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
-                anchors {
-                    top: parent.top
-                    right: stopButton.left
-                    verticalCenter: parent.verticalCenter
-                }
-                MouseArea {
-                    id: reloadButtonArea
-                    anchors { fill: parent; margins: -2 }
-                    onClicked: reloadScript(model.url)
-                }
-            }
-
-            // FIXME: Put stop item in tableModel passed in from RunningScripts.
-            HiFiGlyphs {
-                id: stopButton
-                text: hifi.glyphs.closeSmall
-                color: stopButtonArea.pressed ? hifi.colors.white : parent.color
-                anchors {
-                    top: parent.top
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                }
-                MouseArea {
-                    id: stopButtonArea
-                    anchors { fill: parent; margins: -2 }
-                    onClicked: stopScript(model.url)
-                }
-            }
-        }
-
-        // FIXME: Automatically use aux. information from tableModel
-        FiraSansSemiBold {
-            text: tableModel.get(styleData.row) ? tableModel.get(styleData.row).url : ""
-            elide: Text.ElideMiddle
-            size: hifi.fontSizes.tableText
-            color: colorScheme == hifi.colorSchemes.light
-                       ? (styleData.selected ? hifi.colors.black : hifi.colors.lightGray)
-                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-            anchors {
-                top: textItem.bottom
-                left: parent.left
-                right: parent.right
-            }
-            visible: styleData.selected
-        }
     }
 }
