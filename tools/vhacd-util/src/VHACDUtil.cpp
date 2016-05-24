@@ -330,7 +330,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
         foreach (glm::vec3 vertex, mesh.vertices) {
             vertices.push_back(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
         }
-        uint32_t numVertices = vertices.size();
+        uint32_t numVertices = (uint32_t)vertices.size();
 
         if (_verbose) {
             qDebug() << "mesh" << meshIndex << ": "
