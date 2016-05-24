@@ -22,7 +22,7 @@
 
 using namespace gpu;
 
-static int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
+int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
 std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
