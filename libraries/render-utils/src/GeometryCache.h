@@ -121,8 +121,8 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 seed);
 }
 
+using IndexVector = std::vector<uint32_t>;
 using VertexVector = std::vector<glm::vec3>;
-using IndexVector = std::vector<uint16_t>;
 
 /// Stores cached geometry.
 class GeometryCache : public Dependency {
@@ -137,7 +137,7 @@ public:
         Cube,
         Sphere,
         Tetrahedron,
-        Octahetron,
+        Octahedron,
         Dodecahedron,
         Icosahedron,
         Torus,
@@ -162,6 +162,13 @@ public:
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+
+    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderSolidShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+    }
 
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);

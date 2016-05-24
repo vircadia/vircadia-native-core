@@ -5,3 +5,5 @@ setup_hifi_project(Quick Gui OpenGL Script Widgets)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 link_hifi_libraries(networking gl gpu gpu-gl procedural shared fbx model model-networking animation script-engine render render-utils )
 package_libraries_for_deployment()
+
+target_nsight()

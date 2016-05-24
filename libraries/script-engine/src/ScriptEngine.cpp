@@ -65,7 +65,7 @@
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
-static int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
+int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     QString message = "";

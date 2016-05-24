@@ -337,7 +337,8 @@ private:
 
     void cleanupBeforeQuit();
 
-    void idle();
+    bool shouldPaint(float nsecsElapsed);
+    void idle(float nsecsElapsed);
     void update(float deltaTime);
 
     // Various helper functions called during update()

@@ -28,16 +28,8 @@
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
-    _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
-    _assignmentUUID(),
-    _connectionToken(),
-    _iceDomainID(),
-    _iceClientID(),
-    _iceServerSockAddr(),
     _icePeer(this),
-    _isConnected(false),
-    _settingsObject(),
     _settingsTimer(this)
 {
     _sockAddr.setObjectName("DomainServer");
@@ -105,7 +97,7 @@ void DomainHandler::hardReset() {
     softReset();
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
-    _iceDomainID = QUuid();
+    _pendingDomainID = QUuid();
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
@@ -140,7 +132,7 @@ void DomainHandler::setUUID(const QUuid& uuid) {
     }
 }
 
-void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
+void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const QUuid& domainID) {
 
     if (hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
@@ -169,6 +161,8 @@ void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
         // grab the port by reading the string after the colon
         _sockAddr.setPort(port);
     }
+
+    _pendingDomainID = domainID;
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
@@ -179,7 +173,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
         
-        _iceDomainID = id;
+        _pendingDomainID = id;
 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
         replaceableSockAddr->~HifiSockAddr();
@@ -341,7 +335,7 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSPeerInformation);
 
-    if (_icePeer.getUUID() != _iceDomainID) {
+    if (_icePeer.getUUID() != _pendingDomainID) {
         qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
         _icePeer.reset();
     } else {
