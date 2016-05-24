@@ -24,10 +24,11 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
         char* rawBytes;
         uint length;
 
-        // FIXME -- do we need to delete the rawBytes after it's been copied into the QByteArray?
         dataStream.readBytes(rawBytes, length);
         newHeader.protocolVersion = QByteArray(rawBytes, length);
-        //qDebug() << __FUNCTION__ << "...got protocol version from node... version:" << newHeader.protocolVersion;
+
+        // NOTE: QDataStream::readBytes() - The buffer is allocated using new []. Destroy it with the delete [] operator.
+        delete[] rawBytes;
     }
     
     dataStream >> newHeader.nodeType

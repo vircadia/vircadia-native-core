@@ -55,10 +55,6 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     if (message->getSize() == 0) {
         return;
     }
-
-    //qDebug() << __FUNCTION__ << "packetVersion:" << message->getVersion();
-
-
     QDataStream packetStream(message->getMessage());
 
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
@@ -72,8 +68,6 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
                 DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
         return;
     }
-    //qDebug() << __FUNCTION__ << "Protocol Version MATCH - continue with processing connection.";
-
     
     if (nodeConnection.localSockAddr.isNull() || nodeConnection.publicSockAddr.isNull()) {
         qDebug() << "Unexpected data received for node local socket or public socket. Will not allow connection.";
@@ -111,9 +105,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
             }
         }
         
-        //qDebug() << __FUNCTION__ << " about to processAgentConnectRequest() ---------------------";
         node = processAgentConnectRequest(nodeConnection, username, usernameSignature);
-        //qDebug() << __FUNCTION__ << " AFTER processAgentConnectRequest() node: " << node << " ---------------------";
     }
     
     if (node) {
@@ -125,9 +117,6 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
-
-        //qDebug() << __FUNCTION__ << " about to connectedNode(node) ---------------------";
-
         emit connectedNode(node);
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr();
@@ -548,27 +537,14 @@ void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const H
     quint16 payloadSize = utfString.size();
     
     // setup the DomainConnectionDenied packet
-    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied); // , payloadSize + sizeof(payloadSize)
+    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied);
     
     // pack in the reason the connection was denied (the client displays this)
     if (payloadSize > 0) {
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
-        qDebug() << __FUNCTION__ << "about to write reasonCode:" << (int)reasonCode;
         uint8_t reasonCodeWire = (uint8_t)reasonCode;
-        qDebug() << __FUNCTION__ << "about to write reasonCodeWire:" << (int)reasonCodeWire;
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
         connectionDeniedPacket->writePrimitive(reasonCodeWire);
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
-        qDebug() << __FUNCTION__ << "about to write payloadSize:" << payloadSize;
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
         connectionDeniedPacket->writePrimitive(payloadSize);
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
-        qDebug() << __FUNCTION__ << "about to write utfString:" << utfString;
-        qDebug() << __FUNCTION__ << "about to write utfString.size():" << utfString.size();
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
         connectionDeniedPacket->write(utfString);
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
-
     }
     
     // send the packet off

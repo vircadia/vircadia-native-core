@@ -309,8 +309,6 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
     PacketType headerType = NLPacket::typeInHeader(packet);
     PacketVersion headerVersion = NLPacket::versionInHeader(packet);
 
-    //qDebug() << __FUNCTION__ << "type:" << headerType << "version:" << (int)headerVersion;
-
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     // This implements a special case that handles OLD clients which don't know how to negotiate matching
@@ -320,9 +318,6 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
     // warn the user that the protocol is not compatible
     if (headerType == PacketType::DomainConnectRequest &&
         headerVersion < static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
-
-        //qDebug() << __FUNCTION__ << "OLD VERSION checkin sending an intentional bad packet -------------------------------";
-
         auto packetWithBadVersion = NLPacket::create(PacketType::EntityData);
         nodeList->sendPacket(std::move(packetWithBadVersion), packet.getSenderSockAddr());
         return false;
@@ -407,8 +402,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 
-    // set packetVersionMatch as the verify packet operator for the udt::Socket
-    //using std::placeholders::_1;
+    // set a custum packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
 }
 
@@ -701,8 +695,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 
 void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
 
-    //qDebug() << __FUNCTION__ << "---------------";
-    
     QDataStream packetStream(message->getMessage());
     NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr(), false);
 
@@ -782,9 +774,6 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 }
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
-
-    //qDebug() << __FUNCTION__ << "---------------";
-
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
     
     // setup the extended header for the domain list packets

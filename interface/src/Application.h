@@ -262,9 +262,7 @@ public slots:
     void setActiveFaceTracker() const;
 
 #if (PR_BUILD || DEV_BUILD)
-    void sendWrongProtocolVersionsSignature(bool checked) {
-        ::sendWrongProtocolVersionsSignature(checked);
-    }
+    void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
 #endif
 
 #ifdef HAVE_IVIEWHMD

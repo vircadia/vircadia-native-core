@@ -69,11 +69,7 @@ public:
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
     /// downgrades the DomainConnnectRequest PacketVersion to attempt to probe for older domain servers
-    void downgradeDomainServerCheckInVersion() { 
-        qDebug() << __FUNCTION__ << "----------------------------------------------------------";
-        _domainConnectRequestVersion--;
-        
-    }
+    void downgradeDomainServerCheckInVersion() { _domainConnectRequestVersion--; }
 
 public slots:
     void reset();
@@ -92,11 +88,8 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
-    void resetDomainServerCheckInVersion()
-    { 
-        qDebug() << __FUNCTION__ << "----------------------------------------------------------";
-        _domainConnectRequestVersion = versionForPacketType(PacketType::DomainConnectRequest); 
-    }
+    void resetDomainServerCheckInVersion() 
+            { _domainConnectRequestVersion = versionForPacketType(PacketType::DomainConnectRequest); }
 
 signals:
     void limitOfSilentDomainCheckInsReached();

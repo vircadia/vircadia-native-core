@@ -67,6 +67,7 @@ NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfM
     _version((version == 0) ? versionForPacketType(type) : version)
 {
     adjustPayloadStartAndCapacity(NLPacket::localHeaderSize(_type));
+
     writeTypeAndVersion();
 }
 

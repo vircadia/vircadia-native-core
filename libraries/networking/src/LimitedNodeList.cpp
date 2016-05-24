@@ -162,16 +162,12 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 }
 
 bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
-    //qDebug() << __FUNCTION__;
     return packetVersionMatch(packet) && packetSourceAndHashMatch(packet);
 }
 
 bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
-
     PacketType headerType = NLPacket::typeInHeader(packet);
     PacketVersion headerVersion = NLPacket::versionInHeader(packet);
-
-    //qDebug() << __FUNCTION__ << "headerType:" << headerType << "version:" << (int)headerVersion;
 
     if (headerVersion != versionForPacketType(headerType)) {
 

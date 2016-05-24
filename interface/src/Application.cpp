@@ -654,11 +654,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
     connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
-
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, this, &Application::limitOfSilentDomainCheckInsReached);
-    //connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-
-
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
@@ -1069,15 +1065,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCode) {
-    qDebug() << __FUNCTION__ << "message:" << reasonMessage << "code:" << reasonCode;
-    qDebug() << __FUNCTION__ << "DomainHandler::ConnectionRefusedReason::ProtocolMismatch:" << (int)DomainHandler::ConnectionRefusedReason::ProtocolMismatch;
-
     if (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode) == DomainHandler::ConnectionRefusedReason::ProtocolMismatch) {
-        qDebug() << __FUNCTION__ << " PROTOCOL MISMATCH!!!";
         notifyPacketVersionMismatch();
     }
 }
-
 
 QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {
@@ -4595,12 +4586,8 @@ void Application::setSessionUUID(const QUuid& sessionUUID) const {
 // We won't actually complete the connection, but if the server responds, we know that it needs to be upgraded (or we
 // need to be downgraded to talk to it).
 void Application::limitOfSilentDomainCheckInsReached() {
-    //qDebug() << __FUNCTION__;
-
     auto nodeList = DependencyManager::get<NodeList>();
-
     nodeList->downgradeDomainServerCheckInVersion(); // attempt to use an older domain checkin version
-
     nodeList->reset();
 }
 

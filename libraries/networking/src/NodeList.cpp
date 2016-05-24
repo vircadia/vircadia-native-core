@@ -293,7 +293,6 @@ void NodeList::sendDomainServerCheckIn() {
         }
 
         auto packetVersion = (domainPacketType == PacketType::DomainConnectRequest) ? _domainConnectRequestVersion : 0;
-        //qDebug() << __FUNCTION__ << " NLPacket::create() version:" << (int)packetVersion;
         auto domainPacket = NLPacket::create(domainPacketType, -1, false, false, packetVersion);
         
         QDataStream packetStream(domainPacket.get());
@@ -319,12 +318,7 @@ void NodeList::sendDomainServerCheckIn() {
             if (_domainConnectRequestVersion >= static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
                 QByteArray protocolVersionSig = protocolVersionsSignature();
                 packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
-                //qDebug() << __FUNCTION__ << " including protocol version --------------------------";
-            } else {
-                //qDebug() << __FUNCTION__ << "_domainConnectRequestVersion less than HasProtocolVersions - not including protocol version";
             }
-        } else {
-            //qDebug() << __FUNCTION__ << "NOT a DomainConnnectRequest ----------- not including checkin details -------";
         }
 
         // pack our data to send to the domain-server including
@@ -332,9 +326,6 @@ void NodeList::sendDomainServerCheckIn() {
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
         if (_domainConnectRequestVersion >= static_cast<PacketVersion>(DomainConnectRequestVersion::HasHostname)) {
             packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
-            //qDebug() << __FUNCTION__ << " including host name --------------------------";
-        } else {
-            //qDebug() << __FUNCTION__ << "_domainConnectRequestVersion less than HasHostname - not including host name";
         }
 
         if (!_domainHandler.isConnected()) {
@@ -363,7 +354,6 @@ void NodeList::sendDomainServerCheckIn() {
 
         // increment the count of un-replied check-ins
         _numNoReplyDomainCheckIns++;
-        //qDebug() << __FUNCTION__ << " _numNoReplyDomainCheckIns:" << _numNoReplyDomainCheckIns << " --------------------------";
     }
 
     if (!_publicSockAddr.isNull() && !_domainHandler.isConnected() && !_domainHandler.getPendingDomainID().isNull()) {
@@ -531,22 +521,15 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
 }
 
 void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
-    //qDebug() << __FUNCTION__;
-
     if (_domainHandler.getSockAddr().isNull()) {
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
 
-    //qDebug() << __FUNCTION__ << "_numNoReplyDomainCheckIns:" << _numNoReplyDomainCheckIns;
-
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
 
-    //qDebug() << __FUNCTION__ << "RESET.... _numNoReplyDomainCheckIns:" << _numNoReplyDomainCheckIns;
-
     // emit our signal so listeners know we just heard from the DS
-    //qDebug() << __FUNCTION__ << "about to emit receivedDomainServerList() -----------------------------------------------";
     emit receivedDomainServerList();
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
