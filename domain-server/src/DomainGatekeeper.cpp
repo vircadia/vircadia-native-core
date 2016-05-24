@@ -443,10 +443,10 @@ bool DomainGatekeeper::isWithinMaxCapacity(const QString& username, const QByteA
     // find out what our maximum capacity is
     const QVariant* maximumUserCapacityVariant = valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
     unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
-    
+
     if (maximumUserCapacity > 0) {
         unsigned int connectedUsers = _server->countConnectedUsers();
-        
+
         if (connectedUsers >= maximumUserCapacity) {
             // too many users, deny the new connection unless this user is an allowed editor
             

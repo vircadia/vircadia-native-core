@@ -1065,8 +1065,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCode) {
-    if (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode) == DomainHandler::ConnectionRefusedReason::ProtocolMismatch) {
-        notifyPacketVersionMismatch();
+    switch (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode)) {
+        case DomainHandler::ConnectionRefusedReason::ProtocolMismatch:
+            notifyPacketVersionMismatch();
+            break;
+        case DomainHandler::ConnectionRefusedReason::TooManyUsers:
+        case DomainHandler::ConnectionRefusedReason::Unknown: {
+            QString message = "Unable to connect to the location you are visiting.\n";
+            message += reasonMessage;
+            OffscreenUi::warning("", message);
+            break;
+        }
+        default:
+            // nothing to do.
+            break;
     }
 }
 
