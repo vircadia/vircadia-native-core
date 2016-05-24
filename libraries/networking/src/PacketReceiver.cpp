@@ -315,7 +315,7 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage),
                                                     Q_ARG(QSharedPointer<Node>, matchingNode));
-
+                        
                     } else {
                         success = metaMethod.invoke(listener.object,
                                                     connectionType,
