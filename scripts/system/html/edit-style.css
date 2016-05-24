@@ -268,7 +268,7 @@ input[type=number]::-webkit-inner-spin-button {
     height: 100%;
     overflow: hidden;
     font-family: hifi-glyphs;
-    font-size: 50px;
+    font-size: 46px;
     color: #afafaf;
     cursor: pointer;
     /*background-color: #000000;*/
@@ -276,17 +276,17 @@ input[type=number]::-webkit-inner-spin-button {
 input[type=number]::-webkit-inner-spin-button:before,
 input[type=number]::-webkit-inner-spin-button:after {
     position:absolute;
-    left: -21px;
+    left: -19px;
     line-height: 8px;
     text-align: center;
 }
 input[type=number]::-webkit-inner-spin-button:before {
     content: "6";
-    top: 5px;
+    top: 4px;
 }
 input[type=number]::-webkit-inner-spin-button:after {
     content: "5";
-    bottom: 6px;
+    bottom: 4px;
 }
 
 input[type=number].hover-up::-webkit-inner-spin-button:before, 
@@ -613,7 +613,7 @@ hr {
     margin-right: -48px;
     position: relative;
     left: -12px;
-    top: -11px;
+    top: -9px;
 }
 
 .dropdown dd {

@@ -157,10 +157,6 @@ protected:
 //static const wchar_t* EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
 static const glm::uvec2 QUAD_OFFSET(10, 10);
 
-static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
-        1.0, 0.5, 0.5 }, { 0.5, 0.5, 1.0 } };
-
-
 void testShaderBuild(const char* vs_src, const char * fs_src) {
     auto vs = gpu::Shader::createVertex(std::string(vs_src));
     auto fs = gpu::Shader::createPixel(std::string(fs_src));

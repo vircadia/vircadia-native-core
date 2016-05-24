@@ -29,9 +29,9 @@
 
 using namespace std;
 
-static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
-static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
-static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
+int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
+int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
