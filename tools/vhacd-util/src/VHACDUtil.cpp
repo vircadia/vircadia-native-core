@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <unordered_map>
-#include <QVector>
 #include "VHACDUtil.h"
 
-const float COLLISION_TETRAHEDRON_SCALE = 0.25f;
+#include <unordered_map>
+#include <QVector>
+
+#include <NumericalConstants.h>
 
 
 // FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
@@ -61,46 +62,46 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 }
 
 
-void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangles) {
+void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangleIndices) {
     // append all the triangles (and converted quads) from this mesh-part to triangles
     std::vector<int> meshPartTriangles = meshPart.triangleIndices.toStdVector();
-    triangles.insert(triangles.end(), meshPartTriangles.begin(), meshPartTriangles.end());
+    triangleIndices.insert(triangleIndices.end(), meshPartTriangles.begin(), meshPartTriangles.end());
 
     // convert quads to triangles
-    unsigned int quadCount = meshPart.quadIndices.size() / 4;
-    for (unsigned int i = 0; i < quadCount; i++) {
-        unsigned int p0Index = meshPart.quadIndices[i * 4];
-        unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
-        unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
-        unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
+    const uint32_t QUAD_STRIDE = 4;
+    uint32_t quadCount = meshPart.quadIndices.size() / QUAD_STRIDE;
+    for (uint32_t i = 0; i < quadCount; i++) {
+        uint32_t p0Index = meshPart.quadIndices[i * QUAD_STRIDE];
+        uint32_t p1Index = meshPart.quadIndices[i * QUAD_STRIDE + 1];
+        uint32_t p2Index = meshPart.quadIndices[i * QUAD_STRIDE + 2];
+        uint32_t p3Index = meshPart.quadIndices[i * QUAD_STRIDE + 3];
         // split each quad into two triangles
-        triangles.push_back(p0Index);
-        triangles.push_back(p1Index);
-        triangles.push_back(p2Index);
-        triangles.push_back(p0Index);
-        triangles.push_back(p2Index);
-        triangles.push_back(p3Index);
+        triangleIndices.push_back(p0Index);
+        triangleIndices.push_back(p1Index);
+        triangleIndices.push_back(p2Index);
+        triangleIndices.push_back(p0Index);
+        triangleIndices.push_back(p2Index);
+        triangleIndices.push_back(p3Index);
     }
 }
 
 
 void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
-                                    unsigned int& meshPartCount,
-                                    unsigned int startMeshIndex, unsigned int endMeshIndex) const {
+                                    uint32_t& meshPartCount,
+                                    uint32_t startMeshIndex, uint32_t endMeshIndex) const {
     // this is used to make meshes generated from a highfield collidable.  each triangle
     // is converted into a tetrahedron and made into its own mesh-part.
 
-    std::vector<int> triangles;
+    std::vector<int> triangleIndices;
     foreach (const FBXMeshPart &meshPart, mesh.parts) {
         if (meshPartCount < startMeshIndex || meshPartCount >= endMeshIndex) {
             meshPartCount++;
             continue;
         }
-        getTrianglesInMeshPart(meshPart, triangles);
+        getTrianglesInMeshPart(meshPart, triangleIndices);
     }
 
-    auto triangleCount = triangles.size() / 3;
-    if (triangleCount == 0) {
+    if (triangleIndices.size() == 0) {
         return;
     }
 
@@ -115,10 +116,12 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
 
     // turn each triangle into a tetrahedron
 
-    for (unsigned int i = 0; i < triangleCount; i++) {
-        int index0 = triangles[i * 3] + indexStartOffset;
-        int index1 = triangles[i * 3 + 1] + indexStartOffset;
-        int index2 = triangles[i * 3 + 2] + indexStartOffset;
+    const uint32_t TRIANGLE_STRIDE = 3;
+    const float COLLISION_TETRAHEDRON_SCALE = 0.25f;
+    for (uint32_t i = 0; i < triangleIndices.size(); i += TRIANGLE_STRIDE) {
+        int index0 = triangleIndices[i] + indexStartOffset;
+        int index1 = triangleIndices[i + 1] + indexStartOffset;
+        int index2 = triangleIndices[i + 2] + indexStartOffset;
 
         // TODO: skip triangles with a normal that points more negative-y than positive-y
 
@@ -155,23 +158,21 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
     }
 }
 
-
-
 AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
     AABox aaBox;
-    unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-    for (unsigned int i = 0; i < triangleCount; ++i) {
-        aaBox += mesh.vertices[meshPart.triangleIndices[i * 3]];
-        aaBox += mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
-        aaBox += mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
+    const int TRIANGLE_STRIDE = 3;
+    for (int i = 0; i < meshPart.triangleIndices.size(); i += TRIANGLE_STRIDE) {
+        aaBox += mesh.vertices[meshPart.triangleIndices[i]];
+        aaBox += mesh.vertices[meshPart.triangleIndices[i + 1]];
+        aaBox += mesh.vertices[meshPart.triangleIndices[i + 2]];
     }
 
-    unsigned int quadCount = meshPart.quadIndices.size() / 4;
-    for (unsigned int i = 0; i < quadCount; ++i) {
-        aaBox += mesh.vertices[meshPart.quadIndices[i * 4]];
-        aaBox += mesh.vertices[meshPart.quadIndices[i * 4 + 1]];
-        aaBox += mesh.vertices[meshPart.quadIndices[i * 4 + 2]];
-        aaBox += mesh.vertices[meshPart.quadIndices[i * 4 + 3]];
+    const int QUAD_STRIDE = 4;
+    for (int i = 0; i < meshPart.quadIndices.size(); i += QUAD_STRIDE) {
+        aaBox += mesh.vertices[meshPart.quadIndices[i]];
+        aaBox += mesh.vertices[meshPart.quadIndices[i + 1]];
+        aaBox += mesh.vertices[meshPart.quadIndices[i + 2]];
+        aaBox += mesh.vertices[meshPart.quadIndices[i + 3]];
     }
 
     return aaBox;
@@ -187,9 +188,7 @@ struct TriangleEdge {
     }
     void sortIndices() {
         if (indexB < indexA) {
-            int t = indexA;
-            indexA = indexB;
-            indexB = t;
+            std::swap(indexA, indexB);
         }
     }
 };
@@ -204,16 +203,18 @@ namespace std {
 }
 
 // returns false if any edge has only one adjacent triangle
-bool isClosedManifold(const std::vector<int>& triangles) {
+bool isClosedManifold(const std::vector<int>& triangleIndices) {
     using EdgeList = std::unordered_map<TriangleEdge, int>;
     EdgeList edges;
 
     // count the triangles for each edge
-    for (size_t i = 0; i < triangles.size(); i += 3) {
+    const uint32_t TRIANGLE_STRIDE = 3;
+    for (uint32_t i = 0; i < triangleIndices.size(); i += TRIANGLE_STRIDE) {
         TriangleEdge edge;
+        // the triangles indices are stored in sequential order
         for (int j = 0; j < 3; ++j) {
-            edge.indexA = triangles[(int)i + j];
-            edge.indexB = triangles[i + ((j + 1) % 3)];
+            edge.indexA = triangleIndices[(int)i + j];
+            edge.indexB = triangleIndices[i + ((j + 1) % 3)];
             edge.sortIndices();
 
             EdgeList::iterator edgeEntry = edges.find(edge);
@@ -235,13 +236,14 @@ bool isClosedManifold(const std::vector<int>& triangles) {
 
 void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& resultMesh) const {
     // Number of hulls for this input meshPart
-    unsigned int numHulls = convexifier->GetNConvexHulls();
+    uint32_t numHulls = convexifier->GetNConvexHulls();
     if (_verbose) {
         qDebug() << "  hulls =" << numHulls;
     }
 
     // create an output meshPart for each convex hull
-    for (unsigned int j = 0; j < numHulls; j++) {
+    const uint32_t TRIANGLE_STRIDE = 3;
+    for (uint32_t j = 0; j < numHulls; j++) {
         VHACD::IVHACD::ConvexHull hull;
         convexifier->GetConvexHull(j, hull);
 
@@ -249,17 +251,17 @@ void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& res
         FBXMeshPart& resultMeshPart = resultMesh.parts.last();
 
         int hullIndexStart = resultMesh.vertices.size();
-        for (unsigned int i = 0; i < hull.m_nPoints; i++) {
-            float x = hull.m_points[i * 3];
-            float y = hull.m_points[i * 3 + 1];
-            float z = hull.m_points[i * 3 + 2];
+        for (uint32_t i = 0; i < hull.m_nPoints; i++) {
+            float x = hull.m_points[i * TRIANGLE_STRIDE];
+            float y = hull.m_points[i * TRIANGLE_STRIDE + 1];
+            float z = hull.m_points[i * TRIANGLE_STRIDE + 2];
             resultMesh.vertices.append(glm::vec3(x, y, z));
         }
 
-        for (unsigned int i = 0; i < hull.m_nTriangles; i++) {
-            int index0 = hull.m_triangles[i * 3] + hullIndexStart;
-            int index1 = hull.m_triangles[i * 3 + 1] + hullIndexStart;
-            int index2 = hull.m_triangles[i * 3 + 2] + hullIndexStart;
+        for (uint32_t i = 0; i < hull.m_nTriangles; i++) {
+            int index0 = hull.m_triangles[i * TRIANGLE_STRIDE] + hullIndexStart;
+            int index1 = hull.m_triangles[i * TRIANGLE_STRIDE + 1] + hullIndexStart;
+            int index2 = hull.m_triangles[i * TRIANGLE_STRIDE + 2] + hullIndexStart;
             resultMeshPart.triangleIndices.append(index0);
             resultMeshPart.triangleIndices.append(index1);
             resultMeshPart.triangleIndices.append(index2);
@@ -273,7 +275,7 @@ void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& res
 }
 
 float computeDt(uint64_t start) {
-    return (float)(usecTimestampNow() - start) / 1.0e6f;
+    return (float)(usecTimestampNow() - start) / (float)USECS_PER_SECOND;
 }
 
 bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
@@ -298,6 +300,9 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
     result.meshExtents.reset();
     result.meshes.append(FBXMesh());
     FBXMesh &resultMesh = result.meshes.last();
+
+    const uint32_t POINT_STRIDE = 3;
+    const uint32_t TRIANGLE_STRIDE = 3;
 
     int meshIndex = 0;
     int validPartsFound = 0;
@@ -325,7 +330,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
         foreach (glm::vec3 vertex, mesh.vertices) {
             vertices.push_back(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
         }
-        auto numVertices = vertices.size();
+        uint32_t numVertices = vertices.size();
 
         if (_verbose) {
             qDebug() << "mesh" << meshIndex << ": "
@@ -337,12 +342,13 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
         std::vector<int> openParts;
 
         int partIndex = 0;
+        std::vector<int> triangleIndices;
         foreach (const FBXMeshPart &meshPart, mesh.parts) {
-            std::vector<int> triangles;
-            getTrianglesInMeshPart(meshPart, triangles);
+            triangleIndices.clear();
+            getTrianglesInMeshPart(meshPart, triangleIndices);
 
             // only process meshes with triangles
-            if (triangles.size() <= 0) {
+            if (triangleIndices.size() <= 0) {
                 if (_verbose) {
                     qDebug() << "  skip part" << partIndex << "(zero triangles)";
                 }
@@ -351,8 +357,8 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             }
 
             // collapse dupe indices
-            for (auto& i : triangles) {
-                i = dupeIndexMap[i];
+            for (auto& index : triangleIndices) {
+                index = dupeIndexMap[index];
             }
 
             AABox aaBox = getAABoxForMeshPart(mesh, meshPart);
@@ -375,15 +381,16 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
             }
 
             // figure out if the mesh is a closed manifold or not
-            bool closed = isClosedManifold(triangles);
+            bool closed = isClosedManifold(triangleIndices);
             if (closed) {
-                unsigned int triangleCount = (unsigned int)(triangles.size()) / 3;
+                uint32_t triangleCount = (uint32_t)(triangleIndices.size()) / TRIANGLE_STRIDE;
                 if (_verbose) {
                     qDebug() << "  process closed part" << partIndex << ": " << " triangles =" << triangleCount;
                 }
 
                 // compute approximate convex decomposition
-                bool success = convexifier->Compute(&vertices[0].x, 3, (uint)numVertices, &triangles[0], 3, triangleCount, params);
+                bool success = convexifier->Compute(&vertices[0].x, POINT_STRIDE, numVertices,
+                        &triangleIndices[0], TRIANGLE_STRIDE, triangleCount, params);
                 if (success) {
                     getConvexResults(convexifier, resultMesh);
                 } else if (_verbose) {
@@ -401,26 +408,27 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
         if (! openParts.empty()) {
             // combine open meshes in an attempt to produce a closed mesh
 
-            std::vector<int> triangles;
+            triangleIndices.clear();
             for (auto index : openParts) {
                 const FBXMeshPart &meshPart = mesh.parts[index];
-                getTrianglesInMeshPart(meshPart, triangles);
+                getTrianglesInMeshPart(meshPart, triangleIndices);
             }
 
             // collapse dupe indices
-            for (auto& i : triangles) {
-                i = dupeIndexMap[i];
+            for (auto& index : triangleIndices) {
+                index = dupeIndexMap[index];
             }
 
             // this time we don't care if the parts are close or not
-            unsigned int triangleCount = (unsigned int)(triangles.size()) / 3;
+            uint32_t triangleCount = (uint32_t)(triangleIndices.size()) / TRIANGLE_STRIDE;
             if (_verbose) {
                 qDebug() << "  process remaining open parts =" << openParts.size() << ": "
                     << " triangles =" << triangleCount;
             }
 
             // compute approximate convex decomposition
-            bool success = convexifier->Compute(&vertices[0].x, 3, (uint)numVertices, &triangles[0], 3, triangleCount, params);
+            bool success = convexifier->Compute(&vertices[0].x, POINT_STRIDE, numVertices,
+                    &triangleIndices[0], TRIANGLE_STRIDE, triangleCount, params);
             if (success) {
                 getConvexResults(convexifier, resultMesh);
             } else if (_verbose) {

@@ -318,10 +318,11 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
-    auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
     if (verbose) {
-        qDebug() << "load time =" << (double)loadDuration / 1000000000.00 << "seconds";
+        auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        const double NANOSECS_PER_SECOND = 1.0e9;
+        qDebug() << "load time =" << (double)loadDuration / NANOSECS_PER_SECOND << "seconds";
     }
 
     if (splitModel) {
