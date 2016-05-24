@@ -46,208 +46,213 @@ var blocks = [
 ];
 
 var arrangements = [{
-    name: 'tall',
-    blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN],
-    target: "atp:/blocky/newblocks1.json"
-}, {
-    name: 'ostrich',
-    blocks: [BLOCK_RED, BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_NATURAL],
-    target: "atp:/blocky/newblocks5.json"
-}, {
-    name: 'froglog',
-    blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
-    target: "atp:/blocky/newblocks2.json"
-}, {
-    name: 'allOneLeg',
-    blocks: [BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_BLUE, BLOCK_BLUE, BLOCK_NATURAL],
-    target: "atp:/blocky/newblocks3.json"
-}, {
-    name: 'threeppl',
-    blocks: [BLOCK_BLUE, BLOCK_YELLOW, BLOCK_BLUE, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
-    target: "atp:/blocky/newblocks4.json"
-}, {
-    name: 'dominoes',
-    blocks: [BLOCK_RED, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW],
-    target: "atp:/blocky/arrangement6B.json"
-}]
+            name: 'greenhenge',
+            blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_YELLOW],
+                target: "atp:/blocky/newblocks1.json"
+            },
+            {
+                name: 'tallstuff',
+                blocks: [BLOCK_RED, BLOCK_RED, BLOCK_RED],
+                target: "atp:/blocky/newblocks2.json"
+            },
+            {
+                name: 'ostrich',
+                blocks: [BLOCK_RED, BLOCK_RED, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_NATURAL],
+                target: "atp:/blocky/newblocks5.json"
+            },
+            {
+                name: 'fourppl',
+                blocks: [BLOCK_BLUE, BLOCK_BLUE, BLOCK_BLUE, BLOCK_BLUE, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL, BLOCK_NATURAL],
+                target: "atp:/blocky/newblocks3.json"
+            },
+            {
+                name: 'frogguy',
+                blocks: [BLOCK_GREEN, BLOCK_GREEN, BLOCK_GREEN, BLOCK_YELLOW, BLOCK_RED, BLOCK_RED, BLOCK_NATURAL, BLOCK_NATURAL],
+                target: "atp:/blocky/newblocks4.json"
+            },
+            {
+                name: 'dominoes',
+                blocks: [BLOCK_RED, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW, BLOCK_YELLOW],
+                target: "atp:/blocky/arrangement6B.json"
+            }]
 
-var PLAYABLE_BLOCKS_POSITION = {
-    x: 1097.6,
-    y: 460.5,
-    z: -66.22
-};
+        var PLAYABLE_BLOCKS_POSITION = {
+            x: 1097.6,
+            y: 460.5,
+            z: -66.22
+        };
 
-var TARGET_BLOCKS_POSITION = {
-    x: 1096.82,
-    y: 460.5,
-    z: -67.689
-};
-//#debug
-(function() {
+        var TARGET_BLOCKS_POSITION = {
+            x: 1096.82,
+            y: 460.5,
+            z: -67.689
+        };
+        //#debug
+        (function() {
 
-    print('BLOCK ENTITY SCRIPT')
-    var _this;
+            print('BLOCK ENTITY SCRIPT')
+            var _this;
 
-    function Blocky() {
-        _this = this;
-    }
-
-    Blocky.prototype = {
-        debug: true,
-        playableBlocks: [],
-        targetBlocks: [],
-        preload: function(entityID) {
-            print('BLOCKY preload')
-            this.entityID = entityID;
-        },
-        createTargetBlocks: function(arrangement) {
-            var created = [];
-            print('BLOCKY create target blocks')
-
-            var created = [];
-            var success = Clipboard.importEntities(arrangement.target);
-            if (success === true) {
-                created = Clipboard.pasteEntities(TARGET_BLOCKS_POSITION)
-                print('created ' + created);
+            function Blocky() {
+                _this = this;
             }
 
-            this.targetBlocks = created;
-            print('BLOCKY TARGET BLOCKS:: ' + this.targetBlocks);
-        },
-        createPlayableBlocks: function(arrangement) {
-            print('BLOCKY creating playable blocks' + arrangement.blocks.length);
-            arrangement.blocks.forEach(function(block) {
-                print('BLOCKY in a block loop')
-                var blockProps = {
-                    name: "home_model_blocky_block",
-                    type: 'Model',
-                    collisionSoundURL: "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
-                    dynamic: false,
-                    collisionless: true,
-                    gravity: {
-                        x: 0,
-                        y: -9.8,
-                        z: 0
-                    },
-                    userData: JSON.stringify({
-                        grabbableKey: {
-                            grabbable: true
-                        },
-                        hifiHomeKey: {
-                            reset: true
+            Blocky.prototype = {
+                debug: false,
+                playableBlocks: [],
+                targetBlocks: [],
+                preload: function(entityID) {
+                    print('BLOCKY preload')
+                    this.entityID = entityID;
+                },
+                createTargetBlocks: function(arrangement) {
+                    var created = [];
+                    print('BLOCKY create target blocks')
+
+                    var created = [];
+                    var success = Clipboard.importEntities(arrangement.target);
+                    if (success === true) {
+                        created = Clipboard.pasteEntities(TARGET_BLOCKS_POSITION)
+                        print('created ' + created);
+                    }
+
+                    this.targetBlocks = created;
+                    print('BLOCKY TARGET BLOCKS:: ' + this.targetBlocks);
+                },
+                createPlayableBlocks: function(arrangement) {
+                    print('BLOCKY creating playable blocks' + arrangement.blocks.length);
+                    arrangement.blocks.forEach(function(block) {
+                        print('BLOCKY in a block loop')
+                        var blockProps = {
+                            name: "home_model_blocky_block",
+                            type: 'Model',
+                            collisionSoundURL: "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+                            dynamic: true,
+                            collisionless: false,
+                            gravity: {
+                                x: 0,
+                                y: -9.8,
+                                z: 0
+                            },
+                            userData: JSON.stringify({
+                                grabbableKey: {
+                                    grabbable: true
+                                },
+                                hifiHomeKey: {
+                                    reset: true
+                                }
+                            }),
+                            dimensions: block.dimensions,
+                            modelURL: block.url,
+                            shapeType: 'box',
+                            velocity: {
+                                x: 0,
+                                y: -0.01,
+                                z: 0,
+                            },
+                            position: PLAYABLE_BLOCKS_POSITION
                         }
-                    }),
-                    dimensions: block.dimensions,
-                    modelURL: block.url,
-                    shapeType: 'box',
-                    velocity: {
-                        x: 0,
-                        y: -0.01,
-                        z: 0,
-                    },
-                    position: PLAYABLE_BLOCKS_POSITION
-                }
-                var newBlock = Entities.addEntity(blockProps);
-                print('BLOCKY made a playable block' + newBlock)
-                _this.playableBlocks.push(newBlock);
-                print('BLOCKY pushing it into playable blocks');
-            })
+                        var newBlock = Entities.addEntity(blockProps);
+                        print('BLOCKY made a playable block' + newBlock)
+                        _this.playableBlocks.push(newBlock);
+                        print('BLOCKY pushing it into playable blocks');
+                    })
 
-            print('BLOCKY after going through playable arrangement')
-        },
-        startNearTrigger: function() {
-            print('BLOCKY got a near trigger');
-            this.advanceRound();
-        },
-        advanceRound: function() {
-            print('BLOCKY advance round');
-            this.cleanup();
-            var arrangement = arrangements[Math.floor(Math.random() * arrangements.length)];
-            this.createTargetBlocks(arrangement);
+                    print('BLOCKY after going through playable arrangement')
+                },
+                startNearTrigger: function() {
+                    print('BLOCKY got a near trigger');
+                    this.advanceRound();
+                },
+                advanceRound: function() {
+                    print('BLOCKY advance round');
+                    this.cleanup();
+                    var arrangement = arrangements[Math.floor(Math.random() * arrangements.length)];
+                    this.createTargetBlocks(arrangement);
 
-            if (this.debug === true) {
-                this.debugCreatePlayableBlocks();
-            } else {
-                this.createPlayableBlocks(arrangement);
+                    if (this.debug === true) {
+                        this.debugCreatePlayableBlocks();
+                    } else {
+                        this.createPlayableBlocks(arrangement);
 
-            }
-        },
-        findBlocks: function() {
-            var found = [];
-            var results = Entities.findEntities(MyAvatar.position, 10);
-            results.forEach(function(result) {
-                var properties = Entities.getEntityProperties(result);
-                print('got result props')
-                if (properties.name.indexOf('blocky_block') > -1) {
-                    found.push(result);
-                }
-            });
-            return found;
-        },
-
-        cleanup: function() {
-            print('BLOCKY cleanup');
-            var blocks = this.findBlocks();
-            print('BLOCKY cleanup2' + blocks.length)
-            blocks.forEach(function(block) {
-                Entities.deleteEntity(block);
-            })
-            print('BLOCKY after find and delete')
-            this.targetBlocks.forEach(function(block) {
-                Entities.deleteEntity(block);
-            });
-            this.playableBlocks.forEach(function(block) {
-                Entities.deleteEntity(block);
-            });
-            this.targetBlocks = [];
-            this.playableBlocks = [];
-        },
-        debugCreatePlayableBlocks: function() {
-            print('BLOCKY debug create');
-            var howMany = 10;
-            var i;
-            for (i = 0; i < howMany; i++) {
-                var block = blocks[Math.floor(Math.random() * blocks.length)];
-                var blockProps = {
-                    name: "home_model_blocky_block",
-                    type: 'Model',
-                    collisionSoundURL: "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
-                    dynamic: false,
-                    collisionless: true,
-                    // gravity: {
-                    //     x: 0,
-                    //     y: -9.8,
-                    //     z: 0
-                    // },
-                    userData: JSON.stringify({
-                        grabbableKey: {
-                            grabbable: true
-                        },
-                        hifiHomeKey: {
-                            reset: true
+                    }
+                },
+                findBlocks: function() {
+                    var found = [];
+                    var results = Entities.findEntities(MyAvatar.position, 10);
+                    results.forEach(function(result) {
+                        var properties = Entities.getEntityProperties(result);
+                        print('got result props')
+                        if (properties.name.indexOf('blocky_block') > -1) {
+                            found.push(result);
                         }
-                    }),
-                    dimensions: block.dimensions,
-                    modelURL: block.url,
-                    shapeType: 'box',
-                    velocity: {
-                        x: 0,
-                        y: -0.01,
-                        z: 0,
-                    },
-                    position: PLAYABLE_BLOCKS_POSITION
-                }
-                this.playableBlocks.push(Entities.addEntity(blockProps));
-            }
-        },
-        unload: function() {
-            this.cleanup();
-        },
-        clickReleaseOnEntity: function() {
-            print('BLOCKY click')
-            this.startNearTrigger();
-        }
-    }
+                    });
+                    return found;
+                },
 
-    return new Blocky();
-})
+                cleanup: function() {
+                    print('BLOCKY cleanup');
+                    var blocks = this.findBlocks();
+                    print('BLOCKY cleanup2' + blocks.length)
+                    blocks.forEach(function(block) {
+                        Entities.deleteEntity(block);
+                    })
+                    print('BLOCKY after find and delete')
+                    this.targetBlocks.forEach(function(block) {
+                        Entities.deleteEntity(block);
+                    });
+                    this.playableBlocks.forEach(function(block) {
+                        Entities.deleteEntity(block);
+                    });
+                    this.targetBlocks = [];
+                    this.playableBlocks = [];
+                },
+                debugCreatePlayableBlocks: function() {
+                    print('BLOCKY debug create');
+                    var howMany = 10;
+                    var i;
+                    for (i = 0; i < howMany; i++) {
+                        var block = blocks[Math.floor(Math.random() * blocks.length)];
+                        var blockProps = {
+                            name: "home_model_blocky_block",
+                            type: 'Model',
+                            collisionSoundURL: "atp:/kineticObjects/blocks/ToyWoodBlock.L.wav",
+                            dynamic: false,
+                            collisionless: true,
+                            // gravity: {
+                            //     x: 0,
+                            //     y: -9.8,
+                            //     z: 0
+                            // },
+                            userData: JSON.stringify({
+                                grabbableKey: {
+                                    grabbable: true
+                                },
+                                hifiHomeKey: {
+                                    reset: true
+                                }
+                            }),
+                            dimensions: block.dimensions,
+                            modelURL: block.url,
+                            shapeType: 'box',
+                            velocity: {
+                                x: 0,
+                                y: -0.01,
+                                z: 0,
+                            },
+                            position: PLAYABLE_BLOCKS_POSITION
+                        }
+                        this.playableBlocks.push(Entities.addEntity(blockProps));
+                    }
+                },
+                unload: function() {
+                    this.cleanup();
+                },
+                clickReleaseOnEntity: function() {
+                    print('BLOCKY click')
+                    this.startNearTrigger();
+                }
+            }
+
+            return new Blocky();
+        })
