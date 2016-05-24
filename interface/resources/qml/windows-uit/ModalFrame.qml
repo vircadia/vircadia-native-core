@@ -18,13 +18,13 @@ Frame {
     HifiConstants { id: hifi }
 
     Rectangle {
-        id: modalFrame
+        id: frameContent
 
         readonly property bool hasTitle: window.title != ""
 
         anchors {
             fill: parent
-            topMargin: -hifi.dimensions.modalDialogMargin.y - (modalFrame.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
+            topMargin: -hifi.dimensions.modalDialogMargin.y - (frameContent.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
             leftMargin: -hifi.dimensions.modalDialogMargin.x
             rightMargin: -hifi.dimensions.modalDialogMargin.x
             bottomMargin: -hifi.dimensions.modalDialogMargin.y
@@ -38,7 +38,7 @@ Frame {
         color: hifi.colors.faintGray
 
         Item {
-            visible: modalFrame.hasTitle
+            visible: frameContent.hasTitle
             anchors.fill: parent
             anchors {
                 topMargin: -parent.anchors.topMargin

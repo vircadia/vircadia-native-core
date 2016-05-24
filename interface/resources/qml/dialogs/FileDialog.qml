@@ -25,7 +25,7 @@ import "fileDialog"
 //FIXME implement shortcuts for favorite location
 ModalWindow {
     id: root
-    //resizable: true
+    resizable: true
     implicitWidth: 640
     implicitHeight: 480
 
