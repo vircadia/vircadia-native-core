@@ -50,7 +50,7 @@ const quint64 UNKNOWN_CREATED_TIME = 0;
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
-/// all units for position, dimensions, etc are in meter units
+/// all units for SI units (meter, second, radian, etc) 
 class EntityItemProperties {
     friend class EntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
@@ -64,6 +64,7 @@ class EntityItemProperties {
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ShapeEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
@@ -195,6 +196,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_PARENT_ID, ParentID, parentID, QUuid, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, -1);
     DEFINE_PROPERTY_REF(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube, AACube());
+    DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");
 
     // these are used when bouncing location data into and out of scripts
     DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);

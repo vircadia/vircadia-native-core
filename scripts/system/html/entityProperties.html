@@ -25,6 +25,7 @@
         var ICON_FOR_TYPE = {
             Box: "V",
             Sphere: "n",
+            Shape: "n",
             ParticleEffect: "&#xe004;",
             Model: "&#xe008;",
             Web: "q",
@@ -403,6 +404,10 @@
                 var elColorGreen = document.getElementById("property-color-green");
                 var elColorBlue = document.getElementById("property-color-blue");
     
+                var elShapeSections = document.querySelectorAll(".shape-section");
+                allSections.push(elShapeSections);
+                var elShape = document.getElementById("property-shape");
+                
                 var elLightSections = document.querySelectorAll(".light-section");
                 allSections.push(elLightSections);
                 var elLightSpotLight = document.getElementById("property-light-spot-light");
@@ -666,7 +671,18 @@
                                     elHyperlinkSections[i].style.display = 'table';
                                 }
 
-                                if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere") {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        elShapeSections[i].style.display = 'table';
+                                    }
+                                } else {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        console.log("Hiding shape section " + elShapeSections[i])
+                                        elShapeSections[i].style.display = 'none';
+                                    }
+                                }
+                                
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
                                     for (var i = 0; i < elColorSections.length; i++) {
                                         elColorSections[i].style.display = 'table';
                                     }
@@ -958,6 +974,8 @@
                 elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
     
+                elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
     
                 elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
@@ -1344,6 +1362,38 @@
             <span id="property-id" class="selectable"></span>
         </div>
 
+        <div class="section-header shape-group shape-section">
+            <label>Shape</label><span>M</span>
+        </div>
+        <div class="shape-group shape-section property dropdown">
+            <label for="property-shape">Shape</label>
+            <select name="SelectShape" id="property-shape">
+                <option value="Cube">Box</option>
+                <option value="Sphere">Sphere</option>
+                <option value="Tetrahedron">Tetrahedron</option>
+                <option value="Octahedron">Octahedron</option>
+                <option value="Icosahedron">Icosahedron</option>
+                <option value="Dodecahedron">Dodecahedron</option>
+            </select>
+        </div>
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-1">
+        </div>
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-2">
+        </div>
+<!-- 
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-3">
+        </div>
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-4">
+        </div>
+ -->
 
         <div class="section-header hyperlink-group hyperlink-section">
             <label>Hyperlink</label><span>M</span>
@@ -1677,7 +1727,6 @@
             <label for="property-model-original-textures">Original textures</label>
             <textarea id="property-model-original-textures" readonly></textarea>
         </div>
-
 
         <div class="section-header text-group text-section">
             <label>Text</label><span>M</span>
