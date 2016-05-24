@@ -309,11 +309,13 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage),
                                                     Q_ARG(SharedNodePointer, matchingNode));
+
                     } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
                         success = metaMethod.invoke(listener.object,
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage),
                                                     Q_ARG(QSharedPointer<Node>, matchingNode));
+
                     } else {
                         success = metaMethod.invoke(listener.object,
                                                     connectionType,
