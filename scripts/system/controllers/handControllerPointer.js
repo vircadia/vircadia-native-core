@@ -266,39 +266,19 @@ function toggleHand() {
     }
 }
 
-// Create clickMappings as needed, on demand.
 var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 Script.scriptEnding.connect(clickMapping.disable);
 
-// Move these to vive.json
-function makeCenterClickWhen(click, x, y) {
-    var clickKey = Controller.Standard[click],
-        xKey = Controller.Standard[x],  // Standard after filtering by mapping
-        yKey = Controller.Standard[y];
-    return function () {
-        var clickValue = Controller.getValue(clickKey);
-        var xValue = Controller.getValue(xKey);
-        var yValue = Controller.getValue(yKey);
-        var answer = clickValue && !xValue && !yValue;
-        return answer;
-    };
-}
-if (Controller.Hardware.Vive) {
-    clickMapping.from(Controller.Hardware.Vive.RS).when(makeCenterClickWhen('RS', 'RX', 'RY')).to(Controller.Standard.R3);
-    clickMapping.from(Controller.Hardware.Vive.LS).when(makeCenterClickWhen('LS', 'LX', 'LY')).to(Controller.Standard.L3);
-}
-
-
-clickMapping.from(Controller.Standard.R3).peek().to(Controller.Actions.ReticleClick);
-clickMapping.from(Controller.Standard.L3).peek().to(Controller.Actions.ReticleClick);
+clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
-clickMapping.from(Controller.Standard.R3).peek().to(function (on) {
+clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(function (on) {
     if (on && (activeHand !== Controller.Standard.RightHand)) {
         toggleHand();
     }
 });
-clickMapping.from(Controller.Standard.L3).peek().to(function (on) {
+clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(function (on) {
     if (on && (activeHand !== Controller.Standard.LeftHand)) {
         toggleHand();
     }
