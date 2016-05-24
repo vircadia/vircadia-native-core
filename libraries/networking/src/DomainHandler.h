@@ -124,7 +124,7 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
-    void domainConnectionRefused(QString reasonMessage, ConnectionRefusedReason reason = ConnectionRefusedReason::Unknown);
+    void domainConnectionRefused(QString reasonMessage, int reason);
 
 private:
     bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);

@@ -548,12 +548,27 @@ void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const H
     quint16 payloadSize = utfString.size();
     
     // setup the DomainConnectionDenied packet
-    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
+    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied); // , payloadSize + sizeof(payloadSize)
     
     // pack in the reason the connection was denied (the client displays this)
     if (payloadSize > 0) {
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
+        qDebug() << __FUNCTION__ << "about to write reasonCode:" << (int)reasonCode;
+        uint8_t reasonCodeWire = (uint8_t)reasonCode;
+        qDebug() << __FUNCTION__ << "about to write reasonCodeWire:" << (int)reasonCodeWire;
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
+        connectionDeniedPacket->writePrimitive(reasonCodeWire);
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
+        qDebug() << __FUNCTION__ << "about to write payloadSize:" << payloadSize;
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
         connectionDeniedPacket->writePrimitive(payloadSize);
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
+        qDebug() << __FUNCTION__ << "about to write utfString:" << utfString;
+        qDebug() << __FUNCTION__ << "about to write utfString.size():" << utfString.size();
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
         connectionDeniedPacket->write(utfString);
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "connectionDeniedPacket->getDataSize():" << connectionDeniedPacket->getDataSize();
+
     }
     
     // send the packet off

@@ -630,8 +630,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
-    
     connect(&domainHandler, &DomainHandler::resetting, nodeList.data(), &NodeList::resetDomainServerCheckInVersion);
+    connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * MSECS_PER_SECOND;
@@ -1067,6 +1067,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
 }
+
+void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCode) {
+    qDebug() << __FUNCTION__ << "message:" << reasonMessage << "code:" << reasonCode;
+    qDebug() << __FUNCTION__ << "DomainHandler::ConnectionRefusedReason::ProtocolMismatch:" << (int)DomainHandler::ConnectionRefusedReason::ProtocolMismatch;
+
+    if (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode) == DomainHandler::ConnectionRefusedReason::ProtocolMismatch) {
+        qDebug() << __FUNCTION__ << " PROTOCOL MISMATCH!!!";
+        notifyPacketVersionMismatch();
+    }
+}
+
 
 QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {

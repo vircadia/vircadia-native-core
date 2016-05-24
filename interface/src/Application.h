@@ -330,6 +330,7 @@ private slots:
     static void packetSent(quint64 length);
     void updateDisplayMode();
     void updateInputModes();
+    void domainConnectionRefused(const QString& reasonMessage, int reason);
 
 private:
     static void initDisplay();

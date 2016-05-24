@@ -103,7 +103,9 @@ void DomainHandler::hardReset() {
     _sockAddr.clear();
 
     _hasCheckedForAccessToken = false;
-    _domainConnectionRefusals.clear();
+
+    //qDebug() << __FUNCTION__ << "about to call _domainConnectionRefusals.clear();";
+    //_domainConnectionRefusals.clear();
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
@@ -141,6 +143,10 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
         if (hostname != _hostname) {
             // set the new hostname
             _hostname = hostname;
+
+            // FIXME - is this the right place???
+            qDebug() << __FUNCTION__ << "about to call _domainConnectionRefusals.clear();";
+            _domainConnectionRefusals.clear();
 
             qCDebug(networking) << "Updated domain hostname to" << _hostname;
 
@@ -366,25 +372,50 @@ bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
 
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
     // Read deny reason from packet
-    ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown;
+    uint8_t reasonCodeWire;
+
+    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "message->getPosition():" << message->getPosition();
+    message->readPrimitive(&reasonCodeWire);
+    qDebug() << __FUNCTION__ << "reasonCodeWire:" << reasonCodeWire;
+    ConnectionRefusedReason reasonCode = static_cast<ConnectionRefusedReason>(reasonCodeWire);
+    qDebug() << __FUNCTION__ << "reasonCode:" << (int)reasonCode;
+
+    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "message->getPosition():" << message->getPosition();
+
     quint16 reasonSize;
     message->readPrimitive(&reasonSize);
-    QString reasonMessage = QString::fromUtf8(message->readWithoutCopy(reasonSize));
+    qDebug() << __FUNCTION__ << "reasonSize:" << reasonSize;
+    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "message->getPosition():" << message->getPosition();
+    auto reasonText = message->readWithoutCopy(reasonSize);
+    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "reasonText:" << reasonText;
+    QString reasonMessage = QString::fromUtf8(reasonText);
+    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "reasonMessage:" << reasonMessage;
+
+    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "message->getPosition():" << message->getPosition();
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
     qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
-    qCWarning(networking) << "Make sure you are logged in.";
+
+    qDebug(networking) << "_domainConnectionRefusals:" << _domainConnectionRefusals;
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
+        qDebug(networking) << "about to call _domainConnectionRefusals.append(reasonMessage);";
         _domainConnectionRefusals.append(reasonMessage);
-        emit domainConnectionRefused(reasonMessage, reasonCode);
+        qDebug(networking) << "_domainConnectionRefusals:" << _domainConnectionRefusals;
+
+
+        emit domainConnectionRefused(reasonMessage, (int)reasonCode);
+    } else {
+        qDebug(networking) << "ALREADY EMITTED domainConnectionRefused() ----------------------------";
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
     // Some connection refusal reasons imply that a login is required. If so, suggest a new login
     if (reasonSuggestsLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in.";
+
         if (!_hasCheckedForAccessToken) {
             accountManager->checkAndSignalForAccessToken();
             _hasCheckedForAccessToken = true;
