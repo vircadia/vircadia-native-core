@@ -355,34 +355,53 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
+    switch (reasonCode) {
+        case ConnectionRefusedReason::LoginError:
+        case ConnectionRefusedReason::NotAuthorized:
+            return true;
+    
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+            return false;
+    }
+    return false;
+}
+
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
     // Read deny reason from packet
+    ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown;
     quint16 reasonSize;
     message->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
+    QString reasonMessage = QString::fromUtf8(message->readWithoutCopy(reasonSize));
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
-    qCWarning(networking) << "The domain-server denied a connection request: " << reason;
+    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
     qCWarning(networking) << "Make sure you are logged in.";
 
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
+    if (!_domainConnectionRefusals.contains(reasonMessage)) {
+        _domainConnectionRefusals.append(reasonMessage);
+        emit domainConnectionRefused(reasonMessage, reasonCode);
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    if (!_hasCheckedForAccessToken) {
-        accountManager->checkAndSignalForAccessToken();
-        _hasCheckedForAccessToken = true;
-    }
+    // Some connection refusal reasons imply that a login is required. If so, suggest a new login
+    if (reasonSuggestsLogin(reasonCode)) {
+        if (!_hasCheckedForAccessToken) {
+            accountManager->checkAndSignalForAccessToken();
+            _hasCheckedForAccessToken = true;
+        }
 
-    static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
+        static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
 
-    // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
-    if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
-        accountManager->generateNewUserKeypair();
-        _connectionDenialsSinceKeypairRegen = 0;
+        // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
+        if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
+            accountManager->generateNewUserKeypair();
+            _connectionDenialsSinceKeypairRegen = 0;
+        }
     }
 }

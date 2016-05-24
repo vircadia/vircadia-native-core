@@ -309,22 +309,29 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage),
                                                     Q_ARG(SharedNodePointer, matchingNode));
-                        
+
+                        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "success:" << success << "packetType:" << packetType;
+
                     } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
                         success = metaMethod.invoke(listener.object,
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage),
                                                     Q_ARG(QSharedPointer<Node>, matchingNode));
-                        
+
+                        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "success:" << success << "packetType:" << packetType;
+
                     } else {
                         success = metaMethod.invoke(listener.object,
                                                     connectionType,
                                                     Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage));
+                        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "success:" << success << "packetType:" << packetType;
                     }
                 } else {
                     listenerIsDead = true;
                 }
             } else {
+                qDebug() << __FUNCTION__ << "line:" << __LINE__ << "Got verified unsourced packet list." << "packetType:" << packetType;
+
                 // qDebug() << "Got verified unsourced packet list: " << QString(nlPacketList->getMessage());
                 emit dataReceived(NodeType::Unassigned, receivedMessage->getSize());
                 
@@ -332,6 +339,8 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                 if (listener.object) {
                     success = listener.method.invoke(listener.object,
                                                      Q_ARG(QSharedPointer<ReceivedMessage>, receivedMessage));
+
+                    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "success:" << success << "packetType:" << packetType;
                 } else {
                     listenerIsDead = true;
                 }

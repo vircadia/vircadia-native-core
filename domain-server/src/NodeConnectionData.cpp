@@ -19,6 +19,15 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
     
     if (isConnectRequest) {
         dataStream >> newHeader.connectUUID;
+
+        // Read out the protocol version signature from the connect message
+        char* rawBytes;
+        uint length;
+
+        // FIXME -- do we need to delete the rawBytes after it's been copied into the QByteArray?
+        dataStream.readBytes(rawBytes, length);
+        newHeader.protocolVersion = QByteArray(rawBytes, length);
+        //qDebug() << __FUNCTION__ << "...got protocol version from node... version:" << newHeader.protocolVersion;
     }
     
     dataStream >> newHeader.nodeType

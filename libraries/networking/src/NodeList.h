@@ -68,6 +68,13 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
+    /// downgrades the DomainConnnectRequest PacketVersion to attempt to probe for older domain servers
+    void downgradeDomainServerCheckInVersion() { 
+        qDebug() << __FUNCTION__ << "----------------------------------------------------------";
+        _domainConnectRequestVersion--;
+        
+    }
+
 public slots:
     void reset();
     void sendDomainServerCheckIn();
@@ -84,6 +91,12 @@ public slots:
     void processPingReplyPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
+
+    void resetDomainServerCheckInVersion()
+    { 
+        qDebug() << __FUNCTION__ << "----------------------------------------------------------";
+        _domainConnectRequestVersion = versionForPacketType(PacketType::DomainConnectRequest); 
+    }
 
 signals:
     void limitOfSilentDomainCheckInsReached();
@@ -123,6 +136,8 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
+
+    PacketVersion _domainConnectRequestVersion = versionForPacketType(PacketType::DomainConnectRequest);
 };
 
 #endif // hifi_NodeList_h

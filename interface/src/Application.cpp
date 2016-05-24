@@ -631,6 +631,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
+    
+    connect(&domainHandler, &DomainHandler::resetting, nodeList.data(), &NodeList::resetDomainServerCheckInVersion);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * MSECS_PER_SEC;
@@ -653,7 +655,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
     connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
-    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
+
+    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, this, &Application::limitOfSilentDomainCheckInsReached);
+    //connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
+
+
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
@@ -4567,6 +4573,21 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
 
 void Application::setSessionUUID(const QUuid& sessionUUID) const {
     Physics::setSessionUUID(sessionUUID);
+}
+
+
+// If we're not getting anything back from the domain server checkin, it might be that the domain speaks an 
+// older version of the DomainConnectRequest protocal. We will attempt to send and older version of DomainConnectRequest.
+// We won't actually complete the connection, but if the server responds, we know that it needs to be upgraded (or we
+// need to be downgraded to talk to it).
+void Application::limitOfSilentDomainCheckInsReached() {
+    //qDebug() << __FUNCTION__;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->downgradeDomainServerCheckInVersion(); // attempt to use an older domain checkin version
+
+    nodeList->reset();
 }
 
 bool Application::askToSetAvatarUrl(const QString& url) {

@@ -221,6 +221,10 @@ public:
 
     void setConnectionMaxBandwidth(int maxBandwidth) { _nodeSocket.setConnectionMaxBandwidth(maxBandwidth); }
 
+    void setPacketFilterOperator(udt::PacketFilterOperator filterOperator) { _nodeSocket.setPacketFilterOperator(filterOperator); }
+    bool packetVersionMatch(const udt::Packet& packet);
+    bool isPacketVerified(const udt::Packet& packet);
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -267,8 +271,6 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
     
-    bool isPacketVerified(const udt::Packet& packet);
-    bool packetVersionMatch(const udt::Packet& packet);
     bool packetSourceAndHashMatch(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
