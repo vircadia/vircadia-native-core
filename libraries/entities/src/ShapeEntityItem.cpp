@@ -155,7 +155,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_SHAPE, entity::stringFromShape(getShape()));
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, getAlpha());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
 // This value specifes how the shape should be treated by physics calculations.  
