@@ -117,19 +117,7 @@ void OpenVrDisplayPlugin::customizeContext() {
 void OpenVrDisplayPlugin::resetSensors() {
     Lock lock(_poseMutex);
     glm::mat4 m = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
-
-    glm::mat4 oldSensorResetMat = _sensorResetMat;
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
-
-    glm::mat4 undoRedoMat = _sensorResetMat * glm::inverse(oldSensorResetMat);
-
-    // update the device poses, by undoing the previous sensorResetMatrix then applying the new one.
-    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-        _trackedDevicePoseMat4[i] = undoRedoMat * _trackedDevicePoseMat4[i];
-        _trackedDeviceLinearVelocities[i] = transformVectorFast(undoRedoMat, _trackedDeviceLinearVelocities[i]);
-        _trackedDeviceAngularVelocities[i] = transformVectorFast(undoRedoMat, _trackedDeviceAngularVelocities[i]);
-    }
-    _currentRenderFrameInfo.renderPose = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd];
 }
 
 

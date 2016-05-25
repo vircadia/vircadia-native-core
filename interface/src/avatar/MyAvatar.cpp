@@ -263,8 +263,9 @@ void MyAvatar::reset(bool andRecenter, bool andReload) {
         setPosition(worldBodyPos);
         setOrientation(worldBodyRot);
 
-        // now sample the new hmd orientation AFTER sensor reset.
-        updateFromHMDSensorMatrix(qApp->getHMDSensorPose());
+        // now sample the new hmd orientation AFTER sensor reset, which should be identity.
+        glm::mat4 identity;
+        updateFromHMDSensorMatrix(identity);
 
         // update the body in sensor space using the new hmd sensor sample
         _bodySensorMatrix = deriveBodyFromHMDSensor();
