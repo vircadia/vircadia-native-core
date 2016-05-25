@@ -49,7 +49,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_NO_FLY_ZONES;
+            return VERSION_ENTITIES_MORE_SHAPES;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarEntities);
