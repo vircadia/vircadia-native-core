@@ -1090,7 +1090,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
 
     // Add the metadata to the heartbeat
     static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    domainObject[DOMAIN_HEARTBEAT_KEY] = QJsonObject::fromVariantMap(getMetadata());
+    domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata.toJSON();
 
     QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 

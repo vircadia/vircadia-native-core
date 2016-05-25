@@ -168,6 +168,8 @@ private:
 
     DomainServerSettingsManager _settingsManager;
 
+    DomainMetadata _metadata;
+
     HifiSockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 

@@ -15,7 +15,7 @@
 
 #include "DomainServerNodeData.h"
 
-QVariantMap getMetadata() {
+void DomainMetadata::generate() {
     static const QString DEFAULT_HOSTNAME = "*";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -39,13 +39,13 @@ QVariantMap getMetadata() {
         }
     });
 
-    QVariantMap metadata;
-
     static const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
-    metadata[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
+    _metadata[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
 
     static const QString HEARTBEAT_USER_HOSTNAMES_KEY = "user_hostnames";
-    metadata[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
+    _metadata[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
 
-    return metadata;
+#if DEV_BUILD
+    qDebug() << "Regenerated domain metadata - users:" << _metadata;
+#endif
 }

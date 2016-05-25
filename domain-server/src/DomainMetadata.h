@@ -12,10 +12,19 @@
 #define hifi_DomainMetadata_h
 
 #include <QVariantMap>
+#include <QJsonObject>
 
-QVariantMap getMetadata();
+class DomainMetadata {
+public:
+    QVariantMap toVariantMap() { generate(); return _metadata; }
+    QJsonObject toJSON() { generate(); return QJsonObject::fromVariantMap(_metadata); }
 
-// TODO: Encapsulate
-class DomainMetadata { };
+protected slots:
+    // TODO: Connect appropriate signals to obviate JIT generation
+    void generate();
+
+protected:
+    QVariantMap _metadata;
+};
 
 #endif // hifi_DomainMetadata_h
