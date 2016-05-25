@@ -175,6 +175,8 @@ enum EntityPropertyList {
     PROP_CLIENT_ONLY, // doesn't go over wire
     PROP_OWNING_AVATAR_ID, // doesn't go over wire
 
+    PROP_SHAPE,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
