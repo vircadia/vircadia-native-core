@@ -160,7 +160,7 @@ void ScriptEngines::shutdownScripting() {
             scriptEngine->disconnect(this);
 
             // Gracefully stop the engine's scripting thread
-            scriptEngine->stop(false);
+            scriptEngine->stop();
 
             // We need to wait for the engine to be done running before we proceed, because we don't
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
@@ -359,10 +359,7 @@ QStringList ScriptEngines::getRunningScripts() {
     QList<QUrl> urls = _scriptEnginesHash.keys();
     QStringList result;
     for (auto url : urls) {
-        ScriptEngine* engine = getScriptEngineInternal(url);
-        if (engine) {
-            result.append(url.toString());
-        }
+        result.append(url.toString());
     }
     return result;
 }
@@ -383,7 +380,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     // Stop and possibly restart all currently running scripts
     for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
-        if (it.value()->isFinished()) {
+        if (it.value()->isFinished() || it.value()->isStopping()) {
             continue;
         }
         if (restart && it.value()->isUserLoaded()) {
@@ -414,7 +411,7 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                     reloadScript(scriptName);
                 });
             }
-            scriptEngine->stop(false);
+            scriptEngine->stop();
             stoppedScript = true;
             qCDebug(scriptengine) << "stopping script..." << scriptURL;
         }
@@ -487,19 +484,17 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
     return scriptEngine;
 }
 
-ScriptEngine* ScriptEngines::getScriptEngineInternal(const QUrl& rawScriptURL) {
+ScriptEngine* ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
     ScriptEngine* result = nullptr;
-    const QUrl scriptURL = normalizeScriptURL(rawScriptURL);
-    auto it = _scriptEnginesHash.find(scriptURL);
-    if (it != _scriptEnginesHash.end()) {
-        result = it.value();
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        const QUrl scriptURL = normalizeScriptURL(rawScriptURL);
+        auto it = _scriptEnginesHash.find(scriptURL);
+        if (it != _scriptEnginesHash.end()) {
+            result = it.value();
+        }
     }
     return result;
-}
-
-ScriptEngine* ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
-    QReadLocker lock(&_scriptEnginesHashLock);
-    return getScriptEngineInternal(rawScriptURL);
 }
 
 // FIXME - change to new version of ScriptCache loading notification

@@ -87,7 +87,6 @@ protected:
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
-    ScriptEngine* getScriptEngineInternal(const QUrl& rawScriptURL);
 
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
