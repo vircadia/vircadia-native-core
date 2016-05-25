@@ -26,6 +26,7 @@
 #include <LimitedNodeList.h>
 
 #include "DomainGatekeeper.h"
+#include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
