@@ -207,6 +207,7 @@ public:
                             bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;
 
+    glm::vec3 getContentsDimensions();
     float getContentsLargestDimension();
 
     virtual void resetEditStats() override {
