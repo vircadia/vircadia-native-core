@@ -476,7 +476,7 @@ void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending identity packets
 
     if (_scriptEngine) {
-        _scriptEngine->stop();
+        _scriptEngine->stop(false);
     }
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface

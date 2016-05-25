@@ -290,7 +290,7 @@ void ScriptEngine::waitTillDoneRunning() {
         assert(workerThread != QThread::currentThread());
 
         // Engine should be stopped already, but be defensive
-        stop();
+        stop(false);
 
         auto startedWaiting = usecTimestampNow();
         while (workerThread->isRunning()) {
@@ -941,13 +941,15 @@ void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
 
 }
 
-void ScriptEngine::stop() {
+void ScriptEngine::stop(bool marshal) {
     _isStopping = true; // this can be done on any thread
 
     // marshal us over to the correct thread
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stop");
-        return;
+    if (marshal) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "stop");
+            return;
+        }
     }
     if (!_isFinished) {
         _isFinished = true;
