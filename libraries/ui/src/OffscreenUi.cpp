@@ -590,6 +590,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // let the parent class do it's work
     bool result = OffscreenQmlSurface::eventFilter(originalDestination, event);
 
+
     // Check if this is a key press/release event that might need special attention
     auto type = event->type();
     if (type != QEvent::KeyPress && type != QEvent::KeyRelease) {
@@ -597,7 +598,8 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     }
 
     QKeyEvent* keyEvent = dynamic_cast<QKeyEvent*>(event);
-    bool& pressed = _pressedKeys[keyEvent->key()];
+    auto key = keyEvent->key();
+    bool& pressed = _pressedKeys[key];
 
     // Keep track of which key press events the QML has accepted
     if (result && QEvent::KeyPress == type) {
@@ -607,7 +609,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // QML input elements absorb key press, but apparently not key release.
     // therefore we want to ensure that key release events for key presses that were 
     // accepted by the QML layer are suppressed
-    if (!result && type == QEvent::KeyRelease && pressed) {
+    if (type == QEvent::KeyRelease && pressed) {
         pressed = false;
         return true;
     }

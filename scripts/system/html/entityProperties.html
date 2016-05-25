@@ -25,6 +25,7 @@
         var ICON_FOR_TYPE = {
             Box: "V",
             Sphere: "n",
+            Shape: "n",
             ParticleEffect: "&#xe004;",
             Model: "&#xe008;",
             Web: "q",
@@ -403,6 +404,10 @@
                 var elColorGreen = document.getElementById("property-color-green");
                 var elColorBlue = document.getElementById("property-color-blue");
     
+                var elShapeSections = document.querySelectorAll(".shape-section");
+                allSections.push(elShapeSections);
+                var elShape = document.getElementById("property-shape");
+                
                 var elLightSections = document.querySelectorAll(".light-section");
                 allSections.push(elLightSections);
                 var elLightSpotLight = document.getElementById("property-light-spot-light");
@@ -484,6 +489,9 @@
                 var elZoneSkyboxColorGreen = document.getElementById("property-zone-skybox-color-green");
                 var elZoneSkyboxColorBlue = document.getElementById("property-zone-skybox-color-blue");
                 var elZoneSkyboxURL = document.getElementById("property-zone-skybox-url");
+
+                var elZoneFlyingAllowed = document.getElementById("property-zone-flying-allowed");
+                var elZoneGhostingAllowed = document.getElementById("property-zone-ghosting-allowed");
     
                 var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
                 allSections.push(elPolyVoxSections);
@@ -663,7 +671,18 @@
                                     elHyperlinkSections[i].style.display = 'table';
                                 }
 
-                                if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere") {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        elShapeSections[i].style.display = 'table';
+                                    }
+                                } else {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        console.log("Hiding shape section " + elShapeSections[i])
+                                        elShapeSections[i].style.display = 'none';
+                                    }
+                                }
+                                
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
                                     for (var i = 0; i < elColorSections.length; i++) {
                                         elColorSections[i].style.display = 'table';
                                     }
@@ -771,6 +790,9 @@
                                     elZoneSkyboxColorGreen.value = properties.skybox.color.green;
                                     elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
                                     elZoneSkyboxURL.value = properties.skybox.url;
+
+                                    elZoneFlyingAllowed.checked = properties.flyingAllowed;
+                                    elZoneGhostingAllowed.checked = properties.ghostingAllowed;
     
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                                 } else if (properties.type == "PolyVox") {
@@ -952,6 +974,8 @@
                 elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
     
+                elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
     
                 elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
@@ -1077,7 +1101,10 @@
                 }));
     
                 elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
-    
+
+                elZoneFlyingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('flyingAllowed'));
+                elZoneGhostingAllowed.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ghostingAllowed'));
+
                 var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
                     'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
                 elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
@@ -1335,6 +1362,38 @@
             <span id="property-id" class="selectable"></span>
         </div>
 
+        <div class="section-header shape-group shape-section">
+            <label>Shape</label><span>M</span>
+        </div>
+        <div class="shape-group shape-section property dropdown">
+            <label for="property-shape">Shape</label>
+            <select name="SelectShape" id="property-shape">
+                <option value="Cube">Box</option>
+                <option value="Sphere">Sphere</option>
+                <option value="Tetrahedron">Tetrahedron</option>
+                <option value="Octahedron">Octahedron</option>
+                <option value="Icosahedron">Icosahedron</option>
+                <option value="Dodecahedron">Dodecahedron</option>
+            </select>
+        </div>
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-1">
+        </div>
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-2">
+        </div>
+<!-- 
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-3">
+        </div>
+        <div class="shape-group shape-section property text">
+            <label>Temp</label>
+            <input type="text" id="property-temp-4">
+        </div>
+ -->
 
         <div class="section-header hyperlink-group hyperlink-section">
             <label>Hyperlink</label><span>M</span>
@@ -1669,7 +1728,6 @@
             <textarea id="property-model-original-textures" readonly></textarea>
         </div>
 
-
         <div class="section-header text-group text-section">
             <label>Text</label><span>M</span>
         </div>
@@ -1707,6 +1765,14 @@
         <div class="zone-group zone-section property checkbox">
             <input type="checkbox" id="property-zone-stage-sun-model-enabled">
             <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
+        </div>
+        <div class="zone-group zone-section property checkbox">
+            <input type="checkbox" id="property-zone-flying-allowed">
+            <label for="property-zone-flying-allowed">Flying allowed</label>
+        </div>
+        <div class="zone-group zone-section property checkbox">
+            <input type="checkbox" id="property-zone-ghosting-allowed">
+            <label for="property-zone-ghosting-allowed">Ghosting allowed</label>
         </div>
 
         <div class="sub-section-header zone-group zone-section keylight-section">

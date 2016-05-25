@@ -50,7 +50,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // handle domain change signals from AddressManager
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,
-            &_domainHandler, &DomainHandler::setHostnameAndPort);
+            &_domainHandler, &DomainHandler::setSocketAndID);
 
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
@@ -314,8 +314,10 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << connectUUID;
         }
 
-        // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        // pack our data to send to the domain-server including
+        // the hostname information (so the domain-server can see which place name we came in on)
+        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList()
+            << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
@@ -343,6 +345,14 @@ void NodeList::sendDomainServerCheckIn() {
 
         // increment the count of un-replied check-ins
         _numNoReplyDomainCheckIns++;
+    }
+
+    if (!_publicSockAddr.isNull() && !_domainHandler.isConnected() && !_domainHandler.getPendingDomainID().isNull()) {
+        // if we aren't connected to the domain-server, and we have an ID
+        // (that we presume belongs to a domain in the HF Metaverse)
+        // we request connection information for the domain every so often to make sure what we have is up to date
+
+        DependencyManager::get<AddressManager>()->refreshPreviousLookup();
     }
 }
 
@@ -451,7 +461,7 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         LimitedNodeList::sendPeerQueryToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
-                                                  _domainHandler.getICEDomainID());
+                                                  _domainHandler.getPendingDomainID());
     }
 }
 
@@ -464,7 +474,7 @@ void NodeList::pingPunchForDomainServer() {
 
         if (_domainHandler.getICEPeer().getConnectionAttempts() == 0) {
             qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
-                << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+                << uuidStringWithoutCurlyBraces(_domainHandler.getPendingDomainID());
         } else {
             if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
                 // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat

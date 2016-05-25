@@ -55,9 +55,9 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     if (message->getSize() == 0) {
         return;
     }
-    
+
     QDataStream packetStream(message->getMessage());
-    
+
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
     NodeConnectionData nodeConnection = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr());
     
@@ -105,6 +105,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         nodeData->setSendingSockAddr(message->getSenderSockAddr());
         nodeData->setNodeInterestSet(nodeConnection.interestList.toSet());
+        nodeData->setPlaceName(nodeConnection.placeName);
         
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
@@ -150,6 +151,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
     nodeData->setWalletUUID(it->second.getWalletUUID());
     nodeData->setNodeVersion(it->second.getNodeVersion());
+    nodeData->setWasAssigned(true);
     
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
     _pendingAssignedNodes.erase(it);
@@ -282,7 +284,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // set the edit rights for this user
     newNode->setIsAllowedEditor(isAllowedEditor);
     newNode->setCanRez(canRez);
-    
+
     // grab the linked data for our new node so we can set the username
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
     
