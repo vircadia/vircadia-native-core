@@ -19,4 +19,6 @@ Window {
     destroyOnCloseButton: true
     destroyOnInvisible: true
     frame: ModalFrame{}
+
+    property int colorScheme: hifi.colorSchemes.light
 }

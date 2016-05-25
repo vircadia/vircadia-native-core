@@ -29,6 +29,8 @@ ModalWindow {
     implicitWidth: 640
     implicitHeight: 480
 
+    minSize: Qt.vector2d(300, 240)
+
     HifiConstants { id: hifi }
 
     Settings {

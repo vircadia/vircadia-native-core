@@ -22,12 +22,17 @@ Frame {
 
         readonly property bool hasTitle: window.title != ""
 
+        readonly property int frameMarginLeft: hifi.dimensions.modalDialogMargin.x
+        readonly property int frameMarginRight: hifi.dimensions.modalDialogMargin.x
+        readonly property int frameMarginTop: hifi.dimensions.modalDialogMargin.y + (frameContent.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
+        readonly property int frameMarginBottom: hifi.dimensions.modalDialogMargin.y
+
         anchors {
             fill: parent
-            topMargin: -hifi.dimensions.modalDialogMargin.y - (frameContent.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
-            leftMargin: -hifi.dimensions.modalDialogMargin.x
-            rightMargin: -hifi.dimensions.modalDialogMargin.x
-            bottomMargin: -hifi.dimensions.modalDialogMargin.y
+            topMargin: -frameMarginTop
+            leftMargin: -frameMarginLeft
+            rightMargin: -frameMarginRight
+            bottomMargin: -frameMarginBottom
         }
 
         border {
