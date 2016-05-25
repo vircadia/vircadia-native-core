@@ -42,6 +42,13 @@ Frame {
         radius: hifi.dimensions.borderRadius
         color: hifi.colors.faintGray
 
+        // Enable dragging of the window
+        MouseArea {
+            anchors.fill: parent
+            drag.target: window
+            enabled: window.draggable
+        }
+
         Item {
             visible: frameContent.hasTitle
             anchors.fill: parent

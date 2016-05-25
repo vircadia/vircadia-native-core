@@ -42,7 +42,7 @@ Frame {
         }
         radius: hifi.dimensions.borderRadius
 
-        // Allow dragging of the window
+        // Enable dragging of the window
         MouseArea {
             anchors.fill: parent
             drag.target: window
