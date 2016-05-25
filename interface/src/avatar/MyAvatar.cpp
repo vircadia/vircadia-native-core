@@ -234,7 +234,7 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andRecenter, bool andReload) {
+void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter));
@@ -247,7 +247,9 @@ void MyAvatar::reset(bool andRecenter, bool andReload) {
     if (andReload) {
         _skeletonModel->reset();
     }
-    getHead()->reset();
+    if (andHead) { // which drives camera in desktop
+        getHead()->reset();
+    }
     setThrust(glm::vec3(0.0f));
 
     if (andRecenter) {
