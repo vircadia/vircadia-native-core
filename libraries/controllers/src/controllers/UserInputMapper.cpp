@@ -336,10 +336,10 @@ QVector<QString> UserInputMapper::getActionNames() const {
     return result;
 }
 
-static int actionMetaTypeId = qRegisterMetaType<Action>();
-static int inputMetaTypeId = qRegisterMetaType<Input>();
-static int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
-static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
+int actionMetaTypeId = qRegisterMetaType<Action>();
+int inputMetaTypeId = qRegisterMetaType<Input>();
+int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
+int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);

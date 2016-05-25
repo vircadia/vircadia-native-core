@@ -25,9 +25,7 @@ EntityEditPacketSender::EntityEditPacketSender() {
 }
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    if (_shouldProcessNack) {
-        processNackPacket(*message, sendingNode);
-    }
+    processNackPacket(*message, sendingNode);
 }
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) {

@@ -33,7 +33,7 @@ using namespace gpu::gl;
 
 
 static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
-static bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 Backend* GLBackend::createBackend() {
 

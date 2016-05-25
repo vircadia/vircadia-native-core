@@ -91,7 +91,7 @@ FocusScope {
         HiFiGlyphs {
             anchors {
                 top: parent.top
-                topMargin: -8
+                topMargin: -11
                 horizontalCenter: parent.horizontalCenter
             }
             size: hifi.dimensions.spinnerSize
