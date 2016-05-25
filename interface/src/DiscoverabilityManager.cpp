@@ -127,6 +127,10 @@ void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply
 
     if (!dataObject.isEmpty()) {
         _sessionID = dataObject[SESSION_ID_KEY].toString();
+
+        // give that session ID to the account manager
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->setSessionID(_sessionID);
     }
 }
 
