@@ -92,7 +92,7 @@ namespace AvatarDataPacket {
     */
 }
 
-#define ASSERT(COND)  do { if (!(COND)) { int* bad = nullptr; *bad = 0xbad; } } while(0)
+#define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
@@ -442,7 +442,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     glm::vec3 position = glm::vec3(header->position[0], header->position[1], header->position[2]);
     _globalPosition = glm::vec3(header->globalPosition[0], header->globalPosition[1], header->globalPosition[2]);
-    if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
+    if (isNaN(position)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();
         }
@@ -454,7 +454,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     unpackFloatAngleFromTwoByte(header->localOrientation + 0, &yaw);
     unpackFloatAngleFromTwoByte(header->localOrientation + 1, &pitch);
     unpackFloatAngleFromTwoByte(header->localOrientation + 2, &roll);
-    if (glm::isnan(yaw) || glm::isnan(pitch) || glm::isnan(roll)) {
+    if (isNaN(yaw) || isNaN(pitch) || isNaN(roll)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: localOriention is NaN, uuid " << getSessionUUID();
         }
@@ -471,7 +471,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     float scale;
     unpackFloatRatioFromTwoByte((uint8_t*)&header->scale, scale);
-    if (glm::isnan(scale)) {
+    if (isNaN(scale)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: scale NaN, uuid " << getSessionUUID();
         }
@@ -480,7 +480,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, scale));
 
     glm::vec3 lookAt = glm::vec3(header->lookAtPosition[0], header->lookAtPosition[1], header->lookAtPosition[2]);
-    if (glm::isnan(lookAt.x) || glm::isnan(lookAt.y) || glm::isnan(lookAt.z)) {
+    if (isNaN(lookAt)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: lookAtPosition is NaN, uuid " << getSessionUUID();
         }
@@ -489,7 +489,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     _headData->_lookAtPosition = lookAt;
 
     float audioLoudness = header->audioLoudness;
-    if (glm::isnan(audioLoudness)) {
+    if (isNaN(audioLoudness)) {
         if (shouldLogError(now)) {
             qCWarning(avatars) << "Discard AvatarData packet: audioLoudness is NaN, uuid " << getSessionUUID();
         }
@@ -522,8 +522,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             auto parentInfo = reinterpret_cast<const AvatarDataPacket::ParentInfo*>(sourceBuffer);
             sourceBuffer += sizeof(AvatarDataPacket::ParentInfo);
 
-            const size_t RFC_4122_SIZE = 16;
-            QByteArray byteArray((const char*)parentInfo->parentUUID, RFC_4122_SIZE);
+            QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
             _parentID = QUuid::fromRfc4122(byteArray);
             _parentJointIndex = parentInfo->parentJointIndex;
         } else {
@@ -634,8 +633,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     int numBytesRead = sourceBuffer - startPosition;
 
-    // AJT: Maybe make this a warning.
-    ASSERT(numBytesRead == buffer.size());
+    if (numBytesRead != buffer.size()) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "AvatarData packet size mismatch: expected " << numBytesRead << " received " << buffer.size();
+        }
+    }
 
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
