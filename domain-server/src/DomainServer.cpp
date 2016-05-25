@@ -1121,7 +1121,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
 
     domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
 
-    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
     DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                               AccountManagerAuth::Required,
