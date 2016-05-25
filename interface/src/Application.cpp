@@ -4594,7 +4594,7 @@ void Application::setSessionUUID(const QUuid& sessionUUID) const {
 
 
 // If we're not getting anything back from the domain server checkin, it might be that the domain speaks an 
-// older version of the DomainConnectRequest protocal. We will attempt to send and older version of DomainConnectRequest.
+// older version of the DomainConnectRequest protocol. We will attempt to send and older version of DomainConnectRequest.
 // We won't actually complete the connection, but if the server responds, we know that it needs to be upgraded (or we
 // need to be downgraded to talk to it).
 void Application::limitOfSilentDomainCheckInsReached() {

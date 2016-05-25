@@ -535,9 +535,10 @@ void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const H
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
     QByteArray utfString = reason.toUtf8();
     quint16 payloadSize = utfString.size();
-    
+   
     // setup the DomainConnectionDenied packet
-    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied);
+    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, 
+                                                payloadSize + sizeof(payloadSize) + sizeof(uint8_t));
     
     // pack in the reason the connection was denied (the client displays this)
     if (payloadSize > 0) {
