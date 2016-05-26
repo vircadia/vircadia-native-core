@@ -43,10 +43,9 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _averageLoudness(0.0f),
     _browAudioLift(0.0f),
     _audioAverageLoudness(0.0f),
-    _pupilDilation(0.0f),
     _owningAvatar(owningAvatar)
 {
-    
+
 }
 
 glm::quat HeadData::getRawOrientation() const {
@@ -72,7 +71,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     glm::vec3 newFront = glm::inverse(bodyOrientation) * (orientation * IDENTITY_FRONT);
     bodyOrientation = bodyOrientation * glm::angleAxis(atan2f(-newFront.x, -newFront.z), glm::vec3(0.0f, 1.0f, 0.0f));
     _owningAvatar->setOrientation(bodyOrientation);
-    
+
     // the rest goes to the head
     glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
     _basePitch = eulers.x;
@@ -186,4 +185,3 @@ void HeadData::fromJson(const QJsonObject& json) {
         }
     }
 }
-

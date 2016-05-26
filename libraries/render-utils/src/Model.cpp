@@ -726,10 +726,6 @@ glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     return translatedPoint;
 }
 
-bool Model::getJointState(int index, glm::quat& rotation) const {
-    return _rig->getJointStateRotation(index, rotation);
-}
-
 void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
