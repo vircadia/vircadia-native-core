@@ -23,14 +23,17 @@ ApplicationWindow {
     Desktop {
         id: desktop
         anchors.fill: parent
-        rootMenu: StubMenu { id: rootMenu }
+
+        //rootMenu: StubMenu { id: rootMenu }
         //Component.onCompleted: offscreenWindow = appWindow
 
+        /*
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.RightButton
             onClicked: desktop.popupMenu(Qt.vector2d(mouseX, mouseY));
         }
+        */
 
         Row {
             id: testButtons

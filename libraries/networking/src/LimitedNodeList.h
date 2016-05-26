@@ -240,7 +240,9 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
-    void packetVersionMismatch(PacketType type);
+
+    // QUuid might be zero for non-sourced packet types.
+    void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);

@@ -86,6 +86,8 @@ public:
 
     static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
 
+    void setSessionID(const QUuid& sessionID) { _sessionID = sessionID; }
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
 
@@ -136,6 +138,8 @@ private:
 
     bool _isWaitingForKeypairResponse { false };
     QByteArray _pendingPrivateKey;
+
+    QUuid _sessionID;
 };
 
 #endif // hifi_AccountManager_h

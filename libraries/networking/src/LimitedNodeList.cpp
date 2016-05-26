@@ -176,9 +176,10 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
 
         bool hasBeenOutput = false;
         QString senderString;
+        const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
+        QUuid sourceID;
 
         if (NON_SOURCED_PACKETS.contains(headerType)) {
-            const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
             hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, headerType);
 
             if (!hasBeenOutput) {
@@ -186,7 +187,7 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
                 senderString = QString("%1:%2").arg(senderSockAddr.getAddress().toString()).arg(senderSockAddr.getPort());
             }
         } else {
-            QUuid sourceID = NLPacket::sourceIDInHeader(packet);
+            sourceID = NLPacket::sourceIDInHeader(packet);
 
             hasBeenOutput = sourcedVersionDebugSuppressMap.contains(sourceID, headerType);
 
@@ -201,7 +202,7 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
                 << senderString << "sent" << qPrintable(QString::number(headerVersion)) << "but"
                 << qPrintable(QString::number(versionForPacketType(headerType))) << "expected.";
 
-            emit packetVersionMismatch(headerType);
+            emit packetVersionMismatch(headerType, senderSockAddr, sourceID);
         }
 
         return false;

@@ -183,7 +183,8 @@ const PacketVersion VERSION_ENTITIES_MORE_SHAPES = 59;
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,
-    AvatarEntities
+    AvatarEntities,
+    AbsoluteSixByteRotations
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
