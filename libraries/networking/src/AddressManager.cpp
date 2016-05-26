@@ -383,8 +383,12 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     qCDebug(networking) << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
 
     if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
+        // if this is a lookup that has no result, don't keep re-trying it
+        _previousLookup.clear();
+
         emit lookupResultIsNotFound();
     }
+
     emit lookupResultsFinished();
 }
 
