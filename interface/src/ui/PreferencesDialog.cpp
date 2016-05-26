@@ -145,11 +145,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->float { return myAvatar->getHead()->getPupilDilation(); };
-        auto setter = [=](float value) { myAvatar->getHead()->setPupilDilation(value); }; 
-        preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Pupil dilation", getter, setter));
-    }
-    {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
         auto setter = [](float value) { DependencyManager::get<DdeFaceTracker>()->setEyeClosingThreshold(value); };
         preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Camera binary eyelid threshold", getter, setter));

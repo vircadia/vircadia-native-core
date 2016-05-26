@@ -48,9 +48,11 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
             return VERSION_ENTITIES_NO_FLY_ZONES;
+        case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarEntities);
+        case PacketType::KillAvatar:
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AbsoluteSixByteRotations);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:

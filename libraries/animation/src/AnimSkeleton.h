@@ -55,6 +55,8 @@ public:
     void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
     void convertAbsolutePosesToRelative(AnimPoseVec& poses) const;
 
+    void convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const;
+
     void mirrorRelativePoses(AnimPoseVec& poses) const;
     void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 

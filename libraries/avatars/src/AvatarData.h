@@ -53,6 +53,7 @@ typedef unsigned long long quint64;
 #include <SimpleMovingAverage.h>
 #include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
+#include <Packed.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -171,6 +172,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
 public:
+
     static const QString FRAME_NAME;
 
     static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
@@ -289,7 +291,19 @@ public:
 
     const HeadData* getHeadData() const { return _headData; }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& data);
+    struct Identity {
+        QUuid uuid;
+        QUrl skeletonModelURL;
+        QVector<AttachmentData> attachmentData;
+        QString displayName;
+        AvatarEntityMap avatarEntityData;
+    };
+
+    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
+
+    // returns true if identity has changed, false otherwise.
+    bool processAvatarIdentity(const Identity& identity);
+
     QByteArray identityByteArray();
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }

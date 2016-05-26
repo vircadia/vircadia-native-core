@@ -22,12 +22,10 @@ Item {
 
     property bool gradientsSupported: desktop.gradientsSupported
 
-    readonly property int iconSize: 22
-    readonly property int frameMargin: 9
-    readonly property int frameMarginLeft: frameMargin
-    readonly property int frameMarginRight: frameMargin
-    readonly property int frameMarginTop: 2 * frameMargin + iconSize
-    readonly property int frameMarginBottom: iconSize + 11
+    readonly property int frameMarginLeft: frameContent.frameMarginLeft
+    readonly property int frameMarginRight: frameContent.frameMarginRight
+    readonly property int frameMarginTop: frameContent.frameMarginTop
+    readonly property int frameMarginBottom: frameContent.frameMarginBottom
 
     // Frames always fill their parents, but their decorations may extend
     // beyond the window via negative margin sizes
@@ -76,8 +74,8 @@ Item {
         id: sizeOutline
         x: -frameMarginLeft
         y: -frameMarginTop
-        width: window ? window.width + frameMarginLeft + frameMarginRight : 0
-        height: window ? window.height + frameMarginTop + frameMarginBottom : 0
+        width: window ? window.width + frameMarginLeft + frameMarginRight + 2 : 0
+        height: window ? window.height + frameMarginTop + frameMarginBottom + 2 : 0
         color: hifi.colors.baseGrayHighlight15
         border.width: 3
         border.color: hifi.colors.white50
@@ -88,11 +86,11 @@ Item {
     MouseArea {
         // Resize handle
         id: sizeDrag
-        width: iconSize
-        height: iconSize
+        width: hifi.dimensions.frameIconSize
+        height: hifi.dimensions.frameIconSize
         enabled: window ? window.resizable : false
         hoverEnabled: true
-        x: window ? window.width + frameMarginRight - iconSize : 0
+        x: window ? window.width + frameMarginRight - hifi.dimensions.frameIconSize : 0
         y: window ? window.height + 4 : 0
         property vector2d pressOrigin
         property vector2d sizeOrigin
@@ -124,10 +122,12 @@ Item {
         HiFiGlyphs {
             visible: sizeDrag.enabled
             x: -11  // Move a little to visually align
-            y: -4   // ""
+            y: window.modality == Qt.ApplicationModal ? -6 : -4
             text: hifi.glyphs.resizeHandle
-            size: iconSize + 10
-            color: sizeDrag.containsMouse || sizeDrag.pressed ? hifi.colors.white : hifi.colors.white50
+            size: hifi.dimensions.frameIconSize + 10
+            color: sizeDrag.containsMouse || sizeDrag.pressed
+                   ? hifi.colors.white
+                   : (window.colorScheme == hifi.colorSchemes.dark ? hifi.colors.white50 : hifi.colors.lightGrayText80)
         }
     }
 }
