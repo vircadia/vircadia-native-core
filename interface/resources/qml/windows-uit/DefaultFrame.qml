@@ -20,6 +20,14 @@ Frame {
     Rectangle {
         // Dialog frame
         id: frameContent
+
+        readonly property int iconSize: hifi.dimensions.frameIconSize
+        readonly property int frameMargin: 9
+        readonly property int frameMarginLeft: frameMargin
+        readonly property int frameMarginRight: frameMargin
+        readonly property int frameMarginTop: 2 * frameMargin + iconSize
+        readonly property int frameMarginBottom: iconSize + 11
+
         anchors {
             topMargin: -frameMarginTop
             leftMargin: -frameMarginLeft
@@ -34,7 +42,7 @@ Frame {
         }
         radius: hifi.dimensions.borderRadius
 
-        // Allow dragging of the window
+        // Enable dragging of the window
         MouseArea {
             anchors.fill: parent
             drag.target: window
@@ -45,17 +53,17 @@ Frame {
             anchors {
                 right: parent.right;
                 top: parent.top;
-                topMargin: frameMargin + 1  // Move down a little to visually align with the title
-                rightMargin: frameMarginRight;
+                topMargin: frameContent.frameMargin + 1  // Move down a little to visually align with the title
+                rightMargin: frameContent.frameMarginRight;
             }
-            spacing: iconSize / 4
+            spacing: frameContent.iconSize / 4
 
             HiFiGlyphs {
                 // "Pin" button
                 visible: false
                 text: (frame.pinned && !pinClickArea.containsMouse) || (!frame.pinned && pinClickArea.containsMouse) ? hifi.glyphs.pinInverted : hifi.glyphs.pin
                 color: pinClickArea.containsMouse && !pinClickArea.pressed ? hifi.colors.redHighlight : hifi.colors.white
-                size: iconSize
+                size: frameContent.iconSize
                 MouseArea {
                     id: pinClickArea
                     anchors.fill: parent
@@ -70,7 +78,7 @@ Frame {
                 visible: window ? window.closable : false
                 text: closeClickArea.containsPress ? hifi.glyphs.closeInverted : hifi.glyphs.close
                 color: closeClickArea.containsMouse ? hifi.colors.redHighlight : hifi.colors.white
-                size: iconSize
+                size: frameContent.iconSize
                 MouseArea {
                     id: closeClickArea
                     anchors.fill: parent
@@ -85,11 +93,11 @@ Frame {
             id: titleText
             anchors {
                 left: parent.left
-                leftMargin: frameMarginLeft + hifi.dimensions.contentMargin.x
+                leftMargin: frameContent.frameMarginLeft + hifi.dimensions.contentMargin.x
                 right: controlsRow.left
-                rightMargin: iconSize
+                rightMargin: frameContent.iconSize
                 top: parent.top
-                topMargin: frameMargin
+                topMargin: frameContent.frameMargin
             }
             text: window ? window.title : ""
             color: hifi.colors.white
