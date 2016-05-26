@@ -48,7 +48,7 @@ namespace geometry {
         }
 
         Vec getFaceNormal(size_t faceIndex) const {
-            vec3 result;
+            Vec result;
             const auto& face = faces[faceIndex];
             for (size_t i = 0; i < N; ++i) {
                 result += vertices[face[i]];
@@ -65,7 +65,7 @@ namespace geometry {
 
     template <size_t N>
     size_t triangulatedFaceIndexCount() {
-        return triangulatedFaceTriangleCount<N>() * VERTICES_PER_TRIANGLE;
+        return triangulatedFaceTriangleCount<N>() * 3;
     }
 
     Solid<3> tesselate(const Solid<3>& solid, int count);
