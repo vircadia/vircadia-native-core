@@ -641,10 +641,6 @@ void Avatar::simulateAttachments(float deltaTime) {
     }
 }
 
-void Avatar::updateJointMappings() {
-    // no-op; joint mappings come from skeleton model
-}
-
 float Avatar::getBoundingRadius() const {
     return getBounds().getLargestDimension() / 2.0f;
 }

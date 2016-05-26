@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AccountManager.h"
+
 #include <memory>
 
 #include <QtCore/QDataStream>
@@ -26,13 +28,13 @@
 
 #include <SettingHandle.h>
 
+#include "NetworkLogging.h"
 #include "NodeList.h"
 #include "udt/PacketHeaders.h"
 #include "RSAKeypairGenerator.h"
 #include "SharedUtil.h"
+#include "UserActivityLogger.h"
 
-#include "AccountManager.h"
-#include "NetworkLogging.h"
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
@@ -215,6 +217,13 @@ void AccountManager::sendRequest(const QString& path,
     QNetworkRequest networkRequest;
 
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    // if we're allowed to send usage data, include whatever the current session ID is with this request
+    auto& activityLogger = UserActivityLogger::getInstance();
+    if (activityLogger.isEnabled()) {
+        static const QString METAVERSE_SESSION_ID_HEADER = "HFM-SessionID";
+        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER.toLocal8Bit(), _sessionID.toString().toLocal8Bit());
+    }
 
     QUrl requestURL = _authURL;
     

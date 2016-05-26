@@ -176,7 +176,8 @@ const PacketVersion VERSION_ENTITIES_NO_FLY_ZONES = 58;
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,
-    AvatarEntities
+    AvatarEntities,
+    AbsoluteSixByteRotations
 };
 
 #endif // hifi_PacketHeaders_h
