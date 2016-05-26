@@ -47,7 +47,7 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
         } else if (filename.toLower().endsWith(".fbx")) {
             geom = readFBX(fbxContents, QVariantHash(), filename);
         } else {
-            qWarning() << "unknown file extension";
+            qWarning() << "file has unknown extension" << filename;
             return false;
         }
         result = *geom;
@@ -63,18 +63,20 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
 
 
 void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& triangleIndices) {
-    // append all the triangles (and converted quads) from this mesh-part to triangles
-    std::vector<int> meshPartTriangles = meshPart.triangleIndices.toStdVector();
-    triangleIndices.insert(triangleIndices.end(), meshPartTriangles.begin(), meshPartTriangles.end());
+    // append triangle indices
+    triangleIndices.reserve(triangleIndices.size() + (size_t)meshPart.triangleIndices.size());
+    for (auto index : meshPart.triangleIndices) {
+        triangleIndices.push_back(index);
+    }
 
     // convert quads to triangles
     const uint32_t QUAD_STRIDE = 4;
-    uint32_t quadCount = meshPart.quadIndices.size() / QUAD_STRIDE;
-    for (uint32_t i = 0; i < quadCount; i++) {
-        uint32_t p0Index = meshPart.quadIndices[i * QUAD_STRIDE];
-        uint32_t p1Index = meshPart.quadIndices[i * QUAD_STRIDE + 1];
-        uint32_t p2Index = meshPart.quadIndices[i * QUAD_STRIDE + 2];
-        uint32_t p3Index = meshPart.quadIndices[i * QUAD_STRIDE + 3];
+    uint32_t numIndices = (uint32_t)meshPart.quadIndices.size();
+    for (uint32_t i = 0; i < numIndices; i += QUAD_STRIDE) {
+        uint32_t p0Index = meshPart.quadIndices[i];
+        uint32_t p1Index = meshPart.quadIndices[i + 1];
+        uint32_t p2Index = meshPart.quadIndices[i + 2];
+        uint32_t p3Index = meshPart.quadIndices[i + 3];
         // split each quad into two triangles
         triangleIndices.push_back(p0Index);
         triangleIndices.push_back(p1Index);
@@ -105,8 +107,6 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         return;
     }
 
-    int indexStartOffset = result.vertices.size();
-
     // new mesh gets the transformed points from the original
     for (int i = 0; i < mesh.vertices.size(); i++) {
         // apply the source mesh's transform to the points
@@ -118,6 +118,7 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
 
     const uint32_t TRIANGLE_STRIDE = 3;
     const float COLLISION_TETRAHEDRON_SCALE = 0.25f;
+    int indexStartOffset = result.vertices.size();
     for (uint32_t i = 0; i < triangleIndices.size(); i += TRIANGLE_STRIDE) {
         int index0 = triangleIndices[i] + indexStartOffset;
         int index1 = triangleIndices[i + 1] + indexStartOffset;
@@ -178,26 +179,39 @@ AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
     return aaBox;
 }
 
-struct TriangleEdge {
-    int indexA { -1 };
-    int indexB { -1 };
+class TriangleEdge {
+public:
     TriangleEdge() {}
-    TriangleEdge(int A, int B) : indexA(A), indexB(B) {}
-    bool operator==(const TriangleEdge& other) const {
-        return indexA == other.indexA && indexB == other.indexB;
+    TriangleEdge(uint32_t A, uint32_t B) {
+        setIndices(A, B);
     }
-    void sortIndices() {
-        if (indexB < indexA) {
-            std::swap(indexA, indexB);
+    void setIndices(uint32_t A, uint32_t B) {
+        if (A < B) {
+            _indexA = A;
+            _indexB = B;
+        } else {
+            _indexA = B;
+            _indexB = A;
         }
     }
+    bool operator==(const TriangleEdge& other) const {
+        return _indexA == other._indexA && _indexB == other._indexB;
+    }
+
+    uint32_t getIndexA() const { return _indexA; }
+    uint32_t getIndexB() const { return _indexB; }
+private:
+    uint32_t _indexA { (uint32_t)(-1) };
+    uint32_t _indexB { (uint32_t)(-1) };
 };
 
 namespace std {
     template <>
     struct hash<TriangleEdge> {
         std::size_t operator()(const TriangleEdge& edge) const {
-            return (hash<int>()(edge.indexA) ^ (hash<int>()(edge.indexB) << 1));
+            // use Cantor's pairing function to generate a hash of ZxZ --> Z
+            uint32_t ab = edge.getIndexA() + edge.getIndexB();
+            return hash<int>()((ab * (ab + 1)) / 2 + edge.getIndexB());
         }
     };
 }
@@ -212,14 +226,12 @@ bool isClosedManifold(const std::vector<int>& triangleIndices) {
     for (uint32_t i = 0; i < triangleIndices.size(); i += TRIANGLE_STRIDE) {
         TriangleEdge edge;
         // the triangles indices are stored in sequential order
-        for (int j = 0; j < 3; ++j) {
-            edge.indexA = triangleIndices[(int)i + j];
-            edge.indexB = triangleIndices[i + ((j + 1) % 3)];
-            edge.sortIndices();
+        for (uint32_t j = 0; j < 3; ++j) {
+            edge.setIndices(triangleIndices[i + j], triangleIndices[i + ((j + 1) % 3)]);
 
             EdgeList::iterator edgeEntry = edges.find(edge);
             if (edgeEntry == edges.end()) {
-                edges.insert(std::pair<TriangleEdge, int>(edge, 1));
+                edges.insert(std::pair<TriangleEdge, uint32_t>(edge, 1));
             } else {
                 edgeEntry->second += 1;
             }
@@ -243,6 +255,7 @@ void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& res
 
     // create an output meshPart for each convex hull
     const uint32_t TRIANGLE_STRIDE = 3;
+    const uint32_t POINT_STRIDE = 3;
     for (uint32_t j = 0; j < numHulls; j++) {
         VHACD::IVHACD::ConvexHull hull;
         convexifier->GetConvexHull(j, hull);
@@ -251,20 +264,21 @@ void vhacd::VHACDUtil::getConvexResults(VHACD::IVHACD* convexifier, FBXMesh& res
         FBXMeshPart& resultMeshPart = resultMesh.parts.last();
 
         int hullIndexStart = resultMesh.vertices.size();
-        for (uint32_t i = 0; i < hull.m_nPoints; i++) {
-            float x = hull.m_points[i * TRIANGLE_STRIDE];
-            float y = hull.m_points[i * TRIANGLE_STRIDE + 1];
-            float z = hull.m_points[i * TRIANGLE_STRIDE + 2];
+        resultMesh.vertices.reserve(hullIndexStart + hull.m_nPoints);
+        uint32_t numIndices = hull.m_nPoints * POINT_STRIDE;
+        for (uint32_t i = 0; i < numIndices; i += POINT_STRIDE) {
+            float x = hull.m_points[i];
+            float y = hull.m_points[i + 1];
+            float z = hull.m_points[i + 2];
             resultMesh.vertices.append(glm::vec3(x, y, z));
         }
 
-        for (uint32_t i = 0; i < hull.m_nTriangles; i++) {
-            int index0 = hull.m_triangles[i * TRIANGLE_STRIDE] + hullIndexStart;
-            int index1 = hull.m_triangles[i * TRIANGLE_STRIDE + 1] + hullIndexStart;
-            int index2 = hull.m_triangles[i * TRIANGLE_STRIDE + 2] + hullIndexStart;
-            resultMeshPart.triangleIndices.append(index0);
-            resultMeshPart.triangleIndices.append(index1);
-            resultMeshPart.triangleIndices.append(index2);
+        numIndices = hull.m_nTriangles * TRIANGLE_STRIDE;
+        resultMeshPart.triangleIndices.reserve(resultMeshPart.triangleIndices.size() + numIndices);
+        for (uint32_t i = 0; i < numIndices; i += TRIANGLE_STRIDE) {
+            resultMeshPart.triangleIndices.append(hull.m_triangles[i] + hullIndexStart);
+            resultMeshPart.triangleIndices.append(hull.m_triangles[i + 1] + hullIndexStart);
+            resultMeshPart.triangleIndices.append(hull.m_triangles[i + 2] + hullIndexStart);
         }
         if (_verbose) {
             qDebug() << "    hull" << j << " vertices =" << hull.m_nPoints
@@ -419,7 +433,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                 index = dupeIndexMap[index];
             }
 
-            // this time we don't care if the parts are close or not
+            // this time we don't care if the parts are closed or not
             uint32_t triangleCount = (uint32_t)(triangleIndices.size()) / TRIANGLE_STRIDE;
             if (_verbose) {
                 qDebug() << "  process remaining open parts =" << openParts.size() << ": "

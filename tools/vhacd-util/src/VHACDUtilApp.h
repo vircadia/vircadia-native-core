@@ -17,6 +17,10 @@
 
 #include <FBXReader.h>
 
+const int VHACD_RETURN_CODE_FAILURE_TO_READ = 1;
+const int VHACD_RETURN_CODE_FAILURE_TO_WRITE = 2;
+const int VHACD_RETURN_CODE_FAILURE_TO_CONVEXIFY = 3;
+
 
 class VHACDUtilApp : public QCoreApplication {
     Q_OBJECT
