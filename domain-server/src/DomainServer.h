@@ -99,6 +99,8 @@ private:
 
     void optionallyGetTemporaryName(const QStringList& arguments);
 
+    static bool packetVersionMatch(const udt::Packet& packet);
+
     bool resetAccountManagerAccessToken();
 
     void setupAutomaticNetworking();

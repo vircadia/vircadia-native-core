@@ -941,7 +941,13 @@ void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
 
 }
 
-void ScriptEngine::stop() {
+void ScriptEngine::stop(bool marshal) {
+    _isStopping = true; // this can be done on any thread
+
+    if (marshal) {
+        QMetaObject::invokeMethod(this, "stop");
+        return;
+    }
     if (!_isFinished) {
         _isFinished = true;
         emit runningStateChanged();

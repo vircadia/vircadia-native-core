@@ -25,9 +25,12 @@ import "fileDialog"
 //FIXME implement shortcuts for favorite location
 ModalWindow {
     id: root
-    //resizable: true
+    resizable: true
     implicitWidth: 640
     implicitHeight: 480
+
+    minSize: Qt.vector2d(300, 240)
+    draggable: true
 
     HifiConstants { id: hifi }
 

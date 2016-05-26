@@ -692,8 +692,6 @@ void MyAvatar::saveData() {
 
     settings.setValue("headPitch", getHead()->getBasePitch());
 
-    settings.setValue("pupilDilation", getHead()->getPupilDilation());
-
     settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
 
@@ -810,8 +808,6 @@ void MyAvatar::loadData() {
     settings.beginGroup("Avatar");
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
-
-    getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);

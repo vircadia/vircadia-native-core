@@ -61,7 +61,7 @@ public:
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
-        AvatarBillboard,
+        TYPE_UNUSED_1,
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
@@ -94,7 +94,8 @@ public:
         ICEServerHeartbeatDenied,
         AssetMappingOperation,
         AssetMappingOperationReply,
-        ICEServerHeartbeatACK
+        ICEServerHeartbeatACK,
+        LAST_PACKET_TYPE = ICEServerHeartbeatACK
     };
 };
 
@@ -109,6 +110,11 @@ extern const QSet<PacketType> NON_SOURCED_PACKETS;
 extern const QSet<PacketType> RELIABLE_PACKETS;
 
 PacketVersion versionForPacketType(PacketType packetType);
+QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols
+
+#if (PR_BUILD || DEV_BUILD)
+void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debugging version negotiation
+#endif
 
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
@@ -172,11 +178,24 @@ const PacketVersion VERSION_ENTITITES_HAVE_COLLISION_MASK = 55;
 const PacketVersion VERSION_ATMOSPHERE_REMOVED = 56;
 const PacketVersion VERSION_LIGHT_HAS_FALLOFF_RADIUS = 57;
 const PacketVersion VERSION_ENTITIES_NO_FLY_ZONES = 58;
+const PacketVersion VERSION_ENTITIES_MORE_SHAPES = 59;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
     SoftAttachmentSupport,
-    AvatarEntities
+    AvatarEntities,
+    AbsoluteSixByteRotations
+};
+
+enum class DomainConnectRequestVersion : PacketVersion {
+    NoHostname = 17,
+    HasHostname,
+    HasProtocolVersions
+};
+
+enum class DomainConnectionDeniedVersion : PacketVersion {
+    ReasonMessageOnly = 17,
+    IncludesReasonCode
 };
 
 #endif // hifi_PacketHeaders_h

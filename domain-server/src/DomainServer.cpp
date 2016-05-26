@@ -303,6 +303,31 @@ const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
 const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
 const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
 
+
+
+bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
+    PacketType headerType = NLPacket::typeInHeader(packet);
+    PacketVersion headerVersion = NLPacket::versionInHeader(packet);
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+    // This implements a special case that handles OLD clients which don't know how to negotiate matching
+    // protocol versions. We know these clients will sent DomainConnectRequest with older versions. We also
+    // know these clients will show a warning dialog if they get an EntityData with a protocol version they
+    // don't understand, so we can send them an empty EntityData with our latest version and they will
+    // warn the user that the protocol is not compatible
+    if (headerType == PacketType::DomainConnectRequest &&
+        headerVersion < static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
+        auto packetWithBadVersion = NLPacket::create(PacketType::EntityData);
+        nodeList->sendPacket(std::move(packetWithBadVersion), packet.getSenderSockAddr());
+        return false;
+    }
+
+    // let the normal nodeList implementation handle all other packets.
+    return nodeList->isPacketVerified(packet);
+}
+
+
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
@@ -376,6 +401,9 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
+
+    // set a custum packetVersionMatch as the verify packet operator for the udt::Socket
+    nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
 }
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
@@ -666,7 +694,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    
+
     QDataStream packetStream(message->getMessage());
     NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr(), false);
 

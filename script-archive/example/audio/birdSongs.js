@@ -22,7 +22,7 @@ var BIRD_VELOCITY = 2.0;
 var LIGHT_RADIUS = 10.0;
 var BIRD_MASTER_VOLUME = 0.5;
 
-var useLights = true; 
+var useLights = true;
 
 function randomVector(scale) {
     return { x: Math.random() * scale - scale / 2.0, y: Math.random() * scale - scale / 2.0, z: Math.random() * scale - scale / 2.0 };
@@ -33,11 +33,11 @@ function maybePlaySound(deltaTime) {
         //  Set the location and other info for the sound to play
         var whichBird = Math.floor(Math.random() * birds.length);
         //print("playing sound # " + whichBird);
-        var position = { 
-      x: lowerCorner.x + Math.random() * (upperCorner.x - lowerCorner.x), 
-        y: lowerCorner.y + Math.random() * (upperCorner.y - lowerCorner.y), 
-      z: lowerCorner.z + Math.random() * (upperCorner.z - lowerCorner.z) 
-    }; 
+        var position = {
+      x: lowerCorner.x + Math.random() * (upperCorner.x - lowerCorner.x),
+        y: lowerCorner.y + Math.random() * (upperCorner.y - lowerCorner.y),
+      z: lowerCorner.z + Math.random() * (upperCorner.z - lowerCorner.z)
+    };
         var options = {
           position: position,
       volume: BIRD_MASTER_VOLUME
@@ -63,31 +63,31 @@ function maybePlaySound(deltaTime) {
 
                 constantAttenuation: 0,
                 linearAttenuation: 4.0,
-                quadraticAttenuation: 2.0, 
+                quadraticAttenuation: 2.0,
                 lifetime: 10
             });
         }
-    
+
         playing.push({ audioId: Audio.playSound(birds[whichBird].sound, options), entityId: entityId, lightId: lightId, color: birds[whichBird].color });
     }
     if (playing.length != numPlaying) {
         numPlaying = playing.length;
         //print("number playing = " + numPlaying);
-    }     
+    }
     for (var i = 0; i < playing.length; i++) {
-        if (!playing[i].audioId.isPlaying) {
+        if (!playing[i].audioId.playing) {
             Entities.deleteEntity(playing[i].entityId);
             if (useLights) {
                 Entities.deleteEntity(playing[i].lightId);
-            }    
+            }
             playing.splice(i, 1);
         } else {
             var loudness = playing[i].audioId.loudness;
             var newColor = { red: playing[i].color.red, green: playing[i].color.green, blue: playing[i].color.blue };
             if (loudness > 0.05) {
-                newColor.red *= (1.0 - loudness); 
-                newColor.green *= (1.0 - loudness);  
-                newColor.blue *= (1.0 - loudness); 
+                newColor.red *= (1.0 - loudness);
+                newColor.green *= (1.0 - loudness);
+                newColor.blue *= (1.0 - loudness);
             }
             var properties = Entities.getEntityProperties(playing[i].entityId);
             var newPosition = Vec3.sum(properties.position, randomVector(BIRD_VELOCITY * deltaTime));
@@ -120,7 +120,7 @@ Script.scriptEnding.connect(function() {
 });
 
 function loadBirds() {
-  var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw", "mexicanWhipoorwill.raw", 
+  var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw", "mexicanWhipoorwill.raw",
                            "rosyfacedlovebird.raw", "saysphoebe.raw", "westernscreechowl.raw", "bandtailedpigeon.wav", "bridledtitmouse.wav",
                            "browncrestedflycatcher.wav", "commonnighthawk.wav", "commonpoorwill.wav", "doublecrestedcormorant.wav",
                            "gambelsquail.wav", "goldcrownedkinglet.wav", "greaterroadrunner.wav","groovebilledani.wav","hairywoodpecker.wav",
@@ -155,13 +155,13 @@ function loadBirds() {
             { red: 216, green: 153, blue: 99 },
             { red: 242, green: 226, blue: 64 }
   ];
-  
+
   var SOUND_BASE_URL = "http://public.highfidelity.io/sounds/Animals/";
-  
+
   for (var i = 0; i < sound_filenames.length; i++) {
       birds.push({
-        sound: SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]), 
-        color: colors[i] 
+        sound: SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]),
+        color: colors[i]
       });
   }
 }

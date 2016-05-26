@@ -380,7 +380,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     // Stop and possibly restart all currently running scripts
     for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
-        if (it.value()->isFinished()) {
+        if (it.value()->isFinished() || it.value()->isStopping()) {
             continue;
         }
         if (restart && it.value()->isUserLoaded()) {
@@ -388,8 +388,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
                 reloadScript(scriptName);
             });
         }
-        QMetaObject::invokeMethod(it.value(), "stop");
-        //it.value()->stop();
+        it.value()->stop(true);
         qCDebug(scriptengine) << "stopping script..." << it.key();
     }
 }
@@ -460,7 +459,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
     }
 
     auto scriptEngine = getScriptEngine(scriptUrl);
-    if (scriptEngine) {
+    if (scriptEngine && !scriptEngine->isStopping()) {
         return scriptEngine;
     }
 
