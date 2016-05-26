@@ -22,10 +22,7 @@
 //   (For now, the thumb buttons on both controllers are always on.)
 // When over a HUD element, the reticle is shown where the active hand controller beam intersects the HUD.
 // Otherwise, the active hand controller shows a red ball where a click will act.
-//
-// Bugs:
-// On Windows, the upper left corner of Interface must be in the upper left corner of the screen, and the title bar must be 50px high. (System bug.)
-// While hardware mouse move switches to mouse move, hardware mouse click (without amove) does not.
+
 
 
 // UTILITIES -------------
@@ -269,76 +266,24 @@ function toggleHand() {
     }
 }
 
-// Create clickMappings as needed, on demand.
-var clickMappings = {}, clickMapping, clickMapToggle;
-var hardware; // undefined
-function checkHardware() {
-    var newHardware = Controller.Hardware.Hydra ? 'Hydra' : (Controller.Hardware.Vive ? 'Vive' : null); // not undefined
-    if (hardware === newHardware) {
-        return;
-    }
-    print('Setting mapping for new controller hardware:', newHardware);
-    if (clickMapToggle) {
-        clickMapToggle.setState(false);
-    }
-    hardware = newHardware;
-    if (clickMappings[hardware]) {
-        clickMapping = clickMappings[hardware];
-    } else {
-        clickMapping = Controller.newMapping(Script.resolvePath('') + '-click-' + hardware);
-        Script.scriptEnding.connect(clickMapping.disable);
-        function mapToAction(button, action) {
-            clickMapping.from(Controller.Hardware[hardware][button]).peek().to(Controller.Actions[action]);
-        }
-        function makeHandToggle(button, hand, optionalWhen) {
-            var whenThunk = optionalWhen || function () {
-                return true;
-            };
-            function maybeToggle() {
-                if (activeHand !== Controller.Standard[hand]) {
-                    toggleHand();
-                }
+var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+Script.scriptEnding.connect(clickMapping.disable);
 
-            }
-            clickMapping.from(Controller.Hardware[hardware][button]).peek().when(whenThunk).to(maybeToggle);
-        }
-        function makeViveWhen(click, x, y) {
-            var viveClick = Controller.Hardware.Vive[click],
-                viveX = Controller.Standard[x],  // Standard after filtering by mapping
-                viveY = Controller.Standard[y];
-            return function () {
-                var clickValue = Controller.getValue(viveClick);
-                var xValue = Controller.getValue(viveX);
-                var yValue = Controller.getValue(viveY);
-                return clickValue && !xValue && !yValue;
-            };
-        }
-        switch (hardware) {
-            case 'Hydra':
-                makeHandToggle('R3', 'RightHand');
-                makeHandToggle('L3', 'LeftHand');
-
-                mapToAction('R3', 'ReticleClick');
-                mapToAction('L3', 'ReticleClick');
-                mapToAction('R4', 'ContextMenu');
-                mapToAction('L4', 'ContextMenu');
-                break;
-            case 'Vive':
-                // When touchpad click is NOT treated as movement, treat as left click
-                makeHandToggle('RS', 'RightHand', makeViveWhen('RS', 'RX', 'RY'));
-                makeHandToggle('LS', 'LeftHand', makeViveWhen('LS', 'LX', 'LY'));
-                clickMapping.from(Controller.Hardware.Vive.RS).when(makeViveWhen('RS', 'RX', 'RY')).to(Controller.Actions.ReticleClick);
-                clickMapping.from(Controller.Hardware.Vive.LS).when(makeViveWhen('LS', 'LX', 'LY')).to(Controller.Actions.ReticleClick);
-                mapToAction('RightApplicationMenu', 'ContextMenu');
-                mapToAction('LeftApplicationMenu', 'ContextMenu');
-                break;
-        }
-        clickMappings[hardware] = clickMapping;
+clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
+clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
+clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(function (on) {
+    if (on && (activeHand !== Controller.Standard.RightHand)) {
+        toggleHand();
     }
-    clickMapToggle = new LatchedToggle(clickMapping.enable, clickMapping.disable);
-    clickMapToggle.setState(true);
-}
-checkHardware();
+});
+clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(function (on) {
+    if (on && (activeHand !== Controller.Standard.LeftHand)) {
+        toggleHand();
+    }
+});
+clickMapping.enable();
 
 // VISUAL AID -----------
 // Same properties as handControllerGrab search sphere
@@ -415,8 +360,8 @@ function update() {
         return turnOffVisualization();
     }
     var controllerPose = Controller.getPoseValue(activeHand);
-    // Vive is effectively invalid when not in HMD
-    if (!controllerPose.valid || ((hardware === 'Vive') && !HMD.active)) {
+    // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
+    if (!controllerPose.valid) {
         return turnOffVisualization();
     } // Controller is cradled.
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
@@ -458,7 +403,6 @@ Script.scriptEnding.connect(function () {
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
-    checkHardware();
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);

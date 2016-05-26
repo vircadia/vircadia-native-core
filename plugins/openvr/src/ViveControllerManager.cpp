@@ -282,7 +282,22 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
             for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
                 handleAxisEvent(deltaTime, i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
             }
-        }
+
+            // pseudo buttons the depend on both of the above for-loops
+            partitionTouchpad(controller::LS, controller::LX, controller::LY, controller::LS_CENTER, controller::LS_OUTER);
+            partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_OUTER);
+         }
+    }
+}
+
+void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int outerPseudoButton) {
+    // Populate the L/RS_CENTER/OUTER pseudo buttons, corresponding to a partition of the L/RS space based on the X/Y values.
+    const float CENTER_DEADBAND = 0.6f;
+    if (_buttonPressedMap.find(sButton) != _buttonPressedMap.end()) {
+        float absX = abs(_axisStateMap[xAxis]);
+        float absY = abs(_axisStateMap[yAxis]);
+        bool isCenter = (absX < CENTER_DEADBAND) && (absY < CENTER_DEADBAND); // square deadband
+        _buttonPressedMap.insert(isCenter ? centerPseudoButton : outerPseudoButton);
     }
 }
 
@@ -443,6 +458,11 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         // touch pad press
         makePair(LS, "LS"),
         makePair(RS, "RS"),
+        // Differentiate where we are in the touch pad click
+        makePair(LS_CENTER, "LSCenter"),
+        makePair(LS_OUTER, "LSOuter"),
+        makePair(RS_CENTER, "RSCenter"),
+        makePair(RS_OUTER, "RSOuter"),
 
         // triggers
         makePair(LT, "LT"),
