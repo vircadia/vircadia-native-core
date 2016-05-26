@@ -222,7 +222,8 @@ void AccountManager::sendRequest(const QString& path,
     auto& activityLogger = UserActivityLogger::getInstance();
     if (activityLogger.isEnabled()) {
         static const QString METAVERSE_SESSION_ID_HEADER = "HFM-SessionID";
-        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER.toLocal8Bit(), _sessionID.toString().toLocal8Bit());
+        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER.toLocal8Bit(),
+                                    uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
     }
 
     QUrl requestURL = _authURL;
