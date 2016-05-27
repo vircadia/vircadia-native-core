@@ -21,7 +21,7 @@ var CHATTER_VOLUME = 0.20
 var EXTRA_VOLUME = 0.25
 
 function playChatter() {
-    if (chatter.downloaded && !chatter.isPlaying) {
+    if (chatter.downloaded && !chatter.playing) {
         Audio.playSound(chatter, { loop: true, volume: CHATTER_VOLUME });
     }
 }
@@ -31,7 +31,7 @@ chatter.ready.connect(playChatter);
 var currentInjector = null;
 
 function playRandomExtras() {
-    if ((!currentInjector || !currentInjector.isPlaying) && (Math.random() < (1.0 / 1800.0))) {
+    if ((!currentInjector || !currentInjector.playing) && (Math.random() < (1.0 / 1800.0))) {
         // play a random extra sound about every 30s
         currentInjector = Audio.playSound(
             extras[Math.floor(Math.random() * extras.length)],
