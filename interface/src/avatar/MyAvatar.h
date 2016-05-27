@@ -398,7 +398,7 @@ private:
     QString _fullAvatarModelName;
     QUrl _animGraphUrl {""};
     bool _useSnapTurn { true };
-    bool _clearOverlayWhenDriving { true };
+    bool _clearOverlayWhenDriving { false };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.
