@@ -994,7 +994,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         if (_keyboardFocusedItem != entityItemID) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
             auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
-            if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
+            if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
                 RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
                 if (webEntity) {
@@ -1043,6 +1043,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // If the user clicks somewhere where there is NO entity at all, we will release focus
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity,
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event) {
+        _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        if (_keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
+    });
+
+    connect(this, &Application::aboutToQuit, [=]() {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
         if (_keyboardFocusHighlight) {
             _keyboardFocusHighlight->setVisible(false);
