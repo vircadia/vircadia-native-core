@@ -17,6 +17,7 @@ public:
   PluginManager();
 
   const DisplayPluginList& getDisplayPlugins();
+  void disableDisplayPlugin(const QString& name);
   const InputPluginList& getInputPlugins();
   void saveSettings();
 };

@@ -26,6 +26,11 @@ using Lock = std::unique_lock<Mutex>;
 static int refCount { 0 };
 static Mutex mutex;
 static vr::IVRSystem* activeHmd { nullptr };
+static bool _openVrQuitRequested { false };
+
+bool openVrQuitRequested() {
+    return _openVrQuitRequested;
+}
 
 static const uint32_t RELEASE_OPENVR_HMD_DELAY_MS = 5000;
 
@@ -56,17 +61,17 @@ vr::IVRSystem* acquireOpenVrSystem() {
     if (hmdPresent) {
         Lock lock(mutex);
         if (!activeHmd) {
-            qCDebug(displayplugins) << "openvr: No vr::IVRSystem instance active, building";
+            qCDebug(displayplugins) << "OpenVR: No vr::IVRSystem instance active, building";
             vr::EVRInitError eError = vr::VRInitError_None;
             activeHmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
-            qCDebug(displayplugins) << "openvr display: HMD is " << activeHmd << " error is " << eError;
+            qCDebug(displayplugins) << "OpenVR display: HMD is " << activeHmd << " error is " << eError;
         }
         if (activeHmd) {
-            qCDebug(displayplugins) << "openvr: incrementing refcount";
+            qCDebug(displayplugins) << "OpenVR: incrementing refcount";
             ++refCount;
         }
     } else {
-        qCDebug(displayplugins) << "openvr: no hmd present";
+        qCDebug(displayplugins) << "OpenVR: no hmd present";
     }
     return activeHmd;
 }
@@ -74,12 +79,38 @@ vr::IVRSystem* acquireOpenVrSystem() {
 void releaseOpenVrSystem() {
     if (activeHmd) {
         Lock lock(mutex);
-        qCDebug(displayplugins) << "openvr: decrementing refcount";
+        qCDebug(displayplugins) << "OpenVR: decrementing refcount";
         --refCount;
         if (0 == refCount) {
-            qCDebug(displayplugins) << "openvr: zero refcount, deallocate VR system";
+            qCDebug(displayplugins) << "OpenVR: zero refcount, deallocate VR system";
             vr::VR_Shutdown();
+            _openVrQuitRequested = false;
             activeHmd = nullptr;
         }
     }
+}
+
+void handleOpenVrEvents() {
+    if (!activeHmd) {
+        return;
+    }
+    Lock lock(mutex);
+    if (!activeHmd) {
+        return;
+    }
+
+    vr::VREvent_t event;
+    while (activeHmd->PollNextEvent(&event, sizeof(event))) {
+        switch (event.eventType) {
+            case vr::VREvent_Quit:
+                _openVrQuitRequested = true;
+                activeHmd->AcknowledgeQuit_Exiting();
+                break;
+
+            default:
+                break;
+        }
+        qDebug() << "OpenVR: Event " << event.eventType;
+    }
+
 }
