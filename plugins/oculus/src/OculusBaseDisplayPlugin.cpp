@@ -13,6 +13,8 @@
 
 void OculusBaseDisplayPlugin::resetSensors() {
     ovr_RecenterTrackingOrigin(_session);
+
+    _currentRenderFrameInfo.renderPose = glm::mat4(); // identity
 }
 
 void OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {

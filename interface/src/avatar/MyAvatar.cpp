@@ -234,7 +234,7 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset(bool andRecenter) {
+void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter));
@@ -244,8 +244,12 @@ void MyAvatar::reset(bool andRecenter) {
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = false;
     _follow.deactivate();
-    _skeletonModel->reset();
-    getHead()->reset();
+    if (andReload) {
+        _skeletonModel->reset();
+    }
+    if (andHead) { // which drives camera in desktop
+        getHead()->reset();
+    }
     setThrust(glm::vec3(0.0f));
 
     if (andRecenter) {
@@ -261,8 +265,9 @@ void MyAvatar::reset(bool andRecenter) {
         setPosition(worldBodyPos);
         setOrientation(worldBodyRot);
 
-        // now sample the new hmd orientation AFTER sensor reset.
-        updateFromHMDSensorMatrix(qApp->getHMDSensorPose());
+        // now sample the new hmd orientation AFTER sensor reset, which should be identity.
+        glm::mat4 identity;
+        updateFromHMDSensorMatrix(identity);
 
         // update the body in sensor space using the new hmd sensor sample
         _bodySensorMatrix = deriveBodyFromHMDSensor();
@@ -729,6 +734,7 @@ void MyAvatar::saveData() {
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
+    settings.setValue("clearOverlayWhenDriving", _clearOverlayWhenDriving);
 
     settings.endGroup();
 }
@@ -849,6 +855,7 @@ void MyAvatar::loadData() {
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
+    setClearOverlayWhenDriving(settings.value("clearOverlayWhenDriving", _clearOverlayWhenDriving).toBool());
 
     settings.endGroup();
 
