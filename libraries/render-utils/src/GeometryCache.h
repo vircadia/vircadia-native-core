@@ -21,6 +21,8 @@
 
 #include <DependencyManager.h>
 
+#include <shared/Shapes.h>
+
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
@@ -120,9 +122,6 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 + 5101 * v.second.second.x + 5107 * v.second.second.y + 5113 * v.second.second.z + 5119 * v.second.second.w, 
                 seed);
 }
-
-using IndexVector = std::vector<uint32_t>;
-using VertexVector = std::vector<glm::vec3>;
 
 /// Stores cached geometry.
 class GeometryCache : public Dependency {
@@ -297,8 +296,8 @@ public:
         gpu::BufferView _normalView;
         gpu::BufferPointer _indices;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices);
-        void setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
+        void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;
         void drawWire(gpu::Batch& batch) const;

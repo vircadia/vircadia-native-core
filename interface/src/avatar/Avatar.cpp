@@ -303,6 +303,9 @@ void Avatar::simulate(float deltaTime) {
             head->setScale(getUniformScale());
             head->simulate(deltaTime, false, !_shouldAnimate);
         }
+    } else {
+        // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+        _skeletonModel->simulate(deltaTime, false);
     }
 
     // update animation for display name fade in/out

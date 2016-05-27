@@ -18,6 +18,7 @@
 
 #include <FSTReader.h>
 #include <NumericalConstants.h>
+#include <shared/Shapes.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
@@ -54,7 +55,7 @@ static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
 static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT32;
 static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint32);
 
-void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices) {
+void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices) {
     vertexBuffer->append(vertices);
 
     _positionView = gpu::BufferView(vertexBuffer, 0,
@@ -63,7 +64,7 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
         vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
 }
 
-void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices) {
+void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices) {
     _indices = indexBuffer;
     if (!indices.empty()) {
         _indexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
@@ -126,90 +127,19 @@ size_t GeometryCache::getCubeTriangleCount() {
     return getShapeTriangleCount(Cube);
 }
 
-using Index = uint32_t;
 using IndexPair = uint64_t;
 using IndexPairs = std::unordered_set<IndexPair>;
 
-template <size_t N>
-using Face = std::array<Index, N>;
-
-template <size_t N>
-using FaceVector = std::vector<Face<N>>;
-
-template <size_t N>
-struct Solid {
-    VertexVector vertices;
-    FaceVector<N> faces;
-
-    Solid<N>& fitDimension(float newMaxDimension) {
-        float maxDimension = 0;
-        for (const auto& vertex : vertices) {
-            maxDimension = std::max(maxDimension, std::max(std::max(vertex.x, vertex.y), vertex.z));
-        }
-        float multiplier = newMaxDimension / maxDimension;
-        for (auto& vertex : vertices) {
-            vertex *= multiplier;
-        }
-        return *this;
-    }
-
-    vec3 getFaceNormal(size_t faceIndex) const {
-        vec3 result;
-        const auto& face = faces[faceIndex];
-        for (size_t i = 0; i < N; ++i) {
-            result += vertices[face[i]];
-        }
-        result /= N;
-        return glm::normalize(result);
-    }
-};
-
-template <size_t N>
-static size_t triangulatedFaceTriangleCount() {
-    return N - 2;
-}
-
-template <size_t N> 
-static size_t triangulatedFaceIndexCount() {
-    return triangulatedFaceTriangleCount<N>() * VERTICES_PER_TRIANGLE;
-}
-
-static IndexPair indexToken(Index a, Index b) {
+static IndexPair indexToken(geometry::Index a, geometry::Index b) {
     if (a > b) {
         std::swap(a, b);
     }
     return (((IndexPair)a) << 32) | ((IndexPair)b);
 }
 
-static Solid<3> tesselate(Solid<3> solid, int count) {
-    float length = glm::length(solid.vertices[0]);
-    for (int i = 0; i < count; ++i) {
-        Solid<3> result { solid.vertices, {} };
-        result.vertices.reserve(solid.vertices.size() + solid.faces.size() * 3);
-        for (size_t f = 0; f < solid.faces.size(); ++f) {
-            Index baseVertex = (Index)result.vertices.size();
-            const Face<3>& oldFace = solid.faces[f];
-            const vec3& a = solid.vertices[oldFace[0]];
-            const vec3& b = solid.vertices[oldFace[1]];
-            const vec3& c = solid.vertices[oldFace[2]];
-            vec3 ab = glm::normalize(a + b) * length;
-            vec3 bc = glm::normalize(b + c) * length;
-            vec3 ca = glm::normalize(c + a) * length;
-            result.vertices.push_back(ab);
-            result.vertices.push_back(bc);
-            result.vertices.push_back(ca);
-            result.faces.push_back(Face<3>{ { oldFace[0], baseVertex, baseVertex + 2 } });
-            result.faces.push_back(Face<3>{ { baseVertex, oldFace[1], baseVertex + 1 } });
-            result.faces.push_back(Face<3>{ { baseVertex + 1, oldFace[2], baseVertex + 2 } });
-            result.faces.push_back(Face<3>{ { baseVertex, baseVertex + 1, baseVertex + 2 } });
-        }
-        solid = result;
-    }
-    return solid;
-}
-
 template <size_t N>
-void setupFlatShape(GeometryCache::ShapeData& shapeData, const Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    using namespace geometry;
     Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
@@ -259,7 +189,8 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const Solid<N>& shape, 
 }
 
 template <size_t N>
-void setupSmoothShape(GeometryCache::ShapeData& shapeData, const Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    using namespace geometry; 
     Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
 
     VertexVector vertices;
@@ -303,147 +234,6 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const Solid<N>& shape
     shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
 }
 
-// The golden ratio
-static const float PHI = 1.61803398874f;
-
-static const Solid<3>& tetrahedron() {
-    static const auto A = vec3(1, 1, 1);
-    static const auto B = vec3(1, -1, -1);
-    static const auto C = vec3(-1, 1, -1);
-    static const auto D = vec3(-1, -1, 1);
-    static const Solid<3> TETRAHEDRON = Solid<3>{
-        { A, B, C, D },
-        FaceVector<3>{
-            Face<3> { { 0, 1, 2 } },
-                Face<3> { { 3, 1, 0 } },
-                Face<3> { { 2, 3, 0 } },
-                Face<3> { { 2, 1, 3 } },
-        }
-    }.fitDimension(0.5f);
-    return TETRAHEDRON;
-}
-
-static const Solid<4>& cube() {
-    static const auto A = vec3(1, 1, 1);
-    static const auto B = vec3(-1, 1, 1);
-    static const auto C = vec3(-1, 1, -1);
-    static const auto D = vec3(1, 1, -1);
-    static const Solid<4> CUBE = Solid<4>{
-        { A, B, C, D, -A, -B, -C, -D },
-        FaceVector<4>{
-            Face<4> { { 3, 2, 1, 0 } },
-                Face<4> { { 0, 1, 7, 6 } },
-                Face<4> { { 1, 2, 4, 7 } },
-                Face<4> { { 2, 3, 5, 4 } },
-                Face<4> { { 3, 0, 6, 5 } },
-                Face<4> { { 4, 5, 6, 7 } },
-        }
-    }.fitDimension(0.5f);
-    return CUBE;
-}
-
-static const Solid<3>& octahedron() {
-    static const auto A = vec3(0, 1, 0);
-    static const auto B = vec3(0, -1, 0);
-    static const auto C = vec3(0, 0, 1);
-    static const auto D = vec3(0, 0, -1);
-    static const auto E = vec3(1, 0, 0);
-    static const auto F = vec3(-1, 0, 0);
-    static const Solid<3> OCTAHEDRON = Solid<3>{
-        { A, B, C, D, E, F},
-        FaceVector<3> {
-            Face<3> { { 0, 2, 4, } },
-            Face<3> { { 0, 4, 3, } },
-            Face<3> { { 0, 3, 5, } },
-            Face<3> { { 0, 5, 2, } },
-            Face<3> { { 1, 4, 2, } },
-            Face<3> { { 1, 3, 4, } },
-            Face<3> { { 1, 5, 3, } },
-            Face<3> { { 1, 2, 5, } },
-        }
-    }.fitDimension(0.5f);
-    return OCTAHEDRON;
-}
-
-static const Solid<5>& dodecahedron() {
-    static const float P = PHI;
-    static const float IP = 1.0f / PHI;
-    static const vec3 A = vec3(IP, P, 0);
-    static const vec3 B = vec3(-IP, P, 0);
-    static const vec3 C = vec3(-1, 1, 1);
-    static const vec3 D = vec3(0, IP, P);
-    static const vec3 E = vec3(1, 1, 1);
-    static const vec3 F = vec3(1, 1, -1);
-    static const vec3 G = vec3(-1, 1, -1);
-    static const vec3 H = vec3(-P, 0, IP);
-    static const vec3 I = vec3(0, -IP, P);
-    static const vec3 J = vec3(P, 0, IP);
-
-    static const Solid<5> DODECAHEDRON = Solid<5>{
-        { 
-            A,  B,  C,  D,  E,  F,  G,  H,  I,  J, 
-            -A, -B, -C, -D, -E, -F, -G, -H, -I, -J, 
-        },
-        FaceVector<5> {
-            Face<5> { { 0, 1, 2, 3, 4 } },
-            Face<5> { { 0, 5, 18, 6, 1 } },
-            Face<5> { { 1, 6, 19, 7, 2 } },
-            Face<5> { { 2, 7, 15, 8, 3 } },
-            Face<5> { { 3, 8, 16, 9, 4 } },
-            Face<5> { { 4, 9, 17, 5, 0 } },
-            Face<5> { { 14, 13, 12, 11, 10 } },
-            Face<5> { { 11, 16, 8, 15, 10 } },
-            Face<5> { { 12, 17, 9, 16, 11 } },
-            Face<5> { { 13, 18, 5, 17, 12 } },
-            Face<5> { { 14, 19, 6, 18, 13 } },
-            Face<5> { { 10, 15, 7, 19, 14 } },
-        }
-    }.fitDimension(0.5f);
-    return DODECAHEDRON;
-}
-
-static const Solid<3>& icosahedron() {
-    static const float N = 1.0f / PHI;
-    static const float P = 1.0f;
-    static const auto A = vec3(N, P, 0);
-    static const auto B = vec3(-N, P, 0);
-    static const auto C = vec3(0, N, P);
-    static const auto D = vec3(P, 0, N);
-    static const auto E = vec3(P, 0, -N);
-    static const auto F = vec3(0, N, -P);
-
-    static const Solid<3> ICOSAHEDRON = Solid<3> {
-        {
-            A, B, C, D, E, F,
-            -A, -B, -C, -D, -E, -F,
-        },
-        FaceVector<3> {
-            Face<3> { { 1, 2, 0 } },
-            Face<3> { { 2, 3, 0 } }, 
-            Face<3> { { 3, 4, 0 } },
-            Face<3> { { 4, 5, 0 } },
-            Face<3> { { 5, 1, 0 } },
-
-            Face<3> { { 1, 10, 2 } },
-            Face<3> { { 11, 2, 10 } },
-            Face<3> { { 2, 11, 3 } },
-            Face<3> { { 7, 3, 11 } },
-            Face<3> { { 3, 7, 4 } },
-            Face<3> { { 8, 4, 7 } },
-            Face<3> { { 4, 8, 5 } },
-            Face<3> { { 9, 5, 8 } },
-            Face<3> { { 5, 9, 1 } },
-            Face<3> { { 10, 1, 9 } },
-
-            Face<3> { { 8, 7, 6 } },
-            Face<3> { { 9, 8, 6 } },
-            Face<3> { { 10, 9, 6 } },
-            Face<3> { { 11, 10, 6 } },
-            Face<3> { { 7, 11, 6 } },
-        }
-    }.fitDimension(0.5f);
-    return ICOSAHEDRON;
-}
 
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
@@ -451,24 +241,24 @@ static const Solid<3>& icosahedron() {
 // Maybe special case cone and cylinder since they combine flat
 // and smooth shading
 void GeometryCache::buildShapes() {
+    using namespace geometry;
     auto vertexBuffer = std::make_shared<gpu::Buffer>();
     auto indexBuffer = std::make_shared<gpu::Buffer>();
     // Cube 
-    setupFlatShape(_shapes[Cube], cube(), _shapeVertices, _shapeIndices);
+    setupFlatShape(_shapes[Cube], geometry::cube(), _shapeVertices, _shapeIndices);
     // Tetrahedron
-    setupFlatShape(_shapes[Tetrahedron], tetrahedron(), _shapeVertices, _shapeIndices);
+    setupFlatShape(_shapes[Tetrahedron], geometry::tetrahedron(), _shapeVertices, _shapeIndices);
     // Icosahedron
-    setupFlatShape(_shapes[Icosahedron], icosahedron(), _shapeVertices, _shapeIndices);
+    setupFlatShape(_shapes[Icosahedron], geometry::icosahedron(), _shapeVertices, _shapeIndices);
     // Octahedron
-    setupFlatShape(_shapes[Octahedron], octahedron(), _shapeVertices, _shapeIndices);
+    setupFlatShape(_shapes[Octahedron], geometry::octahedron(), _shapeVertices, _shapeIndices);
     // Dodecahedron
-    setupFlatShape(_shapes[Dodecahedron], dodecahedron(), _shapeVertices, _shapeIndices);
+    setupFlatShape(_shapes[Dodecahedron], geometry::dodecahedron(), _shapeVertices, _shapeIndices);
     
     // Sphere
     // FIXME this uses way more vertices than required.  Should find a way to calculate the indices
     // using shared vertices for better vertex caching
-    Solid<3> sphere = icosahedron();
-    sphere = tesselate(sphere, ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT); 
+    auto sphere = geometry::tesselate(geometry::icosahedron(), ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT);
     sphere.fitDimension(1.0f);
     setupSmoothShape(_shapes[Sphere], sphere, _shapeVertices, _shapeIndices);
 
