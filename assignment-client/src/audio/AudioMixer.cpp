@@ -339,21 +339,18 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
         }
     });
 
-    int nonZeroSamples = 0;
+    // use the per listner AudioLimiter to render the mixed data...
+    listenerNodeData->clampAudioSamples(_mixedSamples, _clampedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-    // enumerate the mixed samples and clamp any samples outside the min/max
-    // also check if we ended up with a silent frame
+    // check for silent audio after the peak limitor has converted the samples
+    bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-
-        _clampedSamples[i] = int16_t(glm::clamp(int(_mixedSamples[i] * AudioConstants::MAX_SAMPLE_VALUE),
-                                                AudioConstants::MIN_SAMPLE_VALUE,
-                                                AudioConstants::MAX_SAMPLE_VALUE));
         if (_clampedSamples[i] != 0.0f) {
-            ++nonZeroSamples;
+            hasAudio = true;
+            break;
         }
     }
-
-    return (nonZeroSamples > 0);
+    return hasAudio;
 }
 
 void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
