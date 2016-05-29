@@ -4,7 +4,8 @@ var audioOptions = {
   position: MyAvatar.position
 }
 
-var sineWave = Script.resolvePath("./1760sine.wav");
+//var sineWave = Script.resolvePath("./1760sine.wav"); // use relative file
+var sineWave = "https://s3-us-west-1.amazonaws.com/highfidelity-dev/1760sine.wav"; // use file from S3
 var sound = SoundCache.getSound(sineWave);
 var injectorCount = 0;
 var MAX_INJECTOR_COUNT = 40;
