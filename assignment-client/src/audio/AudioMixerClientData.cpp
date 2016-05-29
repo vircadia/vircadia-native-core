@@ -17,8 +17,6 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
-#include <AudioLimiter.h>;
-
 #include "InjectedAudioStream.h"
 
 #include "AudioMixer.h"
@@ -29,7 +27,7 @@ AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID),
     _outgoingMixedAudioSequenceNumber(0),
     _downstreamAudioStreamStats(),
-    _audioLimiter(new AudioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO))
+    audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO)
 {
     // of the ~94 blocks in a second of audio sent from the AudioMixer, pick a random one to send out a stats packet on
     // this ensures we send out stats to this client around every second
@@ -39,10 +37,6 @@ AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     std::uniform_int_distribution<> distribution { 1, (int) ceil(1.0f / AudioConstants::NETWORK_FRAME_SECS) };
 
     _frameToSendStats = distribution(numberGenerator);
-}
-
-void AudioMixerClientData::clampAudioSamples(float* input, int16_t* output, int numFrames) {
-    _audioLimiter->render(input, output, numFrames);
 }
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {

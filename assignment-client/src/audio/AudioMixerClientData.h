@@ -16,12 +16,12 @@
 
 #include <AABox.h>
 #include <AudioHRTF.h>
+#include <AudioLimiter.h>
 #include <UUIDHasher.h>
 
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
 
-class AudioLimiter;
 
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
@@ -63,7 +63,7 @@ public:
     // uses randomization to have the AudioMixer send a stats packet to this node around every second
     bool shouldSendStats(int frameNumber);
 
-    void clampAudioSamples(float* input, int16_t* output, int numFrames);
+    AudioLimiter audioLimiter;
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
@@ -81,8 +81,6 @@ private:
     AudioStreamStats _downstreamAudioStreamStats;
 
     int _frameToSendStats { 0 };
-
-    std::unique_ptr<AudioLimiter> _audioLimiter;
 };
 
 #endif // hifi_AudioMixerClientData_h

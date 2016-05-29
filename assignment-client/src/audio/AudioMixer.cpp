@@ -340,12 +340,12 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
     });
 
     // use the per listner AudioLimiter to render the mixed data...
-    listenerNodeData->clampAudioSamples(_mixedSamples, _clampedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+    listenerNodeData->audioLimiter.render(_mixedSamples, _clampedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
     // check for silent audio after the peak limitor has converted the samples
     bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-        if (_clampedSamples[i] != 0.0f) {
+        if (_clampedSamples[i] != 0) {
             hasAudio = true;
             break;
         }
