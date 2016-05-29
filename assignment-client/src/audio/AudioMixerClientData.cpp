@@ -25,9 +25,9 @@
 
 AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID),
+    audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _outgoingMixedAudioSequenceNumber(0),
-    _downstreamAudioStreamStats(),
-    audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO)
+    _downstreamAudioStreamStats()
 {
     // of the ~94 blocks in a second of audio sent from the AudioMixer, pick a random one to send out a stats packet on
     // this ensures we send out stats to this client around every second
