@@ -203,6 +203,7 @@ ModalWindow {
                 var row = fileTableView.currentRow;
 
                 if (row === -1) {
+                    openFolderButton.enabled = false;
                     return;
                 }
 
@@ -213,6 +214,7 @@ ModalWindow {
                 } else {
                     currentSelection.text = "";
                 }
+                openFolderButton.enabled = currentSelectionIsFolder
             }
 
             function navigateUp() {
@@ -388,6 +390,13 @@ ModalWindow {
                     });
 
                     rows++;
+                }
+
+                fileTableView.selection.clear();
+                if (model.count > 0 && fileTableView.activeFocus) {
+                    fileTableView.currentRow = 0;
+                    fileTableView.selection.select(0);
+                    d.update();
                 }
             }
         }
@@ -617,6 +626,16 @@ ModalWindow {
                 Keys.onReturnPressed: okAction.trigger()
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType
+                KeyNavigation.right: openFolderButton
+            }
+
+            Button {
+                id: openFolderButton
+                text: "Open Folder"
+                enabled: false
+                action: openFolderAction
+                KeyNavigation.up: selectionType
+                KeyNavigation.left: openButton
                 KeyNavigation.right: cancelButton
             }
 
@@ -624,7 +643,7 @@ ModalWindow {
                 id: cancelButton
                 action: cancelAction
                 KeyNavigation.up: selectionType
-                KeyNavigation.left: openButton
+                KeyNavigation.left: openFolderButton
                 KeyNavigation.right: fileTableView.contentItem
                 Keys.onReturnPressed: { canceled(); root.enabled = false }
             }
@@ -692,6 +711,12 @@ ModalWindow {
                 selectedFile(selection);
                 root.destroy();
             }
+        }
+
+        Action {
+            id: openFolderAction
+            text: "Open Folder"
+            onTriggered: { fileTableView.navigateToCurrentRow(); }
         }
 
         Action {
