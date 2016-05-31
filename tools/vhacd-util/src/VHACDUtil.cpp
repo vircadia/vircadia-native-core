@@ -87,19 +87,12 @@ void getTrianglesInMeshPart(const FBXMeshPart &meshPart, std::vector<int>& trian
     }
 }
 
-
-void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
-                                    uint32_t& meshPartCount,
-                                    uint32_t startMeshIndex, uint32_t endMeshIndex) const {
+void vhacd::VHACDUtil::fattenMesh(const FBXMesh& mesh, const glm::mat4& geometryOffset, FBXMesh& result) const {
     // this is used to make meshes generated from a highfield collidable.  each triangle
     // is converted into a tetrahedron and made into its own mesh-part.
 
     std::vector<int> triangleIndices;
     foreach (const FBXMeshPart &meshPart, mesh.parts) {
-        if (meshPartCount < startMeshIndex || meshPartCount >= endMeshIndex) {
-            meshPartCount++;
-            continue;
-        }
         getTrianglesInMeshPart(meshPart, triangleIndices);
     }
 
@@ -107,10 +100,13 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         return;
     }
 
+    int indexStartOffset = result.vertices.size();
+
     // new mesh gets the transformed points from the original
+    glm::mat4 totalTransform = geometryOffset * mesh.modelTransform;
     for (int i = 0; i < mesh.vertices.size(); i++) {
         // apply the source mesh's transform to the points
-        glm::vec4 v = mesh.modelTransform * glm::vec4(mesh.vertices[i], 1.0f);
+        glm::vec4 v = totalTransform * glm::vec4(mesh.vertices[i], 1.0f);
         result.vertices += glm::vec3(v);
     }
 
@@ -118,7 +114,6 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
 
     const uint32_t TRIANGLE_STRIDE = 3;
     const float COLLISION_TETRAHEDRON_SCALE = 0.25f;
-    int indexStartOffset = result.vertices.size();
     for (uint32_t i = 0; i < triangleIndices.size(); i += TRIANGLE_STRIDE) {
         int index0 = triangleIndices[i] + indexStartOffset;
         int index1 = triangleIndices[i + 1] + indexStartOffset;
@@ -341,8 +336,9 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
         // each mesh has its own transform to move it to model-space
         std::vector<glm::vec3> vertices;
+        glm::mat4 totalTransform = geometry.offset * mesh.modelTransform;
         foreach (glm::vec3 vertex, mesh.vertices) {
-            vertices.push_back(glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f)));
+            vertices.push_back(glm::vec3(totalTransform * glm::vec4(vertex, 1.0f)));
         }
         uint32_t numVertices = (uint32_t)vertices.size();
 

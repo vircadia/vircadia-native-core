@@ -126,12 +126,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
     const QCommandLineOption outputCentimetersOption("c", "output units are centimeters");
     parser.addOption(outputCentimetersOption);
 
-    const QCommandLineOption startMeshIndexOption("s", "start-mesh index", "0");
-    parser.addOption(startMeshIndexOption);
-
-    const QCommandLineOption endMeshIndexOption("e", "end-mesh index", "0");
-    parser.addOption(endMeshIndexOption);
-
     const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh (diagonal) size to consider", "0");
     parser.addOption(minimumMeshSizeOption);
 
@@ -228,16 +222,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         cerr << "output filename is required.";
         parser.showHelp();
         Q_UNREACHABLE();
-    }
-
-    int startMeshIndex = -1;
-    if (parser.isSet(startMeshIndexOption)) {
-        startMeshIndex = parser.value(startMeshIndexOption).toInt();
-    }
-
-    int endMeshIndex = -1;
-    if (parser.isSet(endMeshIndexOption)) {
-        endMeshIndex = parser.value(endMeshIndexOption).toInt();
     }
 
     float minimumMeshSize = 0.0f;
@@ -417,17 +401,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
             meshCount += mesh.parts.size();
         }
 
-        if (startMeshIndex < 0) {
-            startMeshIndex = 0;
-        }
-        if (endMeshIndex < 0) {
-            endMeshIndex = meshCount;
-        }
-
-        unsigned int meshPartCount = 0;
         result.modelTransform = glm::mat4(); // Identity matrix
         foreach (const FBXMesh& mesh, fbx.meshes) {
-            vUtil.fattenMeshes(mesh, result, meshPartCount, startMeshIndex, endMeshIndex);
+            vUtil.fattenMesh(mesh, fbx.offset, result);
         }
 
         newFbx.meshes.append(result);

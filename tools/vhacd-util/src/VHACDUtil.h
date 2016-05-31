@@ -29,9 +29,7 @@ namespace vhacd {
 
         bool loadFBX(const QString filename, FBXGeometry& result);
 
-        void fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
-                          unsigned int& meshPartCount,
-                          unsigned int startMeshIndex, unsigned int endMeshIndex) const;
+        void fattenMesh(const FBXMesh& mesh, const glm::mat4& gometryOffset, FBXMesh& result) const;
 
         bool computeVHACD(FBXGeometry& geometry,
                           VHACD::IVHACD::Parameters params,
