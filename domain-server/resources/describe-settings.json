@@ -88,27 +88,6 @@
           "value-hidden": true
         },
         {
-          "name": "restricted_access",
-          "type": "checkbox",
-          "label": "Restricted Access",
-          "default": false,
-          "help": "Only users listed in \"Allowed Users\" can enter your domain."
-        },
-        {
-          "name": "allowed_users",
-          "type": "table",
-          "label": "Allowed Users",
-          "help": "You can always connect from the domain-server machine.",
-          "numbered": false,
-          "columns": [
-            {
-              "name": "username",
-              "label": "Username",
-              "can_set": true
-            }
-          ]
-        },
-        {
           "name": "maximum_user_capacity",
           "label": "Maximum User Capacity",
           "help": "The limit on how many avatars can be connected at once.  0 means no limit.",
@@ -117,25 +96,47 @@
           "advanced": false
         },
         {
-          "name": "allowed_editors",
+          "name": "permissions",
           "type": "table",
-          "label": "Allowed Editors",
-          "help": "List the High Fidelity names for people you want to be able lock or unlock entities in this domain.<br/>An empty list means everyone.",
-          "numbered": false,
+          "label": "Domain-Wide User Permissions",
+          "help": "Indicate which users or groups can have which domain-wide permissions.",
+
           "columns": [
             {
-              "name": "username",
-              "label": "Username",
-              "can_set": true
+              "name": "permissions_id",
+              "label": "User/Group"
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "default": true
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock/Unlock",
+              "type": "checkbox",
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temp",
+              "type": "checkbox",
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "default": false
             }
           ]
-        },
-        {
-          "name": "editors_are_rezzers",
-          "type": "checkbox",
-          "label": "Only Editors Can Create Entities",
-          "help": "Only users listed in \"Allowed Editors\" can create new entites.",
-          "default": false
         }
       ]
     },

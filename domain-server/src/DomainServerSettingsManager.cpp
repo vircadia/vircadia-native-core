@@ -44,7 +44,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
 
-    QJsonDocument descriptionDocument = QJsonDocument::fromJson(descriptionFile.readAll());
+    QJsonParseError parseError;
+    QJsonDocument descriptionDocument = QJsonDocument::fromJson(descriptionFile.readAll(), &parseError);
 
     if (descriptionDocument.isObject()) {
         QJsonObject descriptionObject = descriptionDocument.object();
@@ -63,8 +64,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     }
 
     static const QString MISSING_SETTINGS_DESC_MSG =
-        QString("Did not find settings decription in JSON at %1 - Unable to continue. domain-server will quit.")
-        .arg(SETTINGS_DESCRIPTION_RELATIVE_PATH);
+        QString("Did not find settings decription in JSON at %1 - Unable to continue. domain-server will quit.\n%2 at %3")
+        .arg(SETTINGS_DESCRIPTION_RELATIVE_PATH).arg(parseError.errorString()).arg(parseError.offset);
     static const int MISSING_SETTINGS_DESC_ERROR_CODE = 6;
 
     QMetaObject::invokeMethod(QCoreApplication::instance(), "queuedQuit", Qt::QueuedConnection,
