@@ -284,20 +284,24 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
             }
 
             // pseudo buttons the depend on both of the above for-loops
-            partitionTouchpad(controller::LS, controller::LX, controller::LY, controller::LS_CENTER, controller::LS_OUTER);
-            partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_OUTER);
+            partitionTouchpad(controller::LS, controller::LX, controller::LY, controller::LS_CENTER, controller::LS_X, controller::LS_Y);
+            partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_X, controller::RS_Y);
          }
     }
 }
 
-void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int outerPseudoButton) {
+void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int xPseudoButton, int yPesudoButton) {
     // Populate the L/RS_CENTER/OUTER pseudo buttons, corresponding to a partition of the L/RS space based on the X/Y values.
     const float CENTER_DEADBAND = 0.6f;
+    const float DIAGONAL_DIVIDE_IN_RADIANS = PI / 4.0f;
     if (_buttonPressedMap.find(sButton) != _buttonPressedMap.end()) {
         float absX = abs(_axisStateMap[xAxis]);
         float absY = abs(_axisStateMap[yAxis]);
-        bool isCenter = (absX < CENTER_DEADBAND) && (absY < CENTER_DEADBAND); // square deadband
-        _buttonPressedMap.insert(isCenter ? centerPseudoButton : outerPseudoButton);
+        glm::vec2 cartesianQuadrantI(absX, absY);
+        float angle = glm::atan(cartesianQuadrantI.y / cartesianQuadrantI.x);
+        float radius = glm::length(cartesianQuadrantI);
+        bool isCenter = radius < CENTER_DEADBAND;
+        _buttonPressedMap.insert(isCenter ? centerPseudoButton : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? xPseudoButton :yPesudoButton));
     }
 }
 
@@ -460,9 +464,11 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(RS, "RS"),
         // Differentiate where we are in the touch pad click
         makePair(LS_CENTER, "LSCenter"),
-        makePair(LS_OUTER, "LSOuter"),
+        makePair(LS_X, "LSX"),
+        makePair(LS_Y, "LSY"),
         makePair(RS_CENTER, "RSCenter"),
-        makePair(RS_OUTER, "RSOuter"),
+        makePair(RS_X, "RSX"),
+        makePair(RS_Y, "RSY"),
 
         // triggers
         makePair(LT, "LT"),
