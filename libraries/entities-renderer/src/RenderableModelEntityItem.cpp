@@ -617,7 +617,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
-                QVector<glm::vec3> pointsInPart;
+                points.push_back(QVector<glm::vec3>());
+                QVector<glm::vec3>& pointsInPart = points[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
                 unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
@@ -667,14 +668,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                 if (pointsInPart.size() == 0) {
                     qCDebug(entitiesrenderer) << "Warning -- meshPart has no faces";
+                    points.pop_back();
                     continue;
                 }
-
-                // add next convex hull
-                QVector<glm::vec3> newMeshPoints;
-                points << newMeshPoints;
-                // add points to the new convex hull
-                points[i++] << pointsInPart;
+                ++i;
             }
         }
 
