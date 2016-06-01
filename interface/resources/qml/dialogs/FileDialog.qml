@@ -393,11 +393,8 @@ ModalWindow {
                 }
 
                 fileTableView.selection.clear();
-                if (model.count > 0 && fileTableView.activeFocus) {
-                    fileTableView.currentRow = 0;
-                    fileTableView.selection.select(0);
-                    d.update();
-                }
+                fileTableView.currentRow = -1;
+                d.update();
             }
         }
 
