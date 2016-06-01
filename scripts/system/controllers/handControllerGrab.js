@@ -249,6 +249,18 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
+// If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
+// and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
+var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
+function isIn2DMode() {
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && Reticle.visible;
+}
+function restore2DMode() {
+    if (!EXTERNALLY_MANAGED_2D_MINOR_MODE) {
+        Reticle.setVisible(true);
+    }
+}
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -302,7 +314,10 @@ function MyController(hand) {
     this.update = function() {
 
         this.updateSmoothedTrigger();
-
+        if (isIn2DMode()) {
+            _this.turnOffVisualizations();
+            return;
+        }
         switch (this.state) {
             case STATE_OFF:
                 this.off();
@@ -425,6 +440,8 @@ function MyController(hand) {
                 color: color,
                 alpha: SEARCH_SPHERE_ALPHA,
                 solid: true,
+                ignoreRayIntersection: true,
+                drawInFront: true, // Even when burried inside of something, show it.
                 visible: true
             }
             this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
@@ -447,6 +464,8 @@ function MyController(hand) {
                 color: color,
                 alpha: 0.1,
                 solid: true,
+                ignoreRayIntersection: true,
+                drawInFront: true, // Even when burried inside of something, show it.
                 visible: true
             }
             this.grabSphere = Overlays.addOverlay("sphere", sphereProperties);
@@ -477,6 +496,7 @@ function MyController(hand) {
                 end: farPoint,
                 color: color,
                 ignoreRayIntersection: true, // always ignore this
+                drawInFront: true, // Even when burried inside of something, show it.
                 visible: true,
                 alpha: 1
             };
@@ -490,6 +510,7 @@ function MyController(hand) {
                 color: color,
                 visible: true,
                 ignoreRayIntersection: true, // always ignore this
+                drawInFront: true, // Even when burried inside of something, show it.
                 alpha: 1
             });
         }
@@ -759,8 +780,7 @@ function MyController(hand) {
             this.particleBeamOff();
         }
         this.searchSphereOff();
-
-        Reticle.setVisible(true);
+        restore2DMode();
 
     };
 
@@ -901,9 +921,16 @@ function MyController(hand) {
             } else {
                 intersection = Entities.findRayIntersection(pickRayBacked, true);
             }
+            var overlayIntersection = Overlays.findRayIntersection(pickRayBacked);
+            if (!intersection.intersects || (overlayIntersection.intersects && (intersection.distance > overlayIntersection.distance))) {
+                intersection = overlayIntersection;
+            }
+            // If we want to share results with other scripts, this is where we would do it.
 
             if (intersection.intersects) {
-                rayPickedCandidateEntities.push(intersection.entityID);
+                if (intersection.entityID) {
+                    rayPickedCandidateEntities.push(intersection.entityID);
+                }
                 this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
             }
         }
