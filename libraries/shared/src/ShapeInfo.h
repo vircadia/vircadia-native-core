@@ -60,6 +60,7 @@ public:
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
     const glm::vec3& getOffset() const { return _offset; }
 
+    QVector<QVector<glm::vec3>>& getPoints() { return _points; }
     const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
     uint32_t getNumSubShapes() const;
 

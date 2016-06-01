@@ -612,7 +612,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         const FBXGeometry& renderGeometry = _model->getFBXGeometry();
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
-        _points.clear();
+        QVector<QVector<glm::vec3>>& points = info.getPoints();
+        points.clear();
         unsigned int i = 0;
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
@@ -675,9 +676,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                 // add next convex hull
                 QVector<glm::vec3> newMeshPoints;
-                _points << newMeshPoints;
+                points << newMeshPoints;
                 // add points to the new convex hull
-                _points[i++] << pointsInPart;
+                points[i++] << pointsInPart;
             }
         }
 
@@ -691,22 +692,22 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;
-        for (int i = 0; i < _points.size(); i++) {
-            for (int j = 0; j < _points[i].size(); j++) {
+        for (int i = 0; i < points.size(); i++) {
+            for (int j = 0; j < points[i].size(); j++) {
                 // compensate for registration
-                _points[i][j] += _model->getOffset();
+                points[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
-                _points[i][j] *= scale;
+                points[i][j] *= scale;
                 // this next subtraction is done so we can give info the offset, which will cause
                 // the shape-key to change.
-                _points[i][j] -= _model->getOffset();
-                box += _points[i][j];
+                points[i][j] -= _model->getOffset();
+                box += points[i][j];
             }
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
-        info.setConvexHulls(_points);
+        info.setConvexHulls(points);
         info.setOffset(_model->getOffset());
     }
 }
