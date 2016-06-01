@@ -95,9 +95,6 @@ public:
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _alphaSpread; }
 
-    void updateShapeType(ShapeType type);
-    virtual ShapeType getShapeType() const { return _shapeType; }
-
     virtual void debugDump() const;
 
     bool isEmittingParticles() const; /// emitting enabled, and there are particles alive
@@ -281,7 +278,6 @@ protected:
 
     QString _textures { DEFAULT_TEXTURES };
     bool _texturesChangedFlag { false };
-    ShapeType _shapeType { SHAPE_TYPE_NONE };
     
     float _timeUntilNextEmit { 0.0f };
 
