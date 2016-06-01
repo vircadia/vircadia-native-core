@@ -62,7 +62,6 @@ public:
     const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
     uint32_t getNumSubShapes() const;
 
-    void clearPoints () { _points.clear(); }
     void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
     int getMaxNumPoints() const;
 
