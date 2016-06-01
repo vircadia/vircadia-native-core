@@ -88,19 +88,19 @@ var DRONE_VOLUME = 0.3;
 function drawLobby() {
   if (!panelWall) {
     print("Adding overlays for the lobby panel wall and orb shell.");
-    
+
     var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
     var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0});
-    
+
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
-    
+
     var panelWallProps = {
       url: LOBBY_PANEL_WALL_URL,
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
       dimensions: panelsDimensions
     };
-    
+
     var orbShellProps = {
       url: LOBBY_SHELL_URL,
       position: orbPosition,
@@ -128,13 +128,13 @@ function drawLobby() {
         visible: false,
         isFacingAvatar: true
     };
-    
+
     avatarStickPosition = MyAvatar.position;
 
-    panelWall = Overlays.addOverlay("model", panelWallProps);    
+    panelWall = Overlays.addOverlay("model", panelWallProps);
     orbShell = Overlays.addOverlay("model", orbShellProps);
     descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
-    
+
     if (droneSound.downloaded) {
       // start the drone sound
       if (!currentDrone) {
@@ -143,7 +143,7 @@ function drawLobby() {
         currentDrone.restart();
       }
     }
-    
+
     // start one of our muzak sounds
     playRandomMuzak();
   }
@@ -157,31 +157,31 @@ function changeLobbyTextures() {
   req.send();
 
   places = JSON.parse(req.responseText).data.places;
-  
+
   var NUM_PANELS = places.length;
 
-  var textureProp = { 
+  var textureProp = {
     textures: {}
   };
-  
+
   for (var j = 0; j < NUM_PANELS; j++) {
     var panelIndex = placeIndexToPanelIndex(j);
     textureProp["textures"]["file" + panelIndex] = places[j].previews.lobby;
   };
-  
+
   Overlays.editOverlay(panelWall, textureProp);
 }
 
 var MUZAK_VOLUME = 0.1;
 
-function playCurrentSound(secondOffset) {  
+function playCurrentSound(secondOffset) {
   if (currentSound == latinSound) {
     if (!latinInjector) {
       latinInjector = Audio.playSound(latinSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
     } else {
       latinInjector.restart();
     }
-    
+
     currentMuzakInjector = latinInjector;
   } else if (currentSound == elevatorSound) {
     if (!elevatorInjector) {
@@ -189,7 +189,7 @@ function playCurrentSound(secondOffset) {
     } else {
       elevatorInjector.restart();
     }
-    
+
     currentMuzakInjector = elevatorInjector;
   }
 }
@@ -205,14 +205,14 @@ function playNextMuzak() {
         currentSound = latinSound;
       }
     }
-    
+
     playCurrentSound(0);
   }
 }
 
 function playRandomMuzak() {
   currentSound = null;
-  
+
   if (latinSound.downloaded && elevatorSound.downloaded) {
     currentSound = Math.random() < 0.5 ? latinSound : elevatorSound;
   } else if (latinSound.downloaded) {
@@ -220,11 +220,11 @@ function playRandomMuzak() {
   } else if (elevatorSound.downloaded) {
     currentSound = elevatorSound;
   }
-  
+
   if (currentSound) {
     // pick a random number of seconds from 0-10 to offset the muzak
     var secondOffset = Math.random() * 10;
-    
+
     playCurrentSound(secondOffset);
   } else {
     currentMuzakInjector = null;
@@ -233,36 +233,36 @@ function playRandomMuzak() {
 
 function cleanupLobby() {
   toggleEnvironmentRendering(true);
-  
+
   // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
   var panelTexturesReset = {};
   panelTexturesReset["textures"] = {};
-      
-  for (var j = 0; j < MAX_NUM_PANELS; j++) { 
+
+  for (var j = 0; j < MAX_NUM_PANELS; j++) {
     panelTexturesReset["textures"]["file" + (j + 1)] = LOBBY_BLANK_PANEL_TEXTURE_URL;
   };
-  
+
   Overlays.editOverlay(panelWall, panelTexturesReset);
-  
+
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(descriptionText);
-  
+
   panelWall = false;
   orbShell = false;
-  
+
   if (currentDrone) {
     currentDrone.stop();
     currentDrone = null
   }
-  
+
   if (currentMuzakInjector) {
     currentMuzakInjector.stop();
     currentMuzakInjector = null;
   }
-  
+
   places = {};
-  
+
 }
 
 function actionStartEvent(event) {
@@ -271,19 +271,19 @@ function actionStartEvent(event) {
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
     if (result.intersects && result.overlayID == panelWall) {
-    
+
       var panelName = result.extraInfo;
-      
+
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5));
         var placeIndex = panelIndexToPlaceIndex(panelIndex);
         if (placeIndex < places.length) {
           var actionPlace = places[placeIndex];
-          
-          print("Jumping to " + actionPlace.name + " at " + actionPlace.address 
+
+          print("Jumping to " + actionPlace.name + " at " + actionPlace.address
             + " after click on panel " + panelIndex + " with place index " + placeIndex);
-          
+
           Window.location = actionPlace.address;
           maybeCleanupLobby();
         }
@@ -328,7 +328,7 @@ function handleLookAt(pickRay) {
         var placeIndex = panelIndexToPlaceIndex(panelIndex);
         if (placeIndex < places.length) {
           var actionPlace = places[placeIndex];
-          
+
           if (actionPlace.description == "") {
               Overlays.editOverlay(descriptionText, { text: actionPlace.name, visible: showText });
           } else {
@@ -378,7 +378,7 @@ function update(deltaTime) {
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
-    if (currentMuzakInjector && !currentMuzakInjector.isPlaying) {
+    if (currentMuzakInjector && !currentMuzakInjector.playing) {
       playNextMuzak();
     }
   }

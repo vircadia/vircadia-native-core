@@ -1,5 +1,5 @@
 //
-//  Table.qml
+//  Tree.qml
 //
 //  Created by David Rowe on 17 Feb 2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -85,27 +85,18 @@ TreeView {
                     bottomMargin: 3     // ""
                 }
                 radius: 3
-                color: hifi.colors.tableScrollHandle
+                color: hifi.colors.tableScrollHandleDark
             }
         }
 
         scrollBarBackground: Item {
-            implicitWidth: 10
+            implicitWidth: 9
             Rectangle {
                 anchors {
                     fill: parent
                     margins: -1     // Expand
                 }
-                color: hifi.colors.baseGrayHighlight
-            }
-
-            Rectangle {
-                anchors {
-                    fill: parent
-                    margins: 1      // Shrink
-                }
-                radius: 4
-                color: hifi.colors.tableScrollBackground
+                color: hifi.colors.tableBackgroundDark
             }
         }
 

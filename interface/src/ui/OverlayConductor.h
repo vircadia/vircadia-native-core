@@ -17,7 +17,7 @@ public:
     ~OverlayConductor();
 
     void update(float dt);
-    void setEnabled(bool enable);
+    void setEnabled(bool enable, bool toggleQmlEvents = true);
     bool getEnabled() const;
 
 private:
@@ -31,6 +31,9 @@ private:
 
     Mode _mode { FLAT };
     bool _enabled { false };
+    bool _driving { false };
+    quint64 _timeInPotentialMode { 0 };
+    bool _wantsOverlays { true };
 };
 
 #endif

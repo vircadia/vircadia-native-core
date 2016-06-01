@@ -31,17 +31,15 @@ namespace vr {
 class ViveControllerManager : public InputPlugin {
     Q_OBJECT
 public:
-
     // Plugin functions
-    virtual bool isSupported() const override;
-    virtual bool isJointController() const override { return true; }
+    bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
-    virtual bool activate() override;
-    virtual void deactivate() override;
+    bool activate() override;
+    void deactivate() override;
 
-    virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
 
@@ -53,16 +51,17 @@ private:
         InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {}
     private:
         // Device functions
-        virtual controller::Input::NamedVector getAvailableInputs() const override;
-        virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
-        virtual void focusOutEvent() override;
+        controller::Input::NamedVector getAvailableInputs() const override;
+        QString getDefaultMappingConfig() const override;
+        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
+        void focusOutEvent() override;
 
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
         void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                              const vec3& linearVelocity, const vec3& angularVelocity, bool isLeftHand);
+        void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int outerPseudoButton);
 
         class FilteredStick {
         public:

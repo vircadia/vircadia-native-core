@@ -104,12 +104,6 @@ public:
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
-    // geometry space
-    bool getJointStateRotation(int index, glm::quat& rotation) const;
-
-    // geometry space
-    bool getJointStateTranslation(int index, glm::vec3& translation) const;
-
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
@@ -119,8 +113,6 @@ public:
 
     // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
-
-    // geometry space
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
 
     // legacy
@@ -239,6 +231,7 @@ protected:
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
+    AnimPose _invGeometryOffset;
 
     struct PoseSet {
         AnimPoseVec _relativePoses; // geometry space relative to parent.

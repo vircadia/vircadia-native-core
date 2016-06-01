@@ -18,10 +18,8 @@ namespace controller {
 
 class InputPlugin : public Plugin {
 public:
-    virtual bool isJointController() const = 0;
-
     virtual void pluginFocusOutEvent() = 0;
 
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) = 0;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) = 0;
 };
 

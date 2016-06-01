@@ -19,7 +19,7 @@
 class ScriptAudioInjector : public QObject {
     Q_OBJECT
     
-    Q_PROPERTY(bool isPlaying READ isPlaying)
+    Q_PROPERTY(bool playing READ isPlaying)
     Q_PROPERTY(float loudness READ getLoudness)
     Q_PROPERTY(AudioInjectorOptions options WRITE setOptions READ getOptions)
 public:

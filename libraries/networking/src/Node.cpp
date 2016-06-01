@@ -22,9 +22,9 @@
 
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";
 
-static int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
-static int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
-static int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
+int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
+int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
+int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
 
 namespace NodeType {
     QHash<NodeType_t, QString> TypeNameHash;

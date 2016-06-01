@@ -19,11 +19,21 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
     
     if (isConnectRequest) {
         dataStream >> newHeader.connectUUID;
+
+        // Read out the protocol version signature from the connect message
+        char* rawBytes;
+        uint length;
+
+        dataStream.readBytes(rawBytes, length);
+        newHeader.protocolVersion = QByteArray(rawBytes, length);
+
+        // NOTE: QDataStream::readBytes() - The buffer is allocated using new []. Destroy it with the delete [] operator.
+        delete[] rawBytes;
     }
     
     dataStream >> newHeader.nodeType
         >> newHeader.publicSockAddr >> newHeader.localSockAddr
-        >> newHeader.interestList;
+        >> newHeader.interestList >> newHeader.placeName;
 
     newHeader.senderSockAddr = senderSockAddr;
     

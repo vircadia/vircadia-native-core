@@ -24,14 +24,13 @@ class OculusControllerManager : public InputPlugin {
 public:
     // Plugin functions
     bool isSupported() const override;
-    bool isJointController() const override { return true; }
     const QString& getName() const override { return NAME; }
 
     bool activate() override;
     void deactivate() override;
 
     void pluginFocusOutEvent() override;
-    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
 private:
     class OculusInputDevice : public controller::InputDevice {
@@ -49,7 +48,7 @@ private:
 
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
-        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
         friend class OculusControllerManager;
@@ -62,7 +61,7 @@ private:
 
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
-        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
     private:

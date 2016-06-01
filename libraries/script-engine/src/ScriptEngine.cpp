@@ -65,7 +65,7 @@
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
-static int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
+int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     QString message = "";
@@ -294,13 +294,6 @@ void ScriptEngine::waitTillDoneRunning() {
 
         auto startedWaiting = usecTimestampNow();
         while (workerThread->isRunning()) {
-            // NOTE: This will be called on the main application thread from stopAllScripts.
-            //       The application thread will need to continue to process events, because
-            //       the scripts will likely need to marshall messages across to the main thread, e.g.
-            //       if they access Settings or Menu in any of their shutdown code. So:
-            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
-            QCoreApplication::processEvents();
-
             // If the final evaluation takes too long, then tell the script engine to stop running
             auto elapsedUsecs = usecTimestampNow() - startedWaiting;
             static const auto MAX_SCRIPT_EVALUATION_TIME = USECS_PER_SECOND;
@@ -324,6 +317,17 @@ void ScriptEngine::waitTillDoneRunning() {
                 if (workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
                     workerThread->terminate();
                 }
+            }
+
+            // NOTE: This will be called on the main application thread from stopAllScripts.
+            //       The application thread will need to continue to process events, because
+            //       the scripts will likely need to marshall messages across to the main thread, e.g.
+            //       if they access Settings or Menu in any of their shutdown code. So:
+            // Process events for the main application thread, allowing invokeMethod calls to pass between threads.
+            QCoreApplication::processEvents();
+            // In some cases (debugging), processEvents may give the thread enough time to shut down, so recheck it.
+            if (!thread()) {
+                break;
             }
 
             // Avoid a pure busy wait
@@ -937,7 +941,13 @@ void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
 
 }
 
-void ScriptEngine::stop() {
+void ScriptEngine::stop(bool marshal) {
+    _isStopping = true; // this can be done on any thread
+
+    if (marshal) {
+        QMetaObject::invokeMethod(this, "stop");
+        return;
+    }
     if (!_isFinished) {
         _isFinished = true;
         emit runningStateChanged();
