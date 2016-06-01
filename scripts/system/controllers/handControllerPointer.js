@@ -47,22 +47,66 @@ function TimeLock(expiration) {
 }
 var handControllerLockOut = new TimeLock(2000);
 
-// Calls onFunction() or offFunction() when swtich(on), but only if it is to a new value.
-function LatchedToggle(onFunction, offFunction, state) {
-    this.getState = function () {
-        return state;
+function Trigger() {
+    // This part is copied and adapted from handControllerGrab.js. Maybe we should refactor this.
+    var that = this;
+    that.TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
+    that.TRIGGER_ON_VALUE = 0.4;     //  Squeezed just enough to activate search or near grab
+    that.TRIGGER_GRAB_VALUE = 0.85;  //  Squeezed far enough to complete distant grab
+    that.TRIGGER_OFF_VALUE = 0.15;
+    that.rawTriggerValue = 0;
+    that.triggerValue = 0;           // rolling average of trigger value
+    that.triggerPress = function (value) {
+        that.rawTriggerValue = value;
     };
-    this.setState = function (on) {
-        if (state === on) {
-            return;
-        }
-        state = on;
-        if (on) {
-            onFunction();
-        } else {
-            offFunction();
-        }
+    that.updateSmoothedTrigger = function () { // e.g., call once/update for effect
+        var triggerValue = that.rawTriggerValue;
+        // smooth out trigger value
+        that.triggerValue = (that.triggerValue * that.TRIGGER_SMOOTH_RATIO) +
+            (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
     };
+    // Current smoothed state, without hysteresis. Answering booleans.
+    that.triggerSmoothedGrab = function () {
+        return that.triggerValue > that.TRIGGER_GRAB_VALUE;
+    };
+    that.triggerSmoothedSqueezed = function () {
+        return that.triggerValue > that.TRIGGER_ON_VALUE;
+    };
+    that.triggerSmoothedReleased = function () {
+        return that.triggerValue < that.TRIGGER_OFF_VALUE;
+    };
+
+    // This part is not from handControllerGrab.js
+    that.state = null; // tri-state: falsey, 'partial', 'full'
+    that.update = function () { // update state, called from an update function
+        var state = that.state;
+        that.updateSmoothedTrigger();
+
+        // The first two are independent of previous state:
+        if (that.triggerSmoothedGrab()) {
+            state = 'full';
+        } else if (that.triggerSmoothedReleased()) {
+            state = null;
+        // These depend on previous state:
+        // null -> squeezed ==> partial
+        // full -> !squeezed ==> partial
+        // Otherwise no change.
+        } else if (that.triggerSmoothedSqueezed()) {
+            if (!state) {
+                state = 'partial';
+            }
+        } else if (state === 'full') {
+            state = 'partial';
+        }
+        that.state = state;
+    };
+    // Answer a controller source function (answering either 0.0 or 1.0), with hysteresis.
+    that.partial = function () {
+        return that.state ? 1.0 : 0.0; // either 'partial' or 'full'
+    };
+    that.full = function () {
+        return (that.state === 'full') ? 1.0 : 0.0;
+    }
 }
 
 // VERTICAL FIELD OF VIEW ---------
@@ -257,28 +301,41 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 // CONTROLLER MAPPING ---------
 //
 
+var leftTrigger = new Trigger();
+var rightTrigger = new Trigger();
+var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
 function toggleHand() {
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
+        activeTrigger = leftTrigger;
     } else {
         activeHand = Controller.Standard.RightHand;
+        activeTrigger = rightTrigger;
     }
 }
 
 var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 Script.scriptEnding.connect(clickMapping.disable);
 
+// Gather the trigger data for smoothing.
+clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
+clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
+// The next two lines will be removed soon. Right now I want both trigger and button so we can compare.
 clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+// Full somoothed trigger is a click.
+clickMapping.from(rightTrigger.full).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
-clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(function (on) {
+// Partial smoothed trigger is activation.
+clickMapping.from(rightTrigger.partial).to(function (on) {
     if (on && (activeHand !== Controller.Standard.RightHand)) {
         toggleHand();
     }
 });
-clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(function (on) {
+clickMapping.from(leftTrigger.partial).to(function (on) {
     if (on && (activeHand !== Controller.Standard.LeftHand)) {
         toggleHand();
     }
@@ -359,6 +416,8 @@ function update() {
     if (!Window.hasFocus()) { // Don't mess with other apps
         return turnOffVisualization();
     }
+    leftTrigger.update();
+    rightTrigger.update();
     var controllerPose = Controller.getPoseValue(activeHand);
     // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
     if (!controllerPose.valid) {
@@ -390,6 +449,9 @@ function update() {
         return turnOffVisualization(true);
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
+    if (!activeTrigger.state) {
+        return turnOffVisualization(); // No trigger (with hysteresis).
+    }
     updateVisualization(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
 }
 
