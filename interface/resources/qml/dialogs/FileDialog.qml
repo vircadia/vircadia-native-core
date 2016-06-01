@@ -26,10 +26,10 @@ import "fileDialog"
 ModalWindow {
     id: root
     resizable: true
-    implicitWidth: 640
-    implicitHeight: 480
+    implicitWidth: 480
+    implicitHeight: 360
 
-    minSize: Qt.vector2d(388, 240)
+    minSize: Qt.vector2d(360, 240)
     draggable: true
 
     HifiConstants { id: hifi }
