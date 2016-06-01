@@ -10,30 +10,20 @@
 //
 
 
-var RESETTER_POSITION = {
-  x: 1098.5159,
-  y: 460.0490,
-  z: -66.3012
-};
-
 BlockyGame = function(spawnPosition, spawnRotation) {
 
   var scriptURL = "atp:/blocky/blocky.js";
 
   var blockyProps = {
-    type: 'Box',
+    type: 'Model',
+    modelURL:'atp:/blocky/swiper.fbx',
     name: 'home_box_blocky_resetter',
-    color: {
-      red: 0,
-      green: 0,
-      blue: 255
-    },
     dimensions: {
-      x: 0.25,
-      y: 0.25,
-      z: 0.25
+      x: 0.2543,
+      y: 0.3269,
+      z: 0.4154
     },
-    rotation:Quat.fromPitchYawRollDegrees(-0.0029,32.9983,-0.0021),
+    rotation:Quat.fromPitchYawRollDegrees(-9.5165,-147.3687,16.6577),
     script: scriptURL,
     userData: JSON.stringify({
       "grabbableKey": {

@@ -178,7 +178,9 @@ var TARGET_BLOCKS_POSITION = {
                 this.createPlayableBlocks(arrangement);
 
             }
-            this.busy = false;
+            Script.setTimeout(function() {
+                _this.busy = false;
+            }, 1000)
         },
 
         findBlocks: function() {
@@ -257,15 +259,15 @@ var TARGET_BLOCKS_POSITION = {
         },
 
         update: function() {
-            if (this.busy === true) {
+            if (_this.busy === true) {
                 return;
             }
             var BEAM_TRIGGER_THRESHOLD = 0.075;
 
             var BEAM_POSITION = {
-                x: 1098.5159,
-                y: 460.0490,
-                z: -66.3012
+                x: 1098.4424,
+                y: 460.3090,
+                z: -66.2190
             };
 
             var leftHandPosition = MyAvatar.getLeftPalmPosition();

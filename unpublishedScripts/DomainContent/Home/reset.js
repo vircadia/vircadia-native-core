@@ -342,9 +342,9 @@
             });
 
             var blocky = new BlockyGame({
-                x: 1098.5159,
-                y: 460.0490,
-                z: -66.3012
+                x: 1098.4424,
+                y: 460.3090,
+                z: -66.2190
             })
 
             print('HOME after creating scripted entities')
