@@ -212,8 +212,9 @@ ModalWindow {
             function update() {
                 var row = fileTableView.currentRow;
 
+                openButton.text = root.selectDirectory && row === -1 ? "Choose" : "Open"
+
                 if (row === -1) {
-                    openFolderButton.enabled = false;
                     return;
                 }
 
@@ -224,7 +225,6 @@ ModalWindow {
                 } else {
                     currentSelection.text = "";
                 }
-                openFolderButton.enabled = currentSelectionIsFolder
             }
 
             function navigateUp() {
@@ -637,16 +637,6 @@ ModalWindow {
                 Keys.onReturnPressed: okAction.trigger()
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType
-                KeyNavigation.right: openFolderButton
-            }
-
-            Button {
-                id: openFolderButton
-                text: "Open Folder"
-                enabled: false
-                action: openFolderAction
-                KeyNavigation.up: selectionType
-                KeyNavigation.left: openButton
                 KeyNavigation.right: cancelButton
             }
 
@@ -654,7 +644,7 @@ ModalWindow {
                 id: cancelButton
                 action: cancelAction
                 KeyNavigation.up: selectionType
-                KeyNavigation.left: openFolderButton
+                KeyNavigation.left: openButton
                 KeyNavigation.right: fileTableView.contentItem
                 Keys.onReturnPressed: { canceled(); root.enabled = false }
             }
@@ -663,8 +653,15 @@ ModalWindow {
         Action {
             id: okAction
             text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
-            enabled: currentSelection.text ? true : false
-            onTriggered: okActionTimer.start();
+            enabled: currentSelection.text || !root.selectDirectory && d.currentSelectionIsFolder ? true : false
+            onTriggered: {
+                if (!root.selectDirectory && !d.currentSelectionIsFolder
+                        || root.selectDirectory && fileTableView.currentRow === -1) {
+                    okActionTimer.start();
+                } else {
+                    fileTableView.navigateToCurrentRow();
+                }
+            }
         }
 
         Timer {
@@ -722,12 +719,6 @@ ModalWindow {
                 selectedFile(selection);
                 root.destroy();
             }
-        }
-
-        Action {
-            id: openFolderAction
-            text: "Open Folder"
-            onTriggered: { fileTableView.navigateToCurrentRow(); }
         }
 
         Action {
