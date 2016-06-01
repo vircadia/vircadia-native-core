@@ -1089,10 +1089,6 @@ function addTableRow(add_glyphicon) {
   var table = row.parents('table')
   var isArray = table.data('setting-type') === 'array'
 
-  console.log("------------------------");
-  console.log("table = " + table.name + " " + table.id);
-  console.log("isArray = " + isArray);
-
   var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
 
   if (!isArray) {
@@ -1136,17 +1132,11 @@ function addTableRow(add_glyphicon) {
   var table = row.parents("table")
   var setting_name = table.attr("name")
   var full_name = setting_name + "." + key
-
-  console.log("table = " + table);
-  console.log("setting_name = " + setting_name);
-  console.log("full_name = " + full_name);
-
   row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS)
   row.removeClass("inputs")
 
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) {
-      console.log("A");
       // Index row
       var numbers = columns.children(".numbered")
       if (numbers.length > 0) {
@@ -1155,69 +1145,59 @@ function addTableRow(add_glyphicon) {
         $(element).html(1)
       }
     } else if ($(element).hasClass(Settings.REORDER_BUTTONS_CLASS)) {
-      console.log("B");
       $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><a href='javascript:void(0);'"
                       + " class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a><a href='javascript:void(0);' class='"
                       + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
     } else if ($(element).hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
-      console.log("C");
       // Change buttons
       var anchor = $(element).children("a")
       anchor.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
       anchor.addClass(Settings.DEL_ROW_SPAN_CLASSES)
     } else if ($(element).hasClass("key")) {
-      console.log("D");
       var input = $(element).children("input")
       $(element).html(input.val())
       input.remove()
     } else if ($(element).hasClass(Settings.DATA_COL_CLASS)) {
-      console.log("E");
       // Hide inputs
-      console.log("element = " + element);
       var input = $(element).find("input")
-
-      var val = input.val();
-      if (input.attr("type") == "checkbox") {
-        val = input.is(':checked');
-        $(element).children().hide();
+      var isCheckbox = false;
+      if (input.hasClass("toggle-checkbox")) {
+        input = $(input).parent().parent();
+        isCheckbox = true;
       }
 
-      input.attr("type", "hidden")
+      var val = input.val();
+      if (isCheckbox) {
+        val = $(input).find("input").is(':checked');
+        // don't hide the checkbox
+      } else {
+        input.attr("type", "hidden")
+      }
 
       if (isArray) {
         var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
         var key = $(element).attr('name')
 
-        console.log("row_index = " + row_index);
-        console.log("key = " + key);
-
         // are there multiple columns or just one?
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
 
-        console.log("num_columns = " + num_columns);
-
-        console.log("input = " + JSON.stringify(input));
-        console.log("new name = " + setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""));
-
-        input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
-
-
+        if (isCheckbox) {
+          $(input).find("input").attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+        } else {
+          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+        }
       } else {
         input.attr("name", full_name + "." + $(element).attr("name"))
       }
 
-      input.attr("data-changed", "true")
-
-      // if the input is a bootstrapSwitch, we need to move this input up to where it will be found
-      var inputElement = $(input).detach();
-      $(element).append(inputElement);
-
-      console.log("input.val() = " + val);
-
-      $(element).append(val)
+      if (isCheckbox) {
+        $(input).find("input").attr("data-changed", "true");
+      } else {
+        input.attr("data-changed", "true");
+        $(element).append(val);
+      }
     } else {
-      console.log("F");
       console.log("Unknown table element")
     }
   })
