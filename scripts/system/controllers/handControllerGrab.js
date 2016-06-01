@@ -897,28 +897,26 @@ function MyController(hand) {
 
                 var hotspotPos = grabProps.position;
 
-                // does this entity have an equip point?
+                // does this entity have an attach point?
                 var wearableData = getEntityCustomData("wearable", entities[i], undefined);
                 if (wearableData) {
                     var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
                     if (wearableData[handJointName]) {
-                        // draw the hotspot around the equip point.
+                        // draw the hotspot around the attach point.
                         hotspotPos = wearableData[handJointName][0];
                     }
                 }
 
                 // draw a hotspot!
-                this.equipHotspotOverlays.push(Overlays.addOverlay("cube", {
+                this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
                     position: hotspotPos,
-                    size: 0.1,
+                    size: 0.2,
                     color: { red: 90, green: 255, blue: 90 },
-                    alpha: 1,
-                    solid: false,
+                    alpha: 0.7,
+                    solid: true,
                     visible: true,
-                    dashed: false,
-                    lineWidth: 2.0,
-                    ignoreRayIntersection: true, // this never ray intersects
-                    drawInFront: true
+                    ignoreRayIntersection: false,
+                    drawInFront: false
                 }));
             }
         }
