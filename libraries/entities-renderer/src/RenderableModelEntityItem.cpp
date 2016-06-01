@@ -703,7 +703,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
-        info.setConvexHulls(points);
         info.setOffset(_model->getOffset());
     } else {
         ModelEntityItem::computeShapeInfo(info);
