@@ -93,9 +93,9 @@ public:
 
         // Last but not least, define where we draw
         if (!_colorBuffers.empty()) {
-            glDrawBuffers((GLsizei)_colorBuffers.size(), _colorBuffers.data());
+            glNamedFramebufferDrawBuffers(_id, (GLsizei)_colorBuffers.size(), _colorBuffers.data());
         } else {
-            glDrawBuffer(GL_NONE);
+            glNamedFramebufferDrawBuffer(_id, GL_NONE);
         }
 
         // Now check for completness
