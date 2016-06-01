@@ -26,6 +26,9 @@
 
 #include "DomainServerSettingsManager.h"
 
+#define WANT_DEBUG 1
+
+
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
@@ -190,10 +193,47 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _configMap.loadMasterAndUserConfig(argumentList);
             }
         }
+
+        if (oldVersion < 1.3) {
+            // This was prior to the permissions-grid in the domain-server settings page
+
+        }
     }
+
+    unpackPermissions();
 
     // write the current description version to our settings
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
+}
+
+void DomainServerSettingsManager::unpackPermissions() {
+    QList<QVariant> permsHashList = valueOrDefaultValueForKeyPath(AGENT_PERMISSIONS_KEYPATH).toList();
+    foreach (QVariant permsHash, permsHashList) {
+        AgentPermissionsPointer perms { new AgentPermissions(permsHash.toMap()) };
+        _agentPermissions[perms->getID()] = perms;
+    }
+
+    #ifdef WANT_DEBUG
+    qDebug() << "--------------- permissions ---------------------";
+    QHashIterator<QString, AgentPermissionsPointer> i(_agentPermissions);
+    while (i.hasNext()) {
+        i.next();
+        AgentPermissionsPointer perms = i.value();
+        qDebug() << i.key()
+                 << perms->canConnectToDomain
+                 << perms->canAdjustLocks
+                 << perms->canRezPermanentEntities
+                 << perms->canRezTemporaryEntities
+                 << perms->canWriteToAssetServer;
+    }
+    #endif
+}
+
+AgentPermissionsPointer DomainServerSettingsManager::getPermissionsForName(QString name) const {
+    if (_agentPermissions.contains(name)) {
+        return _agentPermissions[name];
+    }
+    return nullptr;
 }
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
