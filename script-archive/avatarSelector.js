@@ -283,7 +283,7 @@ function actionStartEvent(event) {
                 if (avatarIndex < avatars.length) {
                     var actionPlace = avatars[avatarIndex];
 
-                    print("Changing avatar to " + actionPlace.name 
+                    print("Changing avatar to " + actionPlace.name
                       + " after click on panel " + panelIndex + " with avatar index " + avatarIndex);
 
                     MyAvatar.useFullAvatarURL(actionPlace.content_url);
@@ -395,7 +395,7 @@ function update(deltaTime) {
         Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
         // if the reticle is up then we may need to play the next muzak
-        if (currentMuzakInjector && !currentMuzakInjector.isPlaying) {
+        if (currentMuzakInjector && !currentMuzakInjector.playing) {
             playNextMuzak();
         }
     }

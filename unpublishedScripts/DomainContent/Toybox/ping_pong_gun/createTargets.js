@@ -11,7 +11,7 @@
 //
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
-Script.include("utils.js");
+Script.include("../libraries/utils.js");
 var scriptURL = Script.resolvePath('wallTarget.js');
 
 var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target.fbx';

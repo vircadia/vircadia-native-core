@@ -221,6 +221,10 @@ public:
 
     void setConnectionMaxBandwidth(int maxBandwidth) { _nodeSocket.setConnectionMaxBandwidth(maxBandwidth); }
 
+    void setPacketFilterOperator(udt::PacketFilterOperator filterOperator) { _nodeSocket.setPacketFilterOperator(filterOperator); }
+    bool packetVersionMatch(const udt::Packet& packet);
+    bool isPacketVerified(const udt::Packet& packet);
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -236,7 +240,9 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
-    void packetVersionMismatch(PacketType type);
+
+    // QUuid might be zero for non-sourced packet types.
+    void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -267,8 +273,6 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
     
-    bool isPacketVerified(const udt::Packet& packet);
-    bool packetVersionMatch(const udt::Packet& packet);
     bool packetSourceAndHashMatch(const udt::Packet& packet);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 

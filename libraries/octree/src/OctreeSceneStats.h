@@ -20,6 +20,7 @@
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
 #include "SequenceNumberStats.h"
+#include "OctalCode.h"
 
 #define GREENISH  0x40ff40d0
 #define YELLOWISH 0xffef40c0
@@ -143,10 +144,10 @@ public:
     const char* getItemValue(Item item);
 
     /// Returns OctCode for root element of the jurisdiction of this particular octree server
-    unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
+    OctalCodePtr getJurisdictionRoot() const { return _jurisdictionRoot; }
 
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
-    const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
+    const OctalCodePtrList& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
 
     bool isMoving() const { return _isMoving; }
     bool isFullScene() const { return _isFullScene; }
@@ -277,8 +278,8 @@ private:
     static const int MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
 
-    unsigned char* _jurisdictionRoot;
-    std::vector<unsigned char*> _jurisdictionEndNodes;
+    OctalCodePtr _jurisdictionRoot;
+    std::vector<OctalCodePtr> _jurisdictionEndNodes;
 };
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent

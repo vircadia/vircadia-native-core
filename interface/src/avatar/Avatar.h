@@ -64,6 +64,7 @@ public:
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
+    void updateAvatarEntities();
     void simulate(float deltaTime);
     virtual void simulateAttachments(float deltaTime);
 
@@ -234,8 +235,6 @@ protected:
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
-
-    virtual void updateJointMappings() override;
 
     virtual void updatePalms();
 

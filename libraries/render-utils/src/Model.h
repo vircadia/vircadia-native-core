@@ -252,10 +252,6 @@ protected:
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
 
-    /// Fetches the joint state at the specified index.
-    /// \return whether or not the joint state is "valid" (that is, non-default)
-    bool getJointState(int index, glm::quat& rotation) const;
-
     /// Clear the joint states
     void clearJointState(int index);
 

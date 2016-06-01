@@ -33,6 +33,7 @@
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
+#include <plugins/DisplayPlugin.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <SimpleMovingAverage.h>
@@ -93,6 +94,12 @@ class Application : public QApplication, public AbstractViewStateInterface, publ
     friend class PluginContainerProxy;
 
 public:
+    enum Event {
+        Present = DisplayPlugin::Present,
+        Paint = Present + 1,
+        Lambda = Paint + 1
+    };
+
     // FIXME? Empty methods, do we still need them?
     static void initPlugins();
     static void shutdownPlugins();
@@ -104,6 +111,9 @@ public:
 
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
+
+    // Return an HTTP User-Agent string with OS and device information.
+    Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
     void initializeUi();
@@ -251,6 +261,10 @@ public slots:
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
 
+#if (PR_BUILD || DEV_BUILD)
+    void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
+#endif
+
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
     void calibrateEyeTracker1Point();
@@ -281,7 +295,6 @@ public slots:
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
-    void idle(uint64_t now);
     void aboutToQuit();
 
     void resettingDomain();
@@ -305,6 +318,8 @@ private slots:
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     void setSessionUUID(const QUuid& sessionUUID) const;
+    void limitOfSilentDomainCheckInsReached();
+
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
@@ -313,6 +328,7 @@ private slots:
     static void packetSent(quint64 length);
     void updateDisplayMode();
     void updateInputModes();
+    void domainConnectionRefused(const QString& reasonMessage, int reason);
 
 private:
     static void initDisplay();
@@ -320,6 +336,8 @@ private:
 
     void cleanupBeforeQuit();
 
+    bool shouldPaint(float nsecsElapsed);
+    void idle(float nsecsElapsed);
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -332,7 +350,7 @@ private:
 
     glm::vec3 getSunDirection() const;
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
 
@@ -497,7 +515,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
 

@@ -29,9 +29,9 @@
 
 using namespace std;
 
-static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
-static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
-static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
+int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
+int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
@@ -724,10 +724,6 @@ glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     glm::vec3 rotatedPoint = _rotation * scaledPoint;
     glm::vec3 translatedPoint = rotatedPoint + _translation;
     return translatedPoint;
-}
-
-bool Model::getJointState(int index, glm::quat& rotation) const {
-    return _rig->getJointStateRotation(index, rotation);
 }
 
 void Model::clearJointState(int index) {

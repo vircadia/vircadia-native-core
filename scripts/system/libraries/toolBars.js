@@ -56,6 +56,10 @@ Overlay2D = function(properties, overlay) { // overlay is an optional variable
         properties.alpha = alpha;
         Overlays.editOverlay(overlay, { alpha: alpha });
     }
+    this.setImageURL = function(imageURL) {
+        properties.imageURL = imageURL;
+        Overlays.editOverlay(overlay, { imageURL: imageURL });
+    }
     this.show = function(doShow) {
         properties.visible = doShow;
         Overlays.editOverlay(overlay, { visible: doShow });
@@ -254,7 +258,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         }
         this.save();
     }
-    
+
     this.setAlpha = function(alpha, tool) {
         if(typeof(tool) === 'undefined') {
             for(var tool in this.tools) {
@@ -268,7 +272,11 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
             this.tools[tool].setAlpha(alpha);
         }
     }
-    
+
+    this.setImageURL = function(imageURL, tool) {
+        this.tools[tool].setImageURL(imageURL);
+    }
+
     this.setBack = function(color, alpha) {
         if (color == null) {
             Overlays.editOverlay(this.back, { visible: false });

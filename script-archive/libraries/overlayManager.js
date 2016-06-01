@@ -205,7 +205,7 @@
         };
 
         return generateOverlayClass(that, ABSTRACT, [
-            "alpha", "glowLevel", "pulseMax", "pulseMin", "pulsePeriod", "glowLevelPulse",
+            "alpha", "pulseMax", "pulseMin", "pulsePeriod",
             "alphaPulse", "colorPulse", "visible", "anchor"
         ]);
     })();

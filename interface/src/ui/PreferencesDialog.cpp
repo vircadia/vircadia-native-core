@@ -62,6 +62,11 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap turn when in HMD", getter, setter));
     }
     {
+        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenDriving(); };
+        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenDriving(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when driving", getter, setter));
+    }
+    {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
         auto preference = new BrowsePreference("Snapshots", "Put my snapshots here", getter, setter);
@@ -143,11 +148,6 @@ void setupPreferences() {
         preference->setDecimals(2);
         preference->setStep(1);
         preferences->addPreference(preference);
-    }
-    {
-        auto getter = [=]()->float { return myAvatar->getHead()->getPupilDilation(); };
-        auto setter = [=](float value) { myAvatar->getHead()->setPupilDilation(value); }; 
-        preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Pupil dilation", getter, setter));
     }
     {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };

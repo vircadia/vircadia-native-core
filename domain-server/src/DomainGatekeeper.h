@@ -19,6 +19,8 @@
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
 
+#include <DomainHandler.h>
+
 #include <NLPacket.h>
 #include <Node.h>
 #include <UUIDHasher.h>
@@ -74,7 +76,8 @@ private:
                                        const HifiSockAddr& senderSockAddr);
     
     void sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr);
-    void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr);
+    void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr, 
+                    DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown);
     
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
     

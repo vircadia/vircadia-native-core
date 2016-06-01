@@ -15,6 +15,7 @@
 
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
+#include <QtCore/QElapsedTimer>
 class QImage;
 
 #include <GLMHelpers.h>
@@ -59,6 +60,10 @@ class DisplayPlugin : public Plugin {
     Q_OBJECT
     using Parent = Plugin;
 public:
+    enum Event {
+        Present = QEvent::User + 1
+    };
+
     bool activate() override;
     void deactivate() override;
     virtual bool isHmd() const { return false; }
@@ -156,6 +161,8 @@ public:
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
     uint32_t presentCount() const { return _presentedFrameIndex; }
+    // Time since last call to incrementPresentCount (only valid if DEBUG_PAINT_DELAY is defined)
+    int64_t getPaintDelayUsecs() const;
 
     virtual void cycleDebugOutput() {}
 
@@ -165,9 +172,11 @@ signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
 
 protected:
-    void incrementPresentCount() { ++_presentedFrameIndex; }
+    void incrementPresentCount();
 
 private:
     std::atomic<uint32_t> _presentedFrameIndex;
+    mutable std::mutex _paintDelayMutex;
+    QElapsedTimer _paintDelayTimer;
 };
 

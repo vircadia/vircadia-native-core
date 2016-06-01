@@ -84,6 +84,15 @@ public:
     bool isSocketKnown() const { return !_sockAddr.getAddress().isNull(); }
 
     void softReset();
+
+    enum class ConnectionRefusedReason : uint8_t {
+        Unknown,
+        ProtocolMismatch,
+        LoginError,
+        NotAuthorized,
+        TooManyUsers
+    };
+
 public slots:
     void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
@@ -115,9 +124,10 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
-    void domainConnectionRefused(QString reason);
+    void domainConnectionRefused(QString reasonMessage, int reason);
 
 private:
+    bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
     void hardReset();
 

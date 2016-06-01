@@ -118,11 +118,89 @@ Window {
             }
 
             HifiControls.Table {
-                tableModel: runningScriptsModel
+                model: runningScriptsModel
+                id: table
                 height: 185
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
                 anchors.right: parent.right
+                expandSelectedRow: true
+
+                itemDelegate: Item {
+                    anchors {
+                        left: parent ? parent.left : undefined
+                        leftMargin: hifi.dimensions.tablePadding
+                        right: parent ? parent.right : undefined
+                        rightMargin: hifi.dimensions.tablePadding
+                    }
+
+                    FiraSansSemiBold {
+                        id: textItem
+                        text: styleData.value
+                        size: hifi.fontSizes.tableText
+                        color: table.colorScheme == hifi.colorSchemes.light
+                                   ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            top: parent.top
+                            topMargin: 3
+                        }
+
+                        HiFiGlyphs {
+                            id: reloadButton
+                            text: hifi.glyphs.reloadSmall
+                            color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
+                            anchors {
+                                top: parent.top
+                                right: stopButton.left
+                                verticalCenter: parent.verticalCenter
+                            }
+                            MouseArea {
+                                id: reloadButtonArea
+                                anchors { fill: parent; margins: -2 }
+                                onClicked: reloadScript(model.url)
+                            }
+                        }
+
+                        HiFiGlyphs {
+                            id: stopButton
+                            text: hifi.glyphs.closeSmall
+                            color: stopButtonArea.pressed ? hifi.colors.white : parent.color
+                            anchors {
+                                top: parent.top
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                            }
+                            MouseArea {
+                                id: stopButtonArea
+                                anchors { fill: parent; margins: -2 }
+                                onClicked: stopScript(model.url)
+                            }
+                        }
+
+                    }
+
+                    FiraSansSemiBold {
+                        text: runningScriptsModel.get(styleData.row) ? runningScriptsModel.get(styleData.row).url : ""
+                        elide: Text.ElideMiddle
+                        size: hifi.fontSizes.tableText
+                        color: table.colorScheme == hifi.colorSchemes.light
+                                   ? (styleData.selected ? hifi.colors.black : hifi.colors.lightGray)
+                                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                        anchors {
+                            top: textItem.bottom
+                            left: parent.left
+                            right: parent.right
+                        }
+                        visible: styleData.selected
+                    }
+                }
+
+                TableViewColumn {
+                    role: "name"
+                }
             }
 
             HifiControls.VerticalSpacer {

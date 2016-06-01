@@ -14,8 +14,8 @@
 
 #include "QSharedPointer"
 
-static int receivedMessageMetaTypeId = qRegisterMetaType<ReceivedMessage*>("ReceivedMessage*");
-static int sharedPtrReceivedMessageMetaTypeId = qRegisterMetaType<QSharedPointer<ReceivedMessage>>("QSharedPointer<ReceivedMessage>");
+int receivedMessageMetaTypeId = qRegisterMetaType<ReceivedMessage*>("ReceivedMessage*");
+int sharedPtrReceivedMessageMetaTypeId = qRegisterMetaType<QSharedPointer<ReceivedMessage>>("QSharedPointer<ReceivedMessage>");
 
 static const int HEAD_DATA_SIZE = 512;
 
