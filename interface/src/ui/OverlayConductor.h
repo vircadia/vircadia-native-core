@@ -17,7 +17,7 @@ public:
     ~OverlayConductor();
 
     void update(float dt);
-    void setEnabled(bool enable, bool toggleQmlEvents = true);
+    void setEnabled(bool enable);
     bool getEnabled() const;
 
 private:

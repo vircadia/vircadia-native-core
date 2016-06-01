@@ -11,13 +11,13 @@ Window {
     HifiConstants { id: hifi }
     title: "Browser"
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     width: 800
     height: 600
     property alias webView: webview
     
     Component.onCompleted: {
-        visible = true
+        shown = true
         addressBar.text = webview.url
     }
 

@@ -96,7 +96,7 @@ void OverlayConductor::updateMode() {
                 myAvatar->reset(true, false, false);
             }
             if (_wantsOverlays) {
-                setEnabled(!nowDriving, false);
+                setEnabled(!nowDriving);
             }
             _driving = nowDriving;
         } // Else haven't accumulated enough time in new mode, but keep timing.
@@ -114,18 +114,14 @@ void OverlayConductor::updateMode() {
         case SITTING: {
             // enter the SITTING state
             // place the overlay at origin
-            Transform identity;
-            qApp->getApplicationCompositor().setModelTransform(identity);
+            qApp->getApplicationCompositor().setModelTransform(Transform());
             break;
         }
         case STANDING: {  // STANDING mode is not currently used.
             // enter the STANDING state
             // place the overlay at the current hmd position in world space
             auto camMat = cancelOutRollAndPitch(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
-            Transform t;
-            t.setTranslation(extractTranslation(camMat));
-            t.setRotation(glm::quat_cast(camMat));
-            qApp->getApplicationCompositor().setModelTransform(t);
+            qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
             break;
         }
 
@@ -139,54 +135,21 @@ void OverlayConductor::updateMode() {
 
 }
 
-void OverlayConductor::setEnabled(bool enabled, bool toggleQmlEvents) {
-
+void OverlayConductor::setEnabled(bool enabled) {
     if (enabled == _enabled) {
         return;
     }
 
-    if (toggleQmlEvents) { // Could recurse on us with the wrong toggleQmlEvents flag, and not need in the !toggleQmlEvent case anyway.
-        Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
-    }
-
     _enabled = enabled; // set the new value
-
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->setPinned(!_enabled);
     // if the new state is visible/enabled...
-    if (_enabled) {
-        // alpha fadeIn the overlay mesh.
-        qApp->getApplicationCompositor().fadeIn();
-
-        // enable mouse clicks from script
-        qApp->getOverlays().enable();
-
-        // enable QML events
-        if (toggleQmlEvents) {
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            offscreenUi->getRootItem()->setEnabled(true);
-        }
-
-        if (_mode == STANDING) {
-            // place the overlay at the current hmd position in world space
-            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            auto camMat = cancelOutRollAndPitch(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
-            Transform t;
-            t.setTranslation(extractTranslation(camMat));
-            t.setRotation(glm::quat_cast(camMat));
-            qApp->getApplicationCompositor().setModelTransform(t);
-        }
-    } else { // other wise, if the new state is hidden/not enabled
-        // alpha fadeOut the overlay mesh.
-        qApp->getApplicationCompositor().fadeOut();
-
-        // disable mouse clicks from script
-        qApp->getOverlays().disable();
-
-        // disable QML events
-        if (toggleQmlEvents) { // I'd really rather always do this, but it looses drive state. bugzid:501
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            offscreenUi->getRootItem()->setEnabled(false);
-        }
-    }
+    if (_enabled && _mode == STANDING) {
+        // place the overlay at the current hmd position in world space
+        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        auto camMat = cancelOutRollAndPitch(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
+        qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
+    } 
 }
 
 bool OverlayConductor::getEnabled() const {

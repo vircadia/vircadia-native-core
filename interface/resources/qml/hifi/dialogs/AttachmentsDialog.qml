@@ -6,7 +6,7 @@ import QtQuick.Controls.Styles 1.4
 
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
-import "../../windows-uit"
+import "../../windows"
 import "attachments"
 
 Window {
@@ -16,7 +16,7 @@ Window {
     width: 600
     height: 600
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     minSize: Qt.vector2d(400, 500)
 
     HifiConstants { id: hifi }

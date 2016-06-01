@@ -52,6 +52,7 @@ FocusScope {
         readonly property real menu: 8000
     }
 
+
     QtObject {
         id: d
 
@@ -93,6 +94,17 @@ FocusScope {
             return item;
         }
 
+        function findMatchingChildren(item, predicate) {
+            var results = [];
+            for (var i in item.children) {
+                var child = item.children[i];
+                if (predicate(child)) {
+                    results.push(child);
+                }
+            }
+            return results;
+        }
+
         function isTopLevelWindow(item) {
             return item.topLevelWindow;
         }
@@ -106,19 +118,9 @@ FocusScope {
         }
 
         function getTopLevelWindows(predicate) {
-            var currentWindows = [];
-            if (!desktop) {
-                console.log("Could not find desktop for " + item)
-                return currentWindows;
-            }
-
-            for (var i = 0; i < desktop.children.length; ++i) {
-                var child = desktop.children[i];
-                if (isTopLevelWindow(child) && (!predicate || predicate(child))) {
-                    currentWindows.push(child)
-                }
-            }
-            return currentWindows;
+            return findMatchingChildren(desktop, function(child) {
+                return (isTopLevelWindow(child) && (!predicate || predicate(child)));
+            });
         }
 
         function getDesktopWindow(item) {
@@ -227,19 +229,9 @@ FocusScope {
         }
 
         function getRepositionChildren(predicate) {
-            var currentWindows = [];
-            if (!desktop) {
-                console.log("Could not find desktop");
-                return currentWindows;
-            }
-
-            for (var i = 0; i < desktop.children.length; ++i) {
-                var child = desktop.children[i];
-                if (child.shouldReposition === true && (!predicate || predicate(child))) {
-                    currentWindows.push(child)
-                }
-            }
-            return currentWindows;
+            return findMatchingChildren(desktop, function(child) {
+                return (child.shouldReposition === true && (!predicate || predicate(child)));
+            });
         }
 
         function repositionAll() {
@@ -264,6 +256,35 @@ FocusScope {
 
         }
     }
+
+    property bool pinned: false
+    property var hiddenChildren: []
+
+    function togglePinned() {
+        pinned = !pinned
+    }
+
+    onPinnedChanged: {
+
+        if (pinned) {
+            hiddenChildren = d.findMatchingChildren(desktop, function(child){
+                return !d.isTopLevelWindow(child) && child.visible;
+            });
+
+            hiddenChildren.forEach(function(child){
+                child.visible = false;
+            });
+        } else {
+            hiddenChildren.forEach(function(child){
+                if (child) {
+                    child.visible = true;
+                }
+            });
+            hiddenChildren = [];
+        }
+    }
+
+    onShowDesktop: pinned = false
 
     function raise(item) {
         var targetWindow = d.getDesktopWindow(item);
@@ -421,7 +442,6 @@ FocusScope {
         }
         event.accepted = false;
     }
-
 
     function unfocusWindows() {
         var windows = d.getTopLevelWindows();

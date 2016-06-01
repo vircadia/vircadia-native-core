@@ -15,7 +15,7 @@ import Qt.labs.settings 1.0
 
 import "styles-uit"
 import "controls-uit" as HifiControls
-import "windows-uit"
+import "windows"
 import "dialogs"
 
 Window {
@@ -23,7 +23,7 @@ Window {
     objectName: "AssetServer"
     title: "Asset Browser"
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 

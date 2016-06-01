@@ -15,14 +15,14 @@ import Qt.labs.settings 1.0
 
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
-import "../../windows-uit"
+import "../../windows"
 
 Window {
     id: root
     objectName: "RunningScripts"
     title: "Running Scripts"
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     implicitWidth: 400
     implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(200, 300)
@@ -33,6 +33,9 @@ Window {
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
     property bool isHMD: false
+
+    onVisibleChanged: console.log("Running scripts visible changed to " + visible)
+    onShownChanged: console.log("Running scripts visible changed to " + visible)
 
     Settings {
         category: "Overlay.RunningScripts"

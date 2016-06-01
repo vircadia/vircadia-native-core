@@ -121,32 +121,28 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
         load(url, f);
         item = getRootItem()->findChild<QQuickItem*>(name);
     }
+
     if (item) {
-        item->setVisible(true);
+        QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(true);
     }
 }
 
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
-    // Already loaded?  
-    if (item) {
-        emit showDesktop();
-        item->setVisible(!item->isVisible());
+    if (!item) {
+        show(url, name, f);
         return;
     }
 
-    load(url, f);
-    item = getRootItem()->findChild<QQuickItem*>(name);
-    if (item && !item->isVisible()) {
-        emit showDesktop();
-        item->setVisible(true);
-    }
+    // Already loaded, so just flip the bit
+    QQmlProperty shownProperty(item, OFFSCREEN_VISIBILITY_PROPERTY);
+    shownProperty.write(!shownProperty.read().toBool());
 }
 
 void OffscreenUi::hide(const QString& name) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (item) {
-        item->setVisible(false);
+        QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(false);
     }
 }
 
@@ -343,6 +339,20 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     }
 
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
+}
+
+void OffscreenUi::togglePinned() {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "togglePinned");
+    if (!invokeResult) {
+        qWarning() << "Failed to toggle window visibility";
+    }
+}
+
+void OffscreenUi::setPinned(bool pinned) {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "setPinned", Q_ARG(QVariant, pinned));
+    if (!invokeResult) {
+        qWarning() << "Failed to set window visibility";
+    }
 }
 
 void OffscreenUi::addMenuInitializer(std::function<void(VrMenu*)> f) {
