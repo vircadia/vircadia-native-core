@@ -79,6 +79,9 @@ ModalWindow {
         fileTableModel.folder = initialFolder;
 
         iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
+
+        // Clear selection when click on external frame.
+        frameClicked.connect(function() { d.clearSelection(); });
     }
 
     Item {
@@ -86,6 +89,13 @@ ModalWindow {
         width: pane.width
         height: pane.height
         anchors.margins: 0
+
+        MouseArea {
+            // Clear selection when click on internal unused area.
+            anchors.fill: parent
+            drag.target: root
+            onClicked: d.clearSelection()
+        }
 
         Row {
             id: navControls
@@ -227,6 +237,12 @@ ModalWindow {
             function navigateHome() {
                 fileTableModel.folder = homeDestination;
                 return true;
+            }
+
+            function clearSelection() {
+                fileTableView.selection.clear();
+                fileTableView.currentRow = -1;
+                update();
             }
         }
 
@@ -392,9 +408,7 @@ ModalWindow {
                     rows++;
                 }
 
-                fileTableView.selection.clear();
-                fileTableView.currentRow = -1;
-                d.update();
+                d.clearSelection();
             }
         }
 
