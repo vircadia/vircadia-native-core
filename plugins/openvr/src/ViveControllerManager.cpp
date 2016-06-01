@@ -290,7 +290,7 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
     }
 }
 
-void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int xPseudoButton, int yPesudoButton) {
+void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int xPseudoButton, int yPseudoButton) {
     // Populate the L/RS_CENTER/OUTER pseudo buttons, corresponding to a partition of the L/RS space based on the X/Y values.
     const float CENTER_DEADBAND = 0.6f;
     const float DIAGONAL_DIVIDE_IN_RADIANS = PI / 4.0f;
@@ -301,7 +301,7 @@ void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxi
         float angle = glm::atan(cartesianQuadrantI.y / cartesianQuadrantI.x);
         float radius = glm::length(cartesianQuadrantI);
         bool isCenter = radius < CENTER_DEADBAND;
-        _buttonPressedMap.insert(isCenter ? centerPseudoButton : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? xPseudoButton :yPesudoButton));
+        _buttonPressedMap.insert(isCenter ? centerPseudoButton : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? xPseudoButton :yPseudoButton));
     }
 }
 
