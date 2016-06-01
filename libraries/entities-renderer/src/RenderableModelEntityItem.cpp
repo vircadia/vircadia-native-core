@@ -599,11 +599,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType type = getShapeType();
-    if (type != SHAPE_TYPE_COMPOUND) {
-        ModelEntityItem::computeShapeInfo(info);
-        info.setParams(type, 0.5f * getDimensions());
-        adjustShapeInfoByRegistration(info);
-    } else {
+    if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
@@ -709,6 +705,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(points);
         info.setOffset(_model->getOffset());
+    } else {
+        ModelEntityItem::computeShapeInfo(info);
+        info.setParams(type, 0.5f * getDimensions());
+        adjustShapeInfoByRegistration(info);
     }
 }
 
