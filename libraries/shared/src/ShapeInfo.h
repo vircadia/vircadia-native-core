@@ -30,7 +30,6 @@ enum ShapeType {
     SHAPE_TYPE_NONE,
     SHAPE_TYPE_BOX,
     SHAPE_TYPE_SPHERE,
-    SHAPE_TYPE_ELLIPSOID,
     SHAPE_TYPE_PLANE,
     SHAPE_TYPE_COMPOUND,
     SHAPE_TYPE_CAPSULE_X,
@@ -38,7 +37,8 @@ enum ShapeType {
     SHAPE_TYPE_CAPSULE_Z,
     SHAPE_TYPE_CYLINDER_X,
     SHAPE_TYPE_CYLINDER_Y,
-    SHAPE_TYPE_CYLINDER_Z
+    SHAPE_TYPE_CYLINDER_Z,
+    SHAPE_TYPE_STATIC_MESH
 };
 
 class ShapeInfo {
@@ -49,7 +49,6 @@ public:
     void setParams(ShapeType type, const glm::vec3& halfExtents, QString url="");
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
-    void setEllipsoid(const glm::vec3& halfExtents);
     void setConvexHulls(const QVector<QVector<glm::vec3>>& points);
     void setCapsuleY(float radius, float halfHeight);
     void setOffset(const glm::vec3& offset);
