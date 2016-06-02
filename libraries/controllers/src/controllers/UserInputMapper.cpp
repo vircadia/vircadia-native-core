@@ -336,6 +336,14 @@ QVector<QString> UserInputMapper::getActionNames() const {
     return result;
 }
 
+bool UserInputMapper::triggerHapticPulse(uint16 deviceID, float strength, float duration, bool leftHand) {
+	Locker locker(_lock);
+	if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
+		return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, leftHand);
+	}
+	return false;
+}
+
 int actionMetaTypeId = qRegisterMetaType<Action>();
 int inputMetaTypeId = qRegisterMetaType<Input>();
 int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();

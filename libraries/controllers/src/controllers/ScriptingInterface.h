@@ -77,12 +77,14 @@ namespace controller {
         Q_INVOKABLE QVector<QString> getDeviceNames();
         Q_INVOKABLE int findAction(QString actionName);
         Q_INVOKABLE QVector<QString> getActionNames() const;
-
+		
         Q_INVOKABLE float getValue(const int& source) const;
         Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;
         Q_INVOKABLE float getAxisValue(StandardAxisChannel source, uint16_t device = 0) const;
         Q_INVOKABLE Pose getPoseValue(const int& source) const;
-        Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
+		Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
+
+		Q_INVOKABLE bool triggerHapticPulse(unsigned int device, float strength, float duration, bool leftHand = true) const;
 
         Q_INVOKABLE QObject* newMapping(const QString& mappingName = QUuid::createUuid().toString());
         Q_INVOKABLE void enableMapping(const QString& mappingName, bool enable = true);
