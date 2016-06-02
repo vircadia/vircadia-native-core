@@ -110,36 +110,42 @@
               "name": "id_can_connect",
               "label": "Connect",
               "type": "checkbox",
+              "editable": true,
               "default": true
             },
             {
               "name": "id_can_adjust_locks",
               "label": "Lock/Unlock",
               "type": "checkbox",
+              "editable": true,
               "default": false
             },
             {
               "name": "id_can_rez",
               "label": "Rez",
               "type": "checkbox",
+              "editable": true,
               "default": false
             },
             {
               "name": "id_can_rez_tmp",
               "label": "Rez Temp",
               "type": "checkbox",
+              "editable": true,
               "default": false
             },
             {
               "name": "id_can_write_to_asset_server",
               "label": "Write Assets",
               "type": "checkbox",
+              "editable": true,
               "default": false
             },
             {
               "name": "id_can_connect_past_max_capacity",
               "label": "Ignore Max Capacity",
               "type": "checkbox",
+              "editable": true,
               "default": false
             }
           ]

@@ -972,7 +972,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
-        if (isArray && col.type === "checkbox") {
+        if (isArray && col.type === "checkbox" && col.editable) {
 
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
           html += "<input type='checkbox' "
