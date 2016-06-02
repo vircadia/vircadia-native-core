@@ -1084,8 +1084,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
     const QString RESTRICTED_ACCESS_FLAG = "restricted";
 
-    domainObject[RESTRICTED_ACCESS_FLAG] =
-        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    domainObject[RESTRICTED_ACCESS_FLAG] = _settingsManager.getAllNames().length() > 0;
 
     // figure out the breakdown of currently connected interface clients
     int numConnectedUnassigned = 0;

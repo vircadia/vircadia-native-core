@@ -135,6 +135,12 @@
               "label": "Write Assets",
               "type": "checkbox",
               "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "default": false
             }
           ]
         }

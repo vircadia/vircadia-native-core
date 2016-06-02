@@ -527,7 +527,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     QDataStream packetStream(message->getMessage());
-    
+
     // grab the domain's ID from the beginning of the packet
     QUuid domainUUID;
     packetStream >> domainUUID;
@@ -543,14 +543,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     packetStream >> newUUID;
     setSessionUUID(newUUID);
 
-    quint8 isAllowedEditor;
-    packetStream >> isAllowedEditor;
-    setIsAllowedEditor((bool) isAllowedEditor);
+    // pull the permissions/right/privileges for this node out of the stream
+    packetStream >> _permissions;
 
-    quint8 thisNodeCanRez;
-    packetStream >> thisNodeCanRez;
-    setThisNodeCanRez((bool) thisNodeCanRez);
-    
     // pull each node in the packet
     while (packetStream.device()->pos() < message->getSize()) {
         parseNodeFromPacketStream(packetStream);
@@ -577,10 +572,9 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     qint8 nodeType;
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    bool isAllowedEditor;
-    bool canRez;
+    AgentPermissions permissions;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> isAllowedEditor >> canRez;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -591,8 +585,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, isAllowedEditor, canRez,
-                                             connectionUUID);
+                                             nodeLocalSocket, permissions, connectionUUID);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {

@@ -104,12 +104,10 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
-    bool isAllowedEditor() const { return _isAllowedEditor; }
-    void setIsAllowedEditor(bool isAllowedEditor);
+    void setPermissions(const AgentPermissions& newPermissions);
+    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
+    bool getThisNodeCanRez() const { return _permissions.canRezPermanentEntities; }
 
-    bool getThisNodeCanRez() const { return _thisNodeCanRez; }
-    void setThisNodeCanRez(bool canRez);
-    
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
 
@@ -137,7 +135,7 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool isAllowedEditor = false, bool canRez = false,
+                                      const AgentPermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
                                       const QUuid& connectionSecret = QUuid());
 
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
@@ -300,8 +298,7 @@ protected:
     int _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
-    bool _isAllowedEditor { false };
-    bool _thisNodeCanRez;
+    AgentPermissions _permissions;
 
     QPointer<QTimer> _initialSTUNTimer;
 

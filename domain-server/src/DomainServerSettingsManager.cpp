@@ -110,6 +110,8 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // This was prior to the introduction of security.restricted_access
             // If the user has a list of allowed users then set their value for security.restricted_access to true
 
+            const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+            const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
             QVariant* allowedUsers = valueForKeyPath(_configMap.getMergedConfig(), ALLOWED_USERS_SETTINGS_KEYPATH);
 
             if (allowedUsers
@@ -207,10 +209,47 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 void DomainServerSettingsManager::unpackPermissions() {
-    QList<QVariant> permsHashList = valueOrDefaultValueForKeyPath(AGENT_PERMISSIONS_KEYPATH).toList();
-    foreach (QVariant permsHash, permsHashList) {
+    bool foundLocalhost = false;
+    bool foundAnonymous = false;
+    bool foundLoggedIn = false;
+
+    // XXX check for duplicate IDs
+
+    QVariant* permissions = valueForKeyPath(_configMap.getMergedConfig(), AGENT_PERMISSIONS_KEYPATH);
+    if (!permissions->canConvert(QMetaType::QVariantList)) {
+        qDebug() << "failed to extract permissions from settings.";
+        return;
+    }
+
+    // QList<QVariant> permissionsList = permissions->toList();
+
+    QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
+
+    foreach (QVariant permsHash, *permissionsList) {
         AgentPermissionsPointer perms { new AgentPermissions(permsHash.toMap()) };
-        _agentPermissions[perms->getID()] = perms;
+        QString id = perms->getID();
+        foundLoggedIn |= (id == "localhost");
+        foundAnonymous |= (id == "anonymous");
+        foundLoggedIn |= (id == "logged-in");
+        _agentPermissions[id] = perms;
+    }
+
+    // if any of the standard names are missing, add them
+    if (!foundLocalhost) {
+        AgentPermissionsPointer perms { new AgentPermissions("localhost") };
+        perms->setAll(true);
+        _agentPermissions["localhost"] = perms;
+        *permissionsList += perms->toVariant();
+    }
+    if (!foundAnonymous) {
+        AgentPermissionsPointer perms { new AgentPermissions("anonymous") };
+        _agentPermissions["anonymous"] = perms;
+        *permissionsList += perms->toVariant();
+    }
+    if (!foundLoggedIn) {
+        AgentPermissionsPointer perms { new AgentPermissions("logged-in") };
+        _agentPermissions["logged-in"] = perms;
+        *permissionsList += perms->toVariant();
     }
 
     #ifdef WANT_DEBUG
@@ -229,11 +268,13 @@ void DomainServerSettingsManager::unpackPermissions() {
     #endif
 }
 
-AgentPermissionsPointer DomainServerSettingsManager::getPermissionsForName(QString name) const {
+AgentPermissions DomainServerSettingsManager::getPermissionsForName(const QString& name) const {
     if (_agentPermissions.contains(name)) {
-        return _agentPermissions[name];
+        return *(_agentPermissions[name].get());
     }
-    return nullptr;
+    AgentPermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
 }
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {

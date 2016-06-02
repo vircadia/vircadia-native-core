@@ -25,9 +25,6 @@ const QString SETTINGS_PATHS_KEY = "paths";
 
 const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
-
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
-const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 
 class DomainServerSettingsManager : public QObject {
@@ -43,7 +40,8 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
-    AgentPermissionsPointer getPermissionsForName(QString name) const;
+    AgentPermissions getPermissionsForName(const QString& name) const;
+    QStringList getAllNames() { return _agentPermissions.keys(); }
 
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);

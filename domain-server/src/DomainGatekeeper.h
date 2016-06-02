@@ -66,11 +66,7 @@ private:
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
-    bool isVerifiedAllowedUser(const QString& username, const QByteArray& usernameSignature,
-                               const HifiSockAddr& senderSockAddr);
-    bool isWithinMaxCapacity(const QString& username, const QByteArray& usernameSignature,
-                             bool& verifiedUsername,
-                             const HifiSockAddr& senderSockAddr);
+    bool isWithinMaxCapacity();
     
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr);
