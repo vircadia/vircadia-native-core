@@ -101,7 +101,7 @@ public:
     };
 
     // FIXME? Empty methods, do we still need them?
-    static void initPlugins();
+    static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer& startup_time);

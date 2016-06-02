@@ -19,6 +19,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <QtCore/QAbstractNativeEventFilter>
+#include <QtCore/QCommandLineParser>
 #include <QtCore/QMimeData>
 #include <QtCore/QThreadPool>
 
@@ -4936,7 +4937,33 @@ void Application::postLambdaEvent(std::function<void()> f) {
     }
 }
 
-void Application::initPlugins() {
+void Application::initPlugins(const QStringList& arguments) {
+    QCommandLineOption display("display", "Default display", "display");
+    QCommandLineOption disableDisplays("disable-displays", "Displays to disable", "display");
+    QCommandLineOption disableInputs("disable-inputs", "Inputs to disable", "input");
+
+    QCommandLineParser parser;
+    parser.addOption(display);
+    parser.addOption(disableDisplays);
+    parser.addOption(disableInputs);
+    parser.parse(arguments);
+
+    if (parser.isSet(display)) {
+        auto defaultDisplay = parser.value(display);
+        qInfo() << "Setting prefered display plugin:" << defaultDisplay;
+    }
+
+    if (parser.isSet(disableDisplays)) {
+        auto disabledDisplays = parser.value(disableDisplays).split(',', QString::SkipEmptyParts);
+        qInfo() << "Disabling following display plugins:"  << disabledDisplays;
+        PluginManager::getInstance()->disableDisplays(disabledDisplays);
+    }
+
+    if (parser.isSet(disableInputs)) {
+        auto disabledInputs = parser.value(disableInputs).split(',', QString::SkipEmptyParts);
+        qInfo() << "Disabling following input plugins:" << disabledInputs;
+        PluginManager::getInstance()->disableInputs(disabledInputs);
+    }
 }
 
 void Application::shutdownPlugins() {

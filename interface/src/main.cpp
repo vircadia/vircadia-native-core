@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <thread>
+
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
@@ -17,6 +19,12 @@
 #include <QSharedMemory>
 #include <QTranslator>
 
+#ifdef HAS_BUGSPLAT
+#include <BuildInfo.h>
+#include <BugSplat.h>
+#include <CrashReporter.h>
+#endif
+
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
@@ -25,13 +33,7 @@
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
-#include <thread>
 
-#ifdef HAS_BUGSPLAT
-#include <BuildInfo.h>
-#include <BugSplat.h>
-#include <CrashReporter.h>
-#endif
 
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
@@ -45,6 +47,12 @@ int main(int argc, const char* argv[]) {
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
     bool instanceMightBeRunning = true;
+
+    QStringList arguments;
+    for (int i = 0; i < argc; ++i) {
+        arguments << argv[i];
+    }
+
 
 #ifdef Q_OS_WIN
     // Try to create a shared memory block - if it can't be created, there is an instance of
@@ -64,12 +72,6 @@ int main(int argc, const char* argv[]) {
 
         // Try to connect - if we can't connect, interface has probably just gone down
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
-
-            QStringList arguments;
-            for (int i = 0; i < argc; ++i) {
-                arguments << argv[i];
-            }
-
             QCommandLineParser parser;
             QCommandLineOption urlOption("url", "", "value");
             parser.addOption(urlOption);
@@ -135,7 +137,7 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    Application::initPlugins();
+    Application::initPlugins(arguments);
 
     int exitCode;
     {
