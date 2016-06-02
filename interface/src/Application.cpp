@@ -1477,7 +1477,6 @@ void Application::initializeUi() {
         }
     }
     _window->setMenuBar(new Menu());
-    updateInputModes();
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, [=] {
@@ -5245,81 +5244,6 @@ void Application::updateDisplayMode() {
     getMyAvatar()->reset(false);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
-}
-
-static void addInputPluginToMenu(InputPluginPointer inputPlugin) {
-    auto menu = Menu::getInstance();
-    QString name = INPUT_DEVICE_MENU_PREFIX + inputPlugin->getName();
-    Q_ASSERT(!menu->menuItemExists(MenuOption::InputMenu, name));
-
-    static QActionGroup* inputPluginGroup = nullptr;
-    if (!inputPluginGroup) {
-        inputPluginGroup = new QActionGroup(menu);
-        inputPluginGroup->setExclusive(false);
-    }
-
-    auto parent = menu->getMenu(MenuOption::InputMenu);
-    auto action = menu->addCheckableActionToQMenuAndActionHash(parent,
-        name, 0, true, qApp,
-        SLOT(updateInputModes()));
-
-    inputPluginGroup->addAction(action);
-    Q_ASSERT(menu->menuItemExists(MenuOption::InputMenu, name));
-}
-
-
-void Application::updateInputModes() {
-    auto menu = Menu::getInstance();
-    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        foreach(auto inputPlugin, inputPlugins) {
-            addInputPluginToMenu(inputPlugin);
-        }
-    });
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-
-    InputPluginList newInputPlugins;
-    InputPluginList removedInputPlugins;
-    foreach(auto inputPlugin, inputPlugins) {
-        QString name = INPUT_DEVICE_MENU_PREFIX + inputPlugin->getName();
-        QAction* action = menu->getActionForOption(name);
-
-        auto it = std::find(std::begin(_activeInputPlugins), std::end(_activeInputPlugins), inputPlugin);
-        if (action->isChecked() && it == std::end(_activeInputPlugins)) {
-            _activeInputPlugins.push_back(inputPlugin);
-            newInputPlugins.push_back(inputPlugin);
-        } else if (!action->isChecked() && it != std::end(_activeInputPlugins)) {
-            _activeInputPlugins.erase(it);
-            removedInputPlugins.push_back(inputPlugin);
-        }
-    }
-
-    // A plugin was checked
-    if (newInputPlugins.size() > 0) {
-        foreach(auto newInputPlugin, newInputPlugins) {
-            newInputPlugin->activate();
-            //newInputPlugin->installEventFilter(qApp);
-            //newInputPlugin->installEventFilter(offscreenUi.data());
-        }
-    }
-    if (removedInputPlugins.size() > 0) { // A plugin was unchecked
-        foreach(auto removedInputPlugin, removedInputPlugins) {
-            removedInputPlugin->deactivate();
-            //removedInputPlugin->removeEventFilter(qApp);
-            //removedInputPlugin->removeEventFilter(offscreenUi.data());
-        }
-    }
-
-    //if (newInputPlugins.size() > 0 || removedInputPlugins.size() > 0) {
-    //    if (!_currentInputPluginActions.isEmpty()) {
-    //        auto menu = Menu::getInstance();
-    //        foreach(auto itemInfo, _currentInputPluginActions) {
-    //            menu->removeMenuItem(itemInfo.first, itemInfo.second);
-    //        }
-    //        _currentInputPluginActions.clear();
-    //    }
-    //}
 }
 
 mat4 Application::getEyeProjection(int eye) const {
