@@ -220,12 +220,51 @@ void OculusControllerManager::TouchDevice::focusOutEvent() {
 void OculusControllerManager::TouchDevice::handlePose(float deltaTime, 
     const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, 
     const ovrPoseStatef& handPose) {
+    // When the sensor-to-world rotation is identity the coordinate axes look like this:
+    //
+    //                       user
+    //                      forward
+    //                        -z
+    //                         |
+    //                        y|      user
+    //      y                  o----x right
+    //       o-----x         user
+    //       |                up
+    //       |
+    //       z
+    //
+    //     Rift
+
+    // From ABOVE the hand canonical axes looks like this:
+    //
+    //      | | | |          y        | | | |
+    //      | | | |          |        | | | |
+    //      |     |          |        |     |
+    //      |left | /  x---- +      \ |right|
+    //      |     _/          z      \_     |
+    //       |   |                     |   |
+    //       |   |                     |   |
+    //
+
+    // So when the user is in Rift space facing the -zAxis with hands outstretched and palms down
+    // the rotation to align the Touch axes with those of the hands is:
+    //
+    //    touchToHand = halfTurnAboutY * quaterTurnAboutX
     auto poseId = hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND;
     auto& pose = _poseStateMap[poseId];
+
+    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+    static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+    static const glm::quat touchToHand = yFlip * quarterX;
+
     pose.translation = toGlm(handPose.ThePose.Position);
-    pose.rotation = toGlm(handPose.ThePose.Orientation);
+    pose.rotation = toGlm(handPose.ThePose.Orientation)*touchToHand;
     pose.angularVelocity = toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
+
+    // transform into avatar frame
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    pose = pose.transform(controllerToAvatar);
 }
 
 controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailableInputs() const {
