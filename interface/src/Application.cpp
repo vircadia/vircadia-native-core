@@ -2959,9 +2959,15 @@ void Application::loadSettings() {
     Menu::getInstance()->loadSettings();
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
-    if (auto plugin = PluginManager::getInstance()->getPreferredDisplayPlugin()) {
-        Q_ASSERT(plugin == getActiveDisplayPlugin());
-        Menu::getInstance()->setIsOptionChecked(plugin->getName(), true);
+    auto plugins = PluginManager::getInstance()->getPreferredDisplayPlugins();
+    for (auto plugin : plugins) {
+        auto menu = Menu::getInstance();
+        if (auto action = menu->getActionForOption(plugin->getName())) {
+            action->setChecked(true);
+            action->trigger();
+            // Find and activat5ed highest priority plugin, bail for the rest
+            break;
+        }
     }
 
     getMyAvatar()->loadData();
@@ -4945,9 +4951,9 @@ void Application::postLambdaEvent(std::function<void()> f) {
 }
 
 void Application::initPlugins(const QStringList& arguments) {
-    QCommandLineOption display("display", "Preferred display", "display");
-    QCommandLineOption disableDisplays("disable-displays", "Displays to disable", "display");
-    QCommandLineOption disableInputs("disable-inputs", "Inputs to disable", "input");
+    QCommandLineOption display("display", "Preferred displays", "displays");
+    QCommandLineOption disableDisplays("disable-displays", "Displays to disable", "displays");
+    QCommandLineOption disableInputs("disable-inputs", "Inputs to disable", "inputs");
 
     QCommandLineParser parser;
     parser.addOption(display);
@@ -4956,9 +4962,9 @@ void Application::initPlugins(const QStringList& arguments) {
     parser.parse(arguments);
 
     if (parser.isSet(display)) {
-        auto preferredDisplay = parser.value(display);
-        qInfo() << "Setting prefered display plugin:" << preferredDisplay;
-        PluginManager::getInstance()->setPreferredDisplayPlugin(preferredDisplay);
+        auto preferredDisplays = parser.value(display).split(',', QString::SkipEmptyParts);
+        qInfo() << "Setting prefered display plugins:" << preferredDisplays;
+        PluginManager::getInstance()->setPreferredDisplayPlugins(preferredDisplays);
     }
 
     if (parser.isSet(disableDisplays)) {
