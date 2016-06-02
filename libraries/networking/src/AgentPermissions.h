@@ -35,7 +35,7 @@ public:
         canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
     }
 
-    QString getID() { return _id; }
+    QString getID() const { return _id; }
 
     // the initializations here should match the defaults in describe-settings.json
     bool canConnectToDomain { true };
@@ -75,5 +75,7 @@ protected:
 };
 
 const AgentPermissions DEFAULT_AGENT_PERMISSIONS;
+
+QDebug operator<<(QDebug debug, const AgentPermissions& node);
 
 #endif // hifi_AgentPermissions_h

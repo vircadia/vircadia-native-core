@@ -169,6 +169,10 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.canAdjustLocks = true;
     userPerms.canRezPermanentEntities = true;
     newNode->setPermissions(userPerms);
+
+    qDebug() << "----------------------------";
+    qDebug() << "AC perms are" << userPerms;
+
     return newNode;
 }
 

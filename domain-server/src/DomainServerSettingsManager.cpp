@@ -241,7 +241,7 @@ void DomainServerSettingsManager::unpackPermissions() {
     foreach (QVariant permsHash, *permissionsList) {
         AgentPermissionsPointer perms { new AgentPermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        foundLoggedIn |= (id == "localhost");
+        foundLocalhost |= (id == "localhost");
         foundAnonymous |= (id == "anonymous");
         foundLoggedIn |= (id == "logged-in");
         _agentPermissions[id] = perms;

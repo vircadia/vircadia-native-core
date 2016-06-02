@@ -10,6 +10,7 @@
 //
 
 #include <QDataStream>
+#include <QtCore/QDebug>
 #include "AgentPermissions.h"
 
 AgentPermissions& AgentPermissions::operator|=(const AgentPermissions& rhs) {
@@ -40,4 +41,28 @@ QDataStream& operator>>(QDataStream& in, AgentPermissions& perms) {
     in >> perms.canWriteToAssetServer;
     in >> perms.canConnectPastMaxCapacity;
     return in;
+}
+
+QDebug operator<<(QDebug debug, const AgentPermissions& perms) {
+    debug.nospace() << "[permissions: " << perms.getID() << " --";
+    if (perms.canConnectToDomain) {
+        debug << " connect";
+    }
+    if (perms.canAdjustLocks) {
+        debug << " locks";
+    }
+    if (perms.canRezPermanentEntities) {
+        debug << " rez";
+    }
+    if (perms.canRezTemporaryEntities) {
+        debug << " rez-tmp";
+    }
+    if (perms.canWriteToAssetServer) {
+        debug << " asset-server";
+    }
+    if (perms.canConnectPastMaxCapacity) {
+        debug << " ignore-max-cap";
+    }
+    debug.nospace() << "]";
+    return debug.nospace();
 }
