@@ -968,11 +968,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           colValue = rowIsObject ? row[col.name] : row;
           colName = keypath + "[" + rowIndexOrName + "]" + (rowIsObject ? "." + col.name : "");
         } else {
-          if (col.type === "checkbox") {
-            colValue = (row[col.name] ? "X" : "")
-          } else {
-            colValue = row[col.name];
-          }
+          colValue = row[col.name];
           colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
@@ -1043,13 +1039,11 @@ function makeTableInputs(setting) {
   _.each(setting.columns, function(col) {
     if (col.type === "checkbox") {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-      // html += "<div class='toggle-checkbox-container'>"
       html += "<input type='checkbox' "
       html += "class='form-control toggle-checkbox' "
       html += "name='" + col.name + "'"
       html += (col.default ? " checked" : "")
       html += "/>"
-      // html += "</div>"
       html += "</td>"
     } else {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
