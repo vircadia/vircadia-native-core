@@ -173,8 +173,6 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
 }
 
 const QString MAXIMUM_USER_CAPACITY = "security.maximum_user_capacity";
-// const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
-// const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
 
 SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                const QString& username,

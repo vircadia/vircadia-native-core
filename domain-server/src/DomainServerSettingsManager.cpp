@@ -101,6 +101,11 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     double oldVersion = appSettings.value(JSON_SETTINGS_VERSION_KEY, 0.0).toDouble();
 
     if (oldVersion != _descriptionVersion) {
+        const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+        const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
+        const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
+        const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
+
         qDebug() << "Previous domain-server settings version was"
             << QString::number(oldVersion, 'g', 8) << "and the new version is"
             << QString::number(_descriptionVersion, 'g', 8) << "- checking if any re-mapping is required";
@@ -110,8 +115,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // This was prior to the introduction of security.restricted_access
             // If the user has a list of allowed users then set their value for security.restricted_access to true
 
-            const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
-            const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
             QVariant* allowedUsers = valueForKeyPath(_configMap.getMergedConfig(), ALLOWED_USERS_SETTINGS_KEYPATH);
 
             if (allowedUsers
@@ -198,7 +201,17 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
         if (oldVersion < 1.3) {
             // This was prior to the permissions-grid in the domain-server settings page
+            // bool isRestrictingAccess = valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
+            // const QVariant* allowedEditorsVariant = valueForKeyPath(getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
+
+            // const QVariant* editorsAreRezzersVariant = valueForKeyPath(getSettingsMap(), EDITORS_ARE_REZZERS_KEYPATH);
+            // bool onlyEditorsAreRezzers = false;
+            // if (editorsAreRezzersVariant) {
+            //     onlyEditorsAreRezzers = editorsAreRezzersVariant->toBool();
+            // }
+
+            // XXX
         }
     }
 
