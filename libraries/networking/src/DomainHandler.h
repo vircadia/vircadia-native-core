@@ -58,8 +58,8 @@ public:
     
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
-
-    const QUuid& getPendingDomainID() const { return _pendingDomainID; }
+    
+    const QUuid& getICEDomainID() const { return _iceDomainID; }
 
     const QUuid& getICEClientID() const { return _iceClientID; }
 
@@ -94,7 +94,7 @@ public:
     };
 
 public slots:
-    void setSocketAndID(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
+    void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
     void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
@@ -136,11 +136,11 @@ private:
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
-    QUuid _pendingDomainID; // ID of domain being connected to, via ICE or direct connection
+    QUuid _iceDomainID;
     QUuid _iceClientID;
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
-    bool _isConnected { false };
+    bool _isConnected;
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
