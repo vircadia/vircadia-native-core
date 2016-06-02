@@ -55,11 +55,19 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     if (message->getSize() == 0) {
         return;
     }
-    
     QDataStream packetStream(message->getMessage());
-    
+
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
     NodeConnectionData nodeConnection = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr());
+
+    QByteArray myProtocolVersion = protocolVersionsSignature();
+    if (nodeConnection.protocolVersion != myProtocolVersion) {
+        QString protocolVersionError = "Protocol version mismatch - Domain version:" + QCoreApplication::applicationVersion();
+        qDebug() << "Protocol Version mismatch - denying connection.";
+        sendConnectionDeniedPacket(protocolVersionError, message->getSenderSockAddr(), 
+                DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
+        return;
+    }
     
     if (nodeConnection.localSockAddr.isNull() || nodeConnection.publicSockAddr.isNull()) {
         qDebug() << "Unexpected data received for node local socket or public socket. Will not allow connection.";
@@ -105,6 +113,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
         nodeData->setSendingSockAddr(message->getSenderSockAddr());
         nodeData->setNodeInterestSet(nodeConnection.interestList.toSet());
+        nodeData->setPlaceName(nodeConnection.placeName);
         
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
@@ -150,6 +159,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setAssignmentUUID(matchingQueuedAssignment->getUUID());
     nodeData->setWalletUUID(it->second.getWalletUUID());
     nodeData->setNodeVersion(it->second.getNodeVersion());
+    nodeData->setWasAssigned(true);
     
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
     _pendingAssignedNodes.erase(it);
@@ -282,7 +292,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // set the edit rights for this user
     newNode->setIsAllowedEditor(isAllowedEditor);
     newNode->setCanRez(canRez);
-    
+
     // grab the linked data for our new node so we can set the username
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
     
@@ -330,7 +340,7 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
 bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const QByteArray& usernameSignature,
                                            const HifiSockAddr& senderSockAddr) {
-    
+
     // it's possible this user can be allowed to connect, but we need to check their username signature
     QByteArray publicKeyArray = _userPublicKeys.value(username);
     
@@ -368,7 +378,8 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
             } else {
                 if (!senderSockAddr.isNull()) {
                     qDebug() << "Error decrypting username signature for " << username << "- denying connection.";
-                    sendConnectionDeniedPacket("Error decrypting username signature.", senderSockAddr);
+                    sendConnectionDeniedPacket("Error decrypting username signature.", senderSockAddr,
+                        DomainHandler::ConnectionRefusedReason::LoginError);
                 }
                 
                 // free up the public key, we don't need it anymore
@@ -380,13 +391,15 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
             // we can't let this user in since we couldn't convert their public key to an RSA key we could use
             if (!senderSockAddr.isNull()) {
                 qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
-                sendConnectionDeniedPacket("Couldn't convert data to RSA key.", senderSockAddr);
+                sendConnectionDeniedPacket("Couldn't convert data to RSA key.", senderSockAddr,
+                    DomainHandler::ConnectionRefusedReason::LoginError);
             }
         }
     } else {
         if (!senderSockAddr.isNull()) {
             qDebug() << "Insufficient data to decrypt username signature - denying connection.";
-            sendConnectionDeniedPacket("Insufficient data", senderSockAddr);
+            sendConnectionDeniedPacket("Insufficient data", senderSockAddr,
+                DomainHandler::ConnectionRefusedReason::LoginError);
         }
     }
     
@@ -400,7 +413,8 @@ bool DomainGatekeeper::isVerifiedAllowedUser(const QString& username, const QByt
     if (username.isEmpty()) {
         qDebug() << "Connect request denied - no username provided.";
         
-        sendConnectionDeniedPacket("No username provided", senderSockAddr);
+        sendConnectionDeniedPacket("No username provided", senderSockAddr,
+            DomainHandler::ConnectionRefusedReason::LoginError);
         
         return false;
     }
@@ -414,7 +428,8 @@ bool DomainGatekeeper::isVerifiedAllowedUser(const QString& username, const QByt
         }
     } else {
         qDebug() << "Connect request denied for user" << username << "- not in allowed users list.";
-        sendConnectionDeniedPacket("User not on whitelist.", senderSockAddr);
+        sendConnectionDeniedPacket("User not on whitelist.", senderSockAddr,
+            DomainHandler::ConnectionRefusedReason::NotAuthorized);
         
         return false;
     }
@@ -428,10 +443,10 @@ bool DomainGatekeeper::isWithinMaxCapacity(const QString& username, const QByteA
     // find out what our maximum capacity is
     const QVariant* maximumUserCapacityVariant = valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
     unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
-    
+
     if (maximumUserCapacity > 0) {
         unsigned int connectedUsers = _server->countConnectedUsers();
-        
+
         if (connectedUsers >= maximumUserCapacity) {
             // too many users, deny the new connection unless this user is an allowed editor
             
@@ -450,7 +465,8 @@ bool DomainGatekeeper::isWithinMaxCapacity(const QString& username, const QByteA
             
             // deny connection from this user
             qDebug() << connectedUsers << "/" << maximumUserCapacity << "users connected, denying new connection.";
-            sendConnectionDeniedPacket("Too many connected users.", senderSockAddr);
+            sendConnectionDeniedPacket("Too many connected users.", senderSockAddr,
+                DomainHandler::ConnectionRefusedReason::TooManyUsers);
             
             return false;
         }
@@ -485,7 +501,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
     
     qDebug() << "Requesting public key for user" << username;
     
-    AccountManager::getInstance().sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
+    DependencyManager::get<AccountManager>()->sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
                                               AccountManagerAuth::None,
                                               QNetworkAccessManager::GetOperation, callbackParams);
 }
@@ -514,16 +530,20 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     }
 }
 
-void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr) {
+void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr, 
+            DomainHandler::ConnectionRefusedReason reasonCode) {
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
     QByteArray utfString = reason.toUtf8();
     quint16 payloadSize = utfString.size();
-    
+   
     // setup the DomainConnectionDenied packet
-    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
+    auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, 
+                                                payloadSize + sizeof(payloadSize) + sizeof(uint8_t));
     
     // pack in the reason the connection was denied (the client displays this)
     if (payloadSize > 0) {
+        uint8_t reasonCodeWire = (uint8_t)reasonCode;
+        connectionDeniedPacket->writePrimitive(reasonCodeWire);
         connectionDeniedPacket->writePrimitive(payloadSize);
         connectionDeniedPacket->write(utfString);
     }

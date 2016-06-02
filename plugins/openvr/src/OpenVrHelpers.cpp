@@ -13,6 +13,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QProcessEnvironment>
 
 #include <Windows.h>
 
@@ -42,6 +43,12 @@ bool isOculusPresent() {
     }
 #endif 
     return result;
+}
+
+bool openVrSupported() {
+    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+    static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+    return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
 }
 
 vr::IVRSystem* acquireOpenVrSystem() {

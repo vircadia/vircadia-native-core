@@ -13,6 +13,7 @@
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
+#include <QThreadPool>
 
 #include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
@@ -28,17 +29,16 @@
 
 #include "RenderableEntityItem.h"
 
-#include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
 #include "RenderableModelEntityItem.h"
 #include "RenderableParticleEffectEntityItem.h"
-#include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableLineEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
 #include "RenderablePolyLineEntityItem.h"
+#include "RenderableShapeEntityItem.h"
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
 #include <Rig.h>
@@ -55,8 +55,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _dontDoPrecisionPicking(false)
 {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
-    REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
-    REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, RenderableWebEntityItem::factory)
@@ -65,7 +63,10 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyLine, RenderablePolyLineEntityItem::factory)
-    
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Shape, RenderableShapeEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableShapeEntityItem::boxFactory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableShapeEntityItem::sphereFactory)
+
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
 }
@@ -77,9 +78,30 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 
-void EntityTreeRenderer::setupEntitiesScriptEngine() {
-    QSharedPointer<ScriptEngine> oldEngine = _entitiesScriptEngine; // save the old engine through this function, so the EntityScriptingInterface doesn't have problems with it.
-    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount)), &QObject::deleteLater);
+void entitiesScriptEngineDeleter(ScriptEngine* engine) {
+    class WaitRunnable : public QRunnable {
+        public:
+            WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
+            virtual void run() override {
+                _engine->waitTillDoneRunning();
+                _engine->deleteLater();
+            }
+
+        private:
+            ScriptEngine* _engine;
+    };
+
+    // Wait for the scripting thread from the thread pool to avoid hanging the main thread
+    QThreadPool::globalInstance()->start(new WaitRunnable(engine));
+}
+
+void EntityTreeRenderer::resetEntitiesScriptEngine() {
+    // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
+    auto oldEngine = _entitiesScriptEngine;
+
+    auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
+    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
+
     _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
     _entitiesScriptEngine->runInThread();
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
@@ -87,16 +109,16 @@ void EntityTreeRenderer::setupEntitiesScriptEngine() {
 
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
+
     if (_entitiesScriptEngine) {
+        // Unload and stop the engine here (instead of in its deleter) to
+        // avoid marshalling unload signals back to this thread
         _entitiesScriptEngine->unloadAllEntityScripts();
         _entitiesScriptEngine->stop();
     }
 
     if (_wantScripts && !_shuttingDown) {
-        // NOTE: you can't actually need to delete it here because when we call setupEntitiesScriptEngine it will
-        //       assign a new instance to our shared pointer, which will deref the old instance and ultimately call
-        //       the custom deleter which calls deleteLater
-        setupEntitiesScriptEngine();
+        resetEntitiesScriptEngine();
     }
 
     auto scene = _viewState->getMain3DScene();
@@ -125,7 +147,7 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        setupEntitiesScriptEngine();
+        resetEntitiesScriptEngine();
     }
 
     forceRecheckEntities(); // setup our state to force checking our inside/outsideness of entities

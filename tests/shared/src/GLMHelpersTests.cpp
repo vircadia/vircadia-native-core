@@ -54,4 +54,51 @@ void GLMHelpersTests::testEulerDecomposition() {
     }
 }
 
+static void testQuatCompression(glm::quat testQuat) {
 
+    float MAX_COMPONENT_ERROR = 4.3e-5f;
+
+    glm::quat q;
+    uint8_t bytes[6];
+    packOrientationQuatToSixBytes(bytes, testQuat);
+    unpackOrientationQuatFromSixBytes(bytes, q);
+    if (glm::dot(q, testQuat) < 0.0f) {
+        q = -q;
+    }
+    QCOMPARE_WITH_ABS_ERROR(q.x, testQuat.x, MAX_COMPONENT_ERROR);
+    QCOMPARE_WITH_ABS_ERROR(q.y, testQuat.y, MAX_COMPONENT_ERROR);
+    QCOMPARE_WITH_ABS_ERROR(q.z, testQuat.z, MAX_COMPONENT_ERROR);
+    QCOMPARE_WITH_ABS_ERROR(q.w, testQuat.w, MAX_COMPONENT_ERROR);
+}
+
+void GLMHelpersTests::testSixByteOrientationCompression() {
+    const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
+    const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    testQuatCompression(ROT_X_90);
+    testQuatCompression(ROT_Y_180);
+    testQuatCompression(ROT_Z_30);
+    testQuatCompression(ROT_X_90 * ROT_Y_180);
+    testQuatCompression(ROT_Y_180 * ROT_X_90);
+    testQuatCompression(ROT_Z_30 * ROT_X_90);
+    testQuatCompression(ROT_X_90 * ROT_Z_30);
+    testQuatCompression(ROT_Z_30 * ROT_Y_180);
+    testQuatCompression(ROT_Y_180 * ROT_Z_30);
+    testQuatCompression(ROT_X_90 * ROT_Y_180 * ROT_Z_30);
+    testQuatCompression(ROT_Y_180 * ROT_Z_30 * ROT_X_90);
+    testQuatCompression(ROT_Z_30 * ROT_X_90 * ROT_Y_180);
+
+    testQuatCompression(-ROT_X_90);
+    testQuatCompression(-ROT_Y_180);
+    testQuatCompression(-ROT_Z_30);
+    testQuatCompression(-(ROT_X_90 * ROT_Y_180));
+    testQuatCompression(-(ROT_Y_180 * ROT_X_90));
+    testQuatCompression(-(ROT_Z_30 * ROT_X_90));
+    testQuatCompression(-(ROT_X_90 * ROT_Z_30));
+    testQuatCompression(-(ROT_Z_30 * ROT_Y_180));
+    testQuatCompression(-(ROT_Y_180 * ROT_Z_30));
+    testQuatCompression(-(ROT_X_90 * ROT_Y_180 * ROT_Z_30));
+    testQuatCompression(-(ROT_Y_180 * ROT_Z_30 * ROT_X_90));
+    testQuatCompression(-(ROT_Z_30 * ROT_X_90 * ROT_Y_180));
+}

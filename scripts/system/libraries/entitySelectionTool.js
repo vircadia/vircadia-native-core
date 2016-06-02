@@ -304,7 +304,7 @@ SelectionDisplay = (function() {
     var previousHandleColor;
     var previousHandleAlpha;
 
-    var grabberSizeCorner = 0.025;
+    var grabberSizeCorner = 0.025; // These get resized by updateHandleSizes().
     var grabberSizeEdge = 0.015;
     var grabberSizeFace = 0.025;
     var grabberAlpha = 1;
@@ -4320,7 +4320,7 @@ SelectionDisplay = (function() {
     that.updateHandleSizes = function() {
         if (selectionManager.hasSelection()) {
             var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
-            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO;
+            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 2;
             var dimensions = SelectionManager.worldDimensions;
             var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
             grabberSize = Math.min(grabberSize, avgDimension / 10);

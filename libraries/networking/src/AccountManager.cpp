@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AccountManager.h"
+
 #include <memory>
 
 #include <QtCore/QDataStream>
@@ -26,25 +28,15 @@
 
 #include <SettingHandle.h>
 
+#include "NetworkLogging.h"
 #include "NodeList.h"
 #include "udt/PacketHeaders.h"
 #include "RSAKeypairGenerator.h"
 #include "SharedUtil.h"
+#include "UserActivityLogger.h"
 
-#include "AccountManager.h"
-#include "NetworkLogging.h"
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
-
-AccountManager& AccountManager::getInstance(bool forceReset) {
-    static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
-    
-    if (forceReset) {
-        sharedInstance.reset(new AccountManager());
-    }
-    
-    return *sharedInstance;
-}
 
 Q_DECLARE_METATYPE(OAuthAccessToken)
 Q_DECLARE_METATYPE(DataServerAccountInfo)
@@ -79,7 +71,8 @@ QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply &requestReply) 
     }
 }
 
-AccountManager::AccountManager() :
+AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
+    _userAgentGetter(userAgentGetter),
     _authURL(),
     _pendingCallbackMap()
 {
@@ -222,8 +215,17 @@ void AccountManager::sendRequest(const QString& path,
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     
     QNetworkRequest networkRequest;
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    
+
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    // if we're allowed to send usage data, include whatever the current session ID is with this request
+    auto& activityLogger = UserActivityLogger::getInstance();
+    if (activityLogger.isEnabled()) {
+        static const QString METAVERSE_SESSION_ID_HEADER = "HFM-SessionID";
+        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER.toLocal8Bit(),
+                                    uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
+    }
+
     QUrl requestURL = _authURL;
     
     if (path.startsWith("/")) {
@@ -473,7 +475,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
-    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
@@ -543,7 +545,7 @@ void AccountManager::requestProfile() {
     profileURL.setPath("/api/v1/user/profile");
     
     QNetworkRequest profileRequest(profileURL);
-    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    profileRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
     profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
 
     QNetworkReply* profileReply = networkAccessManager.get(profileRequest);

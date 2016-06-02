@@ -10,10 +10,7 @@
 
 
 (function () {
-    // Script.include("../libraries/utils.js");
-    //Need absolute path for now, for testing before PR merge and s3 cloning. Will change post-merge
-
-    Script.include("libraries/utils.js");
+ Script.include("../libraries/utils.js");
 
     this.spraySound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/spray_paint.wav");
 

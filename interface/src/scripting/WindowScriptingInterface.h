@@ -45,7 +45,7 @@ public slots:
 signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
-    void domainConnectionRefused(const QString& reason);
+    void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
 
 private slots:
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);

@@ -716,7 +716,7 @@ var usersWindow = (function () {
 
         if (clickedOverlay === windowPane) {
 
-            overlayX = event.x - WINDOW_MARGIN;
+            overlayX = event.x - windowPosition.x - WINDOW_MARGIN;
             overlayY = event.y - windowPosition.y + windowHeight - WINDOW_MARGIN - windowLineHeight;
 
             numLinesBefore = Math.round(overlayY / windowLineHeight);

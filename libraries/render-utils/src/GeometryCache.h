@@ -21,6 +21,8 @@
 
 #include <DependencyManager.h>
 
+#include <shared/Shapes.h>
+
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
@@ -121,9 +123,6 @@ inline uint qHash(const Vec4PairVec4Pair& v, uint seed) {
                 seed);
 }
 
-using VertexVector = std::vector<glm::vec3>;
-using IndexVector = std::vector<uint16_t>;
-
 /// Stores cached geometry.
 class GeometryCache : public Dependency {
     SINGLETON_DEPENDENCY
@@ -137,7 +136,7 @@ public:
         Cube,
         Sphere,
         Tetrahedron,
-        Octahetron,
+        Octahedron,
         Dodecahedron,
         Icosahedron,
         Torus,
@@ -162,6 +161,13 @@ public:
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+
+    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderSolidShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+    }
 
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
@@ -290,8 +296,8 @@ public:
         gpu::BufferView _normalView;
         gpu::BufferPointer _indices;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices);
-        void setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
+        void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;
         void drawWire(gpu::Batch& batch) const;

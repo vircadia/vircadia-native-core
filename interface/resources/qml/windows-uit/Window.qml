@@ -52,6 +52,7 @@ Fadable {
     // property bool pinned: false
     property bool resizable: false
     property bool gradientsSupported: desktop.gradientsSupported
+    property int colorScheme: hifi.colorSchemes.dark
 
     property vector2d minSize: Qt.vector2d(100, 100)
     property vector2d maxSize: Qt.vector2d(1280, 800)

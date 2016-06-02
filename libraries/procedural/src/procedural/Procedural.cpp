@@ -100,10 +100,6 @@ bool Procedural::parseUrl(const QUrl& shaderUrl) {
         return false;
     }
 
-    if (_shaderUrl == shaderUrl) {
-        return true;
-    }
-
     _shaderUrl = shaderUrl;
     _shaderDirty = true;
 

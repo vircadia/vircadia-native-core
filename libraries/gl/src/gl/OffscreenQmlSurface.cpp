@@ -716,9 +716,9 @@ QQmlContext* OffscreenQmlSurface::getRootContext() {
 }
 
 Q_DECLARE_METATYPE(std::function<void()>);
-static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
+auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
 Q_DECLARE_METATYPE(std::function<QVariant()>);
-static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
 
 
 void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {

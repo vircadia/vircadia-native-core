@@ -39,7 +39,7 @@
 
 using namespace std;
 
-static int FBXGeometryPointerMetaTypeId = qRegisterMetaType<FBXGeometry::Pointer>();
+int FBXGeometryPointerMetaTypeId = qRegisterMetaType<FBXGeometry::Pointer>();
 
 QStringList FBXGeometry::getJointNames() const {
     QStringList names;
@@ -130,9 +130,9 @@ QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
     return QString();
 }
 
-static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
-static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
-static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
+int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
+int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
+int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
 
 
 glm::vec3 parseVec3(const QString& string) {

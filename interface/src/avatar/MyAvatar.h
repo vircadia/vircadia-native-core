@@ -94,7 +94,7 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    Q_INVOKABLE void reset(bool andRecenter = false);
+    Q_INVOKABLE void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime) override;
     void preDisplaySide(RenderArgs* renderArgs);
@@ -160,6 +160,8 @@ public:
 
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
+    Q_INVOKABLE bool getClearOverlayWhenDriving() const { return _clearOverlayWhenDriving; }
+    Q_INVOKABLE void setClearOverlayWhenDriving(bool on) { _clearOverlayWhenDriving = on; }
 
     // get/set avatar data
     void saveData();
@@ -218,6 +220,7 @@ public:
     MyCharacterController* getCharacterController() { return &_characterController; }
     const MyCharacterController* getCharacterController() const { return &_characterController; }
 
+    void updateMotors();
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
@@ -350,6 +353,7 @@ private:
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
+    bool _isBeingPushed;
     bool _isBraking;
 
     float _boomLength;
@@ -358,9 +362,8 @@ private:
 
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
-    glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)
-    float _keyboardMotorTimescale; // timescale for avatar to achieve its target velocity
-    glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (script)
+    glm::vec3 _actionMotorVelocity; // target local-frame velocity of avatar (default controller actions)
+    glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
@@ -384,8 +387,7 @@ private:
 
     // private methods
     void updateOrientation(float deltaTime);
-    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
-    glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
+    void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
@@ -396,6 +398,7 @@ private:
     QString _fullAvatarModelName;
     QUrl _animGraphUrl {""};
     bool _useSnapTurn { true };
+    bool _clearOverlayWhenDriving { false };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

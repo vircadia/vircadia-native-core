@@ -19,6 +19,8 @@
 #include "GLWidget.h"
 #include "GLHelpers.h"
 
+#define MINIMUM_GL_VERSION 410
+
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
 {
@@ -58,8 +60,8 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
     int majorNumber = versionParts[0].toInt();
     int minorNumber = versionParts[1].toInt();
-    int minimumMajorNumber = GPU_CORE_MINIMUM / 100;
-    int minimumMinorNumber = (GPU_CORE_MINIMUM - minimumMajorNumber * 100) / 10;
+    int minimumMajorNumber = MINIMUM_GL_VERSION / 100;
+    int minimumMinorNumber = (MINIMUM_GL_VERSION - minimumMajorNumber * 100) / 10;
     valid = (majorNumber > minimumMajorNumber
         || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
 

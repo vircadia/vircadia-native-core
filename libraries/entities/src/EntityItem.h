@@ -186,9 +186,6 @@ public:
     inline const glm::vec3 getDimensions() const { return getScale(); }
     virtual void setDimensions(const glm::vec3& value);
 
-    float getGlowLevel() const { return _glowLevel; }
-    void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
-
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
 
@@ -375,6 +372,7 @@ public:
     glm::vec3 entityToWorld(const glm::vec3& point) const;
 
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
+    void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
@@ -425,11 +423,18 @@ public:
     /// entity to definitively state if the preload signal should be sent.
     ///
     /// We only want to preload if:
-    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    there is some script, and either the script value or the scriptTimestamp
     ///    value have changed since our last preload
-    bool shouldPreloadScript() const { return !_script.isEmpty() && 
+    bool shouldPreloadScript() const { return !_script.isEmpty() &&
                                               ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+
+    bool getClientOnly() const { return _clientOnly; }
+    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    // if this entity is client-only, which avatar is it associated with?
+    QUuid getOwningAvatarID() const { return _owningAvatarID; }
+    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+
 
 protected:
 
@@ -460,7 +465,6 @@ protected:
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
 
-    float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
@@ -543,6 +547,9 @@ protected:
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
     QUuid _sourceUUID; /// the server node UUID we came from
+
+    bool _clientOnly { false };
+    QUuid _owningAvatarID;
 };
 
 #endif // hifi_EntityItem_h

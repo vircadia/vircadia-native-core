@@ -4,10 +4,6 @@ project(${TARGET_NAME})
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
-if(WIN32)
-    list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")
-endif()
-
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -139,7 +135,7 @@ if (WIN32)
 endif()
 
 # link required hifi libraries
-link_hifi_libraries(shared octree gpu gl procedural model render
+link_hifi_libraries(shared octree gpu gl gpu-gl procedural model render
                     recording fbx networking model-networking entities avatars
                     audio audio-client animation script-engine physics
                     render-utils entities-renderer ui auto-updater

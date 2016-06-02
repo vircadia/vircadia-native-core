@@ -22,7 +22,7 @@
 
 using namespace gpu;
 
-static int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
+int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
 std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
@@ -883,4 +883,13 @@ Vec3u Texture::evalMipDimensions(uint16 level) const {
     auto dimensions = getDimensions();
     dimensions >>= level; 
     return glm::max(dimensions, Vec3u(1));
+}
+
+std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
+
+uint32 Texture::getHardwareId() const {
+    if (TEXTURE_ID_RESOLVER) {
+        return TEXTURE_ID_RESOLVER(*this);
+    }
+    return 0;
 }
