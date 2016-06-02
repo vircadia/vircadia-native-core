@@ -25,6 +25,7 @@
         var ICON_FOR_TYPE = {
             Box: "V",
             Sphere: "n",
+            Shape: "n",
             ParticleEffect: "&#xe004;",
             Model: "&#xe008;",
             Web: "q",
@@ -403,6 +404,10 @@
                 var elColorGreen = document.getElementById("property-color-green");
                 var elColorBlue = document.getElementById("property-color-blue");
     
+                var elShapeSections = document.querySelectorAll(".shape-section");
+                allSections.push(elShapeSections);
+                var elShape = document.getElementById("property-shape");
+                
                 var elLightSections = document.querySelectorAll(".light-section");
                 allSections.push(elLightSections);
                 var elLightSpotLight = document.getElementById("property-light-spot-light");
@@ -552,7 +557,6 @@
                                 }
     
                                 properties = data.selections[0].properties;
-    
                                 elID.innerHTML = properties.id;
     
                                 elType.innerHTML = properties.type;
@@ -666,7 +670,21 @@
                                     elHyperlinkSections[i].style.display = 'table';
                                 }
 
-                                if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere") {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        elShapeSections[i].style.display = 'table';
+                                    }
+                                    elShape.value = properties.shape;
+                                    setDropdownText(elShape);
+
+                                } else {
+                                    for (var i = 0; i < elShapeSections.length; i++) {
+                                        console.log("Hiding shape section " + elShapeSections[i])
+                                        elShapeSections[i].style.display = 'none';
+                                    }
+                                }
+                                
+                                if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
                                     for (var i = 0; i < elColorSections.length; i++) {
                                         elColorSections[i].style.display = 'table';
                                     }
@@ -958,6 +976,8 @@
                 elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
     
+                elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
     
                 elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
@@ -1331,6 +1351,17 @@
             </div>
         </div>
         <hr />
+        <div class="shape-group shape-section property dropdown">
+            <label for="property-shape">Shape</label>
+            <select name="SelectShape" id="property-shape">
+                <option value="Cube">Box</option>
+                <option value="Sphere">Sphere</option>
+                <option value="Tetrahedron">Tetrahedron</option>
+                <option value="Octahedron">Octahedron</option>
+                <option value="Icosahedron">Icosahedron</option>
+                <option value="Dodecahedron">Dodecahedron</option>
+            </select>
+        </div>
         <div class="property text">
             <label for="property-name">Name</label>
             <input type="text" id="property-name">
@@ -1343,7 +1374,6 @@
             <label>ID:</label>
             <span id="property-id" class="selectable"></span>
         </div>
-
 
         <div class="section-header hyperlink-group hyperlink-section">
             <label>Hyperlink</label><span>M</span>
@@ -1677,7 +1707,6 @@
             <label for="property-model-original-textures">Original textures</label>
             <textarea id="property-model-original-textures" readonly></textarea>
         </div>
-
 
         <div class="section-header text-group text-section">
             <label>Text</label><span>M</span>

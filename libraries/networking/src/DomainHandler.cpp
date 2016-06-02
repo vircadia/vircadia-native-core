@@ -28,8 +28,16 @@
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
+    _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
+    _assignmentUUID(),
+    _connectionToken(),
+    _iceDomainID(),
+    _iceClientID(),
+    _iceServerSockAddr(),
     _icePeer(this),
+    _isConnected(false),
+    _settingsObject(),
     _settingsTimer(this)
 {
     _sockAddr.setObjectName("DomainServer");
@@ -97,13 +105,12 @@ void DomainHandler::hardReset() {
     softReset();
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
-    _pendingDomainID = QUuid();
+    _iceDomainID = QUuid();
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
 
     _hasCheckedForAccessToken = false;
-    _domainConnectionRefusals.clear();
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
@@ -132,7 +139,7 @@ void DomainHandler::setUUID(const QUuid& uuid) {
     }
 }
 
-void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const QUuid& domainID) {
+void DomainHandler::setHostnameAndPort(const QString& hostname, quint16 port) {
 
     if (hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
@@ -141,6 +148,9 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
         if (hostname != _hostname) {
             // set the new hostname
             _hostname = hostname;
+
+            // FIXME - is this the right place???
+            _domainConnectionRefusals.clear();
 
             qCDebug(networking) << "Updated domain hostname to" << _hostname;
 
@@ -161,8 +171,6 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
         // grab the port by reading the string after the colon
         _sockAddr.setPort(port);
     }
-
-    _pendingDomainID = domainID;
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
@@ -173,7 +181,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
         
-        _pendingDomainID = id;
+        _iceDomainID = id;
 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
         replaceableSockAddr->~HifiSockAddr();
@@ -335,7 +343,7 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSPeerInformation);
 
-    if (_icePeer.getUUID() != _pendingDomainID) {
+    if (_icePeer.getUUID() != _iceDomainID) {
         qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
         _icePeer.reset();
     } else {
@@ -349,34 +357,58 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
+    switch (reasonCode) {
+        case ConnectionRefusedReason::LoginError:
+        case ConnectionRefusedReason::NotAuthorized:
+            return true;
+    
+        default:
+        case ConnectionRefusedReason::Unknown:
+        case ConnectionRefusedReason::ProtocolMismatch:
+        case ConnectionRefusedReason::TooManyUsers:
+            return false;
+    }
+    return false;
+}
+
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
     // Read deny reason from packet
+    uint8_t reasonCodeWire;
+
+    message->readPrimitive(&reasonCodeWire);
+    ConnectionRefusedReason reasonCode = static_cast<ConnectionRefusedReason>(reasonCodeWire);
     quint16 reasonSize;
     message->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
+    auto reasonText = message->readWithoutCopy(reasonSize);
+    QString reasonMessage = QString::fromUtf8(reasonText);
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
-    qCWarning(networking) << "The domain-server denied a connection request: " << reason;
-    qCWarning(networking) << "Make sure you are logged in.";
+    qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
 
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
+    if (!_domainConnectionRefusals.contains(reasonMessage)) {
+        _domainConnectionRefusals.append(reasonMessage);
+        emit domainConnectionRefused(reasonMessage, (int)reasonCode);
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    if (!_hasCheckedForAccessToken) {
-        accountManager->checkAndSignalForAccessToken();
-        _hasCheckedForAccessToken = true;
-    }
+    // Some connection refusal reasons imply that a login is required. If so, suggest a new login
+    if (reasonSuggestsLogin(reasonCode)) {
+        qCWarning(networking) << "Make sure you are logged in.";
 
-    static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
+        if (!_hasCheckedForAccessToken) {
+            accountManager->checkAndSignalForAccessToken();
+            _hasCheckedForAccessToken = true;
+        }
 
-    // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
-    if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
-        accountManager->generateNewUserKeypair();
-        _connectionDenialsSinceKeypairRegen = 0;
+        static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
+
+        // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
+        if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
+            accountManager->generateNewUserKeypair();
+            _connectionDenialsSinceKeypairRegen = 0;
+        }
     }
 }

@@ -94,7 +94,7 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    Q_INVOKABLE void reset(bool andRecenter = false);
+    Q_INVOKABLE void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime) override;
     void preDisplaySide(RenderArgs* renderArgs);
@@ -160,6 +160,8 @@ public:
 
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
+    Q_INVOKABLE bool getClearOverlayWhenDriving() const { return _clearOverlayWhenDriving; }
+    Q_INVOKABLE void setClearOverlayWhenDriving(bool on) { _clearOverlayWhenDriving = on; }
 
     // get/set avatar data
     void saveData();
@@ -396,6 +398,7 @@ private:
     QString _fullAvatarModelName;
     QUrl _animGraphUrl {""};
     bool _useSnapTurn { true };
+    bool _clearOverlayWhenDriving { false };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

@@ -37,6 +37,8 @@
 
 #include "AvatarLogging.h"
 
+//#define WANT_DEBUG
+
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
 using namespace std;
@@ -45,6 +47,52 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
+
+namespace AvatarDataPacket {
+    // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
+
+    PACKED_BEGIN struct Header {
+        float position[3];            // skeletal model's position
+        float globalPosition[3];      // avatar's position
+        uint16_t localOrientation[3]; // avatar's local euler angles (degrees, compressed) relative to the thing it's attached to
+        uint16_t scale;               // (compressed) 'ratio' encoding uses sign bit as flag.
+        float lookAtPosition[3];      // world space position that eyes are focusing on.
+        float audioLoudness;          // current loundess of microphone
+        uint8_t flags;
+    } PACKED_END;
+    const size_t HEADER_SIZE = 49;
+
+    // only present if HAS_REFERENTIAL flag is set in header.flags
+    PACKED_BEGIN struct ParentInfo {
+        uint8_t parentUUID[16];       // rfc 4122 encoded
+        uint16_t parentJointIndex;
+    } PACKED_END;
+    const size_t PARENT_INFO_SIZE = 18;
+
+    // only present if IS_FACESHIFT_CONNECTED flag is set in header.flags
+    PACKED_BEGIN struct FaceTrackerInfo {
+        float leftEyeBlink;
+        float rightEyeBlink;
+        float averageLoudness;
+        float browAudioLift;
+        uint8_t numBlendshapeCoefficients;
+        // float blendshapeCoefficients[numBlendshapeCoefficients];
+    } PACKED_END;
+    const size_t FACE_TRACKER_INFO_SIZE = 17;
+
+    // variable length structure follows
+    /*
+    struct JointData {
+        uint8_t numJoints;
+        uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
+        SixByteQuat rotation[numValidRotations];  // encodeded and compressed by packOrientationQuatToSixBytes()
+        uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
+        SixByteTrans translation[numValidTranslations];  // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+    };
+    */
+}
+
+#define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
@@ -66,6 +114,10 @@ AvatarData::AvatarData() :
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
     setBodyRoll(0.0f);
+
+    ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
+    ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
 }
 
 AvatarData::~AvatarData() {
@@ -139,86 +191,69 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
-    const glm::vec3& position = getLocalPosition();
-    memcpy(destinationBuffer, &position, sizeof(position));
-    destinationBuffer += sizeof(position);
+    auto header = reinterpret_cast<AvatarDataPacket::Header*>(destinationBuffer);
+    header->position[0] = getLocalPosition().x;
+    header->position[1] = getLocalPosition().y;
+    header->position[2] = getLocalPosition().z;
+    header->globalPosition[0] = _globalPosition.x;
+    header->globalPosition[1] = _globalPosition.y;
+    header->globalPosition[2] = _globalPosition.z;
 
-    memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
-    destinationBuffer += sizeof(_globalPosition);
-
-    // Body rotation
     glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.y);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.x);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.z);
+    packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 0), bodyEulerAngles.y);
+    packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 1), bodyEulerAngles.x);
+    packFloatAngleToTwoByte((uint8_t*)(header->localOrientation + 2), bodyEulerAngles.z);
+    packFloatRatioToTwoByte((uint8_t*)(&header->scale), _targetScale);
+    header->lookAtPosition[0] = _headData->_lookAtPosition.x;
+    header->lookAtPosition[1] = _headData->_lookAtPosition.y;
+    header->lookAtPosition[2] = _headData->_lookAtPosition.z;
+    header->audioLoudness = _headData->_audioLoudness;
 
-    // Body scale
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
-
-    // Lookat Position
-    memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
-    destinationBuffer += sizeof(_headData->_lookAtPosition);
-
-    // Instantaneous audio loudness (used to drive facial animation)
-    memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
-    destinationBuffer += sizeof(float);
-
-    // bitMask of less than byte wide items
-    unsigned char bitItems = 0;
-
-    // key state
-    setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
+    setSemiNibbleAt(header->flags, KEY_STATE_START_BIT, _keyState);
     // hand state
     bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
-    setSemiNibbleAt(bitItems, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
+    setSemiNibbleAt(header->flags, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
     if (isFingerPointing) {
-        setAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT);
+        setAtBit(header->flags, HAND_STATE_FINGER_POINTING_BIT);
     }
     // faceshift state
     if (_headData->_isFaceTrackerConnected) {
-        setAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+        setAtBit(header->flags, IS_FACESHIFT_CONNECTED);
     }
     // eye tracker state
     if (_headData->_isEyeTrackerConnected) {
-        setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+        setAtBit(header->flags, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
     QUuid parentID = getParentID();
     if (!parentID.isNull()) {
-        setAtBit(bitItems, HAS_REFERENTIAL);
+        setAtBit(header->flags, HAS_REFERENTIAL);
     }
-    *destinationBuffer++ = bitItems;
+    destinationBuffer += sizeof(AvatarDataPacket::Header);
 
     if (!parentID.isNull()) {
+        auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
         QByteArray referentialAsBytes = parentID.toRfc4122();
-        memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
-        destinationBuffer += referentialAsBytes.size();
-        memcpy(destinationBuffer, &_parentJointIndex, sizeof(_parentJointIndex));
-        destinationBuffer += sizeof(_parentJointIndex);
+        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
+        parentInfo->parentJointIndex = _parentJointIndex;
+        destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
     }
 
     // If it is connected, pack up the data
     if (_headData->_isFaceTrackerConnected) {
-        memcpy(destinationBuffer, &_headData->_leftEyeBlink, sizeof(float));
-        destinationBuffer += sizeof(float);
+        auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
 
-        memcpy(destinationBuffer, &_headData->_rightEyeBlink, sizeof(float));
-        destinationBuffer += sizeof(float);
+        faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
+        faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
+        faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
+        faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
+        faceTrackerInfo->numBlendshapeCoefficients = _headData->_blendshapeCoefficients.size();
+        destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
-        memcpy(destinationBuffer, &_headData->_averageLoudness, sizeof(float));
-        destinationBuffer += sizeof(float);
-
-        memcpy(destinationBuffer, &_headData->_browAudioLift, sizeof(float));
-        destinationBuffer += sizeof(float);
-
-        *destinationBuffer++ = _headData->_blendshapeCoefficients.size();
-        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(),
-            _headData->_blendshapeCoefficients.size() * sizeof(float));
+        // followed by a variable number of float coefficients
+        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(), _headData->_blendshapeCoefficients.size() * sizeof(float));
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
-
-    // pupil dilation
-    destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
 
     // joint rotation data
     *destinationBuffer++ = _jointData.size();
@@ -261,7 +296,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     for (int i = 0; i < _jointData.size(); i ++) {
         const JointData& data = _jointData[ i ];
         if (validity & (1 << validityBit)) {
-            destinationBuffer += packOrientationQuatToBytes(destinationBuffer, data.rotation);
+            destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -304,15 +339,11 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
-
     if (validityBit != 0) {
         *destinationBuffer++ = validity;
     }
 
-    // TODO -- automatically pick translationCompressionRadix
-    int translationCompressionRadix = 12;
-
-    *destinationBuffer++ = translationCompressionRadix;
+    const int TRANSLATION_COMPRESSION_RADIX = 12;
 
     validityBit = 0;
     validity = *validityPosition++;
@@ -320,7 +351,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         const JointData& data = _jointData[ i ];
         if (validity & (1 << validityBit)) {
             destinationBuffer +=
-                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, translationCompressionRadix);
+                packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
         }
         if (++validityBit == BITS_IN_BYTE) {
             validityBit = 0;
@@ -333,7 +364,6 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                  << "largest:" << maxTranslationDimension
-                 << "radix:" << translationCompressionRadix
                  << "size:"
                  << (beforeRotations - startPosition) << "+"
                  << (beforeTranslations - beforeRotations) << "+"
@@ -370,12 +400,28 @@ void AvatarData::doneEncoding(bool cullSmallChanges) {
 }
 
 bool AvatarData::shouldLogError(const quint64& now) {
+#ifdef WANT_DEBUG
+    if (now > 0) {
+        return true;
+    }
+#endif
+
     if (now > _errorLogExpiry) {
         _errorLogExpiry = now + DEFAULT_FILTERED_LOG_EXPIRY;
         return true;
     }
     return false;
 }
+
+#define PACKET_READ_CHECK(ITEM_NAME, SIZE_TO_READ)                                        \
+    if ((endPosition - sourceBuffer) < (int)SIZE_TO_READ) {                               \
+        if (shouldLogError(now)) {                                                        \
+            qCWarning(avatars) << "AvatarData packet too small, attempting to read " <<   \
+                #ITEM_NAME << ", only " << (endPosition - sourceBuffer) <<                \
+                " bytes left, " << getSessionUUID();                                      \
+        }                                                                                 \
+        return buffer.size();                                                             \
+    }
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
@@ -386,125 +432,76 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(buffer.data());
+    const unsigned char* endPosition = startPosition + buffer.size();
     const unsigned char* sourceBuffer = startPosition;
     quint64 now = usecTimestampNow();
 
-    // The absolute minimum size of the update data is as follows:
-    // 36 bytes of "plain old data" {
-    //     position      = 12 bytes
-    //     bodyYaw       =  2 (compressed float)
-    //     bodyPitch     =  2 (compressed float)
-    //     bodyRoll      =  2 (compressed float)
-    //     targetScale   =  2 (compressed float)
-    //     lookAt        = 12
-    //     audioLoudness =  4
-    // }
-    // + 1 byte for varying data
-    // + 1 byte for pupilSize
-    // + 1 byte for numJoints (0)
-    // = 39 bytes
-    int minPossibleSize = 39;
+    PACKET_READ_CHECK(Header, sizeof(AvatarDataPacket::Header));
+    auto header = reinterpret_cast<const AvatarDataPacket::Header*>(sourceBuffer);
+    sourceBuffer += sizeof(AvatarDataPacket::Header);
 
-    int maxAvailableSize = buffer.size();
-    if (minPossibleSize > maxAvailableSize) {
+    glm::vec3 position = glm::vec3(header->position[0], header->position[1], header->position[2]);
+    _globalPosition = glm::vec3(header->globalPosition[0], header->globalPosition[1], header->globalPosition[2]);
+    if (isNaN(position)) {
         if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet at the start; "
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
+            qCWarning(avatars) << "Discard AvatarData packet: position NaN, uuid " << getSessionUUID();
         }
-        // this packet is malformed so we report all bytes as consumed
-        return maxAvailableSize;
+        return buffer.size();
+    }
+    setLocalPosition(position);
+
+    float pitch, yaw, roll;
+    unpackFloatAngleFromTwoByte(header->localOrientation + 0, &yaw);
+    unpackFloatAngleFromTwoByte(header->localOrientation + 1, &pitch);
+    unpackFloatAngleFromTwoByte(header->localOrientation + 2, &roll);
+    if (isNaN(yaw) || isNaN(pitch) || isNaN(roll)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: localOriention is NaN, uuid " << getSessionUUID();
+        }
+        return buffer.size();
     }
 
-    { // Body world position, rotation, and scale
-        // position
-        glm::vec3 position;
-        memcpy(&position, sourceBuffer, sizeof(position));
-        sourceBuffer += sizeof(position);
+    glm::quat currentOrientation = getLocalOrientation();
+    glm::vec3 newEulerAngles(pitch, yaw, roll);
+    glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
+    if (currentOrientation != newOrientation) {
+        _hasNewJointRotations = true;
+        setLocalOrientation(newOrientation);
+    }
 
-        memcpy(&_globalPosition, sourceBuffer, sizeof(_globalPosition));
-        sourceBuffer += sizeof(_globalPosition);
-
-        if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
+    float scale;
+    unpackFloatRatioFromTwoByte((uint8_t*)&header->scale, scale);
+    if (isNaN(scale)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: scale NaN, uuid " << getSessionUUID();
         }
-        setLocalPosition(position);
+        return buffer.size();
+    }
+    _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, scale));
 
-        // rotation (NOTE: This needs to become a quaternion to save two bytes)
-        float yaw, pitch, roll;
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &yaw);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &pitch);
-        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &roll);
-        if (glm::isnan(yaw) || glm::isnan(pitch) || glm::isnan(roll)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::yaw,pitch,roll; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
+    glm::vec3 lookAt = glm::vec3(header->lookAtPosition[0], header->lookAtPosition[1], header->lookAtPosition[2]);
+    if (isNaN(lookAt)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: lookAtPosition is NaN, uuid " << getSessionUUID();
         }
+        return buffer.size();
+    }
+    _headData->_lookAtPosition = lookAt;
 
-        // TODO is this safe? will the floats not exactly match?
-        // Andrew says:
-        // Yes, there is a possibility that the transmitted will not quite match the extracted despite being originally
-        // extracted from the exact same quaternion. I followed the code through and it appears the risk is that the
-        // avatar's SkeletonModel might fall into the CPU expensive part of Model::updateClusterMatrices() when otherwise it
-        // would not have required it.  However, we know we can update many simultaneously animating avatars, and most
-        // avatars will be moving constantly anyway, so I don't think we need to worry.
-        glm::quat currentOrientation = getLocalOrientation();
-        glm::vec3 newEulerAngles(pitch, yaw, roll);
-        glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
-        if (currentOrientation != newOrientation) {
-            _hasNewJointRotations = true;
-            setLocalOrientation(newOrientation);
+    float audioLoudness = header->audioLoudness;
+    if (isNaN(audioLoudness)) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "Discard AvatarData packet: audioLoudness is NaN, uuid " << getSessionUUID();
         }
-
-        // scale
-        float scale;
-        sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, scale);
-        if (glm::isnan(scale)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::scale; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, scale));
-    } // 20 bytes
-
-    { // Lookat Position
-        glm::vec3 lookAt;
-        memcpy(&lookAt, sourceBuffer, sizeof(lookAt));
-        sourceBuffer += sizeof(lookAt);
-        if (glm::isnan(lookAt.x) || glm::isnan(lookAt.y) || glm::isnan(lookAt.z)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::lookAt; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-        }
-        _headData->_lookAtPosition = lookAt;
-    } // 12 bytes
-
-    { // AudioLoudness
-        // Instantaneous audio loudness (used to drive facial animation)
-        float audioLoudness;
-        memcpy(&audioLoudness, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-        if (glm::isnan(audioLoudness)) {
-            if (shouldLogError(now)) {
-                qCDebug(avatars) << "Discard nan AvatarData::audioLoudness; displayName = '" << _displayName << "'";
-            }
-            return maxAvailableSize;
-         }
-        _headData->_audioLoudness = audioLoudness;
-    } // 4 bytes
+        return buffer.size();
+    }
+    _headData->_audioLoudness = audioLoudness;
 
     { // bitFlags and face data
-        unsigned char bitItems = *sourceBuffer++;
+        uint8_t bitItems = header->flags;
 
         // key state, stored as a semi-nibble in the bitItems
-        _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
+        _keyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
 
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
@@ -521,98 +518,47 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
 
         if (hasReferential) {
-            const int sizeOfPackedUuid = 16;
-            QByteArray referentialAsBytes((const char*)sourceBuffer, sizeOfPackedUuid);
-            _parentID = QUuid::fromRfc4122(referentialAsBytes);
-            sourceBuffer += sizeOfPackedUuid;
-            memcpy(&_parentJointIndex, sourceBuffer, sizeof(_parentJointIndex));
-            sourceBuffer += sizeof(_parentJointIndex);
+            PACKET_READ_CHECK(ParentInfo, sizeof(AvatarDataPacket::ParentInfo));
+            auto parentInfo = reinterpret_cast<const AvatarDataPacket::ParentInfo*>(sourceBuffer);
+            sourceBuffer += sizeof(AvatarDataPacket::ParentInfo);
+
+            QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
+            _parentID = QUuid::fromRfc4122(byteArray);
+            _parentJointIndex = parentInfo->parentJointIndex;
         } else {
             _parentID = QUuid();
         }
 
         if (_headData->_isFaceTrackerConnected) {
-            float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;
-            minPossibleSize += sizeof(leftEyeBlink) + sizeof(rightEyeBlink) + sizeof(averageLoudness) + sizeof(browAudioLift);
-            minPossibleSize++; // one byte for blendDataSize
-            if (minPossibleSize > maxAvailableSize) {
-                if (shouldLogError(now)) {
-                    qCDebug(avatars) << "Malformed AvatarData packet after BitItems;"
-                        << " displayName = '" << _displayName << "'"
-                        << " minPossibleSize = " << minPossibleSize
-                        << " maxAvailableSize = " << maxAvailableSize;
-                }
-                return maxAvailableSize;
-            }
-            // unpack face data
-            memcpy(&leftEyeBlink, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
+            PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
+            auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
+            sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
-            memcpy(&rightEyeBlink, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
+            _headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
+            _headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
+            _headData->_averageLoudness = faceTrackerInfo->averageLoudness;
+            _headData->_browAudioLift = faceTrackerInfo->browAudioLift;
 
-            memcpy(&averageLoudness, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
-
-            memcpy(&browAudioLift, sourceBuffer, sizeof(float));
-            sourceBuffer += sizeof(float);
-
-            if (glm::isnan(leftEyeBlink) || glm::isnan(rightEyeBlink)
-                    || glm::isnan(averageLoudness) || glm::isnan(browAudioLift)) {
-                if (shouldLogError(now)) {
-                    qCDebug(avatars) << "Discard nan AvatarData::faceData; displayName = '" << _displayName << "'";
-                }
-                return maxAvailableSize;
-            }
-            _headData->_leftEyeBlink = leftEyeBlink;
-            _headData->_rightEyeBlink = rightEyeBlink;
-            _headData->_averageLoudness = averageLoudness;
-            _headData->_browAudioLift = browAudioLift;
-
-            int numCoefficients = (int)(*sourceBuffer++);
-            int blendDataSize = numCoefficients * sizeof(float);
-            minPossibleSize += blendDataSize;
-            if (minPossibleSize > maxAvailableSize) {
-                if (shouldLogError(now)) {
-                    qCDebug(avatars) << "Malformed AvatarData packet after Blendshapes;"
-                        << " displayName = '" << _displayName << "'"
-                        << " minPossibleSize = " << minPossibleSize
-                        << " maxAvailableSize = " << maxAvailableSize;
-                }
-                return maxAvailableSize;
-            }
-
-            _headData->_blendshapeCoefficients.resize(numCoefficients);
-            memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, blendDataSize);
-            sourceBuffer += numCoefficients * sizeof(float);
-
-            //bitItemsDataSize = 4 * sizeof(float) + 1 + blendDataSize;
+            int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
+            const int coefficientsSize = sizeof(float) * numCoefficients;
+            PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
+            _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
+            memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
+            sourceBuffer += coefficientsSize;
         }
-    } // 1 + bitItemsDataSize bytes
-
-    { // pupil dilation
-        sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
-    } // 1 byte
-
-    // joint rotations
-    int numJoints = *sourceBuffer++;
-    int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
-    minPossibleSize += bytesOfValidity;
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointValidityBits;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
-        }
-        return maxAvailableSize;
     }
-    int numValidJointRotations = 0;
+
+    PACKET_READ_CHECK(NumJoints, sizeof(uint8_t));
+    int numJoints = *sourceBuffer++;
+
     _jointData.resize(numJoints);
 
+    const int bytesOfValidity = (int)ceil((float)numJoints / (float)BITS_IN_BYTE);
+    PACKET_READ_CHECK(JointRotationValidityBits, bytesOfValidity);
+
+    int numValidJointRotations = 0;
     QVector<bool> validRotations;
     validRotations.resize(numJoints);
-
     { // rotation validity bits
         unsigned char validity = 0;
         int validityBit = 0;
@@ -627,38 +573,26 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             validRotations[i] = valid;
             validityBit = (validityBit + 1) % BITS_IN_BYTE;
         }
-    } // 1 + bytesOfValidity bytes
-
-    // each joint rotation component is stored in two bytes (sizeof(uint16_t))
-    int COMPONENTS_PER_QUATERNION = 4;
-    minPossibleSize += numValidJointRotations * COMPONENTS_PER_QUATERNION * sizeof(uint16_t);
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointData rotation validity;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
-        }
-        return maxAvailableSize;
     }
 
-    { // joint data
-        for (int i = 0; i < numJoints; i++) {
-            JointData& data = _jointData[i];
-            if (validRotations[i]) {
-                _hasNewJointRotations = true;
-                data.rotationSet = true;
-                sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, data.rotation);
-            }
+    // each joint rotation is stored in 6 bytes.
+    const int COMPRESSED_QUATERNION_SIZE = 6;
+    PACKET_READ_CHECK(JointRotations, numValidJointRotations * COMPRESSED_QUATERNION_SIZE);
+    for (int i = 0; i < numJoints; i++) {
+        JointData& data = _jointData[i];
+        if (validRotations[i]) {
+            sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
+            _hasNewJointRotations = true;
+            data.rotationSet = true;
         }
-    } // numJoints * 8 bytes
+    }
 
-    // joint translations
+    PACKET_READ_CHECK(JointTranslationValidityBits, bytesOfValidity);
+
     // get translation validity bits -- these indicate which translations were packed
     int numValidJointTranslations = 0;
     QVector<bool> validTranslations;
     validTranslations.resize(numJoints);
-
     { // translation validity bits
         unsigned char validity = 0;
         int validityBit = 0;
@@ -675,42 +609,36 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     } // 1 + bytesOfValidity bytes
 
-    // each joint translation component is stored in 6 bytes.  1 byte for translationCompressionRadix
-    minPossibleSize += numValidJointTranslations * 6 + 1;
-    if (minPossibleSize > maxAvailableSize) {
-        if (shouldLogError(now)) {
-            qCDebug(avatars) << "Malformed AvatarData packet after JointData translation validity;"
-                << " displayName = '" << _displayName << "'"
-                << " minPossibleSize = " << minPossibleSize
-                << " maxAvailableSize = " << maxAvailableSize;
+    // each joint translation component is stored in 6 bytes.
+    const int COMPRESSED_TRANSLATION_SIZE = 6;
+    PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
+    const int TRANSLATION_COMPRESSION_RADIX = 12;
+
+    for (int i = 0; i < numJoints; i++) {
+        JointData& data = _jointData[i];
+        if (validTranslations[i]) {
+            sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+            _hasNewJointTranslations = true;
+            data.translationSet = true;
         }
-        return maxAvailableSize;
     }
-
-    int translationCompressionRadix = *sourceBuffer++;
-
-    { // joint data
-        for (int i = 0; i < numJoints; i++) {
-            JointData& data = _jointData[i];
-            if (validTranslations[i]) {
-                sourceBuffer +=
-                    unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, translationCompressionRadix);
-                _hasNewJointTranslations = true;
-                data.translationSet = true;
-            }
-        }
-    } // numJoints * 12 bytes
 
     #ifdef WANT_DEBUG
     if (numValidJointRotations > 15) {
         qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
                  << "translations:" << numValidJointTranslations
-                 << "radix:" << translationCompressionRadix
                  << "size:" << (int)(sourceBuffer - startPosition);
     }
     #endif
 
     int numBytesRead = sourceBuffer - startPosition;
+
+    if (numBytesRead != buffer.size()) {
+        if (shouldLogError(now)) {
+            qCWarning(avatars) << "AvatarData packet size mismatch: expected " << numBytesRead << " received " << buffer.size();
+        }
+    }
+
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
 }
@@ -954,38 +882,33 @@ void AvatarData::clearJointsData() {
     }
 }
 
-bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
-    // this is used by the avatar-mixer
+void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
     QDataStream packetStream(data);
 
-    QUuid avatarUUID;
-    QUrl unusedModelURL; // legacy faceModel support
-    QUrl skeletonModelURL;
-    QVector<AttachmentData> attachmentData;
-    AvatarEntityMap avatarEntityData;
-    QString displayName;
-    packetStream >> avatarUUID >> unusedModelURL >> skeletonModelURL >> attachmentData >> displayName >> avatarEntityData;
+    packetStream >> identityOut.uuid >> identityOut.skeletonModelURL >> identityOut.attachmentData >> identityOut.displayName >> identityOut.avatarEntityData;
+}
 
+bool AvatarData::processAvatarIdentity(const Identity& identity) {
     bool hasIdentityChanged = false;
 
-    if (_firstSkeletonCheck || (skeletonModelURL != _skeletonModelURL)) {
-        setSkeletonModelURL(skeletonModelURL);
+    if (_firstSkeletonCheck || (identity.skeletonModelURL != _skeletonModelURL)) {
+        setSkeletonModelURL(identity.skeletonModelURL);
         hasIdentityChanged = true;
         _firstSkeletonCheck = false;
     }
 
-    if (displayName != _displayName) {
-        setDisplayName(displayName);
+    if (identity.displayName != _displayName) {
+        setDisplayName(identity.displayName);
         hasIdentityChanged = true;
     }
 
-    if (attachmentData != _attachmentData) {
-        setAttachmentData(attachmentData);
+    if (identity.attachmentData != _attachmentData) {
+        setAttachmentData(identity.attachmentData);
         hasIdentityChanged = true;
     }
 
-    if (avatarEntityData != _avatarEntityData) {
-        setAvatarEntityData(avatarEntityData);
+    if (identity.avatarEntityData != _avatarEntityData) {
+        setAvatarEntityData(identity.avatarEntityData);
         hasIdentityChanged = true;
     }
 
@@ -998,13 +921,10 @@ QByteArray AvatarData::identityByteArray() {
     QUrl emptyURL("");
     const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 
-    QUrl unusedModelURL; // legacy faceModel support
-
-    identityStream << QUuid() << unusedModelURL << urlToSend << _attachmentData << _displayName << _avatarEntityData;
+    identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
 
     return identityData;
 }
-
 
 void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     const QUrl& expanded = skeletonModelURL.isEmpty() ? AvatarData::defaultFullAvatarModelUrl() : skeletonModelURL;
@@ -1012,7 +932,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         return;
     }
     _skeletonModelURL = expanded;
-    qCDebug(avatars) << "Changing skeleton model for avatar to" << _skeletonModelURL.toString();
+    qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
 }

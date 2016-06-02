@@ -3,8 +3,8 @@
 //  examples
 //
 //  Copyright 2014 High Fidelity, Inc.
-//  Creates a flock of birds that fly around and chirp, staying inside the corners of the box defined  
-//  at the start of the script. 
+//  Creates a flock of birds that fly around and chirp, staying inside the corners of the box defined
+//  at the start of the script.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,12 +13,12 @@
 //  The rectangular area in the domain where the flock will fly
 var lowerCorner = { x: 0, y: 0, z: 0 };
 var upperCorner = { x: 30, y: 10, z: 30  };
-var STARTING_FRACTION = 0.25;   
+var STARTING_FRACTION = 0.25;
 
 var NUM_BIRDS = 50;
 var UPDATE_INTERVAL = 0.016;
-var playSounds = true; 
-var SOUND_PROBABILITY = 0.001;  
+var playSounds = true;
+var SOUND_PROBABILITY = 0.001;
 var STARTING_LIFETIME = (1.0 / SOUND_PROBABILITY) * UPDATE_INTERVAL * 10;
 var numPlaying = 0;
 var BIRD_SIZE = 0.08;
@@ -36,17 +36,17 @@ var ALIGNMENT_FORCE = 1.5;
 var COHESION_FORCE = 1.0;
 var MAX_COHESION_VELOCITY = 0.5;
 
-var followBirds = false; 
+var followBirds = false;
 var AVATAR_FOLLOW_RATE = 0.001;
 var AVATAR_FOLLOW_VELOCITY_TIMESCALE = 2.0;
 var AVATAR_FOLLOW_ORIENTATION_RATE = 0.005;
-var floor = false; 
+var floor = false;
 var MAKE_FLOOR = false;
 
 var averageVelocity = { x: 0, y: 0, z: 0 };
 var averagePosition = { x: 0, y: 0, z: 0 };
 
-var birdsLoaded = false; 
+var birdsLoaded = false;
 
 var oldAvatarOrientation;
 var oldAvatarPosition;
@@ -79,10 +79,10 @@ function updateBirds(deltaTime) {
                 birds[i].entityId = false;
                 return;
             }
-            //  Sum up average position and velocity 
+            //  Sum up average position and velocity
             if (Vec3.length(properties.velocity) > MIN_ALIGNMENT_VELOCITY) {
                 sumVelocity = Vec3.sum(sumVelocity, properties.velocity);
-                birdVelocitiesCounted += 1;  
+                birdVelocitiesCounted += 1;
             }
             sumPosition = Vec3.sum(sumPosition, properties.position);
             birdPositionsCounted += 1;
@@ -93,10 +93,10 @@ function updateBirds(deltaTime) {
                 var randomVelocity = randomVector(RANDOM_FLAP_VELOCITY);
                 randomVelocity.y = FLAP_UP + Math.random() * FLAP_UP;
 
-                //  Alignment Velocity 
-                var alignmentVelocityMagnitude = Math.min(MAX_ALIGNMENT_VELOCITY, Vec3.length(Vec3.multiply(ALIGNMENT_FORCE, averageVelocity))); 
+                //  Alignment Velocity
+                var alignmentVelocityMagnitude = Math.min(MAX_ALIGNMENT_VELOCITY, Vec3.length(Vec3.multiply(ALIGNMENT_FORCE, averageVelocity)));
                 var alignmentVelocity = Vec3.multiply(alignmentVelocityMagnitude, Vec3.normalize(averageVelocity));
-                alignmentVelocity.y *= VERTICAL_ALIGNMENT_COUPLING; 
+                alignmentVelocity.y *= VERTICAL_ALIGNMENT_COUPLING;
 
                 //  Cohesion
                 var distanceFromCenter = Vec3.length(Vec3.subtract(averagePosition, properties.position));
@@ -107,10 +107,10 @@ function updateBirds(deltaTime) {
 
                 Entities.editEntity(birds[i].entityId, { velocity: Vec3.sum(properties.velocity, newVelocity) });
 
-            } 
+            }
 
             //  Check whether to play a chirp
-            if (playSounds && (!birds[i].audioId || !birds[i].audioId.isPlaying) && (Math.random() < ((numPlaying > 0) ? SOUND_PROBABILITY / numPlaying : SOUND_PROBABILITY))) {
+            if (playSounds && (!birds[i].audioId || !birds[i].audioId.playing) && (Math.random() < ((numPlaying > 0) ? SOUND_PROBABILITY / numPlaying : SOUND_PROBABILITY))) {
                 var options = {
                           position: properties.position,
                     volume: BIRD_MASTER_VOLUME
@@ -126,43 +126,43 @@ function updateBirds(deltaTime) {
                 // Change size, and update lifetime to keep bird alive
                 Entities.editEntity(birds[i].entityId, { dimensions: Vec3.multiply(1.5, properties.dimensions),
                                                          lifetime: properties.ageInSeconds + STARTING_LIFETIME});
-                
+
             } else if (birds[i].audioId) {
-                // If bird is playing a chirp 
-                if (!birds[i].audioId.isPlaying) {
+                // If bird is playing a chirp
+                if (!birds[i].audioId.playing) {
                     Entities.editEntity(birds[i].entityId, { dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE }});
                     numPlaying--;
-                } 
+                }
             }
 
             //  Keep birds in their 'cage'
             var bounce = false;
-            var newVelocity = properties.velocity;  
-            var newPosition = properties.position; 
+            var newVelocity = properties.velocity;
+            var newPosition = properties.position;
             if (properties.position.x < lowerCorner.x) {
-                newPosition.x = lowerCorner.x; 
+                newPosition.x = lowerCorner.x;
                 newVelocity.x *= -1.0;
                 bounce = true;
             } else if (properties.position.x > upperCorner.x) {
-                newPosition.x = upperCorner.x; 
+                newPosition.x = upperCorner.x;
                 newVelocity.x *= -1.0;
                 bounce = true;
             }
             if (properties.position.y < lowerCorner.y) {
-                newPosition.y = lowerCorner.y; 
+                newPosition.y = lowerCorner.y;
                 newVelocity.y *= -1.0;
                 bounce = true;
             } else if (properties.position.y > upperCorner.y) {
-                newPosition.y = upperCorner.y; 
+                newPosition.y = upperCorner.y;
                 newVelocity.y *= -1.0;
                 bounce = true;
-            } 
+            }
             if (properties.position.z < lowerCorner.z) {
-                newPosition.z = lowerCorner.z; 
+                newPosition.z = lowerCorner.z;
                 newVelocity.z *= -1.0;
                 bounce = true;
             } else if (properties.position.z > upperCorner.z) {
-                newPosition.z = upperCorner.z; 
+                newPosition.z = upperCorner.z;
                 newVelocity.z *= -1.0;
                 bounce = true;
             }
@@ -171,7 +171,7 @@ function updateBirds(deltaTime) {
             }
         }
     }
-    //  Update average velocity and position of flock 
+    //  Update average velocity and position of flock
     if (birdVelocitiesCounted > 0) {
         averageVelocity = Vec3.multiply(1.0 / birdVelocitiesCounted, sumVelocity);
         //print(Vec3.length(averageVelocity));
@@ -184,10 +184,10 @@ function updateBirds(deltaTime) {
                 MyAvatar.orientation = Quat.mix(MyAvatar.orientation, birdDirection, AVATAR_FOLLOW_ORIENTATION_RATE);
             }
         }
-    } 
+    }
     if (birdPositionsCounted > 0) {
         averagePosition = Vec3.multiply(1.0 / birdPositionsCounted, sumPosition);
-            //  If Following birds, update position 
+            //  If Following birds, update position
         if (followBirds) {
             MyAvatar.position = Vec3.sum(Vec3.multiply(AVATAR_FOLLOW_RATE, MyAvatar.position), Vec3.multiply(1.0 - AVATAR_FOLLOW_RATE, averagePosition));
         }
@@ -211,12 +211,12 @@ Script.scriptEnding.connect(function() {
 });
 
 function loadBirds(howMany) {
-    oldAvatarOrientation = MyAvatar.orientation; 
+    oldAvatarOrientation = MyAvatar.orientation;
     oldAvatarPosition = MyAvatar.position;
 
   var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw"];
   /* Here are more sounds/species you can use
-                        , "mexicanWhipoorwill.raw", 
+                        , "mexicanWhipoorwill.raw",
                            "rosyfacedlovebird.raw", "saysphoebe.raw", "westernscreechowl.raw", "bandtailedpigeon.wav", "bridledtitmouse.wav",
                            "browncrestedflycatcher.wav", "commonnighthawk.wav", "commonpoorwill.wav", "doublecrestedcormorant.wav",
                            "gambelsquail.wav", "goldcrownedkinglet.wav", "greaterroadrunner.wav","groovebilledani.wav","hairywoodpecker.wav",
@@ -252,19 +252,19 @@ function loadBirds(howMany) {
             { red: 216, green: 153, blue: 99 },
             { red: 242, green: 226, blue: 64 }
   ];
-  
+
   var SOUND_BASE_URL = "http://public.highfidelity.io/sounds/Animals/";
-  
+
   for (var i = 0; i < howMany; i++) {
     var whichBird = Math.floor(Math.random() * sound_filenames.length);
-    var position = { 
-        x: lowerCorner.x + (upperCorner.x - lowerCorner.x) / 2.0 + (Math.random() - 0.5) * (upperCorner.x - lowerCorner.x) * STARTING_FRACTION, 
-        y: lowerCorner.y + (upperCorner.y - lowerCorner.y) / 2.0 + (Math.random() - 0.5) * (upperCorner.y - lowerCorner.y) * STARTING_FRACTION, 
+    var position = {
+        x: lowerCorner.x + (upperCorner.x - lowerCorner.x) / 2.0 + (Math.random() - 0.5) * (upperCorner.x - lowerCorner.x) * STARTING_FRACTION,
+        y: lowerCorner.y + (upperCorner.y - lowerCorner.y) / 2.0 + (Math.random() - 0.5) * (upperCorner.y - lowerCorner.y) * STARTING_FRACTION,
         z: lowerCorner.z + (upperCorner.z - lowerCorner.x) / 2.0 + (Math.random() - 0.5) * (upperCorner.z - lowerCorner.z) * STARTING_FRACTION
-    }; 
+    };
 
     birds.push({
-        sound: SoundCache.getSound(SOUND_BASE_URL + sound_filenames[whichBird]), 
+        sound: SoundCache.getSound(SOUND_BASE_URL + sound_filenames[whichBird]),
         entityId: Entities.addEntity({
                     type: "Sphere",
                     position: position,
@@ -282,8 +282,8 @@ function loadBirds(howMany) {
     }
     if (MAKE_FLOOR) {
         var FLOOR_THICKNESS = 0.05;
-        floor = Entities.addEntity({ type: "Box", position: {   x: lowerCorner.x + (upperCorner.x - lowerCorner.x) / 2.0, 
-                                                                y: lowerCorner.y, 
+        floor = Entities.addEntity({ type: "Box", position: {   x: lowerCorner.x + (upperCorner.x - lowerCorner.x) / 2.0,
+                                                                y: lowerCorner.y,
                                                                 z: lowerCorner.z + (upperCorner.z - lowerCorner.z) / 2.0  },
                                                    dimensions: { x: (upperCorner.x - lowerCorner.x), y: FLOOR_THICKNESS, z: (upperCorner.z - lowerCorner.z)},
                                                    color: {red: 100, green: 100, blue: 100}

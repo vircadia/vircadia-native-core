@@ -545,6 +545,13 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(networkMenu, MenuOption::BandwidthDetails, 0,
         dialogsManager.data(), SLOT(bandwidthDetails()));
 
+    #if (PR_BUILD || DEV_BUILD)
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
+                qApp, SLOT(sendWrongProtocolVersionsSignature(bool)));
+    #endif
+
+    
+
 
     // Developer > Timing >>>
     MenuWrapper* timingMenu = developerMenu->addMenu("Timing");

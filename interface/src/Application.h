@@ -261,6 +261,10 @@ public slots:
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
 
+#if (PR_BUILD || DEV_BUILD)
+    void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
+#endif
+
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
     void calibrateEyeTracker1Point();
@@ -314,6 +318,8 @@ private slots:
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     void setSessionUUID(const QUuid& sessionUUID) const;
+    void limitOfSilentDomainCheckInsReached();
+
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
@@ -322,6 +328,7 @@ private slots:
     static void packetSent(quint64 length);
     void updateDisplayMode();
     void updateInputModes();
+    void domainConnectionRefused(const QString& reasonMessage, int reason);
 
 private:
     static void initDisplay();
