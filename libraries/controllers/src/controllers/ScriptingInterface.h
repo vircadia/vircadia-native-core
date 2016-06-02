@@ -77,7 +77,7 @@ namespace controller {
         Q_INVOKABLE QVector<QString> getDeviceNames();
         Q_INVOKABLE int findAction(QString actionName);
         Q_INVOKABLE QVector<QString> getActionNames() const;
-        
+
         Q_INVOKABLE float getValue(const int& source) const;
         Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;
         Q_INVOKABLE float getAxisValue(StandardAxisChannel source, uint16_t device = 0) const;
