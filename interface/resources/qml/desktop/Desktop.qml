@@ -264,6 +264,10 @@ FocusScope {
         pinned = !pinned
     }
 
+    function setPinned(newPinned) {
+        pinned = newPinned
+    }
+
     onPinnedChanged: {
 
         if (pinned) {
