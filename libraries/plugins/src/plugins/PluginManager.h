@@ -19,6 +19,9 @@ public:
     const DisplayPluginList& getDisplayPlugins();
     const InputPluginList& getInputPlugins();
 
+    DisplayPluginPointer getPreferredDisplayPlugin();
+
+    void setPreferredDisplayPlugin(const QString& display);
     void disableDisplayPlugin(const QString& name);
     void disableDisplays(const QStringList& displays);
     void disableInputs(const QStringList& inputs);

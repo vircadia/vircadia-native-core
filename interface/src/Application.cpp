@@ -2957,6 +2957,13 @@ void Application::loadSettings() {
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
     Menu::getInstance()->loadSettings();
+
+    // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
+    if (auto plugin = PluginManager::getInstance()->getPreferredDisplayPlugin()) {
+        Q_ASSERT(plugin == getActiveDisplayPlugin());
+        Menu::getInstance()->setIsOptionChecked(plugin->getName(), true);
+    }
+
     getMyAvatar()->loadData();
 
     _settingsLoaded = true;
@@ -4938,7 +4945,7 @@ void Application::postLambdaEvent(std::function<void()> f) {
 }
 
 void Application::initPlugins(const QStringList& arguments) {
-    QCommandLineOption display("display", "Default display", "display");
+    QCommandLineOption display("display", "Preferred display", "display");
     QCommandLineOption disableDisplays("disable-displays", "Displays to disable", "display");
     QCommandLineOption disableInputs("disable-inputs", "Inputs to disable", "input");
 
@@ -4949,8 +4956,9 @@ void Application::initPlugins(const QStringList& arguments) {
     parser.parse(arguments);
 
     if (parser.isSet(display)) {
-        auto defaultDisplay = parser.value(display);
-        qInfo() << "Setting prefered display plugin:" << defaultDisplay;
+        auto preferredDisplay = parser.value(display);
+        qInfo() << "Setting prefered display plugin:" << preferredDisplay;
+        PluginManager::getInstance()->setPreferredDisplayPlugin(preferredDisplay);
     }
 
     if (parser.isSet(disableDisplays)) {

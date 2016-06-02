@@ -52,6 +52,7 @@ QString getPluginIIDFromMetaData(QJsonObject object) {
     return object[IID_KEY].toString();
 }
 
+QString preferredDisplayPluginName;
 QStringList disabledDisplays;
 QStringList disabledInputs;
 
@@ -175,6 +176,29 @@ const InputPluginList& PluginManager::getInputPlugins() {
         }
     });
     return inputPlugins;
+}
+
+void PluginManager::setPreferredDisplayPlugin(const QString& display) {
+    preferredDisplayPluginName = display;
+}
+
+DisplayPluginPointer PluginManager::getPreferredDisplayPlugin() {
+    static DisplayPluginPointer displayPlugin;
+
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // Grab the built in plugins
+        auto plugins = getDisplayPlugins();
+
+        auto it = std::find_if(plugins.begin(), plugins.end(), [](DisplayPluginPointer plugin) {
+            return plugin->getName() == preferredDisplayPluginName;
+        });
+        if (it != plugins.end()) {
+            displayPlugin = *it;
+        }
+    });
+
+    return displayPlugin;
 }
 
 
