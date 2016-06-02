@@ -234,7 +234,7 @@ $(document).ready(function(){
 
 
   // Bootstrap switch in table
-  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.toggle-checkbox', function () {
+  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.table-checkbox', function () {
     // Bootstrap switches in table: set the changed data attribute for all rows.
     var row = $(this).closest('tr');
     row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
@@ -976,7 +976,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
           html += "<input type='checkbox' "
-          html += "class='form-control toggle-checkbox' "
+          html += "class='form-control toggle-checkbox table-checkbox' "
           html += "name='" + colName + "'"
           html += (colValue ? " checked" : "")
           html += " />"
