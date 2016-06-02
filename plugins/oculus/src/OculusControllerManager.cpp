@@ -120,14 +120,14 @@ static const std::vector<std::pair<ovrButton, StandardButtonChannel>> BUTTON_MAP
     { ovrButton_B, B },
     { ovrButton_LThumb, LS },
     { ovrButton_RThumb, RS },
-    { ovrButton_LShoulder, LB },
-    { ovrButton_RShoulder, RB },
+    //{ ovrButton_LShoulder, LB },
+    //{ ovrButton_RShoulder, RB },
 } };
 
 static const std::vector<std::pair<ovrTouch, StandardButtonChannel>> TOUCH_MAP { {
-    { ovrTouch_X, LEFT_SECONDARY_THUMB_TOUCH },
+    { ovrTouch_X, LEFT_PRIMARY_THUMB_TOUCH },
     { ovrTouch_Y, LEFT_SECONDARY_THUMB_TOUCH },
-    { ovrTouch_A, RIGHT_SECONDARY_THUMB_TOUCH },
+    { ovrTouch_A, RIGHT_PRIMARY_THUMB_TOUCH },
     { ovrTouch_B, RIGHT_SECONDARY_THUMB_TOUCH },
     { ovrTouch_LIndexTrigger, LEFT_PRIMARY_INDEX_TOUCH },
     { ovrTouch_RIndexTrigger, RIGHT_PRIMARY_INDEX_TOUCH },
@@ -173,6 +173,11 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
 }
 
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    // Check past values of button map for hysteresis before clearing map
+    const float HYSTERESIS_OFFSET = -0.1f;
+    float LEFT_HYSTERESIS_OFFSET = _buttonPressedMap.find(LEFT_GRIP) != _buttonPressedMap.end() ? HYSTERESIS_OFFSET : 0.0f;
+    float RIGHT_HYSTERESIS_OFFSET = _buttonPressedMap.find(RIGHT_GRIP) != _buttonPressedMap.end() ? HYSTERESIS_OFFSET : 0.0f;
+
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
@@ -206,6 +211,16 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
             _buttonPressedMap.insert(pair.second);
         }
     }
+    // Map pressed hand triggers to grip buttons
+    // This is temporary in order to support the grab/equip scripts
+    const float handTriggerThreshold = 0.9f;
+    if (inputState.HandTrigger[ovrHand_Left] >= handTriggerThreshold + LEFT_HYSTERESIS_OFFSET) {
+        _buttonPressedMap.insert(LEFT_GRIP);
+    }
+    if (inputState.HandTrigger[ovrHand_Right] >= handTriggerThreshold + RIGHT_HYSTERESIS_OFFSET) {
+        _buttonPressedMap.insert(RIGHT_GRIP);
+    }
+
     // Touches
     for (const auto& pair : TOUCH_MAP) {
         if (inputState.Touches & pair.first) {
@@ -261,7 +276,7 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     //
     // An approximate offset for the Touch can be obtained by inspection:
     //
-    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/2.0f, zAxis)
+    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/2.0f, zAxis) * glm::angleAxis(PI/4.0f, xAxis))
     //
     // So the full equation is:
     //
@@ -280,14 +295,26 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
 
     static const glm::quat leftQuarterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
     static const glm::quat rightQuarterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
 
-    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ) * touchToHand;
-    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ) * touchToHand;
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ * eighthX) * touchToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ * eighthX) * touchToHand;
 
+    static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+    static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+                                                         CONTROLLER_LENGTH_OFFSET / 2.0f,
+                                                         CONTROLLER_LENGTH_OFFSET * 2.0f);
+    static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+    static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+
+    auto translationOffset = (hand == ovrHand_Left ? leftTranslationOffset : rightTranslationOffset);
     auto rotationOffset = (hand == ovrHand_Left ? leftRotationOffset : rightRotationOffset);
 
+    glm::quat rotation = toGlm(handPose.ThePose.Orientation);
+
     pose.translation = toGlm(handPose.ThePose.Position);
-    pose.rotation = toGlm(handPose.ThePose.Orientation)*rotationOffset;
+    pose.translation += rotation * translationOffset;
+    pose.rotation = rotation * rotationOffset;
     pose.angularVelocity = toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
     pose.valid = true;
@@ -300,27 +327,54 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
 controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{
-        // Trackpad analogs
+        // buttons
+        makePair(A, "A"),
+        makePair(B, "B"),
+        makePair(X, "X"),
+        makePair(Y, "Y"),
+
+        // trackpad analogs
         makePair(LX, "LX"),
         makePair(LY, "LY"),
         makePair(RX, "RX"),
         makePair(RY, "RY"),
-        // trigger analogs
+
+        // triggers
         makePair(LT, "LT"),
         makePair(RT, "RT"),
 
-        makePair(LB, "LB"),
-        makePair(RB, "RB"),
+        // trigger buttons
+        //makePair(LB, "LB"),
+        //makePair(RB, "RB"),
 
+        // side grip triggers
+        makePair(LG, "LG"),
+        makePair(RG, "RG"),
+        makePair(LEFT_GRIP, "LeftGrip"),
+        makePair(RIGHT_GRIP, "RightGrip"),
+
+        // joystick buttons
         makePair(LS, "LS"),
         makePair(RS, "RS"),
+
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
-        makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
-        makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
-        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
-        makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
+        makePair(LEFT_PRIMARY_THUMB_TOUCH, "LeftPrimaryThumbTouch"),
+        makePair(LEFT_SECONDARY_THUMB_TOUCH, "LeftSecondaryThumbTouch"),
+        makePair(RIGHT_PRIMARY_THUMB_TOUCH, "RightPrimaryThumbTouch"),
+        makePair(RIGHT_SECONDARY_THUMB_TOUCH, "RightSecondaryThumbTouch"),
+        makePair(LEFT_PRIMARY_INDEX_TOUCH, "LeftPrimaryIndexTouch"),
+        makePair(RIGHT_PRIMARY_INDEX_TOUCH, "RightPrimaryIndexTouch"),
+        makePair(LS_TOUCH, "LSTouch"),
+        makePair(RS_TOUCH, "RSTouch"),
+        makePair(LEFT_THUMB_UP, "LeftThumbUp"),
+        makePair(RIGHT_THUMB_UP, "RightThumbUp"),
+        makePair(LEFT_INDEX_POINT, "LeftIndexPoint"),
+        makePair(RIGHT_INDEX_POINT, "RightIndexPoint"),
+
+        makePair(BACK, "LeftApplicationMenu"),
+        makePair(START, "RightApplicationMenu"),
     };
     return availableInputs;
 }
