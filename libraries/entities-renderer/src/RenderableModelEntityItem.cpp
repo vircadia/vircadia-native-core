@@ -610,10 +610,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         QVector<QVector<glm::vec3>>& points = info.getPoints();
         points.clear();
-        unsigned int i = 0;
+        uint32_t i = 0;
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
         // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
+        const uint32_t TRIANGLE_STRIDE = 3;
+        const uint32_t QUAD_STRIDE = 4;
         foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
@@ -621,14 +623,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 QVector<glm::vec3>& pointsInPart = points[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
-                unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-                for (unsigned int j = 0; j < triangleCount; j++) {
-                    unsigned int p0Index = meshPart.triangleIndices[j*3];
-                    unsigned int p1Index = meshPart.triangleIndices[j*3+1];
-                    unsigned int p2Index = meshPart.triangleIndices[j*3+2];
-                    glm::vec3 p0 = mesh.vertices[p0Index];
-                    glm::vec3 p1 = mesh.vertices[p1Index];
-                    glm::vec3 p2 = mesh.vertices[p2Index];
+                uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
+                assert(numIndices % TRIANGLE_STRIDE == 0);
+                for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
+                    glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
+                    glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[j + 1]];
+                    glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[j + 2]];
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
                     }
@@ -641,17 +641,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 }
 
                 // run through all the quads and (uniquely) add each point to the hull
-                unsigned int quadCount = meshPart.quadIndices.size() / 4;
-                assert((unsigned int)meshPart.quadIndices.size() == quadCount*4);
-                for (unsigned int j = 0; j < quadCount; j++) {
-                    unsigned int p0Index = meshPart.quadIndices[j*4];
-                    unsigned int p1Index = meshPart.quadIndices[j*4+1];
-                    unsigned int p2Index = meshPart.quadIndices[j*4+2];
-                    unsigned int p3Index = meshPart.quadIndices[j*4+3];
-                    glm::vec3 p0 = mesh.vertices[p0Index];
-                    glm::vec3 p1 = mesh.vertices[p1Index];
-                    glm::vec3 p2 = mesh.vertices[p2Index];
-                    glm::vec3 p3 = mesh.vertices[p3Index];
+                numIndices = (uint32_t)meshPart.quadIndices.size();
+                assert(numIndices % QUAD_STRIDE == 0);
+                for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
+                    glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
+                    glm::vec3 p1 = mesh.vertices[meshPart.quadIndices[j + 1]];
+                    glm::vec3 p2 = mesh.vertices[meshPart.quadIndices[j + 2]];
+                    glm::vec3 p3 = mesh.vertices[meshPart.quadIndices[j + 3]];
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
                     }
