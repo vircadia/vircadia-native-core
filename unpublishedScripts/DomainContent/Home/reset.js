@@ -63,7 +63,7 @@
 
     var TRANSFORMER_URL_WILL = 'atp:/dressingRoom/will_T.fbx';
 
-    var TRANSFORMER_URL_STYLIZED_FEMALE = 'atp:/dressingRoom/stylized_female.fbx';
+    var TRANSFORMER_URL_STYLIZED_FEMALE = 'atp:/dressingRoom/ArtemisJacketOn.fbx';
 
     var TRANSFORMER_URL_PRISCILLA = 'atp:/dressingRoom/priscilla.fbx';
 
