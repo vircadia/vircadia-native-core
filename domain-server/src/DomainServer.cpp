@@ -715,9 +715,13 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getType() == NodeType::Agent) {
-            result++;
+    nodeList->eachNode([&](const SharedNodePointer& node){
+        // only count unassigned agents (i.e., users)
+        if (node->getType() == NodeType::Agent) {
+            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData && !nodeData->wasAssigned()) {
+                result++;
+            }
         }
     });
     return result;

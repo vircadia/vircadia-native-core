@@ -111,7 +111,7 @@
         {
           "name": "maximum_user_capacity",
           "label": "Maximum User Capacity",
-          "help": "The limit on how many avatars can be connected at once.  0 means no limit.",
+          "help": "The limit on how many users can be connected at once (0 means no limit). Avatars connected from the same machine will not count towards this limit.",
           "placeholder": "0",
           "default": "0",
           "advanced": false
