@@ -232,6 +232,16 @@ $(document).ready(function(){
     badgeSidebarForDifferences($(this));
   });
 
+
+  // Bootstrap switch in table
+  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.toggle-checkbox', function () {
+    // Bootstrap switches in table: set the changed data attribute for all rows.
+    var row = $(this).closest('tr');
+    row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
+    updateDataChangedForSiblingRows(row, true);
+  });
+
+
   $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
     var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
@@ -966,16 +976,30 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
-        // setup the td for this column
-        html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>";
+        if (isArray && col.type === "checkbox") {
 
-        // add the actual value to the td so it is displayed
-        html += colValue;
+          html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
+          html += "<input type='checkbox' "
+          html += "class='form-control toggle-checkbox' "
+          html += "name='" + colName + "'"
+          html += (colValue ? " checked" : "")
+          html += " />"
+          html += "</td>"
 
-        // for values to be posted properly we add a hidden input to this td
-        html += "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>";
+        } else {
 
-        html += "</td>";
+          // setup the td for this column
+          html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>";
+
+          // add the actual value to the td so it is displayed
+          html += colValue;
+
+          // for values to be posted properly we add a hidden input to this td
+          html += "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>";
+
+          html += "</td>";
+        }
+
       })
 
       if (!isLocked && !setting.read_only) {
