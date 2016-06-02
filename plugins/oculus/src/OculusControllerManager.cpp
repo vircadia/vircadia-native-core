@@ -183,6 +183,8 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         ++numTrackedControllers;
         if (REQUIRED_HAND_STATUS == (tracking.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
             handlePose(deltaTime, inputCalibrationData, hand, tracking.HandPoses[hand]);
+        } else {
+            _poseStateMap[hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND].valid = false;
         }
     });
     using namespace controller;
@@ -250,6 +252,25 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     // the rotation to align the Touch axes with those of the hands is:
     //
     //    touchToHand = halfTurnAboutY * quaterTurnAboutX
+
+    // Due to how the Touch controllers fit into the palm there is an offset that is different for each hand.
+    // You can think of this offset as the inverse of the measured rotation when the hands are posed, such that
+    // the combination (measurement * offset) is identity at this orientation.
+    //
+    //    Qoffset = glm::inverse(deltaRotation when hand is posed fingers forward, palm down)
+    //
+    // An approximate offset for the Touch can be obtained by inspection:
+    //
+    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/2.0f, zAxis)
+    //
+    // So the full equation is:
+    //
+    //    Q = combinedMeasurement * touchToHand
+    //
+    //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
+    //
+    //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
+
     auto poseId = hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND;
     auto& pose = _poseStateMap[poseId];
 
@@ -257,10 +278,15 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
     static const glm::quat touchToHand = yFlip * quarterX;
 
+    static const float sign = (hand == ovrHand_Left ? 1.0f : -1.0f);
+    static const glm::quat signedQuarterZ = glm::angleAxis(sign * PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat signedRotationOffset = glm::inverse(signedQuarterZ) * touchToHand;
+
     pose.translation = toGlm(handPose.ThePose.Position);
-    pose.rotation = toGlm(handPose.ThePose.Orientation)*touchToHand;
+    pose.rotation = toGlm(handPose.ThePose.Orientation)*signedRotationOffset;
     pose.angularVelocity = toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
+    pose.valid = true;
 
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
