@@ -278,12 +278,16 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
     static const glm::quat touchToHand = yFlip * quarterX;
 
-    static const float sign = (hand == ovrHand_Left ? 1.0f : -1.0f);
-    static const glm::quat signedQuarterZ = glm::angleAxis(sign * PI_OVER_TWO, Vectors::UNIT_Z);
-    static const glm::quat signedRotationOffset = glm::inverse(signedQuarterZ) * touchToHand;
+    static const glm::quat leftQuarterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat rightQuarterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ) * touchToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ) * touchToHand;
+
+    auto rotationOffset = (hand == ovrHand_Left ? leftRotationOffset : rightRotationOffset);
 
     pose.translation = toGlm(handPose.ThePose.Position);
-    pose.rotation = toGlm(handPose.ThePose.Orientation)*signedRotationOffset;
+    pose.rotation = toGlm(handPose.ThePose.Orientation)*rotationOffset;
     pose.angularVelocity = toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
     pose.valid = true;
