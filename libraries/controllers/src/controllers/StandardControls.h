@@ -44,7 +44,8 @@ namespace controller {
         LS_TOUCH,
         LEFT_THUMB_UP,
         LS_CENTER,
-        LS_OUTER,
+        LS_X,
+        LS_Y,
 
         RIGHT_PRIMARY_THUMB,
         RIGHT_SECONDARY_THUMB,
@@ -53,7 +54,8 @@ namespace controller {
         RS_TOUCH,
         RIGHT_THUMB_UP,
         RS_CENTER,
-        RS_OUTER,
+        RS_X,
+        RS_Y,
 
         LEFT_PRIMARY_INDEX,
         LEFT_SECONDARY_INDEX,
