@@ -26,10 +26,10 @@ import "fileDialog"
 ModalWindow {
     id: root
     resizable: true
-    implicitWidth: 640
-    implicitHeight: 480
+    implicitWidth: 480
+    implicitHeight: 360
 
-    minSize: Qt.vector2d(300, 240)
+    minSize: Qt.vector2d(360, 240)
     draggable: true
 
     HifiConstants { id: hifi }
@@ -79,6 +79,9 @@ ModalWindow {
         fileTableModel.folder = initialFolder;
 
         iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
+
+        // Clear selection when click on external frame.
+        frameClicked.connect(function() { d.clearSelection(); });
     }
 
     Item {
@@ -86,6 +89,13 @@ ModalWindow {
         width: pane.width
         height: pane.height
         anchors.margins: 0
+
+        MouseArea {
+            // Clear selection when click on internal unused area.
+            anchors.fill: parent
+            drag.target: root
+            onClicked: d.clearSelection()
+        }
 
         Row {
             id: navControls
@@ -202,6 +212,8 @@ ModalWindow {
             function update() {
                 var row = fileTableView.currentRow;
 
+                openButton.text = root.selectDirectory && row === -1 ? "Choose" : "Open"
+
                 if (row === -1) {
                     return;
                 }
@@ -225,6 +237,12 @@ ModalWindow {
             function navigateHome() {
                 fileTableModel.folder = homeDestination;
                 return true;
+            }
+
+            function clearSelection() {
+                fileTableView.selection.clear();
+                fileTableView.currentRow = -1;
+                update();
             }
         }
 
@@ -389,6 +407,8 @@ ModalWindow {
 
                     rows++;
                 }
+
+                d.clearSelection();
             }
         }
 
@@ -633,8 +653,15 @@ ModalWindow {
         Action {
             id: okAction
             text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
-            enabled: currentSelection.text ? true : false
-            onTriggered: okActionTimer.start();
+            enabled: currentSelection.text || !root.selectDirectory && d.currentSelectionIsFolder ? true : false
+            onTriggered: {
+                if (!root.selectDirectory && !d.currentSelectionIsFolder
+                        || root.selectDirectory && fileTableView.currentRow === -1) {
+                    okActionTimer.start();
+                } else {
+                    fileTableView.navigateToCurrentRow();
+                }
+            }
         }
 
         Timer {
