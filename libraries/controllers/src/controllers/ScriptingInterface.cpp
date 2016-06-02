@@ -76,73 +76,73 @@ controller::ScriptingInterface::ScriptingInterface() {
 
 namespace controller {
 
-	QObject* ScriptingInterface::newMapping(const QString& mappingName) {
-		auto userInputMapper = DependencyManager::get<UserInputMapper>();
-		return new MappingBuilderProxy(*userInputMapper, userInputMapper->newMapping(mappingName));
-	}
+    QObject* ScriptingInterface::newMapping(const QString& mappingName) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        return new MappingBuilderProxy(*userInputMapper, userInputMapper->newMapping(mappingName));
+    }
 
-	void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
-		auto userInputMapper = DependencyManager::get<UserInputMapper>();
-		userInputMapper->enableMapping(mappingName, enable);
-	}
+    void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->enableMapping(mappingName, enable);
+    }
 
-	float ScriptingInterface::getValue(const int& source) const {
-		auto userInputMapper = DependencyManager::get<UserInputMapper>();
-		return userInputMapper->getValue(Input((uint32_t)source));
-	}
+    float ScriptingInterface::getValue(const int& source) const {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        return userInputMapper->getValue(Input((uint32_t)source));
+    }
 
-	float ScriptingInterface::getButtonValue(StandardButtonChannel source, uint16_t device) const {
-		return getValue(Input(device, source, ChannelType::BUTTON).getID());
-	}
+    float ScriptingInterface::getButtonValue(StandardButtonChannel source, uint16_t device) const {
+        return getValue(Input(device, source, ChannelType::BUTTON).getID());
+    }
 
-	float ScriptingInterface::getAxisValue(StandardAxisChannel source, uint16_t device) const {
-		return getValue(Input(device, source, ChannelType::AXIS).getID());
-	}
+    float ScriptingInterface::getAxisValue(StandardAxisChannel source, uint16_t device) const {
+        return getValue(Input(device, source, ChannelType::AXIS).getID());
+    }
 
-	Pose ScriptingInterface::getPoseValue(const int& source) const {
-		auto userInputMapper = DependencyManager::get<UserInputMapper>();
-		return userInputMapper->getPose(Input((uint32_t)source));
-	}
+    Pose ScriptingInterface::getPoseValue(const int& source) const {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        return userInputMapper->getPose(Input((uint32_t)source)); 
+    }
+    
+    Pose ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
+        return getPoseValue(Input(device, source, ChannelType::POSE).getID());
+    }
 
-	Pose ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
-		return getPoseValue(Input(device, source, ChannelType::POSE).getID());
-	}
+    QVector<Action> ScriptingInterface::getAllActions() {
+        return DependencyManager::get<UserInputMapper>()->getAllActions();
+    }
 
-	QVector<Action> ScriptingInterface::getAllActions() {
-		return DependencyManager::get<UserInputMapper>()->getAllActions();
-	}
+    QString ScriptingInterface::getDeviceName(unsigned int device) {
+        return DependencyManager::get<UserInputMapper>()->getDeviceName((unsigned short)device);
+    }
 
-	QString ScriptingInterface::getDeviceName(unsigned int device) {
-		return DependencyManager::get<UserInputMapper>()->getDeviceName((unsigned short)device);
-	}
+    QVector<Input::NamedPair> ScriptingInterface::getAvailableInputs(unsigned int device) {
+        return DependencyManager::get<UserInputMapper>()->getAvailableInputs((unsigned short)device);
+    }
 
-	QVector<Input::NamedPair> ScriptingInterface::getAvailableInputs(unsigned int device) {
-		return DependencyManager::get<UserInputMapper>()->getAvailableInputs((unsigned short)device);
-	}
+    int ScriptingInterface::findDevice(QString name) {
+        return DependencyManager::get<UserInputMapper>()->findDevice(name);
+    }
 
-	int ScriptingInterface::findDevice(QString name) {
-		return DependencyManager::get<UserInputMapper>()->findDevice(name);
-	}
+    QVector<QString> ScriptingInterface::getDeviceNames() {
+        return DependencyManager::get<UserInputMapper>()->getDeviceNames();
+    }
 
-	QVector<QString> ScriptingInterface::getDeviceNames() {
-		return DependencyManager::get<UserInputMapper>()->getDeviceNames();
-	}
+    float ScriptingInterface::getActionValue(int action) {
+        return DependencyManager::get<UserInputMapper>()->getActionState(Action(action));
+    }
 
-	float ScriptingInterface::getActionValue(int action) {
-		return DependencyManager::get<UserInputMapper>()->getActionState(Action(action));
-	}
+    int ScriptingInterface::findAction(QString actionName) {
+        return DependencyManager::get<UserInputMapper>()->findAction(actionName);
+    }
 
-	int ScriptingInterface::findAction(QString actionName) {
-		return DependencyManager::get<UserInputMapper>()->findAction(actionName);
-	}
+    QVector<QString> ScriptingInterface::getActionNames() const {
+        return DependencyManager::get<UserInputMapper>()->getActionNames();
+    }
 
-	QVector<QString> ScriptingInterface::getActionNames() const {
-		return DependencyManager::get<UserInputMapper>()->getActionNames();
-	}
-
-	bool ScriptingInterface::triggerHapticPulse(unsigned int device, float strength, float duration, bool leftHand) const {
-		return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(device, strength, duration, leftHand);
-	}
+    bool ScriptingInterface::triggerHapticPulse(unsigned int device, float strength, float duration, bool leftHand) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(device, strength, duration, leftHand);
+    }
 
     void ScriptingInterface::updateMaps() {
         QVariantMap newHardware;

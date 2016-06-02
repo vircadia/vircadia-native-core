@@ -51,12 +51,12 @@ public:
 
     float getValue(const Input& input) const;
     float getValue(ChannelType channelType, uint16_t channel) const;
-	Pose getPoseValue(uint16_t channel) const;
+    Pose getPoseValue(uint16_t channel) const;
 
     const QString& getName() const { return _name; }
 
-	// By default, Input Devices do not support haptics
-	virtual bool triggerHapticPulse(float strength, float duration, bool leftHand) { return false; }
+    // By default, Input Devices do not support haptics
+    virtual bool triggerHapticPulse(float strength, float duration, bool leftHand) { return false; }
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas

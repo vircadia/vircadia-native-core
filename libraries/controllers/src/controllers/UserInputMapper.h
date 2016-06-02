@@ -89,7 +89,7 @@ namespace controller {
         void setActionState(Action action, float value) { _actionStates[toInt(action)] = value; }
         void deltaActionState(Action action, float delta) { _actionStates[toInt(action)] += delta; }
         void setActionState(Action action, const Pose& value) { _poseStates[toInt(action)] = value; }
-		bool triggerHapticPulse(uint16 deviceID, float strength, float duration, bool leftHand);
+        bool triggerHapticPulse(uint16 deviceID, float strength, float duration, bool leftHand);
 
         static Input makeStandardInput(controller::StandardButtonChannel button);
         static Input makeStandardInput(controller::StandardAxisChannel axis);
