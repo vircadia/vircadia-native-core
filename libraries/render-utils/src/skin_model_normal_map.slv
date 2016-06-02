@@ -52,8 +52,8 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
+    <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
 
     _normal = interpolatedNormal.xyz;
     _tangent = interpolatedTangent.xyz;

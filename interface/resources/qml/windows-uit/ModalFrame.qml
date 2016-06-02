@@ -27,6 +27,8 @@ Frame {
         readonly property int frameMarginTop: hifi.dimensions.modalDialogMargin.y + (frameContent.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
         readonly property int frameMarginBottom: hifi.dimensions.modalDialogMargin.y
 
+        signal frameClicked();
+
         anchors {
             fill: parent
             topMargin: -frameMarginTop
@@ -47,6 +49,7 @@ Frame {
             anchors.fill: parent
             drag.target: window
             enabled: window.draggable
+            onClicked: window.frameClicked();
         }
 
         Item {
