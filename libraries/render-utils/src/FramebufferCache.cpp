@@ -59,8 +59,8 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _deferredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _deferredFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
-   // auto colorFormat = gpu::Element::COLOR_RGBA_32;
     auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+    auto linearFormat = gpu::Element::COLOR_RGBA_32;
     auto width = _frameBufferSize.width();
     auto height = _frameBufferSize.height();
 
@@ -70,7 +70,8 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _primaryFramebuffer->setRenderBuffer(0, _primaryColorTexture);
 
     _deferredColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-    _deferredNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+
+    _deferredNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(linearFormat, width, height, defaultSampler));
     _deferredSpecularTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
 
     _deferredFramebuffer->setRenderBuffer(0, _deferredColorTexture);
