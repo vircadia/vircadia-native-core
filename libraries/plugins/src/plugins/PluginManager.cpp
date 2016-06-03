@@ -164,7 +164,9 @@ const InputPluginList& PluginManager::getInputPlugins() {
             InputProvider* inputProvider = qobject_cast<InputProvider*>(loader->instance());
             if (inputProvider) {
                 for (auto inputPlugin : inputProvider->getInputPlugins()) {
-                    inputPlugins.push_back(inputPlugin);
+                    if (inputPlugin->isSupported()) {
+                        inputPlugins.push_back(inputPlugin);
+                    }
                 }
             }
         }
@@ -173,6 +175,7 @@ const InputPluginList& PluginManager::getInputPlugins() {
         for (auto plugin : inputPlugins) {
             plugin->setContainer(&container);
             plugin->init();
+            plugin->activate();
         }
     });
     return inputPlugins;
