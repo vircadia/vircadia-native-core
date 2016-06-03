@@ -445,25 +445,18 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 
     useProgram(_program);
     // check the alpha
-    auto overlayAlpha = compositorHelper->getAlpha();
-    if (overlayAlpha > 0.0f) {
-        // set the alpha
-        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
-        // Overlay draw
-        if (isStereo()) {
-            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
-            for_each_eye([&](Eye eye) {
-                eyeViewport(eye);
-                drawUnitQuad();
-            });
-        } else {
-            // Overlay draw
-            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+    // Overlay draw
+    if (isStereo()) {
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
             drawUnitQuad();
-        }
+        });
+    } else {
+        // Overlay draw
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+        drawUnitQuad();
     }
-    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
@@ -471,24 +464,16 @@ void OpenGLDisplayPlugin::compositePointer() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     useProgram(_program);
-    // check the alpha
-    auto overlayAlpha = compositorHelper->getAlpha();
-    if (overlayAlpha > 0.0f) {
-        // set the alpha
-        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
-        if (isStereo()) {
-            for_each_eye([&](Eye eye) {
-                eyeViewport(eye);
-                drawUnitQuad();
-            });
-        } else {
+    Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
+    if (isStereo()) {
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
             drawUnitQuad();
-        }
+        });
+    } else {
+        drawUnitQuad();
     }
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
-    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void OpenGLDisplayPlugin::compositeScene() {

@@ -346,7 +346,7 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
     auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
 
-    float uiRadius = _oculusUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
+    float uiRadius = _hmdUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
 
     float instersectionDistance;
     if (raySphereIntersect(relativeDirection, relativePosition, uiRadius, &instersectionDistance)){
@@ -405,60 +405,6 @@ void CompositorHelper::updateTooltips() {
     //        _tooltipId = Tooltip::showTip(_hoverItemTitle, _hoverItemDescription);
     //    }
     //}
-}
-
-static const float FADE_DURATION = 500.0f;
-static const float FADE_IN_ALPHA = 1.0f;
-static const float FADE_OUT_ALPHA = 0.0f;
-
-void CompositorHelper::startFadeFailsafe(float endValue) {
-    _fadeStarted = usecTimestampNow();
-    _fadeFailsafeEndValue = endValue;
-
-    const int SLIGHT_DELAY = 10;
-    QTimer::singleShot(FADE_DURATION + SLIGHT_DELAY, [this]{
-        checkFadeFailsafe();
-    });
-}
-
-void CompositorHelper::checkFadeFailsafe() {
-    auto elapsedInFade = usecTimestampNow() - _fadeStarted;
-    if (elapsedInFade > FADE_DURATION) {
-        setAlpha(_fadeFailsafeEndValue);
-    }
-}
-
-void CompositorHelper::fadeIn() {
-    _fadeInAlpha = true;
-
-    _alphaPropertyAnimation->setDuration(FADE_DURATION);
-    _alphaPropertyAnimation->setStartValue(_alpha);
-    _alphaPropertyAnimation->setEndValue(FADE_IN_ALPHA);
-    _alphaPropertyAnimation->start();
-
-    // Sometimes, this "QPropertyAnimation" fails to complete the animation, and we end up with a partially faded
-    // state. So we will also have this fail-safe, where we record the timestamp of the fadeRequest, and the target
-    // value of the fade, and if after that time we still haven't faded all the way, we will kick it to the final
-    // fade value
-    startFadeFailsafe(FADE_IN_ALPHA);
-}
-
-void CompositorHelper::fadeOut() {
-    _fadeInAlpha = false;
-
-    _alphaPropertyAnimation->setDuration(FADE_DURATION);
-    _alphaPropertyAnimation->setStartValue(_alpha);
-    _alphaPropertyAnimation->setEndValue(FADE_OUT_ALPHA);
-    _alphaPropertyAnimation->start();
-    startFadeFailsafe(FADE_OUT_ALPHA);
-}
-
-void CompositorHelper::toggle() {
-    if (_fadeInAlpha) {
-        fadeOut();
-    } else {
-        fadeIn();
-    }
 }
 
 glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::vec3& headPosition) const {

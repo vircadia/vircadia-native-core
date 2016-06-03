@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 
-import "../../windows-uit" as Windows
+import "../../windows" as Windows
 import "../../controls-uit" as Controls
 import "../../styles-uit"
 

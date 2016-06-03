@@ -256,7 +256,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
                 y: y - ToolBar.SPACING
             });
         }
-        this.save();
+        //this.save();
     }
 
     this.setAlpha = function(alpha, tool) {

@@ -18,7 +18,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import ".."
 import "../controls-uit"
 import "../styles-uit"
-import "../windows-uit"
+import "../windows"
 
 import "fileDialog"
 
@@ -724,7 +724,7 @@ ModalWindow {
         Action {
             id: cancelAction
             text: "Cancel"
-            onTriggered: { canceled(); root.visible = false; }
+            onTriggered: { canceled(); root.shown = false; }
         }
     }
 
