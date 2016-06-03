@@ -982,7 +982,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
         if (isArray && col.type === "checkbox" && col.editable) {
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='checkbox' class='form-control toggle-checkbox table-checkbox' "
+                  + "<input type='checkbox' class='form-control toggle-checkbox table-checkbox' data-size='mini' "
                   + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
         } else {
           // Use a hidden input so that the values are posted.
@@ -1037,8 +1037,8 @@ function makeTableInputs(setting) {
   _.each(setting.columns, function(col) {
     if (col.type === "checkbox") {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-              + "<input type='checkbox' class='form-control toggle-checkbox' name='" + col.name + "'"
-              + (col.default ? " checked" : "") + "/></td>";
+              + "<input type='checkbox' class='form-control toggle-checkbox' data-size='mini' "
+              + "name='" + col.name + "'" + (col.default ? " checked" : "") + "/></td>";
     } else {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
                <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
