@@ -24,6 +24,9 @@ Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameControl
     _sdlHaptic(SDL_HapticOpenFromJoystick(_sdlJoystick)),
     _instanceId(instanceId)
 {
+    if (!_sdlHaptic) {
+        qDebug(SDL_GetError());
+    }
     SDL_HapticRumbleInit(_sdlHaptic);
 }
 
