@@ -17,6 +17,54 @@
 #include "ShapeFactory.h"
 #include "BulletUtil.h"
 
+// These are the same normalized directions used by the btShapeHull class.
+// 12 points for the face centers of a duodecohedron plus another 30 points
+// for the midpoints the edges, for a total of 42.
+const uint32_t NUM_UNIT_SPHERE_DIRECTIONS = 42;
+static const btVector3 _unitSphereDirections[NUM_UNIT_SPHERE_DIRECTIONS] = {
+    btVector3(btScalar(0.000000) , btScalar(-0.000000),btScalar(-1.000000)),
+    btVector3(btScalar(0.723608) , btScalar(-0.525725),btScalar(-0.447219)),
+    btVector3(btScalar(-0.276388) , btScalar(-0.850649),btScalar(-0.447219)),
+    btVector3(btScalar(-0.894426) , btScalar(-0.000000),btScalar(-0.447216)),
+    btVector3(btScalar(-0.276388) , btScalar(0.850649),btScalar(-0.447220)),
+    btVector3(btScalar(0.723608) , btScalar(0.525725),btScalar(-0.447219)),
+    btVector3(btScalar(0.276388) , btScalar(-0.850649),btScalar(0.447220)),
+    btVector3(btScalar(-0.723608) , btScalar(-0.525725),btScalar(0.447219)),
+    btVector3(btScalar(-0.723608) , btScalar(0.525725),btScalar(0.447219)),
+    btVector3(btScalar(0.276388) , btScalar(0.850649),btScalar(0.447219)),
+    btVector3(btScalar(0.894426) , btScalar(0.000000),btScalar(0.447216)),
+    btVector3(btScalar(-0.000000) , btScalar(0.000000),btScalar(1.000000)),
+    btVector3(btScalar(0.425323) , btScalar(-0.309011),btScalar(-0.850654)),
+    btVector3(btScalar(-0.162456) , btScalar(-0.499995),btScalar(-0.850654)),
+    btVector3(btScalar(0.262869) , btScalar(-0.809012),btScalar(-0.525738)),
+    btVector3(btScalar(0.425323) , btScalar(0.309011),btScalar(-0.850654)),
+    btVector3(btScalar(0.850648) , btScalar(-0.000000),btScalar(-0.525736)),
+    btVector3(btScalar(-0.525730) , btScalar(-0.000000),btScalar(-0.850652)),
+    btVector3(btScalar(-0.688190) , btScalar(-0.499997),btScalar(-0.525736)),
+    btVector3(btScalar(-0.162456) , btScalar(0.499995),btScalar(-0.850654)),
+    btVector3(btScalar(-0.688190) , btScalar(0.499997),btScalar(-0.525736)),
+    btVector3(btScalar(0.262869) , btScalar(0.809012),btScalar(-0.525738)),
+    btVector3(btScalar(0.951058) , btScalar(0.309013),btScalar(0.000000)),
+    btVector3(btScalar(0.951058) , btScalar(-0.309013),btScalar(0.000000)),
+    btVector3(btScalar(0.587786) , btScalar(-0.809017),btScalar(0.000000)),
+    btVector3(btScalar(0.000000) , btScalar(-1.000000),btScalar(0.000000)),
+    btVector3(btScalar(-0.587786) , btScalar(-0.809017),btScalar(0.000000)),
+    btVector3(btScalar(-0.951058) , btScalar(-0.309013),btScalar(-0.000000)),
+    btVector3(btScalar(-0.951058) , btScalar(0.309013),btScalar(-0.000000)),
+    btVector3(btScalar(-0.587786) , btScalar(0.809017),btScalar(-0.000000)),
+    btVector3(btScalar(-0.000000) , btScalar(1.000000),btScalar(-0.000000)),
+    btVector3(btScalar(0.587786) , btScalar(0.809017),btScalar(-0.000000)),
+    btVector3(btScalar(0.688190) , btScalar(-0.499997),btScalar(0.525736)),
+    btVector3(btScalar(-0.262869) , btScalar(-0.809012),btScalar(0.525738)),
+    btVector3(btScalar(-0.850648) , btScalar(0.000000),btScalar(0.525736)),
+    btVector3(btScalar(-0.262869) , btScalar(0.809012),btScalar(0.525738)),
+    btVector3(btScalar(0.688190) , btScalar(0.499997),btScalar(0.525736)),
+    btVector3(btScalar(0.525730) , btScalar(0.000000),btScalar(0.850652)),
+    btVector3(btScalar(0.162456) , btScalar(-0.499995),btScalar(0.850654)),
+    btVector3(btScalar(-0.425323) , btScalar(-0.309011),btScalar(0.850654)),
+    btVector3(btScalar(-0.425323) , btScalar(0.309011),btScalar(0.850654)),
+    btVector3(btScalar(0.162456) , btScalar(0.499995),btScalar(0.850654))
+};
 
 
 btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& points) {
@@ -66,15 +114,40 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
         hull->addPoint(btVector3(correctedPoint[0], correctedPoint[1], correctedPoint[2]), false);
     }
 
-    if (points.size() > MAX_HULL_POINTS) {
-        // create hull approximation
-        btShapeHull shapeHull(hull);
-        shapeHull.buildHull(margin);
+    uint32_t numPoints = (uint32_t)hull->getNumPoints();
+    if (numPoints > MAX_HULL_POINTS) {
+		// we have too many points, so we compute point projections along canonical unit vectors
+		// and keep the those that project the farthest
+        btVector3 btCenter = glmToBullet(center);
+        btVector3* shapePoints = hull->getUnscaledPoints();
+        std::vector<uint32_t> finalIndices;
+        finalIndices.reserve(NUM_UNIT_SPHERE_DIRECTIONS);
+        for (uint32_t i = 0; i < NUM_UNIT_SPHERE_DIRECTIONS; ++i) {
+            uint32_t bestIndex = 0;
+            btScalar maxDistance = _unitSphereDirections[i].dot(shapePoints[0] - btCenter);
+            for (uint32_t j = 1; j < numPoints; ++j) {
+                btScalar distance = _unitSphereDirections[i].dot(shapePoints[j] - btCenter);
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    bestIndex = j;
+                }
+            }
+            bool keep = true;
+            for (uint32_t j = 0; j < finalIndices.size(); ++j) {
+                if (finalIndices[j] == bestIndex) {
+                    keep = false;
+                    break;
+                }
+            }
+            if (keep) {
+                finalIndices.push_back(bestIndex);
+            }
+        }
+
         // we cannot copy Bullet shapes so we must create a new one...
         btConvexHullShape* newHull = new btConvexHullShape();
-        const btVector3* newPoints = shapeHull.getVertexPointer();
-        for (int i = 0; i < shapeHull.numVertices(); ++i) {
-            newHull->addPoint(newPoints[i], false);
+        for (uint32_t i = 0; i < finalIndices.size(); ++i) {
+            newHull->addPoint(shapePoints[finalIndices[i]], false);
         }
         // ...and delete the old one
         delete hull;
