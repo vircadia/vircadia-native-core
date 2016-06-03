@@ -442,6 +442,24 @@ void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const 
     _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
 }
 
+// Vive Controllers do not support duration
+bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, bool leftHand) {
+    auto handRole = leftHand ? vr::TrackedControllerRole_LeftHand : vr::TrackedControllerRole_RightHand;
+    auto deviceIndex = _system->GetTrackedDeviceIndexForControllerRole(handRole);
+
+    if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+        _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
+        _trackedDevicePose[deviceIndex].bPoseIsValid) {
+        // the documentation says the third argument to TriggerHapticPulse is duration
+        // but it seems to instead be strength, and is between 0 and 3999
+        // https://github.com/ValveSoftware/openvr/wiki/IVRSystem::TriggerHapticPulse
+        const float MAX_HAPTIC_STRENGTH = 3999.0f;
+        _system->TriggerHapticPulse(deviceIndex, 0, strength*MAX_HAPTIC_STRENGTH);
+        return true;
+    }
+    return false;
+}
+
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{

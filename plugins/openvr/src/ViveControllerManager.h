@@ -56,6 +56,8 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
+        bool triggerHapticPulse(float strength, float duration, bool leftHand) override;
+
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
         void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
