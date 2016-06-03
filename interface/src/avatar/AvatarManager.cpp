@@ -337,7 +337,17 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
+
+                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                    return !injector || injector->isFinished();
+                });
+
+                static const int MAX_INJECTOR_COUNT = 3;
+                if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
+                    auto injector = AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR,
+                                                             myAvatar->getPosition());
+                    _collisionInjectors.emplace_back(injector);
+                }
                 myAvatar->collisionWithEntity(collision);
                 return;
             }
