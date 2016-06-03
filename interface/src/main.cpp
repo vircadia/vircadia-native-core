@@ -8,8 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <thread>
-
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
@@ -19,12 +17,6 @@
 #include <QSharedMemory>
 #include <QTranslator>
 
-#ifdef HAS_BUGSPLAT
-#include <BuildInfo.h>
-#include <BugSplat.h>
-#include <CrashReporter.h>
-#endif
-
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
@@ -33,7 +25,13 @@
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
+#include <thread>
 
+#ifdef HAS_BUGSPLAT
+#include <BuildInfo.h>
+#include <BugSplat.h>
+#include <CrashReporter.h>
+#endif
 
 int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
