@@ -919,6 +919,9 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<span class='help-block'>" + setting.help + "</span>"
   }
 
+  var nonDeletableRowKey = setting["non-deletable-row-key"];
+  var nonDeletableRowValues = setting["non-deletable-row-values"];
+
   html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
     + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
@@ -961,6 +964,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           html += "<td class='key'>" + rowIndexOrName + "</td>"
       }
 
+      var isNonDeletableRow = false;
+
       _.each(setting.columns, function(col) {
 
         if (isArray) {
@@ -971,6 +976,9 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           colValue = row[col.name];
           colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
+
+        isNonDeletableRow = isNonDeletableRow
+          || (nonDeletableRowKey === col.name && nonDeletableRowValues.indexOf(colValue) !== -1);
 
         if (isArray && col.type === "checkbox" && col.editable) {
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
@@ -990,8 +998,12 @@ function makeTable(setting, keypath, setting_value, isLocked) {
                   "'><a href='javascript:void(0);' class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a>"
                   + "<a href='javascript:void(0);' class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></a></td>"
         }
-        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-                "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>"
+        if (isNonDeletableRow) {
+          html += "<td></td>";
+        } else {
+          html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES
+                  + "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>";
+        }
       }
 
       html += "</tr>"

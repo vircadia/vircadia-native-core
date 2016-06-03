@@ -148,7 +148,10 @@
               "editable": true,
               "default": false
             }
-          ]
+          ],
+
+          "non-deletable-row-key": "permissions_id",
+          "non-deletable-row-values": ["localhost", "anonymous", "logged-in"]
         }
       ]
     },
