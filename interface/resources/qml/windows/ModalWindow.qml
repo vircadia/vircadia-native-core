@@ -16,7 +16,7 @@ Window {
     id: window
     modality: Qt.ApplicationModal
     destroyOnCloseButton: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     frame: ModalFrame { }
 
     property int colorScheme: hifi.colorSchemes.light

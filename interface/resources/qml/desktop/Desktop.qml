@@ -268,24 +268,45 @@ FocusScope {
         pinned = newPinned
     }
 
-    onPinnedChanged: {
+    property real unpinnedAlpha: 1.0;
 
+    Behavior on unpinnedAlpha {
+        NumberAnimation {
+            easing.type: Easing.Linear;
+            duration: 300
+        }
+    }
+
+    state: "NORMAL"
+    states: [
+        State {
+            name: "NORMAL"
+            PropertyChanges { target: desktop; unpinnedAlpha: 1.0 }
+        },
+        State {
+            name: "PINNED"
+            PropertyChanges { target: desktop; unpinnedAlpha: 0.0 }
+        }
+    ]
+
+    transitions: [
+        Transition {
+             NumberAnimation { properties: "unpinnedAlpha"; duration: 300 }
+        }
+    ]
+
+    onPinnedChanged: {
         if (pinned) {
+            // recalculate our non-pinned children
             hiddenChildren = d.findMatchingChildren(desktop, function(child){
                 return !d.isTopLevelWindow(child) && child.visible;
             });
 
             hiddenChildren.forEach(function(child){
-                child.visible = false;
+                child.opacity = Qt.binding(function(){ return desktop.unpinnedAlpha });
             });
-        } else {
-            hiddenChildren.forEach(function(child){
-                if (child) {
-                    child.visible = true;
-                }
-            });
-            hiddenChildren = [];
         }
+        state = pinned ? "PINNED" : "NORMAL"
     }
 
     onShowDesktop: pinned = false
