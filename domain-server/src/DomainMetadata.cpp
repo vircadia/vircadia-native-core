@@ -10,6 +10,7 @@
 
 #include "DomainMetadata.h"
 
+#include <HifiConfigVariantMap.h>
 #include <DependencyManager.h>
 #include <LimitedNodeList.h>
 
@@ -35,7 +36,7 @@ const QString DomainMetadata::DESCRIPTORS_TAGS = "tags";
 // descriptors metadata will appear as (JSON):
 // { "capacity": Number,
 //   TODO: "hours": String, // UTF-8 representation of the week, split into 15" segments
-//   "restriction": String, // enum of either OPEN, RESTRICTED_HIFI, RESTRICTED_ACL
+//   "restriction": String, // enum of either open, hifi, or acl
 //   "maturity": String, // enum corresponding to ESRB ratings
 //   "hosts": [ String ], // capped list of usernames
 //   "description": String, // capped description
@@ -59,11 +60,25 @@ DomainMetadata::DomainMetadata() {
 }
 
 void DomainMetadata::setDescriptors(QVariantMap& settings) {
-    // TODO
+    const QString CAPACITY = "security.maximum_user_capacity";
+    const QVariant* capacityVariant = valueForKeyPath(settings, CAPACITY);
+    unsigned int capacity = capacityVariant ? capacityVariant->toUInt() : 0;
 
-    QVariantMap descriptors;
+    // TODO: Keep parity with ACL development.
+    const QString RESTRICTION = "security.restricted_access";
+    const QString RESTRICTION_OPEN = "open";
+    // const QString RESTRICTION_HIFI = "hifi";
+    const QString RESTRICTION_ACL = "acl";
+    const QVariant* isRestrictedVariant = valueForKeyPath(settings, RESTRICTION);
+    bool isRestricted = isRestrictedVariant ? isRestrictedVariant->toBool() : false;
+    QString restriction = isRestricted ? RESTRICTION_ACL : RESTRICTION_OPEN;
 
-    #if DEV_BUILD || PR_BUILD
+    QVariantMap descriptors = settings[DESCRIPTORS].toMap();
+    descriptors[DESCRIPTORS_CAPACITY] = capacity;
+    descriptors[DESCRIPTORS_RESTRICTION] = restriction;
+    _metadata[DESCRIPTORS] = descriptors;
+
+#if DEV_BUILD || PR_BUILD
     qDebug() << "Regenerated domain metadata - descriptors:" << descriptors;
 #endif
 }
