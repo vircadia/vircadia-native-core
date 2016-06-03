@@ -15,9 +15,15 @@
 #include <QJsonObject>
 
 class DomainMetadata {
+    static const QString USERS_KEY;
+    static const QString USERS_NUM_KEY;
+    static const QString USERS_HOSTNAMES_KEY;
+
 public:
-    QVariantMap toVariantMap() { return _metadata; }
-    QJsonObject toJSON() { return QJsonObject::fromVariantMap(_metadata); }
+    DomainMetadata();
+
+    QJsonObject get() { return QJsonObject::fromVariantMap(_metadata); }
+    QJsonObject getUsers() { return QJsonObject::fromVariantMap(_metadata[USERS_KEY].toMap()); }
 
 public slots:
     void usersChanged();

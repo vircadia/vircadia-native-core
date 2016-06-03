@@ -15,6 +15,14 @@
 
 #include "DomainServerNodeData.h"
 
+const QString DomainMetadata::USERS_KEY = "users";
+const QString DomainMetadata::USERS_NUM_KEY = "num_users";
+const QString DomainMetadata::USERS_HOSTNAMES_KEY = "users_hostnames";
+
+DomainMetadata::DomainMetadata() :
+    _metadata{{ USERS_KEY, {} }} {
+}
+
 void DomainMetadata::usersChanged() {
     static const QString DEFAULT_HOSTNAME = "*";
 
@@ -39,13 +47,10 @@ void DomainMetadata::usersChanged() {
         }
     });
 
-    static const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
-    _metadata[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
-
-    static const QString HEARTBEAT_USER_HOSTNAMES_KEY = "user_hostnames";
-    _metadata[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
+    QVariantMap users = {{ USERS_NUM_KEY, numConnectedUnassigned }, { USERS_HOSTNAMES_KEY, userHostnames }};
+    _metadata[USERS_KEY] = users;
 
 #if DEV_BUILD
-    qDebug() << "Regenerated domain metadata - users:" << _metadata;
+    qDebug() << "Regenerated domain metadata - users:" << users;
 #endif
 }
