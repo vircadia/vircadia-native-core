@@ -322,7 +322,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 const auto characterController = myAvatar->getCharacterController();
                 const float avatarVelocityChange = (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
                 const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
-                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01f;
+                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.3f; // ~ 1km/h ==> sound volume = 0.09
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
                 if (!isSound) {
@@ -330,7 +330,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 }
                 // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
                 const float energy = velocityChange * velocityChange;
-                const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+                const float COLLISION_ENERGY_AT_FULL_VOLUME = 1.0;
                 const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
 
                 // For general entity collisionSoundURL, playSound supports changing the pitch for the sound based on the size of the object,
