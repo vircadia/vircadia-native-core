@@ -21,9 +21,10 @@ Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameControl
         InputDevice("GamePad"),
     _sdlGameController(sdlGameController),
     _sdlJoystick(SDL_GameControllerGetJoystick(_sdlGameController)),
+    _sdlHaptic(SDL_HapticOpenFromJoystick(_sdlJoystick)),
     _instanceId(instanceId)
 {
-    
+    SDL_HapticRumbleInit(_sdlHaptic);
 }
 
 Joystick::~Joystick() {
@@ -31,6 +32,7 @@ Joystick::~Joystick() {
 }
 
 void Joystick::closeJoystick() {
+    SDL_HapticClose(_sdlHaptic);
     SDL_GameControllerClose(_sdlGameController);
 }
 
@@ -60,6 +62,13 @@ void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
     } else {
         _buttonPressedMap.erase(input.getChannel());
     }
+}
+
+bool Joystick::triggerHapticPulse(float strength, float duration, bool leftHand) {
+    if (SDL_HapticRumblePlay(_sdlHaptic, strength, duration) != 0) {
+        return false;
+    }
+    return true;
 }
 
 controller::Input::NamedVector Joystick::getAvailableInputs() const {

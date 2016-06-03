@@ -55,6 +55,11 @@ bool OculusControllerManager::activate() {
         userInputMapper->registerDevice(_touch);
     }
 
+    _leftHapticTimer.setSingleShot(true);
+    _rightHapticTimer.setSingleShot(true);
+    connect(&_leftHapticTimer, SIGNAL(timeout()), this, SLOT(stopHapticPulse(true)));
+    connect(&_rightHapticTimer, SIGNAL(timeout()), this, SLOT(stopHapticPulse(false)));
+
     return true;
 }
 
@@ -102,6 +107,12 @@ void OculusControllerManager::pluginFocusOutEvent() {
     }
     if (_remote) {
         _remote->focusOutEvent();
+    }
+}
+
+void OculusControllerManager::stopHapticPulse(bool leftHand) {
+    if (_touch) {
+        _touch->stopHapticPulse(leftHand);
     }
 }
 
@@ -226,6 +237,26 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     pose.rotation = toGlm(handPose.ThePose.Orientation);
     pose.angularVelocity = toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
+}
+
+bool OculusControllerManager::TouchDevice::triggerHapticPulse(float strength, float duration, bool leftHand) {
+    auto handType = (leftHand ? ovrControllerType_LTouch : ovrControllerType_RTouch);
+    if (ovr_SetControllerVibration(_parent._session, handType, 1.0f, strength) != ovrSuccess) {
+        return false;
+    }
+
+    if (leftHand) {
+        _parent._leftHapticTimer.start(duration);
+    } else {
+        _parent._rightHapticTimer.start(duration);
+    }
+
+    return true;
+}
+
+void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
+    auto handType = (leftHand ? ovrControllerType_LTouch : ovrControllerType_RTouch);
+    ovr_SetControllerVibration(_parent._session, handType, 0.0f, 0.0f);
 }
 
 controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailableInputs() const {

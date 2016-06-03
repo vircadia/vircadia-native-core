@@ -10,6 +10,7 @@
 #define hifi__OculusControllerManager
 
 #include <QObject>
+#include <QTimer>
 #include <unordered_set>
 
 #include <GLMHelpers.h>
@@ -31,6 +32,9 @@ public:
 
     void pluginFocusOutEvent() override;
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
+
+private slots:
+    void stopHapticPulse(bool leftHand);
 
 private:
     class OculusInputDevice : public controller::InputDevice {
@@ -64,6 +68,11 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
+        bool triggerHapticPulse(float strength, float duration, bool leftHand) override;
+
+    private:
+        void stopHapticPulse(bool leftHand);
+
     private:
         void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
         int _trackedControllers { 0 };
@@ -73,6 +82,8 @@ private:
     ovrSession _session { nullptr };
     ovrInputState _inputState {};
     RemoteDevice::Pointer _remote;
+    QTimer _leftHapticTimer;
+    QTimer _rightHapticTimer;
     TouchDevice::Pointer _touch;
     static const QString NAME;
 };
