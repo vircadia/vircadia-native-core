@@ -16,6 +16,8 @@ bool openVrSupported();
 
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
+void handleOpenVrEvents();
+bool openVrQuitRequested();
 
 template<typename F>
 void openvr_for_each_eye(F f) {
