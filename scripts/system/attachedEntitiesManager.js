@@ -22,7 +22,7 @@ var MINIMUM_DROP_DISTANCE_FROM_JOINT = 0.8;
 var ATTACHED_ENTITY_SEARCH_DISTANCE = 10.0;
 var ATTACHED_ENTITIES_SETTINGS_KEY = "ATTACHED_ENTITIES";
 var DRESSING_ROOM_DISTANCE = 2.0;
-var SHOW_TOOL_BAR = true;
+var SHOW_TOOL_BAR = false;
 
 // tool bar
 
@@ -71,12 +71,11 @@ Script.scriptEnding.connect(scriptEnding);
 
 
 
-
 // attached entites
 
 
 function AttachedEntitiesManager() {
-    var clothingLocked = true;
+    var clothingLocked = false;
 
     this.subscribeToMessages = function() {
         Messages.subscribe('Hifi-Object-Manipulation');
@@ -106,7 +105,7 @@ function AttachedEntitiesManager() {
             // ignore
         } else if (parsedMessage.action === 'release') {
             manager.handleEntityRelease(parsedMessage.grabbedEntity, parsedMessage.joint)
-            // manager.saveAttachedEntities();
+                // manager.saveAttachedEntities();
         } else if (parsedMessage.action === 'equip') {
             // manager.saveAttachedEntities();
         } else {
@@ -156,7 +155,8 @@ function AttachedEntitiesManager() {
                 var wearProps = Entities.getEntityProperties(grabbedEntity);
                 wearProps.parentID = MyAvatar.sessionUUID;
                 wearProps.parentJointIndex = bestJointIndex;
-
+                delete wearProps.localPosition;
+                delete wearProps.localRotation;
                 var updatePresets = false;
                 if (bestJointOffset && bestJointOffset.constructor === Array) {
                     if (!clothingLocked || bestJointOffset.length < 2) {
@@ -170,21 +170,23 @@ function AttachedEntitiesManager() {
                 }
 
                 Entities.deleteEntity(grabbedEntity);
-                grabbedEntity = Entities.addEntity(wearProps, true);
+                //the true boolean here after add entity adds it as an 'avatar entity', which can travel with you from server to server.
+
+                var newEntity = Entities.addEntity(wearProps, true);
+
                 if (updatePresets) {
-                    this.updateRelativeOffsets(grabbedEntity);
+                    this.updateRelativeOffsets(newEntity);
                 }
             } else if (props.parentID != NULL_UUID) {
                 // drop the entity and set it to have no parent (not on the avatar), unless it's being equipped in a hand.
                 if (props.parentID === MyAvatar.sessionUUID &&
                     (props.parentJointIndex == MyAvatar.getJointIndex("RightHand") ||
-                     props.parentJointIndex == MyAvatar.getJointIndex("LeftHand"))) {
+                        props.parentJointIndex == MyAvatar.getJointIndex("LeftHand"))) {
                     // this is equipped on a hand -- don't clear the parent.
                 } else {
                     var wearProps = Entities.getEntityProperties(grabbedEntity);
                     wearProps.parentID = NULL_UUID;
                     wearProps.parentJointIndex = -1;
-
                     delete wearProps.id;
                     delete wearProps.created;
                     delete wearProps.age;
@@ -198,7 +200,6 @@ function AttachedEntitiesManager() {
                     delete wearProps.owningAvatarID;
                     delete wearProps.localPosition;
                     delete wearProps.localRotation;
-
                     Entities.deleteEntity(grabbedEntity);
                     Entities.addEntity(wearProps);
                 }
@@ -220,16 +221,16 @@ function AttachedEntitiesManager() {
         return false;
     }
 
-    this.toggleLocked = function() {
-        print("toggleLocked");
-        if (clothingLocked) {
-            clothingLocked = false;
-            toolBar.setImageURL(Script.resolvePath("assets/images/unlock.svg"), lockButton);
-        } else {
-            clothingLocked = true;
-            toolBar.setImageURL(Script.resolvePath("assets/images/lock.svg"), lockButton);
-        }
-    }
+    // this.toggleLocked = function() {
+    //     print("toggleLocked");
+    //     if (clothingLocked) {
+    //         clothingLocked = false;
+    //         toolBar.setImageURL(Script.resolvePath("assets/images/unlock.svg"), lockButton);
+    //     } else {
+    //         clothingLocked = true;
+    //         toolBar.setImageURL(Script.resolvePath("assets/images/lock.svg"), lockButton);
+    //     }
+    // }
 
     // this.saveAttachedEntities = function() {
     //     print("--- saving attached entities ---");
@@ -246,27 +247,27 @@ function AttachedEntitiesManager() {
     //     Settings.setValue(ATTACHED_ENTITIES_SETTINGS_KEY, JSON.stringify(saveData));
     // }
 
-    this.scrubProperties = function(props) {
-        var toScrub = ["queryAACube", "position", "rotation",
-                       "created", "ageAsText", "naturalDimensions",
-                       "naturalPosition", "velocity", "acceleration",
-                       "angularVelocity", "boundingBox"];
-        toScrub.forEach(function(propertyName) {
-            delete props[propertyName];
-        });
-        // if the userData has a grabKey, clear old state
-        if ("userData" in props) {
-            try {
-                parsedUserData = JSON.parse(props.userData);
-                if ("grabKey" in parsedUserData) {
-                    parsedUserData.grabKey.refCount = 0;
-                    delete parsedUserData.grabKey["avatarId"];
-                    props["userData"] = JSON.stringify(parsedUserData);
-                }
-            } catch (e) {
-            }
-        }
-    }
+    // this.scrubProperties = function(props) {
+    //     var toScrub = ["queryAACube", "position", "rotation",
+    //                    "created", "ageAsText", "naturalDimensions",
+    //                    "naturalPosition", "velocity", "acceleration",
+    //                    "angularVelocity", "boundingBox"];
+    //     toScrub.forEach(function(propertyName) {
+    //         delete props[propertyName];
+    //     });
+    //     // if the userData has a grabKey, clear old state
+    //     if ("userData" in props) {
+    //         try {
+    //             parsedUserData = JSON.parse(props.userData);
+    //             if ("grabKey" in parsedUserData) {
+    //                 parsedUserData.grabKey.refCount = 0;
+    //                 delete parsedUserData.grabKey["avatarId"];
+    //                 props["userData"] = JSON.stringify(parsedUserData);
+    //             }
+    //         } catch (e) {
+    //         }
+    //     }
+    // }
 
     // this.loadAttachedEntities = function(grabbedEntity) {
     //     print("--- loading attached entities ---");
