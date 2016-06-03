@@ -94,12 +94,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
     
-    // make sure we hear about newly connected nodes from our gatekeeper
-    connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
-
     // update the metadata when a user (dis)connects
     connect(this, &DomainServer::userConnected, &_metadata, &DomainMetadata::usersChanged);
     connect(this, &DomainServer::userDisconnected, &_metadata, &DomainMetadata::usersChanged);
+
+    // make sure we hear about newly connected nodes from our gatekeeper
+    connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
@@ -116,6 +116,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         optionallyGetTemporaryName(args);
     }
+
+    // update the metadata with current descriptors
+    _metadata.setDescriptors(_settingsManager.getSettingsMap());
 }
 
 DomainServer::~DomainServer() {

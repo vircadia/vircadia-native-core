@@ -14,16 +14,36 @@
 #include <QVariantMap>
 #include <QJsonObject>
 
-class DomainMetadata {
-    static const QString USERS_KEY;
-    static const QString USERS_NUM_KEY;
-    static const QString USERS_HOSTNAMES_KEY;
+class DomainMetadata : public QObject {
+Q_OBJECT
+
+    static const QString USERS;
+    static const QString USERS_NUM_TOTAL;
+    static const QString USERS_NUM_ANON;
+    static const QString USERS_HOSTNAMES;
+
+    static const QString DESCRIPTORS;
+    static const QString DESCRIPTORS_DESCRIPTION;
+    static const QString DESCRIPTORS_CAPACITY;
+    static const QString DESCRIPTORS_HOURS;
+    static const QString DESCRIPTORS_RESTRICTION;
+    static const QString DESCRIPTORS_MATURITY;
+    static const QString DESCRIPTORS_HOSTS;
+    static const QString DESCRIPTORS_TAGS;
+    static const QString DESCRIPTORS_IMG;
+    static const QString DESCRIPTORS_IMG_SRC;
+    static const QString DESCRIPTORS_IMG_TYPE;
+    static const QString DESCRIPTORS_IMG_SIZE;
+    static const QString DESCRIPTORS_IMG_UPDATED_AT;
 
 public:
     DomainMetadata();
 
     QJsonObject get() { return QJsonObject::fromVariantMap(_metadata); }
-    QJsonObject getUsers() { return QJsonObject::fromVariantMap(_metadata[USERS_KEY].toMap()); }
+    QJsonObject getUsers() { return QJsonObject::fromVariantMap(_metadata[USERS].toMap()); }
+    QJsonObject getDescriptors() { return QJsonObject::fromVariantMap(_metadata[DESCRIPTORS].toMap()); }
+
+    void setDescriptors(QVariantMap& settings);
 
 public slots:
     void usersChanged();
