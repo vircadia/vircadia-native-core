@@ -234,7 +234,7 @@ $(document).ready(function(){
 
 
   // Bootstrap switch in table
-  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.toggle-checkbox', function () {
+  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.table-checkbox', function () {
     // Bootstrap switches in table: set the changed data attribute for all rows.
     var row = $(this).closest('tr');
     row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
@@ -919,6 +919,9 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<span class='help-block'>" + setting.help + "</span>"
   }
 
+  var nonDeletableRowKey = setting["non-deletable-row-key"];
+  var nonDeletableRowValues = setting["non-deletable-row-values"];
+
   html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name
     + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
@@ -961,6 +964,8 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           html += "<td class='key'>" + rowIndexOrName + "</td>"
       }
 
+      var isNonDeletableRow = false;
+
       _.each(setting.columns, function(col) {
 
         if (isArray) {
@@ -972,28 +977,17 @@ function makeTable(setting, keypath, setting_value, isLocked) {
           colName = keypath + "." + rowIndexOrName + "." + col.name;
         }
 
-        if (isArray && col.type === "checkbox") {
+        isNonDeletableRow = isNonDeletableRow
+          || (nonDeletableRowKey === col.name && nonDeletableRowValues.indexOf(colValue) !== -1);
 
+        if (isArray && col.type === "checkbox" && col.editable) {
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-          html += "<input type='checkbox' "
-          html += "class='form-control toggle-checkbox' "
-          html += "name='" + colName + "'"
-          html += (colValue ? " checked" : "")
-          html += " />"
-          html += "</td>"
-
+                  + "<input type='checkbox' class='form-control toggle-checkbox table-checkbox' "
+                  + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
         } else {
-
-          // setup the td for this column
-          html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>";
-
-          // add the actual value to the td so it is displayed
-          html += colValue;
-
-          // for values to be posted properly we add a hidden input to this td
-          html += "<input type='hidden' name='" + colName + "' value='" + colValue + "'/>";
-
-          html += "</td>";
+          // Use a hidden input so that the values are posted.
+          html += "<td class='" + Settings.DATA_COL_CLASS + "' name='" + colName + "'>"
+                  + colValue + "<input type='hidden' name='" + colName + "' value='" + colValue + "'/></td>";
         }
 
       })
@@ -1004,8 +998,12 @@ function makeTable(setting, keypath, setting_value, isLocked) {
                   "'><a href='javascript:void(0);' class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></a>"
                   + "<a href='javascript:void(0);' class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></a></td>"
         }
-        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-                "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>"
+        if (isNonDeletableRow) {
+          html += "<td></td>";
+        } else {
+          html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES
+                  + "'><a href='javascript:void(0);' class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></a></td>";
+        }
       }
 
       html += "</tr>"
@@ -1039,12 +1037,8 @@ function makeTableInputs(setting) {
   _.each(setting.columns, function(col) {
     if (col.type === "checkbox") {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-      html += "<input type='checkbox' "
-      html += "class='form-control toggle-checkbox' "
-      html += "name='" + col.name + "'"
-      html += (col.default ? " checked" : "")
-      html += "/>"
-      html += "</td>"
+              + "<input type='checkbox' class='form-control toggle-checkbox' name='" + col.name + "'"
+              + (col.default ? " checked" : "") + "/></td>";
     } else {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
                <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
