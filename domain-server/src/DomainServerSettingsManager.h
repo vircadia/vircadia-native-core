@@ -40,6 +40,7 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
+    bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
     AgentPermissions getPermissionsForName(const QString& name) const;
     QStringList getAllNames() { return _agentPermissions.keys(); }
 
@@ -61,7 +62,8 @@ private:
 
     friend class DomainServer;
 
-    void unpackPermissions();
+    void packPermissions(const QStringList& argumentList);
+    void unpackPermissions(const QStringList& argumentList);
     QHash<QString, AgentPermissionsPointer> _agentPermissions;
 };
 

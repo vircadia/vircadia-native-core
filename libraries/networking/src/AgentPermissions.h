@@ -67,6 +67,7 @@ public:
     }
 
     AgentPermissions& operator|=(const AgentPermissions& rhs);
+    AgentPermissions& operator|=(const AgentPermissionsPointer& rhs);
     friend QDataStream& operator<<(QDataStream& out, const AgentPermissions& perms);
     friend QDataStream& operator>>(QDataStream& in, AgentPermissions& perms);
 
@@ -76,6 +77,8 @@ protected:
 
 const AgentPermissions DEFAULT_AGENT_PERMISSIONS;
 
-QDebug operator<<(QDebug debug, const AgentPermissions& node);
+QDebug operator<<(QDebug debug, const AgentPermissions& perms);
+QDebug operator<<(QDebug debug, const AgentPermissionsPointer& perms);
+AgentPermissionsPointer& operator|=(AgentPermissionsPointer& lhs, const AgentPermissionsPointer& rhs);
 
 #endif // hifi_AgentPermissions_h

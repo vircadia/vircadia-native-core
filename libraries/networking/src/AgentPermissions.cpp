@@ -22,6 +22,19 @@ AgentPermissions& AgentPermissions::operator|=(const AgentPermissions& rhs) {
     this->canConnectPastMaxCapacity |= rhs.canConnectPastMaxCapacity;
     return *this;
 }
+AgentPermissions& AgentPermissions::operator|=(const AgentPermissionsPointer& rhs) {
+    if (rhs) {
+        *this |= *rhs.get();
+    }
+    return *this;
+}
+AgentPermissionsPointer& operator|=(AgentPermissionsPointer& lhs, const AgentPermissionsPointer& rhs) {
+    if (lhs && rhs) {
+        *lhs.get() |= rhs;
+    }
+    return lhs;
+}
+
 
 QDataStream& operator<<(QDataStream& out, const AgentPermissions& perms) {
     out << perms.canConnectToDomain;
@@ -64,5 +77,12 @@ QDebug operator<<(QDebug debug, const AgentPermissions& perms) {
         debug << " ignore-max-cap";
     }
     debug.nospace() << "]";
+    return debug.nospace();
+}
+QDebug operator<<(QDebug debug, const AgentPermissionsPointer& perms) {
+    if (perms) {
+        return operator<<(debug, *perms.get());
+    }
+    debug.nospace() << "[permissions: null]";
     return debug.nospace();
 }

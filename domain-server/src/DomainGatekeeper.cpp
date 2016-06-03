@@ -169,10 +169,6 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.canAdjustLocks = true;
     userPerms.canRezPermanentEntities = true;
     newNode->setPermissions(userPerms);
-
-    qDebug() << "----------------------------";
-    qDebug() << "AC perms are" << userPerms;
-
     return newNode;
 }
 
@@ -211,8 +207,13 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         userPerms |= _server->_settingsManager.getPermissionsForName("anonymous");
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
-        userPerms |= _server->_settingsManager.getPermissionsForName(username);
-        userPerms |= _server->_settingsManager.getPermissionsForName("logged-in");
+        if (_server->_settingsManager.havePermissionsForName(username)) {
+            // we have specific permissions for this user.
+            userPerms |= _server->_settingsManager.getPermissionsForName(username);
+        } else {
+            // they are logged into metaverse, but we don't have specific permissions for them.
+            userPerms |= _server->_settingsManager.getPermissionsForName("logged-in");
+        }
     } else {
         // they sent us a username, but it didn't check out
         requestUserPublicKey(username);
