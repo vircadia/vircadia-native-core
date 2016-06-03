@@ -69,7 +69,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
-
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
     Q_PROPERTY(glm::vec3 rightHandPosition READ getRightHandPosition)
     Q_PROPERTY(glm::vec3 leftHandTipPosition READ getLeftHandTipPosition)
@@ -83,6 +82,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
 
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
+
+    Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -123,9 +124,6 @@ public:
 
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
-    void setLeanScale(float scale) { _leanScale = scale; }
-    float getLeanScale() const { return _leanScale; }
-
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
 
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
@@ -162,6 +160,9 @@ public:
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
     Q_INVOKABLE bool getClearOverlayWhenDriving() const { return _clearOverlayWhenDriving; }
     Q_INVOKABLE void setClearOverlayWhenDriving(bool on) { _clearOverlayWhenDriving = on; }
+
+    Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
+    Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
     // get/set avatar data
     void saveData();
@@ -469,6 +470,8 @@ private:
     // These are stored in SENSOR frame
     ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
+
+    bool _hmdLeanRecenterEnabled = true;
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

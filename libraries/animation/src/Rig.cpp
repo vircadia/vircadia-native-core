@@ -931,11 +931,6 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
 }
 
 void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
-    if (params.enableLean) {
-        updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
-    } else {
-        _animVars.unset("lean");
-    }
     updateNeckJoint(params.neckJointIndex, params);
 
     _animVars.set("isTalking", params.isTalking);
@@ -952,15 +947,6 @@ void Rig::updateFromEyeParameters(const EyeParameters& params) {
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
 static const glm::vec3 Y_AXIS(0.0f, 1.0f, 0.0f);
 static const glm::vec3 Z_AXIS(0.0f, 0.0f, 1.0f);
-
-void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
-    if (isIndexValid(index)) {
-        glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, Z_AXIS) *
-                            glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, X_AXIS) *
-                            glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, Y_AXIS));
-        _animVars.set("lean", absRot);
-    }
-}
 
 void Rig::computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
                                   glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const {

@@ -190,9 +190,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
             if (!headData->getBlendshapeCoefficients().isEmpty()) {
                 _headData->setBlendshapeCoefficients(headData->getBlendshapeCoefficients());
             }
-            // head lean
-            _headData->setLeanForward(headData->getLeanForward());
-            _headData->setLeanSideways(headData->getLeanSideways());
             // head orientation
             _headData->setLookAtPosition(headData->getLookAtPosition());
         }
@@ -306,7 +303,7 @@ void MyAvatar::update(float deltaTime) {
     }
 
     Head* head = getHead();
-    head->relaxLean(deltaTime);
+    head->relax(deltaTime);
     updateFromTrackers(deltaTime);
 
     //  Get audio loudness data from audio input device
@@ -574,16 +571,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
     }
-
-    //  Update torso lean distance based on accelerometer data
-    const float TORSO_LENGTH = 0.5f;
-    glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
-
-    const float MAX_LEAN = 45.0f;
-    head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
-                                     -MAX_LEAN, MAX_LEAN));
-    head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
-                                    -MAX_LEAN, MAX_LEAN));
 }
 
 glm::vec3 MyAvatar::getLeftHandPosition() const {
@@ -692,7 +679,6 @@ void MyAvatar::saveData() {
 
     settings.setValue("headPitch", getHead()->getBasePitch());
 
-    settings.setValue("leanScale", _leanScale);
     settings.setValue("scale", _targetScale);
 
     settings.setValue("fullAvatarURL",
@@ -809,7 +795,6 @@ void MyAvatar::loadData() {
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
-    _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(glm::vec3(_targetScale));
 
@@ -2052,14 +2037,17 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
 
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
     _desiredBodyMatrix = desiredBodyMatrix;
-    if (!isActive(Rotation) && shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
-        activate(Rotation);
-    }
-    if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
-        activate(Horizontal);
-    }
-    if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-        activate(Vertical);
+
+    if (myAvatar.getHMDLeanRecenterEnabled()) {
+        if (!isActive(Rotation) && shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+            activate(Rotation);
+        }
+        if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+            activate(Horizontal);
+        }
+        if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+            activate(Vertical);
+        }
     }
 
     glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;

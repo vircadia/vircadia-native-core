@@ -59,8 +59,6 @@ public:
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
-    float getFinalLeanSideways() const { return _leanSideways + _deltaLeanSideways; }
-    float getFinalLeanForward() const { return _leanForward + _deltaLeanForward; }
 
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
 
@@ -91,8 +89,7 @@ public:
     virtual float getFinalYaw() const;
     virtual float getFinalRoll() const;
 
-    void relaxLean(float deltaTime);
-    void addLeanDeltas(float sideways, float forward);
+    void relax(float deltaTime);
 
     float getTimeWithoutTalking() const { return _timeWithoutTalking; }
 
@@ -131,10 +128,6 @@ private:
     float _deltaPitch;
     float _deltaYaw;
     float _deltaRoll;
-
-    // delta lean angles for lean perturbations (driven by collisions)
-    float _deltaLeanSideways;
-    float _deltaLeanForward;
 
     bool _isCameraMoving;
     bool _isLookingAtMe;
