@@ -85,7 +85,9 @@ void DomainMetadata::usersChanged() {
             if (!nodeData->wasAssigned()) {
                 ++numConnected;
 
-                // TODO: numConnectedAnonymously
+                if (nodeData->getUsername().isEmpty()) {
+                    ++numConnectedAnonymously;
+                }
 
                 // increment the count for this hostname (or the default if we don't have one)
                 auto placeName = nodeData->getPlaceName();
