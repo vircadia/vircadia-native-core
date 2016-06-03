@@ -10,16 +10,14 @@
         { "from": "OculusTouch.LX", "to": "Standard.LX" },
         { "from": "OculusTouch.LT", "to": "Standard.LT" },
         { "from": "OculusTouch.LS", "to": "Standard.LS" },
-        { "from": "OculusTouch.LG", "to": "Standard.LG" },
-        { "from": "OculusTouch.LeftGrip", "to": "Standard.LB" },
+        { "from": "OculusTouch.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "OculusTouch.LeftHand", "to": "Standard.LeftHand" },
 
         { "from": "OculusTouch.RY", "filters": "invert", "to": "Standard.RY" },
         { "from": "OculusTouch.RX", "to": "Standard.RX" },
         { "from": "OculusTouch.RT", "to": "Standard.RT" },
         { "from": "OculusTouch.RS", "to": "Standard.RS" },
-        { "from": "OculusTouch.RG", "to": "Standard.RG" },
-        { "from": "OculusTouch.RightGrip", "to": "Standard.RB" },
+        { "from": "OculusTouch.RightGrip", "to": "Standard.RightGrip" },
         { "from": "OculusTouch.RightHand", "to": "Standard.RightHand" },
 
         { "from": "OculusTouch.LeftApplicationMenu", "to": "Standard.Back" },

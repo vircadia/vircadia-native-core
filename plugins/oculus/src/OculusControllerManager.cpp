@@ -173,11 +173,6 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
 }
 
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
-    // Check past values of button map for hysteresis before clearing map
-    const float HYSTERESIS_OFFSET = -0.1f;
-    float LEFT_HYSTERESIS_OFFSET = _buttonPressedMap.find(LEFT_GRIP) != _buttonPressedMap.end() ? HYSTERESIS_OFFSET : 0.0f;
-    float RIGHT_HYSTERESIS_OFFSET = _buttonPressedMap.find(RIGHT_GRIP) != _buttonPressedMap.end() ? HYSTERESIS_OFFSET : 0.0f;
-
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
@@ -198,12 +193,12 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     _axisStateMap[LX] = inputState.Thumbstick[ovrHand_Left].x;
     _axisStateMap[LY] = inputState.Thumbstick[ovrHand_Left].y;
     _axisStateMap[LT] = inputState.IndexTrigger[ovrHand_Left];
-    _axisStateMap[LG] = inputState.HandTrigger[ovrHand_Left];
+    _axisStateMap[LEFT_GRIP] = inputState.HandTrigger[ovrHand_Left];
 
     _axisStateMap[RX] = inputState.Thumbstick[ovrHand_Right].x;
     _axisStateMap[RY] = inputState.Thumbstick[ovrHand_Right].y;
     _axisStateMap[RT] = inputState.IndexTrigger[ovrHand_Right];
-    _axisStateMap[RG] = inputState.HandTrigger[ovrHand_Right];
+    _axisStateMap[RIGHT_GRIP] = inputState.HandTrigger[ovrHand_Right];
 
     // Buttons
     for (const auto& pair : BUTTON_MAP) {
@@ -211,16 +206,6 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
             _buttonPressedMap.insert(pair.second);
         }
     }
-    // Map pressed hand triggers to grip buttons
-    // This is temporary in order to support the grab/equip scripts
-    const float handTriggerThreshold = 0.9f;
-    if (inputState.HandTrigger[ovrHand_Left] >= handTriggerThreshold + LEFT_HYSTERESIS_OFFSET) {
-        _buttonPressedMap.insert(LEFT_GRIP);
-    }
-    if (inputState.HandTrigger[ovrHand_Right] >= handTriggerThreshold + RIGHT_HYSTERESIS_OFFSET) {
-        _buttonPressedMap.insert(RIGHT_GRIP);
-    }
-
     // Touches
     for (const auto& pair : TOUCH_MAP) {
         if (inputState.Touches & pair.first) {
@@ -348,8 +333,6 @@ controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailabl
         //makePair(RB, "RB"),
 
         // side grip triggers
-        makePair(LG, "LG"),
-        makePair(RG, "RG"),
         makePair(LEFT_GRIP, "LeftGrip"),
         makePair(RIGHT_GRIP, "RightGrip"),
 
