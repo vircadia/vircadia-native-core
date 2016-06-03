@@ -105,6 +105,16 @@ ApplicationWindow {
         }
         */
 
+        // Browser
+
+        Button {
+            text: "Open Browser"
+            onClicked: builder.createObject(desktop);
+            property var builder: Component {
+                Browser {}
+            }
+        }
+
         // file dialog
 
         Button {
@@ -358,6 +368,7 @@ ApplicationWindow {
     }
 
     Action {
+        id: openBrowserAction
         text: "Open Browser"
         shortcut: "Ctrl+Shift+X"
         onTriggered: {
