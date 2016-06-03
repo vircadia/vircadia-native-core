@@ -97,6 +97,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
+    // update the metadata when a user (dis)connects
+    connect(this, &DomainServer::userConnected, &_metadata, &DomainMetadata::usersChanged);
+    connect(this, &DomainServer::userDisconnected, &_metadata, &DomainMetadata::usersChanged);
+
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -767,12 +771,16 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
 }
 
 void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
-    
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
+
     // reply back to the user with a PacketType::DomainList
     sendDomainListToNode(newNode, nodeData->getSendingSockAddr());
-    
+
+    // if this node is a user (unassigned Agent), signal
+    if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
+        emit userConnected();
+    }
+
     // send out this node to our other connected nodes
     broadcastNewNode(newNode);
 }
@@ -1890,11 +1898,10 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-
     // if this peer connected via ICE then remove them from our ICE peers hash
     _gatekeeper.removeICEPeer(node->getUUID());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     if (nodeData) {
         // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
@@ -1906,15 +1913,22 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
-        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                                       uuidStringWithoutCurlyBraces(node->getUUID()));
-
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
             SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
-                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+                static_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
+        }
+
+        if (node->getType() == NodeType::Agent) {
+            // if this node was an Agent ask DomainServerNodeData to remove the interpolation we potentially stored
+            nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                    uuidStringWithoutCurlyBraces(node->getUUID()));
+
+            // if this node is a user (unassigned Agent), signal
+            if (!nodeData->wasAssigned()) {
+                emit userDisconnected();
             }
         }
     }

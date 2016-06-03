@@ -16,12 +16,11 @@
 
 class DomainMetadata {
 public:
-    QVariantMap toVariantMap() { generate(); return _metadata; }
-    QJsonObject toJSON() { generate(); return QJsonObject::fromVariantMap(_metadata); }
+    QVariantMap toVariantMap() { return _metadata; }
+    QJsonObject toJSON() { return QJsonObject::fromVariantMap(_metadata); }
 
-protected slots:
-    // TODO: Connect appropriate signals to obviate JIT generation
-    void generate();
+public slots:
+    void usersChanged();
 
 protected:
     QVariantMap _metadata;

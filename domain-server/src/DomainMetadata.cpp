@@ -15,7 +15,7 @@
 
 #include "DomainServerNodeData.h"
 
-void DomainMetadata::generate() {
+void DomainMetadata::usersChanged() {
     static const QString DEFAULT_HOSTNAME = "*";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();

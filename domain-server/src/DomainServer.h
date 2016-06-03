@@ -92,6 +92,8 @@ private slots:
 
 signals:
     void iceServerChanged();
+    void userConnected();
+    void userDisconnected();
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
