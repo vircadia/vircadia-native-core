@@ -116,8 +116,8 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
 
     uint32_t numPoints = (uint32_t)hull->getNumPoints();
     if (numPoints > MAX_HULL_POINTS) {
-		// we have too many points, so we compute point projections along canonical unit vectors
-		// and keep the those that project the farthest
+        // we have too many points, so we compute point projections along canonical unit vectors
+        // and keep the those that project the farthest
         btVector3 btCenter = glmToBullet(center);
         btVector3* shapePoints = hull->getUnscaledPoints();
         std::vector<uint32_t> finalIndices;
