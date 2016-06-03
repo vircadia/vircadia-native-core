@@ -994,7 +994,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         if (_keyboardFocusedItem != entityItemID) {
             _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
             auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
-            if (EntityTypes::Web == properties.getType() && !properties.getLocked()) {
+            if (EntityTypes::Web == properties.getType() && !properties.getLocked() && properties.getVisible()) {
                 auto entity = entityScriptingInterface->getEntityTree()->findEntityByID(entityItemID);
                 RenderableWebEntityItem* webEntity = dynamic_cast<RenderableWebEntityItem*>(entity.get());
                 if (webEntity) {
@@ -1043,6 +1043,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // If the user clicks somewhere where there is NO entity at all, we will release focus
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity,
         [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event) {
+        _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
+        if (_keyboardFocusHighlight) {
+            _keyboardFocusHighlight->setVisible(false);
+        }
+    });
+
+    connect(this, &Application::aboutToQuit, [=]() {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
         if (_keyboardFocusHighlight) {
             _keyboardFocusHighlight->setVisible(false);
@@ -1503,7 +1510,13 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
-    displayPlugin->beginFrameRender(_frameCount);
+    // If a display plugin loses it's underlying support, it 
+    // needs to be able to signal us to not use it
+    if (!displayPlugin->beginFrameRender(_frameCount)) {
+        _inPaint = false;
+        updateDisplayMode();
+        return;
+    }
 
     // update the avatar with a fresh HMD pose
     getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
@@ -5098,8 +5111,16 @@ void Application::updateDisplayMode() {
 
         foreach(auto displayPlugin, standard) {
             addDisplayPluginToMenu(displayPlugin, first);
+            auto displayPluginName = displayPlugin->getName();
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
+            });
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::outputDeviceLost, [this, displayPluginName] {
+                PluginManager::getInstance()->disableDisplayPlugin(displayPluginName);
+                auto menu = Menu::getInstance();
+                if (menu->menuItemExists(MenuOption::OutputMenu, displayPluginName)) {
+                    menu->removeMenuItem(MenuOption::OutputMenu, displayPluginName);
+                }
             });
             first = false;
         }
@@ -5116,6 +5137,10 @@ void Application::updateDisplayMode() {
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
         QAction* action = menu->getActionForOption(name);
+        // Menu might have been removed if the display plugin lost
+        if (!action) {
+            continue;
+        }
         if (action->isChecked()) {
             newDisplayPlugin = displayPlugin;
             break;

@@ -137,7 +137,7 @@ public:
     }
 
     // will query the underlying hmd api to compute the most recent head pose
-    virtual void beginFrameRender(uint32_t frameIndex) {}
+    virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
 
     // returns a copy of the most recent head pose, computed via updateHeadPose
     virtual glm::mat4 getHeadPose() const {
@@ -170,6 +170,10 @@ public:
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
+    // Indicates that this display plugin is no longer valid for use.
+    // For instance if a user exits Oculus Home or Steam VR while 
+    // using the corresponding plugin, that plugin should be disabled.
+    void outputDeviceLost();
 
 protected:
     void incrementPresentCount();
