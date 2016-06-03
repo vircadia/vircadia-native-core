@@ -25,24 +25,43 @@ layout(location = 2) out vec4 _fragColor2;
 
 // the alpha threshold
 uniform float alphaThreshold;
-uniform sampler2D normalFittingMap;
 
-vec3 bestFitNormal(vec3 normal) {
-    vec3 absNorm = abs(normal);
-    float maxNAbs = max(absNorm.z, max(absNorm.x, absNorm.y));
+vec2 signNotZero(vec2 v) {
+    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
+}
 
-    vec2 texcoord = (absNorm.z < maxNAbs ? 
-                        (absNorm.y < maxNAbs ? absNorm.yz : absNorm.xz) :
-                        absNorm.xy);
-    texcoord = (texcoord.x < texcoord.y ? texcoord.yx : texcoord.xy);
-    texcoord.y /= texcoord.x;
-    vec3 cN = normal / maxNAbs;
-    float fittingScale = texture(normalFittingMap, texcoord).a;
-    cN *= fittingScale;
-    return (cN * 0.5 + 0.5);
+vec2 float32x3_to_oct(in vec3 v) {
+    vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
+    return ((v.z <= 0.0) ? ((1.0 - abs(p.yx)) * signNotZero(p)) : p);
 }
 
 
+vec3 oct_to_float32x3(in vec2 e) {
+    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+    if (v.z < 0) {
+        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+    }
+    return normalize(v);
+}
+
+vec3 snorm12x2_to_unorm8x3(vec2 f) {
+    vec2 u = vec2(round(clamp(f, -1.0, 1.0) * 2047.0 + 2047.0));
+    float t = floor(u.y / 256.0);
+
+    return floor(vec3(
+        u.x / 16.0,
+        fract(u.x / 16.0) * 256.0 + t,
+        u.y - t * 256.0
+        )) / 255.0;
+}
+
+vec2 unorm8x3_to_snorm12x2(vec3 u) {
+    u *= 255.0;
+    u.y *= (1.0 / 16.0);
+    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
+                    fract(u.y) * (16.0 * 256.0) + u.z);
+    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
+}
 
 float mod289(float x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0; 
@@ -322,7 +341,7 @@ void main(void) {
     }
 
     vec4 diffuse = vec4(_color.rgb, alpha);
-    vec4 normal = vec4(normalize(bestFitNormal(_normal)), 0.5);
+    vec4 normal = vec4(packNormal(normalize(_normal)), 0.5);
 
     _fragColor0 = diffuse;
     _fragColor1 = normal;
@@ -355,7 +374,7 @@ void main(void) {
     float emissiveAmount = getProceduralColors(diffuse, specular, shininess);
 
     _fragColor0 = vec4(diffuse.rgb, 1.0);
-    _fragColor1 = vec4(bestFitNormal(normalize(_normal.xyz)), 1.0 - (emissiveAmount / 2.0));
+    _fragColor1 = vec4(packNormal(normalize(_normal.xyz)), 1.0 - (emissiveAmount / 2.0));
     _fragColor2 = vec4(specular, shininess / 128.0);
 }
 )SCRIBE";

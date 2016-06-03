@@ -22,5 +22,7 @@ Window {
     property int colorScheme: hifi.colorSchemes.light
     property bool draggable: false
 
+    signal frameClicked();
+
     anchors.centerIn: draggable ? undefined : parent
 }

@@ -45,6 +45,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    _normal = interpolatedNormal.xyz;
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, _normal.xyz)$>
 }

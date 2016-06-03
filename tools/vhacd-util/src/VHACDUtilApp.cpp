@@ -19,7 +19,6 @@ using namespace std;
 using namespace VHACD;
 
 
-
 QString formatFloat(double n) {
     // limit precision to 6, but don't output trailing zeros.
     QString s = QString::number(n, 'f', 6);
@@ -33,14 +32,15 @@ QString formatFloat(double n) {
 }
 
 
-bool writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart = -1) {
+bool VHACDUtilApp::writeOBJ(QString outFileName, FBXGeometry& geometry, bool outputCentimeters, int whichMeshPart) {
     QFile file(outFileName);
     if (!file.open(QIODevice::WriteOnly)) {
-        qDebug() << "Unable to write to " << outFileName;
+        qWarning() << "unable to write to" << outFileName;
+        _returnCode = VHACD_RETURN_CODE_FAILURE_TO_WRITE;
         return false;
     }
-    QTextStream out(&file);
 
+    QTextStream out(&file);
     if (outputCentimeters) {
         out << "# This file uses centimeters as units\n\n";
     }
@@ -105,6 +105,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 
+    const QCommandLineOption verboseOutput("v", "verbose output");
+    parser.addOption(verboseOutput);
+
     const QCommandLineOption splitOption("split", "split input-file into one mesh per output-file");
     parser.addOption(splitOption);
 
@@ -122,12 +125,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     const QCommandLineOption outputCentimetersOption("c", "output units are centimeters");
     parser.addOption(outputCentimetersOption);
-
-    const QCommandLineOption startMeshIndexOption("s", "start-mesh index", "0");
-    parser.addOption(startMeshIndexOption);
-
-    const QCommandLineOption endMeshIndexOption("e", "end-mesh index", "0");
-    parser.addOption(endMeshIndexOption);
 
     const QCommandLineOption minimumMeshSizeOption("m", "minimum mesh (diagonal) size to consider", "0");
     parser.addOption(minimumMeshSizeOption);
@@ -195,8 +192,10 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-    bool outputCentimeters = parser.isSet(outputCentimetersOption);
+    bool verbose = parser.isSet(verboseOutput);
+    vUtil.setVerbose(verbose);
 
+    bool outputCentimeters = parser.isSet(outputCentimetersOption);
     bool fattenFaces = parser.isSet(fattenFacesOption);
     bool generateHulls = parser.isSet(generateHullsOption);
     bool splitModel = parser.isSet(splitOption);
@@ -223,16 +222,6 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         cerr << "output filename is required.";
         parser.showHelp();
         Q_UNREACHABLE();
-    }
-
-    int startMeshIndex = -1;
-    if (parser.isSet(startMeshIndexOption)) {
-        startMeshIndex = parser.value(startMeshIndexOption).toInt();
-    }
-
-    int endMeshIndex = -1;
-    if (parser.isSet(endMeshIndexOption)) {
-        endMeshIndex = parser.value(endMeshIndexOption).toInt();
     }
 
     float minimumMeshSize = 0.0f;
@@ -301,17 +290,20 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         Q_UNREACHABLE();
     }
 
-
-    // load the mesh 
-
+    // load the mesh
     FBXGeometry fbx;
     auto begin = std::chrono::high_resolution_clock::now();
     if (!vUtil.loadFBX(inputFilename, fbx)){
-        cout << "Error in opening FBX file....";
+        _returnCode = VHACD_RETURN_CODE_FAILURE_TO_READ;
+        return;
     }
     auto end = std::chrono::high_resolution_clock::now();
-    auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
+    if (verbose) {
+        auto loadDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        const double NANOSECS_PER_SECOND = 1.0e9;
+        qDebug() << "load time =" << (double)loadDuration / NANOSECS_PER_SECOND << "seconds";
+    }
 
     if (splitModel) {
         QVector<QString> infileExtensions = {"fbx", "obj"};
@@ -329,10 +321,14 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
     if (generateHulls) {
         VHACD::IVHACD::Parameters params;
-        vhacd::ProgressCallback pCallBack;
+        vhacd::ProgressCallback progressCallback;
 
         //set parameters for V-HACD
-        params.m_callback = &pCallBack; //progress callback
+        if (verbose) {
+            params.m_callback = &progressCallback; //progress callback
+        } else {
+            params.m_callback = nullptr;
+        }
         params.m_resolution = vHacdResolution;
         params.m_depth = vHacdDepth;
         params.m_concavity = vHacdConcavity;
@@ -346,44 +342,51 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
         params.m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
         params.m_maxNumVerticesPerCH = vHacdMaxVerticesPerCH;
         params.m_minVolumePerCH = 0.0001; // 0.0001
-        params.m_callback = 0; // 0
-        params.m_logger = 0; // 0
+        params.m_logger = nullptr;
         params.m_convexhullApproximation = true; // true
         params.m_oclAcceleration = true; // true
 
         //perform vhacd computation
+        if (verbose) {
+            qDebug() << "running V-HACD algorithm ...";
+        }
         begin = std::chrono::high_resolution_clock::now();
 
         FBXGeometry result;
-        if (!vUtil.computeVHACD(fbx, params, result, startMeshIndex, endMeshIndex,
-                                minimumMeshSize, maximumMeshSize)) {
-            cout << "Compute Failed...";
-        }
+        bool success = vUtil.computeVHACD(fbx, params, result, minimumMeshSize, maximumMeshSize);
+
         end = std::chrono::high_resolution_clock::now();
         auto computeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        if (verbose) {
+            qDebug() << "run time =" << (double)computeDuration / 1000000000.00 << " seconds";
+        }
+
+        if (!success) {
+            if (verbose) {
+                qDebug() << "failed to convexify model";
+            }
+            _returnCode = VHACD_RETURN_CODE_FAILURE_TO_CONVEXIFY;
+            return;
+        }
 
         int totalVertices = 0;
         int totalTriangles = 0;
-        int totalMeshParts = 0;
         foreach (const FBXMesh& mesh, result.meshes) {
             totalVertices += mesh.vertices.size();
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
                 totalTriangles += meshPart.triangleIndices.size() / 3;
                 // each quad was made into two triangles
                 totalTriangles += 2 * meshPart.quadIndices.size() / 4;
-                totalMeshParts++;
             }
         }
 
-        int totalHulls = result.meshes[0].parts.size();
-        cout << endl << "Summary of V-HACD Computation..................." << endl;
-        cout << "File Path          : " << inputFilename.toStdString() << endl;
-        cout << "Number Of Meshes   : " << totalMeshParts << endl;
-        cout << "Total vertices     : " << totalVertices << endl;
-        cout << "Total Triangles    : " << totalTriangles << endl;
-        cout << "Total Convex Hulls : " << totalHulls << endl;
-        cout << "Total FBX load time: " << (double)loadDuration / 1000000000.00 << " seconds" << endl;
-        cout << "V-HACD Compute time: " << (double)computeDuration / 1000000000.00 << " seconds" << endl;
+        if (verbose) {
+            int totalHulls = result.meshes[0].parts.size();
+            qDebug() << "output file =" << outputFilename;
+            qDebug() << "vertices =" << totalVertices;
+            qDebug() << "triangles =" << totalTriangles;
+            qDebug() << "hulls =" << totalHulls;
+        }
 
         writeOBJ(outputFilename, result, outputCentimeters);
     }
@@ -398,17 +401,9 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
             meshCount += mesh.parts.size();
         }
 
-        if (startMeshIndex < 0) {
-            startMeshIndex = 0;
-        }
-        if (endMeshIndex < 0) {
-            endMeshIndex = meshCount;
-        }
-
-        unsigned int meshPartCount = 0;
         result.modelTransform = glm::mat4(); // Identity matrix
         foreach (const FBXMesh& mesh, fbx.meshes) {
-            vUtil.fattenMeshes(mesh, result, meshPartCount, startMeshIndex, endMeshIndex);
+            vUtil.fattenMesh(mesh, fbx.offset, result);
         }
 
         newFbx.meshes.append(result);
