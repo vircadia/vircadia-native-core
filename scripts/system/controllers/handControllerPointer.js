@@ -27,6 +27,7 @@
 
 // UTILITIES -------------
 //
+function ignore() { }
 
 // Utility to make it easier to setup and disconnect cleanly.
 function setupHandler(event, handler) {
@@ -106,7 +107,7 @@ function Trigger() {
     };
     that.full = function () {
         return (that.state === 'full') ? 1.0 : 0.0;
-    }
+    };
 }
 
 // VERTICAL FIELD OF VIEW ---------
@@ -229,10 +230,9 @@ function updateSeeking() {
     }
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
-    if (!lookAt2D) {
-        // FIXME - determine if this message is useful but make it so it doesn't spam the
-        // log in the case that it is happening
-        //print('Cannot seek without lookAt position');
+    if (!lookAt2D) { // If this happens, something has gone terribly wrong.
+        print('Cannot seek without lookAt position');
+        isSeeking = false;
         return;
     } // E.g., if parallel to location in HUD
     var copy = Reticle.position;
@@ -305,7 +305,7 @@ var leftTrigger = new Trigger();
 var rightTrigger = new Trigger();
 var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
-function toggleHand() {
+function toggleHand() { // unequivocally switch which hand controls mouse position
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
         activeTrigger = leftTrigger;
@@ -314,6 +314,13 @@ function toggleHand() {
         activeTrigger = rightTrigger;
     }
 }
+function makeToggleAction(hand) { // return a function(0|1) that makes the specified hand control mouse when 1
+    return function (on) {
+        if (on && (activeHand !== hand)) {
+            toggleHand();
+        }
+    };
+}
 
 var clickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
 Script.scriptEnding.connect(clickMapping.disable);
@@ -321,25 +328,14 @@ Script.scriptEnding.connect(clickMapping.disable);
 // Gather the trigger data for smoothing.
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
-// The next two lines will be removed soon. Right now I want both trigger and button so we can compare.
-clickMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
-clickMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
-// Full somoothed trigger is a click.
+// Full smoothed trigger is a click.
 clickMapping.from(rightTrigger.full).to(Controller.Actions.ReticleClick);
 clickMapping.from(leftTrigger.full).to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // Partial smoothed trigger is activation.
-clickMapping.from(rightTrigger.partial).to(function (on) {
-    if (on && (activeHand !== Controller.Standard.RightHand)) {
-        toggleHand();
-    }
-});
-clickMapping.from(leftTrigger.partial).to(function (on) {
-    if (on && (activeHand !== Controller.Standard.LeftHand)) {
-        toggleHand();
-    }
-});
+clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
+clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
 clickMapping.enable();
 
 // VISUAL AID -----------
@@ -374,6 +370,7 @@ function turnOffVisualization(optionalEnableClicks) { // because we're showing c
 }
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
 function updateVisualization(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
+    ignore(controllerPosition, controllerDirection, hudPosition2d);
     // Show an indication of where the cursor will appear when crossing a HUD element,
     // and where in-world clicking will occur.
     //
@@ -408,21 +405,21 @@ function updateVisualization(controllerPosition, controllerDirection, hudPositio
 function update() {
     var now = Date.now();
     if (!handControllerLockOut.expired(now)) {
-        return turnOffVisualization();
-    } // Let them use mouse it in peace.
+        return turnOffVisualization(); // Let them use mouse it in peace.
+    }
     if (!Menu.isOptionChecked("First Person")) {
-        return turnOffVisualization();
-    }  // What to do? menus can be behind hand!
-    if (!Window.hasFocus()) { // Don't mess with other apps
-        return turnOffVisualization();
+        return turnOffVisualization(); // What to do? menus can be behind hand!
+    }
+    if (!Window.hasFocus()) {
+        return turnOffVisualization(); // Don't mess with other apps
     }
     leftTrigger.update();
     rightTrigger.update();
     var controllerPose = Controller.getPoseValue(activeHand);
     // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
     if (!controllerPose.valid) {
-        return turnOffVisualization();
-    } // Controller is cradled.
+        return turnOffVisualization(); // Controller is cradled.
+    }
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
     // This gets point direction right, but if you want general quaternion it would be more complicated:
@@ -430,9 +427,9 @@ function update() {
 
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
-        // FIXME - determine if this message is useful but make it so it doesn't spam the
-        // log in the case that it is happening
-        //print('Controller is parallel to HUD');
+        if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
+            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+        }
         return turnOffVisualization();
     }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
