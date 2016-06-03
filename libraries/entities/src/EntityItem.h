@@ -559,11 +559,11 @@ protected:
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;
 
-    quint64 _lastUpdatedPositionTimestamp = 0;
-    quint64 _lastUpdatedRotationTimestamp = 0;
-    quint64 _lastUpdatedVelocityTimestamp = 0;
-    quint64 _lastUpdatedAngularVelocityTimestamp = 0;
-    quint64 _lastUpdatedAccelerationTimestamp = 0;
+    quint64 _lastUpdatedPositionTimestamp { 0 };
+    quint64 _lastUpdatedRotationTimestamp { 0 };
+    quint64 _lastUpdatedVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAccelerationTimestamp { 0 };
 
 
 };
