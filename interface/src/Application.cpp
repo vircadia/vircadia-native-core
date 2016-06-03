@@ -2957,7 +2957,7 @@ void Application::loadSettings() {
         if (auto action = menu->getActionForOption(plugin->getName())) {
             action->setChecked(true);
             action->trigger();
-            // Find and activat5ed highest priority plugin, bail for the rest
+            // Find and activated highest priority plugin, bail for the rest
             break;
         }
     }
