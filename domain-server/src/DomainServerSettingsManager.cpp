@@ -206,15 +206,18 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             QStringList allowedEditors = valueOrDefaultValueForKeyPath(ALLOWED_EDITORS_SETTINGS_KEYPATH).toStringList();
             bool onlyEditorsAreRezzers = valueOrDefaultValueForKeyPath(EDITORS_ARE_REZZERS_KEYPATH).toBool();
 
-            _agentPermissions["localhost"].reset(new AgentPermissions("localhost"));
-            _agentPermissions["localhost"]->setAll(true);
-            _agentPermissions["anonymous"].reset(new AgentPermissions("anonymous"));
-            _agentPermissions["logged-in"].reset(new AgentPermissions("logged-in"));
+            _agentPermissions[AgentPermissions::standardNameLocalhost].reset(
+                new AgentPermissions(AgentPermissions::standardNameLocalhost));
+            _agentPermissions[AgentPermissions::standardNameLocalhost]->setAll(true);
+            _agentPermissions[AgentPermissions::standardNameAnonymous].reset(
+                new AgentPermissions(AgentPermissions::standardNameAnonymous));
+            _agentPermissions[AgentPermissions::standardNameLoggedIn].reset(
+                new AgentPermissions(AgentPermissions::standardNameLoggedIn));
 
             if (isRestrictedAccess) {
                 // only users in allow-users list can connect
-                _agentPermissions["anonymous"]->canConnectToDomain = false;
-                _agentPermissions["logged-in"]->canConnectToDomain = false;
+                _agentPermissions[AgentPermissions::standardNameAnonymous]->canConnectToDomain = false;
+                _agentPermissions[AgentPermissions::standardNameLoggedIn]->canConnectToDomain = false;
             } // else anonymous and logged-in retain default of canConnectToDomain = true
 
             foreach (QString allowedUser, allowedUsers) {
@@ -291,9 +294,9 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
     foreach (QVariant permsHash, permissionsList) {
         AgentPermissionsPointer perms { new AgentPermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        foundLocalhost |= (id == "localhost");
-        foundAnonymous |= (id == "anonymous");
-        foundLoggedIn |= (id == "logged-in");
+        foundLocalhost |= (id == AgentPermissions::standardNameLocalhost);
+        foundAnonymous |= (id == AgentPermissions::standardNameAnonymous);
+        foundLoggedIn |= (id == AgentPermissions::standardNameLoggedIn);
         if (_agentPermissions.contains(id)) {
             qDebug() << "duplicate name in permissions table: " << id;
             _agentPermissions[id] |= perms;
@@ -304,20 +307,17 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
 
     // if any of the standard names are missing, add them
     if (!foundLocalhost) {
-        AgentPermissionsPointer perms { new AgentPermissions("localhost") };
+        AgentPermissionsPointer perms { new AgentPermissions(AgentPermissions::standardNameLocalhost) };
         perms->setAll(true);
-        _agentPermissions["localhost"] = perms;
-        // *permissionsList += perms->toVariant();
+        _agentPermissions[perms->getID()] = perms;
     }
     if (!foundAnonymous) {
-        AgentPermissionsPointer perms { new AgentPermissions("anonymous") };
-        _agentPermissions["anonymous"] = perms;
-        // *permissionsList += perms->toVariant();
+        AgentPermissionsPointer perms { new AgentPermissions(AgentPermissions::standardNameAnonymous) };
+        _agentPermissions[perms->getID()] = perms;
     }
     if (!foundLoggedIn) {
-        AgentPermissionsPointer perms { new AgentPermissions("logged-in") };
-        _agentPermissions["logged-in"] = perms;
-        // *permissionsList += perms->toVariant();
+        AgentPermissionsPointer perms { new AgentPermissions(AgentPermissions::standardNameLoggedIn) };
+        _agentPermissions[perms->getID()] = perms;
     }
     if (!foundLocalhost || !foundAnonymous || !foundLoggedIn) {
         packPermissions(argumentList);

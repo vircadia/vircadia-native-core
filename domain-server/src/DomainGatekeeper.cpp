@@ -189,7 +189,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
     if (isLocalUser) {
-        userPerms |= _server->_settingsManager.getPermissionsForName("localhost");
+        userPerms |= _server->_settingsManager.getPermissionsForName(AgentPermissions::standardNameLocalhost);
     }
 
     if (!username.isEmpty() && usernameSignature.isEmpty()) {
@@ -204,7 +204,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (username.isEmpty()) {
         // they didn't tell us who they are
-        userPerms |= _server->_settingsManager.getPermissionsForName("anonymous");
+        userPerms |= _server->_settingsManager.getPermissionsForName(AgentPermissions::standardNameAnonymous);
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
         if (_server->_settingsManager.havePermissionsForName(username)) {
@@ -212,7 +212,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             userPerms |= _server->_settingsManager.getPermissionsForName(username);
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.
-            userPerms |= _server->_settingsManager.getPermissionsForName("logged-in");
+            userPerms |= _server->_settingsManager.getPermissionsForName(AgentPermissions::standardNameLoggedIn);
         }
     } else {
         // they sent us a username, but it didn't check out

@@ -13,6 +13,11 @@
 #include <QtCore/QDebug>
 #include "AgentPermissions.h"
 
+QString AgentPermissions::standardNameLocalhost = QString("localhost");
+QString AgentPermissions::standardNameLoggedIn = QString("logged-in");
+QString AgentPermissions::standardNameAnonymous = QString("anonymous");
+
+
 AgentPermissions& AgentPermissions::operator|=(const AgentPermissions& rhs) {
     this->canConnectToDomain |= rhs.canConnectToDomain;
     this->canAdjustLocks |= rhs.canAdjustLocks;

@@ -37,6 +37,11 @@ public:
 
     QString getID() const { return _id; }
 
+    // these 3 names have special meaning.
+    static QString standardNameLocalhost;
+    static QString standardNameLoggedIn;
+    static QString standardNameAnonymous;
+
     // the initializations here should match the defaults in describe-settings.json
     bool canConnectToDomain { true };
     bool canAdjustLocks { false };
