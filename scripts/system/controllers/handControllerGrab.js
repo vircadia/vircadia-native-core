@@ -33,9 +33,6 @@ var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
 
-var GRIP_ON_VALUE = 0.9;
-var GRIP_OFF_VALUE = 0.8;
-
 var THUMB_ON_VALUE = 0.5;
 
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
@@ -274,8 +271,7 @@ function MyController(hand) {
 
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
-    this.rawGripValue = 0;
-    this.rawBumperValue = 0;
+    this.rawSecondaryValue = 0;
     this.rawThumbValue = 0;
 
     //for visualizations
@@ -513,10 +509,10 @@ function MyController(hand) {
         var searchSphereLocation = Vec3.sum(distantPickRay.origin,
                                             Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
         this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
-                            (this.triggerSmoothedGrab() || (this.bumperSqueezed() || this.gripSqueezed())) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                            (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
             this.overlayLineOn(handPosition, searchSphereLocation,
-                               (this.triggerSmoothedGrab() || (this.bumperSqueezed() || this.gripSqueezed())) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                               (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
     }
 
@@ -772,12 +768,8 @@ function MyController(hand) {
         _this.rawTriggerValue = value;
     };
 
-    this.bumperPress = function(value) {
-        _this.rawBumperValue = value;
-    };
-
-    this.gripPress = function(value) {
-        _this.rawGripValue = value;
+    this.secondaryPress = function(value) {
+        _this.rawSecondaryValue = value;
     };
 
     this.updateSmoothedTrigger = function() {
@@ -799,28 +791,20 @@ function MyController(hand) {
         return this.triggerValue < TRIGGER_OFF_VALUE;
     };
 
-    this.bumperSqueezed = function() {
-        return _this.rawBumperValue > BUMPER_ON_VALUE;
+    this.secondarySqueezed = function() {
+        return _this.rawSecondaryValue > BUMPER_ON_VALUE;
     };
 
-    this.bumperReleased = function() {
-        return _this.rawBumperValue < BUMPER_ON_VALUE;
+    this.secondaryReleased = function() {
+        return _this.rawSecondaryValue < BUMPER_ON_VALUE;
     };
 
-    this.gripSqueezed = function() {
-        return _this.rawGripValue > GRIP_ON_VALUE;
-    };
-
-    this.gripReleased = function() {
-        return _this.rawGripValue < GRIP_OFF_VALUE;
-    };
-
-    // this.triggerOrBumperSqueezed = function() {
-    //     return triggerSmoothedSqueezed() || bumperSqueezed();
+    // this.triggerOrsecondarySqueezed = function() {
+    //     return triggerSmoothedSqueezed() || secondarySqueezed();
     // }
 
-    // this.triggerAndBumperReleased = function() {
-    //     return triggerSmoothedReleased() && bumperReleased();
+    // this.triggerAndSecondaryReleased = function() {
+    //     return triggerSmoothedReleased() && secondaryReleased();
     // }
 
     this.thumbPress = function(value) {
@@ -836,13 +820,13 @@ function MyController(hand) {
     };
 
     this.off = function() {
-        if (this.triggerSmoothedSqueezed() || (this.bumperSqueezed() || this.gripSqueezed())) {
+        if (this.triggerSmoothedSqueezed() || this.secondarySqueezed()) {
             this.lastPickTime = 0;
             var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
             this.startingHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
             if (this.triggerSmoothedSqueezed()) {
                 this.setState(STATE_SEARCHING);
-            } else if (this.bumperSqueezed() || this.gripSqueezed()) {
+            } else if (this.secondarySqueezed()) {
                 this.setState(STATE_HOLD_SEARCHING);
             }
         }
@@ -855,13 +839,11 @@ function MyController(hand) {
 
         this.checkForStrayChildren();
 
-        print("bumper: " + this.bumperReleased() + " grip: " + this.gripReleased());
-
         if (this.state == STATE_SEARCHING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
         }
-        if (this.state == STATE_HOLD_SEARCHING && (this.bumperReleased() || this.gripReleased())) {
+        if (this.state == STATE_HOLD_SEARCHING && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             return;
         }
@@ -1018,7 +1000,7 @@ function MyController(hand) {
                 grabbableData = grabbableDataForCandidate;
             }
         }
-        if ((this.grabbedEntity !== null) && (this.triggerSmoothedGrab() || (this.bumperSqueezed() || this.gripSqueezed()))) {
+        if ((this.grabbedEntity !== null) && (this.triggerSmoothedGrab() || this.secondarySqueezed())) {
             // We are squeezing enough to grab, and we've found an entity that we'll try to do something with.
             var near = (nearPickedCandidateEntities.indexOf(this.grabbedEntity) >= 0) || minDistance <= NEAR_PICK_MAX_DISTANCE;
             var isPhysical = this.propsArePhysical(props);
@@ -1184,7 +1166,7 @@ function MyController(hand) {
     };
 
     this.continueDistanceHolding = function() {
-        if (this.triggerSmoothedReleased() && (this.bumperReleased() || this.gripReleased())) {
+        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
@@ -1408,7 +1390,7 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
-        if (this.state == STATE_HOLD && (this.bumperReleased() || this.gripReleased())) {
+        if (this.state == STATE_HOLD && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
@@ -1522,7 +1504,7 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
-        if (this.state == STATE_CONTINUE_HOLD && (this.bumperReleased() || this.gripReleased())) {
+        if (this.state == STATE_CONTINUE_HOLD && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseEquip");
             return;
@@ -1651,7 +1633,7 @@ function MyController(hand) {
     };
 
     this.nearTrigger = function() {
-        if (this.triggerSmoothedReleased() && (this.bumperReleased() || this.gripReleased())) {
+        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
@@ -1661,7 +1643,7 @@ function MyController(hand) {
     };
 
     this.farTrigger = function() {
-        if (this.triggerSmoothedReleased() && (this.bumperReleased() || this.gripReleased())) {
+        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             return;
@@ -1671,7 +1653,7 @@ function MyController(hand) {
     };
 
     this.continueNearTrigger = function() {
-        if (this.triggerSmoothedReleased() && (this.bumperReleased() || this.gripReleased())) {
+        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
@@ -1680,7 +1662,7 @@ function MyController(hand) {
     };
 
     this.continueFarTrigger = function() {
-        if (this.triggerSmoothedReleased() && (this.bumperReleased() || this.gripReleased())) {
+        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             return;
@@ -1960,11 +1942,10 @@ var mapping = Controller.newMapping(MAPPING_NAME);
 mapping.from([Controller.Standard.RT]).peek().to(rightController.triggerPress);
 mapping.from([Controller.Standard.LT]).peek().to(leftController.triggerPress);
 
-mapping.from([Controller.Standard.RB]).peek().to(rightController.bumperPress);
-mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
-
-mapping.from([Controller.Standard.RightGrip]).peek().to(rightController.gripPress);
-mapping.from([Controller.Standard.LeftGrip]).peek().to(leftController.gripPress);
+mapping.from([Controller.Standard.RB]).peek().to(rightController.secondaryPress);
+mapping.from([Controller.Standard.LB]).peek().to(leftController.secondaryPress);
+mapping.from([Controller.Standard.LeftGrip]).peek().to(leftController.secondaryPress);
+mapping.from([Controller.Standard.RightGrip]).peek().to(rightController.secondaryPress);
 
 mapping.from([Controller.Standard.LeftPrimaryThumb]).peek().to(leftController.thumbPress);
 mapping.from([Controller.Standard.RightPrimaryThumb]).peek().to(rightController.thumbPress);
