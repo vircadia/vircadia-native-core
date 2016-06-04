@@ -549,44 +549,6 @@
         "shapeType": "compound",
         "type": "Model",
         "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
-    }, {
-        "name": "home_model_dressing_room_bricabrac",
-        "collisionsWillMove": 1,
-        "compoundShapeURL": "atp:/dressingRoom/afro.obj",
-        "created": "2016-05-17T23:58:24Z",
-        "dimensions": {
-            "x": 0.35398837924003601,
-            "y": 0.33958616852760315,
-            "z": 0.35055956244468689
-        },
-        "dynamic": 1,
-        "gravity": {
-            "x": 0,
-            "y": -5,
-            "z": 0
-        },
-        "id": "{d163c628-8247-4d13-a465-c1692825b4fe}",
-        "modelURL": "atp:/dressingRoom/afro.fbx",
-        "position": {
-            "x": 0.1300048828125,
-            "y": 0.9853515625,
-            "z": 0.4675140380859375
-        },
-        "queryAACube": {
-            "scale": 0.60292500257492065,
-            "x": -0.17145761847496033,
-            "y": 0.68388903141021729,
-            "z": 0.16605153679847717
-        },
-        "rotation": {
-            "w": 0.73046457767486572,
-            "x": 0.14757001399993896,
-            "y": 0.58101773262023926,
-            "z": -0.32719922065734863
-        },
-        "shapeType": "compound",
-        "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
     }],
     "Version": 57
 }
