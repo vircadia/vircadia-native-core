@@ -27,14 +27,14 @@
 #include "NodeType.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
-#include "AgentPermissions.h"
+#include "NodePermissions.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         const AgentPermissions& permissions, const QUuid& connectionSecret = QUuid(),
+         const NodePermissions& permissions, const QUuid& connectionSecret = QUuid(),
          QObject* parent = 0);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -59,8 +59,8 @@ public:
     void updateClockSkewUsec(qint64 clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
-    void setPermissions(const AgentPermissions& newPermissions) { _permissions = newPermissions; }
-    AgentPermissions getPermissions() const { return _permissions; }
+    void setPermissions(const NodePermissions& newPermissions) { _permissions = newPermissions; }
+    NodePermissions getPermissions() const { return _permissions; }
     bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
     bool getCanRez() const { return _permissions.canRezPermanentEntities; }
 
@@ -81,7 +81,7 @@ private:
     qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
-    AgentPermissions _permissions;
+    NodePermissions _permissions;
 };
 
 Q_DECLARE_METATYPE(Node*)

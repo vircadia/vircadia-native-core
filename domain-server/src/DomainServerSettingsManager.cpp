@@ -206,29 +206,29 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             QStringList allowedEditors = valueOrDefaultValueForKeyPath(ALLOWED_EDITORS_SETTINGS_KEYPATH).toStringList();
             bool onlyEditorsAreRezzers = valueOrDefaultValueForKeyPath(EDITORS_ARE_REZZERS_KEYPATH).toBool();
 
-            _agentPermissions[AgentPermissions::standardNameLocalhost].reset(
-                new AgentPermissions(AgentPermissions::standardNameLocalhost));
-            _agentPermissions[AgentPermissions::standardNameLocalhost]->setAll(true);
-            _agentPermissions[AgentPermissions::standardNameAnonymous].reset(
-                new AgentPermissions(AgentPermissions::standardNameAnonymous));
-            _agentPermissions[AgentPermissions::standardNameLoggedIn].reset(
-                new AgentPermissions(AgentPermissions::standardNameLoggedIn));
+            _agentPermissions[NodePermissions::standardNameLocalhost].reset(
+                new NodePermissions(NodePermissions::standardNameLocalhost));
+            _agentPermissions[NodePermissions::standardNameLocalhost]->setAll(true);
+            _agentPermissions[NodePermissions::standardNameAnonymous].reset(
+                new NodePermissions(NodePermissions::standardNameAnonymous));
+            _agentPermissions[NodePermissions::standardNameLoggedIn].reset(
+                new NodePermissions(NodePermissions::standardNameLoggedIn));
 
             if (isRestrictedAccess) {
                 // only users in allow-users list can connect
-                _agentPermissions[AgentPermissions::standardNameAnonymous]->canConnectToDomain = false;
-                _agentPermissions[AgentPermissions::standardNameLoggedIn]->canConnectToDomain = false;
+                _agentPermissions[NodePermissions::standardNameAnonymous]->canConnectToDomain = false;
+                _agentPermissions[NodePermissions::standardNameLoggedIn]->canConnectToDomain = false;
             } // else anonymous and logged-in retain default of canConnectToDomain = true
 
             foreach (QString allowedUser, allowedUsers) {
                 // even if isRestrictedAccess is false, we have to add explicit rows for these users.
                 // defaults to canConnectToDomain = true
-                _agentPermissions[allowedUser].reset(new AgentPermissions(allowedUser));
+                _agentPermissions[allowedUser].reset(new NodePermissions(allowedUser));
             }
 
             foreach (QString allowedEditor, allowedEditors) {
                 if (!_agentPermissions.contains(allowedEditor)) {
-                    _agentPermissions[allowedEditor].reset(new AgentPermissions(allowedEditor));
+                    _agentPermissions[allowedEditor].reset(new NodePermissions(allowedEditor));
                     if (isRestrictedAccess) {
                         // they can change locks, but can't connect.
                         _agentPermissions[allowedEditor]->canConnectToDomain = false;
@@ -292,11 +292,11 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
     // QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
 
     foreach (QVariant permsHash, permissionsList) {
-        AgentPermissionsPointer perms { new AgentPermissions(permsHash.toMap()) };
+        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
-        foundLocalhost |= (id == AgentPermissions::standardNameLocalhost);
-        foundAnonymous |= (id == AgentPermissions::standardNameAnonymous);
-        foundLoggedIn |= (id == AgentPermissions::standardNameLoggedIn);
+        foundLocalhost |= (id == NodePermissions::standardNameLocalhost);
+        foundAnonymous |= (id == NodePermissions::standardNameAnonymous);
+        foundLoggedIn |= (id == NodePermissions::standardNameLoggedIn);
         if (_agentPermissions.contains(id)) {
             qDebug() << "duplicate name in permissions table: " << id;
             _agentPermissions[id] |= perms;
@@ -307,16 +307,16 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
 
     // if any of the standard names are missing, add them
     if (!foundLocalhost) {
-        AgentPermissionsPointer perms { new AgentPermissions(AgentPermissions::standardNameLocalhost) };
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
         perms->setAll(true);
         _agentPermissions[perms->getID()] = perms;
     }
     if (!foundAnonymous) {
-        AgentPermissionsPointer perms { new AgentPermissions(AgentPermissions::standardNameAnonymous) };
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameAnonymous) };
         _agentPermissions[perms->getID()] = perms;
     }
     if (!foundLoggedIn) {
-        AgentPermissionsPointer perms { new AgentPermissions(AgentPermissions::standardNameLoggedIn) };
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
         _agentPermissions[perms->getID()] = perms;
     }
     if (!foundLocalhost || !foundAnonymous || !foundLoggedIn) {
@@ -325,20 +325,20 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
 
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
-    QHashIterator<QString, AgentPermissionsPointer> i(_agentPermissions);
+    QHashIterator<QString, NodePermissionsPointer> i(_agentPermissions);
     while (i.hasNext()) {
         i.next();
-        AgentPermissionsPointer perms = i.value();
+        NodePermissionsPointer perms = i.value();
         qDebug() << i.key() << perms;
     }
     #endif
 }
 
-AgentPermissions DomainServerSettingsManager::getPermissionsForName(const QString& name) const {
+NodePermissions DomainServerSettingsManager::getPermissionsForName(const QString& name) const {
     if (_agentPermissions.contains(name)) {
         return *(_agentPermissions[name].get());
     }
-    AgentPermissions nullPermissions;
+    NodePermissions nullPermissions;
     nullPermissions.setAll(false);
     return nullPermissions;
 }

@@ -165,7 +165,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     _pendingAssignedNodes.erase(it);
 
     // always allow assignment clients to create and destroy entities
-    AgentPermissions userPerms;
+    NodePermissions userPerms;
     userPerms.canAdjustLocks = true;
     userPerms.canRezPermanentEntities = true;
     newNode->setPermissions(userPerms);
@@ -181,7 +181,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // start with empty permissions
-    AgentPermissions userPerms(username);
+    NodePermissions userPerms(username);
     userPerms.setAll(false);
 
     // check if this user is on our local machine - if this is true they are always allowed to connect
@@ -189,7 +189,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
     if (isLocalUser) {
-        userPerms |= _server->_settingsManager.getPermissionsForName(AgentPermissions::standardNameLocalhost);
+        userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLocalhost);
     }
 
     if (!username.isEmpty() && usernameSignature.isEmpty()) {
@@ -204,7 +204,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (username.isEmpty()) {
         // they didn't tell us who they are
-        userPerms |= _server->_settingsManager.getPermissionsForName(AgentPermissions::standardNameAnonymous);
+        userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
         if (_server->_settingsManager.havePermissionsForName(username)) {
@@ -212,7 +212,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             userPerms |= _server->_settingsManager.getPermissionsForName(username);
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.
-            userPerms |= _server->_settingsManager.getPermissionsForName(AgentPermissions::standardNameLoggedIn);
+            userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLoggedIn);
         }
     } else {
         // they sent us a username, but it didn't check out

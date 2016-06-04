@@ -1,5 +1,5 @@
 //
-//  AgentPermissions.cpp
+//  NodePermissions.cpp
 //  libraries/networking/src/
 //
 //  Created by Seth Alves on 2016-6-1.
@@ -11,14 +11,14 @@
 
 #include <QDataStream>
 #include <QtCore/QDebug>
-#include "AgentPermissions.h"
+#include "NodePermissions.h"
 
-QString AgentPermissions::standardNameLocalhost = QString("localhost");
-QString AgentPermissions::standardNameLoggedIn = QString("logged-in");
-QString AgentPermissions::standardNameAnonymous = QString("anonymous");
+QString NodePermissions::standardNameLocalhost = QString("localhost");
+QString NodePermissions::standardNameLoggedIn = QString("logged-in");
+QString NodePermissions::standardNameAnonymous = QString("anonymous");
 
 
-AgentPermissions& AgentPermissions::operator|=(const AgentPermissions& rhs) {
+NodePermissions& NodePermissions::operator|=(const NodePermissions& rhs) {
     this->canConnectToDomain |= rhs.canConnectToDomain;
     this->canAdjustLocks |= rhs.canAdjustLocks;
     this->canRezPermanentEntities |= rhs.canRezPermanentEntities;
@@ -27,13 +27,13 @@ AgentPermissions& AgentPermissions::operator|=(const AgentPermissions& rhs) {
     this->canConnectPastMaxCapacity |= rhs.canConnectPastMaxCapacity;
     return *this;
 }
-AgentPermissions& AgentPermissions::operator|=(const AgentPermissionsPointer& rhs) {
+NodePermissions& NodePermissions::operator|=(const NodePermissionsPointer& rhs) {
     if (rhs) {
         *this |= *rhs.get();
     }
     return *this;
 }
-AgentPermissionsPointer& operator|=(AgentPermissionsPointer& lhs, const AgentPermissionsPointer& rhs) {
+NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs) {
     if (lhs && rhs) {
         *lhs.get() |= rhs;
     }
@@ -41,7 +41,7 @@ AgentPermissionsPointer& operator|=(AgentPermissionsPointer& lhs, const AgentPer
 }
 
 
-QDataStream& operator<<(QDataStream& out, const AgentPermissions& perms) {
+QDataStream& operator<<(QDataStream& out, const NodePermissions& perms) {
     out << perms.canConnectToDomain;
     out << perms.canAdjustLocks;
     out << perms.canRezPermanentEntities;
@@ -51,7 +51,7 @@ QDataStream& operator<<(QDataStream& out, const AgentPermissions& perms) {
     return out;
 }
 
-QDataStream& operator>>(QDataStream& in, AgentPermissions& perms) {
+QDataStream& operator>>(QDataStream& in, NodePermissions& perms) {
     in >> perms.canConnectToDomain;
     in >> perms.canAdjustLocks;
     in >> perms.canRezPermanentEntities;
@@ -61,7 +61,7 @@ QDataStream& operator>>(QDataStream& in, AgentPermissions& perms) {
     return in;
 }
 
-QDebug operator<<(QDebug debug, const AgentPermissions& perms) {
+QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     debug.nospace() << "[permissions: " << perms.getID() << " --";
     if (perms.canConnectToDomain) {
         debug << " connect";
@@ -84,7 +84,7 @@ QDebug operator<<(QDebug debug, const AgentPermissions& perms) {
     debug.nospace() << "]";
     return debug.nospace();
 }
-QDebug operator<<(QDebug debug, const AgentPermissionsPointer& perms) {
+QDebug operator<<(QDebug debug, const NodePermissionsPointer& perms) {
     if (perms) {
         return operator<<(debug, *perms.get());
     }

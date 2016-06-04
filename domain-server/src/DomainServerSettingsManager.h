@@ -19,7 +19,7 @@
 #include <HTTPManager.h>
 
 #include <ReceivedMessage.h>
-#include "AgentPermissions.h"
+#include "NodePermissions.h"
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
@@ -41,7 +41,7 @@ public:
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
     bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
-    AgentPermissions getPermissionsForName(const QString& name) const;
+    NodePermissions getPermissionsForName(const QString& name) const;
     QStringList getAllNames() { return _agentPermissions.keys(); }
 
 private slots:
@@ -64,7 +64,7 @@ private:
 
     void packPermissions(const QStringList& argumentList);
     void unpackPermissions(const QStringList& argumentList);
-    QHash<QString, AgentPermissionsPointer> _agentPermissions;
+    QHash<QString, NodePermissionsPointer> _agentPermissions;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

@@ -104,7 +104,7 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
-    void setPermissions(const AgentPermissions& newPermissions);
+    void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
     bool getThisNodeCanRez() const { return _permissions.canRezPermanentEntities; }
 
@@ -135,7 +135,7 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      const AgentPermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
+                                      const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
                                       const QUuid& connectionSecret = QUuid());
 
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
@@ -298,7 +298,7 @@ protected:
     int _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
-    AgentPermissions _permissions;
+    NodePermissions _permissions;
 
     QPointer<QTimer> _initialSTUNTimer;
 

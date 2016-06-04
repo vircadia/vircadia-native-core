@@ -52,7 +52,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer(),
-    _permissions(AgentPermissions())
+    _permissions(NodePermissions())
 {
     static bool firstCall = true;
     if (firstCall) {
@@ -131,7 +131,7 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
 }
 
 
-void LimitedNodeList::setPermissions(const AgentPermissions& newPermissions) {
+void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
     bool emitIsAllowedEditorChanged { false };
     bool emitCanRezChanged { false };
 
@@ -523,7 +523,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   const AgentPermissions& permissions,
+                                                   const NodePermissions& permissions,
                                                    const QUuid& connectionSecret) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 

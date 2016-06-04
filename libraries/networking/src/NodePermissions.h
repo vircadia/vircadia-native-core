@@ -1,5 +1,5 @@
 //
-//  AgentPermissions.h
+//  NodePermissions.h
 //  libraries/networking/src/
 //
 //  Created by Seth Alves on 2016-6-1.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_AgentPermissions_h
-#define hifi_AgentPermissions_h
+#ifndef hifi_NodePermissions_h
+#define hifi_NodePermissions_h
 
 #include <memory>
 #include <QString>
@@ -18,14 +18,14 @@
 #include <QVariant>
 #include <QUuid>
 
-class AgentPermissions;
-using AgentPermissionsPointer = std::shared_ptr<AgentPermissions>;
+class NodePermissions;
+using NodePermissionsPointer = std::shared_ptr<NodePermissions>;
 
-class AgentPermissions {
+class NodePermissions {
 public:
-    AgentPermissions() { _id = QUuid::createUuid().toString(); }
-    AgentPermissions(const QString& name) { _id = name; }
-    AgentPermissions(QMap<QString, QVariant> perms) {
+    NodePermissions() { _id = QUuid::createUuid().toString(); }
+    NodePermissions(const QString& name) { _id = name; }
+    NodePermissions(QMap<QString, QVariant> perms) {
         _id = perms["permissions_id"].toString();
         canConnectToDomain = perms["id_can_connect"].toBool();
         canAdjustLocks = perms["id_can_adjust_locks"].toBool();
@@ -71,19 +71,19 @@ public:
         return QVariant(values);
     }
 
-    AgentPermissions& operator|=(const AgentPermissions& rhs);
-    AgentPermissions& operator|=(const AgentPermissionsPointer& rhs);
-    friend QDataStream& operator<<(QDataStream& out, const AgentPermissions& perms);
-    friend QDataStream& operator>>(QDataStream& in, AgentPermissions& perms);
+    NodePermissions& operator|=(const NodePermissions& rhs);
+    NodePermissions& operator|=(const NodePermissionsPointer& rhs);
+    friend QDataStream& operator<<(QDataStream& out, const NodePermissions& perms);
+    friend QDataStream& operator>>(QDataStream& in, NodePermissions& perms);
 
 protected:
     QString _id;
 };
 
-const AgentPermissions DEFAULT_AGENT_PERMISSIONS;
+const NodePermissions DEFAULT_AGENT_PERMISSIONS;
 
-QDebug operator<<(QDebug debug, const AgentPermissions& perms);
-QDebug operator<<(QDebug debug, const AgentPermissionsPointer& perms);
-AgentPermissionsPointer& operator|=(AgentPermissionsPointer& lhs, const AgentPermissionsPointer& rhs);
+QDebug operator<<(QDebug debug, const NodePermissions& perms);
+QDebug operator<<(QDebug debug, const NodePermissionsPointer& perms);
+NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
 
-#endif // hifi_AgentPermissions_h
+#endif // hifi_NodePermissions_h

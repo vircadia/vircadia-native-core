@@ -16,7 +16,7 @@
 
 #include "Node.h"
 #include "SharedUtil.h"
-#include "AgentPermissions.h"
+#include "NodePermissions.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
@@ -48,7 +48,7 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, const AgentPermissions& permissions, const QUuid& connectionSecret,
+           const HifiSockAddr& localSocket, const NodePermissions& permissions, const QUuid& connectionSecret,
            QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
