@@ -190,6 +190,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
     if (isLocalUser) {
         userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLocalhost);
+        qDebug() << "user-permissions: is local user, so:" << userPerms;
     }
 
     if (!username.isEmpty() && usernameSignature.isEmpty()) {
@@ -197,7 +198,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
         // ask for their public key right now to make sure we have it
         requestUserPublicKey(username);
-        if (!isLocalUser) {
+        if (!userPerms.canConnectToDomain) {
             return SharedNodePointer();
         }
     }
@@ -205,24 +206,31 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (username.isEmpty()) {
         // they didn't tell us who they are
         userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+        qDebug() << "user-permissions: no username, so:" << userPerms;
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
         if (_server->_settingsManager.havePermissionsForName(username)) {
             // we have specific permissions for this user.
             userPerms |= _server->_settingsManager.getPermissionsForName(username);
+            qDebug() << "user-permissions: specific user matches, so:" << userPerms;
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.
             userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLoggedIn);
+            qDebug() << "user-permissions: user is logged in, so:" << userPerms;
         }
     } else {
         // they sent us a username, but it didn't check out
         requestUserPublicKey(username);
-        if (!isLocalUser) {
+        if (!userPerms.canConnectToDomain) {
             return SharedNodePointer();
         }
     }
 
+    qDebug() << "user-permissions: final:" << userPerms;
+
     if (!userPerms.canConnectToDomain) {
+        sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
+                                   nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::TooManyUsers);
         return SharedNodePointer();
     }
 
@@ -330,7 +338,7 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            rsaPublicKey);
 
             if (decryptResult == 1) {
-                qDebug() << "Username signature matches for" << username << "- allowing connection.";
+                qDebug() << "Username signature matches for" << username;
 
                 // free up the public key and remove connection token before we return
                 RSA_free(rsaPublicKey);
