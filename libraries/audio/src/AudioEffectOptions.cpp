@@ -32,7 +32,7 @@ static const QString LATE_MIX_LEFT_HANDLE = "lateMixLeft";
 static const QString LATE_MIX_RIGHT_HANDLE = "lateMixRight";
 static const QString WET_DRY_MIX_HANDLE = "wetDryMix";
 
-static const float BANDWIDTH_DEFAULT = 7000.0f;
+static const float BANDWIDTH_DEFAULT = 10000.0f;
 static const float PRE_DELAY_DEFAULT = 20.0f;
 static const float LATE_DELAY_DEFAULT = 0.0f;
 static const float REVERB_TIME_DEFAULT = 2.0f;
@@ -42,7 +42,7 @@ static const float ROOM_SIZE_DEFAULT = 50.0f;
 static const float DENSITY_DEFAULT = 100.0f;
 static const float BASS_MULT_DEFAULT = 1.5f;
 static const float BASS_FREQ_DEFAULT = 250.0f;
-static const float HIGH_GAIN_DEFAULT = -12.0f;
+static const float HIGH_GAIN_DEFAULT = -6.0f;
 static const float HIGH_FREQ_DEFAULT = 3000.0f;
 static const float MOD_RATE_DEFAULT = 2.3f;
 static const float MOD_DEPTH_DEFAULT = 50.0f;
