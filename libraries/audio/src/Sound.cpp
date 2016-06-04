@@ -106,7 +106,7 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 
     // truncate to actual output
     int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-    _byteArray.resize(maxDestinationBytes);
+    _byteArray.resize(numDestinationBytes);
 }
 
 //
