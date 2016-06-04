@@ -59,6 +59,7 @@ protected:
         LightingMode,
         ShadowMode,
         PyramidDepthMode,
+        CurvatureMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
         CustomMode // Needs to stay last

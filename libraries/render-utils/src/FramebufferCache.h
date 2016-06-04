@@ -47,6 +47,9 @@ public:
     gpu::FramebufferPointer getDepthPyramidFramebuffer();
     gpu::TexturePointer getDepthPyramidTexture();
 
+    gpu::FramebufferPointer getCurvatureFramebuffer();
+    gpu::TexturePointer getCurvatureTexture();
+
     void setAmbientOcclusionResolutionLevel(int level);
     gpu::FramebufferPointer getOcclusionFramebuffer();
     gpu::TexturePointer getOcclusionTexture();
@@ -95,7 +98,10 @@ private:
     gpu::FramebufferPointer _depthPyramidFramebuffer;
     gpu::TexturePointer _depthPyramidTexture;
     
-    
+
+    gpu::FramebufferPointer _curvatureFramebuffer;
+    gpu::TexturePointer _curvatureTexture;
+
     gpu::FramebufferPointer _occlusionFramebuffer;
     gpu::TexturePointer _occlusionTexture;
     

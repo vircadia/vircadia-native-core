@@ -39,6 +39,7 @@ Column {
                 "Lighting",
                 "Shadow",
                 "Pyramid Depth",
+                "Curvature",
                 "Ambient Occlusion",
                 "Ambient Occlusion Blurred",
                 "Custom Shader"

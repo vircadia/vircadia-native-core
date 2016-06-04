@@ -47,6 +47,7 @@ enum Slot {
     Lighting,
     Shadow,
     Pyramid,
+    Curvature,
     AmbientOcclusion,
     AmbientOcclusionBlurred
 };
@@ -138,6 +139,13 @@ static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
     " }"
 };
 
+static const std::string DEFAULT_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(texture(curvatureMap, uv).xyz, 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(obscuranceMap, uv).x), 1.0);"
@@ -203,6 +211,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_SHADOW_SHADER;
         case PyramidDepthMode:
             return DEFAULT_PYRAMID_DEPTH_SHADER;
+        case CurvatureMode:
+            return DEFAULT_CURVATURE_SHADER;
         case AmbientOcclusionMode:
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
         case AmbientOcclusionBlurredMode:
@@ -257,6 +267,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
         slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
         slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
+        slotBindings.insert(gpu::Shader::Binding("curvatureMap", Curvature));
         slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -288,6 +299,8 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
@@ -313,6 +326,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
         batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
+        batch.setResourceTexture(Curvature, framebufferCache->getCurvatureTexture());
         if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
             batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
         } else {

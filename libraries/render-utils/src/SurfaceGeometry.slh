@@ -1,0 +1,62 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/3/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+
+uniform sampler2D depthMap;
+
+out vec4 outFragColor;
+
+void main(void) {
+ // Fetch normal and depth of current pixel
+    float4 samplePos = sourceTexture.SampleLevel(pointSampler, input.texUV, 0.0f);
+    float4 sampleNormal = depthTexture.SampleLevel(pointSampler, input.texUV, 0.0f);
+
+    // Calculate the width scale.
+    float distanceToProjectionWindow = 1.0f / tan(0.5f * radians(fov));
+    float scale = distanceToProjectionWindow / sampleNormal.w;
+    
+    // Calculate dF/du and dF/dv
+    float2 du = float2( 1.0f, 0.0f ) * UVfactor.x * screenPixel * scale;
+    float2 dv = float2( 0.0f, 1.0f ) * UVfactor.x * screenPixel * scale;
+    float4 dFdu = depthTexture.SampleLevel(linearSampler, input.texUV + du.xy, 0.0f) -
+                  depthTexture.SampleLevel(linearSampler, input.texUV - du.xy, 0.0f);
+    float4 dFdv = depthTexture.SampleLevel(linearSampler, input.texUV + dv.xy, 0.0f) -
+                  depthTexture.SampleLevel(linearSampler, input.texUV - dv.xy, 0.0f);
+    dFdu *= step(abs(dFdu.w), 0.1f); dFdv *= step(abs(dFdv.w), 0.1f); 
+    
+    // Calculate ( du/dx, du/dy, du/dz ) and ( dv/dx, dv/dy, dv/dz )
+    float dist = 1.0f; samplePos.w = 1.0f;
+    float2 centerOffset = ((input.texUV - 0.5f) * 2.0f);
+    float4 px =  mul( samplePos + float4( dist, 0.0f, 0.0f, 0.0f ), matViewProj );
+    float4 py =  mul( samplePos + float4( 0.0f, dist, 0.0f, 0.0f ), matViewProj );
+    float4 pz =  mul( samplePos + float4( 0.0f, 0.0f, dist, 0.0f ), matViewProj );
+    #ifdef INVERT_TEXTURE_V
+        centerOffset.y = -centerOffset.y;
+    #endif
+    px.xy = ((px.xy / px.w) - centerOffset) / scale; 
+    py.xy = ((py.xy / py.w) - centerOffset) / scale; 
+    pz.xy = ((pz.xy / pz.w) - centerOffset) / scale; 
+    #ifdef INVERT_TEXTURE_V
+        px.y = -px.y; py.y = -py.y; pz.y = -pz.y;
+    #endif
+    
+    // Calculate dF/dx, dF/dy and dF/dz using chain rule
+    float4 dFdx = dFdu * px.x + dFdv * px.y;
+    float4 dFdy = dFdu * py.x + dFdv * py.y;
+    float4 dFdz = dFdu * pz.x + dFdv * pz.y;
+
+    // Calculate the mean curvature
+    float meanCurvature = ((dFdx.x + dFdy.y + dFdz.z) * 0.33333333333333333f) * 100.0f;
+    return (float4( sampleNormal.xyz, meanCurvature ) + 1.0f) * 0.5f;
+}

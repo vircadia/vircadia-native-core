@@ -26,6 +26,7 @@
 
 #include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
+#include "SurfaceGeometryPass.h"
 #include "FramebufferCache.h"
 #include "HitEffect.h"
 #include "TextureCache.h"
@@ -92,6 +93,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
+    // Prepare deferred, generate the shared Deferred Frame Transform
+    const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("EvalDeferredFrameTransform");
+
     // GPU jobs: Start preparing the deferred and lighting buffer
     addJob<PrepareDeferred>("PrepareDeferred");
 
@@ -103,6 +107,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // Use Stencil and start drawing background in Lighting buffer
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
+
+    // Opaque all rendered, generate surface geometry buffers
+    addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
 
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
