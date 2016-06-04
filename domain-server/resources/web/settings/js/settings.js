@@ -232,15 +232,16 @@ $(document).ready(function(){
     badgeSidebarForDifferences($(this));
   });
 
-
   // Bootstrap switch in table
   $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.table-checkbox', function () {
-    // Bootstrap switches in table: set the changed data attribute for all rows.
+    // Bootstrap switches in table: set the changed data attribute for all rows in table.
     var row = $(this).closest('tr');
-    row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
-    updateDataChangedForSiblingRows(row, true);
+    if (row.hasClass("value-row")) {  // Don't set attribute on input row switches prior to it being added to table.
+      row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
+      updateDataChangedForSiblingRows(row, true);
+      badgeSidebarForDifferences($(this));
+    }
   });
-
 
   $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
@@ -850,6 +851,7 @@ function reloadSettings(callback) {
 
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
+    $('.table-checkbox').bootstrapSwitch();
 
     // add tooltip to locked settings
     $('label.locked').tooltip({
@@ -982,7 +984,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
         if (isArray && col.type === "checkbox" && col.editable) {
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='checkbox' class='form-control toggle-checkbox table-checkbox' data-size='mini' "
+                  + "<input type='checkbox' class='form-control table-checkbox' data-size='mini' "
                   + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
         } else {
           // Use a hidden input so that the values are posted.
@@ -1037,7 +1039,7 @@ function makeTableInputs(setting) {
   _.each(setting.columns, function(col) {
     if (col.type === "checkbox") {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-              + "<input type='checkbox' class='form-control toggle-checkbox' data-size='mini' "
+              + "<input type='checkbox' class='form-control table-checkbox' data-size='mini' "
               + "name='" + col.name + "'" + (col.default ? " checked" : "") + "/></td>";
     } else {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
@@ -1173,7 +1175,7 @@ function addTableRow(add_glyphicon) {
       // Hide inputs
       var input = $(element).find("input")
       var isCheckbox = false;
-      if (input.hasClass("toggle-checkbox")) {
+      if (input.hasClass("table-checkbox")) {
         input = $(input).parent().parent();
         isCheckbox = true;
       }
