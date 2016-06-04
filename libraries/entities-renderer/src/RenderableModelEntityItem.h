@@ -103,7 +103,6 @@ private:
     QVariantMap _currentTextures;
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
-    QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
 
     AnimationPropertyGroup _renderAnimationProperties;
