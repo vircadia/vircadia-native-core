@@ -17,7 +17,7 @@ QString NodePermissions::standardNameLocalhost = QString("localhost");
 QString NodePermissions::standardNameLoggedIn = QString("logged-in");
 QString NodePermissions::standardNameAnonymous = QString("anonymous");
 
-QList<QString> NodePermissions::standardNames = QList<QString>()
+QStringList NodePermissions::standardNames = QList<QString>()
     << NodePermissions::standardNameLocalhost
     << NodePermissions::standardNameLoggedIn
     << NodePermissions::standardNameAnonymous;

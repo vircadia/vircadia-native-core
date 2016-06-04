@@ -404,6 +404,11 @@ void DomainGatekeeper::preloadAllowedUserPublicKeys() {
 }
 
 void DomainGatekeeper::requestUserPublicKey(const QString& username) {
+    // don't request public keys for the standard psuedo-account-names
+    if (NodePermissions::standardNames.contains(username, Qt::CaseInsensitive)) {
+        return;
+    }
+
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;

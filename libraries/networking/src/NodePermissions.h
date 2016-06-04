@@ -41,7 +41,7 @@ public:
     static QString standardNameLocalhost;
     static QString standardNameLoggedIn;
     static QString standardNameAnonymous;
-    static QList<QString> standardNames;
+    static QStringList standardNames;
 
     // the initializations here should match the defaults in describe-settings.json
     bool canConnectToDomain { true };
