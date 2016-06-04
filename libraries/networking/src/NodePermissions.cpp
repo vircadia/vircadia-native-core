@@ -17,6 +17,10 @@ QString NodePermissions::standardNameLocalhost = QString("localhost");
 QString NodePermissions::standardNameLoggedIn = QString("logged-in");
 QString NodePermissions::standardNameAnonymous = QString("anonymous");
 
+QList<QString> NodePermissions::standardNames = QList<QString>()
+    << NodePermissions::standardNameLocalhost
+    << NodePermissions::standardNameLoggedIn
+    << NodePermissions::standardNameAnonymous;
 
 NodePermissions& NodePermissions::operator|=(const NodePermissions& rhs) {
     this->canConnectToDomain |= rhs.canConnectToDomain;
