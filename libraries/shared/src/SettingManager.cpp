@@ -50,12 +50,21 @@ namespace Setting {
     }
 
     void Manager::loadSetting(Interface* handle) {
-        handle->setVariant(value(handle->getKey()));
+        const auto& key = handle->getKey();
+        withWriteLock([&] {
+            QVariant loadedValue;
+            if (_pendingChanges.contains(key)) {
+                loadedValue = _pendingChanges[key];
+            } else {
+                loadedValue = value(key);
+            }
+            handle->setVariant(loadedValue);
+        });
     }
 
 
     void Manager::saveSetting(Interface* handle) {
-        auto key = handle->getKey();
+        const auto& key = handle->getKey();
         QVariant handleValue = UNSET_VALUE;
         if (handle->isSet()) {
             handleValue = handle->getVariant();
@@ -85,23 +94,21 @@ namespace Setting {
     }
 
     void Manager::saveAll() {
-        QHash<QString, QVariant> newPendingChanges;
         withWriteLock([&] {
-            newPendingChanges.swap(_pendingChanges);
+            for (auto key : _pendingChanges.keys()) {
+                auto newValue = _pendingChanges[key];
+                auto savedValue = value(key, UNSET_VALUE);
+                if (newValue == savedValue) {
+                    continue;
+                }
+                if (newValue == UNSET_VALUE) {
+                    remove(key);
+                } else {
+                    setValue(key, newValue);
+                }
+            }
+            _pendingChanges.clear();
         });
-
-        for (auto key : newPendingChanges.keys()) {
-            auto newValue = newPendingChanges[key];
-            auto savedValue = value(key, UNSET_VALUE);
-            if (newValue == savedValue) {
-                continue;
-            }
-            if (newValue == UNSET_VALUE) {
-                remove(key);
-            } else {
-                setValue(key, newValue);
-            }
-        }
 
         // Restart timer
         if (_saveTimer) {

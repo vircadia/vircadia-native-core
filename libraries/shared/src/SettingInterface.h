@@ -18,6 +18,8 @@
 #include <QtCore/QVariant>
 
 namespace Setting {
+    class Manager;
+
     void preInit();
     void init();
     void cleanupSettings();
@@ -26,7 +28,7 @@ namespace Setting {
     public:
         static const QString FIRST_RUN;
 
-        QString getKey() const { return _key; }
+        const QString& getKey() const { return _key; }
         bool isSet() const { return _isSet; } 
 
         virtual void setVariant(const QVariant& variant) = 0;
