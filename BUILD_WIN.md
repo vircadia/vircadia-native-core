@@ -73,8 +73,8 @@ Your system may already have several versions of the OpenSSL DLL's (ssleay32.dll
     QSslSocket: cannot resolve SSL_get0_next_proto_negotiated
 
 To prevent these problems, install OpenSSL yourself. Download one of the following binary packages [from this website](http://slproweb.com/products/Win32OpenSSL.html):
-* Win32 OpenSSL v1.0.1 (highest letter)
-* Win64 OpenSSL v1.0.1 (highest letter)
+* Win32 OpenSSL v1.0.1q
+* Win64 OpenSSL v1.0.1q
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
