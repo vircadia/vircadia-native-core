@@ -35,7 +35,7 @@
         },
         "shapeType": "box",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "collisionsWillMove": 1,
         "created": "2016-03-31T23:06:57Z",
@@ -72,7 +72,7 @@
         },
         "shapeType": "box",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "collisionsWillMove": 1,
         "created": "2016-03-31T22:45:06Z",
@@ -109,7 +109,7 @@
         },
         "shapeType": "box",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "collisionsWillMove": 1,
         "created": "2016-03-31T23:06:57Z",
@@ -146,7 +146,7 @@
         },
         "shapeType": "box",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "collisionsWillMove": 1,
         "created": "2016-03-31T22:47:17Z",
@@ -183,7 +183,7 @@
         },
         "shapeType": "box",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "collisionsWillMove": 1,
         "created": "2016-03-31T22:49:28Z",
@@ -220,7 +220,7 @@
         },
         "shapeType": "box",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }],
     "Version": 57
 }
