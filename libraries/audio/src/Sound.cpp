@@ -25,6 +25,8 @@
 
 #include "AudioRingBuffer.h"
 #include "AudioLogging.h"
+#include "AudioSRC.h"
+
 #include "Sound.h"
 
 QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
@@ -89,49 +91,22 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
 
-    int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
+    int numChannels = _isStereo ? 2 : 1;
+    AudioSRC resampler(48000, AudioConstants::SAMPLE_RATE, numChannels);
 
-    if (_isStereo && numSourceSamples % 2 != 0){
-        // in the unlikely case that we have stereo audio but we seem to be missing a sample
-        // (the sample for one channel is missing in a set of interleaved samples)
-        // then drop the odd sample
-        --numSourceSamples;
-    }
+    // resize to max possible output
+    int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
+    int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
+    int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
+    _byteArray.resize(maxDestinationBytes);
 
-    int numDestinationSamples = numSourceSamples / 2.0f;
+    int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(), 
+                                                (int16_t*)_byteArray.data(), 
+                                                numSourceFrames);
 
-    if (_isStereo && numDestinationSamples % 2 != 0) {
-        // if this is stereo we need to make sure we produce stereo output
-        // which means we should have an even number of output samples
-        numDestinationSamples += 1;
-    }
-
-    int numDestinationBytes = numDestinationSamples * sizeof(AudioConstants::AudioSample);
-
+    // truncate to actual output
+    int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
     _byteArray.resize(numDestinationBytes);
-
-    int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
-    int16_t* destinationSamples = (int16_t*) _byteArray.data();
-
-    if (_isStereo) {
-        for (int i = 0; i < numSourceSamples; i += 4) {
-            if (i + 2 >= numSourceSamples) {
-                destinationSamples[i / 2] = sourceSamples[i];
-                destinationSamples[(i / 2) + 1] = sourceSamples[i + 1];
-            } else {
-                destinationSamples[i / 2] = (sourceSamples[i] + sourceSamples[i + 2]) / 2;
-                destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] + sourceSamples[i + 3]) / 2;
-            }
-        }
-    } else {
-        for (int i = 1; i < numSourceSamples; i += 2) {
-            if (i + 1 >= numSourceSamples) {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] + sourceSamples[i]) / 2;
-            } else {
-                destinationSamples[(i - 1) / 2] = ((sourceSamples[i - 1] + sourceSamples[i + 1]) / 4) + (sourceSamples[i] / 2);
-            }
-        }
-    }
 }
 
 //
