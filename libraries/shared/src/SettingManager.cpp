@@ -9,13 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QThread>
-#include <QDebug>
+#include <QtCore/QThread>
+#include <QtCore/QDebug>
+#include <QtCore/QUuid>
 
 #include "SettingInterface.h"
 #include "SettingManager.h"
 
 namespace Setting {
+
     Manager::~Manager() {
         // Cleanup timer
         stopTimer();
@@ -26,6 +28,10 @@ namespace Setting {
 
         // sync will be called in the QSettings destructor
     }
+
+    // Custom deleter does nothing, because we need to shutdown later than the dependency manager
+    void Manager::customDeleter() { }
+
 
     void Manager::registerHandle(Setting::Interface* handle) {
         QString key = handle->getKey();
@@ -47,12 +53,17 @@ namespace Setting {
         handle->setVariant(value(handle->getKey()));
     }
 
+
     void Manager::saveSetting(Interface* handle) {
+        auto key = handle->getKey();
+        QVariant handleValue = UNSET_VALUE;
         if (handle->isSet()) {
-            setValue(handle->getKey(), handle->getVariant());
-        } else {
-            remove(handle->getKey());
+            handleValue = handle->getVariant();
         }
+
+        withWriteLock([&] {
+            _pendingChanges[key] = handleValue;
+        });
     }
 
     static const int SAVE_INTERVAL_MSEC = 5 * 1000; // 5 sec
@@ -74,11 +85,23 @@ namespace Setting {
     }
 
     void Manager::saveAll() {
-        withReadLock([&] {
-            for (auto handle : _handles) {
-                saveSetting(handle);
-            }
+        QHash<QString, QVariant> newPendingChanges;
+        withWriteLock([&] {
+            newPendingChanges.swap(_pendingChanges);
         });
+
+        for (auto key : newPendingChanges.keys()) {
+            auto newValue = newPendingChanges[key];
+            auto savedValue = value(key, UNSET_VALUE);
+            if (newValue == savedValue) {
+                continue;
+            }
+            if (newValue == UNSET_VALUE) {
+                remove(key);
+            } else {
+                setValue(key, newValue);
+            }
+        }
 
         // Restart timer
         if (_saveTimer) {
