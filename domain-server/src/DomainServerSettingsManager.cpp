@@ -266,15 +266,16 @@ void DomainServerSettingsManager::packPermissionsForMap(const QStringList& argum
                                                         QHash<QString, NodePermissionsPointer> agentPermissions,
                                                         QString keyPath) {
     QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
+    if (!security || !security->canConvert(QMetaType::QVariantMap)) {
+        security = valueForKeyPath(_configMap.getUserConfig(), "security", true);
+        (*security) = QVariantMap();
+    }
 
     // save settings for anonymous / logged-in / localhost
     QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
     if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
-        QVariantMap securityMap = security->toMap();
-        QVariantList userList;
-        securityMap[mapName] = userList;
-        _configMap.getUserConfig()["security"] = securityMap;
-        permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
+        permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
+        (*permissions) = QVariantList();
     }
 
     QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
@@ -306,12 +307,14 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
     QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
     if (!standardPermissions || !standardPermissions->canConvert(QMetaType::QVariantList)) {
         qDebug() << "failed to extract standard permissions from settings.";
-        return;
+        standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH, true);
+        (*standardPermissions) = QVariantList();
     }
     QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
     if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
         qDebug() << "failed to extract permissions from settings.";
-        return;
+        permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH, true);
+        (*permissions) = QVariantList();
     }
 
     QList<QVariant> standardPermissionsList = standardPermissions->toList();
@@ -348,20 +351,22 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
         perms->setAll(true);
         _standardAgentPermissions[perms->getID()] = perms;
+        needPack = true;
     }
     if (!foundAnonymous) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameAnonymous) };
+        _standardAgentPermissions[perms->getID()] = perms;
         needPack = true;
     }
     if (!foundLoggedIn) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
+        _standardAgentPermissions[perms->getID()] = perms;
         needPack = true;
     }
 
     if (needPack) {
         packPermissions(argumentList);
     }
-
 
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
