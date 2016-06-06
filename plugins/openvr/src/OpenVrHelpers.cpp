@@ -14,8 +14,12 @@
 #include <QtCore/QTimer>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QProcessEnvironment>
+#include <QtGui/QInputMethodEvent>
+#include <QtQuick/QQuickWindow>
 
 #include <Windows.h>
+
+#include <OffscreenUi.h>
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
@@ -90,6 +94,82 @@ void releaseOpenVrSystem() {
     }
 }
 
+static char textArray[8192];
+
+static QMetaObject::Connection _focusConnection, _focusTextConnection;
+extern bool _openVrDisplayActive;
+static vr::IVROverlay* _overlay { nullptr };
+static QObject* _focusObject { nullptr };
+static QString _existingText;
+static Qt::InputMethodHints _currentHints;
+
+void showOpenVrKeyboard(bool show = true) {
+    if (_overlay) {
+        if (show) {
+            auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            _focusObject = offscreenUi->getWindow()->focusObject();
+
+            QInputMethodQueryEvent query(Qt::ImQueryInput | Qt::ImHints);
+            qApp->sendEvent(_focusObject, &query);
+            _currentHints = Qt::InputMethodHints(query.value(Qt::ImHints).toUInt());
+            vr::EGamepadTextInputMode inputMode = vr::k_EGamepadTextInputModeNormal;
+            if (_currentHints & Qt::ImhHiddenText) {
+                inputMode = vr::k_EGamepadTextInputModePassword;
+            }
+            vr::EGamepadTextInputLineMode lineMode = vr::k_EGamepadTextInputLineModeSingleLine;
+            if (_currentHints & Qt::ImhMultiLine) {
+                lineMode = vr::k_EGamepadTextInputLineModeMultipleLines;
+            }
+            _existingText = query.value(Qt::ImSurroundingText).toString();
+            _overlay->ShowKeyboard(inputMode, lineMode, "Keyboard", 1024, _existingText.toLocal8Bit().toStdString().c_str(), false, (uint64_t)(void*)_focusObject);
+        } else {
+            _focusObject = nullptr;
+            _overlay->HideKeyboard();
+        }
+    }
+}
+
+void finishOpenVrKeyboardInput() {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto chars = _overlay->GetKeyboardText(textArray, 8192);
+    auto newText = QString(QByteArray(textArray, chars));
+    // TODO modify the new text to match the possible input hints:
+    // ImhDigitsOnly  ImhFormattedNumbersOnly  ImhUppercaseOnly  ImhLowercaseOnly 
+    // ImhDialableCharactersOnly ImhEmailCharactersOnly  ImhUrlCharactersOnly  ImhLatinOnly
+    QInputMethodEvent event(_existingText, QList<QInputMethodEvent::Attribute>());
+    event.setCommitString(newText, 0, _existingText.size());
+    qApp->sendEvent(_focusObject, &event);
+    // Simulate an enter press on the top level window to trigger the action
+    if (0 == (_currentHints & Qt::ImhMultiLine)) {
+        qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n")));
+        qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyRelease, Qt::Key_Return, Qt::KeyboardModifiers()));
+    }
+}
+
+void enableOpenVrKeyboard() {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    _overlay = vr::VROverlay();
+
+    _focusConnection = QObject::connect(offscreenUi->getWindow(), &QQuickWindow::focusObjectChanged, [](QObject* object) {
+        if (object != _focusObject && _overlay) {
+            showOpenVrKeyboard(false);
+        }
+    });
+
+    _focusTextConnection = QObject::connect(offscreenUi.data(), &OffscreenUi::focusTextChanged, [](bool focusText) {
+        if (_openVrDisplayActive) {
+            showOpenVrKeyboard(focusText);
+        }
+    });
+}
+
+
+void disableOpenVrKeyboard() {
+    QObject::disconnect(_focusTextConnection);
+    QObject::disconnect(_focusConnection);
+}
+
+
 void handleOpenVrEvents() {
     if (!activeHmd) {
         return;
@@ -107,6 +187,10 @@ void handleOpenVrEvents() {
                 activeHmd->AcknowledgeQuit_Exiting();
                 break;
 
+            case vr::VREvent_KeyboardDone: 
+                finishOpenVrKeyboardInput();
+                break;
+
             default:
                 break;
         }
@@ -114,3 +198,4 @@ void handleOpenVrEvents() {
     }
 
 }
+
