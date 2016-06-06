@@ -56,6 +56,7 @@
           "label": "Paths",
           "help": "Clients can enter a path to reach an exact viewpoint in your domain.<br/>Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.",
           "type": "table",
+          "can_add_new_rows": true,
           "key": {
             "name": "path",
             "label": "Path",
@@ -96,10 +97,11 @@
           "advanced": false
         },
         {
-          "name": "permissions",
+          "name": "standard_permissions",
           "type": "table",
-          "label": "Domain-Wide User Permissions",
-          "help": "Indicate which users or groups can have which domain-wide permissions.",
+          "label": "Domain-Wide Permissions",
+          "help": "Standard Permissions:",
+          "can_add_new_rows": false,
 
           "columns": [
             {
@@ -152,6 +154,61 @@
 
           "non-deletable-row-key": "permissions_id",
           "non-deletable-row-values": ["localhost", "anonymous", "logged-in"]
+        },
+        {
+          "name": "permissions",
+          "type": "table",
+          "help": "Permissions for Specific Users:",
+          "can_add_new_rows": true,
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": "User/Group"
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": true
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock/Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temp",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
         }
       ]
     },
@@ -164,6 +221,8 @@
           "type": "table",
           "label": "Persistent Scripts",
           "help": "Add the URLs for scripts that you would like to ensure are always running in your domain.",
+          "can_add_new_rows": true,
+
           "columns": [
             {
               "name": "url",
@@ -248,6 +307,8 @@
           "label": "Zones",
           "help": "In this table you can define a set of zones in which you can specify various audio properties.",
           "numbered": false,
+          "can_add_new_rows": true,
+
           "key": {
             "name": "name",
             "label": "Name",
@@ -299,6 +360,8 @@
           "help": "In this table you can set custom attenuation coefficients between audio zones",
           "numbered": true,
           "can_order": true,
+          "can_add_new_rows": true,
+
           "columns": [
             {
               "name": "source",
@@ -326,6 +389,8 @@
           "label": "Reverb Settings",
           "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet/dry mix of 25%. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet/dry mix of 50%.",
           "numbered": true,
+          "can_add_new_rows": true,
+
           "columns": [
             {
               "name": "zone",
@@ -447,6 +512,8 @@
           "label": "Backup Rules",
           "help": "In this table you can define a set of rules for how frequently to backup copies of your entites content file.",
           "numbered": false,
+          "can_add_new_rows": true,
+
           "default":  [
                           {"Name":"Half Hourly Rolling","backupInterval":1800,"format":".backup.halfhourly.%N","maxBackupVersions":5},
                           {"Name":"Daily Rolling","backupInterval":86400,"format":".backup.daily.%N","maxBackupVersions":7},

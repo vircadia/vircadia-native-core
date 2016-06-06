@@ -25,6 +25,7 @@ const QString SETTINGS_PATHS_KEY = "paths";
 
 const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
+const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 
 class DomainServerSettingsManager : public QObject {
@@ -40,7 +41,9 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
+    bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
     bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
+    NodePermissions getStandardPermissionsForName(const QString& name) const;
     NodePermissions getPermissionsForName(const QString& name) const;
     QStringList getAllNames() { return _agentPermissions.keys(); }
 
@@ -62,9 +65,12 @@ private:
 
     friend class DomainServer;
 
+    void packPermissionsForMap(const QStringList& argumentList, QString mapName,
+                               QHash<QString, NodePermissionsPointer> agentPermissions, QString keyPath);
     void packPermissions(const QStringList& argumentList);
     void unpackPermissions(const QStringList& argumentList);
-    QHash<QString, NodePermissionsPointer> _agentPermissions;
+    QHash<QString, NodePermissionsPointer> _standardAgentPermissions; // anonymous, logged-in, localhost
+    QHash<QString, NodePermissionsPointer> _agentPermissions; // specific account-names
 };
 
 #endif // hifi_DomainServerSettingsManager_h

@@ -206,18 +206,18 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             QStringList allowedEditors = valueOrDefaultValueForKeyPath(ALLOWED_EDITORS_SETTINGS_KEYPATH).toStringList();
             bool onlyEditorsAreRezzers = valueOrDefaultValueForKeyPath(EDITORS_ARE_REZZERS_KEYPATH).toBool();
 
-            _agentPermissions[NodePermissions::standardNameLocalhost].reset(
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost].reset(
                 new NodePermissions(NodePermissions::standardNameLocalhost));
-            _agentPermissions[NodePermissions::standardNameLocalhost]->setAll(true);
-            _agentPermissions[NodePermissions::standardNameAnonymous].reset(
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->setAll(true);
+            _standardAgentPermissions[NodePermissions::standardNameAnonymous].reset(
                 new NodePermissions(NodePermissions::standardNameAnonymous));
-            _agentPermissions[NodePermissions::standardNameLoggedIn].reset(
+            _standardAgentPermissions[NodePermissions::standardNameLoggedIn].reset(
                 new NodePermissions(NodePermissions::standardNameLoggedIn));
 
             if (isRestrictedAccess) {
                 // only users in allow-users list can connect
-                _agentPermissions[NodePermissions::standardNameAnonymous]->canConnectToDomain = false;
-                _agentPermissions[NodePermissions::standardNameLoggedIn]->canConnectToDomain = false;
+                _standardAgentPermissions[NodePermissions::standardNameAnonymous]->canConnectToDomain = false;
+                _standardAgentPermissions[NodePermissions::standardNameLoggedIn]->canConnectToDomain = false;
             } // else anonymous and logged-in retain default of canConnectToDomain = true
 
             foreach (QString allowedUser, allowedUsers) {
@@ -237,14 +237,20 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _agentPermissions[allowedEditor]->canAdjustLocks = true;
             }
 
-            foreach (QString userName, _agentPermissions.keys()) {
-                if (onlyEditorsAreRezzers) {
-                    _agentPermissions[userName]->canRezPermanentEntities = _agentPermissions[userName]->canAdjustLocks;
-                } else {
-                    _agentPermissions[userName]->canRezPermanentEntities = true;
+            QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
+            permissionsSets << _standardAgentPermissions << _agentPermissions;
+            foreach (auto permissionsSet, permissionsSets) {
+                foreach (QString userName, permissionsSet.keys()) {
+                    if (onlyEditorsAreRezzers) {
+                        permissionsSet[userName]->canRezPermanentEntities = permissionsSet[userName]->canAdjustLocks;
+                    } else {
+                        permissionsSet[userName]->canRezPermanentEntities = true;
+                    }
                 }
             }
+
             packPermissions(argumentList);
+            _standardAgentPermissions.clear();
             _agentPermissions.clear();
         }
     }
@@ -255,22 +261,36 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
 }
 
-void DomainServerSettingsManager::packPermissions(const QStringList& argumentList) {
-    // transfer details from _agentPermissions to _configMap
+void DomainServerSettingsManager::packPermissionsForMap(const QStringList& argumentList,
+                                                        QString mapName,
+                                                        QHash<QString, NodePermissionsPointer> agentPermissions,
+                                                        QString keyPath) {
     QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
-    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
+
+    // save settings for anonymous / logged-in / localhost
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
     if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
         QVariantMap securityMap = security->toMap();
         QVariantList userList;
-        securityMap["permissions"] = userList;
+        securityMap[mapName] = userList;
         _configMap.getUserConfig()["security"] = securityMap;
-        permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
+        permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
     }
 
     QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
-    foreach (QString userName, _agentPermissions.keys()) {
-        *permissionsList += _agentPermissions[userName]->toVariant();
+    (*permissionsList).clear();
+    foreach (QString userName, agentPermissions.keys()) {
+        *permissionsList += agentPermissions[userName]->toVariant();
     }
+}
+
+void DomainServerSettingsManager::packPermissions(const QStringList& argumentList) {
+    // transfer details from _agentPermissions to _configMap
+    packPermissionsForMap(argumentList, "standard_permissions", _standardAgentPermissions, AGENT_STANDARD_PERMISSIONS_KEYPATH);
+
+    // save settings for specific users
+    packPermissionsForMap(argumentList, "permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
+
     persistToFile();
     _configMap.loadMasterAndUserConfig(argumentList);
 }
@@ -281,25 +301,43 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
     bool foundLocalhost = false;
     bool foundAnonymous = false;
     bool foundLoggedIn = false;
+    bool needPack = false;
 
+    QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
+    if (!standardPermissions || !standardPermissions->canConvert(QMetaType::QVariantList)) {
+        qDebug() << "failed to extract standard permissions from settings.";
+        return;
+    }
     QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
     if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
         qDebug() << "failed to extract permissions from settings.";
         return;
     }
 
-    QList<QVariant> permissionsList = permissions->toList();
-    // QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
-
-    foreach (QVariant permsHash, permissionsList) {
+    QList<QVariant> standardPermissionsList = standardPermissions->toList();
+    foreach (QVariant permsHash, standardPermissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
         foundLocalhost |= (id == NodePermissions::standardNameLocalhost);
         foundAnonymous |= (id == NodePermissions::standardNameAnonymous);
         foundLoggedIn |= (id == NodePermissions::standardNameLoggedIn);
+        if (_standardAgentPermissions.contains(id)) {
+            qDebug() << "duplicate name in standard permissions table: " << id;
+            _standardAgentPermissions[id] |= perms;
+            needPack = true;
+        } else {
+            _standardAgentPermissions[id] = perms;
+        }
+    }
+
+    QList<QVariant> permissionsList = permissions->toList();
+    foreach (QVariant permsHash, permissionsList) {
+        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
+        QString id = perms->getID();
         if (_agentPermissions.contains(id)) {
             qDebug() << "duplicate name in permissions table: " << id;
             _agentPermissions[id] |= perms;
+            needPack = true;
         } else {
             _agentPermissions[id] = perms;
         }
@@ -309,29 +347,44 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
     if (!foundLocalhost) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
         perms->setAll(true);
-        _agentPermissions[perms->getID()] = perms;
+        _standardAgentPermissions[perms->getID()] = perms;
     }
     if (!foundAnonymous) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameAnonymous) };
-        _agentPermissions[perms->getID()] = perms;
+        needPack = true;
     }
     if (!foundLoggedIn) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
-        _agentPermissions[perms->getID()] = perms;
+        needPack = true;
     }
-    if (!foundLocalhost || !foundAnonymous || !foundLoggedIn) {
+
+    if (needPack) {
         packPermissions(argumentList);
     }
 
+
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
-    QHashIterator<QString, NodePermissionsPointer> i(_agentPermissions);
-    while (i.hasNext()) {
-        i.next();
-        NodePermissionsPointer perms = i.value();
-        qDebug() << i.key() << perms;
+    QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
+    permissionsSets << _standardAgentPermissions << _agentPermissions;
+    foreach (auto permissionSet, permissionsSets) {
+        QHashIterator<QString, NodePermissionsPointer> i(permissionSet);
+        while (i.hasNext()) {
+            i.next();
+            NodePermissionsPointer perms = i.value();
+            qDebug() << i.key() << perms;
+        }
     }
     #endif
+}
+
+NodePermissions DomainServerSettingsManager::getStandardPermissionsForName(const QString& name) const {
+    if (_standardAgentPermissions.contains(name)) {
+        return *(_standardAgentPermissions[name].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
 }
 
 NodePermissions DomainServerSettingsManager::getPermissionsForName(const QString& name) const {

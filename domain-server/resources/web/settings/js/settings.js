@@ -1015,7 +1015,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
   }
 
   // populate inputs in the table for new values
-  if (!isLocked && !setting.read_only) {
+  if (!isLocked && !setting.read_only && setting.can_add_new_rows) {
      html += makeTableInputs(setting)
   }
   html += "</table>"
@@ -1052,8 +1052,8 @@ function makeTableInputs(setting) {
   if (setting.can_order) {
     html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
   }
-    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
-            "'><a href='javascript:void(0);' class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></a></td>"
+  html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+    "'><a href='javascript:void(0);' class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></a></td>"
   html += "</tr>"
 
   return html

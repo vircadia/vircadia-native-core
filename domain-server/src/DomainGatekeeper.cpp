@@ -189,7 +189,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
     if (isLocalUser) {
-        userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLocalhost);
+        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
         qDebug() << "user-permissions: is local user, so:" << userPerms;
     }
 
