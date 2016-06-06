@@ -356,7 +356,14 @@ void NodeList::sendDomainServerCheckIn() {
         _numNoReplyDomainCheckIns++;
     }
 
-    if (!_publicSockAddr.isNull() && !_domainHandler.isConnected() && !_domainHandler.getPendingDomainID().isNull()) {
+    const int NUM_NO_REPLY_CHECKINS_BEFORE_API_REFRESH = 2;
+
+    if (!_publicSockAddr.isNull()
+        && !_domainHandler.isConnected()
+        && _numNoReplyDomainCheckIns > NUM_NO_REPLY_CHECKINS_BEFORE_API_REFRESH
+        && !_domainHandler.getPendingDomainID().isNull()
+        && !_domainHandler.wasConnectionRefused()) {
+
         // if we aren't connected to the domain-server, and we have an ID
         // (that we presume belongs to a domain in the HF Metaverse)
         // we request connection information for the domain every so often to make sure what we have is up to date

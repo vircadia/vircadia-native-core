@@ -72,10 +72,11 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
 
+    bool wasConnectionRefused() const { return !_domainConnectionRefusals.isEmpty(); }
+
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
-
    
     void setPendingPath(const QString& pendingPath) { _pendingPath = pendingPath; }
     const QString& getPendingPath() { return _pendingPath; }

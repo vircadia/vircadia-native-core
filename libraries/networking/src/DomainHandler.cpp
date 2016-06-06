@@ -85,6 +85,7 @@ void DomainHandler::softReset() {
     
     clearSettings();
 
+    _domainConnectionRefusals.clear();
     _connectionDenialsSinceKeypairRegen = 0;
 
     // cancel the failure timeout for any pending requests for settings
@@ -141,9 +142,6 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
             // set the new hostname
             _hostname = hostname;
 
-            // FIXME - is this the right place???
-            _domainConnectionRefusals.clear();
-
             qCDebug(networking) << "Updated domain hostname to" << _hostname;
 
             // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
@@ -168,7 +166,7 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
-    if (id != _uuid) {
+    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname && id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
         
