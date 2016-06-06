@@ -2951,7 +2951,8 @@ void Application::loadSettings() {
     Menu::getInstance()->loadSettings();
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
-    auto plugins = PluginManager::getInstance()->getPreferredDisplayPlugins();
+    auto pluginManager = PluginManager::getInstance();
+    auto plugins = pluginManager->getPreferredDisplayPlugins();
     for (auto plugin : plugins) {
         auto menu = Menu::getInstance();
         if (auto action = menu->getActionForOption(plugin->getName())) {
@@ -2959,6 +2960,13 @@ void Application::loadSettings() {
             action->trigger();
             // Find and activated highest priority plugin, bail for the rest
             break;
+        }
+    }
+
+    auto inputs = pluginManager->getInputPlugins();
+    for (auto plugin : inputs) {
+        if (!plugin->isActive()) {
+            plugin->activate();
         }
     }
 

@@ -175,7 +175,6 @@ const InputPluginList& PluginManager::getInputPlugins() {
         for (auto plugin : inputPlugins) {
             plugin->setContainer(&container);
             plugin->init();
-            plugin->activate();
         }
     });
     return inputPlugins;
