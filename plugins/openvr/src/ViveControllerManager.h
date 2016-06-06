@@ -13,7 +13,6 @@
 #define hifi__ViveControllerManager
 
 #include <QObject>
-#include <QTimer>
 #include <unordered_set>
 
 #include <GLMHelpers.h>
@@ -46,13 +45,10 @@ public:
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 
-private slots:
-    void hapticPulseHelper(bool leftHand);
-
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(ViveControllerManager& parent, vr::IVRSystem*& system) : controller::InputDevice("Vive"), _parent(parent), _system(system) {}
+        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system), _leftHapticDuration(0.0f), _rightHapticDuration(0.0f) {}
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
@@ -60,8 +56,8 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
-        void hapticPulseHelper(bool leftHand);
         bool triggerHapticPulse(float strength, float duration, bool leftHand) override;
+        void hapticsHelper(float deltaTime, bool leftHand);
 
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
@@ -97,13 +93,19 @@ private:
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
+        // perform an action when the InputDevice mutex is acquired.
+        using Locker = std::unique_lock<std::recursive_mutex>;
+        template <typename F>
+        void withLock(F&& f) { Locker locker(_lock); f(); }
+
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
-        ViveControllerManager& _parent;
-        float prevLeftHapticStrength;
-        float prevLeftHapticDuration;
-        float prevRightHapticStrength;
-        float prevRightHapticDuration;
+        float _leftHapticStrength;
+        float _leftHapticDuration;
+        float _rightHapticStrength;
+        float _rightHapticDuration;
+        mutable std::recursive_mutex _lock;
+
         friend class ViveControllerManager;
     };
 
@@ -119,10 +121,7 @@ private:
 
     bool _renderControllers { false };
     vr::IVRSystem* _system { nullptr };
-    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(*this, _system) };
-
-    QTimer _leftHapticTimer;
-    QTimer _rightHapticTimer;
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
     static const QString NAME;
 };
