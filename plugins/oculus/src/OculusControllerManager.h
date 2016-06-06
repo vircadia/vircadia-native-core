@@ -80,7 +80,9 @@ private:
         void withLock(F&& f) { Locker locker(_lock); f(); }
 
         float _leftHapticDuration { 0.0f };
+        float _leftHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        float _rightHapticStrength { 0.0f };
         mutable std::recursive_mutex _lock;
 
         friend class OculusControllerManager;
