@@ -36,7 +36,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
@@ -74,7 +74,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
@@ -112,7 +112,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -152,7 +152,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -192,7 +192,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
@@ -231,7 +231,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -271,7 +271,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -311,7 +311,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -351,7 +351,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
@@ -389,7 +389,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collisionsWillMove": 1,
@@ -428,7 +428,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -468,7 +468,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }, {
         "name": "home_model_dressing_room_bricabrac",
         "collidesWith": "static,dynamic,kinematic,otherAvatar,",
@@ -548,7 +548,7 @@
         },
         "shapeType": "compound",
         "type": "Model",
-        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"wearable\":{\"joints\":{\"head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"Head\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"hair\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}],\"neck\":[{\"x\":0,\"y\":0,\"z\":0},{\"w\":0,\"x\":0,\"y\":0,\"z\":0}]}}}"
     }],
     "Version": 57
 }
