@@ -452,12 +452,13 @@ void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const 
     _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
 }
 
-bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, bool leftHand) {
+bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
     Locker locker(_lock);
-    if (leftHand) {
+    if (hand == controller::BOTH || hand == controller::LEFT) {
         _leftHapticStrength = strength;
         _leftHapticDuration = duration;
-    } else {
+    }
+    if (hand == controller::BOTH || hand == controller::RIGHT) {
         _rightHapticStrength = strength;
         _rightHapticDuration = duration;
     }
@@ -481,9 +482,6 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
             _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
         }
 
-        // Must wait 5 ms before triggering another pulse on this controller
-        // https://github.com/ValveSoftware/openvr/wiki/IVRSystem::TriggerHapticPulse
-        const float HAPTIC_RESET_TIME = 5.0f;
         float remainingHapticTime = duration - (hapticTime / 1000.0f + deltaTime * 1000.0f); // in milliseconds
         if (leftHand) {
             _leftHapticDuration = remainingHapticTime;

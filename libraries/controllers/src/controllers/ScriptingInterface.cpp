@@ -140,8 +140,22 @@ namespace controller {
         return DependencyManager::get<UserInputMapper>()->getActionNames();
     }
 
-    bool ScriptingInterface::triggerHapticPulse(unsigned int device, float strength, float duration, bool leftHand) const {
-        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(device, strength, duration, leftHand);
+    bool ScriptingInterface::triggerHapticPulse(float strength, float duration, controller::Hand hand) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, duration, hand);
+    }
+
+    bool ScriptingInterface::triggerShortHapticPulse(float strength, controller::Hand hand) const {
+        const float SHORT_HAPTIC_DURATION_MS = 250.0f;
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, SHORT_HAPTIC_DURATION_MS, hand);
+    }
+
+    bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, duration, hand);
+    }
+
+    bool ScriptingInterface::triggerShortHapticPulseOnDevice(unsigned int device, float strength, controller::Hand hand) const {
+        const float SHORT_HAPTIC_DURATION_MS = 250.0f;
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, SHORT_HAPTIC_DURATION_MS, hand);
     }
 
     void ScriptingInterface::updateMaps() {

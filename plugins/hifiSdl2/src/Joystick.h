@@ -37,7 +37,7 @@ public:
     virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
     virtual void focusOutEvent() override;
 
-    bool triggerHapticPulse(float strength, float duration, bool leftHand) override;
+    bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
     
     Joystick() : InputDevice("GamePad") {}
     ~Joystick();

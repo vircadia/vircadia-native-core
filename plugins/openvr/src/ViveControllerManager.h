@@ -48,7 +48,7 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system), _leftHapticDuration(0.0f), _rightHapticDuration(0.0f) {}
+        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {}
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
@@ -56,7 +56,7 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
-        bool triggerHapticPulse(float strength, float duration, bool leftHand) override;
+        bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
 
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -100,10 +100,10 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
-        float _leftHapticStrength;
-        float _leftHapticDuration;
-        float _rightHapticStrength;
-        float _rightHapticDuration;
+        float _leftHapticStrength { 0.0f };
+        float _leftHapticDuration { 0.0f };
+        float _rightHapticStrength { 0.0f };
+        float _rightHapticDuration { 0.0f };
         mutable std::recursive_mutex _lock;
 
         friend class ViveControllerManager;
