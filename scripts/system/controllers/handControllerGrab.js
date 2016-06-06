@@ -376,7 +376,7 @@ function MyController(hand) {
                 print("WARNING: could not find updateMethod for state " + stateToName(this.state));
             }
         } else {
-            print("WARNING: could not find state " + this.state + " " + CONTROLLER_STATE_MACHINE[this.state]);
+            print("WARNING: could not find state " + this.state + " in state machine");
         }
     };
 
@@ -390,7 +390,7 @@ function MyController(hand) {
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
-            print("STATE (" + this.hand + "): " + oldStateName + " --> " + newStateName);
+            print("STATE (" + this.hand + "): " + newStateName + " <-- " + oldStateName);
         }
 
         // exit the old state
@@ -401,7 +401,7 @@ function MyController(hand) {
                 exitMethod.call(this);
             }
         } else {
-            print("WARNING: could not find this.state " + this.state);
+            print("WARNING: could not find state " + this.state + " in state machine");
         }
 
         // enter the new state
@@ -412,7 +412,7 @@ function MyController(hand) {
                 enterMethod.call(this);
             }
         } else {
-            print("WARNING: could not find newState " + newState);
+            print("WARNING: could not find newState " + newState + " in state machine");
         }
 
         this.state = newState;
@@ -943,6 +943,7 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             return;
         }
+
         if (this.state == STATE_HOLD_SEARCHING && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
