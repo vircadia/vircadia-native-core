@@ -739,7 +739,7 @@ void MyAvatar::saveData() {
     settings.endGroup();
 }
 
-float loadSetting(QSettings& settings, const char* name, float defaultValue) {
+float loadSetting(Settings& settings, const QString& name, float defaultValue) {
     float value = settings.value(name, defaultValue).toFloat();
     if (glm::isnan(value)) {
         value = defaultValue;

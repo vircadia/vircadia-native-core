@@ -88,7 +88,7 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
-const char* shapeTypeNames[] = {"none", "box", "sphere", "ellipsoid", "plane", "compound", "capsule-x",
+const char* shapeTypeNames[] = {"none", "box", "sphere", "plane", "compound", "capsule-x",
     "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
@@ -101,7 +101,6 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_NONE);
     addShapeType(SHAPE_TYPE_BOX);
     addShapeType(SHAPE_TYPE_SPHERE);
-    addShapeType(SHAPE_TYPE_ELLIPSOID);
     addShapeType(SHAPE_TYPE_PLANE);
     addShapeType(SHAPE_TYPE_COMPOUND);
     addShapeType(SHAPE_TYPE_CAPSULE_X);

@@ -12,17 +12,23 @@
 #ifndef hifi_SettingInterface_h
 #define hifi_SettingInterface_h
 
-#include <QString>
-#include <QVariant>
+#include <memory>
+#include <QtCore/QWeakPointer>
+#include <QtCore/QString>
+#include <QtCore/QVariant>
 
 namespace Setting {
+    class Manager;
+
     void preInit();
     void init();
     void cleanupSettings();
 
     class Interface {
     public:
-        QString getKey() const { return _key; }
+        static const QString FIRST_RUN;
+
+        const QString& getKey() const { return _key; }
         bool isSet() const { return _isSet; } 
 
         virtual void setVariant(const QVariant& variant) = 0;
@@ -44,6 +50,8 @@ namespace Setting {
         const QString _key;
         
         friend class Manager;
+
+        QWeakPointer<Manager> _manager;
     };
 }
 
