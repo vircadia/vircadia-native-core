@@ -123,6 +123,61 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
+void DomainGatekeeper::updateNodePermissions() {
+    // If the permissions were changed on the domain-server webpage (and nothing else was), a restart isn't required --
+    // we reprocess the permissions map and update the nodes here.  The node list is frequently sent out to all
+    // the connected nodes, so these changes are propagated to other nodes.
+
+    QList<SharedNodePointer> nodesToKill;
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    limitedNodeList->eachNodeBreakable([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
+        QString username = node->getPermissions().getUserName();
+        NodePermissions userPerms(username);
+
+        if (node->getPermissions().isAssignment) {
+            // this node is an assignment-client
+            userPerms.isAssignment = true;
+            userPerms.canAdjustLocks = true;
+            userPerms.canRezPermanentEntities = true;
+        } else {
+            // this node is an agent
+            userPerms.setAll(false);
+
+            const QHostAddress& addr = node->getLocalSocket().getAddress();
+            bool isLocalUser = (addr == limitedNodeList->getLocalSockAddr().getAddress() ||
+                                addr == QHostAddress::LocalHost);
+            if (isLocalUser) {
+                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
+            }
+
+            if (username.isEmpty()) {
+                userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+            } else {
+                if (_server->_settingsManager.havePermissionsForName(username)) {
+                    userPerms = _server->_settingsManager.getPermissionsForName(username);
+                } else {
+                    userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLoggedIn);
+                }
+            }
+        }
+
+        node->setPermissions(userPerms);
+
+        if (!userPerms.canConnectToDomain) {
+            qDebug() << "node" << node->getUUID() << "no longer has permission to connect.";
+            // hang up on this node
+            nodesToKill << node;
+        }
+
+        return true;
+    });
+
+    foreach (auto node, nodesToKill) {
+        emit killNode(node);
+    }
+}
+
 SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                     const PendingAssignedNodeData& pendingAssignment) {
 
@@ -166,6 +221,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
 
     // always allow assignment clients to create and destroy entities
     NodePermissions userPerms;
+    userPerms.isAssignment = true;
     userPerms.canAdjustLocks = true;
     userPerms.canRezPermanentEntities = true;
     newNode->setPermissions(userPerms);
@@ -184,7 +240,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     NodePermissions userPerms(username);
     userPerms.setAll(false);
 
-    // check if this user is on our local machine - if this is true they are always allowed to connect
+    // check if this user is on our local machine - if this is true set permissions to those for a "localhost" connection
     QHostAddress senderHostAddress = nodeConnection.senderSockAddr.getAddress();
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
@@ -209,9 +265,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         qDebug() << "user-permissions: no username, so:" << userPerms;
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
+        userPerms.setUserName(username);
         if (_server->_settingsManager.havePermissionsForName(username)) {
             // we have specific permissions for this user.
-            userPerms |= _server->_settingsManager.getPermissionsForName(username);
+            userPerms = _server->_settingsManager.getPermissionsForName(username);
             qDebug() << "user-permissions: specific user matches, so:" << userPerms;
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.

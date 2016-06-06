@@ -111,6 +111,8 @@ private:
 
     unsigned int countConnectedUsers();
 
+    void handleKillNode(SharedNodePointer nodeToKill);
+
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr);
 
     QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);

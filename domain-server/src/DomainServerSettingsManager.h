@@ -47,12 +47,18 @@ public:
     NodePermissions getPermissionsForName(const QString& name) const;
     QStringList getAllNames() { return _agentPermissions.keys(); }
 
+signals:
+    void updateNodePermissions();
+
+
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
 
 private:
+    QStringList _argumentList;
+
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
-    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
+    bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
@@ -65,10 +71,9 @@ private:
 
     friend class DomainServer;
 
-    void packPermissionsForMap(const QStringList& argumentList, QString mapName,
-                               QHash<QString, NodePermissionsPointer> agentPermissions, QString keyPath);
-    void packPermissions(const QStringList& argumentList);
-    void unpackPermissions(const QStringList& argumentList);
+    void packPermissionsForMap(QString mapName, QHash<QString, NodePermissionsPointer> agentPermissions, QString keyPath);
+    void packPermissions();
+    void unpackPermissions();
     QHash<QString, NodePermissionsPointer> _standardAgentPermissions; // anonymous, logged-in, localhost
     QHash<QString, NodePermissionsPointer> _agentPermissions; // specific account-names
 };

@@ -92,7 +92,8 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
-    _configMap.loadMasterAndUserConfig(argumentList);
+    _argumentList = argumentList;
+    _configMap.loadMasterAndUserConfig(_argumentList);
 
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
@@ -136,7 +137,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 persistToFile();
 
                 // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(argumentList);
+                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -172,7 +173,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 persistToFile();
 
                 // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(argumentList);
+                _configMap.loadMasterAndUserConfig(_argumentList);
             }
 
         }
@@ -195,7 +196,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 persistToFile();
 
                 // reload the master and user config so the merged config is correct
-                _configMap.loadMasterAndUserConfig(argumentList);
+                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -249,20 +250,19 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 }
             }
 
-            packPermissions(argumentList);
+            packPermissions();
             _standardAgentPermissions.clear();
             _agentPermissions.clear();
         }
     }
 
-    unpackPermissions(argumentList);
+    unpackPermissions();
 
     // write the current description version to our settings
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
 }
 
-void DomainServerSettingsManager::packPermissionsForMap(const QStringList& argumentList,
-                                                        QString mapName,
+void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
                                                         QHash<QString, NodePermissionsPointer> agentPermissions,
                                                         QString keyPath) {
     QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
@@ -285,19 +285,22 @@ void DomainServerSettingsManager::packPermissionsForMap(const QStringList& argum
     }
 }
 
-void DomainServerSettingsManager::packPermissions(const QStringList& argumentList) {
+void DomainServerSettingsManager::packPermissions() {
     // transfer details from _agentPermissions to _configMap
-    packPermissionsForMap(argumentList, "standard_permissions", _standardAgentPermissions, AGENT_STANDARD_PERMISSIONS_KEYPATH);
+    packPermissionsForMap("standard_permissions", _standardAgentPermissions, AGENT_STANDARD_PERMISSIONS_KEYPATH);
 
     // save settings for specific users
-    packPermissionsForMap(argumentList, "permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
+    packPermissionsForMap("permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
 
     persistToFile();
-    _configMap.loadMasterAndUserConfig(argumentList);
+    _configMap.loadMasterAndUserConfig(_argumentList);
 }
 
-void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentList) {
+void DomainServerSettingsManager::unpackPermissions() {
     // transfer details from _configMap to _agentPermissions;
+
+    _standardAgentPermissions.clear();
+    _agentPermissions.clear();
 
     bool foundLocalhost = false;
     bool foundAnonymous = false;
@@ -365,7 +368,7 @@ void DomainServerSettingsManager::unpackPermissions(const QStringList& argumentL
     }
 
     if (needPack) {
-        packPermissions(argumentList);
+        packPermissions();
     }
 
     #ifdef WANT_DEBUG
@@ -463,7 +466,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         qDebug() << "DomainServerSettingsManager postedObject -" << postedObject;
 
         // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject);
+        bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject);
 
         // store whatever the current _settingsMap is to file
         persistToFile();
@@ -473,8 +476,13 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
 
         // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
-        const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
-        QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+        if (restartRequired) {
+            const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
+            QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+        } else {
+            unpackPermissions();
+            emit updateNodePermissions();
+        }
 
         return true;
     } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
@@ -677,9 +685,10 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
     auto& settingsVariant = _configMap.getUserConfig();
-    
+    bool needRestart = false;
+
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
         QJsonValue rootValue = postedObject[rootKey];
@@ -727,6 +736,9 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
+                if (rootKey != "security") {
+                    needRestart = true;
+                }
             } else {
                 qDebug() << "Setting for root key" << rootKey << "does not exist - cannot update setting.";
             }
@@ -740,6 +752,9 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     QJsonValue settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
+                    if (rootKey != "security") {
+                        needRestart = true;
+                    }
                 } else {
                     qDebug() << "Could not find description for setting" << settingKey << "in group" << rootKey <<
                         "- cannot update setting.";
@@ -755,6 +770,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
     // re-merge the user and master configs after a settings change
     _configMap.mergeMasterAndUserConfigs();
+    return needRestart;
 }
 
 void DomainServerSettingsManager::persistToFile() {

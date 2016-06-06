@@ -37,6 +37,12 @@ public:
 
     QString getID() const { return _id; }
 
+    // the _id member isn't authenticated and _username is.
+    void setUserName(QString userName) { _userName = userName; }
+    QString getUserName() { return _userName; }
+
+    bool isAssignment { false };
+
     // these 3 names have special meaning.
     static QString standardNameLocalhost;
     static QString standardNameLoggedIn;
@@ -79,6 +85,7 @@ public:
 
 protected:
     QString _id;
+    QString _userName;
 };
 
 const NodePermissions DEFAULT_AGENT_PERMISSIONS;

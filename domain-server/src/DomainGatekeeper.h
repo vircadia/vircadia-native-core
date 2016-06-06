@@ -51,8 +51,12 @@ public slots:
     void publicKeyJSONCallback(QNetworkReply& requestReply);
     
 signals:
+    void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);
-    
+
+public slots:
+    void updateNodePermissions();
+
 private slots:
     void handlePeerPingTimeout();
 private:
