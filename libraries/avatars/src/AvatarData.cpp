@@ -632,13 +632,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     #endif
 
     int numBytesRead = sourceBuffer - startPosition;
-
-    if (numBytesRead != buffer.size()) {
-        if (shouldLogError(now)) {
-            qCWarning(avatars) << "AvatarData packet size mismatch: expected " << numBytesRead << " received " << buffer.size();
-        }
-    }
-
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
 }
