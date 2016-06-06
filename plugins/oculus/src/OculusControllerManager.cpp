@@ -221,12 +221,12 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
     {
         Locker locker(_lock);
         if (_leftHapticDuration > 0.0f) {
-            _leftHapticDuration -= deltaTime;
+            _leftHapticDuration -= deltaTime * 1000.0f; // milliseconds
         } else {
             stopHapticPulse(true);
         }
         if (_rightHapticDuration > 0.0f) {
-            _rightHapticDuration -= deltaTime;
+            _rightHapticDuration -= deltaTime * 1000.0f; // milliseconds
         } else {
             stopHapticPulse(false);
         }

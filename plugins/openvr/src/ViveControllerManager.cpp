@@ -477,8 +477,8 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
 
         // Vive Controllers only support duration up to 4 ms, which is short enough that any variation feels more like strength
         const float MAX_HAPTIC_TIME = 3999.0f; // in microseconds
-        float hapticTime = strength*MAX_HAPTIC_TIME;
-        if (hapticTime < duration*1000.0f) {
+        float hapticTime = strength * MAX_HAPTIC_TIME;
+        if (hapticTime < duration * 1000.0f) {
             _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
         }
 
