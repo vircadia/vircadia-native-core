@@ -687,15 +687,80 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
-        // but since we're using macros below we have to temporarily modify overwriteLocalData.
-        bool oldOverwrite = overwriteLocalData;
-        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotationFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
-        overwriteLocalData = oldOverwrite;
+        // we also want to ignore any duplicate packets that have the same "recently updated" values
+        // as a packet we've already recieved. This is because we want multiple edits of the same 
+        // information to be idempotent, but if we applied new physics properties we'd resimulation
+        // with small differences in results.
+
+        // Because the regular streaming property "setters" only have access to the new value, we've
+        // made these lambdas that can access other details about the previous updates to suppress
+        // any duplicates.
+
+        // Note: duplicate packets are expected and not wrong. They may be sent for any number of 
+        // reasons and the contract is that the client handles them in an idempotent manner.
+        auto lastEdited = lastEditedFromBufferAdjusted;
+        auto customUpdatePositionFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedPositionTimestamp;
+            bool valueChanged = value != _lastUpdatedPositionValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updatePositionFromNetwork(value);
+                _lastUpdatedPositionTimestamp = lastEdited;
+                _lastUpdatedPositionValue = value;
+            }
+        };
+
+        auto customUpdateRotationFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::quat value){
+            bool simulationChanged = lastEdited > _lastUpdatedRotationTimestamp;
+            bool valueChanged = value != _lastUpdatedRotationValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updateRotationFromNetwork(value);
+                _lastUpdatedRotationTimestamp = lastEdited;
+                _lastUpdatedRotationValue = value;
+            }
+        };
+
+        auto customUpdateVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedVelocityTimestamp;
+            bool valueChanged = value != _lastUpdatedVelocityValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updateVelocityFromNetwork(value);
+                _lastUpdatedVelocityTimestamp = lastEdited;
+                _lastUpdatedVelocityValue = value;
+            }
+        };
+
+        auto customUpdateAngularVelocityFromNetwork = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedAngularVelocityTimestamp;
+            bool valueChanged = value != _lastUpdatedAngularVelocityValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                updateAngularVelocityFromNetwork(value);
+                _lastUpdatedAngularVelocityTimestamp = lastEdited;
+                _lastUpdatedAngularVelocityValue = value;
+            }
+        };
+
+        auto customSetAcceleration = [this, lastEdited, overwriteLocalData, weOwnSimulation](glm::vec3 value){
+            bool simulationChanged = lastEdited > _lastUpdatedAccelerationTimestamp;
+            bool valueChanged = value != _lastUpdatedAccelerationValue;
+            bool shouldUpdate = overwriteLocalData && !weOwnSimulation && simulationChanged && valueChanged;
+            if (shouldUpdate) {
+                setAcceleration(value);
+                _lastUpdatedAccelerationTimestamp = lastEdited;
+                _lastUpdatedAccelerationValue = value;
+            }
+        };
+
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, customUpdatePositionFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, customUpdateRotationFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, customUpdateVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, customUpdateAngularVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
+
+
     }
 
     READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
@@ -922,13 +987,11 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "     ********** EntityItem::simulate() .... SETTING _lastSimulated=" << _lastSimulated;
     #endif
 
-    if (!hasActions()) {
-        if (!stepKinematicMotion(timeElapsed)) {
-            // this entity is no longer moving
-            // flag it to transition from KINEMATIC to STATIC
-            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
-            setAcceleration(Vectors::ZERO);
-        }
+    if (!stepKinematicMotion(timeElapsed)) {
+        // this entity is no longer moving
+        // flag it to transition from KINEMATIC to STATIC
+        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        setAcceleration(Vectors::ZERO);
     }
     _lastSimulated = now;
 }

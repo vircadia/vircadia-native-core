@@ -17,7 +17,7 @@ void OculusBaseDisplayPlugin::resetSensors() {
     _currentRenderFrameInfo.renderPose = glm::mat4(); // identity
 }
 
-void OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();;
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
@@ -26,6 +26,7 @@ void OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
     Lock lock(_mutex);
     _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    return true;
 }
 
 bool OculusBaseDisplayPlugin::isSupported() const {

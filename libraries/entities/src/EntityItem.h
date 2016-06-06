@@ -550,6 +550,22 @@ protected:
 
     bool _clientOnly { false };
     QUuid _owningAvatarID;
+
+    // physics related changes from the network to suppress any duplicates and make
+    // sure redundant applications are idempotent
+    glm::vec3 _lastUpdatedPositionValue;
+    glm::quat  _lastUpdatedRotationValue;
+    glm::vec3 _lastUpdatedVelocityValue;
+    glm::vec3 _lastUpdatedAngularVelocityValue;
+    glm::vec3 _lastUpdatedAccelerationValue;
+
+    quint64 _lastUpdatedPositionTimestamp { 0 };
+    quint64 _lastUpdatedRotationTimestamp { 0 };
+    quint64 _lastUpdatedVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
+    quint64 _lastUpdatedAccelerationTimestamp { 0 };
+
+
 };
 
 #endif // hifi_EntityItem_h

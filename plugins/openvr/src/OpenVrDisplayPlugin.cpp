@@ -126,7 +126,12 @@ void OpenVrDisplayPlugin::resetSensors() {
 }
 
 
-void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    handleOpenVrEvents();
+    if (openVrQuitRequested()) {
+        emit outputDeviceLost();
+        return false;
+    }
     double displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     double frameDuration = 1.f / displayFrequency;
     double vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
@@ -153,6 +158,7 @@ void OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
     Lock lock(_mutex);
     _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    return true;
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {

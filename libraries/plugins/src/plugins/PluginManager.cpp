@@ -62,11 +62,10 @@ PluginManager::PluginManager() {
 extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
+static DisplayPluginList displayPlugins;
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
-    static DisplayPluginList displayPlugins;
     static std::once_flag once;
-
     std::call_once(once, [&] {
         // Grab the built in plugins
         displayPlugins = ::getDisplayPlugins();
@@ -89,6 +88,16 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
     });
     return displayPlugins;
 }
+
+void PluginManager::disableDisplayPlugin(const QString& name) {
+    for (size_t i = 0; i < displayPlugins.size(); ++i) {
+        if (displayPlugins[i]->getName() == name) {
+            displayPlugins.erase(displayPlugins.begin() + i);
+            break;
+        }
+    }
+}
+
 
 const InputPluginList& PluginManager::getInputPlugins() {
     static InputPluginList inputPlugins;

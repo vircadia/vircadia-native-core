@@ -18,16 +18,16 @@ const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device p
 class OpenVrDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
-    virtual bool isSupported() const override;
-    virtual const QString& getName() const override { return NAME; }
+    bool isSupported() const override;
+    const QString& getName() const override { return NAME; }
 
-    virtual float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
+    float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
 
-    virtual void customizeContext() override;
+    void customizeContext() override;
 
     // Stereo specific methods
-    virtual void resetSensors() override;
-    virtual void beginFrameRender(uint32_t frameIndex) override;
+    void resetSensors() override;
+    bool beginFrameRender(uint32_t frameIndex) override;
     void cycleDebugOutput() override { _lockCurrentTexture = !_lockCurrentTexture; }
 
 protected:
