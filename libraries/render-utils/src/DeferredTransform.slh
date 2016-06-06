@@ -19,7 +19,7 @@ struct DeferredFrameTransform {
     vec4 _depthInfo;
     vec4 _stereoInfo;
     mat4 _projection[2];
-    mat4 _invView;
+    mat4 _viewInverse;
 };
 
 uniform deferredFrameTransformBuffer {
@@ -89,7 +89,6 @@ ivec2 getPixelPosNclipPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out ve
 }
 
 <@endfunc@>
-
 
 
 <@endif@>

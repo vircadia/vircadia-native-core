@@ -65,8 +65,11 @@ private:
     };
     gpu::BufferView _parametersBuffer;
 
+    const gpu::PipelinePointer& getLinearDepthPipeline();
     const gpu::PipelinePointer& getCurvaturePipeline();
 
+    
+    gpu::PipelinePointer _linearDepthPipeline;
     gpu::PipelinePointer _curvaturePipeline;
 
     gpu::RangeTimer _gpuTimer;

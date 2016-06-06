@@ -13,16 +13,58 @@
 <$declareDeferredFrameTransform()$>
 
 
-uniform sampler2D depthMap;
+uniform sampler2D linearDepthMap;
+float getZEye(ivec2 pixel) {
+    return -texelFetch(linearDepthMap, pixel, 0).x;
+}
+float getZEyeLinear(vec2 texcoord) {
+    return -texture(linearDepthMap, texcoord).x;
+}
+
+vec2 signNotZero(vec2 v) {
+    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
+}
+
+vec3 oct_to_float32x3(in vec2 e) {
+    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+    if (v.z < 0) {
+        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+    }
+    return normalize(v);
+}
+
+vec2 unorm8x3_to_snorm12x2(vec3 u) {
+    u *= 255.0;
+    u.y *= (1.0 / 16.0);
+    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
+    fract(u.y) * (16.0 * 256.0) + u.z);
+    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
+}
+vec3 unpackNormal(in vec3 p) {
+    return oct_to_float32x3(unorm8x3_to_snorm12x2(p));
+}
+
+uniform sampler2D normalMap;
+vec3 getWorldNormal(vec2 texcoord) {
+    vec3 rawNormal = texture(normalMap, texcoord).xyz;
+    return unpackNormal(rawNormal);
+}
+
+vec3 getWorldNormalDiff(vec2 texcoord, vec2 delta) {
+    vec3 normal0 = getWorldNormal(texcoord - delta);
+    vec3 normal1 = getWorldNormal(texcoord + delta);
+    return normal1 - normal0;
+}
+
+float getEyeDepthDiff(vec2 texcoord, vec2 delta) {
+    vec3 normal0 = getWorldNormal(texcoord - delta);
+    vec3 normal1 = getWorldNormal(texcoord + delta);
+    return getZEyeLinear(texcoord + delta) - getZEyeLinear(texcoord - delta);
+}
+
+
 
 out vec4 outFragColor;
-/*
-void main(void) {
-    float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
-    float Zeye = -evalZeyeFromZdb(Zdb);
-    outFragColor = vec4(Zeye, 0.0, 0.0, 1.0);
-}
-*/
 
 void main(void) {
     // Pixel being shaded
@@ -32,42 +74,20 @@ void main(void) {
     ivec2 framePixelPos = getPixelPosNclipPosAndSide(gl_FragCoord.xy, pixelPos, nclipPos, stereoSide);
 
     // Fetch the z under the pixel (stereo or not)
-    float Zdb = texelFetch(depthMap, pixelPos, 0).x;
-    float Zeye = -evalZeyeFromZdb(Zdb);
+    float Zeye = getZEye(framePixelPos);
 
-
-    // The position  and normal of the pixel fragment in Eye space
+    // The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, nclipPos);
-
-    vec3 worldPos = (frameTransform._invView * vec4(eyePos, 1.0)).xyz;
+    vec3 worldPos = (frameTransform._viewInverse * vec4(eyePos, 1.0)).xyz;
 
     vec3 moduloPos = fract(worldPos);
 
     outFragColor = vec4(moduloPos, 1.0);
-    /*
-    return;
-
-    // Choose the screen-space sample radius
-    // proportional to the projected area of the sphere
-    float ssDiskRadius = -getProjScale() * getRadius() / Cp.z;
-
-
-    vec2 texUV = gl_FragCoord.xy * getInvWidthHeight();
-    float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
-    float Zeye = -evalZeyeFromZdb(Zdb);
-
-    ivec3 stereoInfo = getStereoSideInfo(gl_FragCoord.x, 0);
-
-    // World Pos
-    vec4 samplePos = evalEyePositionFromZeye(stereoInfo.x, )
-
+    
     // Calculate the width scale.
-    ./ Choose the screen-space sample radius
-    // proportional to the projected area of the sphere
-   // float ssDiskRadius = -getProjScale() * getRadius() / Cp.z;
-
+    
   //  float distanceToProjectionWindow = 1.0f / tan(0.5f * radians(fov));
-    float scale = getProjScaleEye() / Zeye;
+    float scale = -getProjScaleEye() / Zeye;
     
     vec2 viewportScale = scale * getInvWidthHeight();
 
@@ -75,11 +95,17 @@ void main(void) {
     vec2 du = vec2( 1.0f, 0.0f ) * viewportScale.x;
     vec2 dv = vec2( 0.0f, 1.0f ) * viewportScale.y;
 
-    vec4 dFdu = texture(depthMap, texUV + du.xy) - texture(depthMap, texUV - du.xy);
-    vec4 dFdv = texture(depthMap, texUV + dv.xy) - texture(depthMap, texUV - dv.xy);
-    dFdu *= step(abs(dFdu.w), 0.1f); dFdv *= step(abs(dFdv.w), 0.1f); 
-    
-    // Calculate ( du/dx, du/dy, du/dz ) and ( dv/dx, dv/dy, dv/dz )
+
+    outFragColor = vec4(du.x, dv.y, scale, 1.0);
+
+    vec4 dFdu = vec4(getWorldNormalDiff(nclipPos, du), getEyeDepthDiff(nclipPos, du));
+    vec4 dFdv = vec4(getWorldNormalDiff(nclipPos, dv), getEyeDepthDiff(nclipPos, dv));
+    dFdu *= step(abs(dFdu.w), 0.1f); dFdv *= step(abs(dFdv.w), 0.1f);
+
+    outFragColor = vec4(dFdu.xyz, 1.0);
+
+    /*
+     // Calculate ( du/dx, du/dy, du/dz ) and ( dv/dx, dv/dy, dv/dz )
     float dist = 1.0f; samplePos.w = 1.0f;
     vec2 centerOffset = ((input.texUV - 0.5f) * 2.0f);
     vec4 px =  mul( samplePos + vec4( dist, 0.0f, 0.0f, 0.0f ), matViewProj );
