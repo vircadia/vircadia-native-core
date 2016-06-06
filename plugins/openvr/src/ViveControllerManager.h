@@ -13,6 +13,7 @@
 #define hifi__ViveControllerManager
 
 #include <QObject>
+#include <QTimer>
 #include <unordered_set>
 
 #include <GLMHelpers.h>
@@ -45,10 +46,13 @@ public:
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 
+private slots:
+    void hapticPulseHelper(bool leftHand);
+
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {}
+        InputDevice(ViveControllerManager& parent, vr::IVRSystem*& system) : controller::InputDevice("Vive"), _parent(parent), _system(system) {}
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
@@ -56,6 +60,7 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
+        void hapticPulseHelper(bool leftHand);
         bool triggerHapticPulse(float strength, float duration, bool leftHand) override;
 
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -94,6 +99,11 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
+        ViveControllerManager& _parent;
+        float prevLeftHapticStrength;
+        float prevLeftHapticDuration;
+        float prevRightHapticStrength;
+        float prevRightHapticDuration;
         friend class ViveControllerManager;
     };
 
@@ -109,7 +119,10 @@ private:
 
     bool _renderControllers { false };
     vr::IVRSystem* _system { nullptr };
-    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(*this, _system) };
+
+    QTimer _leftHapticTimer;
+    QTimer _rightHapticTimer;
 
     static const QString NAME;
 };

@@ -126,6 +126,11 @@ bool ViveControllerManager::activate() {
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
 
+    _leftHapticTimer.setSingleShot(true);
+    _rightHapticTimer.setSingleShot(true);
+    connect(&_leftHapticTimer, SIGNAL(timeout()), this, SLOT(hapticPulseHelper(true)));
+    connect(&_rightHapticTimer, SIGNAL(timeout()), this, SLOT(hapticPulseHelper(false)));
+
     return true;
 }
 
@@ -442,7 +447,20 @@ void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const 
     _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
 }
 
-// Vive Controllers do not support duration
+void ViveControllerManager::hapticPulseHelper(bool leftHand) {
+    if (_inputDevice) {
+        _inputDevice->hapticPulseHelper(leftHand);
+    }
+}
+
+void ViveControllerManager::InputDevice::hapticPulseHelper(bool leftHand) {
+    if (leftHand) {
+        triggerHapticPulse(prevLeftHapticStrength, prevLeftHapticDuration, leftHand);
+    } else {
+        triggerHapticPulse(prevRightHapticStrength, prevRightHapticDuration, leftHand);
+    }
+}
+
 bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, bool leftHand) {
     auto handRole = leftHand ? vr::TrackedControllerRole_LeftHand : vr::TrackedControllerRole_RightHand;
     auto deviceIndex = _system->GetTrackedDeviceIndexForControllerRole(handRole);
@@ -450,11 +468,29 @@ bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, floa
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
         _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
         _trackedDevicePose[deviceIndex].bPoseIsValid) {
-        // the documentation says the third argument to TriggerHapticPulse is duration
-        // but it seems to instead be strength, and is between 0 and 3999
+        // Vive Controllers only support duration up to 4 ms, which is short enough that any variation feels more like strength
+        const float MAX_HAPTIC_TIME = 3999.0f; // in microseconds
+        float hapticTime = strength*MAX_HAPTIC_TIME;
+        if (hapticTime < duration*1000.0f) {
+            _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
+        }
+
+        // Must wait 5 ms before triggering another pulse on this controller
         // https://github.com/ValveSoftware/openvr/wiki/IVRSystem::TriggerHapticPulse
-        const float MAX_HAPTIC_STRENGTH = 3999.0f;
-        _system->TriggerHapticPulse(deviceIndex, 0, strength*MAX_HAPTIC_STRENGTH);
+        const float HAPTIC_RESET_TIME = 5.0f;
+        float remainingHapticTime = duration - (hapticTime / 1000.0f + HAPTIC_RESET_TIME); // in milliseconds
+        if (remainingHapticTime > 0.0f) {
+            if (leftHand) {
+                prevLeftHapticStrength = strength;
+                prevLeftHapticDuration = remainingHapticTime;
+                _parent._leftHapticTimer.start(remainingHapticTime);
+            }
+            else {
+                prevRightHapticStrength = strength;
+                prevRightHapticDuration = remainingHapticTime;
+                _parent._rightHapticTimer.start(remainingHapticTime);
+            }
+        }
         return true;
     }
     return false;

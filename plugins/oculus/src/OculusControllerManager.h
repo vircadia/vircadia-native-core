@@ -72,8 +72,6 @@ private:
 
     private:
         void stopHapticPulse(bool leftHand);
-
-    private:
         void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
         int _trackedControllers { 0 };
         friend class OculusControllerManager;
