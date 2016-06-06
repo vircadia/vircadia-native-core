@@ -1,5 +1,5 @@
 //
-//  AudioSRC_avx.cpp
+//  AudioSRC_avx2.cpp
 //  libraries/audio/src
 //
 //  Created by Ken Cooke on 6/5/16.
@@ -16,8 +16,8 @@
 
 #include "../AudioSRC.h"
 
-#ifndef __AVX__
-#error Must be compiled with /arch:AVX or -mavx.
+#ifndef __AVX2__
+#error Must be compiled with /arch:AVX2 or -mavx2 -mfma.
 #endif
 
 // high/low part of int64_t
