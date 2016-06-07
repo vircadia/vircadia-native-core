@@ -99,14 +99,15 @@
         {
           "name": "standard_permissions",
           "type": "table",
-          "label": "Domain-Wide Permissions",
-          "help": "Standard Permissions:",
+          "label": "Domain-Wide User Permissions",
+          "help": "Indicate which users or groups can have which domain-wide permissions.",
+          "caption": "Standard Permissions",
           "can_add_new_rows": false,
 
           "columns": [
             {
               "name": "permissions_id",
-              "label": "User/Group"
+              "label": "User / Group"
             },
             {
               "name": "id_can_connect",
@@ -117,7 +118,7 @@
             },
             {
               "name": "id_can_adjust_locks",
-              "label": "Lock/Unlock",
+              "label": "Lock / Unlock",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -131,7 +132,7 @@
             },
             {
               "name": "id_can_rez_tmp",
-              "label": "Rez Temp",
+              "label": "Rez Temporary",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -158,13 +159,13 @@
         {
           "name": "permissions",
           "type": "table",
-          "help": "Permissions for Specific Users:",
+          "caption": "Permissions for Specific Users",
           "can_add_new_rows": true,
 
           "columns": [
             {
               "name": "permissions_id",
-              "label": "User/Group"
+              "label": "User / Group"
             },
             {
               "name": "id_can_connect",
@@ -175,7 +176,7 @@
             },
             {
               "name": "id_can_adjust_locks",
-              "label": "Lock/Unlock",
+              "label": "Lock / Unlock",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -189,7 +190,7 @@
             },
             {
               "name": "id_can_rez_tmp",
-              "label": "Rez Temp",
+              "label": "Rez Temporary",
               "type": "checkbox",
               "editable": true,
               "default": false

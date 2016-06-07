@@ -111,6 +111,16 @@ table {
   word-wrap: break-word;
 }
 
+caption {
+    color: #333;
+    font-weight: 700;
+    padding-top: 0;
+}
+
+table[name="security.standard_permissions"] .headers td + td, table[name="security.permissions"] .headers td + td {
+    text-align: center;
+}
+
 #xs-advanced-container {
   margin-bottom: 20px;
 }

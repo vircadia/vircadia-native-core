@@ -927,6 +927,10 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
 
+  if (setting.caption) {
+    html += "<caption>" + setting.caption + "</caption>"
+  }
+
   // Column names
   html += "<tr class='headers'>"
 
