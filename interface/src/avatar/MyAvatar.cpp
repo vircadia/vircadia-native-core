@@ -234,7 +234,7 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter));
+        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, andRecenter), Q_ARG(bool, andReload), Q_ARG(bool, andHead));
         return;
     }
 
@@ -1816,6 +1816,16 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
 
+    setCharacterControllerEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
+}
+
+void MyAvatar::setCharacterControllerEnabled(bool enabled) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setCharacterControllerEnabled", Q_ARG(bool, enabled));
+        return;
+    }
+
     bool ghostingAllowed = true;
     EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
     if (entityTreeRenderer) {
@@ -1824,12 +1834,16 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
             ghostingAllowed = zone->getGhostingAllowed();
         }
     }
-    bool checked = menu->isOptionChecked(MenuOption::EnableCharacterController);
-    if (!ghostingAllowed) {
-        checked = true;
-    }
+    _characterController.setEnabled(ghostingAllowed ? enabled : true);
+}
 
-    _characterController.setEnabled(checked);
+bool MyAvatar::getCharacterControllerEnabled() {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(this, "getCharacterControllerEnabled", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result));
+        return result;
+    }
+    return _characterController.isEnabled();
 }
 
 void MyAvatar::clearDriveKeys() {

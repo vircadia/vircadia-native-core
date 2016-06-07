@@ -84,6 +84,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
+    Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
 
 public:
     explicit MyAvatar(RigPointer rig);
@@ -264,6 +265,9 @@ public:
     controller::Pose getRightHandControllerPoseInWorldFrame() const;
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
+
+    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
+    Q_INVOKABLE bool getCharacterControllerEnabled();
 
 public slots:
     void increaseSize();
