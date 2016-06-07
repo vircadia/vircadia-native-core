@@ -24,6 +24,13 @@ body {
     vertical-align: middle;
 }
 
+.table .table-checkbox {
+    /* Fix IE sizing checkboxes to fill table cell */
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .glyphicon-remove {
   font-size: 24px;
 }
