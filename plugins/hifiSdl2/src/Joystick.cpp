@@ -25,9 +25,12 @@ Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameControl
     _instanceId(instanceId)
 {
     if (!_sdlHaptic) {
-        qDebug() << QString(SDL_GetError());
+        qDebug() << "SDL Haptic Open Failure: " << QString(SDL_GetError());
+    } else {
+        if (SDL_HapticRumbleInit(_sdlHaptic) != 0) {
+            qDebug() << "SDL Haptic Rumble Init Failure: " << QString(SDL_GetError());
+        }
     }
-    SDL_HapticRumbleInit(_sdlHaptic);
 }
 
 Joystick::~Joystick() {
@@ -35,7 +38,9 @@ Joystick::~Joystick() {
 }
 
 void Joystick::closeJoystick() {
-    SDL_HapticClose(_sdlHaptic);
+    if (_sdlHaptic) {
+        SDL_HapticClose(_sdlHaptic);
+    }
     SDL_GameControllerClose(_sdlGameController);
 }
 
