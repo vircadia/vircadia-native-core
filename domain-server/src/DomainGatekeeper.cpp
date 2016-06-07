@@ -153,12 +153,12 @@ void DomainGatekeeper::updateNodePermissions() {
             }
 
             if (username.isEmpty()) {
-                userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
             } else {
                 if (_server->_settingsManager.havePermissionsForName(username)) {
                     userPerms = _server->_settingsManager.getPermissionsForName(username);
                 } else {
-                    userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLoggedIn);
+                    userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
                 }
             }
         }
@@ -263,7 +263,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     if (username.isEmpty()) {
         // they didn't tell us who they are
-        userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
         qDebug() << "user-permissions: no username, so:" << userPerms;
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
@@ -274,7 +274,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             qDebug() << "user-permissions: specific user matches, so:" << userPerms;
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.
-            userPerms |= _server->_settingsManager.getPermissionsForName(NodePermissions::standardNameLoggedIn);
+            userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
             qDebug() << "user-permissions: user is logged in, so:" << userPerms;
         }
     } else {
