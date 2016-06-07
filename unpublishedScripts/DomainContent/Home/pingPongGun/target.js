@@ -32,8 +32,7 @@
 
     _this.collisionWithEntity = function(myID, otherID, collisionInfo) {
         //we dont actually use any of the parameters above, since we don't really care what we collided with, or the details of the collision. 
-        print('JBP TARGET COLLISION')
-            //5 seconds after a collision, upright the target.  protect from multiple collisions in a short timespan with the 'shouldUntip' variable
+        //5 seconds after a collision, upright the target.  protect from multiple collisions in a short timespan with the 'shouldUntip' variable
         if (_this.shouldUntip) {
             //in Hifi, preface setTimeout with Script.setTimeout
             Script.setTimeout(function() {
@@ -47,11 +46,10 @@
     }
 
     _this.untip = function() {
-        print('JBP SHOULD UNTIP')
         var props = Entities.getEntityProperties(this.entityID);
         var rotation = Quat.safeEulerAngles(props.rotation)
         if (rotation.x > 3 || rotation.x < -3 || rotation.z > 3 || rotation.z < -3) {
-            print('too much pitch or roll, fix it');
+            print('home target - too much pitch or roll, fix it');
 
             //we zero out the velocity and angular velocity
             Entities.editEntity(_this.entityID, {

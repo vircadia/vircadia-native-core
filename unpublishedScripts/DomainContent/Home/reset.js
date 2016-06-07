@@ -563,7 +563,8 @@
                         reset: true
                     }
                 }),
-                density:100,
+                script: 'atp:/pingPongGun/target.js',
+                density: 100,
                 dynamic: true
             }
             var target = Entities.addEntity(targetProperties);
