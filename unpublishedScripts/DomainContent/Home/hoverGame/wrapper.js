@@ -9,7 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
+//var position = {x:1098.4813,y:461.6781,z:-71.3820}
+// var dimensions = {x:1.0233,y:3.1541,z:0.8684}
 HoverGame = function(spawnPosition, spawnRotation) {
 
   var scriptURL = "atp:/hoverGame/hoverInner.js";
@@ -18,11 +19,7 @@ HoverGame = function(spawnPosition, spawnRotation) {
     type: 'Model',
     modelURL: 'atp:/hoverGame/hover.fbx',
     name: 'home_model_hoverGame_container',
-    dimensions: {
-      x: 0.2543,
-      y: 0.3269,
-      z: 0.4154
-    },
+    dimensions: {x:1.0233,y:3.1541,z:0.8684},
     compoundShapeURL: 'atp:/hoverGame/hoverHull.obj',
     rotation: spawnRotation,
     script: scriptURL,
@@ -34,7 +31,7 @@ HoverGame = function(spawnPosition, spawnRotation) {
         'reset': true
       }
     }),
-    dynamic: true,
+    dynamic: false,
     position: spawnPosition
   };
 
@@ -60,10 +57,16 @@ HoverGame = function(spawnPosition, spawnRotation) {
       y:-9.8,
       z:0
     },
-    position: spawnPosition
+    position: spawnPosition,
+    userData:JSON.stringify({
+      grabKey:{
+        shouldCollideWith:'static'
+      }
+    })
   };
 
   var hoverContainer = Entities.addEntity(hoverContainerProps);
+  var hoverBall = Entities.addEntity(hoverContainerProps);
 
   function cleanup() {
     print('HOVER GAME CLEANUP!')

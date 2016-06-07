@@ -202,6 +202,8 @@
                     _this.createKineticEntities();
                     _this.createScriptedEntities();
                     _this.setupDressingRoom();
+                    _this.createMilkPailBalls();
+                    _this.createTarget();
                 }, 750);
             }
         },
@@ -524,6 +526,99 @@
             };
 
             var dais = Entities.addEntity(daisProperties);
+        },
+
+        createTarget: function() {
+            var targetProperties = {
+                type: 'Model',
+                modelURL: 'atp:/pingPongGun/Target.fbx',
+                shapeType: 'Compound',
+                compoundShapeURL: 'atp:/pingPongGun/Target.obj',
+                dimensions: {
+                    x: 0.4937,
+                    y: 0.6816,
+                    z: 0.0778
+                },
+                rotation: Quat.fromPitchYawRollDegrees(3.1471, -170.4121, -0.0060),
+                gravity: {
+                    x: 0,
+                    y: -9.8,
+                    z: 0
+                },
+                velocity: {
+                    x: 0,
+                    y: -0.1,
+                    z: 0
+                },
+                position: {
+                    x: 1100.6343,
+                    y: 460.5366,
+                    z: -65.2142
+                },
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: true
+                    },
+                    hifiHomeKey: {
+                        reset: true
+                    }
+                }),
+                density:100,
+                dynamic: true
+            }
+            var target = Entities.addEntity(targetProperties);
+        },
+
+        createMilkPailBalls: function() {
+            var locations = [{
+                x: 1099.0795,
+                y: 459.4186,
+                z: -70.8603
+            }, {
+                x: 1099.2826,
+                y: 459.4186,
+                z: -70.9094
+            }, {
+                x: 1099.5012,
+                y: 459.4186,
+                z: -71.1000
+            }];
+
+            var ballProperties = {
+                type: 'Model',
+                modelURL: 'atp:/static_objects/StarBall.fbx',
+                shapeType: 'Sphere',
+                dimensions: {
+                    x: 0.1646,
+                    y: 0.1646,
+                    z: 0.1646
+                },
+                gravity: {
+                    x: 0,
+                    y: -9.8,
+                    z: 0
+                },
+                velocity: {
+                    x: 0,
+                    y: -0.1,
+                    z: 0
+                },
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: true
+                    },
+                    hifiHomeKey: {
+                        reset: true
+                    }
+                }),
+                dynamic: true
+            };
+
+            locations.forEach(function(location) {
+                ballProperties.position = location;
+                var ball = Entities.addEntity(ballProperties);
+            });
+            print('HOME made milk pail balls')
         },
 
         createTransformers: function() {
