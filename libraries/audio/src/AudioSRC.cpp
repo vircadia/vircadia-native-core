@@ -371,93 +371,10 @@ int AudioSRC::multirateFilter2_SSE(const float* input0, const float* input1, flo
 }
 
 //
-// Detect AVX/AVX2 support
-//
-
-#if defined(_MSC_VER)
-
-#include <intrin.h>
-
-static bool cpuSupportsAVX() {
-    int info[4];
-    int mask = (1 << 27) | (1 << 28);   // OSXSAVE and AVX
-
-    __cpuidex(info, 0x1, 0);
-
-    bool result = false;
-    if ((info[2] & mask) == mask) {
-
-        if ((_xgetbv(_XCR_XFEATURE_ENABLED_MASK) & 0x6) == 0x6) {
-            result = true;
-        }
-    }
-    return result;
-}
-
-static bool cpuSupportsAVX2() {
-    int info[4];
-    int mask = (1 << 5);    // AVX2
-
-    bool result = false;
-    if (cpuSupportsAVX()) {
-
-        __cpuidex(info, 0x7, 0);
-
-        if ((info[1] & mask) == mask) {
-            result = true;
-        }
-    }
-    return result;
-}
-
-#elif defined(__GNUC__)
-
-#include <cpuid.h>
-
-static bool cpuSupportsAVX() {
-    unsigned int eax, ebx, ecx, edx;
-    unsigned int mask = (1 << 27) | (1 << 28);   // OSXSAVE and AVX
-
-    bool result = false;
-    if (__get_cpuid(0x1, &eax, &ebx, &ecx, &edx) && ((ecx & mask) == mask)) {
-
-        __asm__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(0));
-        if ((eax & 0x6) == 0x6) {
-            result = true;
-        }
-    }
-    return result;    
-}
-
-static bool cpuSupportsAVX2() {
-    unsigned int eax, ebx, ecx, edx;
-    unsigned mask = (1 << 5);    // AVX2
-
-    bool result = false;
-    if (cpuSupportsAVX()) {
-
-        if (__get_cpuid(0x7, &eax, &ebx, &ecx, &edx) && ((ebx & mask) == mask)) {
-            result = true;
-        }
-    }
-    return result;    
-}
-
-#else
-
-static bool cpuSupportsAVX() {
-    return false;
-}
-
-static bool cpuSupportsAVX2() {
-    return false;
-}
-
-#endif
-
-//
 // Runtime CPU dispatch
 //
+
+#include "CPUDetect.h"
 
 int AudioSRC::multirateFilter1(const float* input0, float* output0, int inputFrames) {
 
