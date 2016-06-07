@@ -355,24 +355,6 @@ void NodeList::sendDomainServerCheckIn() {
         // increment the count of un-replied check-ins
         _numNoReplyDomainCheckIns++;
     }
-
-    static int numTriggersSinceAPIRefresh = 0;
-
-    if (!_publicSockAddr.isNull()
-        && !_domainHandler.isConnected()
-        && !_domainHandler.getPendingDomainID().isNull()
-        && !_domainHandler.wasConnectionRefused()
-        && ++numTriggersSinceAPIRefresh > 1) {
-
-        // if we aren't connected to the domain-server, and we have an ID
-        // (that we presume belongs to a domain in the HF Metaverse)
-        // we re-request connection information from the AdressManager
-        // every 2 failing check in attempts to make sure what we have is up to date
-
-        DependencyManager::get<AddressManager>()->refreshPreviousLookup();
-        numTriggersSinceAPIRefresh = 0;
-
-    }
 }
 
 void NodeList::handleDSPathQuery(const QString& newPath) {

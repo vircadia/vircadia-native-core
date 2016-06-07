@@ -72,8 +72,6 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
 
-    bool wasConnectionRefused() const { return !_domainConnectionRefusals.isEmpty(); }
-
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
@@ -149,6 +147,8 @@ private:
     QStringList _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
+
+    QTimer _apiRefreshTimer;
 };
 
 #endif // hifi_DomainHandler_h
