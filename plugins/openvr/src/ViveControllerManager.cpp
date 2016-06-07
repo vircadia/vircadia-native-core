@@ -455,12 +455,22 @@ void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const 
 bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
     Locker locker(_lock);
     if (hand == controller::BOTH || hand == controller::LEFT) {
-        _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
-        _leftHapticDuration = std::max(duration, _leftHapticDuration);
+        if (strength == 0.0f) {
+            _leftHapticStrength = 0.0f;
+            _leftHapticDuration = 0.0f;
+        } else {
+            _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
+            _leftHapticDuration = std::max(duration, _leftHapticDuration);
+        }
     }
     if (hand == controller::BOTH || hand == controller::RIGHT) {
-        _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
-        _rightHapticDuration = std::max(duration, _rightHapticDuration);
+        if (strength == 0.0f) {
+            _rightHapticStrength = 0.0f;
+            _rightHapticDuration = 0.0f;
+        } else {
+            _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
+            _rightHapticDuration = std::max(duration, _rightHapticDuration);
+        }
     }
     return true;
 }

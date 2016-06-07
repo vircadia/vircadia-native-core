@@ -253,18 +253,28 @@ bool OculusControllerManager::TouchDevice::triggerHapticPulse(float strength, fl
     Locker locker(_lock);
     bool toReturn = true;
     if (hand == controller::BOTH || hand == controller::LEFT) {
-        _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
-        if (ovr_SetControllerVibration(_parent._session, ovrControllerType_LTouch, 1.0f, _leftHapticStrength) != ovrSuccess) {
-            toReturn = false;
+        if (strength == 0.0f) {
+            _leftHapticStrength = 0.0f;
+            _leftHapticDuration = 0.0f;
+        } else {
+            _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
+            if (ovr_SetControllerVibration(_parent._session, ovrControllerType_LTouch, 1.0f, _leftHapticStrength) != ovrSuccess) {
+                toReturn = false;
+            }
+            _leftHapticDuration = std::max(duration, _leftHapticDuration);
         }
-        _leftHapticDuration = std::max(duration, _leftHapticDuration);
     }
     if (hand == controller::BOTH || hand == controller::RIGHT) {
-        _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
-        if (ovr_SetControllerVibration(_parent._session, ovrControllerType_RTouch, 1.0f, _rightHapticStrength) != ovrSuccess) {
-            toReturn = false;
+        if (strength == 0.0f) {
+            _rightHapticStrength = 0.0f;
+            _rightHapticDuration = 0.0f;
+        } else {
+            _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
+            if (ovr_SetControllerVibration(_parent._session, ovrControllerType_RTouch, 1.0f, _rightHapticStrength) != ovrSuccess) {
+                toReturn = false;
+            }
+            _rightHapticDuration = std::max(duration, _rightHapticDuration);
         }
-        _rightHapticDuration = std::max(duration, _rightHapticDuration);
     }
     return toReturn;
 }
