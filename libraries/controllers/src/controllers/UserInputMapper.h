@@ -142,7 +142,7 @@ namespace controller {
         std::vector<float> _lastStandardStates = std::vector<float>();
 
         int recordDeviceOfType(const QString& deviceName);
-        QHash<const QString&, int> _deviceCounts;
+        QHash<const QString, int> _deviceCounts;
 
         static float getValue(const EndpointPointer& endpoint, bool peek = false);
         static Pose getPose(const EndpointPointer& endpoint, bool peek = false);

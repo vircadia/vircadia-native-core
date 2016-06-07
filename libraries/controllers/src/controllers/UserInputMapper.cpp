@@ -77,7 +77,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
     const auto& deviceID = device->_deviceID;
 
-    //recordDeviceOfType(device->getName());
+    recordDeviceOfType(device->getName());
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
 
@@ -125,6 +125,10 @@ void UserInputMapper::removeDevice(int deviceID) {
 
     auto device = proxyEntry->second;
     qCDebug(controllers) << "Unregistering input device <" << device->getName() << "> deviceID = " << deviceID;
+
+    if (!_deviceCounts.contains(device->getName())) {
+        _deviceCounts[device->getName()] -= 1;
+    }
 
     unloadMappings(device->getDefaultMappingConfigs());
 

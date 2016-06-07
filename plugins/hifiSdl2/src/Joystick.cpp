@@ -64,7 +64,7 @@ void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
 
 controller::Input::NamedVector Joystick::getAvailableInputs() const {
     using namespace controller;
-    static const Input::NamedVector availableInputs{
+    const Input::NamedVector availableInputs{
         makePair(A, "A"),
         makePair(B, "B"),
         makePair(X, "X"),
