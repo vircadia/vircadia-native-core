@@ -254,6 +254,7 @@ StuffOnShelves = function(spawnLocation, spawnRotation) {
     print('CREATE STUFF ON SHELVES');
     var created = [];
 
+
     function create() {
         var success = Clipboard.importEntities(STUFF_ON_SHELVES_URL);
         if (success === true) {
@@ -267,6 +268,8 @@ StuffOnShelves = function(spawnLocation, spawnRotation) {
             Entities.deleteEntity(obj);
         })
     };
+
+
 
     create();
 
@@ -300,11 +303,26 @@ Bricabrac = function(spawnLocation, spawnRotation) {
     print('HOME CREATE BRICABRAC');
     var created = [];
 
+    function addVelocityDown() {
+        print('HOME ADDING DOWN VELOCITY TO DRESSING ROOM ITEMS')
+        created.forEach(function(obj) {
+            Entities.editEntity(obj, {
+                velocity: {
+                    x: 0,
+                    y: -0.1,
+                    z: 0
+                }
+            });
+        })
+    }
+
     function create() {
         var success = Clipboard.importEntities(BRICABRAC_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
+            addVelocityDown();
+
         }
     };
 
