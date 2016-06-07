@@ -166,7 +166,8 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
-    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname && id != _pendingDomainID) {
+
+    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
         
