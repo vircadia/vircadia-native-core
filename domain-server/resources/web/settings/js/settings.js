@@ -852,6 +852,8 @@ function reloadSettings(callback) {
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
 
+    $('[data-toggle="tooltip"]').tooltip();
+
     // add tooltip to locked settings
     $('label.locked').tooltip({
       placement: 'right',

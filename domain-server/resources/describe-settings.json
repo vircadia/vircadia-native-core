@@ -100,18 +100,18 @@
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
-          "help": "Indicate which users or groups can have which domain-wide permissions.",
+          "help": "Indicate which users or groups can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Connect</strong> &ndash; Sets whether a user can connect to the the domain.<br /><strong>Lock / Unlock</strong> &ndash; Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).<br /><strong>Rez</strong> &ndash; Sets whether a user can create new entities.<br /><strong>Rez Temporary</strong> &ndash; Sets whether a user can create new entities with a finite lifetime.<br /><strong>Write Assets</strong> &ndash; Sets whether a user can make changes to the domain&rsquo;s asset-server assets.<br /><strong>Ignore Max Capacity</strong> &ndash; Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.<br /></p><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
           "caption": "Standard Permissions",
           "can_add_new_rows": false,
 
           "groups": [
             {
               "label": "User / Group",
-              "span":  1
+              "span": 1
             },
             {
-              "label": "Permissions",
-              "span":  6
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Connect</strong> &ndash; Sets whether a user can connect to the the domain.<br /><strong>Lock / Unlock</strong> &ndash; Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).<br /><strong>Rez</strong> &ndash; Sets whether a user can create new entities.<br /><strong>Rez Temporary</strong> &ndash; Sets whether a user can create new entities with a finite lifetime.<br /><strong>Write Assets</strong> &ndash; Sets whether a user can make changes to the domain&rsquo;s asset-server assets.<br /><strong>Ignore Max Capacity</strong> &ndash; Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.<br /></p><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
+              "span": 6
             }
           ],
 
@@ -176,11 +176,11 @@
           "groups": [
             {
               "label": "User / Group",
-              "span":  1
+              "span": 1
             },
             {
-              "label": "Permissions",
-              "span":  6
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Connect</strong> &ndash; Sets whether a user can connect to the the domain.<br /><strong>Lock / Unlock</strong> &ndash; Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).<br /><strong>Rez</strong> &ndash; Sets whether a user can create new entities.<br /><strong>Rez Temporary</strong> &ndash; Sets whether a user can create new entities with a finite lifetime.<br /><strong>Write Assets</strong> &ndash; Sets whether a user can make changes to the domain&rsquo;s asset-server assets.<br /><strong>Ignore Max Capacity</strong> &ndash; Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.<br /></p><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
+              "span": 6
             }
           ],
 
