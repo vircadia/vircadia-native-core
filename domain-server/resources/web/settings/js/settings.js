@@ -931,6 +931,22 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     html += "<caption>" + setting.caption + "</caption>"
   }
 
+  // Column groups
+  if (setting.groups) {
+    html += "<tr class='headers'>"
+    _.each(setting.groups, function (group) {
+        html += "<td colspan='" + group.span  + "'><strong>" + group.label + "</strong></td>"
+    })
+    if (!isLocked && !setting.read_only) {
+        if (setting.can_order) {
+            html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
+                    "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
+        }
+        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
+    }
+    html += "</tr>"
+  }
+
   // Column names
   html += "<tr class='headers'>"
 

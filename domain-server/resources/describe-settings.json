@@ -104,10 +104,21 @@
           "caption": "Standard Permissions",
           "can_add_new_rows": false,
 
+          "groups": [
+            {
+              "label": "User / Group",
+              "span":  1
+            },
+            {
+              "label": "Permissions",
+              "span":  6
+            }
+          ],
+
           "columns": [
             {
               "name": "permissions_id",
-              "label": "User / Group"
+              "label": ""
             },
             {
               "name": "id_can_connect",
@@ -162,10 +173,21 @@
           "caption": "Permissions for Specific Users",
           "can_add_new_rows": true,
 
+          "groups": [
+            {
+              "label": "User / Group",
+              "span":  1
+            },
+            {
+              "label": "Permissions",
+              "span":  6
+            }
+          ],
+
           "columns": [
             {
               "name": "permissions_id",
-              "label": "User / Group"
+              "label": ""
             },
             {
               "name": "id_can_connect",
