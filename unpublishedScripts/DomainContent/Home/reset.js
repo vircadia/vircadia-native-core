@@ -422,11 +422,11 @@
                 z: -73.3
             });
 
-            var dressingRoomBricabrac = new Bricabrac({
-                x: 1106.8,
-                y: 460.3909,
-                z: -72.6
-            });
+            // var dressingRoomBricabrac = new Bricabrac({
+            //     x: 1106.8,
+            //     y: 460.3909,
+            //     z: -72.6
+            // });
 
             var bench = new Bench({
                 x: 1100.1210,

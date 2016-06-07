@@ -279,32 +279,8 @@ StuffOnShelves = function(spawnLocation, spawnRotation) {
 HomeJunk = function(spawnLocation, spawnRotation) {
     print('HOME CREATE JUNK');
     var created = [];
-
-    function create() {
-        var success = Clipboard.importEntities(JUNK_URL);
-        if (success === true) {
-            created = Clipboard.pasteEntities(spawnLocation)
-            print('created ' + created);
-        }
-    };
-
-    function cleanup() {
-        created.forEach(function(obj) {
-            Entities.deleteEntity(obj);
-        })
-    };
-
-    create();
-
-    this.cleanup = cleanup;
-}
-
-Bricabrac = function(spawnLocation, spawnRotation) {
-    print('HOME CREATE BRICABRAC');
-    var created = [];
-
     function addVelocityDown() {
-        print('HOME ADDING DOWN VELOCITY TO DRESSING ROOM ITEMS')
+        print('HOME ADDING DOWN VELOCITY TO SHELF  ITEMS')
         created.forEach(function(obj) {
             Entities.editEntity(obj, {
                 velocity: {
@@ -315,14 +291,12 @@ Bricabrac = function(spawnLocation, spawnRotation) {
             });
         })
     }
-
     function create() {
-        var success = Clipboard.importEntities(BRICABRAC_URL);
+        var success = Clipboard.importEntities(JUNK_URL);
         if (success === true) {
             created = Clipboard.pasteEntities(spawnLocation)
             print('created ' + created);
             addVelocityDown();
-
         }
     };
 
@@ -336,6 +310,44 @@ Bricabrac = function(spawnLocation, spawnRotation) {
 
     this.cleanup = cleanup;
 }
+
+// Bricabrac = function(spawnLocation, spawnRotation) {
+//     print('HOME CREATE BRICABRAC');
+//     var created = [];
+
+//     function addVelocityDown() {
+//         print('HOME ADDING DOWN VELOCITY TO DRESSING ROOM ITEMS')
+//         created.forEach(function(obj) {
+//             Entities.editEntity(obj, {
+//                 velocity: {
+//                     x: 0,
+//                     y: -0.1,
+//                     z: 0
+//                 }
+//             });
+//         })
+//     }
+
+//     function create() {
+//         var success = Clipboard.importEntities(BRICABRAC_URL);
+//         if (success === true) {
+//             created = Clipboard.pasteEntities(spawnLocation)
+//             print('created ' + created);
+//             addVelocityDown();
+
+//         }
+//     };
+
+//     function cleanup() {
+//         created.forEach(function(obj) {
+//             Entities.deleteEntity(obj);
+//         })
+//     };
+
+//     create();
+
+//     this.cleanup = cleanup;
+// }
 
 Bench = function(spawnLocation, spawnRotation) {
     print('HOME CREATE BENCH');
