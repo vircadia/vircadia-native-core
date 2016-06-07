@@ -410,8 +410,8 @@ function update() {
     if (!Menu.isOptionChecked("First Person")) {
         return turnOffVisualization(); // What to do? menus can be behind hand!
     }
-    if (!Window.hasFocus()) {
-        return turnOffVisualization(); // Don't mess with other apps
+    if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
+        return turnOffVisualization(); // Don't mess with other apps or paused mouse activity
     }
     leftTrigger.update();
     rightTrigger.update();
