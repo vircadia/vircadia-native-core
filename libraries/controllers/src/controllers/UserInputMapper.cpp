@@ -126,7 +126,7 @@ void UserInputMapper::removeDevice(int deviceID) {
     auto device = proxyEntry->second;
     qCDebug(controllers) << "Unregistering input device <" << device->getName() << "> deviceID = " << deviceID;
 
-    if (!_deviceCounts.contains(device->getName())) {
+    if (_deviceCounts.contains(device->getName())) {
         _deviceCounts[device->getName()] -= 1;
     }
 
