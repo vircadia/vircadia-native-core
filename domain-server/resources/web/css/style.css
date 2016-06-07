@@ -20,6 +20,17 @@ body {
   top: 40px;
 }
 
+.table .value-row td, .table .inputs td {
+    vertical-align: middle;
+}
+
+.table .table-checkbox {
+    /* Fix IE sizing checkboxes to fill table cell */
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .glyphicon-remove {
   font-size: 24px;
 }
@@ -105,6 +116,21 @@ tr.new-row {
 table {
   table-layout: fixed;
   word-wrap: break-word;
+}
+
+caption {
+    color: #333;
+    font-weight: 700;
+    padding-top: 0;
+}
+
+table[name="security.standard_permissions"] .headers td + td, table[name="security.permissions"] .headers td + td {
+    text-align: center;
+}
+
+#security .tooltip-inner {
+    max-width: 520px;
+    text-align: left;
 }
 
 #xs-advanced-container {

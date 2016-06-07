@@ -233,7 +233,7 @@ $(document).ready(function(){
   });
 
   // Bootstrap switch in table
-  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.table-checkbox', function () {
+  $('#' + Settings.FORM_ID).on('change', 'input.table-checkbox', function () {
     // Bootstrap switches in table: set the changed data attribute for all rows in table.
     var row = $(this).closest('tr');
     if (row.hasClass("value-row")) {  // Don't set attribute on input row switches prior to it being added to table.
@@ -851,7 +851,8 @@ function reloadSettings(callback) {
 
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
-    $('.table-checkbox').bootstrapSwitch();
+
+    $('[data-toggle="tooltip"]').tooltip();
 
     // add tooltip to locked settings
     $('label.locked').tooltip({
@@ -928,6 +929,26 @@ function makeTable(setting, keypath, setting_value, isLocked) {
     + "' name='" + keypath + "' id='" + (typeof setting.html_id !== 'undefined' ? setting.html_id : keypath)
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>";
 
+  if (setting.caption) {
+    html += "<caption>" + setting.caption + "</caption>"
+  }
+
+  // Column groups
+  if (setting.groups) {
+    html += "<tr class='headers'>"
+    _.each(setting.groups, function (group) {
+        html += "<td colspan='" + group.span  + "'><strong>" + group.label + "</strong></td>"
+    })
+    if (!isLocked && !setting.read_only) {
+        if (setting.can_order) {
+            html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES +
+                    "'><a href='javascript:void(0);' class='glyphicon glyphicon-sort'></a></td>";
+        }
+        html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES + "'></td></tr>"
+    }
+    html += "</tr>"
+  }
+
   // Column names
   html += "<tr class='headers'>"
 
@@ -984,7 +1005,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
 
         if (isArray && col.type === "checkbox" && col.editable) {
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='checkbox' class='form-control table-checkbox' data-size='mini' "
+                  + "<input type='checkbox' class='form-control table-checkbox' "
                   + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
         } else {
           // Use a hidden input so that the values are posted.
@@ -1039,7 +1060,7 @@ function makeTableInputs(setting) {
   _.each(setting.columns, function(col) {
     if (col.type === "checkbox") {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-              + "<input type='checkbox' class='form-control table-checkbox' data-size='mini' "
+              + "<input type='checkbox' class='form-control table-checkbox' "
               + "name='" + col.name + "'" + (col.default ? " checked" : "") + "/></td>";
     } else {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
@@ -1176,7 +1197,7 @@ function addTableRow(add_glyphicon) {
       var input = $(element).find("input")
       var isCheckbox = false;
       if (input.hasClass("table-checkbox")) {
-        input = $(input).parent().parent();
+        input = $(input).parent();
         isCheckbox = true;
       }
 
