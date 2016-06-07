@@ -20,6 +20,10 @@ body {
   top: 40px;
 }
 
+.table .value-row td, .table .inputs td {
+    vertical-align: middle;
+}
+
 .glyphicon-remove {
   font-size: 24px;
 }

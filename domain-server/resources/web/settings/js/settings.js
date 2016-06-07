@@ -233,7 +233,7 @@ $(document).ready(function(){
   });
 
   // Bootstrap switch in table
-  $('#' + Settings.FORM_ID).on('switchChange.bootstrapSwitch', 'input.table-checkbox', function () {
+  $('#' + Settings.FORM_ID).on('change', 'input.table-checkbox', function () {
     // Bootstrap switches in table: set the changed data attribute for all rows in table.
     var row = $(this).closest('tr');
     if (row.hasClass("value-row")) {  // Don't set attribute on input row switches prior to it being added to table.
@@ -851,7 +851,6 @@ function reloadSettings(callback) {
 
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
-    $('.table-checkbox').bootstrapSwitch();
 
     // add tooltip to locked settings
     $('label.locked').tooltip({
@@ -1176,7 +1175,7 @@ function addTableRow(add_glyphicon) {
       var input = $(element).find("input")
       var isCheckbox = false;
       if (input.hasClass("table-checkbox")) {
-        input = $(input).parent().parent();
+        input = $(input).parent();
         isCheckbox = true;
       }
 
