@@ -244,8 +244,10 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 foreach (QString userName, permissionsSet.keys()) {
                     if (onlyEditorsAreRezzers) {
                         permissionsSet[userName]->canRezPermanentEntities = permissionsSet[userName]->canAdjustLocks;
+                        permissionsSet[userName]->canRezTemporaryEntities = permissionsSet[userName]->canAdjustLocks;
                     } else {
                         permissionsSet[userName]->canRezPermanentEntities = true;
+                        permissionsSet[userName]->canRezTemporaryEntities = true;
                     }
                 }
             }

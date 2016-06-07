@@ -140,6 +140,7 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.isAssignment = true;
             userPerms.canAdjustLocks = true;
             userPerms.canRezPermanentEntities = true;
+            userPerms.canRezTemporaryEntities = true;
         } else {
             // this node is an agent
             userPerms.setAll(false);
@@ -224,6 +225,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.isAssignment = true;
     userPerms.canAdjustLocks = true;
     userPerms.canRezPermanentEntities = true;
+    userPerms.canRezTemporaryEntities = true;
     newNode->setPermissions(userPerms);
     return newNode;
 }

@@ -130,25 +130,22 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     }
 }
 
-
 void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
-    bool emitIsAllowedEditorChanged { false };
-    bool emitCanRezChanged { false };
-
-    if (_permissions.canAdjustLocks != newPermissions.canAdjustLocks) {
-        emitIsAllowedEditorChanged = true;
-    }
-    if (_permissions.canRezPermanentEntities != newPermissions.canRezPermanentEntities) {
-        emitCanRezChanged = true;
-    }
+    NodePermissions originalPermissions = _permissions;
 
     _permissions = newPermissions;
 
-    if (emitIsAllowedEditorChanged) {
+    if (originalPermissions.canAdjustLocks != newPermissions.canAdjustLocks) {
         emit isAllowedEditorChanged(_permissions.canAdjustLocks);
     }
-    if (emitCanRezChanged) {
+    if (originalPermissions.canRezPermanentEntities != newPermissions.canRezPermanentEntities) {
         emit canRezChanged(_permissions.canRezPermanentEntities);
+    }
+    if (originalPermissions.canRezTemporaryEntities != newPermissions.canRezTemporaryEntities) {
+        emit canRezTmpChanged(_permissions.canRezTemporaryEntities);
+    }
+    if (originalPermissions.canWriteToAssetServer != newPermissions.canWriteToAssetServer) {
+        emit canWriteAssetsChanged(_permissions.canWriteToAssetServer);
     }
 }
 

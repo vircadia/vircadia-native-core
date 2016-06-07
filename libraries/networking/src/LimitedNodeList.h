@@ -107,6 +107,8 @@ public:
     void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
     bool getThisNodeCanRez() const { return _permissions.canRezPermanentEntities; }
+    bool getThisNodeCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
+    bool getThisNodeCanWriteAssets() const { return _permissions.canWriteToAssetServer; }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
@@ -252,6 +254,8 @@ signals:
 
     void isAllowedEditorChanged(bool isAllowedEditor);
     void canRezChanged(bool canRez);
+    void canRezTmpChanged(bool canRezTmp);
+    void canWriteAssetsChanged(bool canWriteAssets);
 
 protected slots:
     void connectedForLocalSocketTest();
