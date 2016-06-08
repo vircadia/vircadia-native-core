@@ -22,7 +22,7 @@ var desktopMenuItemName = "Desktop";
 
 function initialPosition(windowDimensions, toolbar) {
     return {
-        x: windowDimensions.x / 2 + (2 * Tool.IMAGE_WIDTH),
+        x: (windowDimensions.x / 2) - (Tool.IMAGE_WIDTH * 2.5),
         y: windowDimensions.y
     };
 }

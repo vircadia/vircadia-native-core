@@ -60,7 +60,7 @@ var toolBar = (function() {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x / 2,
+                x: (windowDimensions.x / 2) + (Tool.IMAGE_WIDTH * 2),
                 y: windowDimensions.y
             };
         }, {

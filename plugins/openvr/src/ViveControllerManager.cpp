@@ -11,8 +11,6 @@
 
 #include "ViveControllerManager.h"
 
-#include <QtCore/QProcessEnvironment>
-
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <GeometryCache.h>
@@ -22,6 +20,7 @@
 #include <NumericalConstants.h>
 #include <plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
+#include <OffscreenUi.h>
 
 #include <controllers/UserInputMapper.h>
 
@@ -67,6 +66,8 @@ bool ViveControllerManager::activate() {
         _system = acquireOpenVrSystem();
     }
     Q_ASSERT(_system);
+
+    enableOpenVrKeyboard();
 
     // OpenVR provides 3d mesh representations of the controllers
     // Disabled controller rendering code
@@ -131,6 +132,8 @@ bool ViveControllerManager::activate() {
 
 void ViveControllerManager::deactivate() {
     InputPlugin::deactivate();
+
+    disableOpenVrKeyboard();
 
     _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     _container->removeMenu(MENU_PATH);

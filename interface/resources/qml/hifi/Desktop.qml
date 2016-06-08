@@ -4,11 +4,13 @@ import QtWebEngine 1.1;
 
 import "../desktop"
 import ".."
+import "."
 
 Desktop {
     id: desktop
 
     MouseArea {
+        id: hoverWatch
         anchors.fill: parent
         hoverEnabled: true
         propagateComposedEvents: true
@@ -47,7 +49,12 @@ Desktop {
         }
     }
 
-}
 
+    ToggleHudButton {
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 32
+        anchors.horizontalCenter: parent.horizontalCenter
+    }
+}
 
 
