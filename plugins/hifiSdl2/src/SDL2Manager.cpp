@@ -49,7 +49,7 @@ SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
 }
 
 void SDL2Manager::init() {
-    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER) == 0);
+    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0);
 
     if (initSuccess) {
         int joystickCount = SDL_NumJoysticks();

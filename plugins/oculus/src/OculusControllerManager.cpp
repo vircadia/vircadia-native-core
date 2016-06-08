@@ -105,6 +105,12 @@ void OculusControllerManager::pluginFocusOutEvent() {
     }
 }
 
+void OculusControllerManager::stopHapticPulse(bool leftHand) {
+    if (_touch) {
+        _touch->stopHapticPulse(leftHand);
+    }
+}
+
 using namespace controller;
 
 static const std::vector<std::pair<ovrButton, StandardButtonChannel>> BUTTON_MAP { {
@@ -212,6 +218,21 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
             _buttonPressedMap.insert(pair.second);
         }
     }
+
+    // Haptics
+    {
+        Locker locker(_lock);
+        if (_leftHapticDuration > 0.0f) {
+            _leftHapticDuration -= deltaTime * 1000.0f; // milliseconds
+        } else {
+            stopHapticPulse(true);
+        }
+        if (_rightHapticDuration > 0.0f) {
+            _rightHapticDuration -= deltaTime * 1000.0f; // milliseconds
+        } else {
+            stopHapticPulse(false);
+        }
+    }
 }
 
 void OculusControllerManager::TouchDevice::focusOutEvent() {
@@ -307,6 +328,41 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     pose = pose.transform(controllerToAvatar);
+}
+
+bool OculusControllerManager::TouchDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    bool toReturn = true;
+    if (hand == controller::BOTH || hand == controller::LEFT) {
+        if (strength == 0.0f) {
+            _leftHapticStrength = 0.0f;
+            _leftHapticDuration = 0.0f;
+        } else {
+            _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
+            if (ovr_SetControllerVibration(_parent._session, ovrControllerType_LTouch, 1.0f, _leftHapticStrength) != ovrSuccess) {
+                toReturn = false;
+            }
+            _leftHapticDuration = std::max(duration, _leftHapticDuration);
+        }
+    }
+    if (hand == controller::BOTH || hand == controller::RIGHT) {
+        if (strength == 0.0f) {
+            _rightHapticStrength = 0.0f;
+            _rightHapticDuration = 0.0f;
+        } else {
+            _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
+            if (ovr_SetControllerVibration(_parent._session, ovrControllerType_RTouch, 1.0f, _rightHapticStrength) != ovrSuccess) {
+                toReturn = false;
+            }
+            _rightHapticDuration = std::max(duration, _rightHapticDuration);
+        }
+    }
+    return toReturn;
+}
+
+void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
+    auto handType = (leftHand ? ovrControllerType_LTouch : ovrControllerType_RTouch);
+    ovr_SetControllerVibration(_parent._session, handType, 0.0f, 0.0f);
 }
 
 controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailableInputs() const {

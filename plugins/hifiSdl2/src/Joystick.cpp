@@ -21,9 +21,16 @@ Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameControl
         InputDevice("GamePad"),
     _sdlGameController(sdlGameController),
     _sdlJoystick(SDL_GameControllerGetJoystick(_sdlGameController)),
+    _sdlHaptic(SDL_HapticOpenFromJoystick(_sdlJoystick)),
     _instanceId(instanceId)
 {
-    
+    if (!_sdlHaptic) {
+        qDebug() << "SDL Haptic Open Failure: " << QString(SDL_GetError());
+    } else {
+        if (SDL_HapticRumbleInit(_sdlHaptic) != 0) {
+            qDebug() << "SDL Haptic Rumble Init Failure: " << QString(SDL_GetError());
+        }
+    }
 }
 
 Joystick::~Joystick() {
@@ -31,6 +38,9 @@ Joystick::~Joystick() {
 }
 
 void Joystick::closeJoystick() {
+    if (_sdlHaptic) {
+        SDL_HapticClose(_sdlHaptic);
+    }
     SDL_GameControllerClose(_sdlGameController);
 }
 
@@ -60,6 +70,13 @@ void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
     } else {
         _buttonPressedMap.erase(input.getChannel());
     }
+}
+
+bool Joystick::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    if (SDL_HapticRumblePlay(_sdlHaptic, strength, duration) != 0) {
+        return false;
+    }
+    return true;
 }
 
 controller::Input::NamedVector Joystick::getAvailableInputs() const {
