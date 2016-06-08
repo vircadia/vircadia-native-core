@@ -184,6 +184,11 @@ void NLPacket::setType(PacketType type) {
     writeTypeAndVersion();
 }
 
+void NLPacket::setVersion(PacketVersion version) {
+    _version = version;
+    writeTypeAndVersion();
+}
+
 void NLPacket::readType() {
     _type = NLPacket::typeInHeader(*this);
 }

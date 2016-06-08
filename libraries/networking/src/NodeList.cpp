@@ -296,6 +296,13 @@ void NodeList::sendDomainServerCheckIn() {
         QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
+
+#if (PR_BUILD || DEV_BUILD)
+            if (_shouldSendNewerVersion) {
+                domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
+            }
+#endif
+
             QUuid connectUUID;
 
             if (!_domainHandler.getAssignmentUUID().isNull()) {

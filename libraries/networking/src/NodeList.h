@@ -85,6 +85,10 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
+#if (PR_BUILD || DEV_BUILD)
+    void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
+#endif
+
 signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
@@ -124,6 +128,10 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
+
+#if (PR_BUILD || DEV_BUILD)
+    bool _shouldSendNewerVersion { false };
+#endif
 };
 
 #endif // hifi_NodeList_h
