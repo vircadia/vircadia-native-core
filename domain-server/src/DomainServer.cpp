@@ -324,7 +324,7 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
     // don't understand, so we can send them an empty EntityData with our latest version and they will
     // warn the user that the protocol is not compatible
     if (headerType == PacketType::DomainConnectRequest &&
-        headerVersion < static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
+        headerVersion <static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
         auto packetWithBadVersion = NLPacket::create(PacketType::EntityData);
         nodeList->sendPacket(std::move(packetWithBadVersion), packet.getSenderSockAddr());
         return false;

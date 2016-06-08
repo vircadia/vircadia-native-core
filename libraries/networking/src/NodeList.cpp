@@ -250,7 +250,6 @@ void NodeList::sendDomainServerCheckIn() {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-        bool isUsingDTLS = false;
 
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
@@ -292,8 +291,7 @@ void NodeList::sendDomainServerCheckIn() {
             return;
         }
 
-        auto packetVersion = (domainPacketType == PacketType::DomainConnectRequest) ? _domainConnectRequestVersion : 0;
-        auto domainPacket = NLPacket::create(domainPacketType, -1, false, false, packetVersion);
+        auto domainPacket = NLPacket::create(domainPacketType);
         
         QDataStream packetStream(domainPacket.get());
 
@@ -315,18 +313,14 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << connectUUID;
 
             // include the protocol version signature in our connect request
-            if (_domainConnectRequestVersion >= static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
-                QByteArray protocolVersionSig = protocolVersionsSignature();
-                packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
-            }
+            QByteArray protocolVersionSig = protocolVersionsSignature();
+            packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
         }
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
-        if (_domainConnectRequestVersion >= static_cast<PacketVersion>(DomainConnectRequestVersion::HasHostname)) {
-            packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
-        }
+        packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
@@ -341,9 +335,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {
-            sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
-        }
+        sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
