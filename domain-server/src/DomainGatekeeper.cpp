@@ -120,13 +120,6 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
-void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
-    QString protocolVersionError = "Protocol version mismatch - Domain version:" + QCoreApplication::applicationVersion();
-    qDebug() << "Protocol Version mismatch - denying connection.";
-    sendConnectionDeniedPacket(protocolVersionError, senderSockAddr,
-                               DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
-}
-
 SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeConnectionData& nodeConnection,
                                                                     const PendingAssignedNodeData& pendingAssignment) {
     
@@ -532,6 +525,15 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
                 QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
         }
     }
+}
+
+void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
+    QString protocolVersionError = "Protocol version mismatch - Domain version: " + QCoreApplication::applicationVersion();
+
+    qDebug() << "Protocol Version mismatch - denying connection.";
+
+    sendConnectionDeniedPacket(protocolVersionError, senderSockAddr,
+                               DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
 }
 
 void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr, 

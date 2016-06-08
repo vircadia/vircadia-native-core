@@ -1072,8 +1072,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCode) {
     switch (static_cast<DomainHandler::ConnectionRefusedReason>(reasonCode)) {
         case DomainHandler::ConnectionRefusedReason::ProtocolMismatch:
-            notifyPacketVersionMismatch();
-            break;
         case DomainHandler::ConnectionRefusedReason::TooManyUsers:
         case DomainHandler::ConnectionRefusedReason::Unknown: {
             QString message = "Unable to connect to the location you are visiting.\n";

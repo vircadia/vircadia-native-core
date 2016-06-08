@@ -67,7 +67,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasHostname);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
 
         default:
             return 17;
