@@ -13,7 +13,7 @@ Script.include("libraries/toolBars.js");
 
 function initialPosition(windowDimensions, toolbar) {
     return {
-        x: windowDimensions.x / 2 - Tool.IMAGE_WIDTH,
+        x: (windowDimensions.x / 2) - (Tool.IMAGE_WIDTH * 1),
         y: windowDimensions.y
     };
 }
