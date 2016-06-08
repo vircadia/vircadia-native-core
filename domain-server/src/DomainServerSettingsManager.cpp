@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <algorithm>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
@@ -498,7 +500,6 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
         rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
 
-
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
 
@@ -674,6 +675,8 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
         // TODO: we still need to recurse here with the description in case values in the array have special types
         settingMap[key] = newValue.toArray().toVariantList();
     }
+
+    sortPermissions();
 }
 
 QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName) {
@@ -772,10 +775,42 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
     // re-merge the user and master configs after a settings change
     _configMap.mergeMasterAndUserConfigs();
+
     return needRestart;
 }
 
+// Compare two members of a permissions list
+bool permissionVariantLessThan(const QVariant &v1, const QVariant &v2) {
+    if (!v1.canConvert(QMetaType::QVariantMap) ||
+        !v2.canConvert(QMetaType::QVariantMap)) {
+        return v1.toString() < v2.toString();
+    }
+    QVariantMap m1 = v1.toMap();
+    QVariantMap m2 = v2.toMap();
+
+    if (!m1.contains("permissions_id") ||
+        !m2.contains("permissions_id")) {
+        return v1.toString() < v2.toString();
+    }
+    return m1["permissions_id"].toString() < m2["permissions_id"].toString();
+}
+
+void DomainServerSettingsManager::sortPermissions() {
+    // sort the permission-names
+    QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
+    if (standardPermissions && standardPermissions->canConvert(QMetaType::QVariantList)) {
+        QList<QVariant>* standardPermissionsList = reinterpret_cast<QVariantList*>(standardPermissions);
+        std::sort((*standardPermissionsList).begin(), (*standardPermissionsList).end(), permissionVariantLessThan);
+    }
+    QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH);
+    if (permissions && permissions->canConvert(QMetaType::QVariantList)) {
+        QList<QVariant>* permissionsList = reinterpret_cast<QVariantList*>(permissions);
+        std::sort((*permissionsList).begin(), (*permissionsList).end(), permissionVariantLessThan);
+    }
+}
+
 void DomainServerSettingsManager::persistToFile() {
+    sortPermissions();
 
     // make sure we have the dir the settings file is supposed to live in
     QFileInfo settingsFileInfo(_configMap.getUserConfigFilename());

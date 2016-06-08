@@ -63,6 +63,7 @@ private:
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
     QJsonObject settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName);
+    void sortPermissions();
     void persistToFile();
 
     double _descriptionVersion;
