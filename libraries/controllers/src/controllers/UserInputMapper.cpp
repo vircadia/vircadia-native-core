@@ -62,22 +62,12 @@ namespace controller {
 UserInputMapper::~UserInputMapper() {
 }
 
-int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
-    if (!_deviceCounts.contains(deviceName)) {
-        _deviceCounts[deviceName] = 0;
-    }
-    _deviceCounts[deviceName] += 1;
-    return _deviceCounts[deviceName];
-}
-
 void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     Locker locker(_lock);
     if (device->_deviceID == Input::INVALID_DEVICE) {
         device->_deviceID = getFreeDeviceID();
     }
     const auto& deviceID = device->_deviceID;
-
-    recordDeviceOfType(device->getName());
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
 
@@ -125,10 +115,6 @@ void UserInputMapper::removeDevice(int deviceID) {
 
     auto device = proxyEntry->second;
     qCDebug(controllers) << "Unregistering input device <" << device->getName() << "> deviceID = " << deviceID;
-
-    if (_deviceCounts.contains(device->getName())) {
-        _deviceCounts[device->getName()] -= 1;
-    }
 
     unloadMappings(device->getDefaultMappingConfigs());
 

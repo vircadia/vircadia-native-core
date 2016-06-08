@@ -53,6 +53,8 @@ private:
     SDL_GameController* _sdlGameController;
     SDL_Joystick* _sdlJoystick;
     SDL_JoystickID _instanceId;
+
+    mutable controller::Input::NamedVector _availableInputs;
 };
 
 #endif // hifi_Joystick_h

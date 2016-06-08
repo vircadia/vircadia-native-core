@@ -141,9 +141,6 @@ namespace controller {
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
         std::vector<float> _lastStandardStates = std::vector<float>();
 
-        int recordDeviceOfType(const QString& deviceName);
-        QHash<const QString, int> _deviceCounts;
-
         static float getValue(const EndpointPointer& endpoint, bool peek = false);
         static Pose getPose(const EndpointPointer& endpoint, bool peek = false);
 
