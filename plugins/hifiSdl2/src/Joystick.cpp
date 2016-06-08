@@ -81,53 +81,55 @@ bool Joystick::triggerHapticPulse(float strength, float duration, controller::Ha
 
 controller::Input::NamedVector Joystick::getAvailableInputs() const {
     using namespace controller;
-    static const Input::NamedVector availableInputs{
-        makePair(A, "A"),
-        makePair(B, "B"),
-        makePair(X, "X"),
-        makePair(Y, "Y"),
-        // DPad
-        makePair(DU, "DU"),
-        makePair(DD, "DD"),
-        makePair(DL, "DL"),
-        makePair(DR, "DR"),
-        // Bumpers
-        makePair(LB, "LB"),
-        makePair(RB, "RB"),
-        // Stick press
-        makePair(LS, "LS"),
-        makePair(RS, "RS"),
-        // Center buttons
-        makePair(START, "Start"),
-        makePair(BACK, "Back"),
-        // Analog sticks
-        makePair(LX, "LX"),
-        makePair(LY, "LY"),
-        makePair(RX, "RX"),
-        makePair(RY, "RY"),
- 
-        // Triggers
-        makePair(LT, "LT"),
-        makePair(RT, "RT"),
+    if (_availableInputs.length() == 0) {
+        _availableInputs = {
+            makePair(A, "A"),
+            makePair(B, "B"),
+            makePair(X, "X"),
+            makePair(Y, "Y"),
+            // DPad
+            makePair(DU, "DU"),
+            makePair(DD, "DD"),
+            makePair(DL, "DL"),
+            makePair(DR, "DR"),
+            // Bumpers
+            makePair(LB, "LB"),
+            makePair(RB, "RB"),
+            // Stick press
+            makePair(LS, "LS"),
+            makePair(RS, "RS"),
+            // Center buttons
+            makePair(START, "Start"),
+            makePair(BACK, "Back"),
+            // Analog sticks
+            makePair(LX, "LX"),
+            makePair(LY, "LY"),
+            makePair(RX, "RX"),
+            makePair(RY, "RY"),
 
-        // Aliases, PlayStation style names
-        makePair(LB, "L1"),
-        makePair(RB, "R1"),
-        makePair(LT, "L2"),
-        makePair(RT, "R2"),
-        makePair(LS, "L3"),
-        makePair(RS, "R3"),
-        makePair(BACK, "Select"),
-        makePair(A, "Cross"),
-        makePair(B, "Circle"),
-        makePair(X, "Square"),
-        makePair(Y, "Triangle"),
-        makePair(DU, "Up"),
-        makePair(DD, "Down"),
-        makePair(DL, "Left"),
-        makePair(DR, "Right"),
-    };
-    return availableInputs;
+            // Triggers
+            makePair(LT, "LT"),
+            makePair(RT, "RT"),
+
+            // Aliases, PlayStation style names
+            makePair(LB, "L1"),
+            makePair(RB, "R1"),
+            makePair(LT, "L2"),
+            makePair(RT, "R2"),
+            makePair(LS, "L3"),
+            makePair(RS, "R3"),
+            makePair(BACK, "Select"),
+            makePair(A, "Cross"),
+            makePair(B, "Circle"),
+            makePair(X, "Square"),
+            makePair(Y, "Triangle"),
+            makePair(DU, "Up"),
+            makePair(DD, "Down"),
+            makePair(DL, "Left"),
+            makePair(DR, "Right"),
+        };
+    }
+    return _availableInputs;
 }
 
 QString Joystick::getDefaultMappingConfig() const {
