@@ -51,7 +51,7 @@ ApplicationWindow {
 
         Button {
             text: "toggle desktop"
-            onClicked: desktop.toggleVisible()
+            onClicked: desktop.togglePinned()
         }
 
         // Error alerts
