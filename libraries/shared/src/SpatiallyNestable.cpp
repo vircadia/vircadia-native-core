@@ -415,12 +415,8 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
     glm::vec3 parentVelocity = getParentVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _velocityLock.withWriteLock([&] {
-        // HACK: until we are treating _velocity the same way we treat _position (meaning,
-        // _velocity is a vs parent value and any request for a world-frame velocity must
-        // be computed), do this to avoid equipped (parenting-grabbed) things from drifting.
-        // turning a zero velocity into a non-zero _velocity (because the avatar is moving)
-        // causes EntityItem::stepKinematicMotion to have an effect on the equipped entity,
-        // which causes it to drift from the hand.
+        // HACK: The entity-server doesn't know where avatars are.  In order to avoid having the server
+        // try to do simple extrapolation, set relative velocities to zero if this is a child of an avatar.
         if (hasAncestorOfType(NestableType::Avatar)) {
             _velocity = glm::vec3(0.0f);
         } else {
@@ -898,13 +894,21 @@ void SpatiallyNestable::setLocalTransformAndVelocities(
     _transformLock.withWriteLock([&] {
         _transform = localTransform;
     });
-    // linear velocity
-    _velocityLock.withWriteLock([&] {
-        _velocity = localVelocity;
-    });
-    // angular velocity
-    _angularVelocityLock.withWriteLock([&] {
-        _angularVelocity = localAngularVelocity;
-    });
+    // linear and angular velocity
+    if (hasAncestorOfType(NestableType::Avatar)) {
+        _velocityLock.withWriteLock([&] {
+            _velocity = glm::vec3(0.0f);
+        });
+        _angularVelocityLock.withWriteLock([&] {
+            _angularVelocity = glm::vec3(0.0f);
+        });
+    } else {
+        _velocityLock.withWriteLock([&] {
+            _velocity = localVelocity;
+        });
+        _angularVelocityLock.withWriteLock([&] {
+            _angularVelocity = localAngularVelocity;
+        });
+    }
     locationChanged(false);
 }
