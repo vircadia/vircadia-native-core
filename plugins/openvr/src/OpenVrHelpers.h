@@ -44,3 +44,13 @@ inline mat4 toGlm(const vr::HmdMatrix34_t& m) {
         m.m[0][3], m.m[1][3], m.m[2][3], 1.0f);
     return result;
 }
+
+inline vr::HmdMatrix34_t toOpenVr(const mat4& m) {
+    vr::HmdMatrix34_t result;
+    for (uint8_t i = 0; i < 3; ++i) {
+        for (uint8_t j = 0; j < 4; ++j) {
+            result.m[i][j] = m[j][i];
+        }
+    }
+    return result;
+}

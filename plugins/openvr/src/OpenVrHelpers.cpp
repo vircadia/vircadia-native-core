@@ -102,6 +102,7 @@ static vr::IVROverlay* _overlay { nullptr };
 static QObject* _focusObject { nullptr };
 static QString _existingText;
 static Qt::InputMethodHints _currentHints;
+extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 
 void showOpenVrKeyboard(bool show = true) {
     if (_overlay) {
@@ -121,7 +122,15 @@ void showOpenVrKeyboard(bool show = true) {
                 lineMode = vr::k_EGamepadTextInputLineModeMultipleLines;
             }
             _existingText = query.value(Qt::ImSurroundingText).toString();
-            _overlay->ShowKeyboard(inputMode, lineMode, "Keyboard", 1024, _existingText.toLocal8Bit().toStdString().c_str(), false, (uint64_t)(void*)_focusObject);
+
+            auto showKeyboardResult = _overlay->ShowKeyboard(inputMode, lineMode, "Keyboard", 1024, 
+                _existingText.toLocal8Bit().toStdString().c_str(), false, 0);
+
+            mat4 headPose = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+            mat4 keyboardTransform = glm::translate(headPose, vec3(0, -0.5, -1));
+            keyboardTransform = keyboardTransform * glm::rotate(mat4(), 3.14159f / 4.0f, vec3(-1, 0, 0));
+            auto keyboardTransformVr = toOpenVr(keyboardTransform);
+            _overlay->SetKeyboardTransformAbsolute(vr::ETrackingUniverseOrigin::TrackingUniverseStanding, &keyboardTransformVr);
         } else {
             _focusObject = nullptr;
             _overlay->HideKeyboard();
