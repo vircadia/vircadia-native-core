@@ -632,13 +632,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     #endif
 
     int numBytesRead = sourceBuffer - startPosition;
-
-    if (numBytesRead != buffer.size()) {
-        if (shouldLogError(now)) {
-            qCWarning(avatars) << "AvatarData packet size mismatch: expected " << numBytesRead << " received " << buffer.size();
-        }
-    }
-
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
 }
@@ -1270,6 +1263,10 @@ static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
 static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
 static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
+static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
+
+static const int JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION = 0;
+static const int JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION = 1;
 
 QJsonValue toJsonValue(const JointData& joint) {
     QJsonArray result;
@@ -1292,6 +1289,8 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
 
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
+
+    root[JSON_AVATAR_VERSION] = JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
@@ -1359,6 +1358,15 @@ QJsonObject AvatarData::toJson() const {
 }
 
 void AvatarData::fromJson(const QJsonObject& json) {
+
+    int version;
+    if (json.contains(JSON_AVATAR_VERSION)) {
+        version = json[JSON_AVATAR_VERSION].toInt();
+    } else {
+        // initial data did not have a version field.
+        version = JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION;
+    }
+
     // The head setOrientation likes to overwrite the avatar orientation,
     // so lets do the head first
     // Most head data is relative to the avatar, and needs no basis correction,
@@ -1424,20 +1432,28 @@ void AvatarData::fromJson(const QJsonObject& json) {
     //     }
     // }
 
-    // Joint rotations are relative to the avatar, so they require no basis correction
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
-        QVector<JointData> jointArray;
-        QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
-        jointArray.reserve(jointArrayJson.size());
-        int i = 0;
-        for (const auto& jointJson : jointArrayJson) {
-            auto joint = jointDataFromJsonValue(jointJson);
-            jointArray.push_back(joint);
-            setJointData(i, joint.rotation, joint.translation);
-            _jointData[i].rotationSet = true; // Have to do that to broadcast the avatar new pose
-            i++;
+        if (version == JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION) {
+            // because we don't have the full joint hierarchy skeleton of the model,
+            // we can't properly convert from relative rotations into absolute rotations.
+            quint64 now = usecTimestampNow();
+            if (shouldLogError(now)) {
+                qCWarning(avatars) << "Version 0 avatar recordings not supported. using default rotations";
+            }
+        } else {
+            QVector<JointData> jointArray;
+            QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
+            jointArray.reserve(jointArrayJson.size());
+            int i = 0;
+            for (const auto& jointJson : jointArrayJson) {
+                auto joint = jointDataFromJsonValue(jointJson);
+                jointArray.push_back(joint);
+                setJointData(i, joint.rotation, joint.translation);
+                _jointData[i].rotationSet = true; // Have to do that to broadcast the avatar new pose
+                i++;
+            }
+            setRawJointData(jointArray);
         }
-        setRawJointData(jointArray);
     }
 }
 
