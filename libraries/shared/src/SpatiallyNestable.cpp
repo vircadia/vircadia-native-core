@@ -479,7 +479,12 @@ void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, boo
     glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _angularVelocityLock.withWriteLock([&] {
-        _angularVelocity = glm::inverse(parentTransform.getRotation()) * (angularVelocity - parentAngularVelocity);
+        if (hasAncestorOfType(NestableType::Avatar)) {
+            // TODO: this is done to keep entity-server from doing extrapolation, and isn't right.
+            _angularVelocity = glm::vec3(0.0f);
+        } else {
+            _angularVelocity = glm::inverse(parentTransform.getRotation()) * (angularVelocity - parentAngularVelocity);
+        }
     });
 }
 
