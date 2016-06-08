@@ -113,7 +113,6 @@ namespace MenuOption {
     const QString Help = "Help...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
-    const QString InputMenu = "Developer>Avatar>Input Devices";
     const QString ActionMotorControl = "Enable Default Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";

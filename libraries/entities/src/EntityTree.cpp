@@ -1284,6 +1284,7 @@ class ContentsDimensionOperator : public RecurseOctreeOperator {
 public:
     virtual bool preRecursion(OctreeElementPointer element);
     virtual bool postRecursion(OctreeElementPointer element) { return true; }
+    glm::vec3 getDimensions() const { return _contentExtents.size(); }
     float getLargestDimension() const { return _contentExtents.largestDimension(); }
 private:
     Extents _contentExtents;
@@ -1293,6 +1294,12 @@ bool ContentsDimensionOperator::preRecursion(OctreeElementPointer element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->expandExtentsToContents(_contentExtents);
     return true;
+}
+
+glm::vec3 EntityTree::getContentsDimensions() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getDimensions();
 }
 
 float EntityTree::getContentsLargestDimension() {

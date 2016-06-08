@@ -299,7 +299,7 @@ FocusScope {
         if (pinned) {
             // recalculate our non-pinned children
             hiddenChildren = d.findMatchingChildren(desktop, function(child){
-                return !d.isTopLevelWindow(child) && child.visible;
+                return !d.isTopLevelWindow(child) && child.visible && !child.pinned;
             });
 
             hiddenChildren.forEach(function(child){
