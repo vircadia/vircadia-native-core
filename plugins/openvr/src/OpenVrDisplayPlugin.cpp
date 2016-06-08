@@ -36,12 +36,14 @@ vec3 _trackedDeviceLinearVelocities[vr::k_unMaxTrackedDeviceCount];
 vec3 _trackedDeviceAngularVelocities[vr::k_unMaxTrackedDeviceCount];
 static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
+bool _openVrDisplayActive { false };
 
 bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
 }
 
 bool OpenVrDisplayPlugin::internalActivate() {
+    _openVrDisplayActive = true;
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     if (!_system) {
@@ -94,6 +96,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
 
 void OpenVrDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
+    _openVrDisplayActive = false;
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         // Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and

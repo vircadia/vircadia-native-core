@@ -18,6 +18,9 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 void handleOpenVrEvents();
 bool openVrQuitRequested();
+void enableOpenVrKeyboard();
+void disableOpenVrKeyboard();
+
 
 template<typename F>
 void openvr_for_each_eye(F f) {
@@ -39,5 +42,15 @@ inline mat4 toGlm(const vr::HmdMatrix34_t& m) {
         m.m[0][1], m.m[1][1], m.m[2][1], 0.0,
         m.m[0][2], m.m[1][2], m.m[2][2], 0.0,
         m.m[0][3], m.m[1][3], m.m[2][3], 1.0f);
+    return result;
+}
+
+inline vr::HmdMatrix34_t toOpenVr(const mat4& m) {
+    vr::HmdMatrix34_t result;
+    for (uint8_t i = 0; i < 3; ++i) {
+        for (uint8_t j = 0; j < 4; ++j) {
+            result.m[i][j] = m[j][i];
+        }
+    }
     return result;
 }
