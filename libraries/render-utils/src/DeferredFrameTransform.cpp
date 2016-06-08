@@ -23,15 +23,18 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     // Update the depth info with near and far (same for stereo)
     auto nearZ = args->getViewFrustum().getNearClip();
     auto farZ = args->getViewFrustum().getFarClip();
-    _frameTransformBuffer.edit<FrameTransform>().depthInfo = glm::vec4(nearZ*farZ, farZ - nearZ, -farZ, 0.0f);
 
-    _frameTransformBuffer.edit<FrameTransform>().pixelInfo = args->_viewport;
+    auto& frameTransformBuffer = _frameTransformBuffer.edit<FrameTransform>();
+    frameTransformBuffer.depthInfo = glm::vec4(nearZ*farZ, farZ - nearZ, -farZ, 0.0f);
+
+    frameTransformBuffer.pixelInfo = args->_viewport;
 
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
 
     Transform cameraTransform;
     args->getViewFrustum().evalViewTransform(cameraTransform);
-    cameraTransform.getMatrix(_frameTransformBuffer.edit<FrameTransform>().invView);
+    cameraTransform.getMatrix(frameTransformBuffer.invView);
+    cameraTransform.getInverseMatrix(frameTransformBuffer.view);
 
     // Running in stero ?
     bool isStereo = args->_context->isStereo();
@@ -39,10 +42,9 @@ void DeferredFrameTransform::update(RenderArgs* args) {
         // Eval the mono projection
         mat4 monoProjMat;
         args->getViewFrustum().evalProjectionMatrix(monoProjMat);
-        _frameTransformBuffer.edit<FrameTransform>().projection[0] = monoProjMat;
-        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
-        _frameTransformBuffer.edit<FrameTransform>().invpixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
-
+        frameTransformBuffer.projection[0] = monoProjMat;
+        frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
+        frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
     } else {
 
         mat4 projMats[2];
@@ -53,11 +55,11 @@ void DeferredFrameTransform::update(RenderArgs* args) {
         for (int i = 0; i < 2; i++) {
             // Compose the mono Eye space to Stereo clip space Projection Matrix
             auto sideViewMat = projMats[i] * eyeViews[i];
-            _frameTransformBuffer.edit<FrameTransform>().projection[i] = sideViewMat;
+            frameTransformBuffer.projection[i] = sideViewMat;
         }
 
-        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
-        _frameTransformBuffer.edit<FrameTransform>().invpixelInfo = glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
+        frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
 
     }
 }

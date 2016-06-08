@@ -23,6 +23,7 @@
 #include <render/DrawTask.h>
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
+#include <render/BlurTask.h>
 
 #include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
@@ -109,7 +110,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
 
     // Opaque all rendered, generate surface geometry buffers
-    addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
+    const auto curvatureFramebuffer = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
+
+    addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebuffer);
 
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");

@@ -47,6 +47,8 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _lightingFramebuffer.reset();
         _depthPyramidFramebuffer.reset();
         _depthPyramidTexture.reset();
+        _curvatureFramebuffer.reset();
+        _curvatureTexture.reset();
         _occlusionFramebuffer.reset();
         _occlusionTexture.reset();
         _occlusionBlurredFramebuffer.reset();
@@ -109,14 +111,11 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _depthPyramidFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _depthPyramidFramebuffer->setRenderBuffer(0, _depthPyramidTexture);
     _depthPyramidFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-    
-    
-   
+
     _curvatureTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _curvatureFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _curvatureFramebuffer->setRenderBuffer(0, _curvatureTexture);
     _curvatureFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-
 
     resizeAmbientOcclusionBuffers();
 }
@@ -265,7 +264,6 @@ gpu::TexturePointer FramebufferCache::getCurvatureTexture() {
     }
     return _curvatureTexture;
 }
-
 
 void FramebufferCache::setAmbientOcclusionResolutionLevel(int level) {
     const int MAX_AO_RESOLUTION_LEVEL = 4;

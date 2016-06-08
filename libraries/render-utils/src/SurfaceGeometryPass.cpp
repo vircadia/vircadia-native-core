@@ -24,13 +24,28 @@ const int SurfaceGeometryPass_NormalMapSlot = 1;
 
 #include "surfaceGeometry_makeCurvature_frag.h"
 
+
 SurfaceGeometryPass::SurfaceGeometryPass() {
+    Parameters parameters;
+    _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
 void SurfaceGeometryPass::configure(const Config& config) {
+    
+    if (config.depthThreshold != getCurvatureDepthThreshold()) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold;
+    }
+
+    if (config.basisScale != getCurvatureBasisScale()) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.y = config.basisScale;
+    }
+
+    if (config.curvatureScale != getCurvatureScale()) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.w = config.curvatureScale;
+    }
 }
 
-void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
+void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, gpu::FramebufferPointer& curvatureFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -44,6 +59,9 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     
     auto pyramidTexture = framebufferCache->getDepthPyramidTexture();
     auto curvatureFBO = framebufferCache->getCurvatureFramebuffer();
+    curvatureFramebuffer = curvatureFBO;
+
+    auto curvatureTexture = framebufferCache->getCurvatureTexture();
 
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
     float sMin = args->_viewport.x / (float)framebufferSize.width();
@@ -68,7 +86,8 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setModelTransform(model);
 
         batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-        
+        batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
+
         // Pyramid pass
         batch.setFramebuffer(pyramidFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(args->getViewFrustum().getFarClip(), 0.0f, 0.0f, 0.0f));
@@ -76,17 +95,15 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        // Pyramid pass
+        // Curvature pass
         batch.setFramebuffer(curvatureFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
         batch.setPipeline(curvaturePipeline);
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, pyramidTexture);
         batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, normalTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
         batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, nullptr);
         batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, nullptr);
-        
     });
 
 }
@@ -125,7 +142,7 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), SurfaceGeometryPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), SurfaceGeometryPass_ParamsSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("surfaceGeometryParamsBuffer"), SurfaceGeometryPass_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), SurfaceGeometryPass_DepthMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), SurfaceGeometryPass_NormalMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);

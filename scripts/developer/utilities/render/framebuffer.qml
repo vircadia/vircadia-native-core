@@ -22,7 +22,15 @@ Column {
             debug.config.mode = mode;
         }
 
-        Label { text: qsTr("Debug Buffer") }
+        function setLayout(layout) {
+            debug.config.size = { x: -1, y: -1, z: 1, w: 1 };
+        }
+
+        Button { 
+            text: "Fullscreen"
+            onClicked: { debug.setLayout(1); }
+        }
+
         ExclusiveGroup { id: bufferGroup }
         Repeater {
             model: [

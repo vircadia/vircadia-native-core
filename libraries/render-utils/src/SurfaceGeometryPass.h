@@ -19,9 +19,16 @@
 
 class SurfaceGeometryPassConfig : public render::Job::Config {
     Q_OBJECT
+    Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty)
+    Q_PROPERTY(float basisScale MEMBER basisScale NOTIFY dirty)
+    Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
     Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
     SurfaceGeometryPassConfig() : render::Job::Config(true) {}
+
+    float depthThreshold{ 0.1f };
+    float basisScale{ 1.0f };
+    float curvatureScale{ 100.0f };
 
     double getGpuTime() { return gpuTime; }
 
@@ -34,13 +41,17 @@ signals:
 class SurfaceGeometryPass {
 public:
     using Config = SurfaceGeometryPassConfig;
-    using JobModel = render::Job::ModelI<SurfaceGeometryPass, DeferredFrameTransformPointer, Config>;
+    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, DeferredFrameTransformPointer, gpu::FramebufferPointer, Config>;
 
     SurfaceGeometryPass();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, gpu::FramebufferPointer& curvatureFramebuffer);
     
+    float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
+    float getCurvatureBasisScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.y; }
+    float getCurvatureScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.w; }
+
 private:
     typedef gpu::BufferView UniformBufferView;
 
@@ -49,8 +60,8 @@ private:
     public:
         // Resolution info
         glm::vec4 resolutionInfo { -1.0f, 0.0f, 0.0f, 0.0f };
-        // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
-        glm::vec4 radiusInfo{ 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
+        // Curvature algorithm
+        glm::vec4 curvatureInfo{ 0.0f };
         // Dithering info 
         glm::vec4 ditheringInfo { 0.0f, 0.0f, 0.01f, 1.0f };
         // Sampling info
@@ -68,7 +79,6 @@ private:
     const gpu::PipelinePointer& getLinearDepthPipeline();
     const gpu::PipelinePointer& getCurvaturePipeline();
 
-    
     gpu::PipelinePointer _linearDepthPipeline;
     gpu::PipelinePointer _curvaturePipeline;
 

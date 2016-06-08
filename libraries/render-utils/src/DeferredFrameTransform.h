@@ -47,6 +47,8 @@ protected:
         glm::mat4 projection[2];
         // Inv View matrix from eye space (mono) to world space
         glm::mat4 invView;
+        // View matrix from world space to eye space (mono)
+        glm::mat4 view;
 
         FrameTransform() {}
     };

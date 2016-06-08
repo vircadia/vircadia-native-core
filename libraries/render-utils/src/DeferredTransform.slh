@@ -20,6 +20,7 @@ struct DeferredFrameTransform {
     vec4 _stereoInfo;
     mat4 _projection[2];
     mat4 _viewInverse;
+    mat4 _view;
 };
 
 uniform deferredFrameTransformBuffer {
@@ -45,6 +46,14 @@ mat4 getProjection(int side) {
     return frameTransform._projection[side];
 }
 
+mat4 getViewInverse() {
+    return frameTransform._viewInverse;
+}
+
+mat4 getView() {
+    return frameTransform._view;
+}
+
 bool isStereo() {
     return frameTransform._stereoInfo.x > 0.0f;
 }
@@ -53,9 +62,9 @@ float getStereoSideWidth(int resolutionLevel) {
     return float(int(frameTransform._stereoInfo.y) >> resolutionLevel);
 }
 
-ivec3 getStereoSideInfo(int xPos, int resolutionLevel) {
+ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
     int sideWidth = int(getStereoSideWidth(resolutionLevel));
-    return ivec3(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth);
+    return ivec4(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth, isStereo());
 }
 
 float evalZeyeFromZdb(float depth) {
@@ -75,7 +84,7 @@ vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
     return vec3(Xe, Ye, Zeye);
 }
 
-ivec2 getPixelPosNclipPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out vec2 nclipPos, out ivec3 stereoSide) {
+ivec2 getPixelPosNclipPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out vec2 nclipPos, out ivec4 stereoSide) {
     ivec2 fragPos = ivec2(glFragCoord.xy);
 
     stereoSide = getStereoSideInfo(fragPos.x, 0);

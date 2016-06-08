@@ -1,0 +1,65 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/7/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@func declareBlurUniforms()@>
+
+#define NUM_TAPS 7
+#define NUM_TAPS_OFFSET 3.0f
+
+float uniformFilterWidth = 0.05f;
+
+const float gaussianDistributionCurve[NUM_TAPS] = float[](
+    0.383f, 0.006f, 0.061f, 0.242f, 0.242f, 0.061f, 0.006f
+);
+const float gaussianDistributionOffset[NUM_TAPS] = float[](
+    0.0f,  -3.0f,  -2.0f,  -1.0f,   1.0f,   2.0f,   3.0f
+);
+
+struct BlurParameters {
+    vec4 resolutionInfo;
+    vec4 filterInfo;
+};
+
+uniform blurParamsBuffer {
+    BlurParameters parameters;
+};
+
+vec2 getViewportInvWidthHeight() {
+    return parameters.resolutionInfo.zw;
+}
+
+<@endfunc@>
+
+
+<@func declareBlurGaussian()@>
+
+<$declareBlurUniforms()$>
+
+uniform sampler2D sourceMap;
+
+vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
+
+    vec4 sampleCenter = texture(sourceMap, texcoord);
+
+    vec2 finalStep = parameters.filterInfo.x * direction * pixelStep;
+    vec4 srcBlurred = vec4(0.0);
+    
+    for(int i = 0; i < NUM_TAPS; i++) {
+        // Fetch color and depth for current sample.
+        vec2 sampleCoord = texcoord + (gaussianDistributionOffset[i] * finalStep);
+        vec4 srcSample = texture(sourceMap, sampleCoord);
+        // Accumulate.
+        srcBlurred += gaussianDistributionCurve[i] * srcSample;
+    }
+    
+    return srcBlurred;
+}
+
+<@endfunc@>
+
