@@ -74,12 +74,12 @@ public:
     const DoubleHashKey& getHash() const;
 
 protected:
-    ShapeType _type = SHAPE_TYPE_NONE;
+    QUrl _url; // url for model of convex collision hulls
+    QVector<QVector<glm::vec3>> _points; // points for convex collision hulls
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     glm::vec3 _offset = glm::vec3(0.0f);
     DoubleHashKey _doubleHashKey;
-    QVector<QVector<glm::vec3>> _points; // points for convex collision hulls
-    QUrl _url; // url for model of convex collision hulls
+    ShapeType _type = SHAPE_TYPE_NONE;
 };
 
 #endif // hifi_ShapeInfo_h
