@@ -894,30 +894,24 @@ function MyController(hand) {
             var grabData = getEntityCustomData(GRABBABLE_DATA_KEY, entities[i], undefined);
             var grabProps = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
             if (grabData) {
-
-                var hotspotPos = grabProps.position;
-
                 // does this entity have an attach point?
                 var wearableData = getEntityCustomData("wearable", entities[i], undefined);
-                if (wearableData) {
+                if (wearableData && wearableData.joints) {
                     var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-                    if (wearableData[handJointName]) {
-                        // draw the hotspot around the attach point.
-                        hotspotPos = wearableData[handJointName][0];
+                    if (wearableData.joints[handJointName]) {
+                        // draw the hotspot
+                        this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
+                            position: grabProps.position,
+                            size: 0.2,
+                            color: { red: 90, green: 255, blue: 90 },
+                            alpha: 0.7,
+                            solid: true,
+                            visible: true,
+                            ignoreRayIntersection: false,
+                            drawInFront: false
+                        }));
                     }
                 }
-
-                // draw a hotspot!
-                this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
-                    position: hotspotPos,
-                    size: 0.2,
-                    color: { red: 90, green: 255, blue: 90 },
-                    alpha: 0.7,
-                    solid: true,
-                    visible: true,
-                    ignoreRayIntersection: false,
-                    drawInFront: false
-                }));
             }
         }
     };
