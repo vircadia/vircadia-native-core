@@ -261,11 +261,14 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
         EntityItemPointer entity = *itemItr;
-        if (entity->isMovingRelativeToParent() &&
-            !entity->getPhysicsInfo() &&
-            // The entity-server doesn't know where avatars are, so don't attempt to do simple extrapolation for
-            // children of avatars.
-            !entity->hasAncestorOfType(NestableType::Avatar)) {
+
+        // The entity-server doesn't know where avatars are, so don't attempt to do simple extrapolation for
+        // children of avatars.
+        bool ancestryIsKnown;
+        entity->getMaximumAACube(ancestryIsKnown);
+        bool hasAvatarAncestor = entity->hasAncestorOfType(NestableType::Avatar);
+
+        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo() && ancestryIsKnown && !hasAvatarAncestor) {
             entity->simulate(now);
             _entitiesToSort.insert(entity);
             ++itemItr;
