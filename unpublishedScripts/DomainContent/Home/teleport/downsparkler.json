@@ -1,0 +1,63 @@
+{
+    "Entities": [
+        {
+            "accelerationSpread": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+            },
+            "color": {
+                "blue": 207,
+                "green": 207,
+                "red": 207
+            },
+            "colorFinish": {
+                "blue": 207,
+                "green": 207,
+                "red": 207
+            },
+            "colorSpread": {
+                "blue": 125,
+                "green": 125,
+                "red": 232
+            },
+            "colorStart": {
+                "blue": 207,
+                "green": 207,
+                "red": 207
+            },
+            "created": "2016-05-23T20:41:38Z",
+            "dimensions": {
+                "x": 2.6566545963287354,
+                "y": 2.6566545963287354,
+                "z": 2.6566545963287354
+            },
+            "emitAcceleration": {
+                "x": 0,
+                "y": -1,
+                "z": 0
+            },
+            "emitOrientation": {
+                "w": 0.66226339340209961,
+                "x": 0.74927115440368652,
+                "y": -1.5258940038620494e-05,
+                "z": -1.5258940038620494e-05
+            },
+            "emitRate": 10,
+            "emitSpeed": 0.10000000149011612,
+            "id": "{e700e0a1-026a-4ebd-8609-6068b32df14e}",
+            "lifespan": 2,
+            "name": "home_particle_teleport_sparkle_down",
+            "queryAACube": {
+                "scale": 4.6014609336853027,
+                "x": -2.3007304668426514,
+                "y": -2.3007304668426514,
+                "z": -2.3007304668426514
+            },
+            "speedSpread": 0.60000002384185791,
+            "textures": "atp:/teleport/sparkle1.png",
+            "type": "ParticleEffect"
+        }
+    ],
+    "Version": 57
+}
