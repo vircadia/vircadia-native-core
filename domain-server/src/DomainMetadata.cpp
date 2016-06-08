@@ -79,11 +79,11 @@ void DomainMetadata::setDescriptors(QVariantMap& settings) {
     _metadata[DESCRIPTORS] = descriptors;
 
 #if DEV_BUILD || PR_BUILD
-    qDebug() << "Regenerated domain metadata - descriptors:" << descriptors;
+    qDebug() << "Domain metadata descriptors set:" << descriptors;
 #endif
 }
 
-void DomainMetadata::usersChanged() {
+void DomainMetadata::updateUsers() {
     static const QString DEFAULT_HOSTNAME = "*";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -119,6 +119,14 @@ void DomainMetadata::usersChanged() {
     _metadata[USERS] = users;
 
 #if DEV_BUILD || PR_BUILD
-    qDebug() << "Regenerated domain metadata - users:" << users;
+    qDebug() << "Domain metadata users updated:" << users;
+#endif
+}
+
+void DomainMetadata::usersChanged() {
+    ++_tic;
+
+#if DEV_BUILD || PR_BUILD
+    qDebug() << "Domain metadata users change detected";
 #endif
 }

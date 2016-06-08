@@ -171,6 +171,7 @@ private:
     DomainServerSettingsManager _settingsManager;
 
     DomainMetadata _metadata;
+    uint32_t _metadataTic{ 0 };
 
     HifiSockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;

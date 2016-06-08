@@ -11,6 +11,8 @@
 #ifndef hifi_DomainMetadata_h
 #define hifi_DomainMetadata_h
 
+#include <stdint.h>
+
 #include <QVariantMap>
 #include <QJsonObject>
 
@@ -39,17 +41,25 @@ Q_OBJECT
 public:
     DomainMetadata();
 
+    // Returns the last set metadata
+    // If connected users have changed, metadata may need to be updated
+    // this should be checked by storing tic = getTic() between calls
+    // and testing it for equality before the next get (tic == getTic())
     QJsonObject get() { return QJsonObject::fromVariantMap(_metadata); }
     QJsonObject getUsers() { return QJsonObject::fromVariantMap(_metadata[USERS].toMap()); }
     QJsonObject getDescriptors() { return QJsonObject::fromVariantMap(_metadata[DESCRIPTORS].toMap()); }
 
+    uint32_t getTic() { return _tic; }
+
     void setDescriptors(QVariantMap& settings);
+    void updateUsers();
 
 public slots:
     void usersChanged();
 
 protected:
     QVariantMap _metadata;
+    uint32_t _tic{ 0 };
 };
 
 #endif // hifi_DomainMetadata_h
