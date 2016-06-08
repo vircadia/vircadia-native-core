@@ -86,10 +86,6 @@ function AttachedEntitiesManager() {
         if (channel !== 'Hifi-Object-Manipulation') {
             return;
         }
-        // if (sender !== MyAvatar.sessionUUID) {
-        //     print('wearablesManager got message from wrong sender');
-        //     return;
-        // }
 
         var parsedMessage = null;
 
@@ -116,11 +112,6 @@ function AttachedEntitiesManager() {
     this.handleEntityRelease = function(grabbedEntity, releasedFromJoint) {
         // if this is still equipped, just rewrite the position information.
         var grabData = getEntityCustomData('grabKey', grabbedEntity, {});
-        // if ("refCount" in grabData && grabData.refCount > 0) {
-        //     // for adjusting things in your other hand
-        //     manager.updateRelativeOffsets(grabbedEntity);
-        //     return;
-        // }
 
         var allowedJoints = getEntityCustomData('wearable', grabbedEntity, DEFAULT_WEARABLE_DATA).joints;
 
@@ -220,17 +211,6 @@ function AttachedEntitiesManager() {
         }
         return false;
     }
-
-    // this.toggleLocked = function() {
-    //     print("toggleLocked");
-    //     if (clothingLocked) {
-    //         clothingLocked = false;
-    //         toolBar.setImageURL(Script.resolvePath("assets/images/unlock.svg"), lockButton);
-    //     } else {
-    //         clothingLocked = true;
-    //         toolBar.setImageURL(Script.resolvePath("assets/images/lock.svg"), lockButton);
-    //     }
-    // }
 
     // this.saveAttachedEntities = function() {
     //     print("--- saving attached entities ---");
