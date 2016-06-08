@@ -101,7 +101,7 @@ public:
     };
 
     // FIXME? Empty methods, do we still need them?
-    static void initPlugins();
+    static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer& startup_time);
@@ -327,7 +327,6 @@ private slots:
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
-    void updateInputModes();
     void domainConnectionRefused(const QString& reasonMessage, int reason);
 
 private:

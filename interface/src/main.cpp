@@ -46,6 +46,12 @@ int main(int argc, const char* argv[]) {
 
     bool instanceMightBeRunning = true;
 
+    QStringList arguments;
+    for (int i = 0; i < argc; ++i) {
+        arguments << argv[i];
+    }
+
+
 #ifdef Q_OS_WIN
     // Try to create a shared memory block - if it can't be created, there is an instance of
     // interface already running. We only do this on Windows for now because of the potential
@@ -64,12 +70,6 @@ int main(int argc, const char* argv[]) {
 
         // Try to connect - if we can't connect, interface has probably just gone down
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
-
-            QStringList arguments;
-            for (int i = 0; i < argc; ++i) {
-                arguments << argv[i];
-            }
-
             QCommandLineParser parser;
             QCommandLineOption urlOption("url", "", "value");
             parser.addOption(urlOption);
@@ -135,7 +135,7 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    Application::initPlugins();
+    Application::initPlugins(arguments);
 
     int exitCode;
     {

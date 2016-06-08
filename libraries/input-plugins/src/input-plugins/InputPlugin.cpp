@@ -25,7 +25,6 @@ InputPluginList getInputPlugins() {
     for (int i = 0; PLUGIN_POOL[i]; ++i) {
         InputPlugin* plugin = PLUGIN_POOL[i];
         if (plugin->isSupported()) {
-            plugin->init();
             result.push_back(InputPluginPointer(plugin));
         }
     }
