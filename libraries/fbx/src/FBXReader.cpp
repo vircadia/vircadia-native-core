@@ -759,7 +759,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);
                     model.preRotation = glm::quat(glm::radians(preRotation));
                     model.rotation = glm::quat(glm::radians(rotation));
-                    model.postRotation = glm::quat(glm::radians(postRotation));
+                    model.postRotation = glm::inverse(glm::quat(glm::radians(postRotation)));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
                     // NOTE: angles from the FBX file are in degrees
