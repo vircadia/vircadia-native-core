@@ -92,6 +92,7 @@ var EQUIP_SPRING_TIMEFRAME = 0.4; // how quickly objects move to their new posit
 // other constants
 //
 
+var HOTSPOT_DRAW_DISTANCE = 10;
 var RIGHT_HAND = 1;
 var LEFT_HAND = 0;
 
@@ -179,47 +180,85 @@ var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
 var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
 var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
 
-function stateToName(state) {
-    switch (state) {
-        case STATE_OFF:
-            return "off";
-        case STATE_SEARCHING:
-            return "searching";
-        case STATE_HOLD_SEARCHING:
-            return "hold_searching";
-        case STATE_DISTANCE_HOLDING:
-            return "distance_holding";
-        case STATE_CONTINUE_DISTANCE_HOLDING:
-            return "continue_distance_holding";
-        case STATE_NEAR_GRABBING:
-            return "near_grabbing";
-        case STATE_CONTINUE_NEAR_GRABBING:
-            return "continue_near_grabbing";
-        case STATE_NEAR_TRIGGER:
-            return "near_trigger";
-        case STATE_CONTINUE_NEAR_TRIGGER:
-            return "continue_near_trigger";
-        case STATE_FAR_TRIGGER:
-            return "far_trigger";
-        case STATE_CONTINUE_FAR_TRIGGER:
-            return "continue_far_trigger";
-        case STATE_RELEASE:
-            return "release";
-        case STATE_EQUIP:
-            return "equip";
-        case STATE_HOLD:
-            return "hold";
-        case STATE_CONTINUE_HOLD:
-            return "continue_hold";
-        case STATE_CONTINUE_EQUIP:
-            return "continue_equip";
-        case STATE_WAITING_FOR_EQUIP_THUMB_RELEASE:
-            return "waiting_for_equip_thumb_release";
-        case STATE_WAITING_FOR_RELEASE_THUMB_RELEASE:
-            return "waiting_for_release_thumb_release";
-    }
+var CONTROLLER_STATE_MACHINE = {};
 
-    return "unknown";
+CONTROLLER_STATE_MACHINE[STATE_OFF] = {
+    name: "off",
+    updateMethod: "off"
+};
+CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
+    name: "searching",
+    updateMethod: "search",
+    enterMethod: "searchEnter",
+    exitMethod: "searchExit"
+};
+CONTROLLER_STATE_MACHINE[STATE_HOLD_SEARCHING] = {
+    name: "hold_searching",
+    updateMethod: "search"
+};
+CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
+    name: "distance_holding",
+    updateMethod: "distanceHolding"
+};
+CONTROLLER_STATE_MACHINE[STATE_CONTINUE_DISTANCE_HOLDING] = {
+    name: "continue_distance_holding",
+    updateMethod: "continueDistanceHolding"
+};
+CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
+    name: "near_grabbing",
+    updateMethod: "nearGrabbing"
+};
+CONTROLLER_STATE_MACHINE[STATE_EQUIP] = {
+    name: "equip",
+    updateMethod: "nearGrabbing"
+};
+CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
+    name: "hold",
+    updateMethod: "nearGrabbing"
+};
+CONTROLLER_STATE_MACHINE[STATE_CONTINUE_NEAR_GRABBING] = {
+    name: "continue_near_grabbing",
+    updateMethod: "continueNearGrabbing"
+};
+CONTROLLER_STATE_MACHINE[STATE_CONTINUE_HOLD] = {
+    name: "continue_hold",
+    updateMethod: "continueNearGrabbing"
+};
+CONTROLLER_STATE_MACHINE[STATE_CONTINUE_EQUIP] = {
+    name: "continue_equip",
+    updateMethod: "continueNearGrabbing"
+};
+CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
+    name: "near_trigger",
+    updateMethod: "nearTrigger"
+};
+CONTROLLER_STATE_MACHINE[STATE_CONTINUE_NEAR_TRIGGER] = {
+    name: "continue_near_trigger",
+    updateMethod: "continueNearTrigger"
+};
+CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
+    name: "far_trigger",
+    updateMethod: "farTrigger"
+};
+CONTROLLER_STATE_MACHINE[STATE_CONTINUE_FAR_TRIGGER] = {
+    name: "continue_far_trigger",
+    updateMethod: "continueFarTrigger"
+};
+CONTROLLER_STATE_MACHINE[STATE_RELEASE] = {
+    name: "release",
+    updateMethod: "release"
+};
+CONTROLLER_STATE_MACHINE[STATE_WAITING_FOR_EQUIP_THUMB_RELEASE] = {
+    name: "waiting_for_equip_thumb_release",
+    updateMethod: "waitingForEquipThumbRelease"
+};
+CONTROLLER_STATE_MACHINE[STATE_WAITING_FOR_RELEASE_THUMB_RELEASE] = {
+    name: "waiting_for_release_thumb_release",
+    updateMethod: "waitingForReleaseThumbRelease"
+};
+
+function stateToName(state) {
+    return CONTROLLER_STATE_MACHINE[state] ? CONTROLLER_STATE_MACHINE[state].name : "???";
 }
 
 function getTag() {
@@ -247,6 +286,14 @@ function entityIsGrabbedByOther(entityID) {
         }
     }
     return false;
+}
+
+function propsArePhysical(props) {
+    if (!props.dynamic) {
+        return false;
+    }
+    var isPhysical = (props.shapeType && props.shapeType != 'none');
+    return isPhysical;
 }
 
 // If another script is managing the reticle (as is done by HandControllerPointer), we should not be setting it here,
@@ -314,55 +361,22 @@ function MyController(hand) {
     this.update = function() {
 
         this.updateSmoothedTrigger();
+
         if (isIn2DMode()) {
             _this.turnOffVisualizations();
             return;
         }
-        switch (this.state) {
-            case STATE_OFF:
-                this.off();
-                break;
-            case STATE_SEARCHING:
-            case STATE_HOLD_SEARCHING:
-                this.search();
-                break;
-            case STATE_DISTANCE_HOLDING:
-                this.distanceHolding();
-                break;
-            case STATE_CONTINUE_DISTANCE_HOLDING:
-                this.continueDistanceHolding();
-                break;
-            case STATE_NEAR_GRABBING:
-            case STATE_EQUIP:
-            case STATE_HOLD:
-                this.nearGrabbing();
-                break;
-            case STATE_WAITING_FOR_EQUIP_THUMB_RELEASE:
-                this.waitingForEquipThumbRelease();
-                break;
-            case STATE_WAITING_FOR_RELEASE_THUMB_RELEASE:
-                this.waitingForReleaseThumbRelease();
-                break;
-            case STATE_CONTINUE_NEAR_GRABBING:
-            case STATE_CONTINUE_HOLD:
-            case STATE_CONTINUE_EQUIP:
-                this.continueNearGrabbing();
-                break;
-            case STATE_NEAR_TRIGGER:
-                this.nearTrigger();
-                break;
-            case STATE_CONTINUE_NEAR_TRIGGER:
-                this.continueNearTrigger();
-                break;
-            case STATE_FAR_TRIGGER:
-                this.farTrigger();
-                break;
-            case STATE_CONTINUE_FAR_TRIGGER:
-                this.continueFarTrigger();
-                break;
-            case STATE_RELEASE:
-                this.release();
-                break;
+
+        if (CONTROLLER_STATE_MACHINE[this.state]) {
+            var updateMethodName = CONTROLLER_STATE_MACHINE[this.state].updateMethod;
+            var updateMethod = this[updateMethodName];
+            if (updateMethod) {
+                updateMethod.call(this);
+            } else {
+                print("WARNING: could not find updateMethod for state " + stateToName(this.state));
+            }
+        } else {
+            print("WARNING: could not find state " + this.state + " in state machine");
         }
     };
 
@@ -374,9 +388,33 @@ function MyController(hand) {
     this.setState = function(newState) {
         this.grabSphereOff();
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
-            print("STATE (" + this.hand + "): " + stateToName(this.state) + " --> " +
-                  stateToName(newState) + ", hand: " + this.hand);
+            var oldStateName = stateToName(this.state);
+            var newStateName = stateToName(newState);
+            print("STATE (" + this.hand + "): " + newStateName + " <-- " + oldStateName);
         }
+
+        // exit the old state
+        if (CONTROLLER_STATE_MACHINE[this.state]) {
+            var exitMethodName = CONTROLLER_STATE_MACHINE[this.state].exitMethod;
+            var exitMethod = this[exitMethodName];
+            if (exitMethod) {
+                exitMethod.call(this);
+            }
+        } else {
+            print("WARNING: could not find state " + this.state + " in state machine");
+        }
+
+        // enter the new state
+        if (CONTROLLER_STATE_MACHINE[newState]) {
+            var enterMethodName = CONTROLLER_STATE_MACHINE[newState].enterMethod;
+            var enterMethod = this[enterMethodName];
+            if (enterMethod) {
+                enterMethod.call(this);
+            }
+        } else {
+            print("WARNING: could not find newState " + newState + " in state machine");
+        }
+
         this.state = newState;
     };
 
@@ -759,14 +797,6 @@ function MyController(hand) {
         }
     };
 
-    this.propsArePhysical = function(props) {
-        if (!props.dynamic) {
-            return false;
-        }
-        var isPhysical = (props.shapeType && props.shapeType != 'none');
-        return isPhysical;
-    }
-
     this.turnOffVisualizations = function() {
         if (USE_ENTITY_LINES_FOR_SEARCHING === true || USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOff();
@@ -852,6 +882,56 @@ function MyController(hand) {
         }
     };
 
+    this.searchEnter = function() {
+        this.equipHotspotOverlays = [];
+
+        // find entities near the avatar that might be equipable.
+        var entities = Entities.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
+        var i, l = entities.length;
+        for (i = 0; i < l; i++) {
+
+            // is this entity equipable?
+            var grabData = getEntityCustomData(GRABBABLE_DATA_KEY, entities[i], undefined);
+            var grabProps = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
+            if (grabData) {
+
+                var hotspotPos = grabProps.position;
+
+                // does this entity have an attach point?
+                var wearableData = getEntityCustomData("wearable", entities[i], undefined);
+                if (wearableData) {
+                    var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+                    if (wearableData[handJointName]) {
+                        // draw the hotspot around the attach point.
+                        hotspotPos = wearableData[handJointName][0];
+                    }
+                }
+
+                // draw a hotspot!
+                this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
+                    position: hotspotPos,
+                    size: 0.2,
+                    color: { red: 90, green: 255, blue: 90 },
+                    alpha: 0.7,
+                    solid: true,
+                    visible: true,
+                    ignoreRayIntersection: false,
+                    drawInFront: false
+                }));
+            }
+        }
+    };
+
+    this.searchExit = function() {
+
+        // delete all equip hotspots
+        var i, l = this.equipHotspotOverlays.length;
+        for (i = 0; i < l; i++) {
+            Overlays.deleteOverlay(this.equipHotspotOverlays[i]);
+        }
+        this.equipHotspotOverlays = [];
+    };
+
     this.search = function() {
         this.grabbedEntity = null;
         this.isInitialGrab = false;
@@ -863,6 +943,7 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             return;
         }
+
         if (this.state == STATE_HOLD_SEARCHING && this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -951,7 +1032,7 @@ function MyController(hand) {
             var propsForCandidate = Entities.getEntityProperties(candidateEntities[i], GRABBABLE_PROPERTIES);
             var near = (nearPickedCandidateEntities.indexOf(candidateEntities[i]) >= 0);
 
-            var isPhysical = this.propsArePhysical(propsForCandidate);
+            var isPhysical = propsArePhysical(propsForCandidate);
             var grabbable;
             if (isPhysical) {
                 // physical things default to grabbable
@@ -1030,7 +1111,7 @@ function MyController(hand) {
         if ((this.grabbedEntity !== null) && (this.triggerSmoothedGrab() || this.bumperSqueezed())) {
             // We are squeezing enough to grab, and we've found an entity that we'll try to do something with.
             var near = (nearPickedCandidateEntities.indexOf(this.grabbedEntity) >= 0) || minDistance <= NEAR_PICK_MAX_DISTANCE;
-            var isPhysical = this.propsArePhysical(props);
+            var isPhysical = propsArePhysical(props);
 
             // near or far trigger
             if (grabbableData.wantsTrigger) {
@@ -1462,7 +1543,7 @@ function MyController(hand) {
             }
         }
 
-        var isPhysical = this.propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
+        var isPhysical = propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
         if (isPhysical && this.state == STATE_NEAR_GRABBING) {
             // grab entity via action
             if (!this.setupHoldAction()) {
@@ -1879,7 +1960,7 @@ function MyController(hand) {
                 var forceVelocity = false;
 
                 var doSetVelocity = false;
-                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID && this.propsArePhysical(props)) {
+                if (parentID != NULL_UUID && deactiveProps.parentID == NULL_UUID && propsArePhysical(props)) {
                     // TODO: EntityScriptingInterface::convertLocationToScriptSemantics should be setting up
                     // props.velocity to be a world-frame velocity and localVelocity to be vs parent.  Until that
                     // is done, we use a measured velocity here so that things held via a bumper-grab / parenting-grab
