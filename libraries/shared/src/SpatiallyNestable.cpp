@@ -422,7 +422,7 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
         // causes EntityItem::stepKinematicMotion to have an effect on the equipped entity,
         // which causes it to drift from the hand.
         if (hasAncestorOfType(NestableType::Avatar)) {
-            _velocity = velocity;
+            _velocity = glm::vec3(0.0f);
         } else {
             // TODO: take parent angularVelocity into account.
             _velocity = glm::inverse(parentTransform.getRotation()) * (velocity - parentVelocity);
