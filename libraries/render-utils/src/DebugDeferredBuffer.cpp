@@ -301,6 +301,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
 
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();

@@ -144,9 +144,7 @@ vec3 integrate(double cosTheta, double skinRadius) {
 
     double a = -(_PI);
 
-    double inc = 0.001;
-    if (cosTheta > 0)
-        inc = 0.01;
+    double inc = 0.1;
 
     while (a <= (_PI)) {
         double sampleAngle = theta + a;
@@ -304,7 +302,7 @@ gpu::TexturePointer SubsurfaceScattering::generatePreIntegratedScattering(Render
     const int WIDTH = 128;
     const int HEIGHT = 128;
     auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, WIDTH, HEIGHT));
- //   diffuseScatter(scatteringLUT);
+   // diffuseScatter(scatteringLUT);
     diffuseScatterGPU(profileMap, scatteringLUT, args);
     return scatteringLUT;
 }
