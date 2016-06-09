@@ -269,6 +269,7 @@ public:
     void _glUniform3fv(int location, int count, const float* value);
     void _glUniform4fv(int location, int count, const float* value);
     void _glUniform4iv(int location, int count, const int* value);
+    void _glUniformMatrix3fv(int location, int count, unsigned char transpose, const float* value);
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
     void _glUniform(int location, int v0) {
@@ -289,6 +290,10 @@ public:
 
     void _glUniform(int location, const glm::vec4& v) {
         _glUniform4f(location, v.x, v.y, v.z, v.w);
+    }
+
+    void _glUniform(int location, const glm::quat& v) {
+        _glUniformMatrix3fv(location, 1, false, reinterpret_cast< const float* >(&glm::mat3_cast(v)));
     }
 
     void _glColor4f(float red, float green, float blue, float alpha);
@@ -348,6 +353,7 @@ public:
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
         COMMAND_glUniform4iv,
+        COMMAND_glUniformMatrix3fv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,

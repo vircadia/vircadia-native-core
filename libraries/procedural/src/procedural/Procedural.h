@@ -38,7 +38,7 @@ public:
     void parse(const QString& userDataJson);
 
     bool ready();
-    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size);
+    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const glm::vec3& eyePos);
     const gpu::ShaderPointer& getShader() const { return _shader; }
 
     glm::vec4 getColor(const glm::vec4& entityColor);
@@ -56,6 +56,8 @@ public:
         FRAME_COUNT,
         SCALE,
         POSITION,
+        ORIENTATION,
+        EYE_POSITION,
         CHANNEL_RESOLUTION,
         NUM_STANDARD_UNIFORMS
     };
@@ -93,6 +95,8 @@ protected:
     // Entity metadata
     glm::vec3 _entityDimensions;
     glm::vec3 _entityPosition;
+    glm::quat _entityOrientation;
+    glm::vec3 _eyePos;
 
 private:
     // This should only be called from the render thread, as it shares data with Procedural::prepare

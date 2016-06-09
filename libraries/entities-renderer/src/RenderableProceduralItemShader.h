@@ -314,6 +314,8 @@ in vec4 _position;
 // TODO add more uniforms
 uniform float iGlobalTime;           // shader playback time (in seconds)
 uniform vec3 iWorldScale;            // the dimensions of the object being rendered
+uniform mat3 iWorldOrientation;      // the orientation of the object being rendered
+uniform vec3 iWorldEyePosition;      // the world position of the eye
 
 // TODO add support for textures
 // TODO document available inputs other than the uniforms

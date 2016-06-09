@@ -39,6 +39,8 @@ static const std::string STANDARD_UNIFORM_NAMES[Procedural::NUM_STANDARD_UNIFORM
     "iFrameCount",
     "iWorldScale",
     "iWorldPosition",
+    "iWorldOrientation",
+    "iWorldEyePosition",
     "iChannelResolution"
 };
 
@@ -202,9 +204,11 @@ bool Procedural::ready() {
     return true;
 }
 
-void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size) {
+void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const glm::vec3& eyePos) {
     _entityDimensions = size;
     _entityPosition = position;
+    _entityOrientation = orientation;
+    _eyePos = eyePos;
     if (_shaderUrl.isLocalFile()) {
         auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
@@ -404,10 +408,10 @@ void Procedural::setupUniforms() {
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[SCALE]) {
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[ORIENTATION]) {
         // FIXME move into the 'set once' section, since this doesn't change over time
         _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[SCALE], _entityDimensions);
+            batch._glUniform(_standardUniformSlots[ORIENTATION], _entityOrientation);
         });
     }
 
@@ -417,6 +421,14 @@ void Procedural::setupUniforms() {
             batch._glUniform(_standardUniformSlots[POSITION], _entityPosition);
         });
     }
+
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[EYE_POSITION]) {
+        // FIXME move into the 'set once' section, since this doesn't change over time
+        _uniforms.push_back([=](gpu::Batch& batch) {
+            batch._glUniform(_standardUniformSlots[EYE_POSITION], _eyePos);
+        });
+    }
+
 }
 
 void Procedural::setupChannels(bool shouldCreate) {

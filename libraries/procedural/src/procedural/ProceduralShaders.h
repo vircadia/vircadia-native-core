@@ -289,6 +289,8 @@ const vec4 iChannelTime = vec4(0.0);
 uniform vec4 iDate;
 uniform int iFrameCount;
 uniform vec3 iWorldPosition;
+uniform mat3 iWorldOrientation;
+uniform vec3 iWorldEyePosition;
 uniform vec3 iChannelResolution[4];
 uniform sampler2D iChannel0;
 uniform sampler2D iChannel1;
