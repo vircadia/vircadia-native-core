@@ -20,6 +20,7 @@ void handleOpenVrEvents();
 bool openVrQuitRequested();
 void enableOpenVrKeyboard();
 void disableOpenVrKeyboard();
+bool isOpenVrKeyboardShown();
 
 
 template<typename F>

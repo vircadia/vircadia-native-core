@@ -168,6 +168,26 @@ public:
 
     static const QString& MENU_PATH();
 
+    enum Hand {
+        LeftHand = 0x01,
+        RightHand = 0x02,
+    };
+
+    enum class HandLaserMode {
+        None, // Render no hand lasers
+        Overlay, // Render hand lasers only if they intersect with the UI layer, and stop at the UI layer
+    };
+
+    virtual bool setHandLaser(
+        uint32_t hands, // Bits from the Hand enum
+        HandLaserMode mode, // Mode in which to render
+        const vec4& color = vec4(1), // The color of the rendered laser
+        const vec3& direction = vec3(0, 0, -1) // The direction in which to render the hand lasers
+    ) {
+        return false;
+    }
+
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
     // Indicates that this display plugin is no longer valid for use.

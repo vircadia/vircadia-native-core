@@ -45,8 +45,9 @@ bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
     _currentRenderFrameInfo.rawRenderPose = _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
-    Lock lock(_mutex);
-    _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    withRenderThreadLock([&]{
+        _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    })
     return true;
 }
 

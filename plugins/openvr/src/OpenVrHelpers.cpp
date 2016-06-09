@@ -208,6 +208,10 @@ void disableOpenVrKeyboard() {
     QObject::disconnect(_focusConnection);
 }
 
+bool isOpenVrKeyboardShown() {
+    return _keyboardShown;
+}
+
 
 void handleOpenVrEvents() {
     if (!activeHmd) {

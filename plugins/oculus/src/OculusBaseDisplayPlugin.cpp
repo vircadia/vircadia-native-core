@@ -24,8 +24,9 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
-    Lock lock(_mutex);
-    _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    withRenderThreadLock([&] {
+        _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    });
     return true;
 }
 
