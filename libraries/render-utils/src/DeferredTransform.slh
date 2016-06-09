@@ -84,7 +84,7 @@ vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
     return vec3(Xe, Ye, Zeye);
 }
 
-ivec2 getPixelPosNclipPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out vec2 nclipPos, out ivec4 stereoSide) {
+ivec2 getPixelPosTexcoordPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out vec2 texcoordPos, out ivec4 stereoSide) {
     ivec2 fragPos = ivec2(glFragCoord.xy);
 
     stereoSide = getStereoSideInfo(fragPos.x, 0);
@@ -92,7 +92,7 @@ ivec2 getPixelPosNclipPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out ve
     pixelPos = fragPos;
     pixelPos.x -= stereoSide.y;
 
-    nclipPos = (vec2(pixelPos) + 0.5) * getInvWidthHeight();
+    texcoordPos = (vec2(pixelPos) + 0.5) * getInvWidthHeight();
     
     return fragPos;
 }

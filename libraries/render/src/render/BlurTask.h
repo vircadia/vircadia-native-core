@@ -20,7 +20,7 @@ namespace render {
 class BlurParams {
 public:
 
-    void setWidthHeight(int width, int height);
+    void setWidthHeight(int width, int height, bool isStereo);
 
     void setFilterRadiusScale(float scale);
 
@@ -32,6 +32,9 @@ public:
 
         // Filter info (radius scale
         glm::vec4 filterInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
+
+        // stereo info if blurring a stereo render
+        glm::vec4 stereoInfo{ 0.0f };
 
         Params() {}
     };
@@ -85,6 +88,48 @@ protected:
     };
     bool updateBlurringResources(const gpu::FramebufferPointer& sourceFramebuffer, BlurringResources& blurringResources);
 };
+
+
+template < class T0, class T1 >
+class VaryingPair : public std::pair<Varying, Varying> {
+public:
+    using Parent = std::pair<Varying, Varying>;
+
+    VaryingPair() : Parent(Varying(T0()), T1()) {}
+};
+
+class BlurGaussianDepthAware {
+public:
+    using InputPair = VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Config = BlurGaussianConfig;
+    using JobModel = Job::ModelI<BlurGaussianDepthAware, InputPair, Config>;
+
+    BlurGaussianDepthAware();
+
+    void configure(const Config& config);
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const InputPair& SourceAndDepth);
+
+protected:
+
+    BlurParamsPointer _parameters;
+
+    gpu::PipelinePointer _blurVPipeline;
+    gpu::PipelinePointer _blurHPipeline;
+
+    gpu::PipelinePointer getBlurVPipeline();
+    gpu::PipelinePointer getBlurHPipeline();
+
+    gpu::FramebufferPointer _blurredFramebuffer;
+
+    struct BlurringResources {
+        gpu::TexturePointer sourceTexture;
+        gpu::FramebufferPointer blurringFramebuffer;
+        gpu::TexturePointer blurringTexture;
+        gpu::FramebufferPointer finalFramebuffer;
+    };
+    bool updateBlurringResources(const gpu::FramebufferPointer& sourceFramebuffer, BlurringResources& blurringResources);
+};
+
 
 }
 

@@ -24,6 +24,7 @@ const float gaussianDistributionOffset[NUM_TAPS] = float[](
 struct BlurParameters {
     vec4 resolutionInfo;
     vec4 filterInfo;
+    vec4 stereoInfo;
 };
 
 uniform blurParamsBuffer {

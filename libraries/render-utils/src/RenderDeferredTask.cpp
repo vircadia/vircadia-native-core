@@ -35,6 +35,7 @@
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
+#include "SubsurfaceScattering.h"
 
 using namespace render;
 
@@ -114,6 +115,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebuffer);
 
+
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
 
@@ -136,6 +138,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaques, true);
     addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparents, false);
 
+    addJob<SubsurfaceScattering>("Scattering", deferredFrameTransform);
 
     // Debugging stages
     {
