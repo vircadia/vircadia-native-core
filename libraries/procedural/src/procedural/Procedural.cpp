@@ -207,7 +207,7 @@ bool Procedural::ready() {
 void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const glm::vec3& eyePos) {
     _entityDimensions = size;
     _entityPosition = position;
-    _entityOrientation = orientation;
+    _entityOrientation = glm::mat3_cast(orientation);
     _eyePos = eyePos;
     if (_shaderUrl.isLocalFile()) {
         auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();

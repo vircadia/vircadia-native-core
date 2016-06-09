@@ -95,7 +95,7 @@ protected:
     // Entity metadata
     glm::vec3 _entityDimensions;
     glm::vec3 _entityPosition;
-    glm::quat _entityOrientation;
+    glm::mat3 _entityOrientation;
     glm::vec3 _eyePos;
 
 private:

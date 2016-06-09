@@ -14,6 +14,7 @@
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <shared/NsightHelpers.h>
 
@@ -292,8 +293,8 @@ public:
         _glUniform4f(location, v.x, v.y, v.z, v.w);
     }
 
-    void _glUniform(int location, const glm::quat& v) {
-        _glUniformMatrix3fv(location, 1, false, reinterpret_cast< const float* >(&glm::mat3_cast(v)));
+    void _glUniform(int location, const glm::mat3& v) {
+        _glUniformMatrix3fv(location, 1, false, glm::value_ptr(v));
     }
 
     void _glColor4f(float red, float green, float blue, float alpha);
