@@ -213,8 +213,6 @@ ModalWindow {
             function update() {
                 var row = fileTableView.currentRow;
 
-                openButton.text = root.selectDirectory && row === -1 ? "Choose" : "Open"
-
                 if (row === -1) {
                     if (!root.selectDirectory) {
                         currentSelection.text = "";
@@ -657,7 +655,7 @@ ModalWindow {
 
         Action {
             id: okAction
-            text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
+            text: currentSelection.text ? (root.selectDirectory && fileTableView.currentRow === -1 ? "Choose" : (root.saveDialog ? "Save" : "Open")) : "Open"
             enabled: currentSelection.text || !root.selectDirectory && d.currentSelectionIsFolder ? true : false
             onTriggered: {
                 if (!root.selectDirectory && !d.currentSelectionIsFolder
@@ -680,7 +678,6 @@ ModalWindow {
                     root.destroy()
                     return;
                 }
-
 
                 // Handle the ambiguity between different cases
                 // * typed name (with or without extension)
