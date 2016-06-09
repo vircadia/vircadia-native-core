@@ -610,6 +610,12 @@ ModalWindow {
             readOnly: !root.saveDialog
             activeFocusOnTab: !readOnly
             onActiveFocusChanged: if (activeFocus) { selectAll(); }
+            onTextChanged: {
+                if (root.saveDialog && text !== "") {
+                    fileTableView.selection.clear();
+                    fileTableView.currentRow = -1;
+                }
+            }
             onAccepted: okAction.trigger();
         }
 
