@@ -188,6 +188,7 @@ ModalWindow {
                 if (helper.urlToPath(folder).toLowerCase() !== helper.urlToPath(fileTableModel.folder).toLowerCase()) {
                     if (root.selectDirectory) {
                         currentSelection.text = currentText !== "This PC" ? currentText : "";
+                        d.currentSelectionUrl = helper.pathToUrl(currentText);
                     }
                     fileTableModel.folder = folder;
                     fileTableView.forceActiveFocus();
