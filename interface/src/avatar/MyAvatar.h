@@ -264,6 +264,8 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
+    bool hasDriveInput() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();

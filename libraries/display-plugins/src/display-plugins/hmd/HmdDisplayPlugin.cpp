@@ -253,12 +253,13 @@ void HmdDisplayPlugin::compositeScene() {
 void HmdDisplayPlugin::compositeOverlay() {
     using namespace oglplus;
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
 
     useProgram(_program);
     _sphereSection->Use();
     for_each_eye([&](Eye eye) {
         eyeViewport(eye);
-        auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye));
+        auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
         auto mvp = _eyeProjections[eye] * modelView;
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _sphereSection->Draw();

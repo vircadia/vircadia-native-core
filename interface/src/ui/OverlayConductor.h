@@ -19,6 +19,7 @@ public:
     void update(float dt);
     void setEnabled(bool enable);
     bool getEnabled() const;
+    bool shouldCenterUI() const;
 
 private:
     void updateMode();
