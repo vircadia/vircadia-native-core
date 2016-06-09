@@ -202,7 +202,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             }
         }
 
-        if (oldVersion < 1.3) {
+        if (oldVersion < 1.4) {
             // This was prior to the permissions-grid in the domain-server settings page
             bool isRestrictedAccess = valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
             QStringList allowedUsers = valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();

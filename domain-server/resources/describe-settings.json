@@ -1,5 +1,5 @@
 {
-  "version": 1.3,
+  "version": 1.4,
   "settings": [
     {
       "name": "metaverse",
@@ -67,6 +67,76 @@
               "name": "viewpoint",
               "label": "Viewpoint",
               "placeholder": "/0,0,0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "descriptors",
+      "label": "Description",
+      "help": "This data will be queryable from your server. It may be collected by High Fidelity and used to share your domain with others.",
+      "settings": [
+        {
+          "name": "description",
+          "label": "Description",
+          "help": "A description of your domain (256 character limit)."
+        },
+        {
+          "name": "maturity",
+          "label": "Maturity",
+          "help": "A maturity rating, available as a guideline for content on your domain.",
+          "default": "unrated",
+          "type": "select",
+          "options": [
+            {
+              "value": "unrated",
+              "label": "Unrated"
+            },
+            {
+              "value": "everyone",
+              "label": "Everyone"
+            },
+            {
+              "value": "teen",
+              "label": "Teen (13+)"
+            },
+            {
+              "value": "mature",
+              "label": "Mature (17+)"
+            },
+            {
+              "value": "adult",
+              "label": "Adult (18+)"
+            }
+          ]
+
+        },
+        {
+          "name": "hosts",
+          "label": "Hosts",
+          "type": "table",
+          "help": "Usernames of hosts who can reliably show your domain to new visitors.",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "host",
+              "label": "Username",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "name": "tags",
+          "label": "Tags",
+          "type": "table",
+          "help": "Common categories under which your domain falls.",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "tag",
+              "label": "Tag",
+              "can_set": true
             }
           ]
         }

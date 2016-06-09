@@ -42,15 +42,10 @@ public:
     };
 
     struct HeadParameters {
-        float leanSideways = 0.0f; // degrees
-        float leanForward = 0.0f; // degrees
-        float torsoTwist = 0.0f; // degrees
-        bool enableLean = false;
         glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
         glm::quat rigHeadOrientation = glm::quat();  // rig space (-z forward)
         glm::vec3 rigHeadPosition = glm::vec3();     // rig space
         bool isInHMD = false;
-        int leanJointIndex = -1;
         int neckJointIndex = -1;
         bool isTalking = false;
     };
@@ -222,7 +217,6 @@ protected:
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
                                  glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;

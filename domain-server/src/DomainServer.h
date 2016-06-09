@@ -26,6 +26,7 @@
 #include <LimitedNodeList.h>
 
 #include "DomainGatekeeper.h"
+#include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
@@ -91,6 +92,8 @@ private slots:
 
 signals:
     void iceServerChanged();
+    void userConnected();
+    void userDisconnected();
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
@@ -168,6 +171,9 @@ private:
     QString _automaticNetworkingSetting;
 
     DomainServerSettingsManager _settingsManager;
+
+    DomainMetadata _metadata;
+    uint32_t _metadataTic{ 0 };
 
     HifiSockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
