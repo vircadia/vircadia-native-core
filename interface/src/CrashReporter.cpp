@@ -10,17 +10,16 @@
 //
 
 
+#include "Application.h"
 #include "CrashReporter.h"
 
 #ifdef _WIN32
-#include <WinSock2.h>
 #include <new.h>
 #include <Windows.h>
 #include <DbgHelp.h>
 
 #include <csignal>
 #include <QDebug>
-#include "Application.h"
 
 
 #pragma comment(lib, "Dbghelp.lib")
