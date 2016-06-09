@@ -418,6 +418,8 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, c
 
     auto map = std::make_shared<model::TextureMap>();
     map->setTextureSource(texture->_textureSource);
+    map->setTextureTransform(fbxTexture.transform);
+
     return map;
 }
 
@@ -427,6 +429,7 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, Textu
 
     auto map = std::make_shared<model::TextureMap>();
     map->setTextureSource(texture->_textureSource);
+
     return map;
 }
 
@@ -475,6 +478,7 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
 
     if (!material.occlusionTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.occlusionTexture, NetworkTexture::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
+        map->setTextureTransform(material.occlusionTexture.transform);
         setTextureMap(MapChannel::OCCLUSION_MAP, map);
     }
 

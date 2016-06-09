@@ -13,6 +13,8 @@
 
     var SEARCH_RADIUS = 100;
 
+
+
     var _this;
     var utilitiesScript = Script.resolvePath('../utils.js');
     Script.include(utilitiesScript);
@@ -22,7 +24,7 @@
     };
 
     Switch.prototype = {
-        prefix: 'hifi-home-living-room-disc-',
+        prefix: 'hifi-home-dressing-room-disc-',
         clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
@@ -35,28 +37,30 @@
         },
 
         modelEmitOn: function(glowDisc) {
+
             var data = {
-                "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
-                "Tex.CeilingLight.Emit": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-On-Diffuse.jpg",
-                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight-Diffuse": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg",
+                "Tex.CeilingLight-Emit": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-On-Diffuse.jpg"
             }
 
             Entities.editEntity(glowDisc, {
                 textures: JSON.stringify(data)
-            })
+            });
         },
 
         modelEmitOff: function(glowDisc) {
+
             var data = {
-                "Metal-brushed-light.jpg": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/Metal-brushed-light.jpg",
-                "Tex.CeilingLight.Emit": "",
-                "TexCeilingLight.Diffuse": "atp:/models/Lights-Living-Room-2.fbx/Lights-Living-Room-2.fbm/CielingLight-Base.jpg"
+                "Metal-brushed-light.jpg": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/Metal-brushed-light.jpg",
+                "Tex.CeilingLight-Diffuse": "atp:/models/Lights-Dressing-Room-3.fbx/Lights-Dressing-Room-3.fbm/CielingLight-Base.jpg",
+                "Tex.CeilingLight-Emit": ""
             }
+
 
             Entities.editEntity(glowDisc, {
                 textures: JSON.stringify(data)
-
-            })
+            });
         },
 
         masterLightOn: function(masterLight) {
@@ -116,6 +120,7 @@
                     found.push(result);
                 }
             });
+            // Only one light for now
             return found;
         },
 
@@ -142,6 +147,16 @@
                 setEntityCustomData('home-switch', _this.entityID, {
                     state: 'on'
                 });
+                
+                Entities.editEntity(this.entityID, {
+                    "animation": {
+                        "currentFrame": 1,
+                        "firstFrame": 1,
+                        "hold": 1,
+                        "lastFrame": 2,
+                        "url": "atp:/switches/lightswitch.fbx"
+                    },
+                });
 
             } else {
                 glowLights.forEach(function(glowLight) {
@@ -156,9 +171,18 @@
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'off'
                 });
+                
+                Entities.editEntity(this.entityID, {
+                    "animation": {
+                        "currentFrame": 3,
+                        "firstFrame": 3,
+                        "hold": 1,
+                        "lastFrame": 4,
+                        "url": "atp:/switches/lightswitch.fbx"
+                    },
+                });
             }
 
-            this.flipSwitch();
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
                 position: this.position
@@ -166,20 +190,7 @@
 
         },
 
-        flipSwitch: function() {
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var axis = {
-                x: 0,
-                y: 1,
-                z: 0
-            };
-            var dQ = Quat.angleAxis(180, axis);
-            rotation = Quat.multiply(rotation, dQ);
 
-            Entities.editEntity(this.entityID, {
-                rotation: rotation
-            });
-        },
 
         preload: function(entityID) {
             this.entityID = entityID;

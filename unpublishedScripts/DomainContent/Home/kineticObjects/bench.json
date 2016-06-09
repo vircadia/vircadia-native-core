@@ -1,0 +1,37 @@
+{
+    "Entities": [{
+        "name": "home_model_bench",
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/bench/Bench.obj",
+        "created": "2016-05-17T19:27:31Z",
+        "dimensions": {
+            "x": 2.3647537231445312,
+            "y": 0.51260757446289062,
+            "z": 0.49234861135482788
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "id": "{733c3f02-a98a-4876-91dc-320a26a07090}",
+        "modelURL": "atp:/kineticObjects/bench/Bench.fbx",
+        "queryAACube": {
+            "scale": 2.4692578315734863,
+            "x": -1.2346289157867432,
+            "y": -1.2346289157867432,
+            "z": -1.2346289157867432
+        },
+        "rotation": {
+            "w": 0.88613712787628174,
+            "x": -0.0015716552734375,
+            "y": -0.46337074041366577,
+            "z": -1.52587890625e-05
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }],
+    "Version": 57
+}
