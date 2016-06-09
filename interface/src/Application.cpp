@@ -85,6 +85,7 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 #include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
@@ -1236,7 +1237,13 @@ QString Application::getUserAgent() {
             userAgent += " " + formatPluginName(ip->getName());
         }
     }
+    // for codecs, we include all of them, even if not active
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& cp : codecPlugins) {
+        userAgent += " " + formatPluginName(cp->getName());
+    }
 
+    qDebug() << __FUNCTION__ << ":" << userAgent;
     return userAgent;
 }
 

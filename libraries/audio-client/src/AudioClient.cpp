@@ -813,19 +813,25 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     emitAudioPacket(audio.data(), audio.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
 }
 
-void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
-    const int numNetworkOutputSamples = inputBuffer.size() / sizeof(int16_t);
-    const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
-        / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
+void AudioClient::processReceivedSamples(const QByteArray& networkBuffer, QByteArray& outputBuffer) {
+
+    // TODO - codec decode goes here
+    QByteArray decodedBuffer = networkBuffer;
+
+    const int numDecodecSamples = decodedBuffer.size() / sizeof(int16_t);
+    const int numDeviceOutputSamples = _outputFrameSize;
+
+    Q_ASSERT(_outputFrameSize == numDecodecSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
+        / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount()));
 
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
-    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(inputBuffer.data());
+    const int16_t* decodedSamples = reinterpret_cast<const int16_t*>(decodedBuffer.data());
     int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
     // copy the packet from the RB to the output
-    possibleResampling(_networkToOutputResampler, receivedSamples, outputSamples,
-                       numNetworkOutputSamples, numDeviceOutputSamples,
+    possibleResampling(_networkToOutputResampler, decodedSamples, outputSamples,
+                       numDecodecSamples, numDeviceOutputSamples,
                        _desiredOutputFormat, _outputFormat);
 
     // apply stereo reverb at the listener, to the received audio
