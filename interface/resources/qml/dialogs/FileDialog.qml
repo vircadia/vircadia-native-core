@@ -451,12 +451,6 @@ ModalWindow {
 
             onSortIndicatorOrderChanged: { updateSort(); }
 
-            onActiveFocusChanged: {
-                if (activeFocus && currentRow == -1) {
-                    fileTableView.selection.select(0)
-                }
-            }
-
             itemDelegate: Item {
                 clip: true
 
