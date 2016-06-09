@@ -187,6 +187,7 @@ ModalWindow {
 
                 if (helper.urlToPath(folder).toLowerCase() !== helper.urlToPath(fileTableModel.folder).toLowerCase()) {
                     fileTableModel.folder = folder;
+                    fileTableView.forceActiveFocus();
                 }
             }
         }
