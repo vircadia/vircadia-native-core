@@ -82,21 +82,15 @@ BOOL redirectLibraryFunctionToFunction(char* library, char* function, void* fn)
 }
 
 void printStackTrace(ULONG framesToSkip = 1) {
-    QString result;
-    unsigned int   i;
-    void         * stack[100];
-    unsigned short frames;
-    SYMBOL_INFO  * symbol;
-    HANDLE         process;
-
-    process = GetCurrentProcess();
+    HANDLE process = GetCurrentProcess();
     SymInitialize(process, NULL, TRUE);
-    frames = CaptureStackBackTrace(framesToSkip, 100, stack, NULL);
-    symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+    void* stack[100];
+    uint16_t frames = CaptureStackBackTrace(framesToSkip, 100, stack, NULL);
+    SYMBOL_INFO* symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
     symbol->MaxNameLen = 255;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-    for (i = 0; i < frames; i++) {
+    for (uint16_t i = 0; i < frames; ++i) {
         SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
         qWarning() << QString("%1: %2 - 0x%0X").arg(QString::number(frames - i - 1), QString(symbol->Name), QString::number(symbol->Address, 16));
     }
