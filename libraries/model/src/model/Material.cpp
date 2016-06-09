@@ -122,6 +122,10 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[0] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
     }
 
+    if (channel == MaterialKey::OCCLUSION_MAP) {
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
+    }
+
     if (channel == MaterialKey::LIGHTMAP_MAP) {
         // update the texcoord1 with lightmap
         _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
