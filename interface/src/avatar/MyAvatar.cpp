@@ -1253,13 +1253,13 @@ void MyAvatar::prepareForPhysicsSimulation() {
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
-    if (_characterController.isEnabled()) {
+    if (_characterController.isEnabledAndReady()) {
         _characterController.getPositionAndOrientation(position, orientation);
     }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
-    if (_characterController.isEnabled()) {
+    if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
     } else {
         setVelocity(getVelocity() + _characterController.getFollowVelocity());
@@ -1642,7 +1642,7 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     vec3 velocity = getVelocity();
     const float MOVING_SPEED_THRESHOLD_SQUARED = 0.0001f; // 0.01 m/s
-    if (!_characterController.isEnabled()) {
+    if (!_characterController.isEnabledAndReady()) {
         // _characterController is not in physics simulation but it can still compute its target velocity
         updateMotors();
         _characterController.computeNewVelocity(deltaTime, velocity);
@@ -1838,11 +1838,6 @@ void MyAvatar::setCharacterControllerEnabled(bool enabled) {
 }
 
 bool MyAvatar::getCharacterControllerEnabled() {
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "getCharacterControllerEnabled", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result));
-        return result;
-    }
     return _characterController.isEnabled();
 }
 
