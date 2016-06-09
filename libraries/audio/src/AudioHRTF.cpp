@@ -10,7 +10,6 @@
 //
 
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 
@@ -125,13 +124,12 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 
 #include "CPUDetect.h"
 
-typedef void FIR_1x4_t(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
-FIR_1x4_t FIR_1x4_AVX;  // separate compilation with VEX-encoding enabled
+void FIR_1x4_AVX(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
-    static FIR_1x4_t* f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE; // init on first call
-    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
+    static auto f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE;
+    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 
 // 4 channel planar to interleaved
