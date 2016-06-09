@@ -23,7 +23,6 @@ void ShapeInfo::clear() {
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
     _type = type;
-    _points.clear();
     switch(type) {
         case SHAPE_TYPE_NONE:
             _halfExtents = glm::vec3(0.0f);
@@ -52,7 +51,6 @@ void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _url = "";
     _type = SHAPE_TYPE_BOX;
     _halfExtents = halfExtents;
-    _points.clear();
     _doubleHashKey.clear();
 }
 
@@ -60,15 +58,6 @@ void ShapeInfo::setSphere(float radius) {
     _url = "";
     _type = SHAPE_TYPE_SPHERE;
     _halfExtents = glm::vec3(radius, radius, radius);
-    _points.clear();
-    _doubleHashKey.clear();
-}
-
-void ShapeInfo::setEllipsoid(const glm::vec3& halfExtents) {
-    _url = "";
-    _type = SHAPE_TYPE_ELLIPSOID;
-    _halfExtents = halfExtents;
-    _points.clear();
     _doubleHashKey.clear();
 }
 
@@ -82,7 +71,6 @@ void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     _url = "";
     _type = SHAPE_TYPE_CAPSULE_Y;
     _halfExtents = glm::vec3(radius, halfHeight, radius);
-    _points.clear();
     _doubleHashKey.clear();
 }
 
@@ -146,10 +134,6 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
     switch(_type) {
         case SHAPE_TYPE_SPHERE:
             return glm::length(point) <= _halfExtents.x;
-        case SHAPE_TYPE_ELLIPSOID: {
-            glm::vec3 scaledPoint = glm::abs(point) / _halfExtents;
-            return glm::length(scaledPoint) <= 1.0f;
-        }
         case SHAPE_TYPE_CYLINDER_X:
             return glm::length(glm::vec2(point.y, point.z)) <= _halfExtents.z;
         case SHAPE_TYPE_CYLINDER_Y:

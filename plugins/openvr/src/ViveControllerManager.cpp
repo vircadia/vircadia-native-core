@@ -125,7 +125,6 @@ bool ViveControllerManager::activate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
-
     return true;
 }
 
@@ -214,6 +213,11 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    handleOpenVrEvents();
+    if (openVrQuitRequested()) {
+        deactivate();
+        return;
+    }
 
     // because update mutates the internal state we need to lock
     userInputMapper->withLock([&, this]() {
@@ -244,6 +248,17 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
 
     handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
     handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
+
+    // handle haptics
+    {
+        Locker locker(_lock);
+        if (_leftHapticDuration > 0.0f) {
+            hapticsHelper(deltaTime, true);
+        }
+        if (_rightHapticDuration > 0.0f) {
+            hapticsHelper(deltaTime, false);
+        }
+    }
 
     int numTrackedControllers = 0;
     if (leftHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
@@ -342,7 +357,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         if (button == vr::k_EButton_ApplicationMenu) {
             _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
         } else if (button == vr::k_EButton_Grip) {
-            _buttonPressedMap.insert(isLeftHand ? LEFT_GRIP : RIGHT_GRIP);
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 1.0f;
         } else if (button == vr::k_EButton_SteamVR_Trigger) {
             _buttonPressedMap.insert(isLeftHand ? LT : RT);
         } else if (button == vr::k_EButton_SteamVR_Touchpad) {
@@ -440,6 +455,55 @@ void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const 
     avatarPose.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
     avatarPose.angularVelocity = angularVelocity;
     _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
+}
+
+bool ViveControllerManager::InputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    if (hand == controller::BOTH || hand == controller::LEFT) {
+        if (strength == 0.0f) {
+            _leftHapticStrength = 0.0f;
+            _leftHapticDuration = 0.0f;
+        } else {
+            _leftHapticStrength = (duration > _leftHapticDuration) ? strength : _leftHapticStrength;
+            _leftHapticDuration = std::max(duration, _leftHapticDuration);
+        }
+    }
+    if (hand == controller::BOTH || hand == controller::RIGHT) {
+        if (strength == 0.0f) {
+            _rightHapticStrength = 0.0f;
+            _rightHapticDuration = 0.0f;
+        } else {
+            _rightHapticStrength = (duration > _rightHapticDuration) ? strength : _rightHapticStrength;
+            _rightHapticDuration = std::max(duration, _rightHapticDuration);
+        }
+    }
+    return true;
+}
+
+void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool leftHand) {
+    auto handRole = leftHand ? vr::TrackedControllerRole_LeftHand : vr::TrackedControllerRole_RightHand;
+    auto deviceIndex = _system->GetTrackedDeviceIndexForControllerRole(handRole);
+
+    if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+        _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
+        _trackedDevicePose[deviceIndex].bPoseIsValid) {
+        float strength = leftHand ? _leftHapticStrength : _rightHapticStrength;
+        float duration = leftHand ? _leftHapticDuration : _rightHapticDuration;
+
+        // Vive Controllers only support duration up to 4 ms, which is short enough that any variation feels more like strength
+        const float MAX_HAPTIC_TIME = 3999.0f; // in microseconds
+        float hapticTime = strength * MAX_HAPTIC_TIME;
+        if (hapticTime < duration * 1000.0f) {
+            _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
+        }
+
+        float remainingHapticTime = duration - (hapticTime / 1000.0f + deltaTime * 1000.0f); // in milliseconds
+        if (leftHand) {
+            _leftHapticDuration = remainingHapticTime;
+        } else {
+            _rightHapticDuration = remainingHapticTime;
+        }
+    }
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {

@@ -1121,6 +1121,27 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    if (!entity) {
+        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        return result;
+    }
+
+    _entityTree->withReadLock([&] {
+        entity->forEachChild([&](SpatiallyNestablePointer child) {
+            result.push_back(child->getID());
+        });
+    });
+
+    return result;
+}
+
 QVector<QUuid> EntityScriptingInterface::getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex) {
     QVector<QUuid> result;
     if (!_entityTree) {

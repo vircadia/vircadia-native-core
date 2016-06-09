@@ -5,7 +5,7 @@
         { "from": "Vive.LX", "when": "Vive.LSOuter", "to": "Standard.LX" },
 
         { "from": "Vive.LT", "to": "Standard.LT" },
-        { "from": "Vive.LeftGrip", "to": "Standard.LB" },
+        { "from": "Vive.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "Vive.LS", "to": "Standard.LS" },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
@@ -13,7 +13,7 @@
         { "from": "Vive.RX", "when": "Vive.RSOuter", "to": "Standard.RX" },
 
         { "from": "Vive.RT", "to": "Standard.RT" },
-        { "from": "Vive.RightGrip", "to": "Standard.RB" },
+        { "from": "Vive.RightGrip", "to": "Standard.RightGrip" },
         { "from": "Vive.RS", "to": "Standard.RS" },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
 

@@ -599,11 +599,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType type = getShapeType();
-    if (type != SHAPE_TYPE_COMPOUND) {
-        ModelEntityItem::computeShapeInfo(info);
-        info.setParams(type, 0.5f * getDimensions());
-        adjustShapeInfoByRegistration(info);
-    } else {
+    if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
@@ -612,25 +608,27 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         const FBXGeometry& renderGeometry = _model->getFBXGeometry();
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
-        _points.clear();
-        unsigned int i = 0;
+        QVector<QVector<glm::vec3>>& points = info.getPoints();
+        points.clear();
+        uint32_t i = 0;
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
         // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
+        const uint32_t TRIANGLE_STRIDE = 3;
+        const uint32_t QUAD_STRIDE = 4;
         foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
-                QVector<glm::vec3> pointsInPart;
+                points.push_back(QVector<glm::vec3>());
+                QVector<glm::vec3>& pointsInPart = points[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
-                unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-                for (unsigned int j = 0; j < triangleCount; j++) {
-                    unsigned int p0Index = meshPart.triangleIndices[j*3];
-                    unsigned int p1Index = meshPart.triangleIndices[j*3+1];
-                    unsigned int p2Index = meshPart.triangleIndices[j*3+2];
-                    glm::vec3 p0 = mesh.vertices[p0Index];
-                    glm::vec3 p1 = mesh.vertices[p1Index];
-                    glm::vec3 p2 = mesh.vertices[p2Index];
+                uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
+                assert(numIndices % TRIANGLE_STRIDE == 0);
+                for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
+                    glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
+                    glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[j + 1]];
+                    glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[j + 2]];
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
                     }
@@ -643,17 +641,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 }
 
                 // run through all the quads and (uniquely) add each point to the hull
-                unsigned int quadCount = meshPart.quadIndices.size() / 4;
-                assert((unsigned int)meshPart.quadIndices.size() == quadCount*4);
-                for (unsigned int j = 0; j < quadCount; j++) {
-                    unsigned int p0Index = meshPart.quadIndices[j*4];
-                    unsigned int p1Index = meshPart.quadIndices[j*4+1];
-                    unsigned int p2Index = meshPart.quadIndices[j*4+2];
-                    unsigned int p3Index = meshPart.quadIndices[j*4+3];
-                    glm::vec3 p0 = mesh.vertices[p0Index];
-                    glm::vec3 p1 = mesh.vertices[p1Index];
-                    glm::vec3 p2 = mesh.vertices[p2Index];
-                    glm::vec3 p3 = mesh.vertices[p3Index];
+                numIndices = (uint32_t)meshPart.quadIndices.size();
+                assert(numIndices % QUAD_STRIDE == 0);
+                for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
+                    glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
+                    glm::vec3 p1 = mesh.vertices[meshPart.quadIndices[j + 1]];
+                    glm::vec3 p2 = mesh.vertices[meshPart.quadIndices[j + 2]];
+                    glm::vec3 p3 = mesh.vertices[meshPart.quadIndices[j + 3]];
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
                     }
@@ -670,14 +664,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                 if (pointsInPart.size() == 0) {
                     qCDebug(entitiesrenderer) << "Warning -- meshPart has no faces";
+                    points.pop_back();
                     continue;
                 }
-
-                // add next convex hull
-                QVector<glm::vec3> newMeshPoints;
-                _points << newMeshPoints;
-                // add points to the new convex hull
-                _points[i++] << pointsInPart;
+                ++i;
             }
         }
 
@@ -691,23 +681,26 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;
-        for (int i = 0; i < _points.size(); i++) {
-            for (int j = 0; j < _points[i].size(); j++) {
+        for (int i = 0; i < points.size(); i++) {
+            for (int j = 0; j < points[i].size(); j++) {
                 // compensate for registration
-                _points[i][j] += _model->getOffset();
+                points[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
-                _points[i][j] *= scale;
+                points[i][j] *= scale;
                 // this next subtraction is done so we can give info the offset, which will cause
                 // the shape-key to change.
-                _points[i][j] -= _model->getOffset();
-                box += _points[i][j];
+                points[i][j] -= _model->getOffset();
+                box += points[i][j];
             }
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
-        info.setConvexHulls(_points);
         info.setOffset(_model->getOffset());
+    } else {
+        ModelEntityItem::computeShapeInfo(info);
+        info.setParams(type, 0.5f * getDimensions());
+        adjustShapeInfoByRegistration(info);
     }
 }
 

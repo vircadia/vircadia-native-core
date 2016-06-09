@@ -403,12 +403,6 @@ Menu::Menu() {
     // Developer > Avatar >>>
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
-    // Settings > Input Devices
-    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu, "Advanced");
-    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
-    inputModeGroup->setExclusive(false);
-
-
     // Developer > Avatar > Face Tracking
     MenuWrapper* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
     {

@@ -36,6 +36,8 @@ public:
     virtual QString getDefaultMappingConfig() const override;
     virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
     virtual void focusOutEvent() override;
+
+    bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
     
     Joystick() : InputDevice("GamePad") {}
     ~Joystick();
@@ -52,7 +54,10 @@ public:
 private:
     SDL_GameController* _sdlGameController;
     SDL_Joystick* _sdlJoystick;
+    SDL_Haptic* _sdlHaptic;
     SDL_JoystickID _instanceId;
+
+    mutable controller::Input::NamedVector _availableInputs;
 };
 
 #endif // hifi_Joystick_h
