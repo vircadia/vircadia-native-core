@@ -215,6 +215,10 @@ ModalWindow {
                 openButton.text = root.selectDirectory && row === -1 ? "Choose" : "Open"
 
                 if (row === -1) {
+                    if (!root.selectDirectory) {
+                        currentSelection.text = "";
+                        currentSelectionIsFolder = false;
+                    }
                     return;
                 }
 
