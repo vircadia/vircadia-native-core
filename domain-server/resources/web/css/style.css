@@ -137,9 +137,37 @@ table[name="security.standard_permissions"] .headers td + td, table[name="securi
     text-align: center;
 }
 
+.tooltip.top .tooltip-arrow {
+    border-top-color: #fff;
+    border-width: 10px 10px 0;
+    margin-bottom: -5px;
+}
+
+.tooltip-inner {
+    padding: 20px 20px 10px 20px;
+    font-size: 14px;
+    text-align: left;
+    color: #333;
+    background-color: #fff;
+    box-shadow: 0 3px 8px 8px #e8e8e8;
+}
+
+.tooltip.in {
+    opacity: 1;
+}
+
+.tooltip-inner ul {
+    padding-left: 0;
+    margin-bottom: 15px;
+}
+
+.tooltip-inner li {
+    list-style-type: none;
+    margin-bottom: 5px;
+}
+
 #security .tooltip-inner {
     max-width: 520px;
-    text-align: left;
 }
 
 #xs-advanced-container {
