@@ -317,9 +317,19 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (glm::length2(_serverVelocity) > 0.0f) {
         _serverVelocity += _serverAcceleration * dt;
         _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
-        // NOTE: we ignore the second-order acceleration term when integrating
-        // the position forward because Bullet also does this.
-        _serverPosition += dt * _serverVelocity;
+
+        // the entity-server doesn't know where avatars are, so it doesn't do simple extrapolation for children of
+        // avatars.  We are trying to guess what values the entity server has, so we don't do it here, either.  See
+        // related code in EntitySimulation::moveSimpleKinematics.
+        bool ancestryIsKnown;
+        _entity->getMaximumAACube(ancestryIsKnown);
+        bool hasAvatarAncestor = _entity->hasAncestorOfType(NestableType::Avatar);
+
+        if (ancestryIsKnown && !hasAvatarAncestor) {
+            // NOTE: we ignore the second-order acceleration term when integrating
+            // the position forward because Bullet also does this.
+            _serverPosition += dt * _serverVelocity;
+        }
     }
 
     if (_entity->actionDataNeedsTransmit()) {

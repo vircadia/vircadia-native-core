@@ -263,7 +263,7 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
         EntityItemPointer entity = *itemItr;
 
         // The entity-server doesn't know where avatars are, so don't attempt to do simple extrapolation for
-        // children of avatars.
+        // children of avatars.  See related code in EntityMotionState::remoteSimulationOutOfSync.
         bool ancestryIsKnown;
         entity->getMaximumAACube(ancestryIsKnown);
         bool hasAvatarAncestor = entity->hasAncestorOfType(NestableType::Avatar);
