@@ -179,15 +179,15 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
         }
         break;
         case SHAPE_TYPE_COMPOUND: {
-            const QVector<QVector<glm::vec3>>& points = info.getPoints();
+            const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {
-                shape = createConvexHull(info.getPoints()[0]);
+                shape = createConvexHull(pointCollection[0]);
             } else {
                 auto compound = new btCompoundShape();
                 btTransform trans;
                 trans.setIdentity();
-                foreach (QVector<glm::vec3> hullPoints, points) {
+                foreach (const ShapeInfo::PointList& hullPoints, pointCollection) {
                     btConvexHullShape* hull = createConvexHull(hullPoints);
                     compound->addChildShape (trans, hull);
                 }

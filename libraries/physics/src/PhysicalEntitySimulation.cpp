@@ -217,7 +217,7 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
         } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
-            int numPoints = shapeInfo.getMaxNumPoints();
+            int numPoints = shapeInfo.getLargestSubshapePointCount();
             if (numPoints > MAX_HULL_POINTS) {
                 qWarning() << "convex hull with" << numPoints
                     << "points for entity" << entity->getName()

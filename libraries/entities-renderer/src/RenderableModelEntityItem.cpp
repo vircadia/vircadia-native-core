@@ -608,8 +608,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         const FBXGeometry& renderGeometry = _model->getFBXGeometry();
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
-        QVector<QVector<glm::vec3>>& points = info.getPoints();
-        points.clear();
+        ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+        pointCollection.clear();
         uint32_t i = 0;
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
@@ -619,8 +619,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
-                points.push_back(QVector<glm::vec3>());
-                QVector<glm::vec3>& pointsInPart = points[i];
+                pointCollection.push_back(QVector<glm::vec3>());
+                ShapeInfo::PointList& pointsInPart = pointCollection[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
                 uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
@@ -664,7 +664,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                 if (pointsInPart.size() == 0) {
                     qCDebug(entitiesrenderer) << "Warning -- meshPart has no faces";
-                    points.pop_back();
+                    pointCollection.pop_back();
                     continue;
                 }
                 ++i;
@@ -681,16 +681,16 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;
-        for (int i = 0; i < points.size(); i++) {
-            for (int j = 0; j < points[i].size(); j++) {
+        for (int i = 0; i < pointCollection.size(); i++) {
+            for (int j = 0; j < pointCollection[i].size(); j++) {
                 // compensate for registration
-                points[i][j] += _model->getOffset();
+                pointCollection[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
-                points[i][j] *= scale;
+                pointCollection[i][j] *= scale;
                 // this next subtraction is done so we can give info the offset, which will cause
                 // the shape-key to change.
-                points[i][j] -= _model->getOffset();
-                box += points[i][j];
+                pointCollection[i][j] -= _model->getOffset();
+                box += pointCollection[i][j];
             }
         }
 

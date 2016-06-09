@@ -16,9 +16,13 @@
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
 void ShapeInfo::clear() {
-    _type = SHAPE_TYPE_NONE;
-    _halfExtents = _offset = glm::vec3(0.0f);
+    _url.clear();
+    _pointCollection.clear();
+    _triangleIndices.clear();
+    _halfExtents = glm::vec3(0.0f);
+    _offset = glm::vec3(0.0f);
     _doubleHashKey.clear();
+    _type = SHAPE_TYPE_NONE;
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
@@ -61,9 +65,9 @@ void ShapeInfo::setSphere(float radius) {
     _doubleHashKey.clear();
 }
 
-void ShapeInfo::setConvexHulls(const QVector<QVector<glm::vec3>>& points) {
-    _points = points;
-    _type = (_points.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
+void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollection) {
+    _pointCollection = pointCollection;
+    _type = (_pointCollection.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
     _doubleHashKey.clear();
 }
 
@@ -83,15 +87,15 @@ uint32_t ShapeInfo::getNumSubShapes() const {
     if (_type == SHAPE_TYPE_NONE) {
         return 0;
     } else if (_type == SHAPE_TYPE_COMPOUND) {
-        return _points.size();
+        return _pointCollection.size();
     }
     return 1;
 }
 
-int ShapeInfo::getMaxNumPoints() const {
+int ShapeInfo::getLargestSubshapePointCount() const {
     int numPoints = 0;
-    for (int i = 0; i < _points.size(); ++i) {
-        int n = _points[i].size();
+    for (int i = 0; i < _pointCollection.size(); ++i) {
+        int n = _pointCollection[i].size();
         if (n > numPoints) {
             numPoints = n;
         }
@@ -187,23 +191,23 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         // TODO?: provide lookup table for hash/hash2 of _type rather than recompute?
         uint32_t primeIndex = 0;
         key.computeHash((uint32_t)_type, primeIndex++);
-    
-        // compute hash1 
+
+        // compute hash1
         uint32_t hash = key.getHash();
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
             hash ^= DoubleHashKey::hashFunction(
-                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f), 
+                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f),
                     primeIndex++);
             if (useOffset) {
                 hash ^= DoubleHashKey::hashFunction(
-                        (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f), 
+                        (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f),
                         primeIndex++);
             }
         }
         key.setHash(hash);
-    
+
         // compute hash2
         hash = key.getHash2();
         for (int j = 0; j < 3; ++j) {
@@ -224,14 +228,16 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         }
         key.setHash2(hash);
 
-        QString url = _url.toString();
-        if (!url.isEmpty()) {
-            // fold the urlHash into both parts
-            QByteArray baUrl = url.toLocal8Bit();
-            const char *cUrl = baUrl.data();
-            uint32_t urlHash = qChecksum(cUrl, baUrl.count());
-            key.setHash(key.getHash() ^ urlHash);
-            key.setHash2(key.getHash2() ^ urlHash);
+        if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_MESH) {
+            QString url = _url.toString();
+            if (!url.isEmpty()) {
+                // fold the urlHash into both parts
+                QByteArray baUrl = url.toLocal8Bit();
+                const char *cUrl = baUrl.data();
+                uint32_t urlHash = qChecksum(cUrl, baUrl.count());
+                key.setHash(key.getHash() ^ urlHash);
+                key.setHash2(key.getHash2() ^ urlHash);
+            }
         }
     }
     return _doubleHashKey;

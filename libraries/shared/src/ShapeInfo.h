@@ -38,18 +38,23 @@ enum ShapeType {
     SHAPE_TYPE_CYLINDER_X,
     SHAPE_TYPE_CYLINDER_Y,
     SHAPE_TYPE_CYLINDER_Z,
-    SHAPE_TYPE_STATIC_MESH
+    SHAPE_TYPE_MESH
 };
 
 class ShapeInfo {
 
 public:
+
+    using PointList = QVector<glm::vec3>;
+    using PointCollection = QVector<PointList>;
+    using TriangleIndices = QVector<uint32_t>;
+
     void clear();
 
     void setParams(ShapeType type, const glm::vec3& halfExtents, QString url="");
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
-    void setConvexHulls(const QVector<QVector<glm::vec3>>& points);
+    void setPointCollection(const PointCollection& pointCollection);
     void setCapsuleY(float radius, float halfHeight);
     void setOffset(const glm::vec3& offset);
 
@@ -58,12 +63,11 @@ public:
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
     const glm::vec3& getOffset() const { return _offset; }
 
-    QVector<QVector<glm::vec3>>& getPoints() { return _points; }
-    const QVector<QVector<glm::vec3>>& getPoints() const { return _points; }
+    PointCollection& getPointCollection() { return _pointCollection; }
+    const PointCollection& getPointCollection() const { return _pointCollection; }
     uint32_t getNumSubShapes() const;
 
-    void appendToPoints (const QVector<glm::vec3>& newPoints) { _points << newPoints; }
-    int getMaxNumPoints() const;
+    int getLargestSubshapePointCount() const;
 
     float computeVolume() const;
 
@@ -75,7 +79,8 @@ public:
 
 protected:
     QUrl _url; // url for model of convex collision hulls
-    QVector<QVector<glm::vec3>> _points; // points for convex collision hulls
+    PointCollection _pointCollection;
+    TriangleIndices _triangleIndices;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     glm::vec3 _offset = glm::vec3(0.0f);
     DoubleHashKey _doubleHashKey;
