@@ -1,6 +1,6 @@
-# 
+#
 #  FindSteamworks.cmake
-# 
+#
 #  Try to find the Steamworks controller library
 #
 #  This module defines the following variables
@@ -20,26 +20,10 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 
-set(STEAMWORKS_POSSIBLE_PATHS "/Users/clement/Downloads/steamworks_sdk_137/")
+include(SelectLibraryConfigurations)
+select_library_configurations(STEAMWORKS)
 
-find_path(STEAMWORKS_INCLUDE_DIRS
-    NAMES steam_api.h
-    PATH_SUFFIXES "public/steam"
-    PATHS ${STEAMWORKS_POSSIBLE_PATHS}
-)
-
-get_filename_component(STEAMWORKS_INCLUDE_DIR_NAME ${STEAMWORKS_INCLUDE_DIRS} NAME)
-if (STEAMWORKS_INCLUDE_DIR_NAME STREQUAL "steam")
-    get_filename_component(STEAMWORKS_INCLUDE_DIRS ${STEAMWORKS_INCLUDE_DIRS} PATH)
-else()
-    message(STATUS "Include directory not named steam, this will cause issues with include statements")
-endif()
-
-find_library(STEAMWORKS_LIBRARIES
-    NAMES libsteam_api.dylib
-    PATH_SUFFIXES "redistributable_bin/osx32"
-    PATHS ${STEAMWORKS_POSSIBLE_PATHS}
-)
-
-
-find_package_handle_standard_args(Steamworks DEFAULT_MSG STEAMWORKS_LIBRARIES STEAMWORKS_INCLUDE_DIRS)
+set(STEAMWORKS_REQUIREMENTS STEAMWORKS_INCLUDE_DIRS STEAMWORKS_LIBRARIES)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Steamworks DEFAULT_MSG STEAMWORKS_INCLUDE_DIRS STEAMWORKS_LIBRARIES)
+mark_as_advanced(STEAMWORKS_LIBRARIES STEAMWORKS_INCLUDE_DIRS STEAMWORKS_SEARCH_DIRS)
