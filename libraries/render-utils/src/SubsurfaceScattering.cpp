@@ -15,6 +15,8 @@
 
 #include "FramebufferCache.h"
 
+#include "subsurfaceScattering_makeLUT_frag.h"
+
 const int SubsurfaceScattering_FrameTransformSlot = 0;
 const int SubsurfaceScattering_ParamsSlot = 1;
 const int SubsurfaceScattering_DepthMapSlot = 0;
@@ -64,10 +66,10 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
     RenderArgs* args = renderContext->args;
 
     if (!_scatteringTable) {
-        _scatteringTable = SubsurfaceScattering::generatePreIntegratedScattering();
+        _scatteringTable = SubsurfaceScattering::generatePreIntegratedScattering(args);
     }
 
-    auto& pipeline = getScatteringPipeline();
+    auto pipeline = getScatteringPipeline();
 
 
 
@@ -101,8 +103,6 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 #include <algorithm>
 
 #define _PI 3.14159265358979523846
-#define HEIGHT 512
-#define WIDTH 512
 
 using namespace std;
 
@@ -124,7 +124,7 @@ vec3 scatter(double r) {
         { 7.4100, 0.078, 0.000, 0.000 }
     };
     static const int profileNum = 6;
-    vec3 ret; ret.x = 0.0; ret.y = 0.0; ret.z = 0.0;
+    vec3 ret(0.0);
     for (int i = 0; i < profileNum; i++) {
         double g = gaussian(profile[i][0] * 1.414f, r);
         ret.x += g * profile[i][1];
@@ -138,14 +138,15 @@ vec3 scatter(double r) {
 vec3 integrate(double cosTheta, double skinRadius) {
     // Angle from lighting direction.
     double theta = acos(cosTheta);
-    vec3 totalWeights; totalWeights.x = 0.0; totalWeights.y = 0.0; totalWeights.z = 0.0;
-    vec3 totalLight; totalLight.x = 0.0; totalLight.y = 0.0; totalLight.z = 0.0;
-    vec3 skinColour; skinColour.x = 1.0; skinColour.y = 1.0; skinColour.z = 1.0;
+    vec3 totalWeights(0.0);
+    vec3 totalLight(0.0);
+    vec3 skinColour(1.0);
 
     double a = -(_PI);
 
-    //const double inc = 0.001;
-    const double inc = 0.01;
+    double inc = 0.001;
+    if (cosTheta > 0)
+        inc = 0.01;
 
     while (a <= (_PI)) {
         double sampleAngle = theta + a;
@@ -159,9 +160,7 @@ vec3 integrate(double cosTheta, double skinRadius) {
         // Profile Weight.
         vec3 weights = scatter(sampleDist);
 
-        totalWeights.x += weights.x;
-        totalWeights.y += weights.y;
-        totalWeights.z += weights.z;
+        totalWeights += weights;
         totalLight.x += diffuse * weights.x * (skinColour.x * skinColour.x);
         totalLight.y += diffuse * weights.y * (skinColour.y * skinColour.y);
         totalLight.z += diffuse * weights.z * (skinColour.z * skinColour.z);
@@ -177,11 +176,18 @@ vec3 integrate(double cosTheta, double skinRadius) {
 }
 
 void diffuseScatter(gpu::TexturePointer& lut) {
-    for (int j = 0; j < HEIGHT; j++) {
-        for (int i = 0; i < WIDTH; i++) {
+    int width = lut->getWidth();
+    int height = lut->getHeight();
+    
+    const int COMPONENT_COUNT = 4;
+    std::vector<unsigned char> bytes(COMPONENT_COUNT * height * width);
+    
+    int index = 0;
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
             // Lookup by: x: NDotL y: 1 / r
-            float y = 2.0 * 1.0 / ((j + 1.0) / (double)HEIGHT);
-            float x = ((i / (double)WIDTH) * 2.0) - 1.0;
+            float y = 2.0 * 1.0 / ((j + 1.0) / (double)height);
+            float x = ((i / (double)width) * 2.0) - 1.0;
             vec3 val = integrate(x, y);
 
             // Convert to linear
@@ -197,24 +203,73 @@ void diffuseScatter(gpu::TexturePointer& lut) {
             valI[0] = (unsigned char)(val.x * 256.0);
             valI[1] = (unsigned char)(val.y * 256.0);
             valI[2] = (unsigned char)(val.z * 256.0);
-            //printf("%u %u %u\n", valI[0], valI[1], valI[2]);
-
-            // Write to file.
-       //     fwrite(valI, sizeof(unsigned char), 3, output_file);
+            
+            bytes[COMPONENT_COUNT * index] = valI[0];
+            bytes[COMPONENT_COUNT * index + 1] = valI[1];
+            bytes[COMPONENT_COUNT * index + 2] = valI[2];
+            bytes[COMPONENT_COUNT * index + 3] = 255.0;
+            
+            index++;
         }
-
-        printf("%.2lf%% Done...\n", (j / (float)HEIGHT) * 100.0f);
     }
+
+    lut->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, bytes.size(), bytes.data());
+}
+
+
+void diffuseScatterGPU(gpu::TexturePointer& profileMap, gpu::TexturePointer& lut, RenderArgs* args) {
+    int width = lut->getWidth();
+    int height = lut->getHeight();
+    
+    gpu::PipelinePointer makePipeline;
+    {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeLUT_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("profileMap"), 0));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+        gpu::Shader::makeProgram(*program, slotBindings);
+        
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        
+        // Stencil test the curvature pass for objects pixels only, not the background
+        //  state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        
+        makePipeline = gpu::Pipeline::create(program, state);
+    }
+
+    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    makeFramebuffer->setRenderBuffer(0, lut);
+    
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        
+        batch.setViewportTransform(glm::ivec4(0, 0, width, height));
+     
+        batch.setFramebuffer(makeFramebuffer);
+        batch.setPipeline(makePipeline);
+        batch.setResourceTexture(0, profileMap);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.setResourceTexture(0, nullptr);
+        batch.setPipeline(nullptr);
+        batch.setFramebuffer(nullptr);
+        
+    });
 }
 
 void diffuseProfile(gpu::TexturePointer& profile) {
-    std::vector<unsigned char> bytes(3 * HEIGHT * WIDTH);
-    int size = sizeof(unsigned char) * bytes.size();
+    int width = profile->getWidth();
+    int height = profile->getHeight();
+    
+    const int COMPONENT_COUNT = 4;
+    std::vector<unsigned char> bytes(COMPONENT_COUNT * height * width);
 
     int index = 0;
-    for (int j = 0; j < HEIGHT; j++) {
-        for (int i = 0; i < WIDTH; i++) {
-            float y = (double)(j + 1.0) / (double)HEIGHT;
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            float y = (double)(i + 1.0) / (double)width;
             vec3 val = scatter(y * 2.0f);
 
             // Convert to 24-bit image.
@@ -226,32 +281,31 @@ void diffuseProfile(gpu::TexturePointer& profile) {
             valI[1] = (unsigned char)(val.y * 255.0);
             valI[2] = (unsigned char)(val.z * 255.0);
 
-            bytes[3 * index] = valI[0];
-            bytes[3 * index + 1] = valI[1];
-            bytes[3 * index + 2] = valI[2];
-
-            // Write to file.
-          //  fwrite(valI, sizeof(unsigned char), 3, output_file);
+            bytes[COMPONENT_COUNT * index] = valI[0];
+            bytes[COMPONENT_COUNT * index + 1] = valI[1];
+            bytes[COMPONENT_COUNT * index + 2] = valI[2];
+            bytes[COMPONENT_COUNT * index + 3] = 255.0;
 
             index++;
         }
     }
 
     
-    profile->assignStoredMip(0, profile->getTexelFormat(), size, bytes.data());
+    profile->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, bytes.size(), bytes.data());
 }
 
-/*int main() {
-    diffuseScatter();
-    //diffuseProfile();
-}*/
 
 
+gpu::TexturePointer SubsurfaceScattering::generatePreIntegratedScattering(RenderArgs* args) {
+    
+    auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 128, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    diffuseProfile(profileMap);
 
-gpu::TexturePointer SubsurfaceScattering::generatePreIntegratedScattering() {
+    const int WIDTH = 128;
+    const int HEIGHT = 128;
     auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, WIDTH, HEIGHT));
-    //diffuseScatter(scatteringLUT);
-    diffuseProfile(scatteringLUT);
+ //   diffuseScatter(scatteringLUT);
+    diffuseScatterGPU(profileMap, scatteringLUT, args);
     return scatteringLUT;
 }
 

@@ -42,7 +42,7 @@ public:
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
 
 
-    static gpu::TexturePointer generatePreIntegratedScattering();
+    static gpu::TexturePointer generatePreIntegratedScattering(RenderArgs* args);
 
 private:
     typedef gpu::BufferView UniformBufferView;
