@@ -514,6 +514,14 @@
       "assignment-types": [6],
       "settings": [
         {
+          "name": "maxTmpLifetime",
+          "label": "Maximum Lifetime of Temporary Entities",
+          "help": "The maximum number of seconds for the lifetime of an entity which will be considered \"temporary\".",
+          "placeholder": "3600",
+          "default": "3600",
+          "advanced": true
+        },
+        {
           "name": "persistFilePath",
           "label": "Entities File Path",
           "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",

@@ -26,7 +26,7 @@
 #include "LogHandler.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
-static const float MAX_TMP_ENTITY_LIFETIME = 10 * 60; // 10 minutes
+const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
 
 
 EntityTree::EntityTree(bool shouldReaverage) :
@@ -319,10 +319,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     return true;
 }
 
-bool permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp) {
+bool EntityTree::permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp) {
     float lifeTime = properties.getLifetime();
 
-    if (lifeTime == 0.0f || lifeTime > MAX_TMP_ENTITY_LIFETIME) {
+    if (lifeTime == 0.0f || lifeTime > _maxTmpEntityLifetime) {
         // this is an attempt to rez a permanent entity.
         if (!canRez) {
             return false;
