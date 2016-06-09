@@ -1,0 +1,65 @@
+down sparkle
+
+{
+    "color": {
+        "red": "#",
+        "green": "c",
+        "blue": "f"
+    },
+    "isEmitting": 1,
+    "maxParticles": 1000,
+    "lifespan": 2,
+    "emitRate": 10,
+    "emitSpeed": 0.1,
+    "speedSpread": 0.6,
+    "emitOrientation": {
+        "x": 0.8,
+        "y": 0,
+        "z": 0,
+        "w": 0.7071068286895752
+    },
+    "emitDimensions": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    },
+    "polarStart": 0,
+    "polarFinish": 0,
+    "azimuthStart": -3.1415927410125732,
+    "azimuthFinish": 3.1415927410125732,
+    "emitAcceleration": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+    },
+    "accelerationSpread": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+    },
+    "particleRadius": 0.02500000037252903,
+    "radiusSpread": 0,
+    "radiusStart": 0.079,
+    "radiusFinish": 0.053,
+    "colorSpread": {
+        "red": "#",
+        "green": "e",
+        "blue": "8"
+    },
+    "colorStart": {
+        "red": 255,
+        "green": 255,
+        "blue": 255
+    },
+    "colorFinish": {
+        "red": "#",
+        "green": "d",
+        "blue": "4"
+    },
+    "alpha": 1,
+    "alphaSpread": 0,
+    "alphaStart": 1,
+    "alphaFinish": 0,
+    "emitterShouldTrail": 1,
+    "textures": "atp:/teleport/sparkle1.png"
+}

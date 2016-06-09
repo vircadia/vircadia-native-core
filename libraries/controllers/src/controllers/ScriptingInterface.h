@@ -84,6 +84,11 @@ namespace controller {
         Q_INVOKABLE Pose getPoseValue(const int& source) const;
         Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
 
+        Q_INVOKABLE bool triggerHapticPulse(float strength, float duration, controller::Hand hand = BOTH) const;
+        Q_INVOKABLE bool triggerShortHapticPulse(float strength, controller::Hand hand = BOTH) const;
+        Q_INVOKABLE bool triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand = BOTH) const;
+        Q_INVOKABLE bool triggerShortHapticPulseOnDevice(unsigned int device, float strength, controller::Hand hand = BOTH) const;
+
         Q_INVOKABLE QObject* newMapping(const QString& mappingName = QUuid::createUuid().toString());
         Q_INVOKABLE void enableMapping(const QString& mappingName, bool enable = true);
         Q_INVOKABLE void disableMapping(const QString& mappingName) { enableMapping(mappingName, false); }
