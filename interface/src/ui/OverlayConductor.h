@@ -34,7 +34,6 @@ private:
     bool _enabled { false };
     bool _driving { false };
     quint64 _timeInPotentialMode { 0 };
-    bool _wantsOverlays { true };
 };
 
 #endif

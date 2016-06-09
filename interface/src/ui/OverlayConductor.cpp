@@ -71,9 +71,7 @@ void OverlayConductor::update(float dt) {
         } else if ((usecTimestampNow() - _timeInPotentialMode) > (nowDriving ? REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE : REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE)) {
             _timeInPotentialMode = 0; // a real transition
             bool wantsOverlays = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-            if (wantsOverlays) {
-                setEnabled(!nowDriving);
-            }
+            setEnabled(!nowDriving && wantsOverlays);
             _driving = nowDriving;
         }
 
