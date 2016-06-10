@@ -16,6 +16,7 @@ ScrollingWindow {
     destroyOnHidden: true
     width: 800
     height: 600
+    property alias url: webview.url
     property alias webView: webview
     x: 100
     y: 100
