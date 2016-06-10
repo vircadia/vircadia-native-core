@@ -47,7 +47,7 @@ bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.rawRenderPose = _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
     withRenderThreadLock([&]{
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
-    })
+    });
     return true;
 }
 
