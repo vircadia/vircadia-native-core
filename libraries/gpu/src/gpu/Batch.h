@@ -453,7 +453,7 @@ public:
     Params _params;
     Bytes _data;
 
-    // SSBO class... layout MUST match the layout in TransformCamera.slh
+    // SSBO class... layout MUST match the layout in Transform.slh
     class TransformObject {
     public:
         Mat4 _model;
