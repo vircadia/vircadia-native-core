@@ -1,0 +1,114 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/8/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+
+
+
+vec2 signNotZero(vec2 v) {
+    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
+}
+
+vec3 oct_to_float32x3(in vec2 e) {
+    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+    if (v.z < 0) {
+        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+    }
+    return normalize(v);
+}
+
+vec2 unorm8x3_to_snorm12x2(vec3 u) {
+    u *= 255.0;
+    u.y *= (1.0 / 16.0);
+    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
+    fract(u.y) * (16.0 * 256.0) + u.z);
+    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
+}
+vec3 unpackNormal(in vec3 p) {
+    return oct_to_float32x3(unorm8x3_to_snorm12x2(p));
+}
+
+vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
+    return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
+}
+
+uniform sampler2D normalMap;
+
+vec3 getRawNormal(vec2 texcoord) {
+    return texture(normalMap, texcoord).xyz;
+}
+
+vec3 getWorldNormal(vec2 texcoord) {
+    vec3 rawNormal = getRawNormal(texcoord);
+    return unpackNormal(rawNormal);
+}
+
+
+// the curvature texture
+uniform sampler2D curvatureMap;
+
+vec4 fetchCurvature(vec2 texcoord) {
+    return texture(curvatureMap, texcoord);
+}
+
+
+uniform sampler2D scatteringLUT;
+
+vec3 fetchBRDF(float curvature, float LdotN) {
+    return texture(scatteringLUT, vec2(curvature, LdotN)).xyz;
+}
+
+// Scattering parameters
+float normalBendFactor = 1.0f;
+float normalBendR = 1.5f;
+float normalBendG = 0.8f;
+float normalBendB = 0.3f;
+float scatterBase = 0.012f;
+float scatterCurve = 0.25f;
+
+in vec2 varTexCoord0;
+out vec4 _fragColor;
+
+void main(void) {
+  //  DeferredTransform deferredTransform = getDeferredTransform();
+ //   DeferredFragment frag = unpackDeferredFragment(deferredTransform, varTexCoord0);
+
+    vec3 normal = getWorldNormal(varTexCoord0);
+    vec4 diffusedCurvature = fetchCurvature(varTexCoord0);
+
+    // --> Calculate bent normals.
+    vec3 bentNormalN = normal;
+    vec3 bentNormalR = normalize( (diffusedCurvature.xyz - 0.5f) * 2.0f );
+    float curvature = abs(diffusedCurvature.w * 2 - 1) * 0.5f * scatterCurve + scatterBase;
+
+       // --> Calculate the light vector.
+    vec3 lightVector = normalize(vec3(-1.0f, -1.0f, -1.0f)); //normalize(lightPos - sourcePos.xyz);
+    
+
+        // --> Optimise for skin diffusion profile.
+        float diffuseBlendedR = dot(normalize(mix( bentNormalN.xyz, bentNormalN, normalBendR * normalBendFactor)), lightVector);
+        float diffuseBlendedG = dot(normalize(mix(normal.xyz, bentNormalN, normalBendG * normalBendFactor)), lightVector);
+        float diffuseBlendedB = dot(normalize(mix(normal.xyz, bentNormalN, normalBendB * normalBendFactor)), lightVector);
+
+    
+    // --> Look up the pre-integrated curvature-dependent BDRF textures
+    vec3 bdrfR = fetchBRDF(diffuseBlendedR, curvature);
+    vec3 bdrfG = fetchBRDF(diffuseBlendedG, curvature);
+    vec3 bdrfB = fetchBRDF(diffuseBlendedB, curvature);
+    vec3 bdrf = vec3( bdrfR.x, bdrfG.y, bdrfB.z);
+     bdrf *= bdrf;
+    _fragColor = vec4(vec3(bdrf.xyz), 1.0);
+}
+
+

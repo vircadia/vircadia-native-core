@@ -16,11 +16,13 @@
 #include "FramebufferCache.h"
 
 #include "subsurfaceScattering_makeLUT_frag.h"
+#include "subsurfaceScattering_drawScattering_frag.h"
 
 const int SubsurfaceScattering_FrameTransformSlot = 0;
 const int SubsurfaceScattering_ParamsSlot = 1;
-const int SubsurfaceScattering_DepthMapSlot = 0;
+const int SubsurfaceScattering_CurvatureMapSlot = 0;
 const int SubsurfaceScattering_NormalMapSlot = 1;
+const int SubsurfaceScattering_ScatteringTableSlot = 2;
 
 SubsurfaceScattering::SubsurfaceScattering() {
     Parameters parameters;
@@ -39,12 +41,17 @@ void SubsurfaceScattering::configure(const Config& config) {
 gpu::PipelinePointer SubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
+     //   auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
+        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_drawScattering_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-       // slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
-       // slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), SubsurfaceScattering_FrameTransformSlot));
+        // slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+
+        slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), SubsurfaceScattering_CurvatureMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), SubsurfaceScattering_NormalMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SubsurfaceScattering_ScatteringTableSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -71,25 +78,23 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
     auto pipeline = getScatteringPipeline();
 
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
 
+//    if (curvatureFramebuffer->getRenderBuffer(0))
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(args->_viewport >> 1);
-    /*    batch.setProjectionTransform(glm::mat4());
-        batch.setViewTransform(Transform());
 
-        Transform model;
-        model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
-        model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
-        batch.setModelTransform(model);*/
+        batch.setUniformBuffer(SubsurfaceScattering_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
 
         batch.setPipeline(pipeline);
-        batch.setResourceTexture(0, _scatteringTable);
+        batch.setResourceTexture(SubsurfaceScattering_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(SubsurfaceScattering_CurvatureMapSlot, framebufferCache->getCurvatureTexture());
+        batch.setResourceTexture(SubsurfaceScattering_ScatteringTableSlot, _scatteringTable);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
-
 }
 
 
@@ -144,7 +149,7 @@ vec3 integrate(double cosTheta, double skinRadius) {
 
     double a = -(_PI);
 
-    double inc = 0.1;
+    double inc = 0.01;
 
     while (a <= (_PI)) {
         double sampleAngle = theta + a;
@@ -302,8 +307,8 @@ gpu::TexturePointer SubsurfaceScattering::generatePreIntegratedScattering(Render
     const int WIDTH = 128;
     const int HEIGHT = 128;
     auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, WIDTH, HEIGHT));
-   // diffuseScatter(scatteringLUT);
-    diffuseScatterGPU(profileMap, scatteringLUT, args);
+   diffuseScatter(scatteringLUT);
+    //diffuseScatterGPU(profileMap, scatteringLUT, args);
     return scatteringLUT;
 }
 

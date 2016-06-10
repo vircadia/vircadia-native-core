@@ -10,7 +10,7 @@
 //
 
 
-#define _PI 3.14159265358979523846
+const float _PI = 3.14159265358979523846;
 
 
 uniform sampler2D profileMap;
@@ -25,7 +25,6 @@ vec3 integrate(float cosTheta, float skinRadius) {
    float theta = acos(cosTheta);
    vec3 totalWeights = vec3(0.0);
    vec3 totalLight= vec3(0.0);
-   vec3 skinColour = vec3(1.0);
    
    float a = -(_PI);
    
@@ -33,7 +32,9 @@ vec3 integrate(float cosTheta, float skinRadius) {
    
    while (a <= (_PI)) {
        float sampleAngle = theta + a;
-       float diffuse = clamp(cos(sampleAngle), 0.0, 1.0);
+       float diffuse = cos(sampleAngle);
+        if (diffuse < 0.0) diffuse = 0.0;
+        if (diffuse > 1.0) diffuse = 1.0;
 
        // Distance.
        float sampleDist = abs(2.0 * skinRadius * sin(a * 0.5));
@@ -42,13 +43,15 @@ vec3 integrate(float cosTheta, float skinRadius) {
        vec3 weights = scatter(sampleDist);
        
        totalWeights += weights;
-       totalLight += diffuse * weights /** (skinColour * skinColour)*/;
+       totalLight += diffuse * weights;
        a += inc;
    }
    
-   vec3 result = sqrt(totalLight / totalWeights);
+   vec3 result = (totalLight / totalWeights);
    
-   return min(result, vec3(1.0));
+   return min(sqrt(result), vec3(1.0));
+
+   return scatter(skinRadius);
 }
 
 in vec2 varTexCoord0;
@@ -56,6 +59,6 @@ out vec4 outFragColor;
 
 void main(void) {
 
-    outFragColor = vec4(integrate(varTexCoord0.x * 2.0 - 1, 2.0 * varTexCoord0.y), 1.0);
+    outFragColor = vec4(integrate(varTexCoord0.x * 2.0 - 1.0, 2.0 / varTexCoord0.y), 1.0);
 }
 
