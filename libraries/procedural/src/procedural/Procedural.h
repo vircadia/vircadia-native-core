@@ -57,7 +57,6 @@ public:
         SCALE,
         POSITION,
         ORIENTATION,
-        EYE_POSITION,
         CHANNEL_RESOLUTION,
         NUM_STANDARD_UNIFORMS
     };

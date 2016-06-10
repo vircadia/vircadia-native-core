@@ -19,7 +19,7 @@
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
 
-#include "ProceduralShaders.h"
+#include "ProceduralCommon_frag.h"
 
 // Userdata parsing constants
 static const QString PROCEDURAL_USER_DATA_KEY = "ProceduralEntity";
@@ -40,7 +40,6 @@ static const std::string STANDARD_UNIFORM_NAMES[Procedural::NUM_STANDARD_UNIFORM
     "iWorldScale",
     "iWorldPosition",
     "iWorldOrientation",
-    "iWorldEyePosition",
     "iChannelResolution"
 };
 
@@ -231,7 +230,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         std::string fragmentShaderSource = _fragmentSource;
         size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
         if (replaceIndex != std::string::npos) {
-            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), SHADER_COMMON);
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag);
         }
 
         replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);
@@ -421,14 +420,6 @@ void Procedural::setupUniforms() {
             batch._glUniform(_standardUniformSlots[POSITION], _entityPosition);
         });
     }
-
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[EYE_POSITION]) {
-        // FIXME move into the 'set once' section, since this doesn't change over time
-        _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[EYE_POSITION], _eyePos);
-        });
-    }
-
 }
 
 void Procedural::setupChannels(bool shouldCreate) {

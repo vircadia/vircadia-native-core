@@ -1,3 +1,5 @@
+<@include gpu/Config.slh@>
+//  Generated on <$_SCRIBE_DATE$>
 //
 //  Created by Bradley Austin Davis on 2015/09/05
 //  Copyright 2013-2015 High Fidelity, Inc.
@@ -17,8 +19,8 @@
 //               https://github.com/ashima/webgl-noise
 //
 
-
-const std::string SHADER_COMMON = R"SHADER(
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
 
 float mod289(float x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0; 
@@ -262,11 +264,6 @@ float snoise(vec2 v) {
     return 130.0 * dot(m, g);
 }
 
-// shader playback time (in seconds)
-uniform float iGlobalTime;
-// the dimensions of the object being rendered
-uniform vec3 iWorldScale;            
-
 #define PROCEDURAL 1
 
 //PROCEDURAL_VERSION
@@ -286,11 +283,12 @@ const float iSampleRate = 1.0;
 const vec4 iChannelTime = vec4(0.0);
 
 
+uniform float iGlobalTime;                  // shader playback time (in seconds)
 uniform vec4 iDate;
 uniform int iFrameCount;
-uniform vec3 iWorldPosition;
-uniform mat3 iWorldOrientation;
-uniform vec3 iWorldEyePosition;
+uniform vec3 iWorldPosition;                // the position of the object being rendered
+uniform vec3 iWorldScale;                   // the dimensions of the object being rendered
+uniform mat3 iWorldOrientation;             // the orientation of the object being rendered
 uniform vec3 iChannelResolution[4];
 uniform sampler2D iChannel0;
 uniform sampler2D iChannel1;
@@ -298,5 +296,3 @@ uniform sampler2D iChannel2;
 uniform sampler2D iChannel3;
 
 #endif
-
-)SHADER";
