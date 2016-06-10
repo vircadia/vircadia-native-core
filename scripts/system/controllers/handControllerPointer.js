@@ -305,13 +305,19 @@ var leftTrigger = new Trigger();
 var rightTrigger = new Trigger();
 var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
+var LEFT_HUD_LASER = 1;
+var RIGHT_HUD_LASER = 2;
+var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
+var activeHudLaser = RIGHT_HUD_LASER;
 function toggleHand() { // unequivocally switch which hand controls mouse position
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
         activeTrigger = leftTrigger;
+        activeHudLaser = LEFT_HUD_LASER;
     } else {
         activeHand = Controller.Standard.RightHand;
         activeTrigger = rightTrigger;
+        activeHudLaser = RIGHT_HUD_LASER;
     }
 }
 function makeToggleAction(hand) { // return a function(0|1) that makes the specified hand control mouse when 1
@@ -342,6 +348,7 @@ clickMapping.enable();
 // Same properties as handControllerGrab search sphere
 var BALL_SIZE = 0.011;
 var BALL_ALPHA = 0.5;
+var LASER_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: BALL_ALPHA};
 var fakeProjectionBall = Overlays.addOverlay("sphere", {
     size: 5 * BALL_SIZE,
     color: {red: 255, green: 10, blue: 10},
@@ -356,9 +363,24 @@ Script.scriptEnding.connect(function () {
     overlays.forEach(Overlays.deleteOverlay);
 });
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
+var systemLaserOn = false;
+var SYSTEM_LASER_DIRECTION = Vec3.normalize({x: 0, y: -1, z: -1}); // Guessing 45 degrees.
+function clearSystemLaser() {
+    if (!systemLaserOn) {
+        return;
+    }
+    print('FIXME remove: disableHandLasers', BOTH_HUD_LASERS);
+    HMD.disableHandLasers(BOTH_HUD_LASERS);
+    systemLaserOn = false;
+}
 function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
     if (!optionalEnableClicks) {
         expireMouseCursor();
+        clearSystemLaser();
+    } else if (!systemLaserOn) {
+        print('FIXME remove: setHandLasers', activeHudLaser, true, JSON.stringify(LASER_COLOR_XYZW), JSON.stringify(SYSTEM_LASER_DIRECTION));
+        HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
+        systemLaserOn = true;
     }
     if (!visualizationIsShowing) {
         return;
@@ -371,6 +393,7 @@ function turnOffVisualization(optionalEnableClicks) { // because we're showing c
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
 function updateVisualization(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
     ignore(controllerPosition, controllerDirection, hudPosition2d);
+    clearSystemLaser();
     // Show an indication of where the cursor will appear when crossing a HUD element,
     // and where in-world clicking will occur.
     //
