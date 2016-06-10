@@ -655,6 +655,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
+    // you might think we could just do this in NodeList but we only want this connection for Interface
+    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
+
     // connect to appropriate slots on AccountManager
     auto accountManager = DependencyManager::get<AccountManager>();
 
