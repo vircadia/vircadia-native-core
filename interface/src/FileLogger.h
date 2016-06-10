@@ -28,6 +28,7 @@ public:
     virtual void addMessage(const QString&) override;
     virtual QString getLogData() override;
     virtual void locateLog() override;
+    void sync();
 
 signals:
     void rollingLogFile(QString newFilename);
