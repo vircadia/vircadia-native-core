@@ -19,21 +19,21 @@ public:
     void update(float dt);
     void setEnabled(bool enable);
     bool getEnabled() const;
-    bool shouldCenterUI() const;
 
 private:
-    void updateMode();
+    bool headOutsideOverlay() const;
+    bool avatarHasDriveInput() const;
+    bool shouldShowOverlay() const;
+    bool shouldRecenterOnFadeOut() const;
+    void centerUI();
 
-    enum Mode {
-        FLAT,
-        SITTING,
-        STANDING
-    };
-
-    Mode _mode { FLAT };
+    quint64 _fadeOutTime { 0 };
     bool _enabled { false };
-    bool _driving { false };
-    quint64 _timeInPotentialMode { 0 };
+    bool _hmdMode { false };
+
+    mutable quint64 _desiredDrivingTimer { 0 };
+    mutable bool _desiredDriving { false };
+    mutable bool _currentDriving { false };
 };
 
 #endif
