@@ -5144,13 +5144,6 @@ void Application::updateDisplayMode() {
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::outputDeviceLost, [this, displayPluginName] {
-                PluginManager::getInstance()->disableDisplayPlugin(displayPluginName);
-                auto menu = Menu::getInstance();
-                if (menu->menuItemExists(MenuOption::OutputMenu, displayPluginName)) {
-                    menu->removeMenuItem(MenuOption::OutputMenu, displayPluginName);
-                }
-            });
             first = false;
         }
 
