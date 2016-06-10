@@ -1430,6 +1430,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     QVariantList entitiesQList = map["Entities"].toList();
     QScriptEngine scriptEngine;
 
+    if (entitiesQList.length() == 0) {
+        // Empty map or invalidly formed file.
+        return false;
+    }
+
+    bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
         QVariantMap entityMap = entityVariant.toMap();
@@ -1447,9 +1453,10 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
+            success = false;
         }
     }
-    return true;
+    return success;
 }
 
 void EntityTree::resetClientEditStats() {
