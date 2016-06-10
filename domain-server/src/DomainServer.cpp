@@ -318,16 +318,11 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    // This implements a special case that handles OLD clients which don't know how to negotiate matching
-    // protocol versions. We know these clients will sent DomainConnectRequest with older versions. We also
-    // know these clients will show a warning dialog if they get an EntityData with a protocol version they
-    // don't understand, so we can send them an empty EntityData with our latest version and they will
-    // warn the user that the protocol is not compatible
-    if (headerType == PacketType::DomainConnectRequest &&
-        headerVersion < static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
-        auto packetWithBadVersion = NLPacket::create(PacketType::EntityData);
-        nodeList->sendPacket(std::move(packetWithBadVersion), packet.getSenderSockAddr());
-        return false;
+    // if this is a mismatching connect packet, we can't simply drop it on the floor
+    // send back a packet to the interface that tells them we refuse connection for a mismatch
+    if (headerType == PacketType::DomainConnectRequest
+        && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
+        DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
     }
 
     // let the normal nodeList implementation handle all other packets.
