@@ -408,9 +408,11 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
         }
     });
     // FIXME defer to a child class plugin to determine if hand lasers are actually 
+    // available based on the presence or absence of hand controllers
     return true;
 }
 
+// FIXME try to consolidate the duplication of logic between this function and a similar one in CompsitorHelper.
 static float calculateRayUiCollisionDistance(const glm::mat4& headPose, const glm::vec3& position, const glm::vec3& direction) {
     auto relativePosition4 = glm::inverse(headPose) * vec4(position, 1);
     auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
@@ -418,6 +420,7 @@ static float calculateRayUiCollisionDistance(const glm::mat4& headPose, const gl
     if (glm::abs(glm::length2(relativeDirection) - 1.0f) > EPSILON) {
         relativeDirection = glm::normalize(relativeDirection);
     }
+    // FIXME fetch the actual UI radius from... somewhere?
     float uiRadius = 1.0f;
     float instersectionDistance;
     if (!glm::intersectRaySphere(relativePosition, relativeDirection, vec3(0), uiRadius * uiRadius, instersectionDistance)) {

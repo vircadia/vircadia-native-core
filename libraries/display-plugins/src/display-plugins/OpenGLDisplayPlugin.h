@@ -152,7 +152,7 @@ protected:
     }
 
 private:
-    // Any resource shared by the main thread and the presntaion thread must 
+    // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     ProgramPtr _activeProgram;
