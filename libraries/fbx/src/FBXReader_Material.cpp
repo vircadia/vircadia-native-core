@@ -186,6 +186,14 @@ void FBXReader::consolidateFBXMaterials() {
 
         FBXTexture occlusionTexture;
         QString occlusionTextureID = occlusionTextures.value(material.materialID);
+        if (occlusionTextureID.isNull()) {
+            // 2nd chance
+            // For blender we use the ambient factor texture as AOMap ONLY if the ambientFactor value is > 0.0
+            if (material.ambientFactor > 0.0f) {
+                occlusionTextureID = ambientFactorTextures.value(material.materialID);
+            }
+        }
+
         if (!occlusionTextureID.isNull()) {
             occlusionTexture = getTexture(occlusionTextureID);
             detectDifferentUVs |= (occlusionTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
@@ -198,6 +206,14 @@ void FBXReader::consolidateFBXMaterials() {
 
         FBXTexture ambientTexture;
         QString ambientTextureID = ambientTextures.value(material.materialID);
+        if (ambientTextureID.isNull()) {
+            // 2nd chance
+            // For blender we use the ambient factor texture as Lightmap ONLY if the ambientFactor value is set to 0
+            if (material.ambientFactor == 0.0f) {
+                ambientTextureID = ambientFactorTextures.value(material.materialID);
+            }
+        }
+        
         if (_loadLightmaps && !ambientTextureID.isNull()) {
             ambientTexture = getTexture(ambientTextureID);
             detectDifferentUVs |= (ambientTexture.texcoordSet != 0) || (!ambientTexture.transform.isIdentity());

@@ -26,7 +26,7 @@ out vec4 _fragColor;
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
