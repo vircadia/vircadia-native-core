@@ -130,16 +130,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->float { return myAvatar->getLeanScale(); };
-        auto setter = [=](float value) { myAvatar->setLeanScale(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Lean scale (applies to Faceshift users)", getter, setter);
-        preference->setMin(0);
-        preference->setMax(99.9f);
-        preference->setDecimals(2);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScaleVerbose(value); }; // The hell?
         auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);

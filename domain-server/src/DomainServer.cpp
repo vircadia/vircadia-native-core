@@ -94,6 +94,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
     
+    // update the metadata when a user (dis)connects
+    connect(this, &DomainServer::userConnected, &_metadata, &DomainMetadata::usersChanged);
+    connect(this, &DomainServer::userDisconnected, &_metadata, &DomainMetadata::usersChanged);
+
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
@@ -112,6 +116,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         optionallyGetTemporaryName(args);
     }
+
+    // update the metadata with current descriptors
+    _metadata.setDescriptors(_settingsManager.getSettingsMap());
 }
 
 DomainServer::~DomainServer() {
@@ -767,12 +774,16 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
 }
 
 void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
-    
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
+
     // reply back to the user with a PacketType::DomainList
     sendDomainListToNode(newNode, nodeData->getSendingSockAddr());
-    
+
+    // if this node is a user (unassigned Agent), signal
+    if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
+        emit userConnected();
+    }
+
     // send out this node to our other connected nodes
     broadcastNewNode(newNode);
 }
@@ -1067,62 +1078,39 @@ void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr)
     sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
 }
 
-
 void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
-    const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     const QUuid& domainID = nodeList->getSessionUUID();
 
-    // setup the domain object to send to the data server
-    const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
-    const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
-
+    // Setup the domain object to send to the data server
     QJsonObject domainObject;
+
     if (!networkAddress.isEmpty()) {
+        static const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
         domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
     }
 
+    static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
-    // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
-    const QString RESTRICTED_ACCESS_FLAG = "restricted";
-
+    // Add a flag to indicate if this domain uses restricted access -
+    // for now that will exclude it from listings
+    static const QString RESTRICTED_ACCESS_FLAG = "restricted";
     domainObject[RESTRICTED_ACCESS_FLAG] =
         _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
 
-    // figure out the breakdown of currently connected interface clients
-    int numConnectedUnassigned = 0;
-    QJsonObject userHostnames;
-
-    static const QString DEFAULT_HOSTNAME = "*";
-
-    nodeList->eachNode([&numConnectedUnassigned, &userHostnames](const SharedNodePointer& node) {
-        if (node->getLinkedData()) {
-            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
-
-            if (!nodeData->wasAssigned()) {
-                ++numConnectedUnassigned;
-
-                // increment the count for this hostname (or the default if we don't have one)
-                auto hostname = nodeData->getPlaceName().isEmpty() ? DEFAULT_HOSTNAME : nodeData->getPlaceName();
-                userHostnames[hostname] = userHostnames[hostname].toInt() + 1;
-            }
-        }
-    });
-
+    // Add the metadata to the heartbeat
     static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    static const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
-    static const QString HEARTBEAT_USER_HOSTNAMES_KEY = "user_hostnames";
+    auto tic = _metadata.getTic();
+    if (_metadataTic != tic) {
+        _metadataTic = tic;
+        _metadata.updateUsers();
+    }
+    domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata.getUsers();
 
-    QJsonObject heartbeatObject;
-    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
-    heartbeatObject[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
+    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
-    domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
-
-    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
-
+    static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                               AccountManagerAuth::Required,
                                               QNetworkAccessManager::PutOperation,
@@ -1918,11 +1906,10 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-
     // if this peer connected via ICE then remove them from our ICE peers hash
     _gatekeeper.removeICEPeer(node->getUUID());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     if (nodeData) {
         // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
@@ -1934,15 +1921,22 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
-        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                                       uuidStringWithoutCurlyBraces(node->getUUID()));
-
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
             SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
-                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+                static_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
+        }
+
+        if (node->getType() == NodeType::Agent) {
+            // if this node was an Agent ask DomainServerNodeData to remove the interpolation we potentially stored
+            nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                    uuidStringWithoutCurlyBraces(node->getUUID()));
+
+            // if this node is a user (unassigned Agent), signal
+            if (!nodeData->wasAssigned()) {
+                emit userDisconnected();
             }
         }
     }

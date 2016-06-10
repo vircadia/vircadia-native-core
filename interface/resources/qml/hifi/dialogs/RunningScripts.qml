@@ -264,6 +264,7 @@ Window {
                 HifiControls.Button {
                     text: "Load Defaults"
                     color: hifi.buttons.black
+                    height: 26
                     onClicked: loadDefaults()
                 }
             }

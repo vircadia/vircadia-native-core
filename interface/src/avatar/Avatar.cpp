@@ -84,7 +84,6 @@ Avatar::Avatar(RigPointer rig) :
     _acceleration(0.0f),
     _lastAngularVelocity(0.0f),
     _lastOrientation(),
-    _leanScale(0.5f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
     _initialized(false),
