@@ -75,6 +75,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     motionState->setMotionType(motionType);
     switch(motionType) {
         case MOTION_TYPE_KINEMATIC: {
+            qDebug() << " --> KINEMATIC";
             if (!body) {
                 btCollisionShape* shape = motionState->getShape();
                 assert(shape);
@@ -91,6 +92,8 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
+            qDebug() << " --> DYNAMIC";
+
             mass = motionState->getMass();
             btCollisionShape* shape = motionState->getShape();
             assert(shape);
@@ -117,6 +120,8 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
         }
         case MOTION_TYPE_STATIC:
         default: {
+            qDebug() << " --> STATIC";
+
             if (!body) {
                 assert(motionState->getShape());
                 body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);

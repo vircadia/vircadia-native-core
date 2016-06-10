@@ -85,10 +85,10 @@ void EntityMotionState::updateServerPhysicsVariables() {
         return;
     }
 
-    _serverPosition = _entity->getPosition();
-    _serverRotation = _entity->getRotation();
-    _serverVelocity = _entity->getVelocity();
-    _serverAngularVelocity = _entity->getAngularVelocity();
+    Transform localTransform;
+    _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+    _serverPosition = localTransform.getTranslation();
+    _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
     _serverActionData = _entity->getActionData();
 }
@@ -274,11 +274,11 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
     if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
-        _serverPosition = bulletToGLM(xform.getOrigin());
-        _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = getBodyLinearVelocityGTSigma();
+        _serverPosition = _entity->worldPositionToParent(bulletToGLM(xform.getOrigin()));
+        _serverRotation = _entity->worldRotationToParent(bulletToGLM(xform.getRotation()));
+        _serverVelocity = _entity->worldVelocityToParent(getBodyLinearVelocityGTSigma());
         _serverAcceleration = Vectors::ZERO;
-        _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
+        _serverAngularVelocity = _entity->worldVelocityToParent(bulletToGLM(_body->getAngularVelocity()));
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
         _numInactiveUpdates = 1;
@@ -315,9 +315,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     _lastStep = simulationStep;
     if (glm::length2(_serverVelocity) > 0.0f) {
-        _serverVelocity += _serverAcceleration * dt;
-        _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
-
         // the entity-server doesn't know where avatars are, so it doesn't do simple extrapolation for children of
         // avatars.  We are trying to guess what values the entity server has, so we don't do it here, either.  See
         // related code in EntitySimulation::moveSimpleKinematics.
@@ -326,6 +323,9 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         bool hasAvatarAncestor = _entity->hasAncestorOfType(NestableType::Avatar);
 
         if (ancestryIsKnown && !hasAvatarAncestor) {
+            _serverVelocity += _serverAcceleration * dt;
+            _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
+
             // NOTE: we ignore the second-order acceleration term when integrating
             // the position forward because Bullet also does this.
             _serverPosition += dt * _serverVelocity;
@@ -351,7 +351,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // compute position error
 
     btTransform worldTrans = _body->getWorldTransform();
-    glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
+    glm::vec3 position = _entity->worldPositionToParent(bulletToGLM(worldTrans.getOrigin()));
 
     float dx2 = glm::distance2(position, _serverPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.000004f; // corresponds to 2mm
@@ -386,7 +386,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         }
     }
     const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
-    glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
+    glm::quat actualRotation = _entity->worldRotationToParent(bulletToGLM(worldTrans.getRotation()));
 
     #ifdef WANT_DEBUG
         if ((fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT)) {
@@ -491,11 +491,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     }
 
     // remember properties for local server prediction
-    _serverPosition = _entity->getPosition();
-    _serverRotation = _entity->getRotation();
-    _serverVelocity = _entity->getVelocity();
+    Transform localTransform;
+    _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+    _serverPosition = localTransform.getTranslation();
+    _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
-    _serverAngularVelocity = _entity->getAngularVelocity();
     _serverActionData = _entity->getActionData();
 
     EntityItemProperties properties;
@@ -600,7 +600,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags();
 
-        if (dirtyFlags | Simulation::DIRTY_SIMULATOR_ID) {
+        if (dirtyFlags & Simulation::DIRTY_SIMULATOR_ID) {
             // when SIMULATOR_ID changes we must check for reinterpretation of asymmetric collision mask
             // bits for the avatar groups (e.g. MY_AVATAR vs OTHER_AVATAR)
             uint8_t entityCollisionMask = _entity->getCollisionless() ? 0 : _entity->getCollisionMask();
@@ -613,8 +613,9 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMovingRelativeToParent();
-        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
-                (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
+        if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) // ||
+            // (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)
+            ) {
             dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
         }
     }
