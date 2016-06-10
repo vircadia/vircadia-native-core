@@ -32,7 +32,7 @@ public:
     // input: mono source
     // output: interleaved stereo mix buffer (accumulates into existing output)
     // index: HRTF subject index
-    // azimuth: clockwise panning angle [0, 360] in degrees
+    // azimuth: clockwise panning angle in radians
     // gain: gain factor for distance attenuation
     // numFrames: must be HRTF_BLOCK in this version
     //
