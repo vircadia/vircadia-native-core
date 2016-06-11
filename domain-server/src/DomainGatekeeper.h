@@ -42,6 +42,8 @@ public:
     void preloadAllowedUserPublicKeys();
     
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
+
+    static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
 public slots:
     void processConnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
@@ -76,8 +78,8 @@ private:
                                        const HifiSockAddr& senderSockAddr);
     
     void sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr);
-    void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr, 
-                    DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown);
+    static void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
+            DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown);
     
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
     

@@ -62,10 +62,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
     QByteArray myProtocolVersion = protocolVersionsSignature();
     if (nodeConnection.protocolVersion != myProtocolVersion) {
-        QString protocolVersionError = "Protocol version mismatch - Domain version:" + QCoreApplication::applicationVersion();
-        qDebug() << "Protocol Version mismatch - denying connection.";
-        sendConnectionDeniedPacket(protocolVersionError, message->getSenderSockAddr(),
-                DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
+        sendProtocolMismatchConnectionDenial(message->getSenderSockAddr());
         return;
     }
 
@@ -514,15 +511,24 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     }
 }
 
+void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
+    QString protocolVersionError = "Protocol version mismatch - Domain version: " + QCoreApplication::applicationVersion();
+
+    qDebug() << "Protocol Version mismatch - denying connection.";
+
+    sendConnectionDeniedPacket(protocolVersionError, senderSockAddr,
+                               DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
+}
+
 void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
-            DomainHandler::ConnectionRefusedReason reasonCode) {
+                                                  DomainHandler::ConnectionRefusedReason reasonCode) {
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
     QByteArray utfString = reason.toUtf8();
     quint16 payloadSize = utfString.size();
 
     // setup the DomainConnectionDenied packet
     auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied,
-                                                payloadSize + sizeof(payloadSize) + sizeof(uint8_t));
+                                                   payloadSize + sizeof(payloadSize) + sizeof(uint8_t));
 
     // pack in the reason the connection was denied (the client displays this)
     if (payloadSize > 0) {

@@ -542,6 +542,9 @@ Menu::Menu() {
     #if (PR_BUILD || DEV_BUILD)
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
                 qApp, SLOT(sendWrongProtocolVersionsSignature(bool)));
+
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongDSConnectVersion, 0, false,
+                                           nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
     #endif
 
     
