@@ -128,7 +128,7 @@ void DomainGatekeeper::updateNodePermissions() {
     QList<SharedNodePointer> nodesToKill;
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    limitedNodeList->eachNodeBreakable([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
+    limitedNodeList->eachNode([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
         QString username = node->getPermissions().getUserName();
         NodePermissions userPerms(username);
 
@@ -167,8 +167,6 @@ void DomainGatekeeper::updateNodePermissions() {
             // hang up on this node
             nodesToKill << node;
         }
-
-        return true;
     });
 
     foreach (auto node, nodesToKill) {
@@ -264,7 +262,6 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         qDebug() << "user-permissions: no username, so:" << userPerms;
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
-        userPerms.setUserName(username);
         if (_server->_settingsManager.havePermissionsForName(username)) {
             // we have specific permissions for this user.
             userPerms = _server->_settingsManager.getPermissionsForName(username);
@@ -274,6 +271,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
             qDebug() << "user-permissions: user is logged in, so:" << userPerms;
         }
+        userPerms.setUserName(username);
     } else {
         // they sent us a username, but it didn't check out
         requestUserPublicKey(username);
