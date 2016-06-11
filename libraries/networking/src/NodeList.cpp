@@ -543,7 +543,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     setSessionUUID(newUUID);
 
     // pull the permissions/right/privileges for this node out of the stream
-    packetStream >> _permissions;
+    NodePermissions newPermissions;
+    packetStream >> newPermissions;
+    setPermissions(newPermissions);
 
     // pull each node in the packet
     while (packetStream.device()->pos() < message->getSize()) {
