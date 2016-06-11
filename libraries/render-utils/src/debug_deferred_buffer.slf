@@ -18,6 +18,7 @@ uniform sampler2D pyramidMap;
 uniform sampler2D occlusionMap;
 uniform sampler2D occlusionBlurredMap;
 uniform sampler2D curvatureMap;
+uniform sampler2D scatteringMap;
 
 in vec2 uv;
 out vec4 outFragColor;

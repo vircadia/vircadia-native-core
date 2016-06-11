@@ -122,8 +122,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
+    const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", deferredFrameTransform);
+
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred");
+
 
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing");
@@ -138,12 +141,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaques, true);
     addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparents, false);
 
-    addJob<SubsurfaceScattering>("Scattering", deferredFrameTransform);
-
+    
     // Debugging stages
     {
         // Debugging Deferred buffer job
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", scatteringFramebuffer);
 
         // Scene Octree Debuging job
         {

@@ -50,6 +50,9 @@ public:
     gpu::FramebufferPointer getCurvatureFramebuffer();
     gpu::TexturePointer getCurvatureTexture();
 
+    gpu::FramebufferPointer getScatteringFramebuffer();
+    gpu::TexturePointer getScatteringTexture();
+
     void setAmbientOcclusionResolutionLevel(int level);
     gpu::FramebufferPointer getOcclusionFramebuffer();
     gpu::TexturePointer getOcclusionTexture();

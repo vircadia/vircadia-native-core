@@ -89,15 +89,6 @@ protected:
     bool updateBlurringResources(const gpu::FramebufferPointer& sourceFramebuffer, BlurringResources& blurringResources);
 };
 
-
-template < class T0, class T1 >
-class VaryingPair : public std::pair<Varying, Varying> {
-public:
-    using Parent = std::pair<Varying, Varying>;
-
-    VaryingPair() : Parent(Varying(T0()), T1()) {}
-};
-
 class BlurGaussianDepthAware {
 public:
     using InputPair = VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;

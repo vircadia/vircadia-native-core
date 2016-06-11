@@ -20,10 +20,12 @@
 class SubsurfaceScatteringConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty)
+    Q_PROPERTY(bool showLUT MEMBER showLUT NOTIFY dirty)
 public:
     SubsurfaceScatteringConfig() : render::Job::Config(true) {}
 
     float depthThreshold{ 0.1f };
+    bool showLUT{ true };
 
 signals:
     void dirty();
@@ -37,7 +39,7 @@ public:
     SubsurfaceScattering();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, gpu::FramebufferPointer& curvatureFramebuffer);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, gpu::FramebufferPointer& scatteringFramebuffer);
     
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
 
@@ -63,9 +65,16 @@ private:
     gpu::TexturePointer _scatteringTable;
 
 
-    gpu::PipelinePointer _scatteringPipeline;
+    bool updateScatteringFramebuffer(const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& scatteringFramebuffer);
+    gpu::FramebufferPointer _scatteringFramebuffer;
 
+
+    gpu::PipelinePointer _scatteringPipeline;
     gpu::PipelinePointer getScatteringPipeline();
+
+    gpu::PipelinePointer _showLUTPipeline;
+    gpu::PipelinePointer getShowLUTPipeline();
+    bool _showLUT{ false };
 };
 
 #endif // hifi_SubsurfaceScattering_h

@@ -48,6 +48,8 @@ Column {
                 "Shadow",
                 "Pyramid Depth",
                 "Curvature",
+                "NormalCurvature",
+                "Scattering",
                 "Ambient Occlusion",
                 "Ambient Occlusion Blurred",
                 "Custom Shader"

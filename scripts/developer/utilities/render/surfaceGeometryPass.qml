@@ -29,5 +29,19 @@ Column {
                 }
             }
         }
+
+        Column{
+            Repeater {
+                model: [ "Blur Scale:filterScale:4.0" ]
+                ConfigSlider {
+                    label: qsTr(modelData.split(":")[0])
+                    integral: false
+                    config: Render.getConfig("DiffuseCurvature")
+                    property: modelData.split(":")[1]
+                    max: modelData.split(":")[2]
+                    min: 0.0
+                }
+            }
+        }
     }
 }

@@ -57,6 +57,31 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
+
+template < class T0, class T1 >
+class VaryingPair : public std::pair<Varying, Varying> {
+public:
+    using Parent = std::pair<Varying, Varying>;
+
+    VaryingPair() : Parent(Varying(T0()), T1()) {}
+    
+    const T0& getFirst() const { return first.get<T0>(); }
+    T0& editFirst() { return first.edit<T0>(); }
+
+    const T1& getSecond() const { return second.get<T1>(); }
+    T1& editSecond() { return second.edit<T1>(); }
+};
+
+template < class T, int NUM >
+class VaryingArray : public std::array<Varying, NUM> {
+public:
+    VaryingArray() {
+        for (size_t i = 0; i < NUM; i++) {
+            (*this)[i] = Varying(T());
+        }
+    }
+};
+
 class Job;
 class Task;
 class JobNoIO {};

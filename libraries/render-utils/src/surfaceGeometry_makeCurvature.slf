@@ -126,7 +126,6 @@ void main(void) {
 
     // Calculate the perspective scale.
     float perspectiveScale = (-getProjScaleEye() / Zeye);
-    float pixPerspectiveScaleInv = 1.0 / (perspectiveScale);
 
     vec2 viewportScale = perspectiveScale * getInvWidthHeight();
 
@@ -150,8 +149,21 @@ void main(void) {
     vec4 py = vec4(worldPos, 1.0) + vec4(0.0f, dist, 0.0f, 0.0f);
     vec4 pz = vec4(worldPos, 1.0) + vec4(0.0f, 0.0f, dist, 0.0f);
 
+    px = frameTransform._view * px;
+    py = frameTransform._view * py;
+    pz = frameTransform._view * pz;
+
+    /*
+    if (texcoordPos.y > 0.5) {
+        outFragColor = vec4(fract(px.xyz), 1.0);
+    } else {
+        outFragColor = vec4(fract(eyePos.xyz), 1.0);
+    }
+    return;
+    */
+
     // Project px, py pz to homogeneous clip space
-    mat4 viewProj = getProjection(stereoSide.x) * frameTransform._view;
+    mat4 viewProj = getProjection(stereoSide.x);
     px = viewProj * px;
     py = viewProj * py;
     pz = viewProj * pz;
@@ -162,7 +174,17 @@ void main(void) {
     pz.xy /= pz.w;
 
     vec2 nclipPos = (texcoordPos - 0.5) * 2.0;
+/*
+    if (texcoordPos.y > 0.5) {
+        outFragColor = vec4(px.xy * 0.5 + 0.5, 0.0, 1.0);
+    } else {
+        outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
+    }
+    return;
+*/
 
+    float pixPerspectiveScaleInv = 1.0 / (perspectiveScale);
+    //vec2 pixPerspectiveScaleInv = 1.0 / viewportScale;
     px.xy = (px.xy - nclipPos) * pixPerspectiveScaleInv;
     py.xy = (py.xy - nclipPos) * pixPerspectiveScaleInv;
     pz.xy = (pz.xy - nclipPos) * pixPerspectiveScaleInv;
@@ -174,6 +196,6 @@ void main(void) {
 
     // Calculate the mean curvature
     float meanCurvature = ((dFdx.x + dFdy.y + dFdz.z) * 0.33333333333333333) * params.curvatureInfo.w;
+
     outFragColor = vec4(vec3(worldNormal + 1.0) * 0.5, (meanCurvature + 1.0) * 0.5);
-   // outFragColor = vec4((vec3(dFdx.x, dFdy.y, dFdz.z) * params.curvatureInfo.w + 1.0) * 0.5, (meanCurvature + 1.0) * 0.5);
 }

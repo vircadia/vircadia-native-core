@@ -65,8 +65,8 @@ vec4 fetchCurvature(vec2 texcoord) {
 
 uniform sampler2D scatteringLUT;
 
-vec3 fetchBRDF(float curvature, float LdotN) {
-    return texture(scatteringLUT, vec2(curvature, LdotN)).xyz;
+vec3 fetchBRDF(float LdotN, float curvature) {
+    return texture(scatteringLUT, vec2( LdotN * 0.5 + 0.5, curvature)).xyz;
 }
 
 // Scattering parameters
@@ -93,9 +93,10 @@ void main(void) {
     float curvature = abs(diffusedCurvature.w * 2 - 1) * 0.5f * scatterCurve + scatterBase;
 
        // --> Calculate the light vector.
-    vec3 lightVector = normalize(vec3(-1.0f, -1.0f, -1.0f)); //normalize(lightPos - sourcePos.xyz);
+    vec3 lightVector = normalize(vec3(1.0f, 1.0f, 1.0f)); //normalize(lightPos - sourcePos.xyz);
     
-
+    _fragColor = vec4(fetchBRDF(dot(bentNormalR, lightVector), abs(diffusedCurvature.w * 2 - 1)), 1.0);
+/*
         // --> Optimise for skin diffusion profile.
         float diffuseBlendedR = dot(normalize(mix( bentNormalN.xyz, bentNormalN, normalBendR * normalBendFactor)), lightVector);
         float diffuseBlendedG = dot(normalize(mix(normal.xyz, bentNormalN, normalBendG * normalBendFactor)), lightVector);
@@ -108,7 +109,7 @@ void main(void) {
     vec3 bdrfB = fetchBRDF(diffuseBlendedB, curvature);
     vec3 bdrf = vec3( bdrfR.x, bdrfG.y, bdrfB.z);
      bdrf *= bdrf;
-    _fragColor = vec4(vec3(bdrf.xyz), 1.0);
+    _fragColor = vec4(vec3(bdrf.xyz), 1.0);*/
 }
 
 

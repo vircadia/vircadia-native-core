@@ -28,7 +28,7 @@ public:
 
     float depthThreshold{ 0.1f };
     float basisScale{ 1.0f };
-    float curvatureScale{ 100.0f };
+    float curvatureScale{ 1.0f }; // Mean curvature value scaling (SI SI Dimension is [1/meters])
 
     double getGpuTime() { return gpuTime; }
 
