@@ -53,8 +53,12 @@ public slots:
     void publicKeyJSONCallback(QNetworkReply& requestReply);
     
 signals:
+    void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);
-    
+
+public slots:
+    void updateNodePermissions();
+
 private slots:
     void handlePeerPingTimeout();
 private:
@@ -68,11 +72,7 @@ private:
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
-    bool isVerifiedAllowedUser(const QString& username, const QByteArray& usernameSignature,
-                               const HifiSockAddr& senderSockAddr);
-    bool isWithinMaxCapacity(const QString& username, const QByteArray& usernameSignature,
-                             bool& verifiedUsername,
-                             const HifiSockAddr& senderSockAddr);
+    bool isWithinMaxCapacity();
     
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr);

@@ -52,7 +52,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer(),
-    _thisNodeCanRez(true)
+    _permissions(NodePermissions())
 {
     static bool firstCall = true;
     if (firstCall) {
@@ -130,17 +130,22 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     }
 }
 
-void LimitedNodeList::setIsAllowedEditor(bool isAllowedEditor) {
-    if (_isAllowedEditor != isAllowedEditor) {
-        _isAllowedEditor = isAllowedEditor;
-        emit isAllowedEditorChanged(isAllowedEditor);
-    }
-}
+void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
+    NodePermissions originalPermissions = _permissions;
 
-void LimitedNodeList::setThisNodeCanRez(bool canRez) {
-    if (_thisNodeCanRez != canRez) {
-        _thisNodeCanRez = canRez;
-        emit canRezChanged(canRez);
+    _permissions = newPermissions;
+
+    if (originalPermissions.canAdjustLocks != newPermissions.canAdjustLocks) {
+        emit isAllowedEditorChanged(_permissions.canAdjustLocks);
+    }
+    if (originalPermissions.canRezPermanentEntities != newPermissions.canRezPermanentEntities) {
+        emit canRezChanged(_permissions.canRezPermanentEntities);
+    }
+    if (originalPermissions.canRezTemporaryEntities != newPermissions.canRezTemporaryEntities) {
+        emit canRezTmpChanged(_permissions.canRezTemporaryEntities);
+    }
+    if (originalPermissions.canWriteToAssetServer != newPermissions.canWriteToAssetServer) {
+        emit canWriteAssetsChanged(_permissions.canWriteToAssetServer);
     }
 }
 
@@ -515,7 +520,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   bool isAllowedEditor, bool canRez,
+                                                   const NodePermissions& permissions,
                                                    const QUuid& connectionSecret) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
@@ -524,14 +529,13 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
-        matchingNode->setIsAllowedEditor(isAllowedEditor);
-        matchingNode->setCanRez(canRez);
+        matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, isAllowedEditor, canRez, connectionSecret, this);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret, this);
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);

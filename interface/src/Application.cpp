@@ -4292,7 +4292,7 @@ void Application::nodeActivated(SharedNodePointer node) {
         if (assetDialog) {
             auto nodeList = DependencyManager::get<NodeList>();
 
-            if (nodeList->getThisNodeCanRez()) {
+            if (nodeList->getThisNodeCanWriteAssets()) {
                 // call reload on the shown asset browser dialog to get the mappings (if permissions allow)
                 QMetaObject::invokeMethod(assetDialog, "reload");
             } else {
@@ -4788,7 +4788,7 @@ void Application::toggleRunningScriptsWidget() const {
 }
 
 void Application::toggleAssetServerWidget(QString filePath) {
-    if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
 
