@@ -17,13 +17,13 @@
 #include "OverlayConductor.h"
 
 OverlayConductor::OverlayConductor() {
+
 }
 
 OverlayConductor::~OverlayConductor() {
 }
 
 bool OverlayConductor::headOutsideOverlay() const {
-
     glm::mat4 hmdMat = qApp->getHMDSensorPose();
     glm::vec3 hmdPos = extractTranslation(hmdMat);
     glm::vec3 hmdForward = transformVectorFast(hmdMat, glm::vec3(0.0f, 0.0f, -1.0f));
@@ -41,7 +41,34 @@ bool OverlayConductor::headOutsideOverlay() const {
     return false;
 }
 
-bool OverlayConductor::avatarHasDriveInput() const {
+bool OverlayConductor::updateAvatarIsAtRest() {
+
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+    const quint64 REST_ENABLE_TIME_USECS = 1000 * 1000; // 1 s
+    const quint64 REST_DISABLE_TIME_USECS = 200 * 1000;  // 200 ms
+
+    const float AT_REST_THRESHOLD = 0.01f;
+    bool desiredAtRest = glm::length(myAvatar->getVelocity()) < AT_REST_THRESHOLD;
+    if (desiredAtRest != _desiredAtRest) {
+        // start timer
+        _desiredAtRestTimer = usecTimestampNow() + (desiredAtRest ? REST_ENABLE_TIME_USECS : REST_DISABLE_TIME_USECS);
+    }
+
+    _desiredAtRest = desiredAtRest;
+
+    if (_desiredAtRestTimer != 0 && usecTimestampNow() > _desiredAtRestTimer) {
+        // timer expired
+        // change state!
+        _currentAtRest = _desiredAtRest;
+        // disable timer
+        _desiredAtRestTimer = 0;
+    }
+
+    return _currentAtRest;
+}
+
+bool OverlayConductor::updateAvatarHasDriveInput() {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     const quint64 DRIVE_ENABLE_TIME_USECS = 200 * 1000;  // 200 ms
@@ -66,57 +93,88 @@ bool OverlayConductor::avatarHasDriveInput() const {
     return _currentDriving;
 }
 
-bool OverlayConductor::shouldShowOverlay() const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-#ifdef WANT_DEBUG
-    qDebug() << "AJT: wantsOverlays =" << Menu::getInstance()->isOptionChecked(MenuOption::Overlays) << ", clearOverlayWhenDriving =" << myAvatar->getClearOverlayWhenDriving() <<
-        ", headOutsideOverlay =" << headOutsideOverlay() << ", hasDriveInput =" << avatarHasDriveInput();
-#endif
-
-    return Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (!myAvatar->getClearOverlayWhenDriving() || (!headOutsideOverlay() && !avatarHasDriveInput()));
-}
-
-bool OverlayConductor::shouldRecenterOnFadeOut() const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    return Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && myAvatar->getClearOverlayWhenDriving() && headOutsideOverlay();
-}
-
 void OverlayConductor::centerUI() {
     // place the overlay at the current hmd position in sensor space
     auto camMat = cancelOutRollAndPitch(qApp->getHMDSensorPose());
     qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
 }
 
+bool OverlayConductor::userWishesToHide() const {
+    // user pressed toggle button.
+    return Menu::getInstance()->isOptionChecked(MenuOption::Overlays) != _prevOverlayMenuChecked && Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
+}
+
+bool OverlayConductor::userWishesToShow() const {
+    // user pressed toggle button.
+    return Menu::getInstance()->isOptionChecked(MenuOption::Overlays) != _prevOverlayMenuChecked && !Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
+}
+
+void OverlayConductor::setState(State state) {
+#ifdef WANT_DEBUG
+    static QString stateToString[NumStates] = { "Enabled", "DisabledByDrive", "DisabledByHead", "DisabledByToggle" };
+    qDebug() << "OverlayConductor " << stateToString[state] << "<--" << stateToString[_state];
+#endif
+    _state = state;
+}
+
+OverlayConductor::State OverlayConductor::getState() const {
+    return _state;
+}
+
 void OverlayConductor::update(float dt) {
 
-    // centerUI if hmd mode changes
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+    // centerUI when hmd mode is first enabled
     if (qApp->isHMDMode() && !_hmdMode) {
         centerUI();
     }
     _hmdMode = qApp->isHMDMode();
 
-    // centerUI if timer expires
-    if (_fadeOutTime != 0 && usecTimestampNow() > _fadeOutTime) {
-        // fade out timer expired
-        _fadeOutTime = 0;
-        centerUI();
+    bool prevDriving = _currentDriving;
+    bool isDriving = updateAvatarHasDriveInput();
+    bool drivingChanged = prevDriving != isDriving;
+
+    bool isAtRest = updateAvatarIsAtRest();
+
+    switch (getState()) {
+        case Enabled:
+            if (qApp->isHMDMode() && headOutsideOverlay()) {
+                setState(DisabledByHead);
+                setEnabled(false);
+            }
+            if (userWishesToHide()) {
+                setState(DisabledByToggle);
+                setEnabled(false);
+            }
+            if (drivingChanged && isDriving) {
+                setState(DisabledByDrive);
+                setEnabled(false);
+            }
+            break;
+        case DisabledByDrive:
+            if (!isDriving || userWishesToShow()) {
+                setState(Enabled);
+                setEnabled(true);
+            }
+            break;
+        case DisabledByHead:
+            if (isAtRest || userWishesToShow()) {
+                setState(Enabled);
+                setEnabled(true);
+            }
+            break;
+        case DisabledByToggle:
+            if (userWishesToShow()) {
+                setState(Enabled);
+                setEnabled(true);
+            }
+            break;
+        default:
+            break;
     }
 
-    bool showOverlay = shouldShowOverlay();
-
-    if (showOverlay != getEnabled()) {
-        if (showOverlay) {
-            // disable fadeOut timer
-            _fadeOutTime = 0;
-        } else if (shouldRecenterOnFadeOut()) {
-            // start fadeOut timer
-            const quint64 FADE_OUT_TIME_USECS = 300 * 1000;  // 300 ms
-            _fadeOutTime = usecTimestampNow() + FADE_OUT_TIME_USECS;
-        }
-    }
-
-    setEnabled(showOverlay);
+    _prevOverlayMenuChecked = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
 }
 
 void OverlayConductor::setEnabled(bool enabled) {
@@ -127,6 +185,11 @@ void OverlayConductor::setEnabled(bool enabled) {
     _enabled = enabled; // set the new value
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->setPinned(!_enabled);
+
+    // ensure that the the state of the menu item reflects the state of the overlay.
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, _enabled);
+    _prevOverlayMenuChecked = _enabled;
+
     // if the new state is visible/enabled...
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     if (_enabled && myAvatar->getClearOverlayWhenDriving() && qApp->isHMDMode()) {

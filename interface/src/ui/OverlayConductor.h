@@ -22,18 +22,39 @@ public:
 
 private:
     bool headOutsideOverlay() const;
-    bool avatarHasDriveInput() const;
-    bool shouldShowOverlay() const;
-    bool shouldRecenterOnFadeOut() const;
+    bool updateAvatarHasDriveInput();
+    bool updateAvatarIsAtRest();
+    bool userWishesToHide() const;
+    bool userWishesToShow() const;
     void centerUI();
 
-    quint64 _fadeOutTime { 0 };
+    enum State {
+        Enabled = 0,
+        DisabledByDrive,
+        DisabledByHead,
+        DisabledByToggle,
+        NumStates
+    };
+
+    void setState(State state);
+    State getState() const;
+
+    State _state { DisabledByDrive };
+
+    bool _prevOverlayMenuChecked { true };
     bool _enabled { false };
     bool _hmdMode { false };
+    bool _disabledFromHead { false };
 
-    mutable quint64 _desiredDrivingTimer { 0 };
-    mutable bool _desiredDriving { false };
-    mutable bool _currentDriving { false };
+    // used by updateAvatarHasDriveInput
+    quint64 _desiredDrivingTimer { 0 };
+    bool _desiredDriving { false };
+    bool _currentDriving { false };
+
+    // used by updateAvatarIsAtRest
+    quint64 _desiredAtRestTimer { 0 };
+    bool _desiredAtRest { true };
+    bool _currentAtRest { true };
 };
 
 #endif
