@@ -26,6 +26,7 @@ enum BlurShaderBufferSlots {
 };
 enum BlurShaderMapSlots {
     BlurTask_SourceSlot = 0,
+    BlurTask_DepthSlot,
 };
 
 const float BLUR_NUM_SAMPLES = 7.0f;
@@ -54,6 +55,20 @@ void BlurParams::setFilterRadiusScale(float scale) {
     if (scale != filterInfo.x) {
         _parametersBuffer.edit<Params>().filterInfo.x = scale;
         _parametersBuffer.edit<Params>().filterInfo.y = scale / BLUR_NUM_SAMPLES;
+    }
+}
+
+void BlurParams::setDepthPerspective(float oneOverTan2FOV) {
+    auto depthInfo = _parametersBuffer.get<Params>().depthInfo;
+    if (oneOverTan2FOV != depthInfo.w) {
+        _parametersBuffer.edit<Params>().depthInfo.w = oneOverTan2FOV;
+    }
+}
+
+void BlurParams::setDepthThreshold(float threshold) {
+    auto depthInfo = _parametersBuffer.get<Params>().depthInfo;
+    if (threshold != depthInfo.x) {
+        _parametersBuffer.edit<Params>().depthInfo.x = threshold;
     }
 }
 
@@ -200,6 +215,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), BlurTask_DepthSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -222,6 +238,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurHPipeline() {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), BlurTask_DepthSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -270,6 +287,7 @@ bool BlurGaussianDepthAware::updateBlurringResources(const gpu::FramebufferPoint
 
 void BlurGaussianDepthAware::configure(const Config& config) {
     _parameters->setFilterRadiusScale(config.filterScale);
+    _parameters->setDepthThreshold(config.depthThreshold);
 }
 
 
@@ -292,12 +310,15 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
     auto blurHPipeline = getBlurHPipeline();
 
     _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
+    _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
 
         batch.setUniformBuffer(BlurTask_ParamsSlot, _parameters->_parametersBuffer);
+
+        batch.setResourceTexture(BlurTask_DepthSlot, depthTexture);
 
         batch.setFramebuffer(blurringResources.blurringFramebuffer);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
@@ -312,6 +333,7 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         batch.setResourceTexture(BlurTask_SourceSlot, nullptr);
+        batch.setResourceTexture(BlurTask_DepthSlot, nullptr);
         batch.setUniformBuffer(BlurTask_ParamsSlot, nullptr);
     });
 }

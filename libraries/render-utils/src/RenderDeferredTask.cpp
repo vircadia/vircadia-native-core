@@ -111,9 +111,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
 
     // Opaque all rendered, generate surface geometry buffers
-    const auto curvatureFramebuffer = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
+    const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
 
-    addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebuffer);
+    addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
 
 
     // AO job

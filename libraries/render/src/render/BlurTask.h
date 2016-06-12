@@ -24,6 +24,9 @@ public:
 
     void setFilterRadiusScale(float scale);
 
+    void setDepthPerspective(float oneOverTan2FOV);
+    void setDepthThreshold(float threshold);
+
     // Class describing the uniform buffer with all the parameters common to the blur shaders
     class Params {
     public:
@@ -32,6 +35,9 @@ public:
 
         // Filter info (radius scale
         glm::vec4 filterInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
+
+        // Depth info (radius scale
+        glm::vec4 depthInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
 
         // stereo info if blurring a stereo render
         glm::vec4 stereoInfo{ 0.0f };
@@ -89,10 +95,21 @@ protected:
     bool updateBlurringResources(const gpu::FramebufferPointer& sourceFramebuffer, BlurringResources& blurringResources);
 };
 
+class BlurGaussianDepthAwareConfig : public BlurGaussianConfig {
+    Q_OBJECT
+        Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty) // expose enabled flag
+public:
+
+    float depthThreshold{ 2.0f };
+signals:
+    void dirty(); 
+protected:
+};
+
 class BlurGaussianDepthAware {
 public:
     using InputPair = VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;
-    using Config = BlurGaussianConfig;
+    using Config = BlurGaussianDepthAwareConfig;
     using JobModel = Job::ModelI<BlurGaussianDepthAware, InputPair, Config>;
 
     BlurGaussianDepthAware();

@@ -10,8 +10,7 @@
 //
 
 <@include BlurTask.slh@>
-<$declareBlurGaussian()$>
-
+<$declareBlurGaussianDepthAware()$>
 
 in vec2 varTexCoord0;
 

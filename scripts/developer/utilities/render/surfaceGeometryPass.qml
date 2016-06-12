@@ -32,7 +32,7 @@ Column {
 
         Column{
             Repeater {
-                model: [ "Blur Scale:filterScale:4.0" ]
+                model: [ "Blur Scale:filterScale:2.0", "Blur Depth Threshold:depthThreshold:100.0" ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
