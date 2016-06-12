@@ -65,6 +65,7 @@ public:
     void setType(PacketType type);
     
     PacketVersion getVersion() const { return _version; }
+    void setVersion(PacketVersion version);
 
     const QUuid& getSourceID() const { return _sourceID; }
     

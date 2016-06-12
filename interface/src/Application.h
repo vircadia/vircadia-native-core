@@ -318,7 +318,6 @@ private slots:
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     void setSessionUUID(const QUuid& sessionUUID) const;
-    void limitOfSilentDomainCheckInsReached();
 
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;

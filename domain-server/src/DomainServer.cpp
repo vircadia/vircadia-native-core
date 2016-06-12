@@ -101,6 +101,13 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
+    // if a connected node loses connection privileges, hang up on it
+    connect(&_gatekeeper, &DomainGatekeeper::killNode, this, &DomainServer::handleKillNode);
+
+    // if permissions are updated, relay the changes to the Node datastructures
+    connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
+            &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -318,16 +325,11 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    // This implements a special case that handles OLD clients which don't know how to negotiate matching
-    // protocol versions. We know these clients will sent DomainConnectRequest with older versions. We also
-    // know these clients will show a warning dialog if they get an EntityData with a protocol version they
-    // don't understand, so we can send them an empty EntityData with our latest version and they will
-    // warn the user that the protocol is not compatible
-    if (headerType == PacketType::DomainConnectRequest &&
-        headerVersion < static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
-        auto packetWithBadVersion = NLPacket::create(PacketType::EntityData);
-        nodeList->sendPacket(std::move(packetWithBadVersion), packet.getSenderSockAddr());
-        return false;
+    // if this is a mismatching connect packet, we can't simply drop it on the floor
+    // send back a packet to the interface that tells them we refuse connection for a mismatch
+    if (headerType == PacketType::DomainConnectRequest
+        && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
+        DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
     }
 
     // let the normal nodeList implementation handle all other packets.
@@ -800,8 +802,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
-    extendedHeaderStream << (quint8) node->isAllowedEditor();
-    extendedHeaderStream << (quint8) node->getCanRez();
+    extendedHeaderStream << node->getPermissions();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
@@ -1093,11 +1094,12 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
-    // Add a flag to indicate if this domain uses restricted access -
-    // for now that will exclude it from listings
-    static const QString RESTRICTED_ACCESS_FLAG = "restricted";
-    domainObject[RESTRICTED_ACCESS_FLAG] =
-        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
+    const QString RESTRICTED_ACCESS_FLAG = "restricted";
+
+    // consider the domain to have restricted access if "anonymous" connections can't connect to the domain.
+    NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
 
     // Add the metadata to the heartbeat
     static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
@@ -2107,33 +2109,40 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
 void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
     // This packet has been matched to a source node and they're asking not to be in the domain anymore
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    
+
     const QUuid& nodeUUID = message->getSourceID();
-    
+
     qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
-    
+
     // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
     // packet to nodes that don't care about this type
     auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
-    
+
     if (nodeToKill) {
-        auto nodeType = nodeToKill->getType();
-        limitedNodeList->killNodeWithUUID(nodeUUID);
-        
-        static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
-        
-        removedNodePacket->reset();
-        removedNodePacket->write(nodeUUID.toRfc4122());
-    
-        // broadcast out the DomainServerRemovedNode message
-        limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
-            // only send the removed node packet to nodes that care about the type of node this was
-            auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
-            return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
-        }, [&limitedNodeList](const SharedNodePointer& otherNode){
-            limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
-        });
+        handleKillNode(nodeToKill);
     }
+}
+
+void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
+    auto nodeType = nodeToKill->getType();
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    const QUuid& nodeUUID = nodeToKill->getUUID();
+
+    limitedNodeList->killNodeWithUUID(nodeUUID);
+
+    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+
+    removedNodePacket->reset();
+    removedNodePacket->write(nodeUUID.toRfc4122());
+
+    // broadcast out the DomainServerRemovedNode message
+    limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+        // only send the removed node packet to nodes that care about the type of node this was
+        auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+        return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+    }, [&limitedNodeList](const SharedNodePointer& otherNode){
+        limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+    });
 }
 
 void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {
