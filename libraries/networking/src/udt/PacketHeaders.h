@@ -199,4 +199,14 @@ enum class DomainConnectionDeniedVersion : PacketVersion {
     IncludesReasonCode
 };
 
+enum class DomainServerAddedNodeVersion : PacketVersion {
+    PrePermissionsGrid = 17,
+    PermissionsGrid
+};
+
+enum class DomainListVersion : PacketVersion {
+    PrePermissionsGrid = 18,
+    PermissionsGrid
+};
+
 #endif // hifi_PacketHeaders_h

@@ -32,6 +32,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -47,6 +48,11 @@ bool EntityScriptingInterface::canAdjustLocks() {
 bool EntityScriptingInterface::canRez() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRez();
+}
+
+bool EntityScriptingInterface::canRezTmp() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmp();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {

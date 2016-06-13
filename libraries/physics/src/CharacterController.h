@@ -14,6 +14,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <atomic>
 #include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
@@ -105,8 +106,9 @@ public:
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
+    bool isEnabled() const { return _enabled; }  // thread-safe
     void setEnabled(bool enabled);
-    bool isEnabled() const { return _enabled && _dynamicsWorld; }
+    bool isEnabledAndReady() const { return _enabled && _dynamicsWorld; }
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
@@ -167,7 +169,7 @@ protected:
     btQuaternion _followAngularDisplacement;
     btVector3 _linearAcceleration;
 
-    bool _enabled;
+    std::atomic_bool _enabled;
     State _state;
     bool _isPushingUp;
 
