@@ -18,6 +18,7 @@
 
 const QString Settings::firstRun { "firstRun" };
 
+
 Settings::Settings() : 
     _manager(DependencyManager::get<Setting::Manager>()), 
     _locker(&(_manager->getLock())) 
@@ -25,6 +26,9 @@ Settings::Settings() :
 }
 
 Settings::~Settings() {
+    if (_prefixes.size() != 0) {
+        qFatal("Unstable Settings Prefixes:  You must call endGroup for every beginGroup and endArray for every begin*Array call");
+    }
 }
 
 void Settings::remove(const QString& key) {
@@ -50,14 +54,17 @@ bool Settings::contains(const QString& key) const {
 }
 
 int Settings::beginReadArray(const QString & prefix) {
+    _prefixes.push(prefix);
     return _manager->beginReadArray(prefix);
 }
 
 void Settings::beginWriteArray(const QString& prefix, int size) {
+    _prefixes.push(prefix);
     _manager->beginWriteArray(prefix, size);
 }
 
 void Settings::endArray() {
+    _prefixes.pop();
     _manager->endArray();
 }
 
@@ -66,10 +73,12 @@ void Settings::setArrayIndex(int i) {
 }
 
 void Settings::beginGroup(const QString& prefix) {
+    _prefixes.push(prefix);
     _manager->beginGroup(prefix);
 }
 
 void Settings::endGroup() {
+    _prefixes.pop();
     _manager->endGroup();
 }
 
