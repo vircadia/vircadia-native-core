@@ -613,6 +613,8 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMovingRelativeToParent();
+
+        // XXX what's right, here?
         if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) // ||
             // (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)
             ) {
