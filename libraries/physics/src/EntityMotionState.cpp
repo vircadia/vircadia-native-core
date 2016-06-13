@@ -274,9 +274,39 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
     if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
-        _serverPosition = _entity->worldPositionToParent(bulletToGLM(xform.getOrigin()));
-        _serverRotation = _entity->worldRotationToParent(bulletToGLM(xform.getRotation()));
-        _serverVelocity = _entity->worldVelocityToParent(getBodyLinearVelocityGTSigma());
+
+        // _serverPosition = _entity->worldPositionToParent(bulletToGLM(xform.getOrigin()));
+        // _serverRotation = _entity->worldRotationToParent(bulletToGLM(xform.getRotation()));
+        // _serverVelocity = _entity->worldVelocityToParent(getBodyLinearVelocityGTSigma());
+
+
+        _serverPosition = bulletToGLM(xform.getOrigin());
+        _serverRotation = bulletToGLM(xform.getRotation());
+        _serverVelocity = getBodyLinearVelocityGTSigma();
+        bool success;
+        Transform parentTransform = _entity->getParentTransform(success);
+        if (success) {
+            Transform bodyTransform;
+            bodyTransform.setTranslation(_serverPosition);
+            bodyTransform.setRotation(_serverRotation);
+            Transform result;
+            Transform::inverseMult(result, parentTransform, bodyTransform);
+            _serverPosition = result.getTranslation();
+            _serverRotation = result.getRotation();
+
+            // transform velocity into parent-frame
+            parentTransform.setTranslation(glm::vec3(0.0f));
+            Transform velocityTransform;
+            velocityTransform.setTranslation(_serverVelocity);
+            Transform myWorldTransform;
+            Transform::mult(myWorldTransform, parentTransform, velocityTransform);
+            myWorldTransform.setTranslation(_serverVelocity);
+            Transform::inverseMult(result, parentTransform, myWorldTransform);
+            _serverVelocity = result.getTranslation();
+        }
+
+
+
         _serverAcceleration = Vectors::ZERO;
         _serverAngularVelocity = _entity->worldVelocityToParent(bulletToGLM(_body->getAngularVelocity()));
         _lastStep = simulationStep;
@@ -614,8 +644,9 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMovingRelativeToParent();
 
-        // XXX what's right, here?
         if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) // ||
+            // TODO -- there is opportunity for an optimization here, but this currently causes
+            // excessive re-insertion of the rigid body.
             // (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)
             ) {
             dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
