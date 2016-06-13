@@ -123,7 +123,7 @@ void WindowScriptingInterface::setPreviousBrowseLocation(const QString& location
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::browse(const QString& title, const QString& directory, const QString& nameFilter) {
     QString path = directory;
-    if (path == "") {
+    if (path.isEmpty()) {
         path = getPreviousBrowseLocation();
     }
 #ifndef Q_OS_WIN
@@ -144,7 +144,7 @@ QScriptValue WindowScriptingInterface::browse(const QString& title, const QStrin
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::save(const QString& title, const QString& directory, const QString& nameFilter) {
     QString path = directory;
-    if (path == "") {
+    if (path.isEmpty()) {
         path = getPreviousBrowseLocation();
     }
 #ifndef Q_OS_WIN
