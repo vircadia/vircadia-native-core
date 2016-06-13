@@ -266,6 +266,8 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
+    bool hasDriveInput() const;
+
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
     Q_INVOKABLE bool getCharacterControllerEnabled();
 
