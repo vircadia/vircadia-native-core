@@ -32,6 +32,7 @@ class Mapping;
 using MappingPointer = std::shared_ptr<Mapping>;
 using MappingList = std::list<MappingPointer>;
 
+struct Pose;
 }
 
 #endif

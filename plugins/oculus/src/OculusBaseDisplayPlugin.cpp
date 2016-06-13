@@ -24,7 +24,17 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
+
     withRenderThreadLock([&] {
+        // Make controller poses available to the presentation thread
+        ovr_for_each_hand([&](ovrHandType hand){
+            static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+            if (REQUIRED_HAND_STATUS == (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
+                _handPoses[hand] = toGlm(trackingState.HandPoses[hand].ThePose);
+            } else {
+                _handPoses[hand] = glm::mat4();
+            }
+        });
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return true;
