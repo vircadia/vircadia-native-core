@@ -20,13 +20,14 @@ public:
     void setEnabled(bool enable);
     bool getEnabled() const;
 
+    void centerUI();
+
 private:
     bool headOutsideOverlay() const;
     bool updateAvatarHasDriveInput();
     bool updateAvatarIsAtRest();
     bool userWishesToHide() const;
     bool userWishesToShow() const;
-    void centerUI();
 
     enum State {
         Enabled = 0,

@@ -139,7 +139,7 @@ void OverlayConductor::update(float dt) {
 
     switch (getState()) {
         case Enabled:
-            if (qApp->isHMDMode() && headOutsideOverlay()) {
+            if (myAvatar->getClearOverlayWhenDriving() && qApp->isHMDMode() && headOutsideOverlay()) {
                 setState(DisabledByHead);
                 setEnabled(false);
             }
@@ -147,7 +147,7 @@ void OverlayConductor::update(float dt) {
                 setState(DisabledByToggle);
                 setEnabled(false);
             }
-            if (drivingChanged && isDriving) {
+            if (myAvatar->getClearOverlayWhenDriving() && drivingChanged && isDriving) {
                 setState(DisabledByDrive);
                 setEnabled(false);
             }
@@ -192,7 +192,7 @@ void OverlayConductor::setEnabled(bool enabled) {
 
     // if the new state is visible/enabled...
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    if (_enabled && myAvatar->getClearOverlayWhenDriving() && qApp->isHMDMode()) {
+    if (_enabled && qApp->isHMDMode()) {
         centerUI();
     }
 }
