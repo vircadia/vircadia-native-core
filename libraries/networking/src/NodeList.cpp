@@ -50,7 +50,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // handle domain change signals from AddressManager
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,
-            &_domainHandler, &DomainHandler::setHostnameAndPort);
+            &_domainHandler, &DomainHandler::setSocketAndID);
 
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
@@ -250,7 +250,6 @@ void NodeList::sendDomainServerCheckIn() {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-        bool isUsingDTLS = false;
 
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
@@ -292,12 +291,18 @@ void NodeList::sendDomainServerCheckIn() {
             return;
         }
 
-        auto packetVersion = (domainPacketType == PacketType::DomainConnectRequest) ? _domainConnectRequestVersion : 0;
-        auto domainPacket = NLPacket::create(domainPacketType, -1, false, false, packetVersion);
+        auto domainPacket = NLPacket::create(domainPacketType);
         
         QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
+
+#if (PR_BUILD || DEV_BUILD)
+            if (_shouldSendNewerVersion) {
+                domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
+            }
+#endif
+
             QUuid connectUUID;
 
             if (!_domainHandler.getAssignmentUUID().isNull()) {
@@ -315,18 +320,14 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << connectUUID;
 
             // include the protocol version signature in our connect request
-            if (_domainConnectRequestVersion >= static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
-                QByteArray protocolVersionSig = protocolVersionsSignature();
-                packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
-            }
+            QByteArray protocolVersionSig = protocolVersionsSignature();
+            packetStream.writeBytes(protocolVersionSig.constData(), protocolVersionSig.size());
         }
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
-        if (_domainConnectRequestVersion >= static_cast<PacketVersion>(DomainConnectRequestVersion::HasHostname)) {
-            packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
-        }
+        packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!_domainHandler.isConnected()) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
@@ -341,9 +342,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {
-            sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
-        }
+        sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
@@ -462,7 +461,7 @@ void NodeList::handleICEConnectionToDomainServer() {
 
         LimitedNodeList::sendPeerQueryToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
-                                                  _domainHandler.getICEDomainID());
+                                                  _domainHandler.getPendingDomainID());
     }
 }
 
@@ -475,7 +474,7 @@ void NodeList::pingPunchForDomainServer() {
 
         if (_domainHandler.getICEPeer().getConnectionAttempts() == 0) {
             qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
-                << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+                << uuidStringWithoutCurlyBraces(_domainHandler.getPendingDomainID());
         } else {
             if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
                 // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
@@ -527,7 +526,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     QDataStream packetStream(message->getMessage());
-    
+
     // grab the domain's ID from the beginning of the packet
     QUuid domainUUID;
     packetStream >> domainUUID;
@@ -543,14 +542,11 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     packetStream >> newUUID;
     setSessionUUID(newUUID);
 
-    quint8 isAllowedEditor;
-    packetStream >> isAllowedEditor;
-    setIsAllowedEditor((bool) isAllowedEditor);
+    // pull the permissions/right/privileges for this node out of the stream
+    NodePermissions newPermissions;
+    packetStream >> newPermissions;
+    setPermissions(newPermissions);
 
-    quint8 thisNodeCanRez;
-    packetStream >> thisNodeCanRez;
-    setThisNodeCanRez((bool) thisNodeCanRez);
-    
     // pull each node in the packet
     while (packetStream.device()->pos() < message->getSize()) {
         parseNodeFromPacketStream(packetStream);
@@ -577,10 +573,9 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     qint8 nodeType;
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    bool isAllowedEditor;
-    bool canRez;
+    NodePermissions permissions;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> isAllowedEditor >> canRez;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -591,8 +586,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, isAllowedEditor, canRez,
-                                             connectionUUID);
+                                             nodeLocalSocket, permissions, connectionUUID);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {

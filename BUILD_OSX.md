@@ -3,9 +3,10 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 ###Homebrew
 [Homebrew](http://brew.sh/) is an excellent package manager for OS X. It makes install of all High Fidelity dependencies very simple.
 
-    brew install cmake openssl qt5
+    brew tap homebrew/versions
+    brew install cmake openssl qt55
 
-We no longer require install of qt5 via our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas). Versions of Qt that are 5.5.x and above provide a mechanism to disable the wireless scanning we previously had a custom patch for.
+We no longer require install of qt5 via our [homebrew formulas repository](https://github.com/highfidelity/homebrew-formulas). Versions of Qt that are 5.5.x provide a mechanism to disable the wireless scanning we previously had a custom patch for.
 
 ###OpenSSL and Qt
 

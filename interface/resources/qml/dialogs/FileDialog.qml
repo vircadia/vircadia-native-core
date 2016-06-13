@@ -186,7 +186,12 @@ ModalWindow {
                 }
 
                 if (helper.urlToPath(folder).toLowerCase() !== helper.urlToPath(fileTableModel.folder).toLowerCase()) {
+                    if (root.selectDirectory) {
+                        currentSelection.text = currentText !== "This PC" ? currentText : "";
+                        d.currentSelectionUrl = helper.pathToUrl(currentText);
+                    }
                     fileTableModel.folder = folder;
+                    fileTableView.forceActiveFocus();
                 }
             }
         }
@@ -212,9 +217,11 @@ ModalWindow {
             function update() {
                 var row = fileTableView.currentRow;
 
-                openButton.text = root.selectDirectory && row === -1 ? "Choose" : "Open"
-
                 if (row === -1) {
+                    if (!root.selectDirectory) {
+                        currentSelection.text = "";
+                        currentSelectionIsFolder = false;
+                    }
                     return;
                 }
 
@@ -445,12 +452,6 @@ ModalWindow {
 
             onSortIndicatorOrderChanged: { updateSort(); }
 
-            onActiveFocusChanged: {
-                if (activeFocus && currentRow == -1) {
-                    fileTableView.selection.select(0)
-                }
-            }
-
             itemDelegate: Item {
                 clip: true
 
@@ -607,6 +608,12 @@ ModalWindow {
             readOnly: !root.saveDialog
             activeFocusOnTab: !readOnly
             onActiveFocusChanged: if (activeFocus) { selectAll(); }
+            onTextChanged: {
+                if (root.saveDialog && text !== "") {
+                    fileTableView.selection.clear();
+                    fileTableView.currentRow = -1;
+                }
+            }
             onAccepted: okAction.trigger();
         }
 
@@ -652,7 +659,7 @@ ModalWindow {
 
         Action {
             id: okAction
-            text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
+            text: currentSelection.text ? (root.selectDirectory && fileTableView.currentRow === -1 ? "Choose" : (root.saveDialog ? "Save" : "Open")) : "Open"
             enabled: currentSelection.text || !root.selectDirectory && d.currentSelectionIsFolder ? true : false
             onTriggered: {
                 if (!root.selectDirectory && !d.currentSelectionIsFolder
@@ -675,7 +682,6 @@ ModalWindow {
                     root.destroy()
                     return;
                 }
-
 
                 // Handle the ambiguity between different cases
                 // * typed name (with or without extension)
