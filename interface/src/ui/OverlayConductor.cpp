@@ -191,7 +191,6 @@ void OverlayConductor::setEnabled(bool enabled) {
     _prevOverlayMenuChecked = _enabled;
 
     // if the new state is visible/enabled...
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     if (_enabled && qApp->isHMDMode()) {
         centerUI();
     }
