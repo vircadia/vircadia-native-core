@@ -90,11 +90,11 @@ int main(int argc, const char* argv[]) {
 
             qDebug() << "Interface instance appears to be running, exiting";
 
-            return EXIT_SUCCESS;
+            //return EXIT_SUCCESS;
         }
 
 #ifdef Q_OS_WIN
-        return EXIT_SUCCESS;
+        //return EXIT_SUCCESS;
 #endif
     }
 

@@ -1052,6 +1052,8 @@ void AvatarData::setJointMappingsFromNetworkReply() {
         _jointIndices.insert(_jointNames.at(i), i + 1);
     }
 
+    sendIdentityPacket();
+
     networkReply->deleteLater();
 }
 
@@ -1094,6 +1096,7 @@ void AvatarData::sendIdentityPacket() {
 void AvatarData::updateJointMappings() {
     _jointIndices.clear();
     _jointNames.clear();
+    _jointData.clear();
 
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
