@@ -19,7 +19,7 @@ Script.include("/~/system/libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = false;
+var WANT_DEBUG_STATE = true;
 var WANT_DEBUG_SEARCH_NAME = null;
 
 //
@@ -158,7 +158,6 @@ var STATE_SEARCHING = 1;
 var STATE_HOLD_SEARCHING = 2;
 var STATE_DISTANCE_HOLDING = 3;
 var STATE_NEAR_GRABBING = 4;
-var STATE_CONTINUE_NEAR_GRABBING = 5;
 var STATE_NEAR_TRIGGER = 6;
 var STATE_CONTINUE_NEAR_TRIGGER = 7;
 var STATE_FAR_TRIGGER = 8;
@@ -166,8 +165,6 @@ var STATE_CONTINUE_FAR_TRIGGER = 9;
 var STATE_RELEASE = 10;
 var STATE_EQUIP = 11;
 var STATE_HOLD = 12;
-var STATE_CONTINUE_HOLD = 13;
-var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_RELEASE_THUMB_RELEASE = 15;
 var STATE_WAITING_FOR_EQUIP_THUMB_RELEASE = 16;
 
@@ -202,27 +199,18 @@ CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
     name: "near_grabbing",
+    enterMethod: "nearGrabbingEnter",
     updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_EQUIP] = {
     name: "equip",
+    enterMethod: "nearGrabbingEnter",
     updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
-    name: "hold",
-    updateMethod: "nearGrabbing"
-};
-CONTROLLER_STATE_MACHINE[STATE_CONTINUE_NEAR_GRABBING] = {
-    name: "continue_near_grabbing",
-    updateMethod: "continueNearGrabbing"
-};
-CONTROLLER_STATE_MACHINE[STATE_CONTINUE_HOLD] = {
     name: "continue_hold",
-    updateMethod: "continueNearGrabbing"
-};
-CONTROLLER_STATE_MACHINE[STATE_CONTINUE_EQUIP] = {
-    name: "continue_equip",
-    updateMethod: "continueNearGrabbing"
+    enterMethod: "nearGrabbingEnter",
+    updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
     name: "near_trigger",
@@ -400,6 +388,8 @@ function MyController(hand) {
             print("WARNING: could not find state " + this.state + " in state machine");
         }
 
+        this.state = newState;
+
         // enter the new state
         if (CONTROLLER_STATE_MACHINE[newState]) {
             var enterMethodName = CONTROLLER_STATE_MACHINE[newState].enterMethod;
@@ -410,8 +400,6 @@ function MyController(hand) {
         } else {
             print("WARNING: could not find newState " + newState + " in state machine");
         }
-
-        this.state = newState;
     };
 
     this.debugLine = function(closePoint, farPoint, color) {
@@ -1254,10 +1242,6 @@ function MyController(hand) {
         if (this.actionID !== null) {
             this.activateEntity(this.grabbedEntity, grabbedProperties, false);
             this.callEntityMethodOnGrabbed("startDistanceGrab");
-        } else {
-            // addAction failed?
-            this.setState(STATE_RELEASE);
-            return;
         }
 
         this.turnOffVisualizations();
@@ -1483,19 +1467,8 @@ function MyController(hand) {
         }
     }
 
-    this.nearGrabbing = function() {
+    this.nearGrabbingEnter = function() {
         var now = Date.now();
-
-        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
-            this.setState(STATE_RELEASE);
-            this.callEntityMethodOnGrabbed("releaseGrab");
-            return;
-        }
-        if (this.state == STATE_HOLD && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
-            this.callEntityMethodOnGrabbed("releaseGrab");
-            return;
-        }
 
         this.lineOff();
         this.overlayLineOff();
@@ -1578,17 +1551,6 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("startEquip");
         }
 
-        if (this.state == STATE_NEAR_GRABBING) {
-            // near grabbing
-            this.setState(STATE_CONTINUE_NEAR_GRABBING);
-        } else if (this.state == STATE_HOLD) {
-            // holding
-            this.setState(STATE_CONTINUE_HOLD);
-        } else { // (this.state == STATE_EQUIP)
-            // equipping
-            this.setState(STATE_CONTINUE_EQUIP);
-        }
-
         this.currentHandControllerTipPosition =
             (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
         this.currentObjectTime = Date.now();
@@ -1599,29 +1561,29 @@ function MyController(hand) {
         this.currentAngularVelocity = ZERO_VEC;
     };
 
-    this.continueNearGrabbing = function() {
-        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
+    this.nearGrabbing = function() {
+        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
-        if (this.state == STATE_CONTINUE_HOLD && this.secondaryReleased()) {
+        if (this.state == STATE_HOLD && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseEquip");
             return;
         }
-        if (this.state == STATE_CONTINUE_EQUIP && this.thumbPressed()) {
+        if (this.state == STATE_EQUIP && this.thumbPressed()) {
             this.setState(STATE_WAITING_FOR_RELEASE_THUMB_RELEASE);
             this.callEntityMethodOnGrabbed("releaseEquip");
             return;
         }
-        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.thumbPressed()) {
+        if (this.state == STATE_NEAR_GRABBING && this.thumbPressed()) {
             this.setState(STATE_WAITING_FOR_EQUIP_THUMB_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
             this.callEntityMethodOnGrabbed("startEquip");
             return;
         }
-        if (this.state == STATE_CONTINUE_HOLD && this.thumbPressed()) {
+        if (this.state == STATE_HOLD && this.thumbPressed()) {
             this.setState(STATE_WAITING_FOR_EQUIP_THUMB_RELEASE);
             return;
         }
@@ -1652,9 +1614,9 @@ function MyController(hand) {
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
                           props.parentID + " " + vec3toStr(props.position));
                     this.setState(STATE_RELEASE);
-                    if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
+                    if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");
-                    } else { // (this.state == STATE_CONTINUE_EQUIP || this.state == STATE_CONTINUE_HOLD)
+                    } else { // (this.state == STATE_EQUIP || this.state == STATE_HOLD)
                         this.callEntityMethodOnGrabbed("releaseEquip");
                     }
                     return;
@@ -1693,10 +1655,10 @@ function MyController(hand) {
         this.currentObjectTime = now;
 
         var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
-        if (this.state === STATE_CONTINUE_EQUIP || this.state === STATE_CONTINUE_HOLD) {
+        if (this.state === STATE_EQUIP || this.state === STATE_HOLD) {
             this.callEntityMethodOnGrabbed("continueEquip");
         }
-        if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
+        if (this.state == STATE_NEAR_GRABBING) {
             this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
@@ -2029,7 +1991,7 @@ function MyController(hand) {
             this.activateEntity(this.grabbedEntity, loadedProps, true);
             this.isInitialGrab = true;
             this.callEntityMethodOnGrabbed("startEquip");
-            this.setState(STATE_CONTINUE_EQUIP);
+            this.setState(STATE_EQUIP);
         }
     }
 };
