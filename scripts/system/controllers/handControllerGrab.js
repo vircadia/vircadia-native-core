@@ -157,20 +157,19 @@ var STATE_OFF = 0;
 var STATE_SEARCHING = 1;
 var STATE_HOLD_SEARCHING = 2;
 var STATE_DISTANCE_HOLDING = 3;
-var STATE_CONTINUE_DISTANCE_HOLDING = 4;
-var STATE_NEAR_GRABBING = 5;
-var STATE_CONTINUE_NEAR_GRABBING = 6;
-var STATE_NEAR_TRIGGER = 7;
-var STATE_CONTINUE_NEAR_TRIGGER = 8;
-var STATE_FAR_TRIGGER = 9;
-var STATE_CONTINUE_FAR_TRIGGER = 10;
-var STATE_RELEASE = 11;
-var STATE_EQUIP = 12;
-var STATE_HOLD = 13;
-var STATE_CONTINUE_HOLD = 14;
-var STATE_CONTINUE_EQUIP = 15;
-var STATE_WAITING_FOR_RELEASE_THUMB_RELEASE = 16;
-var STATE_WAITING_FOR_EQUIP_THUMB_RELEASE = 17;
+var STATE_NEAR_GRABBING = 4;
+var STATE_CONTINUE_NEAR_GRABBING = 5;
+var STATE_NEAR_TRIGGER = 6;
+var STATE_CONTINUE_NEAR_TRIGGER = 7;
+var STATE_FAR_TRIGGER = 8;
+var STATE_CONTINUE_FAR_TRIGGER = 9;
+var STATE_RELEASE = 10;
+var STATE_EQUIP = 11;
+var STATE_HOLD = 12;
+var STATE_CONTINUE_HOLD = 13;
+var STATE_CONTINUE_EQUIP = 14;
+var STATE_WAITING_FOR_RELEASE_THUMB_RELEASE = 15;
+var STATE_WAITING_FOR_EQUIP_THUMB_RELEASE = 16;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -198,11 +197,8 @@ CONTROLLER_STATE_MACHINE[STATE_HOLD_SEARCHING] = {
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
     name: "distance_holding",
+    enterMethod: "distanceHoldingEnter",
     updateMethod: "distanceHolding"
-};
-CONTROLLER_STATE_MACHINE[STATE_CONTINUE_DISTANCE_HOLDING] = {
-    name: "continue_distance_holding",
-    updateMethod: "continueDistanceHolding"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
     name: "near_grabbing",
@@ -1207,7 +1203,7 @@ function MyController(hand) {
         return (dimensions.x * dimensions.y * dimensions.z) * density;
     }
 
-    this.distanceHolding = function() {
+    this.distanceHoldingEnter = function() {
 
         // controller pose is in avatar frame
         var avatarControllerPose =
@@ -1256,9 +1252,12 @@ function MyController(hand) {
         this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
 
         if (this.actionID !== null) {
-            this.setState(STATE_CONTINUE_DISTANCE_HOLDING);
             this.activateEntity(this.grabbedEntity, grabbedProperties, false);
             this.callEntityMethodOnGrabbed("startDistanceGrab");
+        } else {
+            // addAction failed?
+            this.setState(STATE_RELEASE);
+            return;
         }
 
         this.turnOffVisualizations();
@@ -1267,7 +1266,7 @@ function MyController(hand) {
         this.previousControllerRotation = controllerRotation;
     };
 
-    this.continueDistanceHolding = function() {
+    this.distanceHolding = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
