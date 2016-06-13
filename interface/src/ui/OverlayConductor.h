@@ -45,7 +45,6 @@ private:
     bool _prevOverlayMenuChecked { true };
     bool _enabled { false };
     bool _hmdMode { false };
-    bool _disabledFromHead { false };
 
     // used by updateAvatarHasDriveInput
     quint64 _desiredDrivingTimer { 0 };
