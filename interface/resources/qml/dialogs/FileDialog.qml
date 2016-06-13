@@ -709,7 +709,6 @@ ModalWindow {
                 if (!helper.urlIsWritable(selection)) {
                     desktop.messageBox({
                                            icon: OriginalDialogs.StandardIcon.Warning,
-                                           buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
                                            text: "Unable to write to location " + selection
                                        })
                     return;
