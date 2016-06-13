@@ -151,6 +151,7 @@ public:
     float metallic{ 0.0f };
     float roughness{ 1.0f };
     float emissiveIntensity{ 1.0f };
+    float ambientFactor{ 1.0f };
 
     QString materialID;
     QString name;
@@ -437,6 +438,7 @@ public:
     QHash<QString, QString> shininessTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> ambientFactorTextures;
     QHash<QString, QString> occlusionTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;

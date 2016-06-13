@@ -31,9 +31,6 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _baseYaw(0.0f),
     _basePitch(0.0f),
     _baseRoll(0.0f),
-    _leanSideways(0.0f),
-    _leanForward(0.0f),
-    _torsoTwist(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
     _audioLoudness(0.0f),
     _isFaceTrackerConnected(false),
@@ -132,12 +129,6 @@ QJsonObject HeadData::toJson() const {
     if (getRawOrientation() != quat()) {
         headJson[JSON_AVATAR_HEAD_ROTATION] = toJsonValue(getRawOrientation());
     }
-    if (getLeanForward() != 0.0f) {
-        headJson[JSON_AVATAR_HEAD_LEAN_FORWARD] = getLeanForward();
-    }
-    if (getLeanSideways() != 0.0f) {
-        headJson[JSON_AVATAR_HEAD_LEAN_SIDEWAYS] = getLeanSideways();
-    }
     auto lookat = getLookAtPosition();
     if (lookat != vec3()) {
         vec3 relativeLookAt = glm::inverse(_owningAvatar->getOrientation()) *
@@ -170,12 +161,6 @@ void HeadData::fromJson(const QJsonObject& json) {
 
     if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
         setOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
-    }
-    if (json.contains(JSON_AVATAR_HEAD_LEAN_FORWARD)) {
-        setLeanForward((float)json[JSON_AVATAR_HEAD_LEAN_FORWARD].toDouble());
-    }
-    if (json.contains(JSON_AVATAR_HEAD_LEAN_SIDEWAYS)) {
-        setLeanSideways((float)json[JSON_AVATAR_HEAD_LEAN_SIDEWAYS].toDouble());
     }
 
     if (json.contains(JSON_AVATAR_HEAD_LOOKAT)) {

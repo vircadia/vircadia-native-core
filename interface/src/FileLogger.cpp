@@ -115,3 +115,7 @@ QString FileLogger::getLogData() {
     }
     return result;
 }
+
+void FileLogger::sync() {
+    _persistThreadInstance->waitIdle();
+}

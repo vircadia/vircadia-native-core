@@ -10,7 +10,6 @@
 //
 
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 
@@ -120,67 +119,17 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 }
 
 //
-// Detect AVX/AVX2 support
-//
-
-#if defined(_MSC_VER)
-
-#include <intrin.h>
-
-static bool cpuSupportsAVX() {
-    int info[4];
-    int mask = (1 << 27) | (1 << 28);   // OSXSAVE and AVX
-
-    __cpuidex(info, 0x1, 0);
-
-    bool result = false;
-    if ((info[2] & mask) == mask) {
-
-        if ((_xgetbv(_XCR_XFEATURE_ENABLED_MASK) & 0x6) == 0x6) {
-            result = true;
-        }
-    }
-    return result;
-}
-
-#elif defined(__GNUC__)
-
-#include <cpuid.h>
-
-static bool cpuSupportsAVX() {
-    unsigned int eax, ebx, ecx, edx;
-    unsigned int mask = (1 << 27) | (1 << 28);   // OSXSAVE and AVX
-
-    bool result = false;
-    if (__get_cpuid(0x1, &eax, &ebx, &ecx, &edx) && ((ecx & mask) == mask)) {
-
-        __asm__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(0));
-        if ((eax & 0x6) == 0x6) {
-            result = true;
-        }
-    }
-    return result;    
-}
-
-#else
-
-static bool cpuSupportsAVX() {
-    return false;
-}
-
-#endif
-
-//
 // Runtime CPU dispatch
 //
 
-typedef void FIR_1x4_t(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
-FIR_1x4_t FIR_1x4_AVX;  // separate compilation with VEX-encoding enabled
+#include "CPUDetect.h"
+
+void FIR_1x4_AVX(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
-    static FIR_1x4_t* f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE; // init on first call
-    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
+    static auto f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE;
+    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 
 // 4 channel planar to interleaved
