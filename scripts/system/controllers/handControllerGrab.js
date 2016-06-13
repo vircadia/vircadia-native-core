@@ -162,7 +162,6 @@ var STATE_NEAR_TRIGGER = 6;
 var STATE_CONTINUE_NEAR_TRIGGER = 7;
 var STATE_FAR_TRIGGER = 8;
 var STATE_CONTINUE_FAR_TRIGGER = 9;
-var STATE_RELEASE = 10;
 var STATE_EQUIP = 11;
 var STATE_HOLD = 12;
 var STATE_WAITING_FOR_RELEASE_THUMB_RELEASE = 15;
@@ -180,6 +179,7 @@ var CONTROLLER_STATE_MACHINE = {};
 
 CONTROLLER_STATE_MACHINE[STATE_OFF] = {
     name: "off",
+    enterMethod: "offEnter",
     updateMethod: "off"
 };
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
@@ -227,10 +227,6 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
 CONTROLLER_STATE_MACHINE[STATE_CONTINUE_FAR_TRIGGER] = {
     name: "continue_far_trigger",
     updateMethod: "continueFarTrigger"
-};
-CONTROLLER_STATE_MACHINE[STATE_RELEASE] = {
-    name: "release",
-    updateMethod: "release"
 };
 CONTROLLER_STATE_MACHINE[STATE_WAITING_FOR_EQUIP_THUMB_RELEASE] = {
     name: "waiting_for_equip_thumb_release",
@@ -918,12 +914,12 @@ function MyController(hand) {
         this.checkForStrayChildren();
 
         if (this.state == STATE_SEARCHING && this.triggerSmoothedReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             return;
         }
 
         if (this.state == STATE_HOLD_SEARCHING && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             return;
         }
 
@@ -1252,7 +1248,7 @@ function MyController(hand) {
 
     this.distanceHolding = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
@@ -1563,12 +1559,12 @@ function MyController(hand) {
 
     this.nearGrabbing = function() {
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
         if (this.state == STATE_HOLD && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("releaseEquip");
             return;
         }
@@ -1593,7 +1589,7 @@ function MyController(hand) {
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position", "rotation"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
@@ -1613,7 +1609,7 @@ function MyController(hand) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
                           props.parentID + " " + vec3toStr(props.position));
-                    this.setState(STATE_RELEASE);
+                    this.setState(STATE_OFF);
                     if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");
                     } else { // (this.state == STATE_EQUIP || this.state == STATE_HOLD)
@@ -1691,13 +1687,13 @@ function MyController(hand) {
     };
     this.waitingForReleaseThumbRelease = function() {
         if (this.thumbReleased() && this.triggerSmoothedReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
         }
     };
 
     this.nearTrigger = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
         }
@@ -1707,7 +1703,7 @@ function MyController(hand) {
 
     this.farTrigger = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             return;
         }
@@ -1717,7 +1713,7 @@ function MyController(hand) {
 
     this.continueNearTrigger = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
         }
@@ -1726,7 +1722,7 @@ function MyController(hand) {
 
     this.continueFarTrigger = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_RELEASE);
+            this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
             return;
         }
@@ -1743,7 +1739,7 @@ function MyController(hand) {
             if (intersection.accurate) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
-                    this.setState(STATE_RELEASE);
+                    this.setState(STATE_OFF);
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
                     return;
                 }
@@ -1757,7 +1753,7 @@ function MyController(hand) {
         this.callEntityMethodOnGrabbed("continueFarTrigger");
     };
 
-    this.release = function() {
+    this.offEnter = function() {
         this.turnLightsOff();
         this.turnOffVisualizations();
 
@@ -1780,7 +1776,6 @@ function MyController(hand) {
 
         this.deactivateEntity(this.grabbedEntity, noVelocity);
         this.actionID = null;
-        this.setState(STATE_OFF);
 
         Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
             action: 'release',
