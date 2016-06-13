@@ -53,10 +53,6 @@ public:
     static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
     static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
 
-    glm::vec3 worldPositionToParent(const glm::vec3& position);
-    glm::vec3 worldVelocityToParent(const glm::vec3& velocity);
-    glm::quat worldRotationToParent(const glm::quat& orientation);
-
     // world frame
     virtual const Transform getTransform(bool& success, int depth = 0) const;
     virtual void setTransform(const Transform& transform, bool& success);

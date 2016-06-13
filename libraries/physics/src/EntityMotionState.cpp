@@ -271,44 +271,25 @@ bool EntityMotionState::isCandidateForOwnership() const {
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // NOTE: we only get here if we think we own the simulation
     assert(_body);
+
+    bool parentTransformSuccess;
+    Transform localToWorld = _entity->getParentTransform(parentTransformSuccess);
+    Transform worldToLocal;
+    Transform worldVelocityToLocal;
+    if (parentTransformSuccess) {
+        localToWorld.evalInverse(worldToLocal);
+        worldVelocityToLocal = worldToLocal;
+        worldVelocityToLocal.setTranslation(glm::vec3(0.0f));
+    }
+
     // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
     if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
-
-        // _serverPosition = _entity->worldPositionToParent(bulletToGLM(xform.getOrigin()));
-        // _serverRotation = _entity->worldRotationToParent(bulletToGLM(xform.getRotation()));
-        // _serverVelocity = _entity->worldVelocityToParent(getBodyLinearVelocityGTSigma());
-
-
-        _serverPosition = bulletToGLM(xform.getOrigin());
-        _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = getBodyLinearVelocityGTSigma();
-        bool success;
-        Transform parentTransform = _entity->getParentTransform(success);
-        if (success) {
-            Transform bodyTransform;
-            bodyTransform.setTranslation(_serverPosition);
-            bodyTransform.setRotation(_serverRotation);
-            Transform result;
-            Transform::inverseMult(result, parentTransform, bodyTransform);
-            _serverPosition = result.getTranslation();
-            _serverRotation = result.getRotation();
-
-            // transform velocity into parent-frame
-            parentTransform.setTranslation(glm::vec3(0.0f));
-            Transform velocityTransform;
-            velocityTransform.setTranslation(_serverVelocity);
-            Transform myWorldTransform;
-            Transform::mult(myWorldTransform, parentTransform, velocityTransform);
-            myWorldTransform.setTranslation(_serverVelocity);
-            Transform::inverseMult(result, parentTransform, myWorldTransform);
-            _serverVelocity = result.getTranslation();
-        }
-
-
-
+        _serverPosition = worldToLocal.transform(bulletToGLM(xform.getOrigin()));
+        _serverRotation = worldToLocal.getRotation() * bulletToGLM(xform.getRotation());
+        _serverVelocity = worldVelocityToLocal.transform(getBodyLinearVelocityGTSigma());
         _serverAcceleration = Vectors::ZERO;
-        _serverAngularVelocity = _entity->worldVelocityToParent(bulletToGLM(_body->getAngularVelocity()));
+        _serverAngularVelocity = worldVelocityToLocal.transform(bulletToGLM(_body->getAngularVelocity()));
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
         _numInactiveUpdates = 1;
@@ -381,7 +362,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // compute position error
 
     btTransform worldTrans = _body->getWorldTransform();
-    glm::vec3 position = _entity->worldPositionToParent(bulletToGLM(worldTrans.getOrigin()));
+    glm::vec3 position = worldToLocal.transform(bulletToGLM(worldTrans.getOrigin()));
 
     float dx2 = glm::distance2(position, _serverPosition);
     const float MAX_POSITION_ERROR_SQUARED = 0.000004f; // corresponds to 2mm
@@ -416,7 +397,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         }
     }
     const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
-    glm::quat actualRotation = _entity->worldRotationToParent(bulletToGLM(worldTrans.getRotation()));
+    glm::quat actualRotation = worldToLocal.getRotation() * bulletToGLM(worldTrans.getRotation());
 
     #ifdef WANT_DEBUG
         if ((fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT)) {
