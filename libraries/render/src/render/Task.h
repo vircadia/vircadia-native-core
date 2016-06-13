@@ -85,7 +85,12 @@ protected:
 
 
  
-using VaryingPair = std::pair<Varying, Varying>;
+using VaryingPairBase = std::pair<Varying, Varying>;
+
+
+template <> void varyingGet(const VaryingPairBase& data, uint8_t index, Varying& var);
+template <> uint8_t varyingLength(const VaryingPairBase& data);
+
 /*
 class VaryingPairBase {
     public:
@@ -98,11 +103,11 @@ class VaryingPairBase {
         VaryingPairBase(const Varying& _first, const Varying& _second) : first(_first), second(_second) {}
         
 };
-  */  /*
+  */
 template < class T0, class T1 >
-class VaryingPair : public std::pair<Varying, Varying> {
+class VaryingPair : public VaryingPairBase {
 public:
-    using Parent = std::pair<Varying, Varying>;
+    using Parent = VaryingPairBase;
 
     VaryingPair() : Parent(Varying(T0()), Varying(T1())) {}
     VaryingPair(const VaryingPair& pair) : Parent(pair.first, pair.second) {}
@@ -113,12 +118,10 @@ public:
 
     const T1& getSecond() const { return second.get<T1>(); }
     T1& editSecond() { return second.edit<T1>(); }
-
 };
-    */
+
     
-    template <> void varyingGet(const VaryingPair& data, uint8_t index, Varying& var);
-    template <> uint8_t varyingLength(const VaryingPair& data);
+    
  /*   template <class T> Varying varyingGet(const T& data, uint8_t index) {
         return Varying(T());
     }*/

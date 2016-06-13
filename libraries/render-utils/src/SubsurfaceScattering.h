@@ -33,8 +33,7 @@ signals:
 
 class SubsurfaceScattering {
 public:
-    using Inputs = render::VaryingPair;//<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
-    //using Inputs = render::VaryingPairBase;//<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Inputs = render::VaryingPair<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
     using Config = SubsurfaceScatteringConfig;
     using JobModel = render::Job::ModelIO<SubsurfaceScattering, Inputs, gpu::FramebufferPointer, Config>;
 

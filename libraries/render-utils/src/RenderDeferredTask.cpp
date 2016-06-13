@@ -123,7 +123,10 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebufferAndDepth[0]));
+    curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first;
+
+  //  const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebufferAndDepth[0]));
+    const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first));
     const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer

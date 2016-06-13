@@ -59,6 +59,7 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     
     auto pyramidTexture = framebufferCache->getDepthPyramidTexture();
     auto curvatureFBO = framebufferCache->getCurvatureFramebuffer();
+
     curvatureAndDepth.first. template edit<gpu::FramebufferPointer>() = curvatureFBO;
     curvatureAndDepth.second. template edit<gpu::TexturePointer>() = pyramidTexture;
 
