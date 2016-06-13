@@ -235,7 +235,7 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
 }
 
 void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         QString assetPath = message.readString();
 
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
@@ -251,7 +251,7 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
 }
 
 void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         int numberOfDeletedMappings { 0 };
         message.readPrimitive(&numberOfDeletedMappings);
 
@@ -272,7 +272,7 @@ void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, Shared
 }
 
 void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         QString oldPath = message.readString();
         QString newPath = message.readString();
 
@@ -337,7 +337,7 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 
 void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
-    if (senderNode->getCanRez()) {
+    if (senderNode->getCanWriteToAssetServer()) {
         qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
