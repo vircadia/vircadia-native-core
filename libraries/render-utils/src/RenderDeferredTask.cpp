@@ -115,14 +115,16 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
 
-
+    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
+    
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", deferredFrameTransform);
+    const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebufferAndDepth[0]));
+    const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred");

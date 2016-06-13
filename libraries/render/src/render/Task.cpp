@@ -23,3 +23,18 @@ void TaskConfig::refresh() {
 
     _task->configure(*this);
 }
+
+
+namespace render{
+    
+    template <> void varyingGet(const VaryingPair& data, uint8_t index, Varying& var) {
+        if (index == 0) {
+            var = data.first;
+        } else {
+            var = data.second;
+        }
+    }
+        
+    template <> uint8_t varyingLength(const VaryingPair& data) { return 2; }
+    
+}

@@ -108,14 +108,15 @@ protected:
 
 class BlurGaussianDepthAware {
 public:
-    using InputPair = VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Inputs = VaryingPair;//<gpu::FramebufferPointer, gpu::TexturePointer>;
+   // using InputPair = VaryingPairBase;//<gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = BlurGaussianDepthAwareConfig;
-    using JobModel = Job::ModelI<BlurGaussianDepthAware, InputPair, Config>;
+    using JobModel = Job::ModelIO<BlurGaussianDepthAware, Inputs, gpu::FramebufferPointer, Config>;
 
-    BlurGaussianDepthAware();
+    BlurGaussianDepthAware(bool generateNewOutput = false);
 
     void configure(const Config& config);
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const InputPair& SourceAndDepth);
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer);
 
 protected:
 
@@ -129,6 +130,10 @@ protected:
 
     gpu::FramebufferPointer _blurredFramebuffer;
 
+    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in th einput buffer
+    gpu::FramebufferPointer _outputFramebuffer;
+    bool _generateOutputFramebuffer { false };
+    
     struct BlurringResources {
         gpu::TexturePointer sourceTexture;
         gpu::FramebufferPointer blurringFramebuffer;

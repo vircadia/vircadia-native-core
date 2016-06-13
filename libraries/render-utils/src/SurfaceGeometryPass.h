@@ -40,14 +40,14 @@ signals:
 
 class SurfaceGeometryPass {
 public:
-    using InputPair = render::VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Outputs = render::VaryingPair;//<gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = SurfaceGeometryPassConfig;
-    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, DeferredFrameTransformPointer, InputPair, Config>;
+    using JobModel = render::Job::ModelIO<SurfaceGeometryPass, DeferredFrameTransformPointer, Outputs, Config>;
 
     SurfaceGeometryPass();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, InputPair& curvatureAndDepth);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, Outputs& curvatureAndDepth);
     
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
     float getCurvatureBasisScale() const { return _parametersBuffer.get<Parameters>().curvatureInfo.y; }

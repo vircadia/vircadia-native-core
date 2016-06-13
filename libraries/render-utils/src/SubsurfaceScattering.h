@@ -33,13 +33,15 @@ signals:
 
 class SubsurfaceScattering {
 public:
+    using Inputs = render::VaryingPair;//<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
+    //using Inputs = render::VaryingPairBase;//<gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = SubsurfaceScatteringConfig;
-    using JobModel = render::Job::ModelIO<SubsurfaceScattering, DeferredFrameTransformPointer, gpu::FramebufferPointer, Config>;
+    using JobModel = render::Job::ModelIO<SubsurfaceScattering, Inputs, gpu::FramebufferPointer, Config>;
 
     SubsurfaceScattering();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, gpu::FramebufferPointer& scatteringFramebuffer);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& scatteringFramebuffer);
     
     float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
 

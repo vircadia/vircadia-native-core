@@ -28,21 +28,38 @@
 
 namespace render {
 
+class Varying;
+    
+    template <class T> void varyingGet(const T& data, uint8_t index, Varying& var) {}
+template <class T> uint8_t varyingLength(const T& data) { return 0; }
+    
 // A varying piece of data, to be used as Job/Task I/O
 // TODO: Task IO
 class Varying {
 public:
     Varying() {}
     Varying(const Varying& var) : _concept(var._concept) {}
+    Varying& operator=(const Varying& var) {
+        _concept = var._concept;
+        return (*this);
+    }
     template <class T> Varying(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}
 
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
     template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
+    
+    // access potential sub varyings contained in this one.
+    Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
+    uint8_t length() const { return _concept->length(); }
+    
 protected:
     class Concept {
     public:
         virtual ~Concept() = default;
+    
+        virtual Varying operator[] (uint8_t index) const = 0;
+        virtual uint8_t length() const = 0;
     };
     template <class T> class Model : public Concept {
     public:
@@ -50,6 +67,14 @@ protected:
 
         Model(const Data& data) : _data(data) {}
         virtual ~Model() = default;
+        
+        
+        virtual Varying operator[] (uint8_t index) const {
+            Varying var;
+            varyingGet<T>(_data, index, var);
+            return var;
+        }
+        virtual uint8_t length() const { return varyingLength<T>(_data); }
 
         Data _data;
     };
@@ -58,20 +83,82 @@ protected:
 };
 
 
+
+ 
+using VaryingPair = std::pair<Varying, Varying>;
+/*
+class VaryingPairBase {
+    public:
+    Varying first;
+    Varying second;
+    
+    
+        //  template < class T0, class T1> VaryingPairBase() : Parent(Varying(T0()), Varying(T1())) {}
+      //  VaryingPairBase(const VaryingPairBase& pair) : Parent(pair.first, pair.second) {}
+        VaryingPairBase(const Varying& _first, const Varying& _second) : first(_first), second(_second) {}
+        
+};
+  */  /*
 template < class T0, class T1 >
 class VaryingPair : public std::pair<Varying, Varying> {
 public:
     using Parent = std::pair<Varying, Varying>;
 
-    VaryingPair() : Parent(Varying(T0()), T1()) {}
-    
+    VaryingPair() : Parent(Varying(T0()), Varying(T1())) {}
+    VaryingPair(const VaryingPair& pair) : Parent(pair.first, pair.second) {}
+    VaryingPair(const Varying& first, const Varying& second) : Parent(first, second) {}
+
     const T0& getFirst() const { return first.get<T0>(); }
     T0& editFirst() { return first.edit<T0>(); }
 
     const T1& getSecond() const { return second.get<T1>(); }
     T1& editSecond() { return second.edit<T1>(); }
-};
 
+};
+    */
+    
+    template <> void varyingGet(const VaryingPair& data, uint8_t index, Varying& var);
+    template <> uint8_t varyingLength(const VaryingPair& data);
+ /*   template <class T> Varying varyingGet(const T& data, uint8_t index) {
+        return Varying(T());
+    }*/
+
+//template <T0, T1> Varying varyingGet(template VaryingPair<T0, T1>& data, uint8_t index);
+//template <> uint8_t varyingLength(template VaryingPair<T0, T1>& data);
+
+
+/*
+template < class T0, class T1 >
+class VaryingPair : Varying {
+public:
+    using Parent = Varying;
+    using Pair = std::pair<Varying, Varying>;
+    
+    VaryingPair() : Parent(Pair(Varying(T0()), Varying(T1()))) {}
+    VaryingPair(const Varying& first, const Varying& second) : Parent(Pair(first, second)) {}
+    
+    
+    Pair& editPair() { return edit<Pair>(); }
+    const Pair& getPair() const { return get<Pair>(); }
+
+    const T0& getFirst() const { return getPair().first.template get<T0>(); }
+    T0& editFirst() { return editPair().first.template edit<T0>(); }
+    
+    const T1& getSecond() const { return getPair().second.template get<T1>(); }
+    T1& editSecond() { return editPair().second.template edit<T1>(); }
+    
+    // access potential sub varyings contained in this one.
+    virtual Varying operator[] (uint8_t index) const {
+        if (index == 0) {
+            return getPair().first;
+        } else {
+            return getPair().second;
+        } }
+    virtual uint8_t length() const { return 2; }
+    
+};
+ */
+    
 template < class T, int NUM >
 class VaryingArray : public std::array<Varying, NUM> {
 public:

@@ -100,9 +100,10 @@ void main(void) {
     
  //   _fragColor = vec4(fetchBRDF(dot(bentNormalR, lightVector), abs(diffusedCurvature.w * 2 - 1)), 1.0);
 
-    _fragColor = vec4(bentNormalR * lightVector, 1.0);
+ //    _fragColor = vec4(vec3(abs(dot(bentNormalR, lightVector))), 1.0);
+     _fragColor = vec4(vec3(varTexCoord0, 0.0), 1.0);
 
-    //_fragColor = vec4(vec3(bentNormalR * 0.5 + 0.5), 1.0);
+  //  _fragColor = vec4(vec3(bentNormalR * 0.5 + 0.5), 1.0);
 
 
 /*

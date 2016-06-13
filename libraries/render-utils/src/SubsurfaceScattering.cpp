@@ -102,7 +102,7 @@ bool SubsurfaceScattering::updateScatteringFramebuffer(const gpu::FramebufferPoi
 
         // attach depthStencil if present in source
         if (sourceFramebuffer->hasDepthStencil()) {
-            _scatteringFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
+     //       _scatteringFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
         }
         auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
         auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), blurringSampler));
@@ -126,7 +126,7 @@ bool SubsurfaceScattering::updateScatteringFramebuffer(const gpu::FramebufferPoi
 }
 
 
-void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, gpu::FramebufferPointer& scatteringFramebuffer) {
+void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& scatteringFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -138,10 +138,14 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
 
     auto pipeline = getScatteringPipeline();
+    
+    auto& frameTransform = inputs.first. template get<DeferredFrameTransformPointer>();//getFirst();
+    auto& curvatureFramebuffer = inputs.second. template get<gpu::FramebufferPointer>();//getSecond();
+    
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
  
-    if (!updateScatteringFramebuffer(framebufferCache->getCurvatureFramebuffer(), scatteringFramebuffer)) {
+    if (!updateScatteringFramebuffer(curvatureFramebuffer, scatteringFramebuffer)) {
         return;
     }
 
@@ -156,7 +160,7 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
         batch.setPipeline(pipeline);
         batch.setResourceTexture(SubsurfaceScattering_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
-        batch.setResourceTexture(SubsurfaceScattering_CurvatureMapSlot, framebufferCache->getCurvatureTexture());
+        batch.setResourceTexture(SubsurfaceScattering_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(SubsurfaceScattering_ScatteringTableSlot, _scatteringTable);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 

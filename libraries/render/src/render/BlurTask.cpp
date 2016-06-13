@@ -202,7 +202,9 @@ void BlurGaussian::run(const SceneContextPointer& sceneContext, const RenderCont
 
 
 
-BlurGaussianDepthAware::BlurGaussianDepthAware() {
+BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer) :
+    _generateOutputFramebuffer(generateOutputFramebuffer)
+{
     _parameters = std::make_shared<BlurParams>();
 }
 
@@ -276,12 +278,40 @@ bool BlurGaussianDepthAware::updateBlurringResources(const gpu::FramebufferPoint
             }
         }
     }
-
+    
     blurringResources.sourceTexture = sourceFramebuffer->getRenderBuffer(0);
     blurringResources.blurringFramebuffer = _blurredFramebuffer;
     blurringResources.blurringTexture = _blurredFramebuffer->getRenderBuffer(0);
-    blurringResources.finalFramebuffer = sourceFramebuffer;
 
+    if (_generateOutputFramebuffer) {
+        // The job output the blur result in a new Framebuffer spawning here.
+        // Let s make sure it s ready for this
+        if (!_outputFramebuffer) {
+            _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+            
+            // attach depthStencil if present in source
+            if (sourceFramebuffer->hasDepthStencil()) {
+                _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
+            }
+            auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
+            auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), blurringSampler));
+            _outputFramebuffer->setRenderBuffer(0, blurringTarget);
+        } else {
+            if ((_outputFramebuffer->getWidth() != sourceFramebuffer->getWidth()) || (_outputFramebuffer->getHeight() != sourceFramebuffer->getHeight())) {
+                _outputFramebuffer->resize(sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), sourceFramebuffer->getNumSamples());
+                if (sourceFramebuffer->hasDepthStencil()) {
+                    _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
+                }
+            }
+        }
+        
+        // Should be good to use the output Framebuffer as final
+        blurringResources.finalFramebuffer = _outputFramebuffer;
+    } else {
+        // Just the reuse the input as output to blur itself.
+        blurringResources.finalFramebuffer = sourceFramebuffer;
+    }
+    
     return true;
 }
 
@@ -291,20 +321,22 @@ void BlurGaussianDepthAware::configure(const Config& config) {
 }
 
 
-void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const InputPair& SourceAndDepth) {
+void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& SourceAndDepth, gpu::FramebufferPointer& blurredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
 
-    auto& sourceFramebuffer = SourceAndDepth.getFirst();
-    auto& depthTexture = SourceAndDepth.getSecond();
+    auto& sourceFramebuffer = SourceAndDepth.first. template get<gpu::FramebufferPointer>();//getFirst();
+    auto& depthTexture = SourceAndDepth.second. template get<gpu::TexturePointer>();//getSecond();
 
     BlurringResources blurringResources;
     if (!updateBlurringResources(sourceFramebuffer, blurringResources)) {
         // early exit if no valid blurring resources
         return;
     }
+    
+    blurredFramebuffer = blurringResources.finalFramebuffer;
 
     auto blurVPipeline = getBlurVPipeline();
     auto blurHPipeline = getBlurHPipeline();

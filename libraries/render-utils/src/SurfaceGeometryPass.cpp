@@ -45,7 +45,7 @@ void SurfaceGeometryPass::configure(const Config& config) {
     }
 }
 
-void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, InputPair& curvatureAndDepth) {
+void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, Outputs& curvatureAndDepth) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -59,8 +59,8 @@ void SurfaceGeometryPass::run(const render::SceneContextPointer& sceneContext, c
     
     auto pyramidTexture = framebufferCache->getDepthPyramidTexture();
     auto curvatureFBO = framebufferCache->getCurvatureFramebuffer();
-    curvatureAndDepth.editFirst() = curvatureFBO;
-    curvatureAndDepth.editSecond() = pyramidTexture;
+    curvatureAndDepth.first. template edit<gpu::FramebufferPointer>() = curvatureFBO;
+    curvatureAndDepth.second. template edit<gpu::TexturePointer>() = pyramidTexture;
 
     auto curvatureTexture = framebufferCache->getCurvatureTexture();
 
@@ -153,8 +153,6 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
 
         // Stencil test the curvature pass for objects pixels only, not the background
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-
-      //  state->setColorWriteMask(true, false, false, false);
 
         // Good to go add the brand new pipeline
         _curvaturePipeline = gpu::Pipeline::create(program, state);
