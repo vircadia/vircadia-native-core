@@ -82,6 +82,12 @@ ModalWindow {
 
         // Clear selection when click on external frame.
         frameClicked.connect(function() { d.clearSelection(); });
+
+        if (selectDirectory) {
+            currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
+        }
+
+        fileTableView.forceActiveFocus();
     }
 
     Item {
