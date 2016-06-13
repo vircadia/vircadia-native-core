@@ -174,48 +174,6 @@ glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,
     return result.getTranslation();
 }
 
-glm::vec3 SpatiallyNestable::worldVelocityToLocal(const glm::vec3& velocity, // can be linear or angular
-                                                  const QUuid& parentID, int parentJointIndex,
-                                                  bool& success) {
-    Transform result;
-    QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
-    if (!parentFinder) {
-        success = false;
-        return glm::vec3();
-    }
-
-    Transform parentTransform;
-    auto parentWP = parentFinder->find(parentID, success);
-    if (!success) {
-        return glm::vec3();
-    }
-
-    auto parent = parentWP.lock();
-    if (!parentID.isNull() && !parent) {
-        success = false;
-        return glm::vec3();
-    }
-
-    if (parent) {
-        parentTransform = parent->getTransform(parentJointIndex, success);
-        if (!success) {
-            return glm::vec3();
-        }
-        parentTransform.setScale(1.0f); // TODO: scale
-    }
-    success = true;
-
-    parentTransform.setTranslation(glm::vec3(0.0f));
-
-    Transform velocityTransform;
-    velocityTransform.setTranslation(velocity);
-    Transform myWorldTransform;
-    Transform::mult(myWorldTransform, parentTransform, velocityTransform);
-    myWorldTransform.setTranslation(velocity);
-    Transform::inverseMult(result, parentTransform, myWorldTransform);
-    return result.getTranslation();
-}
-
 glm::quat SpatiallyNestable::worldToLocal(const glm::quat& orientation,
                                           const QUuid& parentID, int parentJointIndex,
                                           bool& success) {

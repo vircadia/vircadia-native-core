@@ -46,8 +46,6 @@ public:
     virtual void setParentJointIndex(quint16 parentJointIndex);
 
     static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
-    static glm::vec3 worldVelocityToLocal(const glm::vec3& position, const QUuid& parentID,
-                                          int parentJointIndex, bool& success);
     static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
 
     static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
