@@ -158,14 +158,11 @@ var STATE_SEARCHING = 1;
 var STATE_HOLD_SEARCHING = 2;
 var STATE_DISTANCE_HOLDING = 3;
 var STATE_NEAR_GRABBING = 4;
-var STATE_NEAR_TRIGGER = 6;
-var STATE_CONTINUE_NEAR_TRIGGER = 7;
-var STATE_FAR_TRIGGER = 8;
-var STATE_CONTINUE_FAR_TRIGGER = 9;
-var STATE_EQUIP = 11;
-var STATE_HOLD = 12;
-var STATE_WAITING_FOR_RELEASE_THUMB_RELEASE = 15;
-var STATE_WAITING_FOR_EQUIP_THUMB_RELEASE = 16;
+var STATE_NEAR_TRIGGER = 4;
+var STATE_CONTINUE_NEAR_TRIGGER = 6;
+var STATE_FAR_TRIGGER = 7;
+var STATE_CONTINUE_FAR_TRIGGER = 8;
+var STATE_HOLD = 9;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -202,11 +199,6 @@ CONTROLLER_STATE_MACHINE[STATE_NEAR_GRABBING] = {
     enterMethod: "nearGrabbingEnter",
     updateMethod: "nearGrabbing"
 };
-CONTROLLER_STATE_MACHINE[STATE_EQUIP] = {
-    name: "equip",
-    enterMethod: "nearGrabbingEnter",
-    updateMethod: "nearGrabbing"
-};
 CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
     name: "continue_hold",
     enterMethod: "nearGrabbingEnter",
@@ -227,14 +219,6 @@ CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
 CONTROLLER_STATE_MACHINE[STATE_CONTINUE_FAR_TRIGGER] = {
     name: "continue_far_trigger",
     updateMethod: "continueFarTrigger"
-};
-CONTROLLER_STATE_MACHINE[STATE_WAITING_FOR_EQUIP_THUMB_RELEASE] = {
-    name: "waiting_for_equip_thumb_release",
-    updateMethod: "waitingForEquipThumbRelease"
-};
-CONTROLLER_STATE_MACHINE[STATE_WAITING_FOR_RELEASE_THUMB_RELEASE] = {
-    name: "waiting_for_release_thumb_release",
-    updateMethod: "waitingForReleaseThumbRelease"
 };
 
 function stateToName(state) {
@@ -1483,7 +1467,7 @@ function MyController(hand) {
         var handPosition = this.getHandPosition();
 
         var hasPresetPosition = false;
-        if ((this.state == STATE_EQUIP || this.state == STATE_HOLD) && this.hasPresetOffsets()) {
+        if (this.state == STATE_HOLD && this.hasPresetOffsets()) {
             var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
             // if an object is "equipped" and has a predefined offset, use it.
             this.ignoreIK = grabbableData.ignoreIK ? grabbableData.ignoreIK : false;
@@ -1499,7 +1483,7 @@ function MyController(hand) {
             var currentObjectPosition = grabbedProperties.position;
             var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
-            if (this.temporaryPositionOffset && (this.state == STATE_EQUIP)) {
+            if (this.temporaryPositionOffset) {
                 this.offsetPosition = this.temporaryPositionOffset;
                 // hasPresetPosition = true;
             }
@@ -1543,7 +1527,7 @@ function MyController(hand) {
 
         if (this.state == STATE_NEAR_GRABBING) {
             this.callEntityMethodOnGrabbed("startNearGrab");
-        } else { // this.state == STATE_EQUIP || this.state == STATE_HOLD
+        } else { // this.state == STATE_HOLD
             this.callEntityMethodOnGrabbed("startEquip");
         }
 
@@ -1566,21 +1550,6 @@ function MyController(hand) {
         if (this.state == STATE_HOLD && this.secondaryReleased()) {
             this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("releaseEquip");
-            return;
-        }
-        if (this.state == STATE_EQUIP && this.thumbPressed()) {
-            this.setState(STATE_WAITING_FOR_RELEASE_THUMB_RELEASE);
-            this.callEntityMethodOnGrabbed("releaseEquip");
-            return;
-        }
-        if (this.state == STATE_NEAR_GRABBING && this.thumbPressed()) {
-            this.setState(STATE_WAITING_FOR_EQUIP_THUMB_RELEASE);
-            this.callEntityMethodOnGrabbed("releaseGrab");
-            this.callEntityMethodOnGrabbed("startEquip");
-            return;
-        }
-        if (this.state == STATE_HOLD && this.thumbPressed()) {
-            this.setState(STATE_WAITING_FOR_EQUIP_THUMB_RELEASE);
             return;
         }
 
@@ -1612,7 +1581,7 @@ function MyController(hand) {
                     this.setState(STATE_OFF);
                     if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");
-                    } else { // (this.state == STATE_EQUIP || this.state == STATE_HOLD)
+                    } else { // this.state == STATE_HOLD
                         this.callEntityMethodOnGrabbed("releaseEquip");
                     }
                     return;
@@ -1651,7 +1620,7 @@ function MyController(hand) {
         this.currentObjectTime = now;
 
         var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
-        if (this.state === STATE_EQUIP || this.state === STATE_HOLD) {
+        if (this.state === STATE_HOLD) {
             this.callEntityMethodOnGrabbed("continueEquip");
         }
         if (this.state == STATE_NEAR_GRABBING) {
@@ -1677,17 +1646,6 @@ function MyController(hand) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 this.setupHoldAction();
             }
-        }
-    };
-
-    this.waitingForEquipThumbRelease = function() {
-        if (this.thumbReleased() && this.triggerSmoothedReleased()) {
-            this.setState(STATE_EQUIP);
-        }
-    };
-    this.waitingForReleaseThumbRelease = function() {
-        if (this.thumbReleased() && this.triggerSmoothedReleased()) {
-            this.setState(STATE_OFF);
         }
     };
 
@@ -1968,6 +1926,8 @@ function MyController(hand) {
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
     };
 
+    // AJT: WTF TO DO WITH THIS?
+    /*
     this.checkNewlyLoaded = function(loadedEntityID) {
         if (this.state == STATE_OFF ||
             this.state == STATE_SEARCHING ||
@@ -1989,6 +1949,7 @@ function MyController(hand) {
             this.setState(STATE_EQUIP);
         }
     }
+    */
 };
 
 var rightController = new MyController(RIGHT_HAND);
@@ -2044,7 +2005,7 @@ handleHandMessages = function(channel, message, sender) {
                 var data = JSON.parse(message);
                 var selectedController = (data.hand === 'left') ? leftController : rightController;
                 selectedController.release();
-                selectedController.setState(STATE_EQUIP);
+                selectedController.setState(STATE_HOLD);
                 selectedController.grabbedEntity = data.entityID;
 
             } catch (e) {}
@@ -2066,23 +2027,6 @@ handleHandMessages = function(channel, message, sender) {
                 }
 
             } catch (e) {}
-        } else if (channel === 'Hifi-Object-Manipulation') {
-            if (sender !== MyAvatar.sessionUUID) {
-                return;
-            }
-
-            var parsedMessage = null;
-            try {
-                parsedMessage = JSON.parse(message);
-            } catch (e) {
-                print('error parsing Hifi-Object-Manipulation message');
-                return;
-            }
-
-            if (parsedMessage.action === 'loaded') {
-                rightController.checkNewlyLoaded(parsedMessage['grabbedEntity']);
-                leftController.checkNewlyLoaded(parsedMessage['grabbedEntity']);
-            }
         }
     }
 }
