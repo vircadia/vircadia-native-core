@@ -151,10 +151,8 @@ var STATE_HOLD_SEARCHING = 2;
 var STATE_DISTANCE_HOLDING = 3;
 var STATE_NEAR_GRABBING = 4;
 var STATE_NEAR_TRIGGER = 5;
-var STATE_CONTINUE_NEAR_TRIGGER = 6;
-var STATE_FAR_TRIGGER = 7;
-var STATE_CONTINUE_FAR_TRIGGER = 8;
-var STATE_HOLD = 9;
+var STATE_FAR_TRIGGER = 6;
+var STATE_HOLD = 7;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -197,20 +195,14 @@ CONTROLLER_STATE_MACHINE[STATE_HOLD] = {
     updateMethod: "nearGrabbing"
 };
 CONTROLLER_STATE_MACHINE[STATE_NEAR_TRIGGER] = {
-    name: "near_trigger",
+    name: "trigger",
+    enterMethod: "nearTriggerEnter",
     updateMethod: "nearTrigger"
-};
-CONTROLLER_STATE_MACHINE[STATE_CONTINUE_NEAR_TRIGGER] = {
-    name: "continue_near_trigger",
-    updateMethod: "continueNearTrigger"
 };
 CONTROLLER_STATE_MACHINE[STATE_FAR_TRIGGER] = {
     name: "far_trigger",
+    enterMethod: "farTriggerEnter",
     updateMethod: "farTrigger"
-};
-CONTROLLER_STATE_MACHINE[STATE_CONTINUE_FAR_TRIGGER] = {
-    name: "continue_far_trigger",
-    updateMethod: "continueFarTrigger"
 };
 
 function stateToName(state) {
@@ -1627,27 +1619,15 @@ function MyController(hand) {
         }
     };
 
-    this.nearTrigger = function() {
-        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_OFF);
-            this.callEntityMethodOnGrabbed("stopNearTrigger");
-            return;
-        }
+    this.nearTriggerEnter = function() {
         this.callEntityMethodOnGrabbed("startNearTrigger");
-        this.setState(STATE_CONTINUE_NEAR_TRIGGER);
     };
 
-    this.farTrigger = function() {
-        if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
-            this.setState(STATE_OFF);
-            this.callEntityMethodOnGrabbed("stopFarTrigger");
-            return;
-        }
+    this.farTriggerEnter = function() {
         this.callEntityMethodOnGrabbed("startFarTrigger");
-        this.setState(STATE_CONTINUE_FAR_TRIGGER);
     };
 
-    this.continueNearTrigger = function() {
+    this.nearTrigger = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
@@ -1656,7 +1636,7 @@ function MyController(hand) {
         this.callEntityMethodOnGrabbed("continueNearTrigger");
     };
 
-    this.continueFarTrigger = function() {
+    this.farTrigger = function() {
         if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
             this.setState(STATE_OFF);
             this.callEntityMethodOnGrabbed("stopFarTrigger");
