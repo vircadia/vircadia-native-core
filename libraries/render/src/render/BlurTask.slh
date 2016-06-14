@@ -111,7 +111,7 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
 
         
         // If the difference in depth is huge, we lerp color back.
-        float s = clamp(depthThreshold * distanceToProjectionWindow * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
+        float s = clamp(depthThreshold * distanceToProjectionWindow /* * filterScale*/ * abs(srcDepth - sampleDepth), 0.0, 1.0);
         srcSample = mix(srcSample, sampleCenter, s);
 
         // Accumulate.

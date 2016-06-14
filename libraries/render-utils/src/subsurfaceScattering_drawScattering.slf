@@ -14,52 +14,61 @@
 <$declareDeferredFrameTransform()$>
 
 
-
-
-vec2 signNotZero(vec2 v) {
-    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
+uniform sampler2D linearDepthMap;
+float getZEye(ivec2 pixel) {
+    return -texelFetch(linearDepthMap, pixel, 0).x;
+}
+float getZEyeLinear(vec2 texcoord) {
+    return -texture(linearDepthMap, texcoord).x;
 }
 
-vec3 oct_to_float32x3(in vec2 e) {
-    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
-    if (v.z < 0) {
-        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
-    }
-    return normalize(v);
+<@include DeferredBufferRead.slh@>
+
+
+vec3 fresnelSchlick(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
+    return fresnelColor + (1.0 - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
 }
 
-vec2 unorm8x3_to_snorm12x2(vec3 u) {
-    u *= 255.0;
-    u.y *= (1.0 / 16.0);
-    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
-    fract(u.y) * (16.0 * 256.0) + u.z);
-    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
+float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
+    float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
+    float gloss2 = pow(0.001 + roughness, 4);
+    float denom = (ndoth * ndoth*(gloss2 - 1) + 1);
+    float power = gloss2 / (3.14159 * denom * denom);
+    return power;
 }
-vec3 unpackNormal(in vec3 p) {
-    return oct_to_float32x3(unorm8x3_to_snorm12x2(p));
+
+// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
+vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+    // Diffuse Lighting
+    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+    
+    // Specular Lighting
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
+    float power = specularDistribution(roughness, fragNormal, halfDir);
+    vec3 specular = power * fresnelColor * diffuse;
+
+    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
 }
+
+
 
 vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
     return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
 }
-
-uniform sampler2D normalMap;
-
-vec3 getRawNormal(vec2 texcoord) {
-    return texture(normalMap, texcoord).xyz;
-}
-
-vec3 getWorldNormal(vec2 texcoord) {
-    vec3 rawNormal = getRawNormal(texcoord);
-    return unpackNormal(rawNormal);
-}
-
 
 // the curvature texture
 uniform sampler2D curvatureMap;
 
 vec4 fetchCurvature(vec2 texcoord) {
     return texture(curvatureMap, texcoord);
+}
+
+// the curvature texture
+uniform sampler2D diffusedCurvatureMap;
+
+vec4 fetchDiffusedCurvature(vec2 texcoord) {
+    return texture(diffusedCurvatureMap, texcoord);
 }
 
 
@@ -69,13 +78,33 @@ vec3 fetchBRDF(float LdotN, float curvature) {
     return texture(scatteringLUT, vec2( LdotN * 0.5 + 0.5, curvature)).xyz;
 }
 
+vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
+    return vec3(
+        fetchBRDF(LdotNSpectrum.r, curvature).r,
+        fetchBRDF(LdotNSpectrum.g, curvature).g,
+        fetchBRDF(LdotNSpectrum.b, curvature).b
+    );
+}
+
 // Scattering parameters
-float normalBendFactor = 1.0f;
-float normalBendR = 1.5f;
-float normalBendG = 0.8f;
-float normalBendB = 0.3f;
-float scatterBase = 0.012f;
-float scatterCurve = 0.25f;
+
+struct ScatteringParameters {
+    vec4 normalBendInfo; // R, G, B, factor
+    vec4 curvatureInfo;// Offset, Scale
+};
+
+uniform scatteringParamsBuffer {
+    ScatteringParameters parameters;
+};
+
+vec3 getBendFactor() {
+    return parameters.normalBendInfo.xyz * parameters.normalBendInfo.w;
+}
+
+float unpackCurvature(float packedCurvature) {
+    return abs(packedCurvature * 2 - 1) * 0.5f * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
+}
+
 
 in vec2 varTexCoord0;
 out vec4 _fragColor;
@@ -83,43 +112,69 @@ out vec4 _fragColor;
 uniform vec3 uniformLightVector = vec3(1.0);
 
 void main(void) {
-  //  DeferredTransform deferredTransform = getDeferredTransform();
- //   DeferredFragment frag = unpackDeferredFragment(deferredTransform, varTexCoord0);
 
-    vec3 normal = getWorldNormal(varTexCoord0);
-    vec4 diffusedCurvature = fetchCurvature(varTexCoord0);
+    DeferredFragment fragment = unpackDeferredFragmentNoPosition(varTexCoord0);
 
-    // --> Calculate bent normals.
-    vec3 bentNormalN = normal;
-    vec3 bentNormalR = normalize( (diffusedCurvature.xyz - 0.5f) * 2.0f );
-    float curvature = abs(diffusedCurvature.w * 2 - 1) * 0.5f * scatterCurve + scatterBase;
+    vec3 normal = fragment.normal; // .getWorldNormal(varTexCoord0);
+    vec4 blurredCurvature = fetchCurvature(varTexCoord0);
+    vec4 diffusedCurvature = fetchDiffusedCurvature(varTexCoord0);
+
+    // --> Get curvature data
+    vec3 bentNormalHigh = normalize( (blurredCurvature.xyz - 0.5f) * 2.0f );
+    vec3 bentNormalLow = normalize( (diffusedCurvature.xyz - 0.5f) * 2.0f );
+    float curvature = unpackCurvature(diffusedCurvature.w);
+
+
  //   _fragColor = vec4(vec3(diffusedCurvature.xyz), 1.0);
 
        // --> Calculate the light vector.
     vec3 lightVector = normalize(uniformLightVector); //normalize(lightPos - sourcePos.xyz);
     
- //   _fragColor = vec4(fetchBRDF(dot(bentNormalR, lightVector), abs(diffusedCurvature.w * 2 - 1)), 1.0);
-
- //    _fragColor = vec4(vec3(abs(dot(bentNormalR, lightVector))), 1.0);
-     _fragColor = vec4(vec3(varTexCoord0, 0.0), 1.0);
-
+   // _fragColor = vec4(fetchBRDF(dot(bentNormalR, lightVector), abs(diffusedCurvature.w * 2 - 1)), 1.0);
+   //  _fragColor = vec4(vec3(abs(dot(bentNormalR, lightVector))), 1.0);
+ //    _fragColor = vec4(vec3(varTexCoord0, 0.0), 1.0);
   //  _fragColor = vec4(vec3(bentNormalR * 0.5 + 0.5), 1.0);
 
 
-/*
-        // --> Optimise for skin diffusion profile.
-        float diffuseBlendedR = dot(normalize(mix( bentNormalN.xyz, bentNormalN, normalBendR * normalBendFactor)), lightVector);
-        float diffuseBlendedG = dot(normalize(mix(normal.xyz, bentNormalN, normalBendG * normalBendFactor)), lightVector);
-        float diffuseBlendedB = dot(normalize(mix(normal.xyz, bentNormalN, normalBendB * normalBendFactor)), lightVector);
-
+    vec3 rS = bentNormalHigh;
     
+    vec3 bendFactorSpectrum = getBendFactor();
+    vec3 rN = normalize(mix(normal, bentNormalLow, bendFactorSpectrum.x));
+    vec3 gN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.y));
+    vec3 bN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.z));
+
+    vec3 NdotLSpectrum  = vec3(dot(rN, lightVector), dot(gN, lightVector), dot(bN, lightVector));
+
     // --> Look up the pre-integrated curvature-dependent BDRF textures
-    vec3 bdrfR = fetchBRDF(diffuseBlendedR, curvature);
-    vec3 bdrfG = fetchBRDF(diffuseBlendedG, curvature);
-    vec3 bdrfB = fetchBRDF(diffuseBlendedB, curvature);
-    vec3 bdrf = vec3( bdrfR.x, bdrfG.y, bdrfB.z);
-     bdrf *= bdrf;
-    _fragColor = vec4(vec3(bdrf.xyz), 1.0);*/
+    vec3 bdrf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
+
+
+    // Pixel being shaded
+    ivec2 pixelPos;
+    vec2 texcoordPos;
+    ivec4 stereoSide;
+    ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
+    vec2 stereoSideClip = vec2(stereoSide.x, (isStereo() ? 0.5 : 1.0));
+    vec2 frameTexcoordPos = sideToFrameTexcoord(stereoSideClip, texcoordPos);
+
+    // Fetch the z under the pixel (stereo or not)
+    float Zeye = getZEye(framePixelPos);
+
+    vec3 worldNormal = getWorldNormal(frameTexcoordPos);
+
+    // The position of the pixel fragment in Eye space then in world space
+    vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);
+    vec3 fragEyeDir = -(frameTransform._viewInverse * vec4(normalize(eyePos), 0.0)).xyz;
+    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
+    if (fragment.metallic > 0.5) {
+        fresnel = albedo;
+        fragment.metallic = 1.0;
+    }
+
+    vec4 shading = evalPBRShading(rS, lightVector, fragEyeDir, fragment.metallic, fresnel, fragment.roughness);
+    _fragColor = vec4(shading.w * albedo * vec3(bdrf.xyz), 1.0);
+
+
 }
 
 

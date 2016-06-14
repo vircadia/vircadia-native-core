@@ -32,13 +32,33 @@ Column {
 
         Column{
             Repeater {
-                model: [ "Blur Scale:filterScale:2.0", "Blur Depth Threshold:depthThreshold:100.0" ]
+                model: [ "Blur Scale:DiffuseCurvature:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvature:depthThreshold:10.0", "Blur Scale2:DiffuseCurvature2:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvature2:depthThreshold:10.0"]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
-                    config: Render.getConfig("DiffuseCurvature")
-                    property: modelData.split(":")[1]
-                    max: modelData.split(":")[2]
+                    config: Render.getConfig(modelData.split(":")[1])
+                    property: modelData.split(":")[2]
+                    max: modelData.split(":")[3]
+                    min: 0.0
+                }
+            }
+        }
+
+        Column{
+            Repeater {
+                model: [ "Scattering Bent Red:Scattering:bentRed:2.0",
+                         "Scattering Bent Green:Scattering:bentGreen:2.0",
+                         "Scattering Bent Blue:Scattering:bentBlue:2.0",
+                         "Scattering Bent Scale:Scattering:bentScale:2.0",
+                         "Scattering Curvature Offset:Scattering:curvatureOffset:1.0",
+                         "Scattering Curvature Scale:Scattering:curvatureScale:1.0",
+                          ]
+                ConfigSlider {
+                    label: qsTr(modelData.split(":")[0])
+                    integral: false
+                    config: Render.getConfig(modelData.split(":")[1])
+                    property: modelData.split(":")[2]
+                    max: modelData.split(":")[3]
                     min: 0.0
                 }
             }

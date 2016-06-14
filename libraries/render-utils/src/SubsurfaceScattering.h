@@ -19,12 +19,27 @@
 
 class SubsurfaceScatteringConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty)
+    Q_PROPERTY(float bentRed MEMBER bentRed NOTIFY dirty)
+    Q_PROPERTY(float bentGreen MEMBER bentGreen NOTIFY dirty)
+    Q_PROPERTY(float bentBlue MEMBER bentBlue NOTIFY dirty)
+    Q_PROPERTY(float bentScale MEMBER bentScale NOTIFY dirty)
+
+    Q_PROPERTY(float curvatureOffset MEMBER curvatureOffset NOTIFY dirty)
+    Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
+
+
     Q_PROPERTY(bool showLUT MEMBER showLUT NOTIFY dirty)
 public:
     SubsurfaceScatteringConfig() : render::Job::Config(true) {}
 
-    float depthThreshold{ 0.1f };
+    float bentRed{ 1.5f };
+    float bentGreen{ 0.8f };
+    float bentBlue{ 0.3f };
+    float bentScale{ 1.0f };
+
+    float curvatureOffset{ 0.012f };
+    float curvatureScale{ 0.25f };
+
     bool showLUT{ true };
 
 signals:
@@ -33,7 +48,7 @@ signals:
 
 class SubsurfaceScattering {
 public:
-    using Inputs = render::VaryingPair<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingTrio<DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = SubsurfaceScatteringConfig;
     using JobModel = render::Job::ModelIO<SubsurfaceScattering, Inputs, gpu::FramebufferPointer, Config>;
 
@@ -41,9 +56,6 @@ public:
 
     void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& scatteringFramebuffer);
-    
-    float getCurvatureDepthThreshold() const { return _parametersBuffer.get<Parameters>().curvatureInfo.x; }
-
 
     static gpu::TexturePointer generatePreIntegratedScattering(RenderArgs* args);
 
@@ -53,9 +65,7 @@ private:
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class Parameters {
     public:
-        // Resolution info
-        glm::vec4 resolutionInfo { -1.0f, 0.0f, 0.0f, 0.0f };
-        // Curvature algorithm
+        glm::vec4 normalBentInfo { 0.0f };
         glm::vec4 curvatureInfo{ 0.0f };
 
         Parameters() {}

@@ -50,13 +50,34 @@ public:
 };
 using BlurParamsPointer = std::shared_ptr<BlurParams>;
 
+class BlurInOutResource {
+public:
+    BlurInOutResource(bool generateOutputFramebuffer = false);
+
+    struct Resources {
+        gpu::TexturePointer sourceTexture;
+        gpu::FramebufferPointer blurringFramebuffer;
+        gpu::TexturePointer blurringTexture;
+        gpu::FramebufferPointer finalFramebuffer;
+    };
+
+    bool updateResources(const gpu::FramebufferPointer& sourceFramebuffer, Resources& resources);
+
+    gpu::FramebufferPointer _blurredFramebuffer;
+
+    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in th einput buffer
+    gpu::FramebufferPointer _outputFramebuffer;
+    bool _generateOutputFramebuffer{ false };
+};
+
+
 class BlurGaussianConfig : public Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty) // expose enabled flag
     Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty) // expose enabled flag
 public:
 
-    float filterScale{ 2.0f };
+    float filterScale{ 1.0f };
 signals :
     void dirty();
 
@@ -67,12 +88,12 @@ protected:
 class BlurGaussian {
 public:
     using Config = BlurGaussianConfig;
-    using JobModel = Job::ModelI<BlurGaussian, gpu::FramebufferPointer, Config>;
+    using JobModel = Job::ModelIO<BlurGaussian, gpu::FramebufferPointer, gpu::FramebufferPointer, Config>;
 
-    BlurGaussian();
+    BlurGaussian(bool generateOutputFramebuffer = false);
 
     void configure(const Config& config);
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer);
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);
 
 protected:
 
@@ -84,15 +105,7 @@ protected:
     gpu::PipelinePointer getBlurVPipeline();
     gpu::PipelinePointer getBlurHPipeline();
 
-    gpu::FramebufferPointer _blurredFramebuffer;
-
-    struct BlurringResources {
-        gpu::TexturePointer sourceTexture;
-        gpu::FramebufferPointer blurringFramebuffer;
-        gpu::TexturePointer blurringTexture;
-        gpu::FramebufferPointer finalFramebuffer;
-    };
-    bool updateBlurringResources(const gpu::FramebufferPointer& sourceFramebuffer, BlurringResources& blurringResources);
+    BlurInOutResource _inOutResources;
 };
 
 class BlurGaussianDepthAwareConfig : public BlurGaussianConfig {
@@ -127,22 +140,10 @@ protected:
     gpu::PipelinePointer getBlurVPipeline();
     gpu::PipelinePointer getBlurHPipeline();
 
-    gpu::FramebufferPointer _blurredFramebuffer;
-
-    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in th einput buffer
-    gpu::FramebufferPointer _outputFramebuffer;
-    bool _generateOutputFramebuffer { false };
-    
-    struct BlurringResources {
-        gpu::TexturePointer sourceTexture;
-        gpu::FramebufferPointer blurringFramebuffer;
-        gpu::TexturePointer blurringTexture;
-        gpu::FramebufferPointer finalFramebuffer;
-    };
-    bool updateBlurringResources(const gpu::FramebufferPointer& sourceFramebuffer, BlurringResources& blurringResources);
+    BlurInOutResource _inOutResources;
 };
 
 
 }
 
-#endif // hifi_render_DrawTask_h
+#endif // hifi_render_BlurTask_h

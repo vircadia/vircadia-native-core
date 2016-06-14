@@ -11,6 +11,7 @@
 
 #ifndef hifi_render_Task_h
 #define hifi_render_Task_h
+#include <tuple>
 
 #include <QtCore/qobject.h>
 
@@ -91,19 +92,6 @@ using VaryingPairBase = std::pair<Varying, Varying>;
 template <> void varyingGet(const VaryingPairBase& data, uint8_t index, Varying& var);
 template <> uint8_t varyingLength(const VaryingPairBase& data);
 
-/*
-class VaryingPairBase {
-    public:
-    Varying first;
-    Varying second;
-    
-    
-        //  template < class T0, class T1> VaryingPairBase() : Parent(Varying(T0()), Varying(T1())) {}
-      //  VaryingPairBase(const VaryingPairBase& pair) : Parent(pair.first, pair.second) {}
-        VaryingPairBase(const Varying& _first, const Varying& _second) : first(_first), second(_second) {}
-        
-};
-  */
 template < class T0, class T1 >
 class VaryingPair : public VaryingPairBase {
 public:
@@ -120,48 +108,41 @@ public:
     T1& editSecond() { return second.edit<T1>(); }
 };
 
-    
-    
- /*   template <class T> Varying varyingGet(const T& data, uint8_t index) {
-        return Varying(T());
-    }*/
-
-//template <T0, T1> Varying varyingGet(template VaryingPair<T0, T1>& data, uint8_t index);
-//template <> uint8_t varyingLength(template VaryingPair<T0, T1>& data);
-
-
-/*
-template < class T0, class T1 >
-class VaryingPair : Varying {
+template <class T0, class T1, class T2>
+class VaryingTrio : public std::tuple<Varying, Varying,Varying>{
 public:
-    using Parent = Varying;
-    using Pair = std::pair<Varying, Varying>;
-    
-    VaryingPair() : Parent(Pair(Varying(T0()), Varying(T1()))) {}
-    VaryingPair(const Varying& first, const Varying& second) : Parent(Pair(first, second)) {}
-    
-    
-    Pair& editPair() { return edit<Pair>(); }
-    const Pair& getPair() const { return get<Pair>(); }
+    using Parent = std::tuple<Varying, Varying, Varying>;
 
-    const T0& getFirst() const { return getPair().first.template get<T0>(); }
-    T0& editFirst() { return editPair().first.template edit<T0>(); }
-    
-    const T1& getSecond() const { return getPair().second.template get<T1>(); }
-    T1& editSecond() { return editPair().second.template edit<T1>(); }
-    
-    // access potential sub varyings contained in this one.
-    virtual Varying operator[] (uint8_t index) const {
-        if (index == 0) {
-            return getPair().first;
-        } else {
-            return getPair().second;
-        } }
-    virtual uint8_t length() const { return 2; }
-    
+    VaryingTrio() : Parent(Varying(T0()), Varying(T1()), Varying(T2())) {}
+    VaryingTrio(const VaryingTrio& trio) : Parent(std::get<0>(trio), std::get<1>(trio), std::get<2>(trio)) {}
+    VaryingTrio(const Varying& first, const Varying& second, const Varying& third) : Parent(first, second, third) {}
+
+    const T0& getFirst() const { return std::get<0>((*this)).get<T0>(); }
+    T0& editFirst() { return std::get<0>((*this)).edit<T0>(); }
+
+    const T1& getSecond() const { return std::get<1>((*this)).get<T1>(); }
+    T1& editSecond() { return std::get<1>((*this)).edit<T1>(); }
+
+    const T2& getThird() const { return std::get<2>((*this)).get<T2>(); }
+    T2& editThird() { return std::get<2>((*this)).edit<T2>(); }
 };
- */
-    
+/*
+template <class... _Types>
+class VaryingTuple : public std::tuple<_Types>{
+public:
+    using Parent = std::tuple<_Types>;
+
+    VaryingPair() : Parent(Varying(T0()), Varying(T1())) {}
+    VaryingPair(const VaryingPair& pair) : Parent(pair.first, pair.second) {}
+    VaryingPair(const Varying& first, const Varying& second) : Parent(first, second) {}
+
+    const T0& getFirst() const { return first.get<T0>(); }
+    T0& editFirst() { return first.edit<T0>(); }
+
+    const T1& getSecond() const { return second.get<T1>(); }
+    T1& editSecond() { return second.edit<T1>(); }
+};*/
+
 template < class T, int NUM >
 class VaryingArray : public std::array<Varying, NUM> {
 public:

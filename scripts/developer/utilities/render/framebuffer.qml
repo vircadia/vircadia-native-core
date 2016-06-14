@@ -49,6 +49,8 @@ Column {
                 "Pyramid Depth",
                 "Curvature",
                 "NormalCurvature",
+                "DiffusedCurvature",
+                "DiffusedNormalCurvature",
                 "Scattering",
                 "Ambient Occlusion",
                 "Ambient Occlusion Blurred",

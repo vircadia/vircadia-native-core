@@ -157,10 +157,26 @@ static const std::string DEFAULT_NORMAL_CURVATURE_SHADER{
     " }"
 };
 
+static const std::string DEFAULT_DIFFUSED_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(pow(vec3(texture(diffusedCurvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
+    // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER{
+    "vec4 getFragmentColor() {"
+    //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
+    "    return vec4(pow(vec3(texture(diffusedCurvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
 static const std::string DEFAULT_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
-  //  "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
-    "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
+    "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+  //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
     " }"
 };
 
@@ -233,6 +249,10 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_CURVATURE_SHADER;
         case NormalCurvatureMode:
             return DEFAULT_NORMAL_CURVATURE_SHADER;
+        case DiffusedCurvatureMode:
+            return DEFAULT_DIFFUSED_CURVATURE_SHADER;
+        case DiffusedNormalCurvatureMode:
+            return DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER;
         case ScatteringMode:
             return DEFAULT_SCATTERING_SHADER;
         case AmbientOcclusionMode:
@@ -317,12 +337,13 @@ void DebugDeferredBuffer::configure(const Config& config) {
     _size = config.size;
 }
 
-void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const gpu::FramebufferPointer&  inputBuffer) {
+void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
-    auto& scatteringFramebuffer = inputBuffer;
+    auto& diffusedCurvatureFramebuffer = inputs.getFirst();
+    auto& scatteringFramebuffer = inputs.getSecond();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -354,7 +375,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
         batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
         batch.setResourceTexture(Curvature, framebufferCache->getCurvatureTexture());
-        //batch.setResourceTexture(DiffusedCurvature, diffusedCurvatureBuffer);
+        batch.setResourceTexture(DiffusedCurvature, diffusedCurvatureFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(Scattering, scatteringFramebuffer->getRenderBuffer(0));
         if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
             batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());

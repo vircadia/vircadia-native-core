@@ -113,20 +113,22 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Opaque all rendered, generate surface geometry buffers
     const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
 
-    addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
-
+#define SIMPLE_BLUR 1
+#if SIMPLE_BLUR
+    const auto curvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first);
+    const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature2", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first, true);
+#else
+    const auto curvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature", curvatureFramebufferAndDepth);
     const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
-    
+#endif
+
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first;
-
-  //  const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebufferAndDepth[0]));
-    const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first));
+    const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer));
     const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
@@ -150,7 +152,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Debugging stages
     {
         // Debugging Deferred buffer job
-        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", scatteringFramebuffer);
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, scatteringFramebuffer));
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job
         {

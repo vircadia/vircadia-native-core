@@ -34,13 +34,14 @@ signals:
 
 class DebugDeferredBuffer {
 public:
+    using Inputs = render::VaryingPair<gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = DebugDeferredBufferConfig;
-    using JobModel = render::Job::ModelI<DebugDeferredBuffer, gpu::FramebufferPointer, Config>;
+    using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     
     DebugDeferredBuffer();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputBuffer);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
     
 protected:
     friend class DebugDeferredBufferConfig;
@@ -61,6 +62,8 @@ protected:
         PyramidDepthMode,
         CurvatureMode,
         NormalCurvatureMode,
+        DiffusedCurvatureMode,
+        DiffusedNormalCurvatureMode,
         ScatteringMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,

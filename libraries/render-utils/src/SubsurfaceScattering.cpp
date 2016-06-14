@@ -18,11 +18,20 @@
 #include "subsurfaceScattering_makeLUT_frag.h"
 #include "subsurfaceScattering_drawScattering_frag.h"
 
-const int SubsurfaceScattering_FrameTransformSlot = 0;
-const int SubsurfaceScattering_ParamsSlot = 1;
-const int SubsurfaceScattering_CurvatureMapSlot = 0;
-const int SubsurfaceScattering_NormalMapSlot = 1;
-const int SubsurfaceScattering_ScatteringTableSlot = 2;
+enum ScatteringShaderBufferSlots {
+    ScatteringTask_FrameTransformSlot = 0,
+    ScatteringTask_ParamSlot,
+};
+enum ScatteringShaderMapSlots {
+    ScatteringTask_ScatteringTableSlot = 0,
+    ScatteringTask_CurvatureMapSlot,
+    ScatteringTask_DiffusedCurvatureMapSlot,
+    ScatteringTask_NormalMapSlot,
+
+    ScatteringTask_AlbedoMapSlot,
+    ScatteringTask_LinearMapSlot,
+
+};
 
 SubsurfaceScattering::SubsurfaceScattering() {
     Parameters parameters;
@@ -30,9 +39,19 @@ SubsurfaceScattering::SubsurfaceScattering() {
 }
 
 void SubsurfaceScattering::configure(const Config& config) {
-    
-    if (config.depthThreshold != getCurvatureDepthThreshold()) {
-        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.depthThreshold;
+    auto& params = _parametersBuffer.get<Parameters>();
+
+    glm::vec4 bentInfo(config.bentRed, config.bentGreen, config.bentBlue, config.bentScale);
+
+    if (bentInfo != params.normalBentInfo) {
+        _parametersBuffer.edit<Parameters>().normalBentInfo = bentInfo;
+    }
+
+    if (config.curvatureOffset != params.curvatureInfo.x) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.curvatureOffset;
+    }
+    if (config.curvatureScale != params.curvatureInfo.y) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo.y = config.curvatureScale;
     }
 
     _showLUT = config.showLUT;
@@ -48,12 +67,17 @@ gpu::PipelinePointer SubsurfaceScattering::getScatteringPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), SubsurfaceScattering_FrameTransformSlot));
-        // slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringParamsBuffer"), ScatteringTask_ParamSlot));
 
-        slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), SubsurfaceScattering_CurvatureMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), SubsurfaceScattering_NormalMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SubsurfaceScattering_ScatteringTableSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), ScatteringTask_ScatteringTableSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), ScatteringTask_CurvatureMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), ScatteringTask_DiffusedCurvatureMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), ScatteringTask_NormalMapSlot));
+
+        slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), ScatteringTask_AlbedoMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), ScatteringTask_LinearMapSlot));
+
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -112,7 +136,7 @@ bool SubsurfaceScattering::updateScatteringFramebuffer(const gpu::FramebufferPoi
         if ((_scatteringFramebuffer->getWidth() != sourceFramebuffer->getWidth()) || (_scatteringFramebuffer->getHeight() != sourceFramebuffer->getHeight())) {
             _scatteringFramebuffer->resize(sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), sourceFramebuffer->getNumSamples());
             if (sourceFramebuffer->hasDepthStencil()) {
-                _scatteringFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
+           //     _scatteringFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
             }
         }
     }
@@ -139,8 +163,9 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
     auto pipeline = getScatteringPipeline();
     
-    auto& frameTransform = inputs.first. template get<DeferredFrameTransformPointer>();//getFirst();
-    auto& curvatureFramebuffer = inputs.second. template get<gpu::FramebufferPointer>();//getSecond();
+    auto& frameTransform = inputs.getFirst();
+    auto& curvatureFramebuffer = inputs.getSecond();
+    auto& diffusedFramebuffer = inputs.getThird();
     
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
@@ -155,13 +180,21 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
         batch.setViewportTransform(args->_viewport);
 
         batch.setFramebuffer(_scatteringFramebuffer);
-
-        batch.setUniformBuffer(SubsurfaceScattering_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+     //   batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), false);
 
         batch.setPipeline(pipeline);
-        batch.setResourceTexture(SubsurfaceScattering_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
-        batch.setResourceTexture(SubsurfaceScattering_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
-        batch.setResourceTexture(SubsurfaceScattering_ScatteringTableSlot, _scatteringTable);
+
+        batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ScatteringTask_ParamSlot, _parametersBuffer);
+
+        batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, _scatteringTable);
+        batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(ScatteringTask_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(ScatteringTask_LinearMapSlot, framebufferCache->getDepthPyramidTexture());
+
+
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         if (_showLUT) {
