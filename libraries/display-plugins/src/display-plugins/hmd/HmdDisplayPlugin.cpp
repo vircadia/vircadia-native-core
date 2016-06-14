@@ -316,9 +316,8 @@ void HmdDisplayPlugin::compositePointer() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _plane->Draw();
     });
-
-    compositeLasers();
 }
+
 
 void HmdDisplayPlugin::internalPresent() {
 
@@ -412,24 +411,7 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
     return true;
 }
 
-// FIXME try to consolidate the duplication of logic between this function and a similar one in CompsitorHelper.
-static float calculateRayUiCollisionDistance(const glm::mat4& headPose, const glm::vec3& position, const glm::vec3& direction) {
-    auto relativePosition4 = glm::inverse(headPose) * vec4(position, 1);
-    auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
-    auto relativeDirection = glm::inverse(glm::quat_cast(headPose)) * direction;
-    if (glm::abs(glm::length2(relativeDirection) - 1.0f) > EPSILON) {
-        relativeDirection = glm::normalize(relativeDirection);
-    }
-    // FIXME fetch the actual UI radius from... somewhere?
-    float uiRadius = 1.0f;
-    float instersectionDistance;
-    if (!glm::intersectRaySphere(relativePosition, relativeDirection, vec3(0), uiRadius * uiRadius, instersectionDistance)) {
-        return -1;
-    }
-    return instersectionDistance;
-}
-
-void HmdDisplayPlugin::compositeLasers() {
+void HmdDisplayPlugin::compositeExtra() {
     std::array<HandLaserInfo, 2> handLasers;
     std::array<mat4, 2> renderHandPoses;
     withPresentThreadLock([&] {
@@ -465,10 +447,16 @@ void HmdDisplayPlugin::compositeLasers() {
         const auto& laserDirection = handLaser.direction;
         auto model = renderHandPoses[i];
         auto castDirection = glm::quat_cast(model) * laserDirection;
+        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
+            castDirection = glm::normalize(castDirection);
+        }
+
+        // FIXME fetch the actual UI radius from... somewhere?
+        float uiRadius = 1.0f;
 
         // Find the intersection of the laser with he UI and use it to scale the model matrix
-        float distance = calculateRayUiCollisionDistance(_currentPresentFrameInfo.presentPose, vec3(renderHandPoses[i][3]), castDirection);
-        if (distance < 0) {
+        float distance; 
+        if (!glm::intersectRaySphere(vec3(renderHandPoses[i][3]), castDirection, vec3(0), uiRadius * uiRadius, distance)) {
             continue;
         }
 

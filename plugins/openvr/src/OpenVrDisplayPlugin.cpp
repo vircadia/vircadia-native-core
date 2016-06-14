@@ -18,6 +18,7 @@
 #include <GLMHelpers.h>
 #include <gl/GlWindow.h>
 
+#include <controllers/Pose.h>
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
@@ -179,15 +180,26 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.renderPose = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd];
 
     bool keyboardVisible = isOpenVrKeyboardShown();
+
+    std::array<mat4, 2> handPoses;
+    if (!keyboardVisible) {
+        for (int i = 0; i < 2; ++i) {
+            if (handIndices[i] == vr::k_unTrackedDeviceIndexInvalid) {
+                continue;
+            }
+            auto deviceIndex = handIndices[i];
+            const mat4& mat = _trackedDevicePoseMat4[deviceIndex];
+            const vec3& linearVelocity = _trackedDeviceLinearVelocities[deviceIndex];
+            const vec3& angularVelocity = _trackedDeviceAngularVelocities[deviceIndex];
+            auto correctedPose = openVrControllerPoseToHandPose(i == 0, mat, linearVelocity, angularVelocity);
+            static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
+            handPoses[i] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
+        }
+    }
+
     withRenderThreadLock([&] {
         // Make controller poses available to the presentation thread
-        for (int i = 0; i < 2; ++i) {
-            if (keyboardVisible || handIndices[i] == vr::k_unTrackedDeviceIndexInvalid) {
-                _handPoses[i] = glm::mat4();
-            } else {
-                _handPoses[i] = _sensorResetMat * toGlm(_trackedDevicePose[handIndices[i]].mDeviceToAbsoluteTracking);
-            }
-        }
+        _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return true;

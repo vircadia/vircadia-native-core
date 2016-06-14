@@ -74,6 +74,7 @@ protected:
     virtual void compositeScene();
     virtual void compositeOverlay();
     virtual void compositePointer();
+    virtual void compositeExtra() {};
 
     virtual bool hasFocus() const override;
 

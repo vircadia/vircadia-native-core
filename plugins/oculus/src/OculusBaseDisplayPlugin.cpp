@@ -8,6 +8,7 @@
 #include "OculusBaseDisplayPlugin.h"
 
 #include <ViewFrustum.h>
+#include <controllers/Pose.h>
 
 #include "OculusHelpers.h"
 
@@ -25,16 +26,21 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
 
+    std::array<glm::mat4, 2> handPoses;
+    // Make controller poses available to the presentation thread
+    ovr_for_each_hand([&](ovrHandType hand) {
+        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+        if (REQUIRED_HAND_STATUS != (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
+            return;
+        }
+
+        auto correctedPose = ovrControllerPoseToHandPose(hand, trackingState.HandPoses[hand]);
+        static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
+        handPoses[hand] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
+    });
+
     withRenderThreadLock([&] {
-        // Make controller poses available to the presentation thread
-        ovr_for_each_hand([&](ovrHandType hand){
-            static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
-            if (REQUIRED_HAND_STATUS == (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
-                _handPoses[hand] = toGlm(trackingState.HandPoses[hand].ThePose);
-            } else {
-                _handPoses[hand] = glm::mat4();
-            }
-        });
+        _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return true;

@@ -46,9 +46,7 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
-
-    void compositeLasers();
-
+    void compositeExtra() override;
 
     struct HandLaserInfo {
         HandLaserMode mode { HandLaserMode::None };

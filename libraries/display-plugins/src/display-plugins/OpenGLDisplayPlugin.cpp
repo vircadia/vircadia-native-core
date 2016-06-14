@@ -517,6 +517,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
             glBindTexture(GL_TEXTURE_2D, 0);
             Context::Disable(Capability::Blend);
         }
+        compositeExtra();
     });
 }
 
