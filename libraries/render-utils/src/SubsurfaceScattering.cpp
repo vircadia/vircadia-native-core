@@ -15,12 +15,15 @@
 
 #include "FramebufferCache.h"
 
+#include "DeferredLightingEffect.h"
+
 #include "subsurfaceScattering_makeLUT_frag.h"
 #include "subsurfaceScattering_drawScattering_frag.h"
 
 enum ScatteringShaderBufferSlots {
     ScatteringTask_FrameTransformSlot = 0,
     ScatteringTask_ParamSlot,
+    ScatteringTask_LightSlot,
 };
 enum ScatteringShaderMapSlots {
     ScatteringTask_ScatteringTableSlot = 0,
@@ -30,6 +33,8 @@ enum ScatteringShaderMapSlots {
 
     ScatteringTask_AlbedoMapSlot,
     ScatteringTask_LinearMapSlot,
+    
+    SCatteringTask_IBLMapSlot,
 
 };
 
@@ -69,6 +74,7 @@ gpu::PipelinePointer SubsurfaceScattering::getScatteringPipeline() {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringParamsBuffer"), ScatteringTask_ParamSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), ScatteringTask_LightSlot));
 
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), ScatteringTask_ScatteringTableSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), ScatteringTask_CurvatureMapSlot));
@@ -174,6 +180,8 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
         return;
     }
 
+    const auto theLight = DependencyManager::get<DeferredLightingEffect>()->getLightStage().lights[0];
+    
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
@@ -186,7 +194,8 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
         batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(ScatteringTask_ParamSlot, _parametersBuffer);
-
+        if (theLight->light)
+            batch.setUniformBuffer(ScatteringTask_LightSlot, theLight->light->getSchemaBuffer());
         batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, _scatteringTable);
         batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));

@@ -117,14 +117,14 @@ public:
     VaryingTrio(const VaryingTrio& trio) : Parent(std::get<0>(trio), std::get<1>(trio), std::get<2>(trio)) {}
     VaryingTrio(const Varying& first, const Varying& second, const Varying& third) : Parent(first, second, third) {}
 
-    const T0& getFirst() const { return std::get<0>((*this)).get<T0>(); }
-    T0& editFirst() { return std::get<0>((*this)).edit<T0>(); }
+    const T0& getFirst() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& editFirst() { return std::get<0>((*this)).template edit<T0>(); }
 
-    const T1& getSecond() const { return std::get<1>((*this)).get<T1>(); }
-    T1& editSecond() { return std::get<1>((*this)).edit<T1>(); }
+    const T1& getSecond() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& editSecond() { return std::get<1>((*this)).template edit<T1>(); }
 
-    const T2& getThird() const { return std::get<2>((*this)).get<T2>(); }
-    T2& editThird() { return std::get<2>((*this)).edit<T2>(); }
+    const T2& getThird() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& editThird() { return std::get<2>((*this)).template edit<T2>(); }
 };
 /*
 template <class... _Types>

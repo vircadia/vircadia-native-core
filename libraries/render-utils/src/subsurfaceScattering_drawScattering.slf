@@ -14,6 +14,8 @@
 <$declareDeferredFrameTransform()$>
 
 
+<@include model/Light.slh@>
+
 uniform sampler2D linearDepthMap;
 float getZEye(ivec2 pixel) {
     return -texelFetch(linearDepthMap, pixel, 0).x;
@@ -109,7 +111,7 @@ float unpackCurvature(float packedCurvature) {
 in vec2 varTexCoord0;
 out vec4 _fragColor;
 
-uniform vec3 uniformLightVector = vec3(1.0);
+//uniform vec3 uniformLightVector = vec3(1.0);
 
 void main(void) {
 
@@ -128,7 +130,9 @@ void main(void) {
  //   _fragColor = vec4(vec3(diffusedCurvature.xyz), 1.0);
 
        // --> Calculate the light vector.
-    vec3 lightVector = normalize(uniformLightVector); //normalize(lightPos - sourcePos.xyz);
+       
+    Light light = getLight();
+    vec3 lightVector = -getLightDirection(light); //normalize(uniformLightVector); //normalize(lightPos - sourcePos.xyz);
     
    // _fragColor = vec4(fetchBRDF(dot(bentNormalR, lightVector), abs(diffusedCurvature.w * 2 - 1)), 1.0);
    //  _fragColor = vec4(vec3(abs(dot(bentNormalR, lightVector))), 1.0);
@@ -160,19 +164,19 @@ void main(void) {
     // Fetch the z under the pixel (stereo or not)
     float Zeye = getZEye(framePixelPos);
 
-    vec3 worldNormal = getWorldNormal(frameTexcoordPos);
+    vec3 worldNormal = fragment.normal;
 
     // The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);
     vec3 fragEyeDir = -(frameTransform._viewInverse * vec4(normalize(eyePos), 0.0)).xyz;
     vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
     if (fragment.metallic > 0.5) {
-        fresnel = albedo;
+        fresnel = fragment.diffuse;
         fragment.metallic = 1.0;
     }
 
-    vec4 shading = evalPBRShading(rS, lightVector, fragEyeDir, fragment.metallic, fresnel, fragment.roughness);
-    _fragColor = vec4(shading.w * albedo * vec3(bdrf.xyz), 1.0);
+    //vec4 shading = evalPBRShading(rS, lightVector, fragEyeDir, fragment.metallic, fresnel, fragment.roughness);
+    _fragColor = vec4(fragment.diffuse * vec3(bdrf.xyz), 1.0);
 
 
 }
