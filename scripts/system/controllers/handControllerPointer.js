@@ -319,6 +319,7 @@ function toggleHand() { // unequivocally switch which hand controls mouse positi
         activeTrigger = rightTrigger;
         activeHudLaser = RIGHT_HUD_LASER;
     }
+    clearSystemLaser();
 }
 function makeToggleAction(hand) { // return a function(0|1) that makes the specified hand control mouse when 1
     return function (on) {
@@ -335,8 +336,8 @@ Script.scriptEnding.connect(clickMapping.disable);
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
 // Full smoothed trigger is a click.
-clickMapping.from(rightTrigger.full).to(Controller.Actions.ReticleClick);
-clickMapping.from(leftTrigger.full).to(Controller.Actions.ReticleClick);
+clickMapping.from(rightTrigger.full).when(isPointingAtOverlay).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).when(isPointingAtOverlay).to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // Partial smoothed trigger is activation.
@@ -363,8 +364,8 @@ Script.scriptEnding.connect(function () {
     overlays.forEach(Overlays.deleteOverlay);
 });
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
-var systemLaserOn = false;
 var SYSTEM_LASER_DIRECTION = Vec3.normalize({x: 0, y: -1, z: -1}); // Guessing 45 degrees.
+var systemLaserOn = false;
 function clearSystemLaser() {
     if (!systemLaserOn) {
         return;
@@ -379,8 +380,12 @@ function turnOffVisualization(optionalEnableClicks) { // because we're showing c
         clearSystemLaser();
     } else if (!systemLaserOn) {
         print('FIXME remove: setHandLasers', activeHudLaser, true, JSON.stringify(LASER_COLOR_XYZW), JSON.stringify(SYSTEM_LASER_DIRECTION));
-        HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
+        // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
+        /*Reticle.visible = !*/HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
+        Reticle.visible = true; // FIXME: just for now, while hand lasers has the bug that requires this.
         systemLaserOn = true;
+    } else {
+        Reticle.visible = true;
     }
     if (!visualizationIsShowing) {
         return;
@@ -415,9 +420,11 @@ function updateVisualization(controllerPosition, controllerDirection, hudPositio
     // For now, though, we present a false projection of the cursor onto whatever is below it. This is
     // different from the hand beam termination because the false projection is from the camera, while
     // the hand beam termination is from the hand.
+    /* // FIXME: We can tighten this up later, once we know what will and won't be included.
     var eye = Camera.getPosition();
     var falseProjection = intersection3d(eye, Vec3.subtract(hudPosition3d, eye));
     Overlays.editOverlay(fakeProjectionBall, {visible: true, position: falseProjection});
+    */
     Reticle.visible = false;
 
     return visualizationIsShowing; // In case we change caller to act conditionally.
@@ -465,7 +472,6 @@ function update() {
         if (HMD.active) {  // Doesn't hurt anything without the guard, but consider it documentation.
             Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
         }
-        Reticle.visible = true;
         return turnOffVisualization(true);
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
