@@ -709,12 +709,14 @@ void MyAvatar::saveData() {
 
     settings.beginWriteArray("avatarEntityData");
     int avatarEntityIndex = 0;
-    for (auto entityID : _avatarEntityData.keys()) {
-        settings.setArrayIndex(avatarEntityIndex);
-        settings.setValue("id", entityID);
-        settings.setValue("properties", _avatarEntityData.value(entityID));
-        avatarEntityIndex++;
-    }
+    _avatarEntitiesLock.withReadLock([&] {
+        for (auto entityID : _avatarEntityData.keys()) {
+            settings.setArrayIndex(avatarEntityIndex);
+            settings.setValue("id", entityID);
+            settings.setValue("properties", _avatarEntityData.value(entityID));
+            avatarEntityIndex++;
+        }
+    });
     settings.endArray();
 
     settings.setValue("displayName", _displayName);

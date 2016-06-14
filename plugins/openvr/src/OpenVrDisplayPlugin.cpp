@@ -22,6 +22,7 @@
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
+#include <display-plugins/CompositorHelper.h>
 #include <shared/NsightHelpers.h>
 #include "OpenVrHelpers.h"
 
@@ -198,6 +199,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     }
 
     withRenderThreadLock([&] {
+        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         // Make controller poses available to the presentation thread
         _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
