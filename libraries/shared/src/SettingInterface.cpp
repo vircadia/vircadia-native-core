@@ -98,6 +98,8 @@ namespace Setting {
                 // Register Handle
                 manager->registerHandle(this);
                 _isInitialized = true;
+            } else {
+                qWarning() << "Settings interface used after manager destroyed";
             }
         
             // Load value from disk
@@ -117,9 +119,9 @@ namespace Setting {
     }
 
     
-    void Interface::maybeInit() {
+    void Interface::maybeInit() const {
         if (!_isInitialized) {
-            init();
+            const_cast<Interface*>(this)->init();
         }
     }
     
