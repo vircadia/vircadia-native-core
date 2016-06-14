@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/intersect.hpp>
 
 #include <QtCore/QLoggingCategory>
 #include <QtWidgets/QApplication>
@@ -36,7 +37,6 @@ glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
 QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
     return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
-
 
 bool HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
@@ -197,14 +197,43 @@ static ProgramPtr getReprojectionProgram() {
 #endif
 
 
+static const char * LASER_VS = R"VS(#version 410 core
+uniform mat4 mvp = mat4(1);
+
+in vec3 Position;
+
+out vec3 vPosition;
+
+void main() {
+  gl_Position = mvp * vec4(Position, 1);
+  vPosition = Position;
+}
+
+)VS";
+
+static const char * LASER_FS = R"FS(#version 410 core
+
+uniform vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
+in vec3 vPosition;
+
+out vec4 FragColor;
+
+void main() {
+    FragColor = color;
+}
+
+)FS";
+
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     // Only enable mirroring if we know vsync is disabled
     enableVsync(false);
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
+    compileProgram(_laserProgram, LASER_VS, LASER_FS);
+    _laserGeometry = loadLaser(_laserProgram);
     compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
-    
+
     using namespace oglplus;
     REPROJECTION_MATRIX_LOCATION = Uniform<glm::mat3>(*_reprojectionProgram, "reprojection").Location();
     INVERSE_PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "inverseProjections").Location();
@@ -215,6 +244,8 @@ void HmdDisplayPlugin::uncustomizeContext() {
     _sphereSection.reset();
     _compositeFramebuffer.reset();
     _reprojectionProgram.reset();
+    _laserProgram.reset();
+    _laserGeometry.reset();
     Parent::uncustomizeContext();
 }
 
@@ -288,6 +319,7 @@ void HmdDisplayPlugin::compositePointer() {
     });
 }
 
+
 void HmdDisplayPlugin::internalPresent() {
 
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
@@ -344,22 +376,116 @@ void HmdDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm:
 
 void HmdDisplayPlugin::updateFrameData() {
     // Check if we have old frame data to discard
-    {
-        Lock lock(_mutex);
+    withPresentThreadLock([&] {
         auto itr = _frameInfos.find(_currentPresentFrameIndex);
         if (itr != _frameInfos.end()) {
             _frameInfos.erase(itr);
         }
-    }
+    });
 
     Parent::updateFrameData();
 
-    {
-        Lock lock(_mutex);
+    withPresentThreadLock([&] {
         _currentPresentFrameInfo = _frameInfos[_currentPresentFrameIndex];
-    }
+    });
 }
 
 glm::mat4 HmdDisplayPlugin::getHeadPose() const {
     return _currentRenderFrameInfo.renderPose;
+}
+
+bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) {
+    HandLaserInfo info;
+    info.mode = mode;
+    info.color = color;
+    info.direction = direction;
+    withRenderThreadLock([&] {
+        if (hands & Hand::LeftHand) {
+            _handLasers[0] = info;
+        }
+        if (hands & Hand::RightHand) {
+            _handLasers[1] = info;
+        }
+    });
+    // FIXME defer to a child class plugin to determine if hand lasers are actually 
+    // available based on the presence or absence of hand controllers
+    return true;
+}
+
+void HmdDisplayPlugin::compositeExtra() {
+    std::array<HandLaserInfo, 2> handLasers;
+    std::array<mat4, 2> renderHandPoses;
+    Transform uiModelTransform;
+    withPresentThreadLock([&] {
+        handLasers = _handLasers;
+        renderHandPoses = _handPoses;
+        uiModelTransform = _uiModelTransform;
+    });
+
+    // If neither hand laser is activated, exit
+    if (!handLasers[0].valid() && !handLasers[1].valid()) {
+        return;
+    }
+
+    static const glm::mat4 identity;
+    if (renderHandPoses[0] == identity && renderHandPoses[1] == identity) {
+        return;
+    }
+
+    // Render hand lasers
+    using namespace oglplus;
+    useProgram(_laserProgram);
+    _laserGeometry->Use();
+    std::array<mat4, 2> handLaserModelMatrices;
+
+    for (int i = 0; i < 2; ++i) {
+        if (renderHandPoses[i] == identity) {
+            continue;
+        }
+        const auto& handLaser = handLasers[i];
+        if (!handLaser.valid()) {
+            continue;
+        }
+
+        const auto& laserDirection = handLaser.direction;
+        auto model = renderHandPoses[i];
+        auto castDirection = glm::quat_cast(model) * laserDirection;
+        if (glm::abs(glm::length2(castDirection) - 1.0f) > EPSILON) {
+            castDirection = glm::normalize(castDirection);
+        }
+
+        // FIXME fetch the actual UI radius from... somewhere?
+        float uiRadius = 1.0f;
+
+        // Find the intersection of the laser with he UI and use it to scale the model matrix
+        float distance; 
+        if (!glm::intersectRaySphere(vec3(renderHandPoses[i][3]), castDirection, uiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
+            continue;
+        }
+
+        // Make sure we rotate to match the desired laser direction
+        if (laserDirection != Vectors::UNIT_NEG_Z) {
+            auto rotation = glm::rotation(Vectors::UNIT_NEG_Z, laserDirection);
+            model = model * glm::mat4_cast(rotation);
+        }
+
+        model = glm::scale(model, vec3(distance));
+        handLaserModelMatrices[i] = model;
+    }
+
+    for_each_eye([&](Eye eye) {
+        eyeViewport(eye);
+        auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
+        auto view = glm::inverse(eyePose);
+        const auto& projection = _eyeProjections[eye];
+        for (int i = 0; i < 2; ++i) {
+            if (handLaserModelMatrices[i] == identity) {
+                continue;
+            }
+            Uniform<glm::mat4>(*_laserProgram, "mvp").Set(projection * view * handLaserModelMatrices[i]);
+            Uniform<glm::vec4>(*_laserProgram, "color").Set(handLasers[i].color);
+            _laserGeometry->Draw();
+            // TODO render some kind of visual indicator at the intersection point with the UI.
+        }
+    });
 }

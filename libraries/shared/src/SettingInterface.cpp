@@ -98,6 +98,8 @@ namespace Setting {
                 // Register Handle
                 manager->registerHandle(this);
                 _isInitialized = true;
+            } else {
+                qWarning() << "Settings interface used after manager destroyed";
             }
         
             // Load value from disk

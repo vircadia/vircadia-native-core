@@ -248,7 +248,10 @@ function propsArePhysical(props) {
 // and we should not be showing lasers when someone else is using the Reticle to indicate a 2D minor mode.
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
 function isIn2DMode() {
-    return EXTERNALLY_MANAGED_2D_MINOR_MODE && Reticle.visible;
+    // In this version, we make our own determination of whether we're aimed a HUD element,
+    // because other scripts (such as handControllerPointer) might be using some other visualization
+    // instead of setting Reticle.visible.
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position));
 }
 function restore2DMode() {
     if (!EXTERNALLY_MANAGED_2D_MINOR_MODE) {

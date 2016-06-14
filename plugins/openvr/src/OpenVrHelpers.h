@@ -12,6 +12,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <controllers/Forward.h>
+
 bool openVrSupported();
 
 vr::IVRSystem* acquireOpenVrSystem();
@@ -20,6 +22,7 @@ void handleOpenVrEvents();
 bool openVrQuitRequested();
 void enableOpenVrKeyboard();
 void disableOpenVrKeyboard();
+bool isOpenVrKeyboardShown();
 
 
 template<typename F>
@@ -54,3 +57,5 @@ inline vr::HmdMatrix34_t toOpenVr(const mat4& m) {
     }
     return result;
 }
+
+controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity);

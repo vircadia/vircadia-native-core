@@ -58,8 +58,10 @@ public:
     void setQuatValue(const QString& name, const glm::quat& quatValue);
     void getQuatValueIfValid(const QString& name, glm::quat& quatValue);
 
+private:
     QSharedPointer<Setting::Manager> _manager;
     QWriteLocker _locker;
+    QStack<QString> _prefixes;
 };
 
 namespace Setting {

@@ -18,8 +18,9 @@
 #include <QtQuick/QQuickWindow>
 
 #include <Windows.h>
-
 #include <OffscreenUi.h>
+#include <controllers/Pose.h>
+#include <NumericalConstants.h>
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
@@ -208,6 +209,10 @@ void disableOpenVrKeyboard() {
     QObject::disconnect(_focusConnection);
 }
 
+bool isOpenVrKeyboardShown() {
+    return _keyboardShown;
+}
+
 
 void handleOpenVrEvents() {
     if (!activeHmd) {
@@ -238,3 +243,86 @@ void handleOpenVrEvents() {
 
 }
 
+controller::Pose openVrControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity) {
+    // When the sensor-to-world rotation is identity the coordinate axes look like this:
+    //
+    //                       user
+    //                      forward
+    //                        -z
+    //                         |
+    //                        y|      user
+    //      y                  o----x right
+    //       o-----x         user
+    //       |                up
+    //       |
+    //       z
+    //
+    //     Rift
+
+    // From ABOVE the hand canonical axes looks like this:
+    //
+    //      | | | |          y        | | | |
+    //      | | | |          |        | | | |
+    //      |     |          |        |     |
+    //      |left | /  x---- +      \ |right|
+    //      |     _/          z      \_     |
+    //       |   |                     |   |
+    //       |   |                     |   |
+    //
+
+    // So when the user is in Rift space facing the -zAxis with hands outstretched and palms down
+    // the rotation to align the Touch axes with those of the hands is:
+    //
+    //    touchToHand = halfTurnAboutY * quaterTurnAboutX
+
+    // Due to how the Touch controllers fit into the palm there is an offset that is different for each hand.
+    // You can think of this offset as the inverse of the measured rotation when the hands are posed, such that
+    // the combination (measurement * offset) is identity at this orientation.
+    //
+    //    Qoffset = glm::inverse(deltaRotation when hand is posed fingers forward, palm down)
+    //
+    // An approximate offset for the Touch can be obtained by inspection:
+    //
+    //    Qoffset = glm::inverse(glm::angleAxis(sign * PI/2.0f, zAxis) * glm::angleAxis(PI/4.0f, xAxis))
+    //
+    // So the full equation is:
+    //
+    //    Q = combinedMeasurement * touchToHand
+    //
+    //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
+    //
+    //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
+    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+    static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+    static const glm::quat touchToHand = yFlip * quarterX;
+
+    static const glm::quat leftQuarterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat rightQuarterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
+
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuarterZ * eighthX) * touchToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ * eighthX) * touchToHand;
+
+    static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+    static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET * 2.0f);
+    static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+    static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+
+    auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
+    auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
+
+    glm::vec3 position = extractTranslation(mat);
+    glm::quat rotation = glm::normalize(glm::quat_cast(mat));
+
+    position += rotation * translationOffset;
+    rotation = rotation * rotationOffset;
+
+    // transform into avatar frame
+    auto result = controller::Pose(position, rotation);
+    // handle change in velocity due to translationOffset
+    result.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
+    result.angularVelocity = angularVelocity;
+    return result;
+}
