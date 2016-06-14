@@ -389,7 +389,10 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    bool previousSessionCrashed = CrashHandler::checkForResetSettings();
+
+    static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
+    bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings(suppressPrompt);
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
