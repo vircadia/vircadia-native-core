@@ -305,14 +305,21 @@ var leftTrigger = new Trigger();
 var rightTrigger = new Trigger();
 var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
+var LEFT_HUD_LASER = 1;
+var RIGHT_HUD_LASER = 2;
+var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
+var activeHudLaser = RIGHT_HUD_LASER;
 function toggleHand() { // unequivocally switch which hand controls mouse position
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
         activeTrigger = leftTrigger;
+        activeHudLaser = LEFT_HUD_LASER;
     } else {
         activeHand = Controller.Standard.RightHand;
         activeTrigger = rightTrigger;
+        activeHudLaser = RIGHT_HUD_LASER;
     }
+    clearSystemLaser();
 }
 function makeToggleAction(hand) { // return a function(0|1) that makes the specified hand control mouse when 1
     return function (on) {
@@ -329,8 +336,8 @@ Script.scriptEnding.connect(clickMapping.disable);
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
 // Full smoothed trigger is a click.
-clickMapping.from(rightTrigger.full).to(Controller.Actions.ReticleClick);
-clickMapping.from(leftTrigger.full).to(Controller.Actions.ReticleClick);
+clickMapping.from(rightTrigger.full).when(isPointingAtOverlay).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).when(isPointingAtOverlay).to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // Partial smoothed trigger is activation.
@@ -342,6 +349,7 @@ clickMapping.enable();
 // Same properties as handControllerGrab search sphere
 var BALL_SIZE = 0.011;
 var BALL_ALPHA = 0.5;
+var LASER_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: BALL_ALPHA};
 var fakeProjectionBall = Overlays.addOverlay("sphere", {
     size: 5 * BALL_SIZE,
     color: {red: 255, green: 10, blue: 10},
@@ -356,9 +364,23 @@ Script.scriptEnding.connect(function () {
     overlays.forEach(Overlays.deleteOverlay);
 });
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
+var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
+var systemLaserOn = false;
+function clearSystemLaser() {
+    if (!systemLaserOn) {
+        return;
+    }
+    HMD.disableHandLasers(BOTH_HUD_LASERS);
+    systemLaserOn = false;
+}
 function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
     if (!optionalEnableClicks) {
         expireMouseCursor();
+        clearSystemLaser();
+    } else if (!systemLaserOn) {
+        // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
+        systemLaserOn = HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
+        Reticle.visible = !systemLaserOn;
     }
     if (!visualizationIsShowing) {
         return;
@@ -371,6 +393,7 @@ function turnOffVisualization(optionalEnableClicks) { // because we're showing c
 var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
 function updateVisualization(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
     ignore(controllerPosition, controllerDirection, hudPosition2d);
+    clearSystemLaser();
     // Show an indication of where the cursor will appear when crossing a HUD element,
     // and where in-world clicking will occur.
     //
@@ -392,9 +415,11 @@ function updateVisualization(controllerPosition, controllerDirection, hudPositio
     // For now, though, we present a false projection of the cursor onto whatever is below it. This is
     // different from the hand beam termination because the false projection is from the camera, while
     // the hand beam termination is from the hand.
+    /* // FIXME: We can tighten this up later, once we know what will and won't be included.
     var eye = Camera.getPosition();
     var falseProjection = intersection3d(eye, Vec3.subtract(hudPosition3d, eye));
     Overlays.editOverlay(fakeProjectionBall, {visible: true, position: falseProjection});
+    */
     Reticle.visible = false;
 
     return visualizationIsShowing; // In case we change caller to act conditionally.
@@ -442,7 +467,6 @@ function update() {
         if (HMD.active) {  // Doesn't hurt anything without the guard, but consider it documentation.
             Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
         }
-        Reticle.visible = true;
         return turnOffVisualization(true);
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
