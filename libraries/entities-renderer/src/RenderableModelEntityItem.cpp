@@ -720,7 +720,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             // copy points
             uint32_t meshIndexOffset = (uint32_t)points.size();
             gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
-            points.reserve(points.size() + vertices.getNumElements());
+            points.reserve((int32_t)((gpu::Size)points.size() + vertices.getNumElements()));
             Extents extents;
             while (vertexItr != vertices.cend<const glm::vec3>()) {
                 points.push_back(*vertexItr);
@@ -741,7 +741,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
 
             // copy triangleIndices
-            triangleIndices.reserve(triangleIndices.size() + indices.getNumElements());
+            triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
             gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
             while (partItr != parts.cend<const model::Mesh::Part>()) {
 
