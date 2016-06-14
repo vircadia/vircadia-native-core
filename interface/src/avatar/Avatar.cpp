@@ -239,11 +239,13 @@ void Avatar::updateAvatarEntities() {
         }
 
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        foreach (auto entityID, recentlyDettachedAvatarEntities) {
-            if (!_avatarEntityData.contains(entityID)) {
-                entityTree->deleteEntity(entityID, true, true);
+        _avatarEntitiesLock.withReadLock([&] {
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                if (!_avatarEntityData.contains(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
             }
-        }
+        });
     });
 
     if (success) {
