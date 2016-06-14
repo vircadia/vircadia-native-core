@@ -82,6 +82,12 @@ ModalWindow {
 
         // Clear selection when click on external frame.
         frameClicked.connect(function() { d.clearSelection(); });
+
+        if (selectDirectory) {
+            currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
+        }
+
+        fileTableView.forceActiveFocus();
     }
 
     Item {
@@ -703,7 +709,6 @@ ModalWindow {
                 if (!helper.urlIsWritable(selection)) {
                     desktop.messageBox({
                                            icon: OriginalDialogs.StandardIcon.Warning,
-                                           buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
                                            text: "Unable to write to location " + selection
                                        })
                     return;
