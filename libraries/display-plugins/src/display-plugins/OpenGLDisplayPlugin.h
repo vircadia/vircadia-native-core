@@ -74,6 +74,7 @@ protected:
     virtual void compositeScene();
     virtual void compositeOverlay();
     virtual void compositePointer();
+    virtual void compositeExtra() {};
 
     virtual bool hasFocus() const override;
 
@@ -109,7 +110,6 @@ protected:
     int32_t _alphaUniform { -1 };
     ShapeWrapperPtr _plane;
 
-    mutable Mutex _mutex;
     RateCounter<> _droppedFrameRate;
     RateCounter<> _newFrameRate;
     RateCounter<> _presentRate;
@@ -135,7 +135,27 @@ protected:
     BasicFramebufferWrapperPtr _compositeFramebuffer;
     bool _lockCurrentTexture { false };
 
+    void assertIsRenderThread() const;
+    void assertIsPresentThread() const;
+
+    template<typename F>
+    void withPresentThreadLock(F f) const {
+        assertIsPresentThread();
+        Lock lock(_presentMutex);
+        f();
+    }
+
+    template<typename F>
+    void withRenderThreadLock(F f) const {
+        assertIsRenderThread();
+        Lock lock(_presentMutex);
+        f();
+    }
+
 private:
+    // Any resource shared by the main thread and the presentation thread must
+    // be serialized through this mutex
+    mutable Mutex _presentMutex;
     ProgramPtr _activeProgram;
 };
 
