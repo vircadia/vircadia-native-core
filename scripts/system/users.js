@@ -570,14 +570,16 @@ var usersWindow = (function() {
             visibilityControl.setVisible(false);
             displayControl.setVisible(false);
         } else {
-
+            if (isMinimized === true) {
+                loggedIn = true;
+                return
+            }
             Overlays.editOverlay(friendsButton, {
                 visible: true
             });
             visibilityControl.setVisible(true);
             displayControl.setVisible(true);
             loggedIn = true;
-
 
         }
     }
@@ -660,11 +662,15 @@ var usersWindow = (function() {
         Overlays.editOverlay(scrollbarBar, {
             visible: isVisible && isUsingScrollbars && !isMinimized
         });
-        Overlays.editOverlay(friendsButton, {
-            visible: isVisible && !isMinimized
-        });
-        displayControl.setVisible(isVisible && !isMinimized);
-        visibilityControl.setVisible(isVisible && !isMinimized);
+
+        if (loggedIn === true) {
+            Overlays.editOverlay(friendsButton, {
+                visible: isVisible && !isMinimized
+            });
+            displayControl.setVisible(isVisible && !isMinimized);
+            visibilityControl.setVisible(isVisible && !isMinimized);
+        }
+
     }
 
     function setVisible(visible) {
@@ -758,7 +764,6 @@ var usersWindow = (function() {
             userClicked = firstUserToDisplay + lineClicked;
 
             if (0 <= userClicked && userClicked < linesOfUsers.length && 0 <= overlayX && overlayX <= usersOnline[linesOfUsers[userClicked]].textWidth) {
-                //print("Go to " + usersOnline[linesOfUsers[userClicked]].username);
                 location.goToUser(usersOnline[linesOfUsers[userClicked]].username);
             }
 
