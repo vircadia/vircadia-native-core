@@ -33,8 +33,8 @@ namespace Setting {
     void Manager::customDeleter() { }
 
 
-    void Manager::registerHandle(Setting::Interface* handle) {
-        QString key = handle->getKey();
+    void Manager::registerHandle(Interface* handle) {
+        const QString& key = handle->getKey();
         withWriteLock([&] {
             if (_handles.contains(key)) {
                 qWarning() << "Setting::Manager::registerHandle(): Key registered more than once, overriding: " << key;
@@ -58,7 +58,9 @@ namespace Setting {
             } else {
                 loadedValue = value(key);
             }
-            handle->setVariant(loadedValue);
+            if (loadedValue.isValid()) {
+                handle->setVariant(loadedValue);
+            }
         });
     }
 
@@ -101,7 +103,7 @@ namespace Setting {
                 if (newValue == savedValue) {
                     continue;
                 }
-                if (newValue == UNSET_VALUE) {
+                if (newValue == UNSET_VALUE || !newValue.isValid()) {
                     remove(key);
                 } else {
                     setValue(key, newValue);
