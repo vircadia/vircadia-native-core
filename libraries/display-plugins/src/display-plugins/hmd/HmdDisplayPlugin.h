@@ -10,6 +10,7 @@
 #include <ThreadSafeValueCache.h>
 
 #include <QtGlobal>
+#include <Transform.h>
 
 #include "../OpenGLDisplayPlugin.h"
 
@@ -59,6 +60,7 @@ protected:
         }
     };
 
+    Transform _uiModelTransform;
     std::array<HandLaserInfo, 2> _handLasers;
     std::array<glm::mat4, 2> _handPoses;
     std::array<glm::mat4, 2> _eyeOffsets;
