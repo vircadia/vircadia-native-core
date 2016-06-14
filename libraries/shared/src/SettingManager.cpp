@@ -96,6 +96,7 @@ namespace Setting {
     }
 
     void Manager::saveAll() {
+        bool forceSync = false;
         withWriteLock([&] {
             for (auto key : _pendingChanges.keys()) {
                 auto newValue = _pendingChanges[key];
@@ -104,13 +105,19 @@ namespace Setting {
                     continue;
                 }
                 if (newValue == UNSET_VALUE || !newValue.isValid()) {
+                    forceSync = true;
                     remove(key);
                 } else {
+                    forceSync = true;
                     setValue(key, newValue);
                 }
             }
             _pendingChanges.clear();
         });
+
+        if (forceSync) {
+            sync();
+        }
 
         // Restart timer
         if (_saveTimer) {

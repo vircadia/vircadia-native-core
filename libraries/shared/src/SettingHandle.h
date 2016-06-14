@@ -97,7 +97,7 @@ namespace Setting {
 
         void set(const T& value) { 
             maybeInit(); 
-            if (_value != value) { 
+            if ((!_isSet && (value != _defaultValue)) || _value != value) {
                 _value = value; 
                 _isSet = true; 
                 save(); 
