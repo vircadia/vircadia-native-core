@@ -9,6 +9,7 @@
 
 #include <ViewFrustum.h>
 #include <controllers/Pose.h>
+#include <display-plugins/CompositorHelper.h>
 
 #include "OculusHelpers.h"
 
@@ -40,6 +41,7 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     });
 
     withRenderThreadLock([&] {
+        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });

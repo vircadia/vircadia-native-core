@@ -415,9 +415,11 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
 void HmdDisplayPlugin::compositeExtra() {
     std::array<HandLaserInfo, 2> handLasers;
     std::array<mat4, 2> renderHandPoses;
+    Transform uiModelTransform;
     withPresentThreadLock([&] {
         handLasers = _handLasers;
         renderHandPoses = _handPoses;
+        uiModelTransform = _uiModelTransform;
     });
 
     // If neither hand laser is activated, exit
@@ -457,7 +459,7 @@ void HmdDisplayPlugin::compositeExtra() {
 
         // Find the intersection of the laser with he UI and use it to scale the model matrix
         float distance; 
-        if (!glm::intersectRaySphere(vec3(renderHandPoses[i][3]), castDirection, vec3(0), uiRadius * uiRadius, distance)) {
+        if (!glm::intersectRaySphere(vec3(renderHandPoses[i][3]), castDirection, uiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
             continue;
         }
 
