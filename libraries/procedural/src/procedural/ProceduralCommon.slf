@@ -1,3 +1,5 @@
+<@include gpu/Config.slh@>
+//  Generated on <$_SCRIBE_DATE$>
 //
 //  Created by Bradley Austin Davis on 2015/09/05
 //  Copyright 2013-2015 High Fidelity, Inc.
@@ -17,54 +19,11 @@
 //               https://github.com/ashima/webgl-noise
 //
 
-
-const QString SHADER_COMMON = R"SHADER(
-layout(location = 0) out vec4 _fragColor0;
-layout(location = 1) out vec4 _fragColor1;
-layout(location = 2) out vec4 _fragColor2;
-
-// the alpha threshold
-uniform float alphaThreshold;
-
-vec2 signNotZero(vec2 v) {
-    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
-}
-
-vec2 float32x3_to_oct(in vec3 v) {
-    vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
-    return ((v.z <= 0.0) ? ((1.0 - abs(p.yx)) * signNotZero(p)) : p);
-}
-
-
-vec3 oct_to_float32x3(in vec2 e) {
-    vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
-    if (v.z < 0) {
-        v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
-    }
-    return normalize(v);
-}
-
-vec3 snorm12x2_to_unorm8x3(vec2 f) {
-    vec2 u = vec2(round(clamp(f, -1.0, 1.0) * 2047.0 + 2047.0));
-    float t = floor(u.y / 256.0);
-
-    return floor(vec3(
-        u.x / 16.0,
-        fract(u.x / 16.0) * 256.0 + t,
-        u.y - t * 256.0
-        )) / 255.0;
-}
-
-vec2 unorm8x3_to_snorm12x2(vec3 u) {
-    u *= 255.0;
-    u.y *= (1.0 / 16.0);
-    vec2 s = vec2(  u.x * 16.0 + floor(u.y),
-                    fract(u.y) * (16.0 * 256.0) + u.z);
-    return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
-}
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
 
 float mod289(float x) {
-    return x - floor(x * (1.0 / 289.0)) * 289.0; 
+    return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
 vec2 mod289(vec2 x) {
@@ -305,76 +264,35 @@ float snoise(vec2 v) {
     return 130.0 * dot(m, g);
 }
 
-// the interpolated normal
-in vec3 _normal;
-in vec3 _color;
-in vec2 _texCoord0;
-in vec4 _position;
+#define PROCEDURAL 1
 
-// TODO add more uniforms
-uniform float iGlobalTime;           // shader playback time (in seconds)
-uniform vec3 iWorldScale;            // the dimensions of the object being rendered
+//PROCEDURAL_VERSION
 
-// TODO add support for textures
-// TODO document available inputs other than the uniforms
-// TODO provide world scale in addition to the untransformed position
+#ifdef PROCEDURAL_V1
 
-const vec3 DEFAULT_SPECULAR = vec3(0.1);
-const float DEFAULT_SHININESS = 10;
+#else
 
-)SHADER";
-
-// V1 shaders, only support emissive
-// vec4 getProceduralColor()
-const QString SHADER_TEMPLATE_V1 = SHADER_COMMON + R"SCRIBE(
-
-#line 1001
-%1
-#line 317
-
-void main(void) {
-    vec4 emissive = getProceduralColor();
-
-    float alpha = emissive.a;
-    if (alpha != 1.0) {
-        discard;
-    }
-
-    vec4 diffuse = vec4(_color.rgb, alpha);
-    vec4 normal = vec4(packNormal(normalize(_normal)), 0.5);
-
-    _fragColor0 = diffuse;
-    _fragColor1 = normal;
-    _fragColor2 = vec4(emissive.rgb, DEFAULT_SHININESS / 128.0);
-}
-
-)SCRIBE";
-
-// void getProceduralDiffuseAndEmissive(out vec4 diffuse, out vec4 emissive)
-const QString SHADER_TEMPLATE_V2 = SHADER_COMMON + R"SCRIBE(
-// FIXME should we be doing the swizzle here?
-vec3 iResolution = iWorldScale.xzy;
-
-// FIXME Mouse X,Y coordinates, and Z,W are for the click position if clicked (not supported in High Fidelity at the moment)
-vec4 iMouse = vec4(0);
-
-// FIXME We set the seconds (iDate.w) of iDate to iGlobalTime, which contains the current date in seconds
-vec4 iDate = vec4(0, 0, 0, iGlobalTime);
+// Unimplemented uniforms
+// Resolution doesn't make sense in the VR context
+const vec3 iResolution = vec3(1.0);
+// Mouse functions not enabled currently
+const vec4 iMouse = vec4(0.0);
+// No support for audio input
+const float iSampleRate = 1.0;
+// No support for video input
+const vec4 iChannelTime = vec4(0.0);
 
 
-#line 1001
-%1
-#line 351
+uniform float iGlobalTime;                  // shader playback time (in seconds)
+uniform vec4 iDate;
+uniform int iFrameCount;
+uniform vec3 iWorldPosition;                // the position of the object being rendered
+uniform vec3 iWorldScale;                   // the dimensions of the object being rendered
+uniform mat3 iWorldOrientation;             // the orientation of the object being rendered
+uniform vec3 iChannelResolution[4];
+uniform sampler2D iChannel0;
+uniform sampler2D iChannel1;
+uniform sampler2D iChannel2;
+uniform sampler2D iChannel3;
 
-void main(void) {
-    vec3 diffuse = _color.rgb;
-    vec3 specular = DEFAULT_SPECULAR;
-    float shininess = DEFAULT_SHININESS;
-    
-    float emissiveAmount = getProceduralColors(diffuse, specular, shininess);
-
-    _fragColor0 = vec4(diffuse.rgb, 1.0);
-    _fragColor1 = vec4(packNormal(normalize(_normal.xyz)), 1.0 - (emissiveAmount / 2.0));
-    _fragColor2 = vec4(specular, shininess / 128.0);
-}
-)SCRIBE";
+#endif
