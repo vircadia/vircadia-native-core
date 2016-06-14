@@ -1863,9 +1863,9 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
-    readFromMap(asMap);
+    bool success = readFromMap(asMap);
     delete[] rawData;
-    return true;
+    return success;
 }
 
 void Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {

@@ -68,9 +68,6 @@ public:
     
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
-    /// downgrades the DomainConnnectRequest PacketVersion to attempt to probe for older domain servers
-    void downgradeDomainServerCheckInVersion() { _domainConnectRequestVersion--; }
-
 public slots:
     void reset();
     void sendDomainServerCheckIn();
@@ -88,8 +85,9 @@ public slots:
 
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
-    void resetDomainServerCheckInVersion() 
-            { _domainConnectRequestVersion = versionForPacketType(PacketType::DomainConnectRequest); }
+#if (PR_BUILD || DEV_BUILD)
+    void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
+#endif
 
 signals:
     void limitOfSilentDomainCheckInsReached();
@@ -105,6 +103,7 @@ private slots:
     void pingPunchForDomainServer();
     
     void sendKeepAlivePings();
+    
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -130,7 +129,9 @@ private:
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
 
-    PacketVersion _domainConnectRequestVersion = versionForPacketType(PacketType::DomainConnectRequest);
+#if (PR_BUILD || DEV_BUILD)
+    bool _shouldSendNewerVersion { false };
+#endif
 };
 
 #endif // hifi_NodeList_h

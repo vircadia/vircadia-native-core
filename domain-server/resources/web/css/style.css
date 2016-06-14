@@ -20,6 +20,17 @@ body {
   top: 40px;
 }
 
+.table .value-row td, .table .inputs td {
+    vertical-align: middle;
+}
+
+.table .table-checkbox {
+    /* Fix IE sizing checkboxes to fill table cell */
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .glyphicon-remove {
   font-size: 24px;
 }
@@ -105,6 +116,58 @@ tr.new-row {
 table {
   table-layout: fixed;
   word-wrap: break-word;
+}
+
+caption {
+    color: #333;
+    font-weight: 700;
+    padding-top: 0;
+}
+
+table > tbody > .headers > td {
+    vertical-align: middle;
+}
+
+table .headers + .headers td {
+    font-size: 13px;
+    color: #222;
+}
+
+table[name="security.standard_permissions"] .headers td + td, table[name="security.permissions"] .headers td + td {
+    text-align: center;
+}
+
+.tooltip.top .tooltip-arrow {
+    border-top-color: #fff;
+    border-width: 10px 10px 0;
+    margin-bottom: -5px;
+}
+
+.tooltip-inner {
+    padding: 20px 20px 10px 20px;
+    font-size: 14px;
+    text-align: left;
+    color: #333;
+    background-color: #fff;
+    box-shadow: 0 3px 8px 8px #e8e8e8;
+}
+
+.tooltip.in {
+    opacity: 1;
+}
+
+.tooltip-inner ul {
+    padding-left: 0;
+    margin-bottom: 15px;
+}
+
+.tooltip-inner li {
+    list-style-type: none;
+    margin-bottom: 5px;
+}
+
+#security .tooltip-inner {
+    max-width: 520px;
 }
 
 #xs-advanced-container {

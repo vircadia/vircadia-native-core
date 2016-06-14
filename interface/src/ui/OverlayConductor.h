@@ -20,20 +20,41 @@ public:
     void setEnabled(bool enable);
     bool getEnabled() const;
 
-private:
-    void updateMode();
+    void centerUI();
 
-    enum Mode {
-        FLAT,
-        SITTING,
-        STANDING
+private:
+    bool headOutsideOverlay() const;
+    bool updateAvatarHasDriveInput();
+    bool updateAvatarIsAtRest();
+    bool userWishesToHide() const;
+    bool userWishesToShow() const;
+
+    enum State {
+        Enabled = 0,
+        DisabledByDrive,
+        DisabledByHead,
+        DisabledByToggle,
+        NumStates
     };
 
-    Mode _mode { FLAT };
+    void setState(State state);
+    State getState() const;
+
+    State _state { DisabledByDrive };
+
+    bool _prevOverlayMenuChecked { true };
     bool _enabled { false };
-    bool _driving { false };
-    quint64 _timeInPotentialMode { 0 };
-    bool _wantsOverlays { true };
+    bool _hmdMode { false };
+
+    // used by updateAvatarHasDriveInput
+    quint64 _desiredDrivingTimer { 0 };
+    bool _desiredDriving { false };
+    bool _currentDriving { false };
+
+    // used by updateAvatarIsAtRest
+    quint64 _desiredAtRestTimer { 0 };
+    bool _desiredAtRest { true };
+    bool _currentAtRest { true };
 };
 
 #endif

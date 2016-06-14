@@ -136,8 +136,8 @@ Menu::Menu() {
                                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                                            qApp, SLOT(toggleAssetServerWidget()));
     auto nodeList = DependencyManager::get<NodeList>();
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, assetServerAction, &QAction::setEnabled);
-    assetServerAction->setEnabled(nodeList->getThisNodeCanRez());
+    QObject::connect(nodeList.data(), &NodeList::canWriteAssetsChanged, assetServerAction, &QAction::setEnabled);
+    assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
 
     // Edit > Package Model... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
@@ -256,8 +256,7 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Advanced");
 
     // View > Overlays
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true,
-        qApp, SLOT(setOverlaysVisible(bool)));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
 
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
@@ -542,6 +541,9 @@ Menu::Menu() {
     #if (PR_BUILD || DEV_BUILD)
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
                 qApp, SLOT(sendWrongProtocolVersionsSignature(bool)));
+
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongDSConnectVersion, 0, false,
+                                           nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
     #endif
 
     
