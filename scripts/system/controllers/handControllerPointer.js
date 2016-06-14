@@ -364,13 +364,12 @@ Script.scriptEnding.connect(function () {
     overlays.forEach(Overlays.deleteOverlay);
 });
 var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
-var SYSTEM_LASER_DIRECTION = Vec3.normalize({x: 0, y: -1, z: -1}); // Guessing 45 degrees.
+var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
 var systemLaserOn = false;
 function clearSystemLaser() {
     if (!systemLaserOn) {
         return;
     }
-    print('FIXME remove: disableHandLasers', BOTH_HUD_LASERS);
     HMD.disableHandLasers(BOTH_HUD_LASERS);
     systemLaserOn = false;
 }
@@ -379,13 +378,9 @@ function turnOffVisualization(optionalEnableClicks) { // because we're showing c
         expireMouseCursor();
         clearSystemLaser();
     } else if (!systemLaserOn) {
-        print('FIXME remove: setHandLasers', activeHudLaser, true, JSON.stringify(LASER_COLOR_XYZW), JSON.stringify(SYSTEM_LASER_DIRECTION));
         // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
-        /*Reticle.visible = !*/HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
-        Reticle.visible = true; // FIXME: just for now, while hand lasers has the bug that requires this.
-        systemLaserOn = true;
-    } else {
-        Reticle.visible = true;
+        systemLaserOn = HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
+        Reticle.visible = !systemLaserOn;
     }
     if (!visualizationIsShowing) {
         return;
