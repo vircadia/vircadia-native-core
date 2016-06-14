@@ -1207,7 +1207,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
             // pull each triangle in the mesh into a polyhedron which can be collided with
             unsigned int i = 0;
 
-            const gpu::BufferView vertexBufferView = mesh->getVertexBuffer();
+            const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
             const gpu::BufferView& indexBufferView = mesh->getIndexBuffer();
 
             gpu::BufferView::Iterator<const uint32_t> it = indexBufferView.cbegin<uint32_t>();
