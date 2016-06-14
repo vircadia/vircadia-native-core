@@ -599,13 +599,13 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType type = getShapeType();
+    glm::vec3 dimensions = getDimensions();
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
         // hence we assert that all geometries exist and are loaded
         assert(_model->isLoaded() && _model->isCollisionLoaded());
-        const FBXGeometry& renderGeometry = _model->getFBXGeometry();
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
@@ -677,7 +677,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scale = getDimensions() / renderGeometry.getUnscaledMeshExtents().size();
+        const FBXGeometry& renderGeometry = _model->getFBXGeometry();
+        glm::vec3 scale = dimensions / renderGeometry.getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;
@@ -697,9 +698,104 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setOffset(_model->getOffset());
+    } else if (type == SHAPE_TYPE_MESH) {
+        updateModelBounds();
+
+        // should never fall in here when collision model not fully loaded
+        assert(_model->isLoaded());
+
+        ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+        pointCollection.clear();
+
+        ShapeInfo::PointList points;
+        ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+        auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
+
+        glm::vec3 modelOffset = _model->getOffset();
+        for (auto& mesh : meshes) {
+            const gpu::BufferView& vertices = mesh->getVertexBuffer();
+            const gpu::BufferView& indices = mesh->getIndexBuffer();
+            const gpu::BufferView& parts = mesh->getPartBuffer();
+
+            // copy points
+            uint32_t meshIndexOffset = (uint32_t)points.size();
+            gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
+            points.reserve(points.size() + vertices.getNumElements());
+            Extents extents;
+            while (vertexItr != vertices.cend<const glm::vec3>()) {
+                points.push_back(*vertexItr);
+                extents.addPoint(*vertexItr);
+                ++vertexItr;
+            }
+
+            // scale points and shift by modelOffset
+            glm::vec3 extentsSize = extents.size();
+            glm::vec3 scale = dimensions / extents.size();
+            for (int i = 0; i < 3; ++i) {
+                if (extentsSize[i] < 1.0e-6f) {
+                    scale[i] = 1.0f;
+                }
+            }
+            for (int i = 0; i < points.size(); ++i) {
+                points[i] = (points[i] * scale) + modelOffset;
+            }
+
+            // copy triangleIndices
+            triangleIndices.reserve(triangleIndices.size() + indices.getNumElements());
+            gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
+            while (partItr != parts.cend<const model::Mesh::Part>()) {
+
+                if (partItr->_topology == model::Mesh::TRIANGLES) {
+                    assert(partItr->_numIndices % 3 == 0);
+                    auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                    auto indexEnd = indexItr + partItr->_numIndices;
+                    while (indexItr != indexEnd) {
+                        triangleIndices.push_back(*indexItr + meshIndexOffset);
+                        ++indexItr;
+                    }
+                } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
+                    assert(partItr->_numIndices > 2);
+                    uint32_t approxNumIndices = 3 * partItr->_numIndices;
+                    if (approxNumIndices > (uint32_t)(triangleIndices.capacity() - triangleIndices.size())) {
+                        // we underestimated the final size of triangleIndices so we pre-emptively expand it
+                        triangleIndices.reserve(triangleIndices.size() + approxNumIndices);
+                    }
+
+                    auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                    auto indexEnd = indexItr + (partItr->_numIndices - 2);
+
+                    // first triangle uses the first three indices
+                    triangleIndices.push_back(*indexItr + meshIndexOffset);
+                    triangleIndices.push_back(*(++indexItr) + meshIndexOffset);
+                    triangleIndices.push_back(*(indexItr + 1) + meshIndexOffset);
+
+                    // the rest use previous and next index
+                    uint32_t triangleCount = 1;
+                    while (indexItr != indexEnd) {
+                        if (triangleCount % 2 == 0) {
+                            // even triangles use first two indices in order
+                            triangleIndices.push_back(*(indexItr) + meshIndexOffset);
+                            triangleIndices.push_back(*(++indexItr) + meshIndexOffset); // yes pre-increment
+                        } else {
+                            // odd triangles swap order of first two indices
+                            triangleIndices.push_back(*(indexItr + 1) + meshIndexOffset);
+                            triangleIndices.push_back(*(indexItr++) + meshIndexOffset); // yes post-increment
+                        }
+                        triangleIndices.push_back(*(indexItr + 1) + meshIndexOffset);
+                        ++triangleCount;
+                    }
+                } else if (partItr->_topology == model::Mesh::QUADS) {
+                    // TODO: support model::Mesh::QUADS
+                }
+                // TODO? support model::Mesh::QUAD_STRIP?
+                ++partItr;
+            }
+        }
+        pointCollection.push_back(points);
+        info.setParams(SHAPE_TYPE_MESH, 0.5f * dimensions, _modelURL);
     } else {
         ModelEntityItem::computeShapeInfo(info);
-        info.setParams(type, 0.5f * getDimensions());
+        info.setParams(type, 0.5f * dimensions);
         adjustShapeInfoByRegistration(info);
     }
 }

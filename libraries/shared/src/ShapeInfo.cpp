@@ -41,9 +41,9 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             break;
         }
         case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_MESH:
             _url = QUrl(url);
-            _halfExtents = halfExtents;
-            break;
+            // yes, fall through
         default:
             _halfExtents = halfExtents;
             break;
@@ -182,18 +182,15 @@ const DoubleHashKey& ShapeInfo::getHash() const {
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
     if (_doubleHashKey.isNull() && _type != SHAPE_TYPE_NONE) {
         bool useOffset = glm::length2(_offset) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET;
-        // The key is not yet cached therefore we must compute it!  To this end we bypass the const-ness
-        // of this method by grabbing a non-const pointer to "this" and a non-const reference to _doubleHashKey.
-        ShapeInfo* thisPtr = const_cast<ShapeInfo*>(this);
-        DoubleHashKey& key = thisPtr->_doubleHashKey;
+        // The key is not yet cached therefore we must compute it.
 
         // compute hash1
         // TODO?: provide lookup table for hash/hash2 of _type rather than recompute?
         uint32_t primeIndex = 0;
-        key.computeHash((uint32_t)_type, primeIndex++);
+        _doubleHashKey.computeHash((uint32_t)_type, primeIndex++);
 
         // compute hash1
-        uint32_t hash = key.getHash();
+        uint32_t hash = _doubleHashKey.getHash();
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
@@ -206,10 +203,10 @@ const DoubleHashKey& ShapeInfo::getHash() const {
                         primeIndex++);
             }
         }
-        key.setHash(hash);
+        _doubleHashKey.setHash(hash);
 
         // compute hash2
-        hash = key.getHash2();
+        hash = _doubleHashKey.getHash2();
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
@@ -226,7 +223,7 @@ const DoubleHashKey& ShapeInfo::getHash() const {
             hash += ~(floatHash << 10);
             hash = (hash << 16) | (hash >> 16);
         }
-        key.setHash2(hash);
+        _doubleHashKey.setHash2(hash);
 
         if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_MESH) {
             QString url = _url.toString();
@@ -235,8 +232,8 @@ const DoubleHashKey& ShapeInfo::getHash() const {
                 QByteArray baUrl = url.toLocal8Bit();
                 const char *cUrl = baUrl.data();
                 uint32_t urlHash = qChecksum(cUrl, baUrl.count());
-                key.setHash(key.getHash() ^ urlHash);
-                key.setHash2(key.getHash2() ^ urlHash);
+                _doubleHashKey.setHash(_doubleHashKey.getHash() ^ urlHash);
+                _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ urlHash);
             }
         }
     }

@@ -30,14 +30,15 @@ enum ShapeType {
     SHAPE_TYPE_NONE,
     SHAPE_TYPE_BOX,
     SHAPE_TYPE_SPHERE,
-    SHAPE_TYPE_PLANE,
-    SHAPE_TYPE_COMPOUND,
     SHAPE_TYPE_CAPSULE_X,
     SHAPE_TYPE_CAPSULE_Y,
     SHAPE_TYPE_CAPSULE_Z,
     SHAPE_TYPE_CYLINDER_X,
     SHAPE_TYPE_CYLINDER_Y,
     SHAPE_TYPE_CYLINDER_Z,
+    SHAPE_TYPE_HULL,
+    SHAPE_TYPE_PLANE,
+    SHAPE_TYPE_COMPOUND,
     SHAPE_TYPE_MESH
 };
 
@@ -62,10 +63,13 @@ public:
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
     const glm::vec3& getOffset() const { return _offset; }
+    uint32_t getNumSubShapes() const;
 
     PointCollection& getPointCollection() { return _pointCollection; }
     const PointCollection& getPointCollection() const { return _pointCollection; }
-    uint32_t getNumSubShapes() const;
+
+    TriangleIndices& getTriangleIndices() { return _triangleIndices; }
+    const TriangleIndices& getTriangleIndices() const { return _triangleIndices; }
 
     int getLargestSubshapePointCount() const;
 
@@ -83,7 +87,7 @@ protected:
     TriangleIndices _triangleIndices;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     glm::vec3 _offset = glm::vec3(0.0f);
-    DoubleHashKey _doubleHashKey;
+    mutable DoubleHashKey _doubleHashKey;
     ShapeType _type = SHAPE_TYPE_NONE;
 };
 
