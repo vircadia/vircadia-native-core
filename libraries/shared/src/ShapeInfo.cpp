@@ -27,12 +27,12 @@ void ShapeInfo::clear() {
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
     _type = type;
+    _halfExtents = halfExtents;
     switch(type) {
         case SHAPE_TYPE_NONE:
             _halfExtents = glm::vec3(0.0f);
             break;
         case SHAPE_TYPE_BOX:
-            _halfExtents = halfExtents;
             break;
         case SHAPE_TYPE_SPHERE: {
             // sphere radius is max of halfExtents
@@ -43,9 +43,8 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_MESH:
             _url = QUrl(url);
-            // yes, fall through
+            break;
         default:
-            _halfExtents = halfExtents;
             break;
     }
     _doubleHashKey.clear();
