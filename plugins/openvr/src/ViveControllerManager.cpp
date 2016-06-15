@@ -240,6 +240,12 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _poseStateMap.clear();
     _buttonPressedMap.clear();
 
+    // While the keyboard is open, we defer strictly to the keyboard values
+    if (isOpenVrKeyboardShown()) {
+        _axisStateMap.clear();
+        return;
+    }
+
     PerformanceTimer perfTimer("ViveControllerManager::update");
 
     auto leftHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);

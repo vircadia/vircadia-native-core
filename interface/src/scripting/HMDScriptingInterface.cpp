@@ -115,3 +115,15 @@ bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::ve
 void HMDScriptingInterface::disableHandLasers(int hands) const {
     qApp->getActiveDisplayPlugin()->setHandLaser(hands, DisplayPlugin::HandLaserMode::None);
 }
+
+bool HMDScriptingInterface::suppressKeyboard() {
+    return qApp->getActiveDisplayPlugin()->suppressKeyboard();
+}
+
+void HMDScriptingInterface::unsuppressKeyboard() {
+    qApp->getActiveDisplayPlugin()->unsuppressKeyboard();
+}
+
+bool HMDScriptingInterface::isKeyboardVisible() {
+    return qApp->getActiveDisplayPlugin()->isKeyboardVisible();
+}
