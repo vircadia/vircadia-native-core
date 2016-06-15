@@ -48,9 +48,10 @@ function TimeLock(expiration) {
 }
 var handControllerLockOut = new TimeLock(2000);
 
-function Trigger() {
+function Trigger(label) {
     // This part is copied and adapted from handControllerGrab.js. Maybe we should refactor this.
     var that = this;
+    that.label = label;
     that.TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
     that.TRIGGER_ON_VALUE = 0.4;     //  Squeezed just enough to activate search or near grab
     that.TRIGGER_GRAB_VALUE = 0.85;  //  Squeezed far enough to complete distant grab
@@ -301,8 +302,8 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 // CONTROLLER MAPPING ---------
 //
 
-var leftTrigger = new Trigger();
-var rightTrigger = new Trigger();
+var leftTrigger = new Trigger('left');
+var rightTrigger = new Trigger('right');
 var activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
 var LEFT_HUD_LASER = 1;
@@ -336,8 +337,26 @@ Script.scriptEnding.connect(clickMapping.disable);
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
 // Full smoothed trigger is a click.
-clickMapping.from(rightTrigger.full).when(isPointingAtOverlay).to(Controller.Actions.ReticleClick);
-clickMapping.from(leftTrigger.full).when(isPointingAtOverlay).to(Controller.Actions.ReticleClick);
+function isPointingAtOverlayStartedNonFullTrigger(trigger) {
+    // true if isPointingAtOverlay AND we were NOT full triggered when we became so.
+    // The idea is to not count clicks when we're full-triggering and reach the edge of a window.
+    var lockedIn = false;
+    return function () {
+        if (trigger !== activeTrigger) {
+            return lockedIn = false;
+        }
+        if (!isPointingAtOverlay()) {
+            return lockedIn = false;
+        }
+        if (lockedIn) {
+            return true;
+        }
+        lockedIn = !trigger.full();
+        return lockedIn;
+    }
+}
+clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // Partial smoothed trigger is activation.
