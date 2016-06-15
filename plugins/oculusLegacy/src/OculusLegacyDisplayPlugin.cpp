@@ -41,6 +41,7 @@ void OculusLegacyDisplayPlugin::resetSensors() {
 }
 
 bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
@@ -48,7 +49,7 @@ bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     withRenderThreadLock([&]{
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
-    return true;
+    return Parent::beginFrameRender(frameIndex);
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {

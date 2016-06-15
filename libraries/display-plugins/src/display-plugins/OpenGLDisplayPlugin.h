@@ -24,6 +24,9 @@
 #define THREADED_PRESENT 1
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
+    Q_OBJECT
+    Q_PROPERTY(float overlayAlpha MEMBER _overlayAlpha)
+    using Parent = DisplayPlugin;
 protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
@@ -60,6 +63,7 @@ public:
 
     float droppedFrameRate() const override;
 
+    bool beginFrameRender(uint32_t frameIndex) override;
 protected:
 #if THREADED_PRESENT
     friend class PresentThread;
@@ -115,7 +119,8 @@ protected:
     RateCounter<> _presentRate;
     QMap<gpu::TexturePointer, uint32_t> _sceneTextureToFrameIndexMap;
     uint32_t _currentPresentFrameIndex { 0 };
-
+    float _compositeOverlayAlpha{ 1.0f };
+    
     gpu::TexturePointer _currentSceneTexture;
     gpu::TexturePointer _currentOverlayTexture;
 
@@ -157,6 +162,7 @@ private:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     ProgramPtr _activeProgram;
+    float _overlayAlpha{ 1.0f };
 };
 
 

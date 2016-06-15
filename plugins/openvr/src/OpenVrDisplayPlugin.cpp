@@ -204,7 +204,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
-    return true;
+    return Parent::beginFrameRender(frameIndex);
 }
 
 void OpenVrDisplayPlugin::hmdPresent() {

@@ -273,11 +273,23 @@ bool OpenGLDisplayPlugin::activate() {
     _container->makeRenderingContextCurrent();
 #endif
 
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    connect(compositorHelper.data(), &CompositorHelper::alphaChanged, [this] {
+        auto compositorHelper = DependencyManager::get<CompositorHelper>();
+        auto animation = new QPropertyAnimation(this, "overlayAlpha");
+        animation->setDuration(200);
+        animation->setEndValue(compositorHelper->getAlpha());
+        animation->start();
+    });
+
     return DisplayPlugin::activate();
 }
 
 void OpenGLDisplayPlugin::deactivate() {
     
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    disconnect(compositorHelper.data());
+
 #if THREADED_PRESENT
     auto presentThread = DependencyManager::get<PresentThread>();
     // Does not return until the GL transition has completeed
@@ -445,6 +457,8 @@ void OpenGLDisplayPlugin::compositeOverlay() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     useProgram(_program);
+    // set the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
     // check the alpha
     // Overlay draw
     if (isStereo()) {
@@ -458,6 +472,8 @@ void OpenGLDisplayPlugin::compositeOverlay() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
         drawUnitQuad();
     }
+    // restore the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
@@ -465,6 +481,8 @@ void OpenGLDisplayPlugin::compositePointer() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     useProgram(_program);
+    // set the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
     if (isStereo()) {
         for_each_eye([&](Eye eye) {
@@ -475,6 +493,8 @@ void OpenGLDisplayPlugin::compositePointer() {
         drawUnitQuad();
     }
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+    // restore the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void OpenGLDisplayPlugin::compositeScene() {
@@ -681,4 +701,11 @@ void OpenGLDisplayPlugin::assertIsRenderThread() const {
 
 void OpenGLDisplayPlugin::assertIsPresentThread() const {
     Q_ASSERT(QThread::currentThread() == _presentThread);
+}
+
+bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    withRenderThreadLock([&] {
+        _compositeOverlayAlpha = _overlayAlpha;
+    });
+    return Parent::beginFrameRender(frameIndex);
 }

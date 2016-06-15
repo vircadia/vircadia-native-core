@@ -38,6 +38,7 @@ const float MAGNIFY_MULT = 2.0f;
 class CompositorHelper : public QObject, public Dependency {
     Q_OBJECT
 
+    Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha NOTIFY alphaChanged)
     Q_PROPERTY(bool reticleOverDesktop READ getReticleOverDesktop WRITE setReticleOverDesktop)
 public:
     static const uvec2 VIRTUAL_SCREEN_SIZE;
@@ -74,6 +75,9 @@ public:
     void setModelTransform(const Transform& transform) { _modelTransform = transform; }
     const Transform& getModelTransform() const { return _modelTransform; }
 
+    float getAlpha() const { return _alpha; }
+    void setAlpha(float alpha) { if (alpha != _alpha) { emit alphaChanged();  _alpha = alpha; } }
+
     bool getReticleVisible() const { return _reticleVisible; }
     void setReticleVisible(bool visible) { _reticleVisible = visible; }
 
@@ -109,6 +113,7 @@ public:
 
 signals:
     void allowMouseCaptureChanged();
+    void alphaChanged();
 
 protected slots:
     void sendFakeMouseEvent();
@@ -134,6 +139,7 @@ private:
     float _textureFov { VIRTUAL_UI_TARGET_FOV.y };
     float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
 
+    float _alpha { 1.0f };
     float _hmdUIRadius { 1.0f };
 
     int _previousBorderWidth { -1 };
