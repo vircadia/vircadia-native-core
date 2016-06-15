@@ -58,8 +58,10 @@ public:
     void setQuatValue(const QString& name, const glm::quat& quatValue);
     void getQuatValueIfValid(const QString& name, glm::quat& quatValue);
 
+private:
     QSharedPointer<Setting::Manager> _manager;
     QWriteLocker _locker;
+    QStack<QString> _prefixes;
 };
 
 namespace Setting {
@@ -75,15 +77,40 @@ namespace Setting {
         virtual ~Handle() { deinit(); }
         
         // Returns setting value, returns its default value if not found
-        T get() { return get(_defaultValue); }
+        T get() const { 
+            return get(_defaultValue); 
+        }
+
         // Returns setting value, returns other if not found
-        T get(const T& other) { maybeInit(); return (_isSet) ? _value : other; }
-        T getDefault() const { return _defaultValue; }
+        T get(const T& other) const { 
+            maybeInit(); 
+            return (_isSet) ? _value : other; 
+        }
+
+        const T& getDefault() const { 
+            return _defaultValue; 
+        }
         
-        void set(const T& value) { maybeInit(); _value = value; _isSet = true; }
-        void reset() { set(_defaultValue); }
-        
-        void remove() { maybeInit(); _isSet = false; }
+        void reset() { 
+            set(_defaultValue); 
+        }
+
+        void set(const T& value) { 
+            maybeInit(); 
+            if ((!_isSet && (value != _defaultValue)) || _value != value) {
+                _value = value; 
+                _isSet = true; 
+                save(); 
+            } 
+        }
+
+        void remove() { 
+            maybeInit(); 
+            if (_isSet) { 
+                _isSet = false; 
+                save(); 
+            }  
+        }
         
     protected:
         virtual void setVariant(const QVariant& variant);

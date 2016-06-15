@@ -95,7 +95,7 @@ public:
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-    // UBO class... layout MUST match the layout in TransformCamera.slh
+    // UBO class... layout MUST match the layout in Transform.slh
     class TransformCamera {
     public:
         mutable Mat4 _view;

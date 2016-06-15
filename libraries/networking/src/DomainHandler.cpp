@@ -97,7 +97,6 @@ void DomainHandler::softReset() {
     
     clearSettings();
 
-    _domainConnectionRefusals.clear();
     _connectionDenialsSinceKeypairRegen = 0;
 
     // cancel the failure timeout for any pending requests for settings
@@ -117,6 +116,9 @@ void DomainHandler::hardReset() {
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
+
+    _hasSignalledProtocolMismatch = false;
+    _domainConnectionRefusals.clear();
 
     _hasCheckedForAccessToken = false;
 
@@ -405,9 +407,25 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     // and check and signal for an access token so that we can make sure they are logged in
     qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
 
-    if (!_domainConnectionRefusals.contains(reasonMessage)) {
-        _domainConnectionRefusals.append(reasonMessage);
-        emit domainConnectionRefused(reasonMessage, (int)reasonCode);
+    if (!_domainConnectionRefusals.contains(reasonCode)) {
+
+        _domainConnectionRefusals.append(reasonCode);
+
+        bool shouldSignal = true;
+
+        // only signal once for a protocol mismatch, even between soft resets that will reset the _domainConnectionRefusals
+        if (reasonCode == ConnectionRefusedReason::ProtocolMismatch) {
+            if (_hasSignalledProtocolMismatch) {
+                shouldSignal = false;
+            } else {
+                _hasSignalledProtocolMismatch = true;
+            }
+        }
+
+        if (shouldSignal) {
+            emit domainConnectionRefused(reasonMessage, (int)reasonCode);
+        }
+
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();

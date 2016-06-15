@@ -49,6 +49,10 @@ signals:
 
 private slots:
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
+
+private:
+    QString getPreviousBrowseLocation() const;
+    void setPreviousBrowseLocation(const QString& location);
 };
 
 #endif // hifi_WindowScriptingInterface_h
