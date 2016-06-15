@@ -2916,7 +2916,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         }
     });
     if (success) {
-        exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
+        success = exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
         // restore the main window's active state
         _window->activateWindow();

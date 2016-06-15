@@ -95,6 +95,8 @@ bool FileDialogHelper::urlIsWritable(const QUrl& url) {
 
     // No file, get the parent directory and check if writable
     return QFileInfo(fileInfo.absoluteDir().absolutePath()).isWritable();
+    // Note: Does not correctly detect on Windows that the OS drive root (i.e., C:/) cannot be written to. This even if turn on 
+    // NTFS permissions checking.
 }
 
 QStringList FileDialogHelper::drives() {
