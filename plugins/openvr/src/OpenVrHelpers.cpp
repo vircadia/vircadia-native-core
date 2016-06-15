@@ -164,12 +164,13 @@ void finishOpenVrKeyboardInput() {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto chars = _overlay->GetKeyboardText(textArray, 8192);
     auto newText = QString(QByteArray(textArray, chars));
-    // TODO modify the new text to match the possible input hints:
-    // ImhDigitsOnly  ImhFormattedNumbersOnly  ImhUppercaseOnly  ImhLowercaseOnly 
-    // ImhDialableCharactersOnly ImhEmailCharactersOnly  ImhUrlCharactersOnly  ImhLatinOnly
-    QInputMethodEvent event(_existingText, QList<QInputMethodEvent::Attribute>());
-    event.setCommitString(newText, 0, _existingText.size());
-    qApp->sendEvent(_keyboardFocusObject, &event);
+    _keyboardFocusObject->setProperty("text", newText);
+    //// TODO modify the new text to match the possible input hints:
+    //// ImhDigitsOnly  ImhFormattedNumbersOnly  ImhUppercaseOnly  ImhLowercaseOnly 
+    //// ImhDialableCharactersOnly ImhEmailCharactersOnly  ImhUrlCharactersOnly  ImhLatinOnly
+    //QInputMethodEvent event(_existingText, QList<QInputMethodEvent::Attribute>());
+    //event.setCommitString(newText, 0, _existingText.size());
+    //qApp->sendEvent(_keyboardFocusObject, &event);
     // Simulate an enter press on the top level window to trigger the action
     if (0 == (_currentHints & Qt::ImhMultiLine)) {
         qApp->sendEvent(offscreenUi->getWindow(), &QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n")));
@@ -233,6 +234,11 @@ void handleOpenVrEvents() {
 
             case vr::VREvent_KeyboardDone: 
                 finishOpenVrKeyboardInput();
+
+            // FALL THROUGH
+            case vr::VREvent_KeyboardClosed:
+                _keyboardFocusObject = nullptr;
+                _keyboardShown = false;
                 break;
 
             default:
