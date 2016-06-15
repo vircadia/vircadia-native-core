@@ -361,11 +361,15 @@ function MyController(hand) {
 
     var _this = this;
 
+    this.ignoreInput = function () {
+        return (_this.state <= STATE_HOLD_SEARCHING) && isIn2DMode();
+    };
+
     this.update = function() {
 
         this.updateSmoothedTrigger();
 
-        if (isIn2DMode()) {
+        if (_this.ignoreInput()) {
             _this.turnOffVisualizations();
             return;
         }
