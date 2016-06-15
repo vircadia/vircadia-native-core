@@ -253,3 +253,27 @@ void OpenVrDisplayPlugin::updatePresentPose() {
     mat3 presentRotation(_currentPresentFrameInfo.rawPresentPose);
     _currentPresentFrameInfo.presentReprojection = glm::mat3(glm::inverse(renderRotation) * presentRotation);
 }
+
+bool OpenVrDisplayPlugin::suppressKeyboard() { 
+    if (isOpenVrKeyboardShown()) {
+        return false;
+    }
+    if (!_keyboardSupressionCount.fetch_add(1)) {
+        disableOpenVrKeyboard();
+    }
+    return true;
+}
+
+void OpenVrDisplayPlugin::unsuppressKeyboard() {
+    if (_keyboardSupressionCount == 0) {
+        qWarning() << "Attempted to unsuppress a keyboard that was not suppressed";
+        return;
+    }
+    if (1 == _keyboardSupressionCount.fetch_sub(1)) {
+        enableOpenVrKeyboard();
+    }
+}
+
+bool OpenVrDisplayPlugin::isKeyboardVisible() {
+    return isOpenVrKeyboardShown(); 
+}
