@@ -34,7 +34,7 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingPair<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     

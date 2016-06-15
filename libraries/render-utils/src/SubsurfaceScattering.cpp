@@ -171,9 +171,9 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
     auto pipeline = getScatteringPipeline();
     
-    auto& frameTransform = inputs.getFirst();
-    auto& curvatureFramebuffer = inputs.getSecond();
-    auto& diffusedFramebuffer = inputs.getThird();
+    auto& frameTransform = inputs.get0();
+    auto& curvatureFramebuffer = inputs.get1();
+    auto& diffusedFramebuffer = inputs.get2();
     
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();

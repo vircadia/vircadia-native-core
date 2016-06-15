@@ -30,9 +30,11 @@
 namespace render {
 
 class Varying;
-    
-    template <class T> void varyingGet(const T* data, uint8_t index, Varying& var) {}
-template <class T> uint8_t varyingLength(const T* data) { return 0; }
+
+
+
+template < class T > void varyingGet(const T& data, uint8_t index, Varying& var) {}
+template <class T> uint8_t varyingLength(const T& data) { return 0; }
     
 // A varying piece of data, to be used as Job/Task I/O
 // TODO: Task IO
@@ -52,7 +54,7 @@ public:
     
     // access potential sub varyings contained in this one.
     Varying operator[] (uint8_t index) const { return (*_concept)[index]; }
-    uint8_t length() const { return _concept->length(); }
+    uint8_t length() const { return (*_concept).length(); }
     
 protected:
     class Concept {
@@ -65,19 +67,16 @@ protected:
     template <class T> class Model : public Concept {
     public:
         using Data = T;
-  //      using VarContainer = std::enable_if<T::VarContainer>;
-        //using VarContainer = std::conditional<std::enable_if<T::VarContainer>, T::VarContainer, T>;
 
         Model(const Data& data) : _data(data) {}
         virtual ~Model() = default;
         
-        
         virtual Varying operator[] (uint8_t index) const {
             Varying var;
-           // varyingGet<VarContainer>(&_data, index, var);
+            varyingGet< T >(_data, index, var);
             return var;
         }
-        virtual uint8_t length() const { return varyingLength<T>(&_data); }
+        virtual uint8_t length() const { return varyingLength<T>(_data); }
 
         Data _data;
     };
@@ -85,67 +84,47 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
-
-
- 
 using VaryingPairBase = std::pair<Varying, Varying>;
 
-
-template <> void varyingGet(const VaryingPairBase* data, uint8_t index, Varying& var);
-template <> uint8_t varyingLength(const VaryingPairBase* data);
+template <> void varyingGet(const VaryingPairBase& data, uint8_t index, Varying& var);
+template <> uint8_t varyingLength(const VaryingPairBase& data);
 
 template < typename T0, typename T1 >
-class VaryingPair : public VaryingPairBase {
+class VaryingSet2 : public VaryingPairBase {
 public:
     using Parent = VaryingPairBase;
-    using VarContainer = VaryingPairBase;
+    typedef void is_proxy_tag;
 
-    VaryingPair() : Parent(Varying(T0()), Varying(T1())) {}
-    VaryingPair(const VaryingPair& pair) : Parent(pair.first, pair.second) {}
-    VaryingPair(const Varying& first, const Varying& second) : Parent(first, second) {}
+    VaryingSet2() : Parent(Varying(T0()), Varying(T1())) {}
+    VaryingSet2(const VaryingSet2& pair) : Parent(pair.first, pair.second) {}
+    VaryingSet2(const Varying& first, const Varying& second) : Parent(first, second) {}
 
-    const T0& getFirst() const { return first.get<T0>(); }
-    T0& editFirst() { return first.edit<T0>(); }
+    const T0& get0() const { return first.get<T0>(); }
+    T0& edit0() { return first.edit<T0>(); }
 
-    const T1& getSecond() const { return second.get<T1>(); }
-    T1& editSecond() { return second.edit<T1>(); }
+    const T1& get1() const { return second.get<T1>(); }
+    T1& edit1() { return second.edit<T1>(); }
 };
 
 
 template <class T0, class T1, class T2>
-class VaryingTrio : public std::tuple<Varying, Varying,Varying>{
+class VaryingSet3 : public std::tuple<Varying, Varying,Varying>{
 public:
     using Parent = std::tuple<Varying, Varying, Varying>;
 
-    VaryingTrio() : Parent(Varying(T0()), Varying(T1()), Varying(T2())) {}
-    VaryingTrio(const VaryingTrio& trio) : Parent(std::get<0>(trio), std::get<1>(trio), std::get<2>(trio)) {}
-    VaryingTrio(const Varying& first, const Varying& second, const Varying& third) : Parent(first, second, third) {}
+    VaryingSet3() : Parent(Varying(T0()), Varying(T1()), Varying(T2())) {}
+    VaryingSet3(const VaryingSet3& trio) : Parent(std::get<0>(trio), std::get<1>(trio), std::get<2>(trio)) {}
+    VaryingSet3(const Varying& first, const Varying& second, const Varying& third) : Parent(first, second, third) {}
 
-    const T0& getFirst() const { return std::get<0>((*this)).template get<T0>(); }
-    T0& editFirst() { return std::get<0>((*this)).template edit<T0>(); }
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
 
-    const T1& getSecond() const { return std::get<1>((*this)).template get<T1>(); }
-    T1& editSecond() { return std::get<1>((*this)).template edit<T1>(); }
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
 
-    const T2& getThird() const { return std::get<2>((*this)).template get<T2>(); }
-    T2& editThird() { return std::get<2>((*this)).template edit<T2>(); }
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
 };
-/*
-template <class... _Types>
-class VaryingTuple : public std::tuple<_Types>{
-public:
-    using Parent = std::tuple<_Types>;
-
-    VaryingPair() : Parent(Varying(T0()), Varying(T1())) {}
-    VaryingPair(const VaryingPair& pair) : Parent(pair.first, pair.second) {}
-    VaryingPair(const Varying& first, const Varying& second) : Parent(first, second) {}
-
-    const T0& getFirst() const { return first.get<T0>(); }
-    T0& editFirst() { return first.edit<T0>(); }
-
-    const T1& getSecond() const { return second.get<T1>(); }
-    T1& editSecond() { return second.edit<T1>(); }
-};*/
 
 template < class T, int NUM >
 class VaryingArray : public std::array<Varying, NUM> {

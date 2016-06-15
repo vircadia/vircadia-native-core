@@ -306,8 +306,8 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
 
     RenderArgs* args = renderContext->args;
 
-    auto& sourceFramebuffer = SourceAndDepth.getFirst();
-    auto& depthTexture = SourceAndDepth.getSecond();
+    auto& sourceFramebuffer = SourceAndDepth.get0();
+    auto& depthTexture = SourceAndDepth.get1();
 
     BlurInOutResource::Resources blurringResources;
     if (!_inOutResources.updateResources(sourceFramebuffer, blurringResources)) {

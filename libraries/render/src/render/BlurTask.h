@@ -121,7 +121,7 @@ protected:
 
 class BlurGaussianDepthAware {
 public:
-    using Inputs = VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Inputs = VaryingSet2<gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = BlurGaussianDepthAwareConfig;
     using JobModel = Job::ModelIO<BlurGaussianDepthAware, Inputs, gpu::FramebufferPointer, Config>;
 

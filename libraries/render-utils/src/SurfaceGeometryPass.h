@@ -40,7 +40,7 @@ signals:
 
 class SurfaceGeometryPass {
 public:
-    using Outputs = render::VaryingPair<gpu::FramebufferPointer, gpu::TexturePointer>;
+    using Outputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::TexturePointer>;
     using Config = SurfaceGeometryPassConfig;
     using JobModel = render::Job::ModelIO<SurfaceGeometryPass, DeferredFrameTransformPointer, Outputs, Config>;
 

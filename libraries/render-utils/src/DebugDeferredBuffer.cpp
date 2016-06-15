@@ -342,8 +342,8 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
-    auto& diffusedCurvatureFramebuffer = inputs.getFirst();
-    auto& scatteringFramebuffer = inputs.getSecond();
+    auto& diffusedCurvatureFramebuffer = inputs.get0();
+    auto& scatteringFramebuffer = inputs.get1();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
