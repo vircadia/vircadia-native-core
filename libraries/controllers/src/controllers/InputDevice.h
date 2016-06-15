@@ -31,6 +31,12 @@ namespace controller {
 class Endpoint;
 using EndpointPointer = std::shared_ptr<Endpoint>;
 
+enum Hand {
+    LEFT = 0,
+    RIGHT,
+    BOTH
+};
+
 // NOTE: If something inherits from both InputDevice and InputPlugin, InputPlugin must go first.
 // e.g. class Example : public InputPlugin, public InputDevice
 // instead of class Example : public InputDevice, public InputPlugin
@@ -54,6 +60,9 @@ public:
     Pose getPoseValue(uint16_t channel) const;
 
     const QString& getName() const { return _name; }
+
+    // By default, Input Devices do not support haptics
+    virtual bool triggerHapticPulse(float strength, float duration, controller::Hand hand) { return false; }
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas

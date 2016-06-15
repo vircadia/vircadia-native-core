@@ -29,8 +29,8 @@ in vec3 _color;
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTextures(matKey, _texCoord0, albedo, roughness)$>
-    <$fetchMaterialLightmap(_texCoord1, lightmapVal)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
 
 
     packDeferredFragmentLightmap(

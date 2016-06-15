@@ -25,6 +25,7 @@
 
 AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID),
+    audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _outgoingMixedAudioSequenceNumber(0),
     _downstreamAudioStreamStats()
 {

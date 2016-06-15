@@ -94,8 +94,19 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
     
+    // update the metadata when a user (dis)connects
+    connect(this, &DomainServer::userConnected, &_metadata, &DomainMetadata::usersChanged);
+    connect(this, &DomainServer::userDisconnected, &_metadata, &DomainMetadata::usersChanged);
+
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
+
+    // if a connected node loses connection privileges, hang up on it
+    connect(&_gatekeeper, &DomainGatekeeper::killNode, this, &DomainServer::handleKillNode);
+
+    // if permissions are updated, relay the changes to the Node datastructures
+    connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
+            &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
 
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
@@ -112,6 +123,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         optionallyGetTemporaryName(args);
     }
+
+    // update the metadata with current descriptors
+    _metadata.setDescriptors(_settingsManager.getSettingsMap());
 }
 
 DomainServer::~DomainServer() {
@@ -311,16 +325,11 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    // This implements a special case that handles OLD clients which don't know how to negotiate matching
-    // protocol versions. We know these clients will sent DomainConnectRequest with older versions. We also
-    // know these clients will show a warning dialog if they get an EntityData with a protocol version they
-    // don't understand, so we can send them an empty EntityData with our latest version and they will
-    // warn the user that the protocol is not compatible
-    if (headerType == PacketType::DomainConnectRequest &&
-        headerVersion < static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions)) {
-        auto packetWithBadVersion = NLPacket::create(PacketType::EntityData);
-        nodeList->sendPacket(std::move(packetWithBadVersion), packet.getSenderSockAddr());
-        return false;
+    // if this is a mismatching connect packet, we can't simply drop it on the floor
+    // send back a packet to the interface that tells them we refuse connection for a mismatch
+    if (headerType == PacketType::DomainConnectRequest
+        && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
+        DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
     }
 
     // let the normal nodeList implementation handle all other packets.
@@ -715,9 +724,13 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getType() == NodeType::Agent) {
-            result++;
+    nodeList->eachNode([&](const SharedNodePointer& node){
+        // only count unassigned agents (i.e., users)
+        if (node->getType() == NodeType::Agent) {
+            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData && !nodeData->wasAssigned()) {
+                result++;
+            }
         }
     });
     return result;
@@ -763,12 +776,16 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
 }
 
 void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
-    
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
+
     // reply back to the user with a PacketType::DomainList
     sendDomainListToNode(newNode, nodeData->getSendingSockAddr());
-    
+
+    // if this node is a user (unassigned Agent), signal
+    if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
+        emit userConnected();
+    }
+
     // send out this node to our other connected nodes
     broadcastNewNode(newNode);
 }
@@ -785,8 +802,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
-    extendedHeaderStream << (quint8) node->isAllowedEditor();
-    extendedHeaderStream << (quint8) node->getCanRez();
+    extendedHeaderStream << node->getPermissions();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
@@ -1063,62 +1079,40 @@ void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr)
     sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
 }
 
-
 void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
-    const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     const QUuid& domainID = nodeList->getSessionUUID();
 
-    // setup the domain object to send to the data server
-    const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
-    const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
-
+    // Setup the domain object to send to the data server
     QJsonObject domainObject;
+
     if (!networkAddress.isEmpty()) {
+        static const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
         domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
     }
 
+    static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
     // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
     const QString RESTRICTED_ACCESS_FLAG = "restricted";
 
-    domainObject[RESTRICTED_ACCESS_FLAG] =
-        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    // consider the domain to have restricted access if "anonymous" connections can't connect to the domain.
+    NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
 
-    // figure out the breakdown of currently connected interface clients
-    int numConnectedUnassigned = 0;
-    QJsonObject userHostnames;
-
-    static const QString DEFAULT_HOSTNAME = "*";
-
-    nodeList->eachNode([&numConnectedUnassigned, &userHostnames](const SharedNodePointer& node) {
-        if (node->getLinkedData()) {
-            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
-
-            if (!nodeData->wasAssigned()) {
-                ++numConnectedUnassigned;
-
-                // increment the count for this hostname (or the default if we don't have one)
-                auto hostname = nodeData->getPlaceName().isEmpty() ? DEFAULT_HOSTNAME : nodeData->getPlaceName();
-                userHostnames[hostname] = userHostnames[hostname].toInt() + 1;
-            }
-        }
-    });
-
+    // Add the metadata to the heartbeat
     static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    static const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
-    static const QString HEARTBEAT_USER_HOSTNAMES_KEY = "user_hostnames";
+    auto tic = _metadata.getTic();
+    if (_metadataTic != tic) {
+        _metadataTic = tic;
+        _metadata.updateUsers();
+    }
+    domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata.getUsers();
 
-    QJsonObject heartbeatObject;
-    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedUnassigned;
-    heartbeatObject[HEARTBEAT_USER_HOSTNAMES_KEY] = userHostnames;
+    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
-    domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
-
-    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
-
+    static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                               AccountManagerAuth::Required,
                                               QNetworkAccessManager::PutOperation,
@@ -1914,11 +1908,10 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-
     // if this peer connected via ICE then remove them from our ICE peers hash
     _gatekeeper.removeICEPeer(node->getUUID());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     if (nodeData) {
         // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
@@ -1930,15 +1923,22 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
-        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                                       uuidStringWithoutCurlyBraces(node->getUUID()));
-
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
             SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
-                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+                static_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
+        }
+
+        if (node->getType() == NodeType::Agent) {
+            // if this node was an Agent ask DomainServerNodeData to remove the interpolation we potentially stored
+            nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                    uuidStringWithoutCurlyBraces(node->getUUID()));
+
+            // if this node is a user (unassigned Agent), signal
+            if (!nodeData->wasAssigned()) {
+                emit userDisconnected();
             }
         }
     }
@@ -2109,33 +2109,40 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
 void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
     // This packet has been matched to a source node and they're asking not to be in the domain anymore
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    
+
     const QUuid& nodeUUID = message->getSourceID();
-    
+
     qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
-    
+
     // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
     // packet to nodes that don't care about this type
     auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
-    
+
     if (nodeToKill) {
-        auto nodeType = nodeToKill->getType();
-        limitedNodeList->killNodeWithUUID(nodeUUID);
-        
-        static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
-        
-        removedNodePacket->reset();
-        removedNodePacket->write(nodeUUID.toRfc4122());
-    
-        // broadcast out the DomainServerRemovedNode message
-        limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
-            // only send the removed node packet to nodes that care about the type of node this was
-            auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
-            return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
-        }, [&limitedNodeList](const SharedNodePointer& otherNode){
-            limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
-        });
+        handleKillNode(nodeToKill);
     }
+}
+
+void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
+    auto nodeType = nodeToKill->getType();
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    const QUuid& nodeUUID = nodeToKill->getUUID();
+
+    limitedNodeList->killNodeWithUUID(nodeUUID);
+
+    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+
+    removedNodePacket->reset();
+    removedNodePacket->write(nodeUUID.toRfc4122());
+
+    // broadcast out the DomainServerRemovedNode message
+    limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+        // only send the removed node packet to nodes that care about the type of node this was
+        auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+        return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+    }, [&limitedNodeList](const SharedNodePointer& otherNode){
+        limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+    });
 }
 
 void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {

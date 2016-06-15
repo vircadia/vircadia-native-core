@@ -567,6 +567,16 @@ void Batch::_glUniform4iv(int32 location, int count, const int32* value) {
     _params.push_back(location);
 }
 
+void Batch::_glUniformMatrix3fv(int32 location, int count, uint8 transpose, const float* value) {
+    ADD_COMMAND(glUniformMatrix3fv);
+
+    const int MATRIX3_SIZE = 9 * sizeof(float);
+    _params.push_back(cacheData(count * MATRIX3_SIZE, value));
+    _params.push_back(transpose);
+    _params.push_back(count);
+    _params.push_back(location);
+}
+
 void Batch::_glUniformMatrix4fv(int32 location, int count, uint8 transpose, const float* value) {
     ADD_COMMAND(glUniformMatrix4fv);
 

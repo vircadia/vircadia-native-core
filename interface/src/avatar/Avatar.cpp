@@ -84,7 +84,6 @@ Avatar::Avatar(RigPointer rig) :
     _acceleration(0.0f),
     _lastAngularVelocity(0.0f),
     _lastOrientation(),
-    _leanScale(0.5f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
     _initialized(false),
@@ -240,11 +239,13 @@ void Avatar::updateAvatarEntities() {
         }
 
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        foreach (auto entityID, recentlyDettachedAvatarEntities) {
-            if (!_avatarEntityData.contains(entityID)) {
-                entityTree->deleteEntity(entityID, true, true);
+        _avatarEntitiesLock.withReadLock([&] {
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                if (!_avatarEntityData.contains(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
             }
-        }
+        });
     });
 
     if (success) {

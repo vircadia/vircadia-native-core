@@ -632,13 +632,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     #endif
 
     int numBytesRead = sourceBuffer - startPosition;
-
-    if (numBytesRead != buffer.size()) {
-        if (shouldLogError(now)) {
-            qCWarning(avatars) << "AvatarData packet size mismatch: expected " << numBytesRead << " received " << buffer.size();
-        }
-    }
-
     _averageBytesReceived.updateAverage(numBytesRead);
     return numBytesRead;
 }
@@ -907,7 +900,11 @@ bool AvatarData::processAvatarIdentity(const Identity& identity) {
         hasIdentityChanged = true;
     }
 
-    if (identity.avatarEntityData != _avatarEntityData) {
+    bool avatarEntityDataChanged = false;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
+    });
+    if (avatarEntityDataChanged) {
         setAvatarEntityData(identity.avatarEntityData);
         hasIdentityChanged = true;
     }
@@ -921,7 +918,9 @@ QByteArray AvatarData::identityByteArray() {
     QUrl emptyURL("");
     const QUrl& urlToSend = _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 
-    identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
+    _avatarEntitiesLock.withReadLock([&] {
+        identityStream << getSessionUUID() << urlToSend << _attachmentData << _displayName << _avatarEntityData;
+    });
 
     return identityData;
 }
@@ -1270,6 +1269,10 @@ static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
 static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
 static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
+static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
+
+static const int JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION = 0;
+static const int JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION = 1;
 
 QJsonValue toJsonValue(const JointData& joint) {
     QJsonArray result;
@@ -1293,6 +1296,8 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
+    root[JSON_AVATAR_VERSION] = JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION;
+
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
     }
@@ -1307,16 +1312,18 @@ QJsonObject AvatarData::toJson() const {
         root[JSON_AVATAR_ATTACHEMENTS] = attachmentsJson;
     }
 
-    if (!_avatarEntityData.empty()) {
-        QJsonArray avatarEntityJson;
-        for (auto entityID : _avatarEntityData.keys()) {
-            QVariantMap entityData;
-            entityData.insert("id", entityID);
-            entityData.insert("properties", _avatarEntityData.value(entityID));
-            avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
+    _avatarEntitiesLock.withReadLock([&] {
+        if (!_avatarEntityData.empty()) {
+            QJsonArray avatarEntityJson;
+            for (auto entityID : _avatarEntityData.keys()) {
+                QVariantMap entityData;
+                entityData.insert("id", entityID);
+                entityData.insert("properties", _avatarEntityData.value(entityID));
+                avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
+            }
+            root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
         }
-        root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
-    }
+    });
 
     auto recordingBasis = getRecordingBasis();
     bool success;
@@ -1359,6 +1366,15 @@ QJsonObject AvatarData::toJson() const {
 }
 
 void AvatarData::fromJson(const QJsonObject& json) {
+
+    int version;
+    if (json.contains(JSON_AVATAR_VERSION)) {
+        version = json[JSON_AVATAR_VERSION].toInt();
+    } else {
+        // initial data did not have a version field.
+        version = JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION;
+    }
+
     // The head setOrientation likes to overwrite the avatar orientation,
     // so lets do the head first
     // Most head data is relative to the avatar, and needs no basis correction,
@@ -1424,20 +1440,28 @@ void AvatarData::fromJson(const QJsonObject& json) {
     //     }
     // }
 
-    // Joint rotations are relative to the avatar, so they require no basis correction
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
-        QVector<JointData> jointArray;
-        QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
-        jointArray.reserve(jointArrayJson.size());
-        int i = 0;
-        for (const auto& jointJson : jointArrayJson) {
-            auto joint = jointDataFromJsonValue(jointJson);
-            jointArray.push_back(joint);
-            setJointData(i, joint.rotation, joint.translation);
-            _jointData[i].rotationSet = true; // Have to do that to broadcast the avatar new pose
-            i++;
+        if (version == JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION) {
+            // because we don't have the full joint hierarchy skeleton of the model,
+            // we can't properly convert from relative rotations into absolute rotations.
+            quint64 now = usecTimestampNow();
+            if (shouldLogError(now)) {
+                qCWarning(avatars) << "Version 0 avatar recordings not supported. using default rotations";
+            }
+        } else {
+            QVector<JointData> jointArray;
+            QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
+            jointArray.reserve(jointArrayJson.size());
+            int i = 0;
+            for (const auto& jointJson : jointArrayJson) {
+                auto joint = jointDataFromJsonValue(jointJson);
+                jointArray.push_back(joint);
+                setJointData(i, joint.rotation, joint.translation);
+                _jointData[i].rotationSet = true; // Have to do that to broadcast the avatar new pose
+                i++;
+            }
+            setRawJointData(jointArray);
         }
-        setRawJointData(jointArray);
     }
 }
 
@@ -1588,8 +1612,10 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         QMetaObject::invokeMethod(this, "updateAvatarEntity", Q_ARG(const QUuid&, entityID), Q_ARG(QByteArray, entityData));
         return;
     }
-    _avatarEntityData.insert(entityID, entityData);
-    _avatarEntityDataLocallyEdited = true;
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityData.insert(entityID, entityData);
+        _avatarEntityDataLocallyEdited = true;
+    });
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID) {
@@ -1597,18 +1623,25 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID) {
         QMetaObject::invokeMethod(this, "clearAvatarEntity", Q_ARG(const QUuid&, entityID));
         return;
     }
-    _avatarEntityData.remove(entityID);
-    _avatarEntityDataLocallyEdited = true;
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityData.remove(entityID);
+        _avatarEntityDataLocallyEdited = true;
+    });
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
+    AvatarEntityMap result;
     if (QThread::currentThread() != thread()) {
-        AvatarEntityMap result;
         QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAvatarEntityData", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(AvatarEntityMap, result));
         return result;
     }
-    return _avatarEntityData;
+
+    _avatarEntitiesLock.withReadLock([&] {
+        result = _avatarEntityData;
+    });
+    return result;
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
@@ -1616,29 +1649,33 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
         QMetaObject::invokeMethod(this, "setAvatarEntityData", Q_ARG(const AvatarEntityMap&, avatarEntityData));
         return;
     }
-    if (_avatarEntityData != avatarEntityData) {
-        // keep track of entities that were attached to this avatar but no longer are
-        AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
+    _avatarEntitiesLock.withWriteLock([&] {
+        if (_avatarEntityData != avatarEntityData) {
+            // keep track of entities that were attached to this avatar but no longer are
+            AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
 
-        _avatarEntityData = avatarEntityData;
-        setAvatarEntityDataChanged(true);
+            _avatarEntityData = avatarEntityData;
+            setAvatarEntityDataChanged(true);
 
-        foreach (auto entityID, previousAvatarEntityIDs) {
-            if (!_avatarEntityData.contains(entityID)) {
-                _avatarEntityDetached.insert(entityID);
+            foreach (auto entityID, previousAvatarEntityIDs) {
+                if (!_avatarEntityData.contains(entityID)) {
+                    _avatarEntityDetached.insert(entityID);
+                }
             }
         }
-    }
+    });
 }
 
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
+    AvatarEntityIDs result;
     if (QThread::currentThread() != thread()) {
-        AvatarEntityIDs result;
         QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(AvatarEntityIDs, result));
         return result;
     }
-    AvatarEntityIDs result = _avatarEntityDetached;
-    _avatarEntityDetached.clear();
+    _avatarEntitiesLock.withWriteLock([&] {
+        result = _avatarEntityDetached;
+        _avatarEntityDetached.clear();
+    });
     return result;
 }

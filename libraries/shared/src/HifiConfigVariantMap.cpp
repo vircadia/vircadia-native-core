@@ -213,10 +213,12 @@ QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath, bool 
     if (shouldCreateIfMissing || variantMap.contains(firstKey)) {
         if (dotIndex == -1) {
             return &variantMap[firstKey];
-        } else if (variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
-            return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
-                                   shouldCreateIfMissing);
         }
+        if (!variantMap[firstKey].canConvert(QMetaType::QVariantMap)) {
+            variantMap[firstKey] = QVariantMap();
+        }
+        return valueForKeyPath(*static_cast<QVariantMap*>(variantMap[firstKey].data()), keyPath.mid(dotIndex + 1),
+                               shouldCreateIfMissing);
     }
 
     return NULL;

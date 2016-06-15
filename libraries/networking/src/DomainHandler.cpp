@@ -14,6 +14,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
 
+#include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
@@ -30,7 +31,8 @@ DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _icePeer(this),
-    _settingsTimer(this)
+    _settingsTimer(this),
+    _apiRefreshTimer(this)
 {
     _sockAddr.setObjectName("DomainServer");
 
@@ -41,6 +43,16 @@ DomainHandler::DomainHandler(QObject* parent) :
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
     _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS);
     connect(&_settingsTimer, &QTimer::timeout, this, &DomainHandler::settingsReceiveFail);
+
+    // setup the API refresh timer for auto connection information refresh from API when failing to connect
+    const int API_REFRESH_TIMEOUT_MSEC = 2500;
+    _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC);
+
+    auto addressManager = DependencyManager::get<AddressManager>();
+    connect(&_apiRefreshTimer, &QTimer::timeout, addressManager.data(), &AddressManager::refreshPreviousLookup);
+
+    // stop the refresh timer if we connect to a domain
+    connect(this, &DomainHandler::connectedToDomain, &_apiRefreshTimer, &QTimer::stop);
 }
 
 void DomainHandler::disconnect() {
@@ -85,10 +97,14 @@ void DomainHandler::softReset() {
     
     clearSettings();
 
+    _domainConnectionRefusals.clear();
     _connectionDenialsSinceKeypairRegen = 0;
 
     // cancel the failure timeout for any pending requests for settings
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
+
+    // restart the API refresh timer in case we fail to connect and need to refresh information
+    QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
 }
 
 void DomainHandler::hardReset() {
@@ -101,6 +117,8 @@ void DomainHandler::hardReset() {
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
+
+    _hasSignalledProtocolMismatch = false;
 
     _hasCheckedForAccessToken = false;
 
@@ -133,6 +151,8 @@ void DomainHandler::setUUID(const QUuid& uuid) {
 
 void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const QUuid& domainID) {
 
+    _pendingDomainID = domainID;
+
     if (hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
@@ -140,9 +160,6 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
         if (hostname != _hostname) {
             // set the new hostname
             _hostname = hostname;
-
-            // FIXME - is this the right place???
-            _domainConnectionRefusals.clear();
 
             qCDebug(networking) << "Updated domain hostname to" << _hostname;
 
@@ -163,12 +180,11 @@ void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const 
         // grab the port by reading the string after the colon
         _sockAddr.setPort(port);
     }
-
-    _pendingDomainID = domainID;
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
-    if (id != _uuid) {
+
+    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
         
@@ -249,6 +265,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
 
             // we've connected to new domain - time to ask it for global settings
             requestDomainSettings();
+
         } else {
             emit disconnectedFromDomain();
         }
@@ -299,6 +316,9 @@ void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> me
     qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
     if (getIP().isNull()) {
+        // we're hearing back from this domain-server, no need to refresh API information
+        _apiRefreshTimer.stop();
+
         // for now we're unsafely assuming this came back from the domain
         if (senderSockAddr == _icePeer.getLocalSocket()) {
             qCDebug(networking) << "Connecting to domain using local socket";
@@ -327,9 +347,12 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage>
 void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
         qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
-        // bail on processing this packet if our ice peer doesn't have sockets
+        // bail on processing this packet if our ice peer already has sockets
         return;
     }
+
+    // start or restart the API refresh timer now that we have new information
+    _apiRefreshTimer.start();
 
     QDataStream iceResponseStream(message->getMessage());
 
@@ -367,6 +390,9 @@ bool DomainHandler::reasonSuggestsLogin(ConnectionRefusedReason reasonCode) {
 }
 
 void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
+    // we're hearing from this domain-server, don't need to refresh API info
+    _apiRefreshTimer.stop();
+
     // Read deny reason from packet
     uint8_t reasonCodeWire;
 
@@ -381,9 +407,24 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     // and check and signal for an access token so that we can make sure they are logged in
     qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
 
-    if (!_domainConnectionRefusals.contains(reasonMessage)) {
-        _domainConnectionRefusals.append(reasonMessage);
-        emit domainConnectionRefused(reasonMessage, (int)reasonCode);
+    if (!_domainConnectionRefusals.contains(reasonCode)) {
+        _domainConnectionRefusals.append(reasonCode);
+
+        bool shouldSignal = true;
+
+        // only signal once for a protocol mismatch, even between soft resets that will reset the _domainConnectionRefusals
+        if (reasonCode == ConnectionRefusedReason::ProtocolMismatch) {
+            if (_hasSignalledProtocolMismatch) {
+                shouldSignal = false;
+            } else {
+                _hasSignalledProtocolMismatch = true;
+            }
+        }
+
+        if (shouldSignal) {
+            emit domainConnectionRefused(reasonMessage, (int)reasonCode);
+        }
+
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();

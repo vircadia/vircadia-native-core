@@ -100,7 +100,7 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
     frag.obscurance = texture(obscuranceMap, texcoord).x;
 
     // Unpack the normal from the map
-    frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
+    frag.normal = unpackNormal(frag.normalVal.xyz);
     frag.roughness = frag.normalVal.a;
 
     // Diffuse color and unpack the mode and the metallicness

@@ -14,19 +14,40 @@
 
 #include <type_traits>
 
-#include <QSettings>
-#include <QString>
-#include <QVariant>
+#include <QtCore/QSettings>
+#include <QtCore/QStack>
+#include <QtCore/QString>
+#include <QtCore/QVariant>
+#include <QtCore/QReadWriteLock>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include "SettingInterface.h"
 
+
 // TODO: remove
-class Settings : public QSettings {
+class Settings {
 public:
     static const QString firstRun;
+    Settings();
+    ~Settings();
+
+    void remove(const QString& key);
+    QStringList childGroups() const;
+    QStringList childKeys() const;
+    QStringList allKeys() const;
+    bool contains(const QString& key) const;
+    int	beginReadArray(const QString & prefix);
+    void beginWriteArray(const QString& prefix, int size = -1);
+    void endArray();
+    void setArrayIndex(int i);
+
+    void beginGroup(const QString& prefix);
+    void endGroup();
+
+    void setValue(const QString& name, const QVariant& value);
+    QVariant value(const QString& name, const QVariant& defaultValue = QVariant()) const;
 
     void getFloatValueIfValid(const QString& name, float& floatValue);
     void getBoolValue(const QString& name, bool& boolValue);
@@ -36,6 +57,9 @@ public:
 
     void setQuatValue(const QString& name, const glm::quat& quatValue);
     void getQuatValueIfValid(const QString& name, glm::quat& quatValue);
+
+    QSharedPointer<Setting::Manager> _manager;
+    QWriteLocker _locker;
 };
 
 namespace Setting {

@@ -113,7 +113,6 @@ namespace MenuOption {
     const QString Help = "Help...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
-    const QString InputMenu = "Developer>Avatar>Input Devices";
     const QString ActionMotorControl = "Enable Default Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -167,6 +166,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
+    const QString SendWrongDSConnectVersion = "Send wrong DS connect version";
     const QString SendWrongProtocolVersion = "Send wrong protocol version";
     const QString SetHomeLocation = "Set Home Location";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
