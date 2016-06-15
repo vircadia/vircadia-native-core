@@ -26,8 +26,8 @@
 class QImage;
 
 enum Eye {
-    Left = bilateral::Side::Left,
-    Right = bilateral::Side::Right
+    Left = (int)bilateral::Side::Left,
+    Right = (int)bilateral::Side::Right
 };
 
 /*
