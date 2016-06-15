@@ -593,6 +593,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         // the model is still being downloaded.
         return false;
+    } else if (type == SHAPE_TYPE_MESH) {
+        return (_model && _model->isLoaded());
     }
     return true;
 }
