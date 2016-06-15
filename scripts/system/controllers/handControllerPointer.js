@@ -349,7 +349,8 @@ clickMapping.enable();
 // Same properties as handControllerGrab search sphere
 var BALL_SIZE = 0.011;
 var BALL_ALPHA = 0.5;
-var LASER_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: BALL_ALPHA};
+var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: BALL_ALPHA};
+var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: BALL_ALPHA};
 var fakeProjectionBall = Overlays.addOverlay("sphere", {
     size: 5 * BALL_SIZE,
     color: {red: 255, green: 10, blue: 10},
@@ -373,15 +374,24 @@ function clearSystemLaser() {
     HMD.disableHandLasers(BOTH_HUD_LASERS);
     systemLaserOn = false;
 }
+function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
+    var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
+    return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
+
+}
 function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
     if (!optionalEnableClicks) {
         expireMouseCursor();
         clearSystemLaser();
-    } else if (!systemLaserOn && activeTrigger.state) {
+    } else if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
         // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
-        systemLaserOn = HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
+        systemLaserOn = setColoredLaser();
         Reticle.visible = !systemLaserOn;
+    } else if ((systemLaserOn || Reticle.visible) && !activeTrigger.state) {
+        clearSystemLaser();
+        Reticle.visible = false;
     }
+
     if (!visualizationIsShowing) {
         return;
     }
