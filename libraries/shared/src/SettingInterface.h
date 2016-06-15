@@ -39,19 +39,20 @@ namespace Setting {
         virtual ~Interface() = default;
 
         void init();
-        void maybeInit();
+        void maybeInit() const;
         void deinit();
         
         void save();
         void load();
-        
-        bool _isInitialized = false;
+
         bool _isSet = false;
         const QString _key;
+
+    private:
+        mutable bool _isInitialized = false;
         
         friend class Manager;
-
-        QWeakPointer<Manager> _manager;
+        mutable QWeakPointer<Manager> _manager;
     };
 }
 

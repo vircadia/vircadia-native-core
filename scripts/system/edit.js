@@ -1221,8 +1221,7 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.alert("No entities have been selected.");
         } else {
-            var filename = "entities__" + Window.location.hostname + ".svo.json";
-            filename = Window.save("Select Where to Save", filename, "*.json")
+            var filename = Window.save("Select Where to Save", "", "*.json")
             if (filename) {
                 var success = Clipboard.exportEntities(filename, selectionManager.selections);
                 if (!success) {

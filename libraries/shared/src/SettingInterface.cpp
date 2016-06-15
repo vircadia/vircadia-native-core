@@ -119,9 +119,9 @@ namespace Setting {
     }
 
     
-    void Interface::maybeInit() {
+    void Interface::maybeInit() const {
         if (!_isInitialized) {
-            init();
+            const_cast<Interface*>(this)->init();
         }
     }
     
