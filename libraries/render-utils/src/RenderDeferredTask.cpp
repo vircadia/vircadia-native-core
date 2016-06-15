@@ -113,6 +113,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Opaque all rendered, generate surface geometry buffers
     const auto curvatureFramebufferAndDepth = addJob<SurfaceGeometryPass>("SurfaceGeometry", deferredFrameTransform);
 
+
+    const auto theCurvatureVarying = curvatureFramebufferAndDepth[0];
+
 #define SIMPLE_BLUR 1
 #if SIMPLE_BLUR
     const auto curvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first);

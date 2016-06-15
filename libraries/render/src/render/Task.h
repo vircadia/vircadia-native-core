@@ -31,8 +31,8 @@ namespace render {
 
 class Varying;
     
-    template <class T> void varyingGet(const T& data, uint8_t index, Varying& var) {}
-template <class T> uint8_t varyingLength(const T& data) { return 0; }
+    template <class T> void varyingGet(const T* data, uint8_t index, Varying& var) {}
+template <class T> uint8_t varyingLength(const T* data) { return 0; }
     
 // A varying piece of data, to be used as Job/Task I/O
 // TODO: Task IO
@@ -65,6 +65,8 @@ protected:
     template <class T> class Model : public Concept {
     public:
         using Data = T;
+  //      using VarContainer = std::enable_if<T::VarContainer>;
+        //using VarContainer = std::conditional<std::enable_if<T::VarContainer>, T::VarContainer, T>;
 
         Model(const Data& data) : _data(data) {}
         virtual ~Model() = default;
@@ -72,10 +74,10 @@ protected:
         
         virtual Varying operator[] (uint8_t index) const {
             Varying var;
-            varyingGet<T>(_data, index, var);
+           // varyingGet<VarContainer>(&_data, index, var);
             return var;
         }
-        virtual uint8_t length() const { return varyingLength<T>(_data); }
+        virtual uint8_t length() const { return varyingLength<T>(&_data); }
 
         Data _data;
     };
@@ -89,13 +91,14 @@ protected:
 using VaryingPairBase = std::pair<Varying, Varying>;
 
 
-template <> void varyingGet(const VaryingPairBase& data, uint8_t index, Varying& var);
-template <> uint8_t varyingLength(const VaryingPairBase& data);
+template <> void varyingGet(const VaryingPairBase* data, uint8_t index, Varying& var);
+template <> uint8_t varyingLength(const VaryingPairBase* data);
 
-template < class T0, class T1 >
+template < typename T0, typename T1 >
 class VaryingPair : public VaryingPairBase {
 public:
     using Parent = VaryingPairBase;
+    using VarContainer = VaryingPairBase;
 
     VaryingPair() : Parent(Varying(T0()), Varying(T1())) {}
     VaryingPair(const VaryingPair& pair) : Parent(pair.first, pair.second) {}
@@ -107,6 +110,7 @@ public:
     const T1& getSecond() const { return second.get<T1>(); }
     T1& editSecond() { return second.edit<T1>(); }
 };
+
 
 template <class T0, class T1, class T2>
 class VaryingTrio : public std::tuple<Varying, Varying,Varying>{
@@ -495,5 +499,6 @@ protected:
 };
 
 }
+
 
 #endif // hifi_render_Task_h

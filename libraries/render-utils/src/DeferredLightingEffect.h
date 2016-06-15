@@ -44,7 +44,7 @@ public:
         const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     void prepare(RenderArgs* args);
-    void render(const render::RenderContextPointer& renderContext, );
+    void render(const render::RenderContextPointer& renderContext);
 
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 

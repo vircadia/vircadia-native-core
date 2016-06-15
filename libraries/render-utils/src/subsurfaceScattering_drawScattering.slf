@@ -14,7 +14,9 @@
 <$declareDeferredFrameTransform()$>
 
 
-<@include model/Light.slh@>
+<@include DeferredGlobalLight.slh@>
+
+<$declareEvalGlobalSpecularIrradiance(0, 1, 0)$>
 
 uniform sampler2D linearDepthMap;
 float getZEye(ivec2 pixel) {
@@ -25,35 +27,6 @@ float getZEyeLinear(vec2 texcoord) {
 }
 
 <@include DeferredBufferRead.slh@>
-
-
-vec3 fresnelSchlick(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
-    return fresnelColor + (1.0 - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
-}
-
-float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
-    float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
-    float gloss2 = pow(0.001 + roughness, 4);
-    float denom = (ndoth * ndoth*(gloss2 - 1) + 1);
-    float power = gloss2 / (3.14159 * denom * denom);
-    return power;
-}
-
-// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
-vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
-    // Diffuse Lighting
-    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
-    
-    // Specular Lighting
-    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
-    vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
-    float power = specularDistribution(roughness, fragNormal, halfDir);
-    vec3 specular = power * fresnelColor * diffuse;
-
-    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
-}
-
-
 
 vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
     return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
@@ -132,10 +105,10 @@ void main(void) {
        // --> Calculate the light vector.
        
     Light light = getLight();
-    vec3 lightVector = -getLightDirection(light); //normalize(uniformLightVector); //normalize(lightPos - sourcePos.xyz);
+    vec3 fragLightDir = -getLightDirection(light); //normalize(uniformLightVector); //normalize(lightPos - sourcePos.xyz);
     
-   // _fragColor = vec4(fetchBRDF(dot(bentNormalR, lightVector), abs(diffusedCurvature.w * 2 - 1)), 1.0);
-   //  _fragColor = vec4(vec3(abs(dot(bentNormalR, lightVector))), 1.0);
+   // _fragColor = vec4(fetchBRDF(dot(bentNormalR, fragLightDir), abs(diffusedCurvature.w * 2 - 1)), 1.0);
+   //  _fragColor = vec4(vec3(abs(dot(bentNormalR, fragLightDir))), 1.0);
  //    _fragColor = vec4(vec3(varTexCoord0, 0.0), 1.0);
   //  _fragColor = vec4(vec3(bentNormalR * 0.5 + 0.5), 1.0);
 
@@ -147,7 +120,7 @@ void main(void) {
     vec3 gN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.y));
     vec3 bN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.z));
 
-    vec3 NdotLSpectrum  = vec3(dot(rN, lightVector), dot(gN, lightVector), dot(bN, lightVector));
+    vec3 NdotLSpectrum  = vec3(dot(rN, fragLightDir), dot(gN, fragLightDir), dot(bN, fragLightDir));
 
     // --> Look up the pre-integrated curvature-dependent BDRF textures
     vec3 bdrf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
@@ -174,11 +147,37 @@ void main(void) {
         fresnel = fragment.diffuse;
         fragment.metallic = 1.0;
     }
+    vec3 albedo = fragment.diffuse;
+    vec3 fragNormal = fragment.normal;
 
-    //vec4 shading = evalPBRShading(rS, lightVector, fragEyeDir, fragment.metallic, fresnel, fragment.roughness);
-    _fragColor = vec4(fragment.diffuse * vec3(bdrf.xyz), 1.0);
+    vec4 shading;
+
+    { // Key Sun Lighting
+        // Diffuse Lighting
+        float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+    
+        // Specular Lighting
+        vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+        vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
+        float power = specularDistribution(fragment.roughness, fragNormal, halfDir);
+        vec3 specular = power * fresnelColor * diffuse;
+
+        shading = vec4(specular, (1.0 - fragment.metallic) * diffuse * (1 - fresnelColor.x));
+    }
+
+    vec3 color = vec3(albedo * vec3(bdrf.xyz) + shading.rgb) * getLightColor(light) * getLightIntensity(light);
 
 
+    // Diffuse from ambient
+    color += (1 - fragment.metallic) * albedo * evalSphericalLight(getLightAmbientSphere(light), bentNormalHigh).xyz * 1.0 * getLightAmbientIntensity(light);
+
+    // Specular highlight from ambient
+    vec3 specularLighting = evalGlobalSpecularIrradiance(light, fragEyeDir, fragNormal, fragment.roughness, fresnel, 1.0);
+    color += specularLighting;
+
+    //_fragColor = vec4(evalSkyboxLight(rS, 0.0).rgb, 1.0);
+
+    _fragColor = vec4(color, 1.0);
 }
 
 

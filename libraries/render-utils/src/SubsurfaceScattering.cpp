@@ -34,7 +34,7 @@ enum ScatteringShaderMapSlots {
     ScatteringTask_AlbedoMapSlot,
     ScatteringTask_LinearMapSlot,
     
-    SCatteringTask_IBLMapSlot,
+    ScatteringTask_IBLMapSlot,
 
 };
 
@@ -83,6 +83,8 @@ gpu::PipelinePointer SubsurfaceScattering::getScatteringPipeline() {
 
         slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), ScatteringTask_AlbedoMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), ScatteringTask_LinearMapSlot));
+
+        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ScatteringTask_IBLMapSlot));
 
         gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -194,15 +196,18 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
         batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(ScatteringTask_ParamSlot, _parametersBuffer);
-        if (theLight->light)
+        if (theLight->light) {
             batch.setUniformBuffer(ScatteringTask_LightSlot, theLight->light->getSchemaBuffer());
+            if (theLight->light->getAmbientMap()) {
+                batch.setResourceTexture(ScatteringTask_IBLMapSlot, theLight->light->getAmbientMap());
+            }
+        }
         batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, _scatteringTable);
         batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(ScatteringTask_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(ScatteringTask_LinearMapSlot, framebufferCache->getDepthPyramidTexture());
-
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 

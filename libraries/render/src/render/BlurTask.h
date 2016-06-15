@@ -77,7 +77,7 @@ class BlurGaussianConfig : public Job::Config {
     Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty) // expose enabled flag
 public:
 
-    float filterScale{ 1.0f };
+    float filterScale{ 1.2f };
 signals :
     void dirty();
 

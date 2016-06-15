@@ -35,12 +35,12 @@ public:
     float bentRed{ 1.5f };
     float bentGreen{ 0.8f };
     float bentBlue{ 0.3f };
-    float bentScale{ 1.0f };
+    float bentScale{ 1.5f };
 
-    float curvatureOffset{ 0.012f };
-    float curvatureScale{ 0.25f };
+    float curvatureOffset{ 0.08f };
+    float curvatureScale{ 0.8f };
 
-    bool showLUT{ true };
+    bool showLUT{ false };
 
 signals:
     void dirty();
