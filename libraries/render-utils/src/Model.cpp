@@ -254,6 +254,7 @@ bool Model::updateGeometry() {
     _needsReload = false;
 
     if (_rig->jointStatesEmpty() && getFBXGeometry().joints.size() > 0) {
+        qDebug() << "initJointStates, num joints: " << getFBXGeometry().joints.size();
         initJointStates();
 
         const FBXGeometry& fbxGeometry = getFBXGeometry();
@@ -817,7 +818,9 @@ void Model::setURL(const QUrl& url) {
     invalidCalculatedMeshBoxes();
     deleteGeometry();
 
+    if (_geometry && _geometry->getGeometry()) qDebug() << "geometry1: " << _geometry->getGeometry()->getGeometry().joints.size();
     _geometry = DependencyManager::get<ModelCache>()->getGeometry(url);
+    if (_geometry && _geometry->getGeometry()) qDebug() << "geometry2: " << _geometry->getGeometry()->getGeometry().joints.size();
     onInvalidate();
 }
 

@@ -261,7 +261,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     unsigned char validity = 0;
     int validityBit = 0;
 
-    #ifdef WANT_DEBUG
+    #if 1
     int rotationSentCount = 0;
     unsigned char* beforeRotations = destinationBuffer;
     #endif
@@ -276,7 +276,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
                 fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
                 if (data.rotationSet) {
                     validity |= (1 << validityBit);
-                    #ifdef WANT_DEBUG
+                    #if 1
                     rotationSentCount++;
                     #endif
                 }
@@ -310,7 +310,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     validity = 0;
     validityBit = 0;
 
-    #ifdef WANT_DEBUG
+    #if 1
     int translationSentCount = 0;
     unsigned char* beforeTranslations = destinationBuffer;
     #endif
@@ -324,7 +324,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
                 glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
                 if (data.translationSet) {
                     validity |= (1 << validityBit);
-                    #ifdef WANT_DEBUG
+                    #if 1
                     translationSentCount++;
                     #endif
                     maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
@@ -359,7 +359,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         }
     }
 
-    #ifdef WANT_DEBUG
+    #if 1
     if (sendAll) {
         qDebug() << "AvatarData::toByteArray" << cullSmallChanges << sendAll
                  << "rotations:" << rotationSentCount << "translations:" << translationSentCount
@@ -584,6 +584,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
             _hasNewJointRotations = true;
             data.rotationSet = true;
+        } else if (numValidJointRotations == numJoints) {
+            _hasNewJointRotations = true;
+            data.rotationSet = false;
         }
     }
 
@@ -620,10 +623,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
             _hasNewJointTranslations = true;
             data.translationSet = true;
+        } else if (numValidJointRotations == numJoints) {
+            _hasNewJointTranslations = true;
+            data.translationSet = false;
         }
     }
 
-    #ifdef WANT_DEBUG
+    #if 1
     if (numValidJointRotations > 15) {
         qDebug() << "RECEIVING -- rotations:" << numValidJointRotations
                  << "translations:" << numValidJointTranslations
@@ -1052,17 +1058,20 @@ void AvatarData::setJointMappingsFromNetworkReply() {
         _jointIndices.insert(_jointNames.at(i), i + 1);
     }
 
-    sendIdentityPacket();
+    //sendIdentityPacket();
+    //sendAvatarDataPacket(true);
+    qDebug() << "set joint mapping froms network reply, num joints: " << _jointIndices.size();
 
     networkReply->deleteLater();
 }
 
-void AvatarData::sendAvatarDataPacket() {
+void AvatarData::sendAvatarDataPacket(bool sendFull) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
     // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
-    bool sendFullUpdate = randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO;
+    bool sendFullUpdate = sendFull || (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
+    if (sendFullUpdate) qDebug() << sendFullUpdate;
     QByteArray avatarByteArray = toByteArray(true, sendFullUpdate);
     doneEncoding(true);
 
