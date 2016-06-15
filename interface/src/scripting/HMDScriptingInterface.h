@@ -33,12 +33,13 @@ public:
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
     Q_INVOKABLE glm::vec2 overlayFromWorldPoint(const glm::vec3& position) const;
     Q_INVOKABLE glm::vec3 worldPointFromOverlay(const glm::vec2& overlay) const;
-
     Q_INVOKABLE glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
     Q_INVOKABLE glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
     Q_INVOKABLE QString preferredAudioInput() const;
     Q_INVOKABLE QString preferredAudioOutput() const;
+
     Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
+
     Q_INVOKABLE void disableHandLasers(int hands) const;
     /// Suppress the activation of any on-screen keyboard so that a script operation will 
     /// not be interrupted by a keyboard popup
