@@ -361,8 +361,9 @@ function MyController(hand) {
 
     var _this = this;
 
+    var suppressedIn2D = [STATE_OFF, STATE_SEARCHING, STATE_HOLD_SEARCHING];
     this.ignoreInput = function () {
-        return (_this.state <= STATE_HOLD_SEARCHING) && isIn2DMode();
+        return (-1 !== suppressedIn2D.indexOf(_this.state)) && isIn2DMode();
     };
 
     this.update = function() {
