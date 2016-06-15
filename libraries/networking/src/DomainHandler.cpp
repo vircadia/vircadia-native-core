@@ -97,7 +97,6 @@ void DomainHandler::softReset() {
     
     clearSettings();
 
-    _domainConnectionRefusals.clear();
     _connectionDenialsSinceKeypairRegen = 0;
 
     // cancel the failure timeout for any pending requests for settings
@@ -119,6 +118,7 @@ void DomainHandler::hardReset() {
     _sockAddr.clear();
 
     _hasSignalledProtocolMismatch = false;
+    _domainConnectionRefusals.clear();
 
     _hasCheckedForAccessToken = false;
 
@@ -408,6 +408,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
 
     if (!_domainConnectionRefusals.contains(reasonCode)) {
+
         _domainConnectionRefusals.append(reasonCode);
 
         bool shouldSignal = true;
