@@ -363,15 +363,17 @@ function MyController(hand) {
 
     var suppressedIn2D = [STATE_OFF, STATE_SEARCHING, STATE_HOLD_SEARCHING];
     this.ignoreInput = function () {
-        return (-1 !== suppressedIn2D.indexOf(_this.state)) && isIn2DMode();
+        // We've made the decision to use 'this' for new code, even though it is fragile,
+        // in order to keep/ the code uniform without making any no-op line changes.
+        return (-1 !== suppressedIn2D.indexOf(this.state)) && isIn2DMode();
     };
 
     this.update = function() {
 
         this.updateSmoothedTrigger();
 
-        if (_this.ignoreInput()) {
-            _this.turnOffVisualizations();
+        if (this.ignoreInput()) {
+            this.turnOffVisualizations();
             return;
         }
 
