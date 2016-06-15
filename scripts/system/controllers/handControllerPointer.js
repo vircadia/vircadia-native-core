@@ -377,7 +377,7 @@ function turnOffVisualization(optionalEnableClicks) { // because we're showing c
     if (!optionalEnableClicks) {
         expireMouseCursor();
         clearSystemLaser();
-    } else if (!systemLaserOn) {
+    } else if (!systemLaserOn && activeTrigger.state) {
         // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
         systemLaserOn = HMD.setHandLasers(activeHudLaser, true, LASER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
         Reticle.visible = !systemLaserOn;
