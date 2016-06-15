@@ -384,7 +384,7 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
 
     if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
         // if this is a lookup that has no result, don't keep re-trying it
-        //_previousLookup.clear();
+        _previousLookup.clear();
 
         emit lookupResultIsNotFound();
     }
