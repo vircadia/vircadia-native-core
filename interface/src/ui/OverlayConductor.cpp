@@ -105,9 +105,11 @@ void OverlayConductor::update(float dt) {
 
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     // centerUI when hmd mode is first enabled and mounted
-    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && !_hmdMode) {
-        _hmdMode = true;
-        centerUI();
+    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible()) {
+        if (!_hmdMode) {
+            _hmdMode = true;
+            centerUI();
+        }
     } else {
         _hmdMode = false;
     }
