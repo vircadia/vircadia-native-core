@@ -671,7 +671,6 @@
 
                                 } else {
                                     for (var i = 0; i < elShapeSections.length; i++) {
-                                        console.log("Hiding shape section " + elShapeSections[i])
                                         elShapeSections[i].style.display = 'none';
                                     }
                                 }
@@ -805,8 +804,10 @@
                                 }
                                 
                                 var activeElement = document.activeElement;
-        
-                                activeElement.select();
+                                
+                                if(typeof activeElement.select!=="undefined"){
+                                    activeElement.select();
+                                }
                             }
                         }
                     });
