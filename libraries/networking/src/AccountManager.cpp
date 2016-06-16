@@ -44,6 +44,7 @@ Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
+static const auto METAVERSE_SESSION_ID_HEADER = QString("HFM-SessionID").toLocal8Bit();
 
 JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, const QString& jsonCallbackMethod,
                                                QObject* errorCallbackReceiver, const QString& errorCallbackMethod,
@@ -221,8 +222,7 @@ void AccountManager::sendRequest(const QString& path,
     // if we're allowed to send usage data, include whatever the current session ID is with this request
     auto& activityLogger = UserActivityLogger::getInstance();
     if (activityLogger.isEnabled()) {
-        static const QString METAVERSE_SESSION_ID_HEADER = "HFM-SessionID";
-        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER.toLocal8Bit(),
+        networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
                                     uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
     }
 
@@ -321,6 +321,9 @@ void AccountManager::processReply() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
 
     if (requestReply->error() == QNetworkReply::NoError) {
+        if (requestReply->hasRawHeader(METAVERSE_SESSION_ID_HEADER)) {
+            _sessionID = requestReply->rawHeader(METAVERSE_SESSION_ID_HEADER);
+        }
         passSuccessToCallback(requestReply);
     } else {
         passErrorToCallback(requestReply);
