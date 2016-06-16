@@ -418,6 +418,7 @@ protected:
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
 
+    mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
     AvatarEntityMap _avatarEntityData;
     bool _avatarEntityDataLocallyEdited { false };

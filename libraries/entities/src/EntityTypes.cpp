@@ -17,6 +17,7 @@
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
 #include "EntityTypes.h"
+#include "EntitiesLogging.h"
 
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
@@ -62,6 +63,9 @@ EntityTypes::EntityType EntityTypes::getEntityTypeFromName(const QString& name) 
     QMap<QString, EntityTypes::EntityType>::iterator matchedTypeName = _nameToTypeMap.find(name);
     if (matchedTypeName != _nameToTypeMap.end()) {
         return matchedTypeName.value();
+    }
+    if (name.size() > 0 && name[0].isLower()) {
+        qCDebug(entities) << "Entity types must start with an uppercase letter. Please change the type" << name;
     }
     return Unknown;
 }

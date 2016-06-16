@@ -1221,8 +1221,7 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.alert("No entities have been selected.");
         } else {
-            var filename = "entities__" + Window.location.hostname + ".svo.json";
-            filename = Window.save("Select where to save", filename, "*.json")
+            var filename = Window.save("Select Where to Save", "", "*.json")
             if (filename) {
                 var success = Clipboard.exportEntities(filename, selectionManager.selections);
                 if (!success) {
@@ -1234,7 +1233,7 @@ function handeMenuEvent(menuItem) {
 
         var importURL = null;
         if (menuItem == "Import Entities") {
-            var fullPath = Window.browse("Select models to import", "", "*.json");
+            var fullPath = Window.browse("Select Model to Import", "", "*.json");
             if (fullPath) {
                 importURL = "file:///" + fullPath;
             }

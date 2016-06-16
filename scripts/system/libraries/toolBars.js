@@ -256,7 +256,6 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
                 y: y - ToolBar.SPACING
             });
         }
-        this.save();
     }
 
     this.setAlpha = function(alpha, tool) {
@@ -420,6 +419,9 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     this.mouseReleaseEvent = function (event) {
         for (var tool in that.tools) {
             that.tools[tool].buttonDown(false);
+        }
+        if (that.mightBeDragging) {
+            that.save();
         }
     }
     this.mouseMove  = function (event) {

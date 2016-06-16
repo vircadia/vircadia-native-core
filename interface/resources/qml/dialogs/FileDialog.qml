@@ -26,10 +26,10 @@ import "fileDialog"
 ModalWindow {
     id: root
     resizable: true
-    implicitWidth: 640
-    implicitHeight: 480
+    implicitWidth: 480
+    implicitHeight: 360
 
-    minSize: Qt.vector2d(300, 240)
+    minSize: Qt.vector2d(360, 240)
     draggable: true
 
     HifiConstants { id: hifi }
@@ -79,6 +79,15 @@ ModalWindow {
         fileTableModel.folder = initialFolder;
 
         iconText = root.title !== "" ? hifi.glyphs.scriptUpload : "";
+
+        // Clear selection when click on external frame.
+        frameClicked.connect(function() { d.clearSelection(); });
+
+        if (selectDirectory) {
+            currentSelection.text = d.capitalizeDrive(helper.urlToPath(initialFolder));
+        }
+
+        fileTableView.forceActiveFocus();
     }
 
     Item {
@@ -86,6 +95,13 @@ ModalWindow {
         width: pane.width
         height: pane.height
         anchors.margins: 0
+
+        MouseArea {
+            // Clear selection when click on internal unused area.
+            anchors.fill: parent
+            drag.target: root
+            onClicked: d.clearSelection()
+        }
 
         Row {
             id: navControls
@@ -176,7 +192,12 @@ ModalWindow {
                 }
 
                 if (helper.urlToPath(folder).toLowerCase() !== helper.urlToPath(fileTableModel.folder).toLowerCase()) {
+                    if (root.selectDirectory) {
+                        currentSelection.text = currentText !== "This PC" ? currentText : "";
+                        d.currentSelectionUrl = helper.pathToUrl(currentText);
+                    }
                     fileTableModel.folder = folder;
+                    fileTableView.forceActiveFocus();
                 }
             }
         }
@@ -203,6 +224,10 @@ ModalWindow {
                 var row = fileTableView.currentRow;
 
                 if (row === -1) {
+                    if (!root.selectDirectory) {
+                        currentSelection.text = "";
+                        currentSelectionIsFolder = false;
+                    }
                     return;
                 }
 
@@ -225,6 +250,12 @@ ModalWindow {
             function navigateHome() {
                 fileTableModel.folder = homeDestination;
                 return true;
+            }
+
+            function clearSelection() {
+                fileTableView.selection.clear();
+                fileTableView.currentRow = -1;
+                update();
             }
         }
 
@@ -389,6 +420,8 @@ ModalWindow {
 
                     rows++;
                 }
+
+                d.clearSelection();
             }
         }
 
@@ -424,12 +457,6 @@ ModalWindow {
             onSortIndicatorColumnChanged: { updateSort(); }
 
             onSortIndicatorOrderChanged: { updateSort(); }
-
-            onActiveFocusChanged: {
-                if (activeFocus && currentRow == -1) {
-                    fileTableView.selection.select(0)
-                }
-            }
 
             itemDelegate: Item {
                 clip: true
@@ -587,6 +614,12 @@ ModalWindow {
             readOnly: !root.saveDialog
             activeFocusOnTab: !readOnly
             onActiveFocusChanged: if (activeFocus) { selectAll(); }
+            onTextChanged: {
+                if (root.saveDialog && text !== "") {
+                    fileTableView.selection.clear();
+                    fileTableView.currentRow = -1;
+                }
+            }
             onAccepted: okAction.trigger();
         }
 
@@ -632,9 +665,16 @@ ModalWindow {
 
         Action {
             id: okAction
-            text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
-            enabled: currentSelection.text ? true : false
-            onTriggered: okActionTimer.start();
+            text: currentSelection.text ? (root.selectDirectory && fileTableView.currentRow === -1 ? "Choose" : (root.saveDialog ? "Save" : "Open")) : "Open"
+            enabled: currentSelection.text || !root.selectDirectory && d.currentSelectionIsFolder ? true : false
+            onTriggered: {
+                if (!root.selectDirectory && !d.currentSelectionIsFolder
+                        || root.selectDirectory && fileTableView.currentRow === -1) {
+                    okActionTimer.start();
+                } else {
+                    fileTableView.navigateToCurrentRow();
+                }
+            }
         }
 
         Timer {
@@ -648,7 +688,6 @@ ModalWindow {
                     root.destroy()
                     return;
                 }
-
 
                 // Handle the ambiguity between different cases
                 // * typed name (with or without extension)
@@ -670,7 +709,6 @@ ModalWindow {
                 if (!helper.urlIsWritable(selection)) {
                     desktop.messageBox({
                                            icon: OriginalDialogs.StandardIcon.Warning,
-                                           buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
                                            text: "Unable to write to location " + selection
                                        })
                     return;

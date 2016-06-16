@@ -401,11 +401,10 @@ glm::vec3 CharacterController::getLinearVelocity() const {
 }
 
 glm::vec3 CharacterController::getVelocityChange() const {
-    glm::vec3 velocity(0.0f);
     if (_rigidBody) {
-        velocity = bulletToGLM(_rigidBody->getLinearVelocity());
+        return bulletToGLM(_velocityChange);
     }
-    return velocity;
+    return glm::vec3(0.0f);
 }
 
 void CharacterController::clearMotors() {

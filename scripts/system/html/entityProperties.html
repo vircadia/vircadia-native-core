@@ -546,17 +546,10 @@
 
                                 disableProperties();
                             } else {
-                                var activeElement = document.activeElement;
-    
-                                try {
-                                    var selected = (activeElement
-                                               && activeElement.selectionStart == 0
-                                               && activeElement.selectionEnd == activeElement.value.length);
-                                } catch (e) {
-                                    var  selected = false;
-                                }
+            
     
                                 properties = data.selections[0].properties;
+
                                 elID.innerHTML = properties.id;
     
                                 elType.innerHTML = properties.type;
@@ -571,7 +564,6 @@
                                 } else {
                                     enableProperties();
                                 }
-
     
                                 elName.value = properties.name;
     
@@ -811,11 +803,10 @@
                                     elYTextureURL.value = properties.yTextureURL;
                                     elZTextureURL.value = properties.zTextureURL;
                                 }
-    
-                                if (selected) {
-                                    activeElement.focus();
-                                    activeElement.select();
-                                }
+                                
+                                var activeElement = document.activeElement;
+        
+                                activeElement.select();
                             }
                         }
                     });
@@ -1178,7 +1169,7 @@
                 for (var i = 0; i < els.length; i++) {
                     var clicked = false;
                     var originalText;
-                    els[i].onfocus = function() {
+                    els[i].onfocus = function(e) {
                         originalText = this.value;
                         this.select();
                         clicked = false;

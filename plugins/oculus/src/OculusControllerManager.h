@@ -32,6 +32,9 @@ public:
     void pluginFocusOutEvent() override;
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
+private slots:
+    void stopHapticPulse(bool leftHand);
+
 private:
     class OculusInputDevice : public controller::InputDevice {
     public:
@@ -64,9 +67,24 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
+        bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
+
     private:
+        void stopHapticPulse(bool leftHand);
         void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
         int _trackedControllers { 0 };
+
+        // perform an action when the TouchDevice mutex is acquired.
+        using Locker = std::unique_lock<std::recursive_mutex>;
+        template <typename F>
+        void withLock(F&& f) { Locker locker(_lock); f(); }
+
+        float _leftHapticDuration { 0.0f };
+        float _leftHapticStrength { 0.0f };
+        float _rightHapticDuration { 0.0f };
+        float _rightHapticStrength { 0.0f };
+        mutable std::recursive_mutex _lock;
+
         friend class OculusControllerManager;
     };
 

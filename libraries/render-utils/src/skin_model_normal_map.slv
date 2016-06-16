@@ -24,6 +24,7 @@
 
 out vec4 _position;
 out vec2 _texCoord0;
+out vec2 _texCoord1;
 out vec3 _normal;
 out vec3 _tangent;
 out vec3 _color;
@@ -42,6 +43,7 @@ void main(void) {
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
 
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
     interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
@@ -50,8 +52,8 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    <$transformModelToEyeDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
+    <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
 
     _normal = interpolatedNormal.xyz;
     _tangent = interpolatedTangent.xyz;

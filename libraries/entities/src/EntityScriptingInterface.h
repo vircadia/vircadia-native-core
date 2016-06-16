@@ -80,6 +80,7 @@ public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to rez new entities
     Q_INVOKABLE bool canRez();
+    Q_INVOKABLE bool canRezTmp();
 
     /// adds a model with the specific properties
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool clientOnly = false);
@@ -171,6 +172,7 @@ public slots:
 
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
+    Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
 signals:
@@ -178,6 +180,7 @@ signals:
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
+    void canRezTmpChanged(bool canRez);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);

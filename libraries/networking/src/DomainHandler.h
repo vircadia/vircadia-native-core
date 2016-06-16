@@ -58,8 +58,8 @@ public:
     
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
-    
-    const QUuid& getICEDomainID() const { return _iceDomainID; }
+
+    const QUuid& getPendingDomainID() const { return _pendingDomainID; }
 
     const QUuid& getICEClientID() const { return _iceClientID; }
 
@@ -75,7 +75,6 @@ public:
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
-
    
     void setPendingPath(const QString& pendingPath) { _pendingPath = pendingPath; }
     const QString& getPendingPath() { return _pendingPath; }
@@ -94,7 +93,7 @@ public:
     };
 
 public slots:
-    void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
+    void setSocketAndID(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
     void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
@@ -136,18 +135,21 @@ private:
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
-    QUuid _iceDomainID;
+    QUuid _pendingDomainID; // ID of domain being connected to, via ICE or direct connection
     QUuid _iceClientID;
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
-    bool _isConnected;
+    bool _isConnected { false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
 
-    QStringList _domainConnectionRefusals;
+    QList<ConnectionRefusedReason> _domainConnectionRefusals;
+    bool _hasSignalledProtocolMismatch { false };
     bool _hasCheckedForAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
+
+    QTimer _apiRefreshTimer;
 };
 
 #endif // hifi_DomainHandler_h
