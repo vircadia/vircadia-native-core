@@ -13,14 +13,18 @@
 #define hifi_UserActivityLoggerScriptingInterface_h
 
 #include <QObject>
-#include <QVariantMap>
+#include <QJsonObject>
 
-class QScriptValue;
+#include <DependencyManager.h>
 
-class UserActivityLoggerScriptingInterface : public QObject {
+class UserActivityLoggerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
-    Q_INVOKABLE void logAction(QString action, QVariantMap details) const;
+    Q_INVOKABLE void enabledEdit();
+    Q_INVOKABLE void openedMarketplace();
+
+private:
+    void logAction(QString action, QJsonObject details = {});
 };
 
 #endif // hifi_UserActivityLoggerScriptingInterface_h

@@ -12,8 +12,16 @@
 #include "UserActivityLoggerScriptingInterface.h"
 #include "UserActivityLogger.h"
 
-void UserActivityLoggerScriptingInterface::logAction(QString action, QVariantMap details) const {
+void UserActivityLoggerScriptingInterface::enabledEdit() {
+    logAction("enabled_edit");
+}
+
+void UserActivityLoggerScriptingInterface::openedMarketplace() {
+    logAction("opened_marketplace");
+}
+
+void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {
     QMetaObject::invokeMethod(&UserActivityLogger::getInstance(), "logAction",
                               Q_ARG(QString, action),
-                              Q_ARG(QJsonObject, QJsonObject::fromVariantMap(details)));
+                              Q_ARG(QJsonObject, details));
 }

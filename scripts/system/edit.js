@@ -340,7 +340,7 @@ var toolBar = (function() {
                 Messages.sendLocalMessage("edit-events", JSON.stringify({
                     enabled: active
                 }));
-                UserActivityLogger.logAction("enabled_edit");
+                UserActivityLogger.enabledEdit();
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);

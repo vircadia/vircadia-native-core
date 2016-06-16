@@ -37,6 +37,8 @@ function showExamples(marketplaceID) {
     print("setting examples URL to " + url);
     examplesWindow.setURL(url);
     examplesWindow.setVisible(true);
+
+    UserActivityLogger.openedMarketplace();
 }
 
 function hideExamples() {
