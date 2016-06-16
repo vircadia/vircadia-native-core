@@ -618,6 +618,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
         const uint32_t TRIANGLE_STRIDE = 3;
         const uint32_t QUAD_STRIDE = 4;
+        Extents extents;
         foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
@@ -631,14 +632,18 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                     glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
                     glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[j + 1]];
                     glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[j + 2]];
+
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
+                        extents.addPoint(p0);
                     }
                     if (!pointsInPart.contains(p1)) {
                         pointsInPart << p1;
+                        extents.addPoint(p1);
                     }
                     if (!pointsInPart.contains(p2)) {
                         pointsInPart << p2;
+                        extents.addPoint(p2);
                     }
                 }
 
@@ -652,15 +657,19 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                     glm::vec3 p3 = mesh.vertices[meshPart.quadIndices[j + 3]];
                     if (!pointsInPart.contains(p0)) {
                         pointsInPart << p0;
+                        extents.addPoint(p0);
                     }
                     if (!pointsInPart.contains(p1)) {
                         pointsInPart << p1;
+                        extents.addPoint(p1);
                     }
                     if (!pointsInPart.contains(p2)) {
                         pointsInPart << p2;
+                        extents.addPoint(p2);
                     }
                     if (!pointsInPart.contains(p3)) {
                         pointsInPart << p3;
+                        extents.addPoint(p3);
                     }
                 }
 
@@ -673,33 +682,30 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
 
+        glm::vec3 extentsSize = extents.size();
+        glm::vec3 scaleToFit = dimensions / extentsSize;
+        for (int i = 0; i < 3; ++i) {
+            if (extentsSize[i] < 1.0e-6f) {
+                scaleToFit[i] = 1.0f;
+            }
+        }
+
         // We expect that the collision model will have the same units and will be displaced
         // from its origin in the same way the visual model is.  The visual model has
         // been centered and probably scaled.  We take the scaling and offset which were applied
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        const FBXGeometry& renderGeometry = _model->getFBXGeometry();
-        glm::vec3 scale = dimensions / renderGeometry.getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
-        AABox box;
+        glm::vec3 scaledModelOffset = _model->getOffset() * _model->getScale();
         for (int i = 0; i < pointCollection.size(); i++) {
             for (int j = 0; j < pointCollection[i].size(); j++) {
-                // compensate for registration
-                pointCollection[i][j] += _model->getOffset();
-                // scale so the collision points match the model points
-                pointCollection[i][j] *= scale;
-                // this next subtraction is done so we can give info the offset, which will cause
-                // the shape-key to change.
-                pointCollection[i][j] -= _model->getOffset();
-                box += pointCollection[i][j];
+                pointCollection[i][j] = (pointCollection[i][j] * scaleToFit) + scaledModelOffset;
             }
         }
 
-        glm::vec3 collisionModelDimensions = box.getDimensions();
-        info.setParams(type, collisionModelDimensions, _compoundShapeURL);
-        info.setOffset(_model->getOffset());
+        info.setParams(type, dimensions, _compoundShapeURL);
     } else if (type == SHAPE_TYPE_MESH) {
         updateModelBounds();
 
@@ -713,6 +719,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
         auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
 
+        Extents extents;
         glm::vec3 scaledModelOffset = _model->getOffset() * _model->getScale();
         for (auto& mesh : meshes) {
             const gpu::BufferView& vertices = mesh->getVertexBuffer();
@@ -723,23 +730,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             uint32_t meshIndexOffset = (uint32_t)points.size();
             gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
             points.reserve((int32_t)((gpu::Size)points.size() + vertices.getNumElements()));
-            Extents extents;
             while (vertexItr != vertices.cend<const glm::vec3>()) {
                 points.push_back(*vertexItr);
                 extents.addPoint(*vertexItr);
                 ++vertexItr;
-            }
-
-            // scale and shift
-            glm::vec3 extentsSize = extents.size();
-            glm::vec3 scaleToFit = dimensions / extents.size();
-            for (int i = 0; i < 3; ++i) {
-                if (extentsSize[i] < 1.0e-6f) {
-                    scaleToFit[i] = 1.0f;
-                }
-            }
-            for (int i = 0; i < points.size(); ++i) {
-                points[i] = (points[i] * scaleToFit) + scaledModelOffset;
             }
 
             // copy triangleIndices
@@ -793,6 +787,19 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 ++partItr;
             }
         }
+
+        // scale and shift
+        glm::vec3 extentsSize = extents.size();
+        glm::vec3 scaleToFit = dimensions / extentsSize;
+        for (int i = 0; i < 3; ++i) {
+            if (extentsSize[i] < 1.0e-6f) {
+                scaleToFit[i] = 1.0f;
+            }
+        }
+        for (int i = 0; i < points.size(); ++i) {
+            points[i] = (points[i] * scaleToFit) + scaledModelOffset;
+        }
+
         pointCollection.push_back(points);
         info.setParams(SHAPE_TYPE_MESH, 0.5f * dimensions, _modelURL);
     } else {
