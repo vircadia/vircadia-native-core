@@ -21,6 +21,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
 
+#include <AccountManager.h>
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
@@ -269,19 +270,21 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
                                                         QHash<QString, NodePermissionsPointer> agentPermissions,
                                                         QString keyPath) {
+    // find (or create) the "security" section of the settings map
     QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
     if (!security || !security->canConvert(QMetaType::QVariantMap)) {
         security = valueForKeyPath(_configMap.getUserConfig(), "security", true);
         (*security) = QVariantMap();
     }
 
-    // save settings for anonymous / logged-in / localhost
+    // find (or create) whichever subsection of "security" we are packing
     QVariant* permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath);
     if (!permissions || !permissions->canConvert(QMetaType::QVariantList)) {
         permissions = valueForKeyPath(_configMap.getUserConfig(), keyPath, true);
         (*permissions) = QVariantList();
     }
 
+    // convert details for each member of the section
     QVariantList* permissionsList = reinterpret_cast<QVariantList*>(permissions);
     (*permissionsList).clear();
     foreach (QString userName, agentPermissions.keys()) {
@@ -291,10 +294,15 @@ void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
 
 void DomainServerSettingsManager::packPermissions() {
     // transfer details from _agentPermissions to _configMap
+
+    // save settings for anonymous / logged-in / localhost
     packPermissionsForMap("standard_permissions", _standardAgentPermissions, AGENT_STANDARD_PERMISSIONS_KEYPATH);
 
     // save settings for specific users
     packPermissionsForMap("permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
+
+    // save settings for groups
+    packPermissionsForMap("permissions", _groupPermissions, AGENT_PERMISSIONS_KEYPATH);
 
     persistToFile();
     _configMap.loadMasterAndUserConfig(_argumentList);
@@ -305,6 +313,7 @@ void DomainServerSettingsManager::unpackPermissions() {
 
     _standardAgentPermissions.clear();
     _agentPermissions.clear();
+    _groupPermissions.clear();
 
     bool foundLocalhost = false;
     bool foundAnonymous = false;
@@ -322,6 +331,12 @@ void DomainServerSettingsManager::unpackPermissions() {
         qDebug() << "failed to extract permissions from settings.";
         permissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_PERMISSIONS_KEYPATH, true);
         (*permissions) = QVariantList();
+    }
+    QVariant* groupPermissions = valueForKeyPath(_configMap.getUserConfig(), GROUP_PERMISSIONS_KEYPATH);
+    if (!groupPermissions || !groupPermissions->canConvert(QMetaType::QVariantList)) {
+        qDebug() << "failed to extract group permissions from settings.";
+        groupPermissions = valueForKeyPath(_configMap.getUserConfig(), GROUP_PERMISSIONS_KEYPATH, true);
+        (*groupPermissions) = QVariantList();
     }
 
     QList<QVariant> standardPermissionsList = standardPermissions->toList();
@@ -353,6 +368,19 @@ void DomainServerSettingsManager::unpackPermissions() {
         }
     }
 
+    QList<QVariant> groupPermissionsList = groupPermissions->toList();
+    foreach (QVariant permsHash, groupPermissionsList) {
+        NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
+        QString id = perms->getID();
+        if (_groupPermissions.contains(id)) {
+            qDebug() << "duplicate name in group permissions table: " << id;
+            _groupPermissions[id] |= perms;
+            needPack = true;
+        } else {
+            _groupPermissions[id] = perms;
+        }
+    }
+
     // if any of the standard names are missing, add them
     if (!foundLocalhost) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLocalhost) };
@@ -375,16 +403,24 @@ void DomainServerSettingsManager::unpackPermissions() {
         packPermissions();
     }
 
+    // attempt to retrieve any missing group-IDs
+    requestMissingGroupIDs();
+
+
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
     QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
-    permissionsSets << _standardAgentPermissions << _agentPermissions;
+    permissionsSets << _standardAgentPermissions << _agentPermissions << _groupPermissions;
     foreach (auto permissionSet, permissionsSets) {
         QHashIterator<QString, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {
             i.next();
             NodePermissionsPointer perms = i.value();
-            qDebug() << i.key() << perms;
+            if (perms->isGroup()) {
+                qDebug() << i.key() << perms->getGroupID() << perms;
+            } else {
+                qDebug() << i.key() << perms;
+            }
         }
     }
     #endif
@@ -826,4 +862,58 @@ void DomainServerSettingsManager::persistToFile() {
     } else {
         qCritical("Could not write to JSON settings file. Unable to persist settings.");
     }
+}
+
+void DomainServerSettingsManager::requestMissingGroupIDs() {
+    QHashIterator<QString, NodePermissionsPointer> i(_groupPermissions);
+    while (i.hasNext()) {
+        i.next();
+        NodePermissionsPointer perms = i.value();
+        if (!perms->getGroupID().isNull()) {
+            // we already know this group's ID
+            continue;
+        }
+
+        // make a call to metaverse api to turn the group name into a group ID
+        getGroupID(perms->getID());
+    }
+}
+
+void DomainServerSettingsManager::getGroupID(const QString& groupname) {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "getGroupIDJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "getGroupIDErrorCallback";
+
+    const QString GET_GROUP_ID_PATH = "api/v1/get_group_id/%1";
+
+    qDebug() << "Requesting group ID for group named" << groupname;
+
+    DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_ID_PATH.arg(groupname),
+                                                          AccountManagerAuth::None,
+                                                          QNetworkAccessManager::GetOperation, callbackParams);
+}
+
+void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    qDebug() << "GOT RESPONSE" << jsonObject["group_id"].toString();
+
+    if (jsonObject["status"].toString() == "success") {
+        QString groupName = jsonObject["group_name"].toString();
+        QUuid groupID = QUuid(jsonObject["group_id"].toString());
+
+        if (!_groupPermissions.contains(groupName)) {
+            qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
+        }
+
+        _groupPermissions[groupName]->setGroupID(groupID);
+    } else {
+        // XXX what?
+    }
+}
+
+void DomainServerSettingsManager::getGroupIDErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "ERROR" << requestReply.error();
 }
