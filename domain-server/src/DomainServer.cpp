@@ -108,6 +108,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
 
+    // update the metadata with current descriptors
+    _metadata.setDescriptors(_settingsManager.getSettingsMap());
+
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -122,10 +125,17 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         _gatekeeper.preloadAllowedUserPublicKeys();
 
         optionallyGetTemporaryName(args);
-    }
 
-    // update the metadata with current descriptors
-    _metadata.setDescriptors(_settingsManager.getSettingsMap());
+        // send metadata descriptors
+        QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(_metadata.getDescriptors()).toJson(QJsonDocument::Compact)));
+        const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
+        static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+        DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+                AccountManagerAuth::Required,
+                QNetworkAccessManager::PutOperation,
+                JSONCallbackParameters(),
+                domainUpdateJSON.toUtf8());
+    }
 }
 
 DomainServer::~DomainServer() {
