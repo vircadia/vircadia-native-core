@@ -340,6 +340,7 @@ var toolBar = (function() {
                 Messages.sendLocalMessage("edit-events", JSON.stringify({
                     enabled: active
                 }));
+                UserActivityLogger.logAction("enabled_edit");
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
@@ -359,9 +360,6 @@ var toolBar = (function() {
                     // Window.setFocus();
                 }
                 that.showTools(isActive);
-            }
-            if (active) {
-                UserActivityLogger.logAction("enabled_edit");
             }
         }
         toolBar.selectTool(activeButton, isActive);
