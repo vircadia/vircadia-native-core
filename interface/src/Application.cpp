@@ -2716,7 +2716,6 @@ void Application::idle(float nsecsElapsed) {
     if (firstIdle) {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
-        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -3217,13 +3216,13 @@ void Application::updateThreads(float deltaTime) {
 }
 
 void Application::toggleOverlays() {
-    auto newOverlaysVisible = !_overlayConductor.getEnabled();
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, newOverlaysVisible);
-    _overlayConductor.setEnabled(newOverlaysVisible);
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
-    _overlayConductor.setEnabled(visible);
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 void Application::cycleCamera() {
@@ -5306,9 +5305,7 @@ void Application::readArgumentsFromLocalSocket() const {
 }
 
 void Application::showDesktop() {
-    if (!_overlayConductor.getEnabled()) {
-        _overlayConductor.setEnabled(true);
-    }
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 CompositorHelper& Application::getApplicationCompositor() const {

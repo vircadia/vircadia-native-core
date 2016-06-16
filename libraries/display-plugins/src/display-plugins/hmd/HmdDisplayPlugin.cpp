@@ -287,6 +287,8 @@ void HmdDisplayPlugin::compositeOverlay() {
     glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
 
     useProgram(_program);
+    // set the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
     _sphereSection->Use();
     for_each_eye([&](Eye eye) {
         eyeViewport(eye);
@@ -295,6 +297,8 @@ void HmdDisplayPlugin::compositeOverlay() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _sphereSection->Draw();
     });
+    // restore the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void HmdDisplayPlugin::compositePointer() {
@@ -302,8 +306,9 @@ void HmdDisplayPlugin::compositePointer() {
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
-    // check the alpha
     useProgram(_program);
+    // set the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
 
     // Mouse pointer
     _plane->Use();
@@ -317,6 +322,8 @@ void HmdDisplayPlugin::compositePointer() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _plane->Draw();
     });
+    // restore the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 
