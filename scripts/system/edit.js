@@ -150,6 +150,8 @@ function showMarketplace(marketplaceID) {
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
     marketplaceWindow.raise();
+
+    UserActivityLogger.logAction("opened_marketplace");
 }
 
 function hideMarketplace() {
@@ -357,6 +359,9 @@ var toolBar = (function() {
                     // Window.setFocus();
                 }
                 that.showTools(isActive);
+            }
+            if (active) {
+                UserActivityLogger.logAction("enabled_edit");
             }
         }
         toolBar.selectTool(activeButton, isActive);
