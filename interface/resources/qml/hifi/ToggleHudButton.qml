@@ -16,6 +16,8 @@ Window {
     height: 50
     clip: true
     visible: true
+    // Disable this window from being able to call 'desktop.raise() and desktop.showDesktop'
+    activator: Item {}
 
     Item {
         width: 50
@@ -28,7 +30,7 @@ Window {
         MouseArea {
             readonly property string overlayMenuItem: "Overlays"
             anchors.fill: parent
-            onClicked: MenuInterface.setIsOptionChecked(overlayMenuItem, !MenuInterface.isOptionChecked(overlayMenuItem))
+            onClicked: MenuInterface.setIsOptionChecked(overlayMenuItem, !MenuInterface.isOptionChecked(overlayMenuItem));
         }
     }
 }

@@ -99,104 +99,50 @@ void OverlayConductor::centerUI() {
     qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
 }
 
-bool OverlayConductor::userWishesToHide() const {
-    // user pressed toggle button.
-    return Menu::getInstance()->isOptionChecked(MenuOption::Overlays) != _prevOverlayMenuChecked && Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-}
-
-bool OverlayConductor::userWishesToShow() const {
-    // user pressed toggle button.
-    return Menu::getInstance()->isOptionChecked(MenuOption::Overlays) != _prevOverlayMenuChecked && !Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-}
-
-void OverlayConductor::setState(State state) {
-#ifdef WANT_DEBUG
-    static QString stateToString[NumStates] = { "Enabled", "DisabledByDrive", "DisabledByHead", "DisabledByToggle" };
-    qDebug() << "OverlayConductor " << stateToString[state] << "<--" << stateToString[_state];
-#endif
-    _state = state;
-}
-
-OverlayConductor::State OverlayConductor::getState() const {
-    return _state;
-}
-
 void OverlayConductor::update(float dt) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    bool currentVisible = !offscreenUi->getDesktop()->property("pinned").toBool();
 
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    // centerUI when hmd mode is first enabled
-    if (qApp->isHMDMode() && !_hmdMode) {
+    // centerUI when hmd mode is first enabled and mounted
+    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible() && !_hmdMode) {
+        _hmdMode = true;
         centerUI();
+    } else {
+        _hmdMode = false;
     }
-    _hmdMode = qApp->isHMDMode();
 
     bool prevDriving = _currentDriving;
     bool isDriving = updateAvatarHasDriveInput();
     bool drivingChanged = prevDriving != isDriving;
-
     bool isAtRest = updateAvatarIsAtRest();
 
-    switch (getState()) {
-        case Enabled:
-            if (myAvatar->getClearOverlayWhenDriving() && qApp->isHMDMode() && headOutsideOverlay()) {
-                setState(DisabledByHead);
-                setEnabled(false);
-            }
-            if (userWishesToHide()) {
-                setState(DisabledByToggle);
-                setEnabled(false);
-            }
-            if (myAvatar->getClearOverlayWhenDriving() && drivingChanged && isDriving) {
-                setState(DisabledByDrive);
-                setEnabled(false);
-            }
-            break;
-        case DisabledByDrive:
-            if (!isDriving || userWishesToShow()) {
-                setState(Enabled);
-                setEnabled(true);
-            }
-            break;
-        case DisabledByHead:
-            if (isAtRest || userWishesToShow()) {
-                setState(Enabled);
-                setEnabled(true);
-            }
-            break;
-        case DisabledByToggle:
-            if (userWishesToShow()) {
-                setState(Enabled);
-                setEnabled(true);
-            }
-            break;
-        default:
-            break;
+    if (_flags & SuppressedByDrive) {
+        if (!isDriving) {
+            _flags &= ~SuppressedByDrive;
+        }
+    } else {
+        if (myAvatar->getClearOverlayWhenDriving() && drivingChanged && isDriving) {
+            _flags |= SuppressedByDrive;
+        }
     }
 
-    _prevOverlayMenuChecked = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-}
-
-void OverlayConductor::setEnabled(bool enabled) {
-    if (enabled == _enabled) {
-        return;
+    if (_flags & SuppressedByHead) {
+        if (isAtRest) {
+            _flags &= ~SuppressedByHead;
+        }
+    } else {
+        if (_hmdMode && headOutsideOverlay()) {
+            _flags |= SuppressedByHead;
+        }
     }
 
-    _enabled = enabled; // set the new value
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->setPinned(!_enabled);
 
-    // ensure that the the state of the menu item reflects the state of the overlay.
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, _enabled);
-    _prevOverlayMenuChecked = _enabled;
-
-    // if the new state is visible/enabled...
-    if (_enabled && qApp->isHMDMode()) {
-        centerUI();
+    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (0 == (_flags & SuppressMask));
+    if (targetVisible != currentVisible) {
+        offscreenUi->setPinned(!targetVisible);
+        if (targetVisible && _hmdMode) {
+            centerUI();
+        }
     }
 }
-
-bool OverlayConductor::getEnabled() const {
-    return _enabled;
-}
-

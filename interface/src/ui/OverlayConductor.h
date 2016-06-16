@@ -17,33 +17,20 @@ public:
     ~OverlayConductor();
 
     void update(float dt);
-    void setEnabled(bool enable);
-    bool getEnabled() const;
-
     void centerUI();
 
 private:
     bool headOutsideOverlay() const;
     bool updateAvatarHasDriveInput();
     bool updateAvatarIsAtRest();
-    bool userWishesToHide() const;
-    bool userWishesToShow() const;
 
-    enum State {
-        Enabled = 0,
-        DisabledByDrive,
-        DisabledByHead,
-        DisabledByToggle,
-        NumStates
+    enum SupressionFlags {
+        SuppressedByDrive = 0x01,
+        SuppressedByHead = 0x02,
+        SuppressMask = 0x03,
     };
 
-    void setState(State state);
-    State getState() const;
-
-    State _state { DisabledByDrive };
-
-    bool _prevOverlayMenuChecked { true };
-    bool _enabled { false };
+    uint8_t _flags { SuppressedByDrive };
     bool _hmdMode { false };
 
     // used by updateAvatarHasDriveInput
