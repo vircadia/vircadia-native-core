@@ -1,6 +1,7 @@
 var Settings = {
   showAdvanced: false,
-  METAVERSE_URL: 'https://metaverse.highfidelity.com',
+  // METAVERSE_URL: 'https://metaverse.highfidelity.com',
+  METAVERSE_URL: 'http://localhost:3000',
   ADVANCED_CLASS: 'advanced-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
@@ -1065,7 +1066,7 @@ function makeTableInputs(setting) {
     } else {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
                <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "'\
-               value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'>\
+               value='" + (col.default ? col.default : "") + "' data-default='" + (col.default ? col.default : "") + "'" + (col.readonly ? " readonly" : "") + ">\
                </td>"
     }
   })
