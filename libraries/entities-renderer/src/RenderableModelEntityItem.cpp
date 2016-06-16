@@ -761,24 +761,27 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                     auto indexEnd = indexItr + (partItr->_numIndices - 2);
 
                     // first triangle uses the first three indices
-                    triangleIndices.push_back(*indexItr + meshIndexOffset);
-                    triangleIndices.push_back(*(++indexItr) + meshIndexOffset);
-                    triangleIndices.push_back(*(indexItr + 1) + meshIndexOffset);
+                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
 
                     // the rest use previous and next index
                     uint32_t triangleCount = 1;
                     while (indexItr != indexEnd) {
-                        if (triangleCount % 2 == 0) {
-                            // even triangles use first two indices in order
-                            triangleIndices.push_back(*(indexItr) + meshIndexOffset);
-                            triangleIndices.push_back(*(++indexItr) + meshIndexOffset); // yes pre-increment
-                        } else {
-                            // odd triangles swap order of first two indices
-                            triangleIndices.push_back(*(indexItr + 1) + meshIndexOffset);
-                            triangleIndices.push_back(*(indexItr++) + meshIndexOffset); // yes post-increment
+                        if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
+                            if (triangleCount % 2 == 0) {
+                                // even triangles use first two indices in order
+                                triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
+                                triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
+                            } else {
+                                // odd triangles swap order of first two indices
+                                triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
+                                triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
+                            }
+                            triangleIndices.push_back(*indexItr + meshIndexOffset);
+                            ++triangleCount;
                         }
-                        triangleIndices.push_back(*(indexItr + 1) + meshIndexOffset);
-                        ++triangleCount;
+                        ++indexItr;
                     }
                 } else if (partItr->_topology == model::Mesh::QUADS) {
                     // TODO: support model::Mesh::QUADS
