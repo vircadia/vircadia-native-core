@@ -435,7 +435,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
-
+    DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
@@ -1056,6 +1056,44 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             _keyboardFocusHighlight->setVisible(false);
         }
     });
+
+    // Add periodic checks to send user activity data
+    static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
+    static int SEND_FPS_INTERVAL_MS = 10000;
+
+    // Periodically send fps as a user activity event
+    QTimer* sendFPSTimer = new QTimer(this);
+    sendFPSTimer->setInterval(SEND_FPS_INTERVAL_MS);
+    connect(sendFPSTimer, &QTimer::timeout, this, [this]() {
+        UserActivityLogger::getInstance().logAction("fps", { { "rate", _frameCounter.rate() } });
+    });
+    sendFPSTimer->start();
+
+
+    // Periodically check for count of nearby avatars
+    static int lastCountOfNearbyAvatars = -1;
+    QTimer* checkNearbyAvatarsTimer = new QTimer(this);
+    checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS);
+    connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, [this]() {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getPosition(), 10) - 1;
+        if (nearbyAvatars != lastCountOfNearbyAvatars) {
+            UserActivityLogger::getInstance().logAction("nearby_avatars", { { "count", nearbyAvatars } });
+        }
+    });
+
+    // Track user activity event when we receive a mute packet
+    auto onMutedByMixer = []() {
+        UserActivityLogger::getInstance().logAction("received_mute_packet");
+    };
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::mutedByMixer, this, onMutedByMixer);
+
+    // Track when the address bar is opened
+    auto onAddressBarToggled = [this]() {
+        // Record time
+        UserActivityLogger::getInstance().logAction("opened_address_bar", { { "uptime_ms", _sessionRunTimer.elapsed() } });
+    };
+    connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::addressBarToggled, this, onAddressBarToggled);
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -4560,7 +4598,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 
-    scriptEngine->registerGlobalObject("UserActivityLogger", new UserActivityLoggerScriptingInterface());
+    scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
