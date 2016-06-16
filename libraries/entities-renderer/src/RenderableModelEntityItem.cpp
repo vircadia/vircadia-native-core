@@ -713,7 +713,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
         auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
 
-        glm::vec3 modelOffset = _model->getOffset();
+        glm::vec3 scaledModelOffset = _model->getOffset() * _model->getScale();
         for (auto& mesh : meshes) {
             const gpu::BufferView& vertices = mesh->getVertexBuffer();
             const gpu::BufferView& indices = mesh->getIndexBuffer();
@@ -730,16 +730,16 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 ++vertexItr;
             }
 
-            // scale points and shift by modelOffset
+            // scale and shift
             glm::vec3 extentsSize = extents.size();
-            glm::vec3 scale = dimensions / extents.size();
+            glm::vec3 scaleToFit = dimensions / extents.size();
             for (int i = 0; i < 3; ++i) {
                 if (extentsSize[i] < 1.0e-6f) {
-                    scale[i] = 1.0f;
+                    scaleToFit[i] = 1.0f;
                 }
             }
             for (int i = 0; i < points.size(); ++i) {
-                points[i] = (points[i] * scale) + modelOffset;
+                points[i] = (points[i] * scaleToFit) + scaledModelOffset;
             }
 
             // copy triangleIndices
