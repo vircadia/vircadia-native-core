@@ -352,7 +352,7 @@ public:
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
 public slots:
-    void sendAvatarDataPacket(bool sendFull = false);
+    void sendAvatarDataPacket();
     void sendIdentityPacket();
 
     void setJointMappingsFromNetworkReply();
