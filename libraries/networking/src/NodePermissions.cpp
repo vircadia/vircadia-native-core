@@ -22,6 +22,45 @@ QStringList NodePermissions::standardNames = QList<QString>()
     << NodePermissions::standardNameLoggedIn
     << NodePermissions::standardNameAnonymous;
 
+NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
+    _id = perms["permissions_id"].toString();
+    if (perms.contains("group_id")) {
+        _groupIDSet = true;
+        _groupID = perms["group_id"].toUuid();
+    }
+
+    canConnectToDomain = perms["id_can_connect"].toBool();
+    canAdjustLocks = perms["id_can_adjust_locks"].toBool();
+    canRezPermanentEntities = perms["id_can_rez"].toBool();
+    canRezTemporaryEntities = perms["id_can_rez_tmp"].toBool();
+    canWriteToAssetServer = perms["id_can_write_to_asset_server"].toBool();
+    canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
+}
+
+QVariant NodePermissions::toVariant() {
+    QMap<QString, QVariant> values;
+    values["permissions_id"] = _id;
+    if (_groupIDSet) {
+        values["group_id"] = _groupID;
+    }
+    values["id_can_connect"] = canConnectToDomain;
+    values["id_can_adjust_locks"] = canAdjustLocks;
+    values["id_can_rez"] = canRezPermanentEntities;
+    values["id_can_rez_tmp"] = canRezTemporaryEntities;
+    values["id_can_write_to_asset_server"] = canWriteToAssetServer;
+    values["id_can_connect_past_max_capacity"] = canConnectPastMaxCapacity;
+    return QVariant(values);
+}
+
+void NodePermissions::setAll(bool value) {
+    canConnectToDomain = value;
+    canAdjustLocks = value;
+    canRezPermanentEntities = value;
+    canRezTemporaryEntities = value;
+    canWriteToAssetServer = value;
+    canConnectPastMaxCapacity = value;
+}
+
 NodePermissions& NodePermissions::operator|=(const NodePermissions& rhs) {
     this->canConnectToDomain |= rhs.canConnectToDomain;
     this->canAdjustLocks |= rhs.canAdjustLocks;
@@ -43,7 +82,6 @@ NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermis
     }
     return lhs;
 }
-
 
 QDataStream& operator<<(QDataStream& out, const NodePermissions& perms) {
     out << perms.canConnectToDomain;

@@ -25,21 +25,17 @@ class NodePermissions {
 public:
     NodePermissions() { _id = QUuid::createUuid().toString(); }
     NodePermissions(const QString& name) { _id = name; }
-    NodePermissions(QMap<QString, QVariant> perms) {
-        _id = perms["permissions_id"].toString();
-        canConnectToDomain = perms["id_can_connect"].toBool();
-        canAdjustLocks = perms["id_can_adjust_locks"].toBool();
-        canRezPermanentEntities = perms["id_can_rez"].toBool();
-        canRezTemporaryEntities = perms["id_can_rez_tmp"].toBool();
-        canWriteToAssetServer = perms["id_can_write_to_asset_server"].toBool();
-        canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
-    }
+    NodePermissions(QMap<QString, QVariant> perms);
 
     QString getID() const { return _id; }
 
     // the _id member isn't authenticated and _username is.
     void setUserName(QString userName) { _userName = userName; }
     QString getUserName() { return _userName; }
+
+    void setGroupID(QUuid groupID) { _groupID = groupID; }
+    QUuid getGroupID() { return _groupID; }
+    bool isGroup() { return _groupIDSet; }
 
     bool isAssignment { false };
 
@@ -57,26 +53,9 @@ public:
     bool canWriteToAssetServer { false };
     bool canConnectPastMaxCapacity { false };
 
-    void setAll(bool value) {
-        canConnectToDomain = value;
-        canAdjustLocks = value;
-        canRezPermanentEntities = value;
-        canRezTemporaryEntities = value;
-        canWriteToAssetServer = value;
-        canConnectPastMaxCapacity = value;
-    }
+    QVariant toVariant();
 
-    QVariant toVariant() {
-        QMap<QString, QVariant> values;
-        values["permissions_id"] = _id;
-        values["id_can_connect"] = canConnectToDomain;
-        values["id_can_adjust_locks"] = canAdjustLocks;
-        values["id_can_rez"] = canRezPermanentEntities;
-        values["id_can_rez_tmp"] = canRezTemporaryEntities;
-        values["id_can_write_to_asset_server"] = canWriteToAssetServer;
-        values["id_can_connect_past_max_capacity"] = canConnectPastMaxCapacity;
-        return QVariant(values);
-    }
+    void setAll(bool value);
 
     NodePermissions& operator|=(const NodePermissions& rhs);
     NodePermissions& operator|=(const NodePermissionsPointer& rhs);
@@ -86,6 +65,9 @@ public:
 protected:
     QString _id;
     QString _userName;
+
+    bool _groupIDSet { false };
+    QUuid _groupID;
 };
 
 const NodePermissions DEFAULT_AGENT_PERMISSIONS;
