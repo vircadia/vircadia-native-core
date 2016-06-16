@@ -27,6 +27,7 @@ const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
 const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
+const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
 
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
@@ -50,6 +51,9 @@ public:
 signals:
     void updateNodePermissions();
 
+public slots:
+    void getGroupIDJSONCallback(QNetworkReply& requestReply);
+    void getGroupIDErrorCallback(QNetworkReply& requestReply);
 
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
@@ -72,11 +76,15 @@ private:
 
     friend class DomainServer;
 
+    void requestMissingGroupIDs();
+    void getGroupID(const QString& groupname);
+
     void packPermissionsForMap(QString mapName, QHash<QString, NodePermissionsPointer> agentPermissions, QString keyPath);
     void packPermissions();
     void unpackPermissions();
     QHash<QString, NodePermissionsPointer> _standardAgentPermissions; // anonymous, logged-in, localhost
     QHash<QString, NodePermissionsPointer> _agentPermissions; // specific account-names
+    QHash<QString, NodePermissionsPointer> _groupPermissions; // groups
 };
 
 #endif // hifi_DomainServerSettingsManager_h
