@@ -262,8 +262,14 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         qDebug() << "user-permissions: no username, so:" << userPerms;
     } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
+
+
+        // TODO check groups here
+
+
         if (_server->_settingsManager.havePermissionsForName(username)) {
-            // we have specific permissions for this user.
+            // we have specific permissions for this user.  Discard any other permissions and set this
+            // agent's permissions to be exactly what's indicated on their row of the permissions-grid.
             userPerms = _server->_settingsManager.getPermissionsForName(username);
             qDebug() << "user-permissions: specific user matches, so:" << userPerms;
         } else {
