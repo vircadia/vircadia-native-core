@@ -269,7 +269,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     _lastSentJointData.resize(_jointData.size());
 
     for (int i=0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
+        const JointData& data = _jointData[i];
         if (sendAll || _lastSentJointData[i].rotation != data.rotation) {
             if (sendAll ||
                 !cullSmallChanges ||
@@ -294,7 +294,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     validityBit = 0;
     validity = *validityPosition++;
     for (int i = 0; i < _jointData.size(); i ++) {
-        const JointData& data = _jointData[ i ];
+        const JointData& data = _jointData[i];
         if (validity & (1 << validityBit)) {
             destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
         }
@@ -317,7 +317,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
 
     float maxTranslationDimension = 0.0;
     for (int i=0; i < _jointData.size(); i++) {
-        const JointData& data = _jointData.at(i);
+        const JointData& data = _jointData[i];
         if (sendAll || _lastSentJointData[i].translation != data.translation) {
             if (sendAll ||
                 !cullSmallChanges ||
@@ -348,7 +348,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     validityBit = 0;
     validity = *validityPosition++;
     for (int i = 0; i < _jointData.size(); i ++) {
-        const JointData& data = _jointData[ i ];
+        const JointData& data = _jointData[i];
         if (validity & (1 << validityBit)) {
             destinationBuffer +=
                 packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
@@ -425,7 +425,6 @@ bool AvatarData::shouldLogError(const quint64& now) {
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
-
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
@@ -575,14 +574,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
     }
 
-    // If all the rotations were sent, this is a full packet
-    bool fullPacket = numValidJointRotations == numJoints;
-
-    if (fullPacket) {
-        _hasNewJointRotations = true;
-        _hasNewJointTranslations = true;
-    }
-
     // each joint rotation is stored in 6 bytes.
     const int COMPRESSED_QUATERNION_SIZE = 6;
     PACKET_READ_CHECK(JointRotations, numValidJointRotations * COMPRESSED_QUATERNION_SIZE);
@@ -677,7 +668,9 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
+    data.rotationSet = true;
     data.translation = translation;
+    data.translationSet = true;
 }
 
 void AvatarData::clearJointData(int index) {
@@ -782,6 +775,7 @@ void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
+    data.rotationSet = true;
 }
 
 void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
@@ -797,6 +791,7 @@ void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
     }
     JointData& data = _jointData[index];
     data.translation = translation;
+    data.translationSet = true;
 }
 
 void AvatarData::clearJointData(const QString& name) {
@@ -866,7 +861,6 @@ void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
                                   "setJointTranslations", Qt::BlockingQueuedConnection,
                                   Q_ARG(QVector<glm::vec3>, jointTranslations));
     }
-
     if (_jointData.size() < jointTranslations.size()) {
         _jointData.resize(jointTranslations.size());
     }
@@ -1059,8 +1053,6 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     for (int i = 0; i < _jointNames.size(); i++) {
         _jointIndices.insert(_jointNames.at(i), i + 1);
     }
-
-    qDebug() << "set joint mapping froms network reply, num joints: " << _jointIndices.size();
 
     networkReply->deleteLater();
 }
@@ -1460,7 +1452,6 @@ void AvatarData::fromJson(const QJsonObject& json) {
                 auto joint = jointDataFromJsonValue(jointJson);
                 jointArray.push_back(joint);
                 setJointData(i, joint.rotation, joint.translation);
-                _jointData[i].rotationSet = true; // Have to do that to broadcast the avatar new pose
                 i++;
             }
             setRawJointData(jointArray);
