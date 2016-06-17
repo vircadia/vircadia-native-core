@@ -17,7 +17,7 @@
 class CrashHandler {
 
 public:
-    static bool checkForResetSettings();
+    static bool checkForResetSettings(bool suppressPrompt = false);
 
     static void writeRunningMarkerFiler();
     static void deleteRunningMarkerFile();
