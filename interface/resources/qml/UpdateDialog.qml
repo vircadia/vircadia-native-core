@@ -7,7 +7,7 @@ import "controls-uit"
 import "styles-uit"
 import "windows"
 
-Window {
+ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     objectName: "UpdateDialog"

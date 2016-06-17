@@ -17,7 +17,7 @@ import "windows" as Windows
 import "controls-uit" as Controls
 import "styles-uit"
 
-Windows.Window {
+Windows.ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     title: "WebWindow"

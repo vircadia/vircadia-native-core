@@ -14,7 +14,7 @@ import "controls"
 import "styles"
 import "windows"
 
-Window {
+ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     objectName: "LoginDialog"

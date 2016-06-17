@@ -19,7 +19,7 @@ import "windows"
 import "controls-uit"
 import "styles-uit"
 
-Window {
+ScrollingWindow {
     id: toolWindow
     resizable: true
     objectName: "ToolWindow"

@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/toolBars.js");
-
 var headset; // The preferred headset. Default to the first one found in the following list.
 var displayMenuName = "Display";
 var desktopMenuItemName = "Desktop";
@@ -20,38 +18,25 @@ var desktopMenuItemName = "Desktop";
     }
 });
 
-function initialPosition(windowDimensions, toolbar) {
-    return {
-        x: (windowDimensions.x / 2) - (Tool.IMAGE_WIDTH * 2.5),
-        y: windowDimensions.y
-    };
-}
-var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.hmd.toolbar", initialPosition, {
-    x: -Tool.IMAGE_WIDTH / 2,
-    y: -Tool.IMAGE_HEIGHT
-});
-var button = toolBar.addTool({
-    imageURL: Script.resolvePath("assets/images/tools/hmd-switch-01.svg"),
-    subImage: {
-        x: 0,
-        y: Tool.IMAGE_WIDTH,
-        width: Tool.IMAGE_WIDTH,
-        height: Tool.IMAGE_HEIGHT
-    },
-    width: Tool.IMAGE_WIDTH,
-    height: Tool.IMAGE_HEIGHT,
-    alpha: 0.9,
-    visible: true,
-    showButtonDown: true
-});
-function onMousePress (event) {
-    if (event.isLeftButton && button === toolBar.clicked(Overlays.getOverlayAtPoint(event))) {
+var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var button;
+
+if (headset) {
+    button = toolBar.addButton({
+        objectName: "hmdToggle",
+        imageURL: Script.resolvePath("assets/images/tools/hmd-switch-01.svg"),
+        visible: true,
+        yOffset: 50,
+        alpha: 0.9,
+    });
+    
+    button.clicked.connect(function(){
         var isDesktop = Menu.isOptionChecked(desktopMenuItemName);
         Menu.setIsOptionChecked(isDesktop ? headset : desktopMenuItemName, true);
-    }
-};
-Controller.mousePressEvent.connect(onMousePress)
-Script.scriptEnding.connect(function () {
-    Controller.mousePressEvent.disconnect(onMousePress)
-    toolBar.cleanup();
-});
+    });
+    
+    Script.scriptEnding.connect(function () {
+        button.clicked.disconnect();
+    });
+}
+

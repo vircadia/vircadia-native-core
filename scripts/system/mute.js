@@ -13,15 +13,15 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
 
 var button = toolBar.addButton({
-    objectName: "goto",
-    imageURL: Script.resolvePath("assets/images/tools/directory-01.svg"),
+    objectName: "mute",
+    imageURL: Script.resolvePath("assets/images/tools/microphone.svg"),
     visible: true,
-    yOffset: 50,
     alpha: 0.9,
 });
     
 button.clicked.connect(function(){
-    DialogsManager.toggleAddressBar();
+    var menuItem = "Mute Microphone"; 
+    Menu.setIsOptionChecked(menuItem, !Menu.isOptionChecked(menuItem));
 });
 
 Script.scriptEnding.connect(function () {

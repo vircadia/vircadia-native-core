@@ -25,34 +25,66 @@ ApplicationWindow {
 
         property var tabs: [];
         property var urls: [];
+        property var toolbar;
+        property var lastButton;
 
         // Window visibility
-
-        Button {
-            text: "restore all"
-            onClicked: {
-                for (var i = 0; i < desktop.windows.length; ++i) {
-                    desktop.windows[i].shown = true
-                }
-            }
-        }
-        Button {
-            text: "toggle blue visible"
-            onClicked: {
-                blue.shown = !blue.shown
-            }
-        }
-        Button {
-            text: "toggle blue enabled"
-            onClicked: {
-                blue.enabled = !blue.enabled
-            }
-        }
-
         Button {
             text: "toggle desktop"
             onClicked: desktop.togglePinned()
         }
+
+        Button {
+            text: "Create Toolbar"
+            onClicked: testButtons.toolbar = desktop.getToolbar("com.highfidelity.interface.toolbar.system");
+        }
+
+        Button {
+            text: "Toggle Toolbar Direction"
+            onClicked: testButtons.toolbar.horizontal = !testButtons.toolbar.horizontal
+        }
+
+        Button {
+            readonly property var icons: [
+                "edit-01.svg",
+                "model-01.svg",
+                "cube-01.svg",
+                "sphere-01.svg",
+                "light-01.svg",
+                "text-01.svg",
+                "web-01.svg",
+                "zone-01.svg",
+                "particle-01.svg",
+            ]
+            property int iconIndex: 0
+            readonly property string toolIconUrl: "file:///C:/Users/bdavi/git/hifi/scripts/system/assets/images/tools/"
+            text: "Create Button"
+            onClicked: {
+                var name = icons[iconIndex];
+                var url = toolIconUrl + name;
+                iconIndex = (iconIndex + 1) % icons.length;
+                var button = testButtons.lastButton = testButtons.toolbar.addButton({
+                    imageURL: url,
+                    objectName: name,
+                    subImage: {
+                        y: 50,
+                    },
+                    alpha: 0.9
+                });
+
+                button.clicked.connect(function(){
+                    console.log("Clicked on button " + button.imageURL + " alpha " + button.alpha)
+                });
+            }
+        }
+
+        Button {
+            text: "Toggle Button Visible"
+            onClicked: testButtons.lastButton.visible = !testButtons.lastButton.visible
+        }
+
+
+
 
         // Error alerts
         /*
@@ -106,7 +138,7 @@ ApplicationWindow {
         */
 
         // Browser
-
+        /*
         Button {
             text: "Open Browser"
             onClicked: builder.createObject(desktop);
@@ -114,8 +146,11 @@ ApplicationWindow {
                 Browser {}
             }
         }
+        */
+
 
         // file dialog
+        /*
 
         Button {
             text: "Open Directory"
@@ -153,7 +188,6 @@ ApplicationWindow {
                 })
             }
         }
-        /*
         */
 
         // tabs
@@ -306,6 +340,7 @@ ApplicationWindow {
         }
         */
 
+        /*
         Window {
             id: blue
             closable: true
@@ -350,6 +385,8 @@ ApplicationWindow {
                 height: green.height;
             }
         }
+        */
+
 /*
         Window {
             id: yellow
@@ -379,3 +416,7 @@ ApplicationWindow {
         }
     }
 }
+
+
+
+

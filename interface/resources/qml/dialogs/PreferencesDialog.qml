@@ -16,7 +16,7 @@ import "../styles-uit"
 import "../windows"
 import "preferences"
 
-Window {
+ScrollingWindow {
     id: root
     title: "Preferences"
     resizable: true
