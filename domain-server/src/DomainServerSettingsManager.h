@@ -72,11 +72,11 @@ private:
 
     friend class DomainServer;
 
-    void packPermissionsForMap(QString mapName, QHash<QString, NodePermissionsPointer> agentPermissions, QString keyPath);
+    void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
     void unpackPermissions();
-    QHash<QString, NodePermissionsPointer> _standardAgentPermissions; // anonymous, logged-in, localhost
-    QHash<QString, NodePermissionsPointer> _agentPermissions; // specific account-names
+    NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
+    NodePermissionsMap _agentPermissions; // specific account-names
 };
 
 #endif // hifi_DomainServerSettingsManager_h
