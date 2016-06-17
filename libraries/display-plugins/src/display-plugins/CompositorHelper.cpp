@@ -409,30 +409,25 @@ void CompositorHelper::updateTooltips() {
     //}
 }
 
+// eyePose and headPosition are in sensor space.
+// the resulting matrix should be in view space.
 glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::vec3& headPosition) const {
     glm::mat4 result;
     if (isHMD()) {
-        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
-        auto reticlePosition = getReticlePosition();
-        auto spherical = overlayToSpherical(reticlePosition);
-        // The pointer transform relative to the sensor
-        auto pointerTransform = glm::mat4_cast(quat(vec3(-spherical.y, spherical.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-        float reticleDepth = getReticleDepth();
-        if (reticleDepth != 1.0f) {
-            // Cursor position in UI space
-            auto cursorPosition = vec3(pointerTransform[3]) / pointerTransform[3].w;
-            // Ray to the cursor, in UI space
-            auto cursorRay = glm::normalize(cursorPosition - headPosition) * reticleDepth;
-            // Move the ray to be relative to the head pose
-            pointerTransform[3] = vec4(cursorRay + headPosition, 1);
-            // Scale up the cursor because of distance
-            reticleScale *= reticleDepth;
+        vec2 spherical = overlayToSpherical(getReticlePosition());
+        vec3 overlaySurfacePoint = getPoint(spherical.x, spherical.y);  // overlay space
+        vec3 sensorSurfacePoint = _modelTransform.transform(overlaySurfacePoint);  // sensor space
+        vec3 d = sensorSurfacePoint - headPosition;
+        vec3 reticlePosition;
+        if (glm::length(d) >= EPSILON) {
+            d = glm::normalize(d);
+        } else {
+            d = glm::normalize(overlaySurfacePoint);
         }
-        glm::mat4 overlayXfm;
-        _modelTransform.getMatrix(overlayXfm);
-        pointerTransform = overlayXfm * pointerTransform;
-        pointerTransform = glm::inverse(eyePose) * pointerTransform;
-        result = glm::scale(pointerTransform, reticleScale);
+        reticlePosition = headPosition + (d * getReticleDepth());
+        quat reticleOrientation = quat(vec3(-spherical.y, spherical.x, 0.0f));
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
+        return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;
         const auto canvasSize = vec2(toGlm(_renderingWidget->size()));;
