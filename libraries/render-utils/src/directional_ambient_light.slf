@@ -22,7 +22,7 @@ in vec2 _texCoord0;
 out vec4 _fragColor;
 
 void main(void) {
-    DeferredTransform deferredTransform = getDeferredTransform();
+    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
     float shadowAttenuation = 1.0;
@@ -31,7 +31,7 @@ void main(void) {
         _fragColor = vec4(frag.diffuse, 1.0);
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
         vec3 color = evalLightmappedColor(
-                        deferredTransform.viewInverse,
+                        getViewInverse(),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.normal,
@@ -40,7 +40,7 @@ void main(void) {
         _fragColor = vec4(color, 1.0);
     } else {
         vec3 color =  evalAmbientSphereGlobalColor(
-                        deferredTransform.viewInverse,
+                        getViewInverse(),
                         shadowAttenuation,
                         frag.obscurance,
                         frag.position.xyz,

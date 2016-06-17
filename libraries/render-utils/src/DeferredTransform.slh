@@ -27,6 +27,10 @@ uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 
+DeferredFrameTransform getDeferredFrameTransform() {
+    return frameTransform;
+}
+
 vec2 getWidthHeight(int resolutionLevel) {
     return vec2(ivec2(frameTransform._pixelInfo.zw) >> resolutionLevel);
 }

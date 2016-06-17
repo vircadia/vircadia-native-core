@@ -38,6 +38,8 @@
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
+using namespace render;
+
 struct LightLocations {
     int radius;
     int ambientSphere;
@@ -45,6 +47,7 @@ struct LightLocations {
     int texcoordMat;
     int coneParam;
     int deferredTransformBuffer;
+    int deferredFrameTransformBuffer;
     int shadowTransformBuffer;
 };
 
@@ -56,6 +59,9 @@ enum {
     DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
     SHADOW_MAP_UNIT = 5,
     SKYBOX_MAP_UNIT = 6,
+};
+enum {
+
 };
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
@@ -132,33 +138,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     }
 }
 
-void DeferredLightingEffect::prepare(RenderArgs* args) {
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        // Clear Lighting buffer
-        auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
-
-        batch.setFramebuffer(lightingFbo);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), true);
-
-        // Clear deferred
-        auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
-
-        batch.setFramebuffer(deferredFbo);
-
-        // Clear Color, Depth and Stencil for deferred buffer
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 |
-            gpu::Framebuffer::BUFFER_DEPTH |
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 0), 1.0, 0.0, true);
-    });
-}
-
-void DeferredLightingEffect::render(const render::RenderContextPointer& renderContext) {
+void DeferredLightingEffect::render(const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         
@@ -184,6 +164,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
+
 
         // Bind the G-Buffer surfaces
         batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, framebufferCache->getDeferredColorTexture());
@@ -294,6 +275,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
         auto eyePoint = viewFrustum.getPosition();
         float nearRadius = glm::distance(eyePoint, viewFrustum.getNearTopLeft());
 
+        batch.setUniformBuffer(_directionalLightLocations->deferredFrameTransformBuffer, frameTransform->getFrameTransformBuffer());
 
         for (int side = 0; side < numPasses; side++) {
             // Render in this side's viewport
@@ -302,7 +284,9 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
             // Sync and Bind the correct DeferredTransform ubo
             _deferredTransformBuffer[side]._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &deferredTransforms[side]);
-            batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, _deferredTransformBuffer[side]);
+       //     batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, _deferredTransformBuffer[side]);
+
+
 
             glm::vec2 topLeft(-1.0f, -1.0f);
             glm::vec2 bottomRight(1.0f, 1.0f);
@@ -482,7 +466,8 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
         batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
         batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
 
-        batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
+       // batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
+        batch.setUniformBuffer(_directionalLightLocations->deferredFrameTransformBuffer, nullptr);
     });
 
     // End of the Lighting pass
@@ -524,8 +509,10 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     static const int LIGHT_GPU_SLOT = 3;
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
+    static const int DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 4;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DEFERRED_TRANSFORM_BUFFER_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -537,6 +524,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
+    locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
@@ -667,3 +655,33 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     return _spotLightMesh;
 }
 
+void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    auto args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        // Clear Lighting buffer
+        auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
+
+        batch.setFramebuffer(lightingFbo);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), true);
+
+        // Clear deferred
+        auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
+
+        batch.setFramebuffer(deferredFbo);
+
+        // Clear Color, Depth and Stencil for deferred buffer
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 |
+            gpu::Framebuffer::BUFFER_DEPTH |
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 0), 1.0, 0.0, true);
+    });
+}
+
+void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFrameTransformPointer& deferredTransform) {
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext, deferredTransform);
+}

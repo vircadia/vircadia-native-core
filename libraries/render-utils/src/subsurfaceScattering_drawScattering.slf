@@ -10,9 +10,11 @@
 //
 
 
-<@include DeferredTransform.slh@>
+<!<@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
+!>
 
+<@include DeferredBufferRead.slh@>
 
 <@include DeferredGlobalLight.slh@>
 
@@ -26,7 +28,6 @@ float getZEyeLinear(vec2 texcoord) {
     return -texture(linearDepthMap, texcoord).x;
 }
 
-<@include DeferredBufferRead.slh@>
 
 vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
     return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);

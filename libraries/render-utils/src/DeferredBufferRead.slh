@@ -32,38 +32,6 @@ uniform sampler2D obscuranceMap;
 uniform sampler2D lightingMap;
 
 
-struct DeferredTransform { 
-    mat4 projection;
-    mat4 viewInverse;
-    float stereoSide;
-    vec3 _spareABC;
-};
-
-layout(std140) uniform deferredTransformBuffer {
-    DeferredTransform _deferredTransform;
-};
-DeferredTransform getDeferredTransform() {
-    return _deferredTransform;
-}
-
-bool getStereoMode(DeferredTransform deferredTransform) {
-    return (deferredTransform.stereoSide != 0.0);
-}
-float getStereoSide(DeferredTransform deferredTransform) {
-    return  (deferredTransform.stereoSide);
-}
-
-vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
-    vec3 nPos = vec3(texcoord.xy * 2.0f - 1.0f, depthVal * 2.0f - 1.0f);
-
-    // compute the view space position using the depth
-    // basically manually pick the proj matrix components to do the inverse
-    float Ze = -deferredTransform.projection[3][2] / (nPos.z + deferredTransform.projection[2][2]);
-    float Xe = (-Ze * nPos.x - Ze * deferredTransform.projection[2][0] - deferredTransform.projection[3][0]) /  deferredTransform.projection[0][0];
-    float Ye = (-Ze * nPos.y - Ze * deferredTransform.projection[2][1] - deferredTransform.projection[3][1]) /  deferredTransform.projection[1][1];
-    return vec4(Xe, Ye, Ze, 1.0f);
-}
-
 struct DeferredFragment {
     vec4 normalVal;
     vec4 diffuseVal;
@@ -79,16 +47,6 @@ struct DeferredFragment {
     int mode;
     float depthVal;
 };
-
-vec4 unpackDeferredPosition(DeferredTransform deferredTransform, float depthValue, vec2 texcoord) {
-    if (getStereoMode(deferredTransform)) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-        }
-        texcoord.x *= 2.0;
-    }
-    return evalEyePositionFromZ(deferredTransform, depthValue, texcoord);
-}
 
 DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
 
@@ -122,6 +80,52 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
     return frag;
 }
 
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+<!
+struct DeferredTransform { 
+    mat4 projection;
+    mat4 viewInverse;
+    float stereoSide;
+    vec3 _spareABC;
+};
+
+layout(std140) uniform deferredTransformBuffer {
+    DeferredTransform _deferredTransform;
+};
+DeferredTransform getDeferredTransform() {
+    return _deferredTransform;
+}
+
+bool getStereoMode(DeferredTransform deferredTransform) {
+    return (deferredTransform.stereoSide != 0.0);
+}
+float getStereoSide(DeferredTransform deferredTransform) {
+    return  (deferredTransform.stereoSide);
+}
+
+vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
+    vec3 nPos = vec3(texcoord.xy * 2.0f - 1.0f, depthVal * 2.0f - 1.0f);
+
+    // compute the view space position using the depth
+    // basically manually pick the proj matrix components to do the inverse
+    float Ze = -deferredTransform.projection[3][2] / (nPos.z + deferredTransform.projection[2][2]);
+    float Xe = (-Ze * nPos.x - Ze * deferredTransform.projection[2][0] - deferredTransform.projection[3][0]) /  deferredTransform.projection[0][0];
+    float Ye = (-Ze * nPos.y - Ze * deferredTransform.projection[2][1] - deferredTransform.projection[3][1]) /  deferredTransform.projection[1][1];
+    return vec4(Xe, Ye, Ze, 1.0f);
+}
+
+vec4 unpackDeferredPosition(DeferredTransform deferredTransform, float depthValue, vec2 texcoord) {
+    if (getStereoMode(deferredTransform)) {
+        if (texcoord.x > 0.5) {
+            texcoord.x -= 0.5;
+        }
+        texcoord.x *= 2.0;
+    }
+    return evalEyePositionFromZ(deferredTransform, depthValue, texcoord);
+}
 DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec2 texcoord) {
 
     float depthValue = texture(depthMap, texcoord).r;
@@ -133,8 +137,36 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
 
     return frag;
 }
+mat4 getViewInverse() {
+    return _deferredTransform.viewInverse;
+}
 
+!>
 
+vec4 unpackDeferredPosition(DeferredFrameTransform deferredTransform, float depthValue, vec2 texcoord) {
+    int side = 0;
+    if (isStereo()) {
+        if (texcoord.x > 0.5) {
+            texcoord.x -= 0.5;
+            side = 1;
+        }
+        texcoord.x *= 2.0;
+    }
+    float Zeye = evalZeyeFromZdb(depthValue);
+
+    return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
+}
+DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform, vec2 texcoord) {
+
+    float depthValue = texture(depthMap, texcoord).r;
+
+    DeferredFragment frag = unpackDeferredFragmentNoPosition(texcoord);
+
+    frag.depthVal = depthValue;
+    frag.position = unpackDeferredPosition(deferredTransform, frag.depthVal, texcoord);
+
+    return frag;
+}
 
 
 <@endif@>

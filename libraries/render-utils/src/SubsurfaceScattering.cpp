@@ -137,7 +137,7 @@ bool SubsurfaceScattering::updateScatteringFramebuffer(const gpu::FramebufferPoi
      //       _scatteringFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
         }
         auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
-        auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), blurringSampler));
+        auto blurringTarget = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_SRGBA_32, sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), blurringSampler));
         _scatteringFramebuffer->setRenderBuffer(0, blurringTarget);
     } else {
         // it would be easier to just call resize on the bluredFramebuffer and let it work if needed but the source might loose it's depth buffer when doing so
@@ -190,7 +190,6 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
         batch.setViewportTransform(args->_viewport);
 
         batch.setFramebuffer(_scatteringFramebuffer);
-     //   batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), false);
 
         batch.setPipeline(pipeline);
 

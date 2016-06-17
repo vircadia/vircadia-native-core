@@ -43,14 +43,6 @@ extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
-}
-
-void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
-}
-
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
@@ -135,7 +127,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
-    addJob<RenderDeferred>("RenderDeferred");
+    addJob<RenderDeferred>("RenderDeferred", deferredFrameTransform);
 
 
     // AA job to be revisited

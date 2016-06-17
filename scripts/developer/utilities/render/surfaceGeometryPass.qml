@@ -15,6 +15,7 @@ Column {
     spacing: 8
     Column {
         id: surfaceGeometry
+        spacing: 10
 
         Column{
             Repeater {
@@ -63,5 +64,11 @@ Column {
                 }
             }
         }
+        CheckBox {
+            text: "Show scatteringLUT"
+            checked: false
+            onCheckedChanged: { Render.getConfig("Scattering").showLUT = checked }
+        }
+
     }
 }

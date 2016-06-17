@@ -21,6 +21,9 @@
 #include "model/Geometry.h"
 
 #include "render/Context.h"
+#include <render/CullTask.h>
+
+#include "DeferredFrameTransform.h"
 
 #include "LightStage.h"
 
@@ -42,9 +45,8 @@ public:
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
         float intensity = 0.5f, float falloffRadius = 0.01f,
         const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
-    
-    void prepare(RenderArgs* args);
-    void render(const render::RenderContextPointer& renderContext);
+
+    void render(const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
 
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
@@ -108,6 +110,20 @@ private:
     };
     typedef gpu::BufferView UniformBufferView;
     UniformBufferView _deferredTransformBuffer[2];
+};
+
+class PrepareDeferred {
+public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    using JobModel = render::Job::Model<PrepareDeferred>;
+};
+
+class RenderDeferred {
+public:
+    using JobModel = render::Job::ModelI<RenderDeferred, DeferredFrameTransformPointer>;
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
 };
 
 #endif // hifi_DeferredLightingEffect_h
