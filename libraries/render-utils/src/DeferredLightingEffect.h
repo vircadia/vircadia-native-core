@@ -97,19 +97,11 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
-
-    // Class describing the uniform buffer with all the parameters common to the deferred shaders
-    class DeferredTransform {
-    public:
-        glm::mat4 projection;
-        glm::mat4 viewInverse;
-        float stereoSide { 0.f };
-        float spareA, spareB, spareC;
-
-        DeferredTransform() {}
-    };
-    typedef gpu::BufferView UniformBufferView;
-    UniformBufferView _deferredTransformBuffer[2];
+    
+    friend class RenderDeferredSetup;
+    friend class RenderDeferredGlobal;
+    friend class RenderDeferredLocals;
+    friend class RenderDeferredCleanup;
 };
 
 class PrepareDeferred {
@@ -119,11 +111,44 @@ public:
     using JobModel = render::Job::Model<PrepareDeferred>;
 };
 
+class RenderDeferredSetup {
+public:
+    using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+};
+
+class RenderDeferredGlobal {
+public:
+    using JobModel = render::Job::ModelI<RenderDeferredGlobal, DeferredFrameTransformPointer>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+};
+
+class RenderDeferredLocals {
+public:
+    using JobModel = render::Job::ModelI<RenderDeferredLocals, DeferredFrameTransformPointer>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+};
+
+
+class RenderDeferredCleanup {
+public:
+    using JobModel = render::Job::Model<RenderDeferredCleanup>;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+};
+
 class RenderDeferred {
 public:
     using JobModel = render::Job::ModelI<RenderDeferred, DeferredFrameTransformPointer>;
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+    
+    RenderDeferredSetup setupJob;
+    
+    RenderDeferredCleanup cleanupJob;
 };
 
 #endif // hifi_DeferredLightingEffect_h

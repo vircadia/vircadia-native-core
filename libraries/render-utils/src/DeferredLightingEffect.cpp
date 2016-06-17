@@ -46,12 +46,11 @@ struct LightLocations {
     int lightBufferUnit;
     int texcoordMat;
     int coneParam;
-    int deferredTransformBuffer;
     int deferredFrameTransformBuffer;
     int shadowTransformBuffer;
 };
 
-enum {
+enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_COLOR_UNIT = 0,
     DEFERRED_BUFFER_NORMAL_UNIT = 1,
     DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
@@ -60,9 +59,11 @@ enum {
     SHADOW_MAP_UNIT = 5,
     SKYBOX_MAP_UNIT = 6,
 };
-enum {
-
+enum DeferredShader_BufferSlot {
+    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 2,
+    LIGHT_GPU_SLOT = 3,
 };
+
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
@@ -142,13 +143,6 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         
-        // Allocate the parameters buffer used by all the deferred shaders
-        if (!_deferredTransformBuffer[0]._buffer) {
-            DeferredTransform parameters;
-            _deferredTransformBuffer[0] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
-            _deferredTransformBuffer[1] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
-        }
-
         // Framebuffer copy operations cannot function as multipass stereo operations.  
         batch.enableStereo(false);
 
@@ -220,7 +214,6 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
         vec2 screenTopRightCorners[2];
         vec4 fetchTexcoordRects[2];
 
-        DeferredTransform deferredTransforms[2];
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         if (isStereo) {
@@ -237,15 +230,10 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                 int sideWidth = monoViewport.z >> 1;
                 viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
 
-                deferredTransforms[i].projection = projMats[i];
-
                 auto sideViewMat = monoViewMat * glm::inverse(eyeViews[i]);
               //  viewTransforms[i].evalFromRawMatrix(sideViewMat);
                 viewTransforms[i] = monoViewTransform;
                 viewTransforms[i].postTranslate(-glm::vec3((eyeViews[i][3])));// evalFromRawMatrix(sideViewMat);
-                deferredTransforms[i].viewInverse = sideViewMat;
-
-                deferredTransforms[i].stereoSide = (i == 0 ? -1.0f : 1.0f);
 
                 clipQuad[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
                 screenBottomLeftCorners[i] = glm::vec2(-1.0f + i * 1.0f, -1.0f);
@@ -258,12 +246,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
             viewports[0] = monoViewport;
             projMats[0] = monoProjMat;
 
-            deferredTransforms[0].projection = monoProjMat;
-     
-            deferredTransforms[0].viewInverse = monoViewMat;
             viewTransforms[0] = monoViewTransform;
-
-            deferredTransforms[0].stereoSide = 0.0f;
 
             clipQuad[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
             screenBottomLeftCorners[0] = glm::vec2(-1.0f, -1.0f);
@@ -281,12 +264,6 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
             // Render in this side's viewport
             batch.setViewportTransform(viewports[side]);
             batch.setStateScissorRect(viewports[side]);
-
-            // Sync and Bind the correct DeferredTransform ubo
-            _deferredTransformBuffer[side]._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &deferredTransforms[side]);
-       //     batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, _deferredTransformBuffer[side]);
-
-
 
             glm::vec2 topLeft(-1.0f, -1.0f);
             glm::vec2 bottomRight(1.0f, 1.0f);
@@ -507,12 +484,8 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
-    static const int LIGHT_GPU_SLOT = 3;
-    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
-    static const int DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 4;
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DEFERRED_TRANSFORM_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -523,7 +496,6 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->coneParam = program->getUniforms().findLocation("coneParam");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
     locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
@@ -682,6 +654,241 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
     });
 }
 
+
+void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
+    
+    auto args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        
+        // Framebuffer copy operations cannot function as multipass stereo operations.
+        batch.enableStereo(false);
+        
+        // perform deferred lighting, rendering to free fbo
+        auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        auto textureCache = DependencyManager::get<TextureCache>();
+        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+        
+        QSize framebufferSize = framebufferCache->getFrameBufferSize();
+        
+        // binding the first framebuffer
+        auto lightingFBO = framebufferCache->getLightingFramebuffer();
+        batch.setFramebuffer(lightingFBO);
+        
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+        
+        
+        // Bind the G-Buffer surfaces
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, framebufferCache->getDeferredSpecularTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, framebufferCache->getPrimaryDepthTexture());
+        
+        // FIXME: Different render modes should have different tasks
+        if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
+        } else {
+            // need to assign the white texture if ao is off
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
+        }
+        
+        assert(deferredLightingEffect->getLightStage().lights.size() > 0);
+        const auto& globalShadow = deferredLightingEffect->getLightStage().lights[0]->shadow;
+        
+        // Bind the shadow buffer
+        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
+        
+        // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
+        auto monoViewport = args->_viewport;
+        float sMin = args->_viewport.x / (float)framebufferSize.width();
+        float sWidth = args->_viewport.z / (float)framebufferSize.width();
+        float tMin = args->_viewport.y / (float)framebufferSize.height();
+        float tHeight = args->_viewport.w / (float)framebufferSize.height();
+        
+        // The view frustum is the mono frustum base
+        auto viewFrustum = args->getViewFrustum();
+        
+        // Eval the mono projection
+        mat4 monoProjMat;
+        viewFrustum.evalProjectionMatrix(monoProjMat);
+        
+        // The mono view transform
+        Transform monoViewTransform;
+        viewFrustum.evalViewTransform(monoViewTransform);
+        
+        // THe mono view matrix coming from the mono view transform
+        glm::mat4 monoViewMat;
+        monoViewTransform.getMatrix(monoViewMat);
+        
+        // Running in stero ?
+        bool isStereo = args->_context->isStereo();
+        int numPasses = 1;
+        
+        mat4 projMats[2];
+        Transform viewTransforms[2];
+        ivec4 viewports[2];
+        vec4 clipQuad[2];
+        vec2 screenBottomLeftCorners[2];
+        vec2 screenTopRightCorners[2];
+        vec4 fetchTexcoordRects[2];
+        
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        
+        if (isStereo) {
+            numPasses = 2;
+            
+            mat4 eyeViews[2];
+            args->_context->getStereoProjections(projMats);
+            args->_context->getStereoViews(eyeViews);
+            
+            float halfWidth = 0.5f * sWidth;
+            
+            for (int i = 0; i < numPasses; i++) {
+                // In stereo, the 2 sides are layout side by side in the mono viewport and their width is half
+                int sideWidth = monoViewport.z >> 1;
+                viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
+                
+                auto sideViewMat = monoViewMat * glm::inverse(eyeViews[i]);
+                //  viewTransforms[i].evalFromRawMatrix(sideViewMat);
+                viewTransforms[i] = monoViewTransform;
+                viewTransforms[i].postTranslate(-glm::vec3((eyeViews[i][3])));// evalFromRawMatrix(sideViewMat);
+                
+                clipQuad[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
+                screenBottomLeftCorners[i] = glm::vec2(-1.0f + i * 1.0f, -1.0f);
+                screenTopRightCorners[i] = glm::vec2(i * 1.0f, 1.0f);
+                
+                fetchTexcoordRects[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
+            }
+        } else {
+            
+            viewports[0] = monoViewport;
+            projMats[0] = monoProjMat;
+            
+            viewTransforms[0] = monoViewTransform;
+            
+            clipQuad[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
+            screenBottomLeftCorners[0] = glm::vec2(-1.0f, -1.0f);
+            screenTopRightCorners[0] = glm::vec2(1.0f, 1.0f);
+            
+            fetchTexcoordRects[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
+        }
+        
+        auto eyePoint = viewFrustum.getPosition();
+        float nearRadius = glm::distance(eyePoint, viewFrustum.getNearTopLeft());
+        
+        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, frameTransform->getFrameTransformBuffer());
+    
+    
+        
+        // Render in this side's viewport
+        //   batch.setViewportTransform(viewports[side]);
+        //   batch.setStateScissorRect(viewports[side]);
+        int side = 0;
+        glm::vec2 topLeft(-1.0f, -1.0f);
+        glm::vec2 bottomRight(1.0f, 1.0f);
+        glm::vec2 texCoordTopLeft(clipQuad[side].x, clipQuad[side].y);
+        glm::vec2 texCoordBottomRight(clipQuad[side].x + clipQuad[side].z, clipQuad[side].y + clipQuad[side].w);
+        
+        // First Global directional light and ambient pass
+        {
+            auto& program = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadow : deferredLightingEffect->_directionalLight;
+            LightLocationsPtr locations = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadowLocations : deferredLightingEffect->_directionalLightLocations;
+            const auto& keyLight = deferredLightingEffect->_allocatedLights[deferredLightingEffect->_globalLights.front()];
+            
+            // Setup the global directional pass pipeline
+            {
+                if (deferredLightingEffect->_shadowMapEnabled) {
+                    if (keyLight->getAmbientMap()) {
+                        program = deferredLightingEffect->_directionalSkyboxLightShadow;
+                        locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
+                    } else {
+                        program = deferredLightingEffect->_directionalAmbientSphereLightShadow;
+                        locations = deferredLightingEffect->_directionalAmbientSphereLightShadowLocations;
+                    }
+                } else {
+                    if (keyLight->getAmbientMap()) {
+                        program = deferredLightingEffect->_directionalSkyboxLight;
+                        locations = deferredLightingEffect->_directionalSkyboxLightLocations;
+                    } else {
+                        program = deferredLightingEffect->_directionalAmbientSphereLight;
+                        locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
+                    }
+                }
+                
+                if (locations->shadowTransformBuffer >= 0) {
+                    batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
+                }
+                batch.setPipeline(program);
+            }
+            
+            { // Setup the global lighting
+                deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
+            }
+            
+            {
+                batch.setModelTransform(Transform());
+                batch.setProjectionTransform(glm::mat4());
+                batch.setViewTransform(Transform());
+                
+                glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                //geometryCache->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
+            
+            if (keyLight->getAmbientMap()) {
+                batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+            }
+        }
+    
+    });
+    
+}
+
+void RenderDeferredGlobal::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
+ 
+    auto args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        
+     });
+    
+}
+
+void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
+    
+}
+
+void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+    auto args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
+        batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
+        batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+        
+        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
+    });
+    
+    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+
+    // End of the Lighting pass
+    if (!deferredLightingEffect->_pointLights.empty()) {
+        deferredLightingEffect->_pointLights.clear();
+    }
+    if (!deferredLightingEffect->_spotLights.empty()) {
+        deferredLightingEffect->_spotLights.clear();
+    }
+}
+
+
+
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFrameTransformPointer& deferredTransform) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext, deferredTransform);
+//    DependencyManager::get<DeferredLightingEffect>()->render(renderContext, deferredTransform);
+    
+    setupJob.run(sceneContext, renderContext, deferredTransform);
+    
+    cleanupJob.run(sceneContext, renderContext);
 }
