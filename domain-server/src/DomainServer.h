@@ -100,7 +100,7 @@ private:
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
 
-    void optionallyGetTemporaryName(const QStringList& arguments);
+    void getTemporaryName(bool force = false);
 
     static bool packetVersionMatch(const udt::Packet& packet);
 

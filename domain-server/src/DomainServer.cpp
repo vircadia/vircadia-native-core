@@ -104,23 +104,25 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
 
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
-        // we either read a certificate and private key or were not passed one
-        // and completed login or did not need to
-
-        qDebug() << "Setting up LimitedNodeList and assignments.";
-        setupNodeListAndAssignments();
-
-        // setup automatic networking settings with data server
-        setupAutomaticNetworking();
-
-        // preload some user public keys so they can connect on first request
-        _gatekeeper.preloadAllowedUserPublicKeys();
-
-        optionallyGetTemporaryName(args);
+    // if we were given a certificate/private key or oauth credentials they must succeed
+    if (!(optionallyReadX509KeyAndCertificate() && optionallySetupOAuth())) {
+        return;
     }
 
+    qDebug() << "Setting up domain-server";
+    setupNodeListAndAssignments();
+    setupAutomaticNetworking();
+    _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
+
     _metadata = new DomainMetadata(this);
+
+    // check for the temporary name parameter
+    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
+    if (args.contains(GET_TEMPORARY_NAME_SWITCH)) {
+        getTemporaryName();
+    }
+
+    qDebug() << "domain-server" << nullptr << "is running";
 }
 
 DomainServer::~DomainServer() {
@@ -233,34 +235,25 @@ bool DomainServer::optionallySetupOAuth() {
 
 static const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
 
-void DomainServer::optionallyGetTemporaryName(const QStringList& arguments) {
-    // check for the temporary name parameter
-    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
+void DomainServer::getTemporaryName(bool force) {
+    // check if we already have a domain ID
+    const QVariant* idValueVariant = valueForKeyPath(_settingsManager.getSettingsMap(), METAVERSE_DOMAIN_ID_KEY_PATH);
 
-    if (arguments.contains(GET_TEMPORARY_NAME_SWITCH)) {
-
-        // make sure we don't already have a domain ID
-        const QVariant* idValueVariant = valueForKeyPath(_settingsManager.getSettingsMap(), METAVERSE_DOMAIN_ID_KEY_PATH);
-        if (idValueVariant) {
-            qWarning() << "Temporary domain name requested but a domain ID is already present in domain-server settings."
-                << "Will not request temporary name.";
+    if (idValueVariant) {
+        qWarning() << "Temporary domain name requested but a domain ID is already present in domain-server settings.";
+        if (force) {
+            qWarning() << "Temporary domain name will be requested to replace it.";
+        } else {
+            qWarning() << "Temporary domain name will not be requested.";
             return;
         }
-
-        // we've been asked to grab a temporary name from the API
-        // so fire off that request now
-        auto accountManager = DependencyManager::get<AccountManager>();
-
-        // get callbacks for temporary domain result
-        JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
-        callbackParameters.jsonCallbackMethod = "handleTempDomainSuccess";
-        callbackParameters.errorCallbackReceiver = this;
-        callbackParameters.errorCallbackMethod = "handleTempDomainError";
-
-        accountManager->sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
-                                    QNetworkAccessManager::PostOperation, callbackParameters);
     }
+
+    // request a temporary name from the metaverse
+    auto accountManager = DependencyManager::get<AccountManager>();
+    JSONCallbackParameters callbackParameters { this, "handleTempDomainSuccess", this, "handleTempDomainError" };
+    accountManager->sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
+                                QNetworkAccessManager::PostOperation, callbackParameters);
 }
 
 void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
@@ -333,7 +326,6 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
 
 
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
-
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
 
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
