@@ -302,7 +302,7 @@ void DomainServerSettingsManager::packPermissions() {
     packPermissionsForMap("permissions", _agentPermissions, AGENT_PERMISSIONS_KEYPATH);
 
     // save settings for groups
-    packPermissionsForMap("permissions", _groupPermissions, AGENT_PERMISSIONS_KEYPATH);
+    packPermissionsForMap("permissions", _groupPermissions, GROUP_PERMISSIONS_KEYPATH);
 
     persistToFile();
     _configMap.loadMasterAndUserConfig(_argumentList);
@@ -898,22 +898,22 @@ void DomainServerSettingsManager::getGroupID(const QString& groupname) {
 void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
 
-    qDebug() << "GOT RESPONSE" << jsonObject["group_id"].toString();
-
     if (jsonObject["status"].toString() == "success") {
         QString groupName = jsonObject["group_name"].toString();
         QUuid groupID = QUuid(jsonObject["group_id"].toString());
 
-        if (!_groupPermissions.contains(groupName)) {
+        if (_groupPermissions.contains(groupName)) {
+            qDebug() << "ID for group:" << groupName << "is" << groupID;
+            _groupPermissions[groupName]->setGroupID(groupID);
+            packPermissions();
+        } else {
             qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
         }
-
-        _groupPermissions[groupName]->setGroupID(groupID);
     } else {
-        // XXX what?
+        qDebug() << "getGroupID api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
     }
 }
 
 void DomainServerSettingsManager::getGroupIDErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "ERROR" << requestReply.error();
+    qDebug() << "getGroupID api call failed:" << requestReply.error();
 }

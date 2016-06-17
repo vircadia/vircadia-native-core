@@ -33,7 +33,7 @@ public:
     void setUserName(QString userName) { _userName = userName; }
     QString getUserName() { return _userName; }
 
-    void setGroupID(QUuid groupID) { _groupID = groupID; }
+    void setGroupID(QUuid groupID) { _groupID = groupID; _groupIDSet = true; }
     QUuid getGroupID() { return _groupID; }
     bool isGroup() { return _groupIDSet; }
 
