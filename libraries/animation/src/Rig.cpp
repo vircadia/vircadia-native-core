@@ -1223,7 +1223,7 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-    if (_animSkeleton && jointDataVec.size() == _internalPoseSet._overrideFlags.size()) {
+    if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._overrideFlags.size()) {
 
         // transform all the default poses into rig space.
         const AnimPose geometryToRigPose(_geometryToRigTransform);
