@@ -153,9 +153,8 @@ function isPointingAtOverlay(optionalHudPosition2d) {
 }
 
 // Generalized HUD utilities, with or without HMD:
-// These two "vars" are for documentation. Do not change their values!
-var SPHERICAL_HUD_DISTANCE = 1; // meters.
-var PLANAR_PERPENDICULAR_HUD_DISTANCE = SPHERICAL_HUD_DISTANCE;
+// This "var" is for documentation. Do not change the value!
+var PLANAR_PERPENDICULAR_HUD_DISTANCE = 1;
 function calculateRayUICollisionPoint(position, direction) {
     // Answer the 3D intersection of the HUD by the given ray, or falsey if no intersection.
     if (HMD.active) {
@@ -274,6 +273,11 @@ function expireMouseCursor(now) {
         Reticle.visible = false;
     }
 }
+function hudReticleDistance() { // 3d distance from camera to the reticle position on hud
+    // (The camera is only in the center of the sphere on reset.)
+    var reticlePositionOnHUD = HMD.worldPointFromOverlay(Reticle.position);
+    return Vec3.distance(reticlePositionOnHUD, HMD.position);
+}
 function onMouseMove() {
     // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
     if (ignoreMouseActivity()) {
@@ -283,11 +287,10 @@ function onMouseMove() {
     if (HMD.active) { // set depth
         updateSeeking();
         if (isPointingAtOverlay()) {
-            Reticle.setDepth(SPHERICAL_HUD_DISTANCE); // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
+            Reticle.depth = hudReticleDistance();
         } else {
             var result = findRayIntersection(Camera.computePickRay(Reticle.position.x, Reticle.position.y));
-            var depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
-            Reticle.setDepth(depth);
+            Reticle.depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
         }
     }
     updateMouseActivity(); // After the above, just in case the depth movement is awkward when becoming visible.
@@ -493,8 +496,8 @@ function update() {
     setReticlePosition(hudPoint2d);
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
-        if (HMD.active) {  // Doesn't hurt anything without the guard, but consider it documentation.
-            Reticle.depth = SPHERICAL_HUD_DISTANCE; // NOT CORRECT IF WE SWITCH TO OFFSET SPHERE!
+        if (HMD.active) {
+            Reticle.depth = hudReticleDistance();
         }
         return turnOffVisualization(true);
     }
