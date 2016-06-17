@@ -264,11 +264,17 @@ float snoise(vec2 v) {
     return 130.0 * dot(m, g);
 }
 
+
 #define PROCEDURAL 1
 
 //PROCEDURAL_VERSION
 
 #ifdef PROCEDURAL_V1
+
+// shader playback time (in seconds)
+uniform float iGlobalTime;
+// the dimensions of the object being rendered
+uniform vec3 iWorldScale;
 
 #else
 

@@ -389,7 +389,10 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    bool previousSessionCrashed = CrashHandler::checkForResetSettings();
+
+    static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
+    bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings(suppressPrompt);
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
 
@@ -2916,7 +2919,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         }
     });
     if (success) {
-        exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
+        success = exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
         // restore the main window's active state
         _window->activateWindow();
@@ -5144,13 +5147,6 @@ void Application::updateDisplayMode() {
             auto displayPluginName = displayPlugin->getName();
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
-            });
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::outputDeviceLost, [this, displayPluginName] {
-                PluginManager::getInstance()->disableDisplayPlugin(displayPluginName);
-                auto menu = Menu::getInstance();
-                if (menu->menuItemExists(MenuOption::OutputMenu, displayPluginName)) {
-                    menu->removeMenuItem(MenuOption::OutputMenu, displayPluginName);
-                }
             });
             first = false;
         }
