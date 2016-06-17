@@ -9,7 +9,7 @@ import "../../controls-uit" as HifiControls
 import "../../windows"
 import "attachments"
 
-Window {
+ScrollingWindow {
     id: root
     title: "Attachments"
     objectName: "AttachmentsDialog"

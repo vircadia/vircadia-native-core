@@ -12,7 +12,7 @@ import QtQuick 2.5
 
 import "."
 
-Window {
+ScrollingWindow {
     id: window
     modality: Qt.ApplicationModal
     destroyOnCloseButton: true

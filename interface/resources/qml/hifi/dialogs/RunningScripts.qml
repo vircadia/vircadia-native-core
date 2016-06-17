@@ -17,7 +17,7 @@ import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
 
-Window {
+ScrollingWindow {
     id: root
     objectName: "RunningScripts"
     title: "Running Scripts"

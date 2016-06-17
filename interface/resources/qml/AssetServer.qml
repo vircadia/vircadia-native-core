@@ -18,7 +18,7 @@ import "controls-uit" as HifiControls
 import "windows"
 import "dialogs"
 
-Window {
+ScrollingWindow {
     id: root
     objectName: "AssetServer"
     title: "Asset Browser"

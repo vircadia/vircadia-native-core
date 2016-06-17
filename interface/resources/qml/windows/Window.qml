@@ -41,7 +41,7 @@ Fadable {
     implicitHeight: content ? content.height : 0
     implicitWidth: content ? content.width : 0
     x: desktop.invalid_position; y: desktop.invalid_position;
-    children: [ swallower, frame, pane, activator ]
+    children: [ swallower, frame, content, activator ]
 
     //
     // Custom properties
@@ -106,10 +106,10 @@ Fadable {
     // in the window and have a higher Z-order than the content, but follow
     // the position and size of frame decoration
     property var activator: MouseArea {
-        width: frame.decoration.width
-        height: frame.decoration.height
-        x: frame.decoration.anchors.leftMargin
-        y: frame.decoration.anchors.topMargin
+        width: frame.decoration ? frame.decoration.width : window.width
+        height: frame.decoration ? frame.decoration.height : window.height
+        x: frame.decoration ? frame.decoration.anchors.leftMargin : 0
+        y: frame.decoration ? frame.decoration.anchors.topMargin : 0
         propagateComposedEvents: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
@@ -124,10 +124,10 @@ Fadable {
     // to prevent things like mouse wheel events from reaching the application and changing
     // the camera if the user is scrolling through a list and gets to the end.
     property var swallower: MouseArea {
-        width: frame.decoration.width
-        height: frame.decoration.height
-        x: frame.decoration.anchors.leftMargin
-        y: frame.decoration.anchors.topMargin
+        width: frame.decoration ? frame.decoration.width : window.width
+        height: frame.decoration ? frame.decoration.height : window.height
+        x: frame.decoration ? frame.decoration.anchors.leftMargin : 0
+        y: frame.decoration ? frame.decoration.anchors.topMargin : 0
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
@@ -140,132 +140,10 @@ Fadable {
 
     // Default to a standard frame.  Can be overriden to provide custom
     // frame styles, like a full desktop frame to simulate a modal window
-    property var frame: DefaultFrame { }
-
-    // Scrollable window content.
-    // FIXME this should not define any visual content in this type.  The base window
-    // type should only consist of logic sized areas, with nothing drawn (although the
-    // default value for the frame property does include visual decorations)
-    property var pane: Item {
-        property bool isScrolling: scrollView.height < scrollView.contentItem.height
-        property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
-        property int scrollHeight: scrollView.height
-
-        anchors.fill: parent
-        anchors.rightMargin: isScrolling ? 11 : 0
-
-        Rectangle {
-            id: contentBackground
-            anchors.fill: parent
-            anchors.rightMargin: parent.isScrolling ? 11 : 0
-            color: hifi.colors.baseGray
-            visible: !window.hideBackground && modality != Qt.ApplicationModal
-        }
-
-
-        LinearGradient {
-            visible: !window.hideBackground && gradientsSupported && modality != Qt.ApplicationModal
-            anchors.top: contentBackground.bottom
-            anchors.left: contentBackground.left
-            width: contentBackground.width - 1
-            height: 4
-            start: Qt.point(0, 0)
-            end: Qt.point(0, 4)
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: hifi.colors.darkGray }
-                GradientStop { position: 1.0; color: hifi.colors.darkGray0 }
-            }
-            cached: true
-        }
-
-        ScrollView {
-            id: scrollView
-            contentItem: content
-            horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-            verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
-            anchors.fill: parent
-            anchors.rightMargin: parent.isScrolling ? 1 : 0
-            anchors.bottomMargin: footer.height > 0 ? footerPane.height : 0
-
-            style: ScrollViewStyle {
-
-                padding.right: -7  // Move to right away from content.
-
-                handle: Item {
-                    implicitWidth: 8
-                    Rectangle {
-                        radius: 4
-                        color: hifi.colors.white30
-                        anchors {
-                            fill: parent
-                            leftMargin: 2  // Finesse size and position.
-                            topMargin: 1
-                            bottomMargin: 1
-                        }
-                    }
-                }
-
-                scrollBarBackground: Item {
-                    implicitWidth: 10
-                    Rectangle {
-                        color: hifi.colors.darkGray30
-                        radius: 4
-                        anchors {
-                            fill: parent
-                            topMargin: -1  // Finesse size
-                            bottomMargin: -2
-                        }
-                    }
-                }
-
-                incrementControl: Item {
-                    visible: false
-                }
-
-                decrementControl: Item {
-                    visible: false
-                }
-            }
-        }
-
-        Rectangle {
-            // Optional non-scrolling footer.
-            id: footerPane
-            anchors {
-                left: parent.left
-                bottom: parent.bottom
-            }
-            width: parent.contentWidth
-            height: footer.height + 2 * hifi.dimensions.contentSpacing.y + 3
-            color: hifi.colors.baseGray
-            visible: footer.height > 0
-
-            Item {
-                // Horizontal rule.
-                anchors.fill: parent
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    y: 1  // Stop displaying content just above horizontal rule/=.
-                    color: hifi.colors.baseGrayShadow
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    y: 2
-                    color: hifi.colors.baseGrayHighlight
-                }
-            }
-
-            Item {
-                anchors.fill: parent
-                anchors.topMargin: 3  // Horizontal rule.
-                children: [ footer ]
-            }
-        }
+    property var frame: DefaultFrame {
+        //window: window
     }
+
 
     //
     // Handlers

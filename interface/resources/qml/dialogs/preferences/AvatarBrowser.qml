@@ -23,15 +23,10 @@ Windows.Window {
     resizable: true
     modality: Qt.ApplicationModal
 
-    Item {
-        width: pane.contentWidth
-        implicitHeight: pane.scrollHeight
-
-        Controls.WebView {
-            id: webview
-            anchors.fill: parent
-            url: "https://metaverse.highfidelity.com/marketplace?category=avatars"
-            focus: true
-        }
+    Controls.WebView {
+        id: webview
+        anchors.fill: parent
+        url: "https://metaverse.highfidelity.com/marketplace?category=avatars"
+        focus: true
     }
 }

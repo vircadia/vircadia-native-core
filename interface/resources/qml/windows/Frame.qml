@@ -80,7 +80,7 @@ Item {
         border.width: 3
         border.color: hifi.colors.white50
         radius: hifi.dimensions.borderRadius
-        visible: window ? !pane.visible : false
+        visible: window ? !window.content.visible : false
     }
 
     MouseArea {
