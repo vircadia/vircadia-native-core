@@ -214,10 +214,6 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     handleOpenVrEvents();
-    if (openVrQuitRequested()) {
-        deactivate();
-        return;
-    }
 
     // because update mutates the internal state we need to lock
     userInputMapper->withLock([&, this]() {

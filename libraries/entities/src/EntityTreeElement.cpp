@@ -189,7 +189,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
             // encoud our parent... this might happen.
             if (extraEncodeData->contains(childElement.get())) {
                 EntityTreeElementExtraEncodeData* childExtraEncodeData
-                    = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement.get()));
+                    = static_cast<EntityTreeElementExtraEncodeData*>((*extraEncodeData)[childElement.get()]);
 
                 if (wantDebug) {
                     qCDebug(entities) << "checking child: " << childElement->_cube;

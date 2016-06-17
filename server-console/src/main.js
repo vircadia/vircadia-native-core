@@ -515,6 +515,20 @@ function maybeInstallDefaultContentSet(onComplete) {
         return;
     }
 
+    console.log("Found contentPath:" + argv.contentPath);
+    if (argv.contentPath) {
+        fs.copy(argv.contentPath, getRootHifiDataDirectory(), function (err) {
+            if (err) {
+                console.log('Could not copy home content: ' + err);
+                return console.error(err)
+            }
+            console.log('Copied home content over to: ' + getRootHifiDataDirectory());
+            onComplete();
+        });
+        return;
+    }
+
+
     // Show popup
     var window = new BrowserWindow({
         icon: appIcon,
