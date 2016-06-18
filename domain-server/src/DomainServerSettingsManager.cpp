@@ -242,7 +242,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             }
 
             QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
-            permissionsSets << _standardAgentPermissions << _agentPermissions;
+            permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get();
             foreach (auto permissionsSet, permissionsSets) {
                 foreach (QString userName, permissionsSet.keys()) {
                     if (onlyEditorsAreRezzers) {
@@ -268,7 +268,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 }
 
 void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
-                                                        QHash<QString, NodePermissionsPointer> agentPermissions,
+                                                        NodePermissionsMap& agentPermissions,
                                                         QString keyPath) {
     // find (or create) the "security" section of the settings map
     QVariant* security = valueForKeyPath(_configMap.getUserConfig(), "security");
@@ -410,7 +410,7 @@ void DomainServerSettingsManager::unpackPermissions() {
     #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
     QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
-    permissionsSets << _standardAgentPermissions << _agentPermissions << _groupPermissions;
+    permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get() << _groupPermissions.get();
     foreach (auto permissionSet, permissionsSets) {
         QHashIterator<QString, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {

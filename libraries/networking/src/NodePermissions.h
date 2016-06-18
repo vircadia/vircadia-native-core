@@ -24,13 +24,21 @@ using NodePermissionsPointer = std::shared_ptr<NodePermissions>;
 class NodePermissions {
 public:
     NodePermissions() { _id = QUuid::createUuid().toString(); }
-    NodePermissions(const QString& name) { _id = name; }
-    NodePermissions(QMap<QString, QVariant> perms);
+    NodePermissions(const QString& name) { _id = name.toLower(); }
+    NodePermissions(QMap<QString, QVariant> perms) {
+        _id = perms["permissions_id"].toString().toLower();
+        canConnectToDomain = perms["id_can_connect"].toBool();
+        canAdjustLocks = perms["id_can_adjust_locks"].toBool();
+        canRezPermanentEntities = perms["id_can_rez"].toBool();
+        canRezTemporaryEntities = perms["id_can_rez_tmp"].toBool();
+        canWriteToAssetServer = perms["id_can_write_to_asset_server"].toBool();
+        canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
+    }
 
     QString getID() const { return _id; }
 
     // the _id member isn't authenticated and _username is.
-    void setUserName(QString userName) { _userName = userName; }
+    void setUserName(QString userName) { _userName = userName.toLower(); }
     QString getUserName() { return _userName; }
 
     void setGroupID(QUuid groupID) { _groupID = groupID; _groupIDSet = true; }
@@ -69,6 +77,23 @@ protected:
     bool _groupIDSet { false };
     QUuid _groupID;
 };
+
+
+// wrap QHash in a class that forces all keys to be lowercase
+class NodePermissionsMap {
+public:
+    NodePermissionsMap() { }
+    NodePermissionsPointer& operator[](const QString& key) { return _data[key.toLower()]; }
+    NodePermissionsPointer operator[](const QString& key) const { return _data.value(key.toLower()); }
+    bool contains(const QString& key) const { return _data.contains(key.toLower()); }
+    QList<QString> keys() const { return _data.keys(); }
+    QHash<QString, NodePermissionsPointer> get() { return _data; }
+    void clear() { _data.clear(); }
+
+private:
+    QHash<QString, NodePermissionsPointer> _data;
+};
+
 
 const NodePermissions DEFAULT_AGENT_PERMISSIONS;
 

@@ -79,12 +79,11 @@ private:
     void requestMissingGroupIDs();
     void getGroupID(const QString& groupname);
 
-    void packPermissionsForMap(QString mapName, QHash<QString, NodePermissionsPointer> agentPermissions, QString keyPath);
+    void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
     void unpackPermissions();
-    QHash<QString, NodePermissionsPointer> _standardAgentPermissions; // anonymous, logged-in, localhost
-    QHash<QString, NodePermissionsPointer> _agentPermissions; // specific account-names
-    QHash<QString, NodePermissionsPointer> _groupPermissions; // groups
+    NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
+    NodePermissionsMap _agentPermissions; // specific account-names
 };
 
 #endif // hifi_DomainServerSettingsManager_h
