@@ -652,22 +652,33 @@ void AccountManager::processGeneratedKeypair() {
         const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
 
         QString uploadPath;
-        if (keypairGenerator->getDomainID().isNull()) {
+        const auto& domainID = keypairGenerator->getDomainID();
+        if (domainID.isNull()) {
             uploadPath = USER_PUBLIC_KEY_UPDATE_PATH;
         } else {
-            uploadPath = DOMAIN_PUBLIC_KEY_UPDATE_PATH.arg(uuidStringWithoutCurlyBraces(keypairGenerator->getDomainID()));
+            uploadPath = DOMAIN_PUBLIC_KEY_UPDATE_PATH.arg(uuidStringWithoutCurlyBraces(domainID));
         }
 
         // setup a multipart upload to send up the public key
         QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
 
-        QHttpPart keyPart;
-        keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-        keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                          QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
-        keyPart.setBody(keypairGenerator->getPublicKey());
+        QHttpPart publicKeyPart;
+        publicKeyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
 
-        requestMultiPart->append(keyPart);
+        publicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                          QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
+        publicKeyPart.setBody(keypairGenerator->getPublicKey());
+        requestMultiPart->append(publicKeyPart);
+
+        if (!domainID.isNull()) {
+            const auto& key = getTemporaryDomainKey(domainID);
+            QHttpPart apiKeyPart;
+            publicKeyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+            apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                              QVariant("form-data; name=\"api_key\""));
+            apiKeyPart.setBody(key.toUtf8());
+            requestMultiPart->append(apiKeyPart);
+        }
 
         // setup callback parameters so we know once the keypair upload has succeeded or failed
         JSONCallbackParameters callbackParameters;
