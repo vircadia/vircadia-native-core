@@ -617,7 +617,7 @@ function setupPlacesTable() {
     label: 'Places',
     html_id: Settings.PLACES_TABLE_ID,
     help: "The following places currently point to this domain.</br>To point places to this domain, "
-      + " go to the <a href='https://metaverse.highfidelity.com/user/places'>My Places</a> "
+      + " go to the <a href='" + Settings.METAVERSE_URL + "/user/places'>My Places</a> "
       + "page in your High Fidelity Metaverse account.",
     read_only: true,
     columns: [
@@ -759,7 +759,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://metaverse.highfidelity.com/user/domains", '_blank');
+            window.open(Settings.METAVERSE_URL + "/user/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." +
