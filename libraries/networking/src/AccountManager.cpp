@@ -471,6 +471,11 @@ void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken)
     persistAccountToFile();
 }
 
+void AccountManager::setTemporaryDomain(const QUuid& domainID, const QString& key) {
+    _accountInfo.setTemporaryDomain(domainID, key);
+    persistAccountToFile();
+}
+
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
