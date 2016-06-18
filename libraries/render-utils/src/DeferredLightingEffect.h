@@ -30,7 +30,8 @@
 class RenderArgs;
 struct LightLocations;
 using LightLocationsPtr = std::shared_ptr<LightLocations>;
-/// Handles deferred lighting for the bits that require it (voxels...)
+
+// THis is where we currently accumulate the local lights, let s change that sooner than later
 class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
@@ -45,8 +46,6 @@ public:
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
         float intensity = 0.5f, float falloffRadius = 0.01f,
         const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
-
-    void render(const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
 
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
@@ -99,7 +98,6 @@ private:
     std::vector<int> _spotLights;
     
     friend class RenderDeferredSetup;
-    friend class RenderDeferredGlobal;
     friend class RenderDeferredLocals;
     friend class RenderDeferredCleanup;
 };
@@ -114,13 +112,6 @@ public:
 class RenderDeferredSetup {
 public:
     using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
-    
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
-};
-
-class RenderDeferredGlobal {
-public:
-    using JobModel = render::Job::ModelI<RenderDeferredGlobal, DeferredFrameTransformPointer>;
     
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
 };
@@ -147,7 +138,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
     
     RenderDeferredSetup setupJob;
-    
+    RenderDeferredLocals lightsJob;
     RenderDeferredCleanup cleanupJob;
 };
 

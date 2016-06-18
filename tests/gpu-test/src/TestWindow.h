@@ -19,7 +19,7 @@
 #include <render/ShapePipeline.h>
 #include <render/Context.h>
 
-#define DEFERRED_LIGHTING
+//#define DEFERRED_LIGHTING
 
 class TestWindow : public QWindow {
 protected:

@@ -91,6 +91,9 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     Mat4 viewUntranslated = _view;
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
     _projectionViewUntranslated = _projection * viewUntranslated;
+
+    _stereoInfo = Vec4(0.0f);
+
     return *this;
 }
 
@@ -104,7 +107,9 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
     }
     result._projection = _stereo._eyeProjections[eye];
     result.recomputeDerived(offsetTransform);
- 
+
+    result._stereoInfo = Vec4(1.0f, (float) eye, 0.0f, 0.0f);
+
     return result;
 }
 
