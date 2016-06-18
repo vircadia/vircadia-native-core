@@ -722,7 +722,7 @@ void MyAvatar::saveData() {
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
-    settings.setValue("clearOverlayWhenDriving", _clearOverlayWhenDriving);
+    settings.setValue("clearOverlayWhenMoving", _clearOverlayWhenMoving);
 
     settings.endGroup();
 }
@@ -842,7 +842,7 @@ void MyAvatar::loadData() {
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
-    setClearOverlayWhenDriving(settings.value("clearOverlayWhenDriving", _clearOverlayWhenDriving).toBool());
+    setClearOverlayWhenMoving(settings.value("clearOverlayWhenMoving", _clearOverlayWhenMoving).toBool());
 
     settings.endGroup();
 
