@@ -94,10 +94,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
     
-    // update the metadata when a user (dis)connects
-    connect(this, &DomainServer::userConnected, &_metadata, &DomainMetadata::usersChanged);
-    connect(this, &DomainServer::userDisconnected, &_metadata, &DomainMetadata::usersChanged);
-
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
@@ -107,9 +103,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // if permissions are updated, relay the changes to the Node datastructures
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
-
-    // update the metadata with current descriptors
-    _metadata.setDescriptors(_settingsManager.getSettingsMap());
 
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
@@ -125,17 +118,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         _gatekeeper.preloadAllowedUserPublicKeys();
 
         optionallyGetTemporaryName(args);
-
-        // send metadata descriptors
-        QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(_metadata.getDescriptors()).toJson(QJsonDocument::Compact)));
-        const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
-        static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-        DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
-                AccountManagerAuth::Required,
-                QNetworkAccessManager::PutOperation,
-                JSONCallbackParameters(),
-                domainUpdateJSON.toUtf8());
     }
+
+    _metadata = new DomainMetadata(this);
 }
 
 DomainServer::~DomainServer() {
@@ -1111,14 +1096,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
     domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
 
-    // Add the metadata to the heartbeat
-    static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    auto tic = _metadata.getTic();
-    if (_metadataTic != tic) {
-        _metadataTic = tic;
-        _metadata.updateUsers();
+    if (_metadata) {
+        // Add the metadata to the heartbeat
+        static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+        domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata->get(DomainMetadata::USERS);
     }
-    domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata.getUsers();
 
     QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 

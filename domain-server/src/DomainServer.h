@@ -172,13 +172,12 @@ private:
 
     DomainServerSettingsManager _settingsManager;
 
-    DomainMetadata _metadata;
-    uint32_t _metadataTic{ 0 };
-
     HifiSockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
-    QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
+    // These will be parented to this, they are not dangling
+    DomainMetadata* _metadata { nullptr };
+    QTimer* _iceHeartbeatTimer { nullptr };
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
@@ -190,6 +189,7 @@ private:
     bool _hasAccessToken { false };
 
     friend class DomainGatekeeper;
+    friend class DomainMetadata;
 };
 
 
