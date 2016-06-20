@@ -125,6 +125,18 @@
             Entities.deleteEntity(this.arrow);
         },
 
+        startNearGrab:function(entityID, args){
+            _this.startEquip(entityID, args);
+        },
+
+        continueNearGrab:function(entityID, args){
+            _this.continueEquip(entityID, args);
+        },
+
+        releaseGrab:function(){
+            _this.releaseEquip();
+        },
+
         startEquip: function(entityID, args) {
             this.hand = args[0];
             avatarID = args[1];
@@ -137,6 +149,9 @@
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
             data.grabbable = false;
             setEntityCustomData('grabbableKey', this.entityID, data);
+            Entities.editEntity(_this.entityID, {
+                collidesWith: ""
+            })
 
         },
         continueEquip: function(entityID, args) {
@@ -181,6 +196,9 @@
             Entities.deleteEntity(this.arrow);
             this.aiming = false;
             this.hasArrowNotched = false;
+            Entities.editEntity(_this.entityID, {
+                collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar"
+            })
         },
 
         createArrow: function() {
