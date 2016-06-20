@@ -16,20 +16,67 @@ import "../styles-uit"
 
 Frame {
     HifiConstants { id: hifi }
+    property bool horizontalSpacers: false
+    property bool verticalSpacers: false
 
     Rectangle {
         // Dialog frame
         id: frameContent
         readonly property int frameMargin: 6
-        readonly property int frameMarginLeft: frameMargin
-        readonly property int frameMarginRight: frameMargin
-        readonly property int frameMarginTop: frameMargin
-        readonly property int frameMarginBottom: frameMargin
+        readonly property int frameMarginLeft: frameMargin + (horizontalSpacers ? 12 : 0)
+        readonly property int frameMarginRight: frameMargin + (horizontalSpacers ? 12 : 0)
+        readonly property int frameMarginTop: frameMargin + (verticalSpacers ? 12 : 0)
+        readonly property int frameMarginBottom: frameMargin + (verticalSpacers ? 12 : 0)
+
+        Rectangle {
+            visible: horizontalSpacers
+            anchors.left: parent.left
+            anchors.leftMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            width: 8
+            height: window.height
+            color: "gray";
+            radius: 4
+        }
+
+        Rectangle {
+            visible: horizontalSpacers
+            anchors.right: parent.right
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            width: 8
+            height: window.height
+            color: "gray";
+            radius: 4
+        }
+
+        Rectangle {
+            visible: verticalSpacers
+            anchors.top: parent.top
+            anchors.topMargin: 6
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: 8
+            width: window.width
+            color: "gray";
+            radius: 4
+        }
+
+        Rectangle {
+            visible: verticalSpacers
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 6
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: 8
+            width: window.width
+            color: "gray";
+            radius: 4
+        }
+
         anchors {
-            topMargin: -frameMargin
-            leftMargin: -frameMargin
-            rightMargin: -frameMargin
-            bottomMargin: -frameMargin
+            leftMargin: -frameMarginLeft
+            rightMargin: -frameMarginRight
+            topMargin: -frameMarginTop
+            bottomMargin: -frameMarginBottom
         }
         anchors.fill: parent
         color: hifi.colors.baseGrayHighlight40
