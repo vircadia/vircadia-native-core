@@ -141,6 +141,170 @@
               "can_set": true
             }
           ]
+        },
+        {
+          "name": "utc_offset",
+          "label": "Time Zone",
+          "help": "This server's time zone, used for searching open servers",
+          "type": "select",
+          "options": [
+            {
+              "value": "-12",
+              "label": "UTC-12:00"
+            },
+            {
+              "value": "-11",
+              "label": "UTC-11:00"
+            },
+            {
+              "value": "-10",
+              "label": "UTC-10:00"
+            },
+            {
+              "value": "-9.5",
+              "label": "UTC-09:30"
+            },
+            {
+              "value": "-9",
+              "label": "UTC-09:00"
+            },
+            {
+              "value": "-8",
+              "label": "UTC-08:00"
+            },
+            {
+              "value": "-7",
+              "label": "UTC-07:00"
+            },
+            {
+              "value": "-6",
+              "label": "UTC-06:00"
+            },
+            {
+              "value": "-5",
+              "label": "UTC-05:00"
+            },
+            {
+              "value": "-4",
+              "label": "UTC-04:00"
+            },
+            {
+              "value": "-3.5",
+              "label": "UTC-03:30"
+            },
+            {
+              "value": "-3",
+              "label": "UTC-03:00"
+            },
+            {
+              "value": "-2",
+              "label": "UTC-02:00"
+            },
+            {
+              "value": "-1",
+              "label": "UTC-01:00"
+            },
+            {
+              "value": "",
+              "label": "UTC±00:00"
+            },
+            {
+              "value": "1",
+              "label": "UTC+01:00"
+            },
+            {
+              "value": "2",
+              "label": "UTC+02:00"
+            },
+            {
+              "value": "3",
+              "label": "UTC+03:00"
+            },
+            {
+              "value": "3.5",
+              "label": "UTC+03:30"
+            },
+            {
+              "value": "4",
+              "label": "UTC+04:00"
+            },
+            {
+              "value": "4.5",
+              "label": "UTC+04:30"
+            },
+            {
+              "value": "5",
+              "label": "UTC+05:00"
+            },
+            {
+              "value": "5.5",
+              "label": "UTC+05:30"
+            },
+            {
+              "value": "5.75",
+              "label": "UTC+05:45"
+            },
+            {
+              "value": "6",
+              "label": "UTC+06:00"
+            },
+            {
+              "value": "6.5",
+              "label": "UTC+06:30"
+            },
+            {
+              "value": "7",
+              "label": "UTC+07:00"
+            },
+            {
+              "value": "8",
+              "label": "UTC+08:00"
+            },
+            {
+              "value": "8.5",
+              "label": "UTC+08:30"
+            },
+            {
+              "value": "8.75",
+              "label": "UTC+08:45"
+            },
+            {
+              "value": "9",
+              "label": "UTC+09:00"
+            },
+            {
+              "value": "9.5",
+              "label": "UTC+09:30"
+            },
+            {
+              "value": "10",
+              "label": "UTC+10:00"
+            },
+            {
+              "value": "10.5",
+              "label": "UTC+10:30"
+            },
+            {
+              "value": "11",
+              "label": "UTC+11:00"
+            },
+            {
+              "value": "12",
+              "label": "UTC+12:00"
+            },
+            {
+              "value": "12.75",
+              "label": "UTC+12:45"
+            },
+            {
+              "value": "13",
+              "label": "UTC+13:00"
+            },
+            {
+              "value": "14",
+              "label": "UTC+14:00"
+            }
+          ]
         }
       ]
     },
