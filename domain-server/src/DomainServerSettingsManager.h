@@ -43,10 +43,20 @@ public:
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
     bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
-    bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
     NodePermissions getStandardPermissionsForName(const QString& name) const;
+
+    bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
     NodePermissions getPermissionsForName(const QString& name) const;
     QStringList getAllNames() { return _agentPermissions.keys(); }
+
+    bool havePermissionsForGroup(const QString& groupname) const { return _groupPermissions.contains(groupname); }
+    NodePermissions getPermissionsForGroup(const QString& groupname) const;
+    NodePermissions getPermissionsForGroup(const QUuid& groupID) const;
+    QList<QUuid> getKnownGroupIDs() { return _groupByID.keys(); }
+
+    // these are used to locally cache the result of calling "api/v1/groups/%1/is_member/%2" on metaverse's api
+    void recordGroupMembership(const QString& name, const QUuid groupID, bool isMember);
+    bool isGroupMember(const QString& name, const QUuid& groupID);
 
 signals:
     void updateNodePermissions();
@@ -78,12 +88,16 @@ private:
 
     void requestMissingGroupIDs();
     void getGroupID(const QString& groupname);
+    NodePermissionsPointer lookupGroupByID(const QUuid& id);
 
     void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
     void unpackPermissions();
     NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
     NodePermissionsMap _agentPermissions; // specific account-names
+    NodePermissionsMap _groupPermissions; // permissions granted by membershipt to specific groups
+    QHash<QUuid, NodePermissionsPointer> _groupByID;
+    QHash<QString, QHash<QUuid, bool>> _groupMembership;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

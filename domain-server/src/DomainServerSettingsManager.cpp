@@ -379,6 +379,10 @@ void DomainServerSettingsManager::unpackPermissions() {
         } else {
             _groupPermissions[id] = perms;
         }
+        if (perms->isGroup()) {
+            // the group-id was cached.  hook-up the id in the id->group hash
+            _groupByID[perms->getGroupID()] = _groupPermissions[id];
+        }
     }
 
     // if any of the standard names are missing, add them
@@ -443,6 +447,26 @@ NodePermissions DomainServerSettingsManager::getPermissionsForName(const QString
     nullPermissions.setAll(false);
     return nullPermissions;
 }
+
+NodePermissions DomainServerSettingsManager::getPermissionsForGroup(const QString& groupname) const {
+    if (_groupPermissions.contains(groupname)) {
+        return *(_groupPermissions[groupname].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
+}
+
+NodePermissions DomainServerSettingsManager::getPermissionsForGroup(const QUuid& groupID) const {
+    if (!_groupByID.contains(groupID)) {
+        NodePermissions nullPermissions;
+        nullPermissions.setAll(false);
+        return nullPermissions;
+    }
+    QString groupName = _groupByID[groupID]->getID();
+    return getPermissionsForGroup(groupName);
+}
+
 
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
     const QVariant* foundValue = valueForKeyPath(_configMap.getMergedConfig(), keyPath);
@@ -865,7 +889,7 @@ void DomainServerSettingsManager::persistToFile() {
 }
 
 void DomainServerSettingsManager::requestMissingGroupIDs() {
-    QHashIterator<QString, NodePermissionsPointer> i(_groupPermissions);
+    QHashIterator<QString, NodePermissionsPointer> i(_groupPermissions.get());
     while (i.hasNext()) {
         i.next();
         NodePermissionsPointer perms = i.value();
@@ -877,6 +901,13 @@ void DomainServerSettingsManager::requestMissingGroupIDs() {
         // make a call to metaverse api to turn the group name into a group ID
         getGroupID(perms->getID());
     }
+}
+
+NodePermissionsPointer DomainServerSettingsManager::lookupGroupByID(const QUuid& id) {
+    if (_groupByID.contains(id)) {
+        return _groupByID[id];
+    }
+    return nullptr;
 }
 
 void DomainServerSettingsManager::getGroupID(const QString& groupname) {
@@ -905,6 +936,7 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
         if (_groupPermissions.contains(groupName)) {
             qDebug() << "ID for group:" << groupName << "is" << groupID;
             _groupPermissions[groupName]->setGroupID(groupID);
+            _groupByID[groupID] = _groupPermissions[groupName];
             packPermissions();
         } else {
             qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
@@ -916,4 +948,12 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
 
 void DomainServerSettingsManager::getGroupIDErrorCallback(QNetworkReply& requestReply) {
     qDebug() << "getGroupID api call failed:" << requestReply.error();
+}
+
+void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, bool isMember) {
+    _groupMembership[name][groupID] = isMember;
+}
+
+bool DomainServerSettingsManager::isGroupMember(const QString& name, const QUuid& groupID) {
+    return _groupMembership[name][groupID];
 }
