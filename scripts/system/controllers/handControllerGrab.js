@@ -37,6 +37,7 @@ var THUMB_ON_VALUE = 0.5;
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
 var PICK_WITH_HAND_RAY = true;
+var DROP_WITHOUT_SHAKE = false;
 
 //
 // distant manipulation
@@ -1589,7 +1590,7 @@ function MyController(hand) {
             print("handMove = " + this.fastHandMoveDetected + ", handIsUpsideDown = " + handIsUpsideDown);
         }
 
-        return this.fastHandMoveDetected && handIsUpsideDown;
+        return (DROP_WITHOUT_SHAKE || this.fastHandMoveDetected) && handIsUpsideDown;
     };
 
     this.nearGrabbingEnter = function() {
@@ -2170,6 +2171,24 @@ function cleanup() {
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
     Reticle.setVisible(true);
+    Menu.removeMenuItem("Developer > Hands", "Drop Without Shake");
 }
+
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+Menu.addMenuItem({
+    menuName: "Developer > Hands",
+    menuItemName: "Drop Without Shake",
+    isCheckable: true,
+    isChecked: DROP_WITHOUT_SHAKE
+});
+
+function handleMenuItemEvent(menuItem) {
+    if (menuItem === "Drop Without Shake") {
+        DROP_WITHOUT_SHAKE = Menu.isOptionChecked("Drop Without Shake");
+    }
+}
+
+Menu.menuItemEvent.connect(handleMenuItemEvent);
+
