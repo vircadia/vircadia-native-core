@@ -1711,7 +1711,7 @@ function MyController(hand) {
             return;
         }
 
-        if (this.state == STATE_HOLD && dropDetected && this.triggerSmoothedGrab()) {
+        if ((this.state == STATE_HOLD && dropDetected && this.triggerSmoothedGrab()) || this.thumbPressed()) {
             this.setState(STATE_OFF, "drop detected");
             this.callEntityMethodOnGrabbed("releaseEquip");
             return;
