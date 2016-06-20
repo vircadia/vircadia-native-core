@@ -60,7 +60,7 @@ protected:
     void sendDescriptors();
 
     QVariantMap _metadata;
-    uint32_t _lastTic{ -1 };
+    uint32_t _lastTic{ (uint32_t)-1 };
     uint32_t _tic{ 0 };
 };
 
