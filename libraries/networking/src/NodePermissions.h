@@ -25,15 +25,7 @@ class NodePermissions {
 public:
     NodePermissions() { _id = QUuid::createUuid().toString(); }
     NodePermissions(const QString& name) { _id = name.toLower(); }
-    NodePermissions(QMap<QString, QVariant> perms) {
-        _id = perms["permissions_id"].toString().toLower();
-        canConnectToDomain = perms["id_can_connect"].toBool();
-        canAdjustLocks = perms["id_can_adjust_locks"].toBool();
-        canRezPermanentEntities = perms["id_can_rez"].toBool();
-        canRezTemporaryEntities = perms["id_can_rez_tmp"].toBool();
-        canWriteToAssetServer = perms["id_can_write_to_asset_server"].toBool();
-        canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
-    }
+    NodePermissions(QMap<QString, QVariant> perms);
 
     QString getID() const { return _id; }
 
@@ -41,7 +33,7 @@ public:
     void setUserName(QString userName) { _userName = userName.toLower(); }
     QString getUserName() { return _userName; }
 
-    void setGroupID(QUuid groupID) { _groupID = groupID; _groupIDSet = true; }
+    void setGroupID(QUuid groupID) { _groupID = groupID; if (!groupID.isNull()) { _groupIDSet = true; } }
     QUuid getGroupID() { return _groupID; }
     bool isGroup() { return _groupIDSet; }
 
