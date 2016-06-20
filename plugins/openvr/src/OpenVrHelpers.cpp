@@ -34,6 +34,11 @@ using Lock = std::unique_lock<Mutex>;
 static int refCount { 0 };
 static Mutex mutex;
 static vr::IVRSystem* activeHmd { nullptr };
+static bool _openVrQuitRequested { false };
+
+bool openVrQuitRequested() {
+    return _openVrQuitRequested;
+}
 
 static const uint32_t RELEASE_OPENVR_HMD_DELAY_MS = 5000;
 
@@ -99,6 +104,7 @@ void releaseOpenVrSystem() {
                 qCDebug(displayplugins) << "OpenVR: zero refcount, deallocate VR system";
             #endif
             vr::VR_Shutdown();
+            _openVrQuitRequested = false;
             activeHmd = nullptr;
         }
     }
@@ -257,8 +263,8 @@ void handleOpenVrEvents() {
     while (activeHmd->PollNextEvent(&event, sizeof(event))) {
         switch (event.eventType) {
             case vr::VREvent_Quit:
+                _openVrQuitRequested = true;
                 activeHmd->AcknowledgeQuit_Exiting();
-                QMetaObject::invokeMethod(qApp, "quit");
                 break;
 
             case vr::VREvent_KeyboardDone: 
