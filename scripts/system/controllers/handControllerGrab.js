@@ -47,7 +47,6 @@ var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to thei
 var DISTANCE_HOLDING_UNITY_MASS = 1200;  //  The mass at which the distance holding action timeframe is unmodified
 var DISTANCE_HOLDING_UNITY_DISTANCE = 6;  //  The distance at which the distance holding action timeframe is unmodified
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
-var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
 
 var NO_INTERSECT_COLOR = {
     red: 10,
@@ -262,10 +261,10 @@ EntityPropertiesCache.prototype.clear = function() {
 };
 EntityPropertiesCache.prototype.findEntities = function(position, radius) {
     var entities = Entities.findEntities(position, radius);
-    var i, l = entities.length;
-    for (i = 0; i < l; i++) {
-        this.addEntity(entities[i]);
-    }
+    var _this = this;
+    entities.forEach(function (x) {
+        _this.addEntity(x);
+    });
 };
 EntityPropertiesCache.prototype.addEntity = function(entityID) {
     var props = Entities.getEntityProperties(entityID, GRABBABLE_PROPERTIES);
