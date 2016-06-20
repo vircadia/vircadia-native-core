@@ -133,8 +133,8 @@
             _this.continueEquip(entityID, args);
         },
 
-        releaseGrab:function(){
-            _this.releaseEquip();
+        releaseGrab:function(entityID, args){
+            _this.releaseEquip(entityID, args);
         },
 
         startEquip: function(entityID, args) {
