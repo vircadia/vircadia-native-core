@@ -204,4 +204,14 @@ void disableQtBearerPoll();
 
 void printSystemInformation();
 
+struct MemoryInfo {
+    uint64_t totalMemoryBytes;
+    uint64_t availMemoryBytes;
+    uint64_t usedMemoryBytes;
+    uint64_t processUsedMemoryBytes;
+    uint64_t processPeakUsedMemoryBytes;
+};
+
+bool getMemoryInfo(MemoryInfo& info);
+
 #endif // hifi_SharedUtil_h
