@@ -984,7 +984,7 @@ function MyController(hand) {
         var props = this.entityPropertyCache.getProps(entityID);
         var distance = Vec3.distance(props.position, handPosition);
         var grabProps = this.entityPropertyCache.getGrabProps(entityID);
-        var debug = true;//(WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
+        var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
         var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
         if (refCount > 0) {
