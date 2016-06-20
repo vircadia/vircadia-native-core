@@ -120,6 +120,45 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     }
 }
 
+NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
+                                                          NodePermissions userPerms, QString verifiedUsername) {
+    userPerms.setAll(false);
+
+    if (isLocalUser) {
+        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
+        qDebug() << "user-permissions: is local user, so:" << userPerms;
+    }
+
+    if (verifiedUsername.isEmpty()) {
+        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
+        qDebug() << "user-permissions: unverified or no username, so:" << userPerms;
+    } else {
+        userPerms.setUserName(verifiedUsername);
+        if (_server->_settingsManager.havePermissionsForName(verifiedUsername)) {
+            userPerms = _server->_settingsManager.getPermissionsForName(verifiedUsername);
+            qDebug() << "user-permissions: specific user matches, so:" << userPerms;
+        } else {
+            // they are logged into metaverse, but we don't have specific permissions for them.
+            userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
+            qDebug() << "user-permissions: user is logged-into metavers, so:" << userPerms;
+
+            // if this user is a known member of a group, give them the implied permissions
+            foreach (QUuid groupID, _server->_settingsManager.getKnownGroupIDs()) {
+                if (groupID.isNull()) {
+                    continue;
+                }
+                if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
+                    userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID);
+                    qDebug() << "user-permissions: user is in group:" << groupID << "so:" << userPerms;
+                }
+            }
+        }
+    }
+
+    qDebug() << "user-permissions: final:" << userPerms;
+    return userPerms;
+}
+
 void DomainGatekeeper::updateNodePermissions() {
     // If the permissions were changed on the domain-server webpage (and nothing else was), a restart isn't required --
     // we reprocess the permissions map and update the nodes here.  The node list is frequently sent out to all
@@ -129,6 +168,8 @@ void DomainGatekeeper::updateNodePermissions() {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     limitedNodeList->eachNode([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
+        // the id and the username in NodePermissions will often be the same, but id is set before
+        // authentication and username is only set once they user's key has been confirmed.
         QString username = node->getPermissions().getUserName();
         NodePermissions userPerms(username);
 
@@ -140,24 +181,10 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.canRezTemporaryEntities = true;
         } else {
             // this node is an agent
-            userPerms.setAll(false);
-
             const QHostAddress& addr = node->getLocalSocket().getAddress();
             bool isLocalUser = (addr == limitedNodeList->getLocalSockAddr().getAddress() ||
                                 addr == QHostAddress::LocalHost);
-            if (isLocalUser) {
-                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
-            }
-
-            if (username.isEmpty()) {
-                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
-            } else {
-                if (_server->_settingsManager.havePermissionsForName(username)) {
-                    userPerms = _server->_settingsManager.getPermissionsForName(username);
-                } else {
-                    userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-                }
-            }
+            userPerms = applyPermissionsForUser(isLocalUser, userPerms, username);
         }
 
         node->setPermissions(userPerms);
@@ -241,52 +268,28 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     QHostAddress senderHostAddress = nodeConnection.senderSockAddr.getAddress();
     bool isLocalUser =
         (senderHostAddress == limitedNodeList->getLocalSockAddr().getAddress() || senderHostAddress == QHostAddress::LocalHost);
-    if (isLocalUser) {
-        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLocalhost);
-        qDebug() << "user-permissions: is local user, so:" << userPerms;
-    }
 
     if (!username.isEmpty() && usernameSignature.isEmpty()) {
         // user is attempting to prove their identity to us, but we don't have enough information
         sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
         // ask for their public key right now to make sure we have it
         requestUserPublicKey(username);
-        if (!userPerms.canConnectToDomain) {
-            return SharedNodePointer();
-        }
+        return SharedNodePointer();
     }
 
-    if (username.isEmpty()) {
-        // they didn't tell us who they are
-        userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous);
-        qDebug() << "user-permissions: no username, so:" << userPerms;
-    } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
+    QString verifiedUsername;
+    if (!username.isEmpty() && verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
         // they are sent us a username and the signature verifies it
-
-
-        // TODO check groups here
-
-
-        if (_server->_settingsManager.havePermissionsForName(username)) {
-            // we have specific permissions for this user.  Discard any other permissions and set this
-            // agent's permissions to be exactly what's indicated on their row of the permissions-grid.
-            userPerms = _server->_settingsManager.getPermissionsForName(username);
-            qDebug() << "user-permissions: specific user matches, so:" << userPerms;
-        } else {
-            // they are logged into metaverse, but we don't have specific permissions for them.
-            userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-            qDebug() << "user-permissions: user is logged in, so:" << userPerms;
-        }
         userPerms.setUserName(username);
-    } else {
+        verifiedUsername = username;
+        getGroupMemberships(username);
+    } else if (!username.isEmpty()) {
         // they sent us a username, but it didn't check out
         requestUserPublicKey(username);
-        if (!userPerms.canConnectToDomain) {
-            return SharedNodePointer();
-        }
+        return SharedNodePointer();
     }
 
-    qDebug() << "user-permissions: final:" << userPerms;
+    userPerms = applyPermissionsForUser(isLocalUser, userPerms, verifiedUsername);
 
     if (!userPerms.canConnectToDomain) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
@@ -650,4 +653,46 @@ void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage>
         // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
         sendingPeer->activateMatchingOrNewSymmetricSocket(message->getSenderSockAddr());
     }
+}
+
+void DomainGatekeeper::getGroupMemberships(const QString& username) {
+    // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
+    // will be received asynchronously and permissions will be updated as the answers come in.
+    QList<QUuid> groupIDs = _server->_settingsManager.getKnownGroupIDs();
+    foreach (QUuid groupID, groupIDs) {
+        if (groupID.isNull()) {
+            continue;
+        }
+        getIsGroupMember(username, groupID);
+    }
+}
+
+void DomainGatekeeper::getIsGroupMember(const QString& username, const QUuid groupID) {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
+
+    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/is_member/%2";
+    QString groupIDStr = groupID.toString().mid(1,36);
+    DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(groupIDStr).arg(username),
+                                                          AccountManagerAuth::None,
+                                                          QNetworkAccessManager::GetOperation, callbackParams);
+}
+
+void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    if (jsonObject["status"].toString() == "success") {
+        QString username = jsonObject["username"].toString();
+        QUuid groupID = QUuid(jsonObject["group_id"].toString());
+        bool isMember = jsonObject["is_member"].toBool();
+        _server->_settingsManager.recordGroupMembership(username, groupID, isMember);
+    } else {
+        qDebug() << "getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+    }
+}
+
+void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "getGroupID api call failed:" << requestReply.error();
 }
