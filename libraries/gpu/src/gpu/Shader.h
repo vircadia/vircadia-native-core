@@ -185,7 +185,7 @@ protected:
     Type _type;
 
     // Whether or not the shader compilation failed
-    mutable bool _compilationHasFailed { false };
+    bool _compilationHasFailed { false };
 };
 
 typedef Shader::Pointer ShaderPointer;
