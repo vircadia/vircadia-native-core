@@ -916,11 +916,11 @@ function MyController(hand) {
         this.equipHotspotOverlays = [];
     };
 
-    /**
-     * Performs ray pick test from the hand controller into the world
-     * @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
-     * @returns {object} returns object with two keys entityID and distance
-     */
+    ///
+    // Performs ray pick test from the hand controller into the world
+    // @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
+    // @returns {object} returns object with two keys entityID and distance
+    //
     this.calcRayPickInfo = function(hand) {
 
         var pose = Controller.getPoseValue((hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand);
@@ -1365,14 +1365,12 @@ function MyController(hand) {
         var handMoved = Vec3.multiply(Vec3.subtract(controllerPositionVSAvatar, this.previousControllerPositionVSAvatar),
                                       radius);
 
-        // double delta controller rotation
-        /*
-        var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-        var handChange = Quat.multiply(Quat.slerp(this.previousControllerRotation,
-                                                  controllerRotation,
-                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-                                       Quat.inverse(this.previousControllerRotation));
-        */
+        /// double delta controller rotation
+        // var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
+        // var handChange = Quat.multiply(Quat.slerp(this.previousControllerRotation,
+        //                                           controllerRotation,
+        //                                           DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+        //                                Quat.inverse(this.previousControllerRotation));
 
         // update the currentObject position and rotation.
         this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
@@ -1426,28 +1424,26 @@ function MyController(hand) {
             }
         }
 
-        /*
-        var defaultConstraintData = {
-            axisStart: false,
-            axisEnd: false
-        }
-
-        var constraintData = getEntityCustomData('lightModifierKey', this.grabbedEntity, defaultConstraintData);
-        var clampedVector;
-        var targetPosition;
-        if (constraintData.axisStart !== false) {
-            clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition,
-                                                        constraintData.axisStart,
-                                                        constraintData.axisEnd);
-            targetPosition = clampedVector;
-        } else {
-            targetPosition = {
-                x: this.currentObjectPosition.x,
-                y: this.currentObjectPosition.y,
-                z: this.currentObjectPosition.z
-            }
-        }
-        */
+        // var defaultConstraintData = {
+        //     axisStart: false,
+        //     axisEnd: false
+        // }
+        //
+        // var constraintData = getEntityCustomData('lightModifierKey', this.grabbedEntity, defaultConstraintData);
+        // var clampedVector;
+        // var targetPosition;
+        // if (constraintData.axisStart !== false) {
+        //     clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition,
+        //                                                 constraintData.axisStart,
+        //                                                 constraintData.axisEnd);
+        //     targetPosition = clampedVector;
+        // } else {
+        //     targetPosition = {
+        //         x: this.currentObjectPosition.x,
+        //         y: this.currentObjectPosition.y,
+        //         z: this.currentObjectPosition.z
+        //     }
+        // }
 
         var handPosition = this.getHandPosition();
 
