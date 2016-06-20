@@ -24,9 +24,9 @@ using NodePermissionsPointer = std::shared_ptr<NodePermissions>;
 class NodePermissions {
 public:
     NodePermissions() { _id = QUuid::createUuid().toString(); }
-    NodePermissions(const QString& name) { _id = name; }
+    NodePermissions(const QString& name) { _id = name.toLower(); }
     NodePermissions(QMap<QString, QVariant> perms) {
-        _id = perms["permissions_id"].toString();
+        _id = perms["permissions_id"].toString().toLower();
         canConnectToDomain = perms["id_can_connect"].toBool();
         canAdjustLocks = perms["id_can_adjust_locks"].toBool();
         canRezPermanentEntities = perms["id_can_rez"].toBool();
@@ -38,7 +38,7 @@ public:
     QString getID() const { return _id; }
 
     // the _id member isn't authenticated and _username is.
-    void setUserName(QString userName) { _userName = userName; }
+    void setUserName(QString userName) { _userName = userName.toLower(); }
     QString getUserName() { return _userName; }
 
     bool isAssignment { false };
@@ -87,6 +87,23 @@ protected:
     QString _id;
     QString _userName;
 };
+
+
+// wrap QHash in a class that forces all keys to be lowercase
+class NodePermissionsMap {
+public:
+    NodePermissionsMap() { }
+    NodePermissionsPointer& operator[](const QString& key) { return _data[key.toLower()]; }
+    NodePermissionsPointer operator[](const QString& key) const { return _data.value(key.toLower()); }
+    bool contains(const QString& key) const { return _data.contains(key.toLower()); }
+    QList<QString> keys() const { return _data.keys(); }
+    QHash<QString, NodePermissionsPointer> get() { return _data; }
+    void clear() { _data.clear(); }
+
+private:
+    QHash<QString, NodePermissionsPointer> _data;
+};
+
 
 const NodePermissions DEFAULT_AGENT_PERMISSIONS;
 
