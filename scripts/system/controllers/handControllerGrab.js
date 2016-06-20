@@ -935,9 +935,11 @@ function MyController(hand) {
             length: PICK_MAX_DISTANCE
         };
 
-        var result = { entityID: null,
-                       searchRay: pickRay,
-                       distance: PICK_MAX_DISTANCE };
+        var result = {
+            entityID: null,
+            searchRay: pickRay,
+            distance: PICK_MAX_DISTANCE
+        };
 
         var now = Date.now();
         if (now - this.lastPickTime < MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
