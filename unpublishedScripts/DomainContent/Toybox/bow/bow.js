@@ -125,15 +125,15 @@
             Entities.deleteEntity(this.arrow);
         },
 
-        startNearGrab:function(entityID, args){
+        startNearGrab: function(entityID, args) {
             _this.startEquip(entityID, args);
         },
 
-        continueNearGrab:function(entityID, args){
+        continueNearGrab: function(entityID, args) {
             _this.continueEquip(entityID, args);
         },
 
-        releaseGrab:function(entityID, args){
+        releaseGrab: function(entityID, args) {
             _this.releaseEquip(entityID, args);
         },
 
@@ -484,7 +484,7 @@
                 Entities.editEntity(this.arrow, arrowProperties);
                 this.playShootArrowSound();
 
-                var whichHand = this.hand==='left' ? 0 :1;
+                var whichHand = this.hand === 'left' ? 0 : 1;
                 Controller.triggerShortHapticPulse(whichHand, 2);
 
                 //clear the strings back to only the single straight one
