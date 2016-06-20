@@ -1697,10 +1697,18 @@ function MyController(hand) {
             return;
         }
 
-        if ((this.state == STATE_HOLD && dropDetected && this.triggerSmoothedGrab()) || this.thumbPressed()) {
-            this.setState(STATE_OFF, "drop detected");
-            this.callEntityMethodOnGrabbed("releaseEquip");
-            return;
+        if (this.state == STATE_HOLD) {
+            if (dropDetected && this.triggerSmoothedGrab()) {
+                this.setState(STATE_OFF, "drop gesture detected");
+                this.callEntityMethodOnGrabbed("releaseEquip");
+                return;
+            }
+
+            if (this.thumbPressed()) {
+                this.setState(STATE_OFF, "drop via thumb press");
+                this.callEntityMethodOnGrabbed("releaseEquip");
+                return;
+            }
         }
 
         this.heartBeat(this.grabbedEntity);
