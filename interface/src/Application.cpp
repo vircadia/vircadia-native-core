@@ -5266,6 +5266,11 @@ void Application::updateDisplayMode() {
         return;
     }
 
+    UserActivityLogger::getInstance().logAction("changed_display_mode", {
+        { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
+        { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
+    });
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // Make the switch atomic from the perspective of other threads
