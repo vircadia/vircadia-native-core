@@ -51,7 +51,10 @@ public slots:
     void processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message);
 
     void publicKeyJSONCallback(QNetworkReply& requestReply);
-    
+
+    void getIsGroupMemberJSONCallback(QNetworkReply& requestReply);
+    void getIsGroupMemberErrorCallback(QNetworkReply& requestReply);
+
 signals:
     void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);
@@ -93,6 +96,10 @@ private:
     
     QHash<QString, QUuid> _connectionTokenHash;
     QHash<QString, QByteArray> _userPublicKeys;
+
+    NodePermissions applyPermissionsForUser(bool isLocalUser, NodePermissions userPerms, QString verifiedUsername);
+    void getGroupMemberships(const QString& username);
+    void getIsGroupMember(const QString& username, const QUuid groupID);
 };
 
 
