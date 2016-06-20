@@ -479,9 +479,13 @@
                     // rotation: arrowProps.rotation
                 };
 
+
                 //actually shoot the arrow and play its sound
                 Entities.editEntity(this.arrow, arrowProperties);
                 this.playShootArrowSound();
+
+                var whichHand = this.hand==='left' ? 0 :1;
+                Controller.triggerShortHapticPulse(whichHand, 2);
 
                 //clear the strings back to only the single straight one
                 this.deleteStrings();
