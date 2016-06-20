@@ -253,17 +253,6 @@ function restore2DMode() {
     }
 }
 
-function filter(array, predicate) {
-    var i, l = array.length;
-    var result = [];
-    for (i = 0; i < l; i++) {
-        if (predicate(array[i])) {
-            result.push(array[i]);
-        }
-    }
-    return result;
-}
-
 // constructor
 function EntityPropertiesCache() {
     this.cache = {};
@@ -1164,7 +1153,7 @@ function MyController(hand) {
         this.entityPropertyCache.findEntities(handPosition, GRAB_RADIUS);
         var candidateEntities = this.entityPropertyCache.getEntities();
 
-        var equippableEntities = filter(candidateEntities, function (entity) {
+        var equippableEntities = candidateEntities.filter(function (entity) {
             return _this.entityIsEquippable(entity, handPosition);
         });
 
@@ -1193,7 +1182,7 @@ function MyController(hand) {
             this.entityPropertyCache.addEntity(rayPickInfo.entityID);
         }
 
-        var grabbableEntities = filter(candidateEntities, function (entity) {
+        var grabbableEntities = candidateEntities.filter(function (entity) {
             return _this.entityIsNearGrabbable(entity, handPosition);
         });
 
