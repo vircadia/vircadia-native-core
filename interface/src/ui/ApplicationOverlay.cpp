@@ -166,13 +166,11 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         batch.setViewTransform(Transform());
         
         float screenRatio = ((float)qApp->getDevicePixelRatio());
-        float renderRatio = ((float)screenRatio * qApp->getRenderResolutionScale());
+        float renderRatio = ((float)qApp->getRenderResolutionScale());
         
         auto viewport = qApp->getMirrorViewRect();
-        glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());
-        glm::vec2 topRight(viewport.left() + viewport.width(), viewport.top());
-        bottomLeft *= screenRatio;
-        topRight *= screenRatio;
+        glm::vec2 bottomLeft(viewport.left(), viewport.top() + screenRatio * viewport.height());
+        glm::vec2 topRight(viewport.left() + screenRatio * viewport.width(), viewport.top());
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
         glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
 
