@@ -775,7 +775,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         { "os_version", QSysInfo::productVersion() },
         { "gpu_name", gpuIdent->getName() },
         { "gpu_driver", gpuIdent->getDriver() },
-        { "gpu_memory", QJsonValue(static_cast<qint64>(gpuIdent->getMemory())) },
+        { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
         { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
         { "gl_version", glContextData["version"] },
         { "gl_vender", glContextData["vendor"] },
@@ -1100,9 +1100,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         QJsonObject properties = {};
         MemoryInfo memInfo;
         if (getMemoryInfo(memInfo)) {
-            properties["system_memory_total"] = static_cast<int64_t>(memInfo.totalMemoryBytes);
-            properties["system_memory_used"] = static_cast<int64_t>(memInfo.usedMemoryBytes);
-            properties["process_memory_used"] = static_cast<int64_t>(memInfo.processUsedMemoryBytes);
+            properties["system_memory_total"] = static_cast<qint64>(memInfo.totalMemoryBytes);
+            properties["system_memory_used"] = static_cast<qint64>(memInfo.usedMemoryBytes);
+            properties["process_memory_used"] = static_cast<qint64>(memInfo.processUsedMemoryBytes);
         }
 
         auto displayPlugin = qApp->getActiveDisplayPlugin();
