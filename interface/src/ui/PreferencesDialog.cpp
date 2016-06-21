@@ -62,9 +62,9 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap turn when in HMD", getter, setter));
     }
     {
-        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenDriving(); };
-        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenDriving(value); };
-        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when driving", getter, setter));
+        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenMoving(); };
+        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };

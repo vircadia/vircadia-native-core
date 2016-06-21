@@ -124,7 +124,7 @@ void OverlayConductor::update(float dt) {
             _flags &= ~SuppressedByDrive;
         }
     } else {
-        if (myAvatar->getClearOverlayWhenDriving() && drivingChanged && isDriving) {
+        if (myAvatar->getClearOverlayWhenMoving() && drivingChanged && isDriving) {
             _flags |= SuppressedByDrive;
         }
     }
