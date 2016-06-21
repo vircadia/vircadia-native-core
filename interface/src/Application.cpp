@@ -775,7 +775,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         { "os_version", QSysInfo::productVersion() },
         { "gpu_name", gpuIdent->getName() },
         { "gpu_driver", gpuIdent->getDriver() },
-        { "gpu_memory", QJsonValue(static_cast<int64_t>(gpuIdent->getMemory())) },
+        { "gpu_memory", QJsonValue(static_cast<qint64>(gpuIdent->getMemory())) },
         { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
         { "gl_version", glContextData["version"] },
         { "gl_vender", glContextData["vendor"] },
