@@ -24,8 +24,15 @@ GLPipeline* GLPipeline::sync(const Pipeline& pipeline) {
 
     // No object allocated yet, let's see if it's worth it...
     ShaderPointer shader = pipeline.getProgram();
+
+    // If this pipeline's shader has already failed to compile, don't try again
+    if (shader->compilationHasFailed()) {
+        return nullptr;
+    }
+
     GLShader* programObject = GLShader::sync(*shader);
     if (programObject == nullptr) {
+        shader->setCompilationHasFailed(true);
         return nullptr;
     }
 
