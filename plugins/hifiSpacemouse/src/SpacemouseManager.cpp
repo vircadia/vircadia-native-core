@@ -59,7 +59,6 @@ bool SpacemouseManager::activate() {
     if (instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         userInputMapper->registerDevice(instance);
-        UserActivityLogger::getInstance().connectedDevice("controller", NAME);
     }
     return true;
 }
@@ -330,7 +329,6 @@ bool SpacemouseManager::RawInputEventFilter(void* msg, long* result) {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     if (Is3dmouseAttached() && instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
         userInputMapper->registerDevice(instance);
-        UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
     }
     else if (!Is3dmouseAttached() && instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
         userInputMapper->removeDevice(instance->getDeviceID());
