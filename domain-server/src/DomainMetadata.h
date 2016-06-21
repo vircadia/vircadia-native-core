@@ -45,6 +45,8 @@ public:
             static const QString WEEKDAY;
             static const QString WEEKEND;
             static const QString UTC_OFFSET;
+            static const QString OPEN;
+            static const QString CLOSE;
         };
     };
 

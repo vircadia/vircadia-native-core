@@ -243,6 +243,16 @@ $(document).ready(function(){
     }
   });
 
+  $('#' + Settings.FORM_ID).on('change', 'input.table-time', function() {
+    // Bootstrap switches in table: set the changed data attribute for all rows in table.
+    var row = $(this).closest('tr');
+    if (row.hasClass("value-row")) {  // Don't set attribute on input row switches prior to it being added to table.
+      row.find('td.' + Settings.DATA_COL_CLASS + ' input').attr('data-changed', true);
+      updateDataChangedForSiblingRows(row, true);
+      badgeSidebarForDifferences($(this));
+    }
+  });
+
   $('.advanced-toggle').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
     var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
@@ -1009,7 +1019,7 @@ function makeTable(setting, keypath, setting_value, isLocked) {
                   + "name='" + colName + "'" + (colValue ? " checked" : "") + " /></td>";
         } else if (isArray && col.type === "time" && col.editable) {
           html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-                  + "<input type='time' class='form-control table-time " + Settings.TRIGGER_CHANGE_CLASS + "' "
+                  + "<input type='time' class='form-control table-time' "
                   + "name='" + colName + "' value='" + (colValue || col.default || "00:00") + "' /></td>";
         } else {
           // Use a hidden input so that the values are posted.

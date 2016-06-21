@@ -271,10 +271,8 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             QVariant* weekendHours = valueForKeyPath(_configMap.getUserConfig(), WEEKEND_HOURS, true);
             QVariant* utcOffset = valueForKeyPath(_configMap.getUserConfig(), UTC_OFFSET, true);
 
-
-            QVariantList allHours { QVariantMap{ { "open", QVariant("00:00") }, { "close", QVariant("23:59") } } };
-            *weekdayHours = allHours;
-            *weekendHours = allHours;
+            *weekdayHours = QVariantList { QVariantMap{ { "open", QVariant("00:00") }, { "close", QVariant("23:59") } } };
+            *weekendHours = QVariantList { QVariantMap{ { "open", QVariant("00:00") }, { "close", QVariant("23:59") } } };
             *utcOffset = QVariant(QTimeZone::systemTimeZone().offsetFromUtc(QDateTime::currentDateTime()) / (float)3600);
 
             // write the new settings to file

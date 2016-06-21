@@ -39,6 +39,8 @@ const QString DomainMetadata::Descriptors::HOURS = "hours";
 const QString DomainMetadata::Descriptors::Hours::WEEKDAY = "weekday";
 const QString DomainMetadata::Descriptors::Hours::WEEKEND = "weekend";
 const QString DomainMetadata::Descriptors::Hours::UTC_OFFSET = "utc_offset";
+const QString DomainMetadata::Descriptors::Hours::OPEN = "open";
+const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 // descriptors metadata will appear as (JSON):
 // { "description": String, // capped description
 //   "capacity": Number,
@@ -59,8 +61,13 @@ const QString DomainMetadata::Descriptors::Hours::UTC_OFFSET = "utc_offset";
 // it is meant to be sent to and consumed by an external API
 
 DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
-    _metadata[USERS] = {};
-    _metadata[DESCRIPTORS] = {};
+    _metadata[USERS] = QVariantMap {};
+    _metadata[DESCRIPTORS] = QVariantMap {
+        { Descriptors::HOURS, QVariantMap {
+            { Descriptors::Hours::WEEKDAY, QVariantList() },
+            { Descriptors::Hours::WEEKEND, QVariantList() }
+        } }
+    };
 
     assert(dynamic_cast<DomainServer*>(domainServer));
     DomainServer* server = static_cast<DomainServer*>(domainServer);
@@ -87,10 +94,38 @@ QJsonObject DomainMetadata::get(const QString& group) {
     return QJsonObject::fromVariantMap(_metadata[group].toMap());
 }
 
+QVariant parseHours(QVariant base, QVariant delta) {
+    using Hours = DomainMetadata::Descriptors::Hours;
+
+    auto& baseList = base.toList();
+    auto& deltaList = delta.toList();
+    if (baseList.isEmpty() || !baseList.length()) {
+        return delta;
+    } else if (deltaList.isEmpty() || !deltaList.length()) {
+        return base;
+    }
+
+    auto& baseMap = baseList[0].toMap();
+    auto& deltaMap = deltaList[0].toMap();
+    if (baseMap.isEmpty()) {
+        return delta;
+    } else if (deltaMap.isEmpty()) {
+        return base;
+    }
+
+    // merge delta into base
+    // hours should be of the form [ { open: Time, close: Time } ], so one level is sufficient
+    foreach(auto key, baseMap.keys()) {
+        deltaMap[key] = baseMap[key];
+    }
+
+    return base;
+}
+
 void DomainMetadata::descriptorsChanged() {
     // get descriptors
     auto settings = static_cast<DomainServer*>(parent())->_settingsManager.getSettingsMap();
-    auto descriptors = settings[DESCRIPTORS].toMap();
+    auto& descriptors = settings[DESCRIPTORS].toMap();
 
     // parse capacity
     const QString CAPACITY = "security.maximum_user_capacity";
@@ -100,20 +135,21 @@ void DomainMetadata::descriptorsChanged() {
 
     // parse operating hours
     const QString WEEKDAY_HOURS = "weekday_hours";
-    const QString WEEKEND_HOURS = "weekday_hours";
+    const QString WEEKEND_HOURS = "weekend_hours";
     const QString UTC_OFFSET = "utc_offset";
-    auto weekdayHours = descriptors[WEEKDAY_HOURS];
-    auto weekendHours = descriptors[WEEKEND_HOURS];
+    auto& hours = _metadata[DESCRIPTORS].toMap()[Descriptors::HOURS].toMap();
+    assert(!hours.isEmpty());
+    auto weekdayHours = parseHours(hours[Descriptors::Hours::WEEKDAY], descriptors[WEEKDAY_HOURS]);
+    auto weekendHours = parseHours(hours[Descriptors::Hours::WEEKEND], descriptors[WEEKEND_HOURS]);
     auto utcOffset = descriptors[UTC_OFFSET];
     descriptors.remove(WEEKDAY_HOURS);
     descriptors.remove(WEEKEND_HOURS);
     descriptors.remove(UTC_OFFSET);
-    QVariantMap hours {
+    descriptors[Descriptors::HOURS] = QVariantMap {
         { Descriptors::Hours::UTC_OFFSET, utcOffset },
         { Descriptors::Hours::WEEKDAY, weekdayHours },
         { Descriptors::Hours::WEEKEND, weekendHours }
     };
-    descriptors[Descriptors::HOURS] = hours;
 
     // update metadata
     _metadata[DESCRIPTORS] = descriptors;
@@ -150,9 +186,8 @@ void DomainMetadata::securityChanged(bool send) {
         restriction = RESTRICTION_ACL;
     }
 
-    auto descriptors = _metadata[DESCRIPTORS].toMap();
+    auto& descriptors = _metadata[DESCRIPTORS].toMap();
     descriptors[Descriptors::RESTRICTION] = restriction;
-    _metadata[DESCRIPTORS] = descriptors;
 
 #if DEV_BUILD || PR_BUILD
     qDebug() << "Domain metadata restriction set:" << restriction;
