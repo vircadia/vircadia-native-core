@@ -1334,8 +1334,8 @@ function MyController(hand) {
 
     this.distanceHolding = function() {
         if (this.triggerSmoothedReleased()) {
-            this.setState(STATE_OFF, "trigger released");
             this.callEntityMethodOnGrabbed("releaseGrab");
+            this.setState(STATE_OFF, "trigger released");
             return;
         }
 
@@ -1693,21 +1693,21 @@ function MyController(hand) {
         var dropDetected = this.dropGestureProcess(deltaTime);
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
-            this.setState(STATE_OFF, "trigger released");
             this.callEntityMethodOnGrabbed("releaseGrab");
+            this.setState(STATE_OFF, "trigger released");
             return;
         }
 
         if (this.state == STATE_HOLD) {
             if (dropDetected && this.triggerSmoothedGrab()) {
-                this.setState(STATE_OFF, "drop gesture detected");
                 this.callEntityMethodOnGrabbed("releaseEquip");
+                this.setState(STATE_OFF, "drop gesture detected");
                 return;
             }
 
             if (this.thumbPressed()) {
-                this.setState(STATE_OFF, "drop via thumb press");
                 this.callEntityMethodOnGrabbed("releaseEquip");
+                this.setState(STATE_OFF, "drop via thumb press");
                 return;
             }
         }
@@ -1717,8 +1717,8 @@ function MyController(hand) {
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position", "rotation"]);
         if (!props.position) {
             // server may have reset, taking our equipped entity with it.  move back to "off" stte
-            this.setState(STATE_OFF, "entity has no position property");
             this.callEntityMethodOnGrabbed("releaseGrab");
+            this.setState(STATE_OFF, "entity has no position property");
             return;
         }
 
@@ -1737,12 +1737,13 @@ function MyController(hand) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
                           props.parentID + " " + vec3toStr(props.position));
-                    this.setState(STATE_OFF, "held object too far away");
+
                     if (this.state == STATE_NEAR_GRABBING) {
                         this.callEntityMethodOnGrabbed("releaseGrab");
                     } else { // this.state == STATE_HOLD
                         this.callEntityMethodOnGrabbed("releaseEquip");
                     }
+                    this.setState(STATE_OFF, "held object too far away");
                     return;
                 }
             }
@@ -1815,8 +1816,8 @@ function MyController(hand) {
 
     this.nearTrigger = function() {
         if (this.triggerSmoothedReleased()) {
-            this.setState(STATE_OFF, "trigger released");
             this.callEntityMethodOnGrabbed("stopNearTrigger");
+            this.setState(STATE_OFF, "trigger released");
             return;
         }
         this.callEntityMethodOnGrabbed("continueNearTrigger");
@@ -1824,8 +1825,8 @@ function MyController(hand) {
 
     this.farTrigger = function() {
         if (this.triggerSmoothedReleased()) {
-            this.setState(STATE_OFF, "trigger released");
             this.callEntityMethodOnGrabbed("stopFarTrigger");
+            this.setState(STATE_OFF, "trigger released");
             return;
         }
 
@@ -1841,8 +1842,8 @@ function MyController(hand) {
             if (intersection.accurate) {
                 this.lastPickTime = now;
                 if (intersection.entityID != this.grabbedEntity) {
-                    this.setState(STATE_OFF, "laser moved off of entity");
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
+                    this.setState(STATE_OFF, "laser moved off of entity");
                     return;
                 }
                 if (intersection.intersects) {
