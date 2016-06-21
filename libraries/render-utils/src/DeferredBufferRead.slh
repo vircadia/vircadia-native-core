@@ -111,4 +111,24 @@ DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform
 }
 
 
+
+<@func declareDeferredCurvature()@>
+
+// the curvature texture
+uniform sampler2D curvatureMap;
+
+vec4 fetchCurvature(vec2 texcoord) {
+    return texture(curvatureMap, texcoord);
+}
+
+// the curvature texture
+uniform sampler2D diffusedCurvatureMap;
+
+vec4 fetchDiffusedCurvature(vec2 texcoord) {
+    return texture(diffusedCurvatureMap, texcoord);
+}
+
+
+<@endfunc@>
+
 <@endif@>

@@ -41,13 +41,14 @@
 using namespace render;
 
 struct LightLocations {
-    int radius;
-    int ambientSphere;
-    int lightBufferUnit;
-    int sphereParam;
-    int coneParam;
-    int deferredFrameTransformBuffer;
-    int shadowTransformBuffer;
+    int radius{ -1 };
+    int ambientSphere{ -1 };
+    int lightBufferUnit{ -1 };
+    int sphereParam{ -1 };
+    int coneParam{ -1 };
+    int deferredFrameTransformBuffer{ -1 };
+    int subsurfaceScatteringParametersBuffer{ -1 };
+    int shadowTransformBuffer{ -1 };
 };
 
 enum DeferredShader_MapSlot {
@@ -58,10 +59,14 @@ enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
     SHADOW_MAP_UNIT = 5,
     SKYBOX_MAP_UNIT = 6,
+    DEFERRED_BUFFER_CURVATURE_UNIT,
+    DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
+    SCATTERING_LUT_UNIT,
 };
 enum DeferredShader_BufferSlot {
-    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 2,
-    LIGHT_GPU_SLOT = 3,
+    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    SCATTERING_PARAMETERS_BUFFER_SLOT,
+    LIGHT_GPU_SLOT,
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -167,7 +172,13 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
+    slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), DEFERRED_BUFFER_CURVATURE_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SCATTERING_LUT_UNIT));
+
+
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -180,6 +191,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations->deferredFrameTransformBuffer = program->getBuffers().findLocation("deferredFrameTransformBuffer");
+    locations->subsurfaceScatteringParametersBuffer = program->getBuffers().findLocation("subsurfaceScatteringParametersBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
@@ -338,7 +350,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 
-void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
+void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -372,59 +384,68 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
             // need to assign the white texture if ao is off
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
         }
-        
-        assert(deferredLightingEffect->getLightStage().lights.size() > 0);
-        const auto& globalShadow = deferredLightingEffect->getLightStage().lights[0]->shadow;
-        
-        // Bind the shadow buffer
-        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
 
+        // The Deferred Frame Transform buffer
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, frameTransform->getFrameTransformBuffer());
+
+        // Subsurface scattering specific
+        batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, framebufferCache->getCurvatureTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, framebufferCache->getCurvatureTexture());
+
+        batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
+
+
+        batch.setResourceTexture(SCATTERING_LUT_UNIT, subsurfaceScatteringResource->getScatteringTable());
 
 
         // Global directional light and ambient pass
-        {
-            auto& program = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadow : deferredLightingEffect->_directionalLight;
-            LightLocationsPtr locations = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadowLocations : deferredLightingEffect->_directionalLightLocations;
-            const auto& keyLight = deferredLightingEffect->_allocatedLights[deferredLightingEffect->_globalLights.front()];
-            
-            // Setup the global directional pass pipeline
-            {
-                if (deferredLightingEffect->_shadowMapEnabled) {
-                    if (keyLight->getAmbientMap()) {
-                        program = deferredLightingEffect->_directionalSkyboxLightShadow;
-                        locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
-                    } else {
-                        program = deferredLightingEffect->_directionalAmbientSphereLightShadow;
-                        locations = deferredLightingEffect->_directionalAmbientSphereLightShadowLocations;
-                    }
-                } else {
-                    if (keyLight->getAmbientMap()) {
-                        program = deferredLightingEffect->_directionalSkyboxLight;
-                        locations = deferredLightingEffect->_directionalSkyboxLightLocations;
-                    } else {
-                        program = deferredLightingEffect->_directionalAmbientSphereLight;
-                        locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
-                    }
-                }
-                
-                if (locations->shadowTransformBuffer >= 0) {
-                    batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
-                }
-                batch.setPipeline(program);
-            }
-            
-            { // Setup the global lighting
-                deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
-            }
-            
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-            if (keyLight->getAmbientMap()) {
-                batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+        assert(deferredLightingEffect->getLightStage().lights.size() > 0);
+        const auto& globalShadow = deferredLightingEffect->getLightStage().lights[0]->shadow;
+
+        // Bind the shadow buffer
+        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
+
+        auto& program = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadow : deferredLightingEffect->_directionalLight;
+        LightLocationsPtr locations = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadowLocations : deferredLightingEffect->_directionalLightLocations;
+        const auto& keyLight = deferredLightingEffect->_allocatedLights[deferredLightingEffect->_globalLights.front()];
+
+        // Setup the global directional pass pipeline
+        {
+            if (deferredLightingEffect->_shadowMapEnabled) {
+                if (keyLight->getAmbientMap()) {
+                    program = deferredLightingEffect->_directionalSkyboxLightShadow;
+                    locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
+                } else {
+                    program = deferredLightingEffect->_directionalAmbientSphereLightShadow;
+                    locations = deferredLightingEffect->_directionalAmbientSphereLightShadowLocations;
+                }
+            } else {
+                if (keyLight->getAmbientMap()) {
+                    program = deferredLightingEffect->_directionalSkyboxLight;
+                    locations = deferredLightingEffect->_directionalSkyboxLightLocations;
+                } else {
+                    program = deferredLightingEffect->_directionalAmbientSphereLight;
+                    locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
+                }
             }
+
+            if (locations->shadowTransformBuffer >= 0) {
+                batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
+            }
+            batch.setPipeline(program);
         }
-    
+
+        { // Setup the global lighting
+            deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
+        }
+
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        if (keyLight->getAmbientMap()) {
+            batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+        }
+        batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
     });
     
 }
@@ -562,9 +583,12 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
-        batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
-        batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+
+        batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, nullptr);
+        batch.setResourceTexture(SCATTERING_LUT_UNIT, nullptr);
         
+        batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     });
     
@@ -582,7 +606,12 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
 
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFrameTransformPointer& deferredTransform) {
-    setupJob.run(sceneContext, renderContext, deferredTransform);
+    if (!_subsurfaceScatteringResource) {
+        _subsurfaceScatteringResource = std::make_shared<SubsurfaceScatteringResource>();
+        _subsurfaceScatteringResource->generateScatteringTable(renderContext->args);
+    }
+    
+    setupJob.run(sceneContext, renderContext, deferredTransform, _subsurfaceScatteringResource);
     lightsJob.run(sceneContext, renderContext, deferredTransform);
 
     cleanupJob.run(sceneContext, renderContext);

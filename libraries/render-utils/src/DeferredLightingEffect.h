@@ -27,6 +27,8 @@
 
 #include "LightStage.h"
 
+#include "SubsurfaceScattering.h"
+
 class RenderArgs;
 struct LightLocations;
 using LightLocationsPtr = std::shared_ptr<LightLocations>;
@@ -111,9 +113,9 @@ public:
 
 class RenderDeferredSetup {
 public:
-    using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
+  //  using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
     
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
 
 class RenderDeferredLocals {
@@ -140,6 +142,8 @@ public:
     RenderDeferredSetup setupJob;
     RenderDeferredLocals lightsJob;
     RenderDeferredCleanup cleanupJob;
+
+    SubsurfaceScatteringResourcePointer _subsurfaceScatteringResource;
 };
 
 #endif // hifi_DeferredLightingEffect_h

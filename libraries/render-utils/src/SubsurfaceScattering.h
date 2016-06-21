@@ -17,6 +17,49 @@
 #include "render/DrawTask.h"
 #include "DeferredFrameTransform.h"
 
+class SubsurfaceScatteringResource {
+public:
+    using UniformBufferView = gpu::BufferView;
+
+    SubsurfaceScatteringResource();
+
+    void setBentNormalFactors(const glm::vec4& rgbsBentFactors);
+    glm::vec4 getBentNormalFactors() const;
+
+    void setCurvatureFactors(const glm::vec2& sbCurvatureFactors);
+    glm::vec2 getCurvatureFactors() const;
+
+    UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
+
+    gpu::TexturePointer getScatteringTable() const { return _scatteringTable; }
+
+    void generateScatteringTable(RenderArgs* args);
+    static gpu::TexturePointer generatePreIntegratedScattering(RenderArgs* args);
+
+protected:
+
+
+    // Class describing the uniform buffer with the transform info common to the AO shaders
+    // It s changing every frame
+    class Parameters {
+    public:
+        glm::vec4 normalBentInfo{ 1.5f, 0.8f, 0.3f, 1.5f };
+        glm::vec2 curvatureInfo{ 0.08f, 0.8f };
+        glm::vec2 spare{ 0.0f };
+
+        Parameters() {}
+    };
+    UniformBufferView _parametersBuffer;
+
+
+
+    gpu::TexturePointer _scatteringTable;
+};
+
+using SubsurfaceScatteringResourcePointer = std::shared_ptr<SubsurfaceScatteringResource>;
+
+
+
 class SubsurfaceScatteringConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float bentRed MEMBER bentRed NOTIFY dirty)
@@ -57,24 +100,8 @@ public:
     void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& scatteringFramebuffer);
 
-    static gpu::TexturePointer generatePreIntegratedScattering(RenderArgs* args);
-
 private:
-    typedef gpu::BufferView UniformBufferView;
-
-    // Class describing the uniform buffer with all the parameters common to the AO shaders
-    class Parameters {
-    public:
-        glm::vec4 normalBentInfo { 0.0f };
-        glm::vec4 curvatureInfo{ 0.0f };
-
-        Parameters() {}
-    };
-    gpu::BufferView _parametersBuffer;
-
-
-    gpu::TexturePointer _scatteringTable;
-
+    SubsurfaceScatteringResourcePointer _scatteringResource;
 
     bool updateScatteringFramebuffer(const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& scatteringFramebuffer);
     gpu::FramebufferPointer _scatteringFramebuffer;

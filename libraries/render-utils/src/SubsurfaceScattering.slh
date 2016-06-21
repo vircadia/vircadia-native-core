@@ -1,0 +1,45 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/8/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+<@func declareSubsurfaceScatteringResource()@>
+
+uniform sampler2D scatteringLUT;
+
+vec3 fetchBRDF(float LdotN, float curvature) {
+    return texture(scatteringLUT, vec2( LdotN * 0.5 + 0.5, curvature)).xyz;
+}
+
+vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
+    return vec3(
+        fetchBRDF(LdotNSpectrum.r, curvature).r,
+        fetchBRDF(LdotNSpectrum.g, curvature).g,
+        fetchBRDF(LdotNSpectrum.b, curvature).b
+    );
+}
+
+// Subsurface Scattering parameters
+struct ScatteringParameters {
+    vec4 normalBendInfo; // R, G, B, factor
+    vec4 curvatureInfo;// Offset, Scale
+};
+
+uniform subsurfaceScatteringParametersBuffer {
+    ScatteringParameters parameters;
+};
+
+vec3 getBendFactor() {
+    return parameters.normalBendInfo.xyz * parameters.normalBendInfo.w;
+}
+
+float unpackCurvature(float packedCurvature) {
+    return abs(packedCurvature * 2 - 1) * 0.5f * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
+}
+
+<@endfunc@>

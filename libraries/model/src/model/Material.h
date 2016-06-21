@@ -35,6 +35,7 @@ public:
         OPACITY_VAL_BIT,
         OPACITY_MASK_MAP_BIT,           // Opacity Map and Opacity MASK map are mutually exclusive
         OPACITY_TRANSLUCENT_MAP_BIT,
+        SCATTERING_VAL_BIT,
 
         // THe map bits must be in the same sequence as the enum names for the map channels
         EMISSIVE_MAP_BIT,
@@ -44,6 +45,7 @@ public:
         NORMAL_MAP_BIT,
         OCCLUSION_MAP_BIT,
         LIGHTMAP_MAP_BIT,
+        SCATTERING_MAP_BIT,
 
         NUM_FLAGS,
     };
@@ -57,6 +59,7 @@ public:
         NORMAL_MAP,
         OCCLUSION_MAP,
         LIGHTMAP_MAP,
+        SCATTERING_MAP,
 
         NUM_MAP_CHANNELS,
     };
@@ -83,6 +86,8 @@ public:
 
         Builder& withTranslucentFactor() { _flags.set(OPACITY_VAL_BIT); return (*this); }
 
+        Builder& withScattering() { _flags.set(SCATTERING_VAL_BIT); return (*this); }
+
         Builder& withEmissiveMap() { _flags.set(EMISSIVE_MAP_BIT); return (*this); }
         Builder& withAlbedoMap() { _flags.set(ALBEDO_MAP_BIT); return (*this); }
         Builder& withMetallicMap() { _flags.set(METALLIC_MAP_BIT); return (*this); }
@@ -94,6 +99,7 @@ public:
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
         Builder& withOcclusionMap() { _flags.set(OCCLUSION_MAP_BIT); return (*this); }
         Builder& withLightmapMap() { _flags.set(LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withScatteringMap() { _flags.set(SCATTERING_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static MaterialKey opaqueAlbedo() { return Builder().withAlbedo().build(); }
@@ -135,7 +141,7 @@ public:
 
     void setOpacityMaskMap(bool value) { _flags.set(OPACITY_MASK_MAP_BIT, value); }
     bool isOpacityMaskMap() const { return _flags[OPACITY_MASK_MAP_BIT]; }
-    
+
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
 
@@ -144,6 +150,12 @@ public:
 
     void setLightmapMap(bool value) { _flags.set(LIGHTMAP_MAP_BIT, value); }
     bool isLightmapMap() const { return _flags[LIGHTMAP_MAP_BIT]; }
+
+    void setScattering(bool value) { _flags.set(SCATTERING_VAL_BIT, value); }
+    bool isScattering() const { return _flags[SCATTERING_VAL_BIT]; }
+
+    void setScatteringMap(bool value) { _flags.set(SCATTERING_MAP_BIT, value); }
+    bool isScatteringMap() const { return _flags[SCATTERING_MAP_BIT]; }
 
     void setMapChannel(MapChannel channel, bool value) { _flags.set(EMISSIVE_MAP_BIT + channel, value); }
     bool isMapChannel(MapChannel channel) const { return _flags[EMISSIVE_MAP_BIT + channel]; }
@@ -218,6 +230,13 @@ public:
         Builder& withoutLightmapMap()       { _value.reset(MaterialKey::LIGHTMAP_MAP_BIT); _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
         Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
 
+        Builder& withoutScattering()       { _value.reset(MaterialKey::SCATTERING_VAL_BIT); _mask.set(MaterialKey::SCATTERING_VAL_BIT); return (*this); }
+        Builder& withScattering()        { _value.set(MaterialKey::SCATTERING_VAL_BIT);  _mask.set(MaterialKey::SCATTERING_VAL_BIT); return (*this); }
+
+        Builder& withoutScatteringMap()       { _value.reset(MaterialKey::SCATTERING_MAP_BIT); _mask.set(MaterialKey::SCATTERING_MAP_BIT); return (*this); }
+        Builder& withScatteringMap()        { _value.set(MaterialKey::SCATTERING_MAP_BIT);  _mask.set(MaterialKey::SCATTERING_MAP_BIT); return (*this); }
+
+
         // Convenient standard keys that we will keep on using all over the place
         static MaterialFilter opaqueAlbedo() { return Builder().withAlbedo().withoutTranslucentFactor().build(); }
     };
@@ -275,6 +294,8 @@ public:
     void setRoughness(float roughness);
     float getRoughness() const { return _schemaBuffer.get<Schema>()._roughness; }
 
+    void setScattering(float scattering);
+    float getScattering() const { return _schemaBuffer.get<Schema>()._scattering; }
 
     // Schema to access the attribute values of the material
     class Schema {
@@ -288,7 +309,9 @@ public:
         glm::vec3 _fresnel{ 0.03f }; // Fresnel value for a default non metallic
         float _metallic{ 0.0f }; // Not Metallic
 
-        glm::vec3 _spare{ 0.0f };
+        float _scattering{ 0.0f }; // Scattering info
+
+        glm::vec2 _spare{ 0.0f };
 
         uint32_t _key{ 0 }; // a copy of the materialKey
 

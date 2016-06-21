@@ -111,6 +111,13 @@ static const std::string DEFAULT_LIGHTMAP_SHADER{
     " }"
 };
 
+static const std::string DEFAULT_SCATTERING_SHADER{
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return (frag.mode == FRAG_MODE_SCATTERING ? vec4(vec3(1.0), 1.0) : vec4(vec3(0.0), 1.0));"
+    " }"
+};
+
 static const std::string DEFAULT_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
@@ -173,7 +180,7 @@ static const std::string DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER{
     " }"
 };
 
-static const std::string DEFAULT_SCATTERING_SHADER{
+static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
   //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
@@ -239,6 +246,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_OCCLUSION_SHADER;
         case LightmapMode:
             return DEFAULT_LIGHTMAP_SHADER;
+        case ScatteringMode:
+            return DEFAULT_SCATTERING_SHADER;
         case LightingMode:
             return DEFAULT_LIGHTING_SHADER;
         case ShadowMode:
@@ -253,8 +262,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_DIFFUSED_CURVATURE_SHADER;
         case DiffusedNormalCurvatureMode:
             return DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER;
-        case ScatteringMode:
-            return DEFAULT_SCATTERING_SHADER;
+        case ScatteringDebugMode:
+            return DEFAULT_DEBUG_SCATTERING_SHADER;
         case AmbientOcclusionMode:
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
         case AmbientOcclusionBlurredMode:

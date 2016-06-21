@@ -38,26 +38,49 @@ enum ScatteringShaderMapSlots {
 
 };
 
-SubsurfaceScattering::SubsurfaceScattering() {
+SubsurfaceScatteringResource::SubsurfaceScatteringResource() {
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
+
+}
+
+void SubsurfaceScatteringResource::setBentNormalFactors(const glm::vec4& rgbsBentFactors) {
+    if (rgbsBentFactors != getBentNormalFactors()) {
+        _parametersBuffer.edit<Parameters>().normalBentInfo = rgbsBentFactors;
+    }
+}
+
+glm::vec4 SubsurfaceScatteringResource::getBentNormalFactors() const {
+    return _parametersBuffer.get<Parameters>().normalBentInfo;
+}
+
+void SubsurfaceScatteringResource::setCurvatureFactors(const glm::vec2& sbCurvatureFactors) {
+    if (sbCurvatureFactors != getCurvatureFactors()) {
+        _parametersBuffer.edit<Parameters>().curvatureInfo = sbCurvatureFactors;
+    }
+}
+
+glm::vec2 SubsurfaceScatteringResource::getCurvatureFactors() const {
+    return _parametersBuffer.get<Parameters>().curvatureInfo;
+}
+
+void SubsurfaceScatteringResource::generateScatteringTable(RenderArgs* args) {
+    if (!_scatteringTable) {
+        _scatteringTable = generatePreIntegratedScattering(args);
+    }
+}
+
+SubsurfaceScattering::SubsurfaceScattering() {
+    _scatteringResource = std::make_shared<SubsurfaceScatteringResource>();
 }
 
 void SubsurfaceScattering::configure(const Config& config) {
-    auto& params = _parametersBuffer.get<Parameters>();
 
     glm::vec4 bentInfo(config.bentRed, config.bentGreen, config.bentBlue, config.bentScale);
+    _scatteringResource->setBentNormalFactors(bentInfo);
 
-    if (bentInfo != params.normalBentInfo) {
-        _parametersBuffer.edit<Parameters>().normalBentInfo = bentInfo;
-    }
-
-    if (config.curvatureOffset != params.curvatureInfo.x) {
-        _parametersBuffer.edit<Parameters>().curvatureInfo.x = config.curvatureOffset;
-    }
-    if (config.curvatureScale != params.curvatureInfo.y) {
-        _parametersBuffer.edit<Parameters>().curvatureInfo.y = config.curvatureScale;
-    }
+    glm::vec2 curvatureInfo(config.curvatureOffset, config.curvatureScale);
+    _scatteringResource->setCurvatureFactors(curvatureInfo);
 
     _showLUT = config.showLUT;
 }
@@ -164,9 +187,8 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
     RenderArgs* args = renderContext->args;
 
-    if (!_scatteringTable) {
-        _scatteringTable = SubsurfaceScattering::generatePreIntegratedScattering(args);
-    }
+    _scatteringResource->generateScatteringTable(args);
+    auto scatteringTable = _scatteringResource->getScatteringTable();
 
 
     auto pipeline = getScatteringPipeline();
@@ -194,14 +216,14 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
         batch.setPipeline(pipeline);
 
         batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(ScatteringTask_ParamSlot, _parametersBuffer);
+        batch.setUniformBuffer(ScatteringTask_ParamSlot, _scatteringResource->getParametersBuffer());
         if (theLight->light) {
             batch.setUniformBuffer(ScatteringTask_LightSlot, theLight->light->getSchemaBuffer());
             if (theLight->light->getAmbientMap()) {
                 batch.setResourceTexture(ScatteringTask_IBLMapSlot, theLight->light->getAmbientMap());
             }
         }
-        batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, _scatteringTable);
+        batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, scatteringTable);
         batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
         batch.setResourceTexture(ScatteringTask_NormalMapSlot, framebufferCache->getDeferredNormalTexture());
@@ -214,7 +236,7 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
             auto viewportSize = std::min(args->_viewport.z, args->_viewport.w) >> 1;
             batch.setViewportTransform(glm::ivec4(0, 0, viewportSize, viewportSize));
             batch.setPipeline(getShowLUTPipeline());
-            batch.setResourceTexture(0, _scatteringTable);
+            batch.setResourceTexture(0, scatteringTable);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
@@ -420,18 +442,15 @@ void diffuseProfile(gpu::TexturePointer& profile) {
     profile->assignStoredMip(0, gpu::Element::COLOR_RGBA_32, bytes.size(), bytes.data());
 }
 
+gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScattering(RenderArgs* args) {
 
-
-gpu::TexturePointer SubsurfaceScattering::generatePreIntegratedScattering(RenderArgs* args) {
-    
     auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 128, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
     diffuseProfile(profileMap);
 
     const int WIDTH = 128;
     const int HEIGHT = 128;
     auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, WIDTH, HEIGHT, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-   diffuseScatter(scatteringLUT);
+    diffuseScatter(scatteringLUT);
     //diffuseScatterGPU(profileMap, scatteringLUT, args);
     return scatteringLUT;
 }
-

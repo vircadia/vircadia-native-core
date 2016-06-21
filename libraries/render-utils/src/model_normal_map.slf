@@ -49,6 +49,8 @@ void main(void) {
     vec3 viewNormal;
     <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
 
+    float scattering = getMaterialScattering(mat);
+
     packDeferredFragment(
         viewNormal, 
         opacity,
@@ -56,5 +58,6 @@ void main(void) {
         roughness,
         getMaterialMetallic(mat),
         emissive,
-        occlusionTex);
+        occlusionTex,
+        scattering);
 }

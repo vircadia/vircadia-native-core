@@ -57,6 +57,7 @@ protected:
         UnlitMode,
         OcclusionMode,
         LightmapMode,
+        ScatteringMode,
         LightingMode,
         ShadowMode,
         PyramidDepthMode,
@@ -64,7 +65,7 @@ protected:
         NormalCurvatureMode,
         DiffusedCurvatureMode,
         DiffusedNormalCurvatureMode,
-        ScatteringMode,
+        ScatteringDebugMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
         CustomMode // Needs to stay last

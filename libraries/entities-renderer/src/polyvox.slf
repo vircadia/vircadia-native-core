@@ -41,5 +41,5 @@ void main(void) {
     vec3 yzDiffuseScaled = yzDiffuse.rgb * abs(worldNormal.x);
     vec4 diffuse = vec4(xyDiffuseScaled + xzDiffuseScaled + yzDiffuseScaled, 1.0);
 
-    packDeferredFragment(_normal, 1.0, vec3(diffuse), DEFAULT_ROUGHNESS, DEFAULT_METALLIC, DEFAULT_EMISSIVE, DEFAULT_OCCLUSION);
+    packDeferredFragment(_normal, 1.0, vec3(diffuse), DEFAULT_ROUGHNESS, DEFAULT_METALLIC, DEFAULT_EMISSIVE, DEFAULT_OCCLUSION, DEFAULT_SCATTERING);
 }
