@@ -94,10 +94,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
     
-    // update the metadata when a user (dis)connects
-    connect(this, &DomainServer::userConnected, &_metadata, &DomainMetadata::usersChanged);
-    connect(this, &DomainServer::userDisconnected, &_metadata, &DomainMetadata::usersChanged);
-
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
@@ -124,8 +120,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         optionallyGetTemporaryName(args);
     }
 
-    // update the metadata with current descriptors
-    _metadata.setDescriptors(_settingsManager.getSettingsMap());
+    _metadata = new DomainMetadata(this);
 }
 
 DomainServer::~DomainServer() {
@@ -1101,14 +1096,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
     domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
 
-    // Add the metadata to the heartbeat
-    static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    auto tic = _metadata.getTic();
-    if (_metadataTic != tic) {
-        _metadataTic = tic;
-        _metadata.updateUsers();
+    if (_metadata) {
+        // Add the metadata to the heartbeat
+        static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+        domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata->get(DomainMetadata::USERS);
     }
-    domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata.getUsers();
 
     QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 

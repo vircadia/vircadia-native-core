@@ -16,7 +16,7 @@
 #include <QtCore/QPair>
 #include <QtCore/QRect>
 
-#include "Forward.h"
+#include <plugins/Forward.h>
 
 class QAction;
 class GLWidget;
@@ -63,8 +63,8 @@ public:
     virtual GLWidget* getPrimaryWidget() = 0;
     virtual MainWindow* getPrimaryWindow() = 0;
     virtual QOpenGLContext* getPrimaryContext() = 0;
-    virtual bool isForeground() = 0;
-    virtual const DisplayPluginPointer getActiveDisplayPlugin() const = 0;
+    virtual bool isForeground() const = 0;
+    virtual DisplayPluginPointer getActiveDisplayPlugin() const = 0;
 
     /// settings interface
     bool getBoolSetting(const QString& settingName, bool defaultValue);
@@ -84,3 +84,4 @@ protected:
     std::map<QString, QActionGroup*> _exclusiveGroups;
     QRect _savedGeometry { 10, 120, 800, 600 };
 };
+

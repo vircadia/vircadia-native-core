@@ -20,7 +20,7 @@
 
 #include <controllers/Pose.h>
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ViewFrustum.h>
 #include <display-plugins/CompositorHelper.h>
 #include <shared/NsightHelpers.h>
