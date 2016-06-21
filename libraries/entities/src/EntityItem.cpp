@@ -1602,14 +1602,20 @@ void EntityItem::updateMass(float mass) {
 void EntityItem::updateVelocity(const glm::vec3& value) {
     glm::vec3 velocity = getLocalVelocity();
     if (velocity != value) {
-        const float MIN_LINEAR_SPEED = 0.001f;
-        if (glm::length(value) < MIN_LINEAR_SPEED) {
-            velocity = ENTITY_ITEM_ZERO_VEC3;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            if (velocity != Vectors::ZERO) {
+                setLocalVelocity(Vectors::ZERO);
+            }
         } else {
-            velocity = value;
+            const float MIN_LINEAR_SPEED = 0.001f;
+            if (glm::length(value) < MIN_LINEAR_SPEED) {
+                velocity = ENTITY_ITEM_ZERO_VEC3;
+            } else {
+                velocity = value;
+            }
+            setLocalVelocity(velocity);
+            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
-        setLocalVelocity(velocity);
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
     }
 }
 
@@ -1630,22 +1636,30 @@ void EntityItem::updateDamping(float value) {
 
 void EntityItem::updateGravity(const glm::vec3& value) {
     if (_gravity != value) {
-        _gravity = value;
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            _gravity = Vectors::ZERO;
+        } else {
+            _gravity = value;
+            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+        }
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     glm::vec3 angularVelocity = getLocalAngularVelocity();
     if (angularVelocity != value) {
-        const float MIN_ANGULAR_SPEED = 0.0002f;
-        if (glm::length(value) < MIN_ANGULAR_SPEED) {
-            angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            setLocalAngularVelocity(Vectors::ZERO);
         } else {
-            angularVelocity = value;
+            const float MIN_ANGULAR_SPEED = 0.0002f;
+            if (glm::length(value) < MIN_ANGULAR_SPEED) {
+                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            } else {
+                angularVelocity = value;
+            }
+            setLocalAngularVelocity(angularVelocity);
+            _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
-        setLocalAngularVelocity(angularVelocity);
-        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
     }
 }
 
@@ -1680,8 +1694,12 @@ void EntityItem::updateCollisionMask(uint8_t value) {
 
 void EntityItem::updateDynamic(bool value) {
     if (_dynamic != value) {
-        _dynamic = value;
-        _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            _dynamic = false;
+        } else {
+            _dynamic = value;
+            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        }
     }
 }
 
