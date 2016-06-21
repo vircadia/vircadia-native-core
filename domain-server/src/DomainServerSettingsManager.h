@@ -42,19 +42,22 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
+    // these give access to anonymous/localhost/logged-in settings from the domain-server settings page
     bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
     NodePermissions getStandardPermissionsForName(const QString& name) const;
 
+    // these give access to permissions for specific user-names from the domain-server settings page
     bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
     NodePermissions getPermissionsForName(const QString& name) const;
     QStringList getAllNames() { return _agentPermissions.keys(); }
 
+    // these give access to permissions for specific groups from the domain-server settings page
     bool havePermissionsForGroup(const QString& groupname) const { return _groupPermissions.contains(groupname); }
     NodePermissions getPermissionsForGroup(const QString& groupname) const;
     NodePermissions getPermissionsForGroup(const QUuid& groupID) const;
     QList<QUuid> getKnownGroupIDs() { return _groupByID.keys(); }
 
-    // these are used to locally cache the result of calling "api/v1/groups/%1/is_member/%2" on metaverse's api
+    // these are used to locally cache the result of calling "api/v1/groups/.../is_member/..." on metaverse's api
     void recordGroupMembership(const QString& name, const QUuid groupID, bool isMember);
     bool isGroupMember(const QString& name, const QUuid& groupID);
 
@@ -86,6 +89,7 @@ private:
 
     friend class DomainServer;
 
+    // these cause calls to metaverse's group api
     void requestMissingGroupIDs();
     void getGroupID(const QString& groupname);
     NodePermissionsPointer lookupGroupByID(const QUuid& id);
@@ -93,10 +97,13 @@ private:
     void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
     void unpackPermissions();
+
     NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
     NodePermissionsMap _agentPermissions; // specific account-names
     NodePermissionsMap _groupPermissions; // permissions granted by membershipt to specific groups
-    QHash<QUuid, NodePermissionsPointer> _groupByID;
+    QHash<QUuid, NodePermissionsPointer> _groupByID; // similar to _groupPermissions but key is group-id rather than name
+
+    // keep track of answers to api queries about which users are in which groups
     QHash<QString, QHash<QUuid, bool>> _groupMembership;
 };
 
