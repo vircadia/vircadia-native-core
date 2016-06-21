@@ -14,6 +14,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QPluginLoader>
 
+#include <DependencyManager.h>
+#include <UserActivityLogger.h>
+
 #include "RuntimePlugin.h"
 #include "DisplayPlugin.h"
 #include "InputPlugin.h"
@@ -81,6 +84,7 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
         }
         auto& container = PluginContainer::getInstance();
         for (auto plugin : displayPlugins) {
+            UserActivityLogger::getInstance().connectedDevice("display", plugin->getName());
             plugin->setContainer(&container);
             plugin->init();
         }
@@ -117,6 +121,7 @@ const InputPluginList& PluginManager::getInputPlugins() {
 
         auto& container = PluginContainer::getInstance();
         for (auto plugin : inputPlugins) {
+            UserActivityLogger::getInstance().connectedDevice("input", plugin->getName());
             plugin->setContainer(&container);
             plugin->init();
         }

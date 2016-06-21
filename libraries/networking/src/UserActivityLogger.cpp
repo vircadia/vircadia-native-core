@@ -125,6 +125,21 @@ void UserActivityLogger::changedDomain(QString domainURL) {
 }
 
 void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceName) {
+    static QStringList DEVICE_BLACKLIST = {
+        "Desktop",
+        "NullDisplayPlugin",
+        "3D TV - Side by Side Stereo",
+        "3D TV - Interleaved",
+
+        "Keyboard/Mouse",
+        "Neuron",
+        "SDL2"
+    };
+
+    if (DEVICE_BLACKLIST.contains(deviceName)) {
+        return;
+    }
+
     const QString ACTION_NAME = "connected_device";
     QJsonObject actionDetails;
     const QString TYPE_OF_DEVICE = "type_of_device";
