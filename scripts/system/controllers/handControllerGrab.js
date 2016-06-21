@@ -879,28 +879,23 @@ function MyController(hand) {
         var entities = Entities.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
         var i, l = entities.length;
         for (i = 0; i < l; i++) {
-
-            // is this entity equipable?
-            var grabData = getEntityCustomData(GRABBABLE_DATA_KEY, entities[i], undefined);
             var grabProps = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
-            if (grabData) {
-                // does this entity have an attach point?
-                var wearableData = getEntityCustomData("wearable", entities[i], undefined);
-                if (wearableData && wearableData.joints) {
-                    var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-                    if (wearableData.joints[handJointName]) {
-                        // draw the hotspot
-                        this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
-                            position: grabProps.position,
-                            size: 0.2,
-                            color: { red: 90, green: 255, blue: 90 },
-                            alpha: 0.7,
-                            solid: true,
-                            visible: true,
-                            ignoreRayIntersection: false,
-                            drawInFront: false
-                        }));
-                    }
+            // does this entity have an attach point?
+            var wearableData = getEntityCustomData("wearable", entities[i], undefined);
+            if (wearableData && wearableData.joints) {
+                var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+                if (wearableData.joints[handJointName]) {
+                    // draw the hotspot
+                    this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
+                        position: grabProps.position,
+                        size: 0.2,
+                        color: { red: 90, green: 255, blue: 90 },
+                        alpha: 0.7,
+                        solid: true,
+                        visible: true,
+                        ignoreRayIntersection: false,
+                        drawInFront: false
+                    }));
                 }
             }
         }
