@@ -19,7 +19,7 @@ For Qt 5.5.1 installed via homebrew, set QT_CMAKE_PREFIX_PATH as follows.
 
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt55/5.5.1/lib/cmake
 
-Not that these use the versions from homebrew formulae at the time of this writing, and the version in the path will likely change.
+Note that these use the versions from homebrew formulae at the time of this writing, and the version in the path will likely change.
 
 ###Xcode
 If Xcode is your editor of choice, you can ask CMake to generate Xcode project files instead of Unix Makefiles.
