@@ -148,11 +148,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         return false;
     }
 
-    if (!canRezPermanentEntities && (entity->getLifetime() != properties.getLifetime())) {
-        // we don't allow a Node that can't create permanent entities to adjust lifetimes on existing ones
-        if (properties.lifetimeChanged()) {
-            qCDebug(entities) << "Refusing disallowed entity lifetime adjustment.";
-            return false;
+    if (!canRezPermanentEntities) {
+        // we don't allow a Node that can't create permanent entities to raise lifetimes on existing ones
+        if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME || properties.getLifetime() > _maxTmpEntityLifetime) {
+            qCDebug(entities) << "Capping disallowed entity lifetime adjustment.";
+            properties.setLifetime(_maxTmpEntityLifetime);
         }
     }
 
@@ -321,26 +321,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     return true;
 }
 
-bool EntityTree::permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp) {
-    float lifeTime = properties.getLifetime();
-
-    if (lifeTime == ENTITY_ITEM_IMMORTAL_LIFETIME || lifeTime > _maxTmpEntityLifetime) {
-        // this is an attempt to rez a permanent or non-temporary entity.
-        if (!canRez) {
-            return false;
-        }
-    } else {
-        // this is an attempt to rez a temporary entity.
-        if (!canRezTmp) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result = NULL;
+    EntityItemProperties props = properties;
 
     auto nodeList = DependencyManager::get<NodeList>();
     if (!nodeList) {
@@ -348,16 +331,19 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         return nullptr;
     }
 
-    bool clientOnly = properties.getClientOnly();
+    bool clientOnly = props.getClientOnly();
 
-    if (!clientOnly && getIsClient() &&
-        !permissionsAllowRez(properties, nodeList->getThisNodeCanRez(), nodeList->getThisNodeCanRezTmp())) {
-        // if our Node isn't allowed to create entities in this domain, don't try.
-        return nullptr;
+    if (!clientOnly && getIsClient() && !nodeList->getThisNodeCanRez() && nodeList->getThisNodeCanRezTmp()) {
+        // we are a client which is only allowed to rez temporary entities.  cap the lifetime.
+        if (props.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME) {
+            props.setLifetime(_maxTmpEntityLifetime);
+        } else {
+            props.setLifetime(glm::min(props.getLifetime(), _maxTmpEntityLifetime));
+        }
     }
 
     bool recordCreationTime = false;
-    if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
+    if (props.getCreated() == UNKNOWN_CREATED_TIME) {
         // the entity's creation time was not specified in properties, which means this is a NEW entity
         // and we must record its creation time
         recordCreationTime = true;
@@ -372,8 +358,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     }
 
     // construct the instance of the entity
-    EntityTypes::EntityType type = properties.getType();
-    result = EntityTypes::constructEntityItem(type, entityID, properties);
+    EntityTypes::EntityType type = props.getType();
+    result = EntityTypes::constructEntityItem(type, entityID, props);
 
     if (result) {
         if (recordCreationTime) {
@@ -922,10 +908,19 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             EntityItemID entityItemID;
             EntityItemProperties properties;
             startDecode = usecTimestampNow();
-           
+
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
+
+            if (!senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+                // this node is only allowed to rez temporary entities.  cap the lifetime.
+                if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME) {
+                    properties.setLifetime(_maxTmpEntityLifetime);
+                } else {
+                    properties.setLifetime(glm::min(properties.getLifetime(), _maxTmpEntityLifetime));
+                }
+            }
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
@@ -955,7 +950,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
                 } else if (message.getType() == PacketType::EntityAdd) {
-                    if (permissionsAllowRez(properties, senderNode->getCanRez(), senderNode->getCanRezTmp())) {
+                    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
                         startCreate = usecTimestampNow();
