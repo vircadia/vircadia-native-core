@@ -26,6 +26,7 @@
 #include <LimitedNodeList.h>
 
 #include "DomainGatekeeper.h"
+#include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
@@ -91,6 +92,8 @@ private slots:
 
 signals:
     void iceServerChanged();
+    void userConnected();
+    void userDisconnected();
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
@@ -110,6 +113,8 @@ private:
     void randomizeICEServerAddress(bool shouldTriggerHostLookup);
 
     unsigned int countConnectedUsers();
+
+    void handleKillNode(SharedNodePointer nodeToKill);
 
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr);
 
@@ -170,7 +175,9 @@ private:
     HifiSockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
-    QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
+    // These will be parented to this, they are not dangling
+    DomainMetadata* _metadata { nullptr };
+    QTimer* _iceHeartbeatTimer { nullptr };
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
@@ -182,6 +189,7 @@ private:
     bool _hasAccessToken { false };
 
     friend class DomainGatekeeper;
+    friend class DomainMetadata;
 };
 
 

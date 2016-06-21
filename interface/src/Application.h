@@ -34,6 +34,7 @@
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
 #include <plugins/DisplayPlugin.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <SimpleMovingAverage.h>
@@ -86,14 +87,32 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, public AbstractUriHandler {
+class Application : public QApplication, 
+                    public AbstractViewStateInterface, 
+                    public AbstractScriptingServicesInterface, 
+                    public AbstractUriHandler,
+                    public PluginContainer {
     Q_OBJECT
 
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
-    friend class PluginContainerProxy;
 
 public:
+
+    // virtual functions required for PluginContainer
+    virtual ui::Menu* getPrimaryMenu() override;
+    virtual void requestReset() override { resetSensors(true); }
+    virtual void showDisplayPluginsTools(bool show) override;
+    virtual GLWidget* getPrimaryWidget() override;
+    virtual MainWindow* getPrimaryWindow() override;
+    virtual QOpenGLContext* getPrimaryContext() override;
+    virtual bool makeRenderingContextCurrent() override;
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override;
+    virtual bool isForeground() const override;
+
+    virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
+
     enum Event {
         Present = DisplayPlugin::Present,
         Paint = Present + 1,
@@ -101,7 +120,7 @@ public:
     };
 
     // FIXME? Empty methods, do we still need them?
-    static void initPlugins();
+    static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer& startup_time);
@@ -163,7 +182,6 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-    bool isForeground() const { return _isForeground; }
 
     size_t getFrameCount() const { return _frameCount; }
     float getFps() const { return _frameCounter.rate(); }
@@ -184,8 +202,6 @@ public:
     virtual qreal getDevicePixelRatio() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
-
-    DisplayPluginPointer getActiveDisplayPlugin() const;
 
     FileLogger* getLogger() const { return _logger; }
 
@@ -320,7 +336,6 @@ private slots:
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     void setSessionUUID(const QUuid& sessionUUID) const;
-    void limitOfSilentDomainCheckInsReached();
 
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;
@@ -329,7 +344,6 @@ private slots:
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
-    void updateInputModes();
     void domainConnectionRefused(const QString& reasonMessage, int reason);
 
 private:

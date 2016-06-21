@@ -26,12 +26,12 @@
 #include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
 
-#include "plugins/PluginContainer.h"
+#include <ui-plugins/PluginContainer.h>
 #include "OculusHelpers.h"
 
 using namespace oglplus;
 
-const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Legacy)");
+const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }

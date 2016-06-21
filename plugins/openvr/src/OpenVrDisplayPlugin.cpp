@@ -19,7 +19,7 @@
 #include <gl/GlWindow.h>
 
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ViewFrustum.h>
 #include <shared/NsightHelpers.h>
 #include "OpenVrHelpers.h"
@@ -134,10 +134,7 @@ void OpenVrDisplayPlugin::resetSensors() {
 
 bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     handleOpenVrEvents();
-    if (openVrQuitRequested()) {
-        emit outputDeviceLost();
-        return false;
-    }
+
     double displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
     double frameDuration = 1.f / displayFrequency;
     double vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);

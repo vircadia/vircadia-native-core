@@ -64,8 +64,6 @@ public:
         Present = QEvent::User + 1
     };
 
-    bool activate() override;
-    void deactivate() override;
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
     /// By default, all HMDs are stereo
@@ -170,10 +168,6 @@ public:
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
-    // Indicates that this display plugin is no longer valid for use.
-    // For instance if a user exits Oculus Home or Steam VR while 
-    // using the corresponding plugin, that plugin should be disabled.
-    void outputDeviceLost();
 
 protected:
     void incrementPresentCount();

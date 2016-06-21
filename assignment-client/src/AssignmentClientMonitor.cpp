@@ -286,8 +286,8 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
 
             if (!senderID.isNull()) {
                 // We don't have this node yet - we should add it
-                matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
-                    (senderID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
+                matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(senderID, NodeType::Unassigned,
+                                                                                          senderSockAddr, senderSockAddr);
 
                 auto childData = std::unique_ptr<AssignmentClientChildData>
                     { new AssignmentClientChildData(Assignment::Type::AllTypes) };

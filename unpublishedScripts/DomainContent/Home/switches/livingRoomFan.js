@@ -11,7 +11,7 @@
 
 (function() {
 
-    var FAN_SOUND_ENTITY_NAME ="home_sfx_ceiling_fan"
+    var FAN_SOUND_ENTITY_NAME = "home_sfx_ceiling_fan"
     var SEARCH_RADIUS = 100;
     var _this;
     var utilitiesScript = Script.resolvePath('../utils.js');
@@ -74,16 +74,16 @@
             if (!_this.fanSoundEntity) {
                 return;
             }
-             print('HOME FAN OFF 2')
+            print('HOME FAN OFF 2')
             var soundUserData = getEntityCustomData("soundKey", _this.fanSoundEntity);
             if (!soundUserData) {
                 print("NO SOUND USER DATA! RETURNING.");
                 return;
             }
-             print('HOME FAN OFF 3')
+            print('HOME FAN OFF 3')
             soundUserData.volume = 0.0;
             setEntityCustomData("soundKey", _this.fanSoundEntity, soundUserData);
-             print('HOME FAN OFF 4')
+            print('HOME FAN OFF 4')
         },
 
         findFan: function() {
@@ -105,7 +105,7 @@
 
             var fan = null;
             print('HOME LOOKING FOR A FAN')
-            print('HOME TOTAL ENTITIES:: ' +entities.length)
+            print('HOME TOTAL ENTITIES:: ' + entities.length)
             entities.forEach(function(entity) {
                 var props = Entities.getEntityProperties(entity);
                 if (props.name === FAN_SOUND_ENTITY_NAME) {
@@ -129,9 +129,21 @@
             if (this._switch.state === 'off') {
                 this.fanRotationOn();
                 this.fanSoundOn();
+
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'on'
                 });
+
+                Entities.editEntity(this.entityID, {
+                    "animation": {
+                        "currentFrame": 1,
+                        "firstFrame": 1,
+                        "hold": 1,
+                        "lastFrame": 2,
+                        "url": "atp:/switches/fanswitch.fbx"
+                    },
+                })
+
 
             } else {
                 this.fanRotationOff();
@@ -140,29 +152,25 @@
                 setEntityCustomData('home-switch', this.entityID, {
                     state: 'off'
                 });
+                Entities.editEntity(this.entityID, {
+                    "animation": {
+                        "currentFrame": 3,
+                        "firstFrame": 3,
+                        "hold": 1,
+                        "lastFrame": 4,
+                        "url": "atp:/switches/fanswitch.fbx"
+                    },
+                })
+
+
             }
 
-            this.flipSwitch();
+
             Audio.playSound(this.switchSound, {
                 volume: 0.5,
                 position: this.position
             });
 
-        },
-
-        flipSwitch: function() {
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var axis = {
-                x: 0,
-                y: 1,
-                z: 0
-            };
-            var dQ = Quat.angleAxis(180, axis);
-            rotation = Quat.multiply(rotation, dQ);
-
-            Entities.editEntity(this.entityID, {
-                rotation: rotation
-            });
         },
 
         preload: function(entityID) {

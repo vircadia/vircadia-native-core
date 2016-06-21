@@ -26,6 +26,8 @@
 #include "LogHandler.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
+const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
+
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
@@ -128,19 +130,30 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     EntityItemProperties properties = origProperties;
 
     bool allowLockChange;
+    bool canRezPermanentEntities;
     QUuid senderID;
     if (senderNode.isNull()) {
         auto nodeList = DependencyManager::get<NodeList>();
         allowLockChange = nodeList->isAllowedEditor();
+        canRezPermanentEntities = nodeList->getThisNodeCanRez();
         senderID = nodeList->getSessionUUID();
     } else {
         allowLockChange = senderNode->isAllowedEditor();
+        canRezPermanentEntities = senderNode->getCanRez();
         senderID = senderNode->getUUID();
     }
 
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
         qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
+    }
+
+    if (!canRezPermanentEntities && (entity->getLifetime() != properties.getLifetime())) {
+        // we don't allow a Node that can't create permanent entities to adjust lifetimes on existing ones
+        if (properties.lifetimeChanged()) {
+            qCDebug(entities) << "Refusing disallowed entity lifetime adjustment.";
+            return false;
+        }
     }
 
     // enforce support for locked entities. If an entity is currently locked, then the only
@@ -308,17 +321,39 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     return true;
 }
 
+bool EntityTree::permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp) {
+    float lifeTime = properties.getLifetime();
+
+    if (lifeTime == ENTITY_ITEM_IMMORTAL_LIFETIME || lifeTime > _maxTmpEntityLifetime) {
+        // this is an attempt to rez a permanent or non-temporary entity.
+        if (!canRez) {
+            return false;
+        }
+    } else {
+        // this is an attempt to rez a temporary entity.
+        if (!canRezTmp) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result = NULL;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList) {
+        qDebug() << "EntityTree::addEntity -- can't get NodeList";
+        return nullptr;
+    }
+
     bool clientOnly = properties.getClientOnly();
 
-    if (!clientOnly && getIsClient()) {
+    if (!clientOnly && getIsClient() &&
+        !permissionsAllowRez(properties, nodeList->getThisNodeCanRez(), nodeList->getThisNodeCanRezTmp())) {
         // if our Node isn't allowed to create entities in this domain, don't try.
-        auto nodeList = DependencyManager::get<NodeList>();
-        if (nodeList && !nodeList->getThisNodeCanRez()) {
-            return NULL;
-        }
+        return nullptr;
     }
 
     bool recordCreationTime = false;
@@ -920,7 +955,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
                 } else if (message.getType() == PacketType::EntityAdd) {
-                    if (senderNode->getCanRez()) {
+                    if (permissionsAllowRez(properties, senderNode->getCanRez(), senderNode->getCanRezTmp())) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
                         startCreate = usecTimestampNow();
@@ -1284,6 +1319,7 @@ class ContentsDimensionOperator : public RecurseOctreeOperator {
 public:
     virtual bool preRecursion(OctreeElementPointer element);
     virtual bool postRecursion(OctreeElementPointer element) { return true; }
+    glm::vec3 getDimensions() const { return _contentExtents.size(); }
     float getLargestDimension() const { return _contentExtents.largestDimension(); }
 private:
     Extents _contentExtents;
@@ -1293,6 +1329,12 @@ bool ContentsDimensionOperator::preRecursion(OctreeElementPointer element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->expandExtentsToContents(_contentExtents);
     return true;
+}
+
+glm::vec3 EntityTree::getContentsDimensions() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getDimensions();
 }
 
 float EntityTree::getContentsLargestDimension() {
@@ -1423,6 +1465,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     QVariantList entitiesQList = map["Entities"].toList();
     QScriptEngine scriptEngine;
 
+    if (entitiesQList.length() == 0) {
+        // Empty map or invalidly formed file.
+        return false;
+    }
+
+    bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
         QVariantMap entityMap = entityVariant.toMap();
@@ -1440,9 +1488,10 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
+            success = false;
         }
     }
-    return true;
+    return success;
 }
 
 void EntityTree::resetClientEditStats() {

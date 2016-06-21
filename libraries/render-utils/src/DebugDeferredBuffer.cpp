@@ -83,7 +83,7 @@ static const std::string DEFAULT_NORMAL_SHADER {
 static const std::string DEFAULT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(vec3(frag.obscurance), 1.0);"
+    "    return vec4(vec3(pow(frag.obscurance, 1.0 / 2.2)), 1.0);"
     " }"
 };
 

@@ -22,6 +22,7 @@ signals:
     void readyToImport();
     
 public slots:
+    glm::vec3 getContentsDimensions(); /// returns the overall dimensions of everything on the blipboard
     float getClipboardContentsLargestDimension(); /// returns the largest dimension of everything on the clipboard
     bool importEntities(const QString& filename);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);

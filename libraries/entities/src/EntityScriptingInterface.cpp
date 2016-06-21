@@ -32,6 +32,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -47,6 +48,11 @@ bool EntityScriptingInterface::canAdjustLocks() {
 bool EntityScriptingInterface::canRez() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRez();
+}
+
+bool EntityScriptingInterface::canRezTmp() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmp();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -1118,6 +1124,27 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     QStringList result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    if (!entity) {
+        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        return result;
+    }
+
+    _entityTree->withReadLock([&] {
+        entity->forEachChild([&](SpatiallyNestablePointer child) {
+            result.push_back(child->getID());
+        });
+    });
+
     return result;
 }
 

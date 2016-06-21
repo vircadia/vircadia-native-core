@@ -174,6 +174,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
                         <<  "from previous settings file";
                 }
             }
+            settings.endGroup();
 
             if (_accountInfo.getAccessToken().token.isEmpty()) {
                 qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";

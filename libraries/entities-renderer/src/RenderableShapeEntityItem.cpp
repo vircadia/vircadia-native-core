@@ -98,7 +98,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     }
     batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
     if (_procedural->ready()) {
-        _procedural->prepare(batch, getPosition(), getDimensions());
+        _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
