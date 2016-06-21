@@ -85,15 +85,10 @@ function Trigger(label) {
             state = 'full';
         } else if (that.triggerSmoothedReleased()) {
             state = null;
-        // These depend on previous state:
-        // null -> squeezed ==> partial
-        // full -> !squeezed ==> partial
-        // Otherwise no change.
         } else if (that.triggerSmoothedSqueezed()) {
-            if (!state) {
-                state = 'partial';
-            }
-        } else if (state === 'full') {
+            // Another way to do this would be to have hysteresis in this branch, but that seems to make things harder to use.
+            // In particular, the vive has a nice detent as you release off of full, and we want that to be a transition from
+            // full to partial.
             state = 'partial';
         }
         that.state = state;
