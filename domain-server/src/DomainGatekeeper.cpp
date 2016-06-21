@@ -274,6 +274,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
         // ask for their public key right now to make sure we have it
         requestUserPublicKey(username);
+        getGroupMemberships(username); // optimistically get started on group memberships
         return SharedNodePointer();
     }
 
@@ -480,10 +481,20 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
         return;
     }
 
+    QString lowerUsername = username.toLower();
+    if (_inFlightPublicKeyRequests.contains(lowerUsername)) {
+        // public-key request for this username is already flight, not rerequesting
+        return;
+    }
+    _inFlightPublicKeyRequests[lowerUsername] = true;
+
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
     callbackParams.jsonCallbackReceiver = this;
     callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "publicKeyJSONErrorCallback";
+
 
     const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
 
@@ -494,28 +505,40 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
                                               QNetworkAccessManager::GetOperation, callbackParams);
 }
 
+QString extractUsernameFromPublicKeyRequest(QNetworkReply& requestReply) {
+    // extract the username from the request url
+    QString username;
+    const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
+    QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
+    if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+        username = usernameRegex.cap(1);
+    }
+    return username.toLower();
+}
+
 void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QString username = extractUsernameFromPublicKeyRequest(requestReply);
 
-    if (jsonObject["status"].toString() == "success") {
+    if (jsonObject["status"].toString() == "success" && username != "") {
         // figure out which user this is for
-
         const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
-        QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
+        qDebug() << "Storing a public key for user" << username;
+        // pull the public key as a QByteArray from this response
+        const QString JSON_DATA_KEY = "data";
+        const QString JSON_PUBLIC_KEY_KEY = "public_key";
 
-        if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
-            QString username = usernameRegex.cap(1);
-
-            qDebug() << "Storing a public key for user" << username;
-
-            // pull the public key as a QByteArray from this response
-            const QString JSON_DATA_KEY = "data";
-            const QString JSON_PUBLIC_KEY_KEY = "public_key";
-
-            _userPublicKeys[username] =
-                QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
-        }
+        _userPublicKeys[username] =
+            QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
     }
+
+    _inFlightPublicKeyRequests.remove(username);
+}
+
+void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "publicKey api call failed:" << requestReply.error();
+    QString username = extractUsernameFromPublicKeyRequest(requestReply);
+    _inFlightPublicKeyRequests.remove(username);
 }
 
 void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
