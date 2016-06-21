@@ -7,11 +7,9 @@
 //
 #pragma once
 
-#include <ui-plugins/PluginContainer.h>
 #include "DisplayPlugin.h"
 
 class NullDisplayPlugin : public DisplayPlugin {
-    ACCESS_PLUGIN_CONTAINER_MIXIN
 public:
 
     virtual ~NullDisplayPlugin() final {}

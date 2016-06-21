@@ -28,6 +28,7 @@
 #include <NumericalConstants.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
+#include <ui-plugins/PluginContainer.h>
 #include <SettingHandle.h>
 
 #include <QLoggingCategory>

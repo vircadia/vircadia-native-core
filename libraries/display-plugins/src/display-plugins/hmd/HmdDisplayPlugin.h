@@ -13,8 +13,6 @@
 
 #include "../OpenGLDisplayPlugin.h"
 
-#include <QDebug>
-
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:

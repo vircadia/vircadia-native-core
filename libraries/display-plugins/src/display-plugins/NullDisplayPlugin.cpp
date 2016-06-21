@@ -10,6 +10,7 @@
 #include "NullDisplayPlugin.h"
 
 #include <QtGui/QImage>
+#include <ui-plugins/PluginContainer.h>
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 

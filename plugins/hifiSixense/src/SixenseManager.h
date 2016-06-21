@@ -17,7 +17,6 @@
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
-#include <ui-plugins/PluginContainer.h>
 #include <plugins/InputPlugin.h>
 
 struct _sixenseControllerData;
@@ -25,7 +24,6 @@ using SixenseControllerData = _sixenseControllerData;
 
 // Handles interaction with the Sixense SDK (e.g., Razer Hydra).
 class SixenseManager : public InputPlugin {
-    ACCESS_PLUGIN_CONTAINER_MIXIN
     Q_OBJECT
 public:
     // Plugin functions

@@ -22,6 +22,7 @@
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
 #include <shared/NsightHelpers.h>
+#include <ui-plugins/PluginContainer.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
 #include <GLMHelpers.h>

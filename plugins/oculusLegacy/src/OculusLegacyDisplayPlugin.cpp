@@ -26,6 +26,7 @@
 #include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
 
+#include <ui-plugins/PluginContainer.h>
 #include "OculusHelpers.h"
 
 using namespace oglplus;

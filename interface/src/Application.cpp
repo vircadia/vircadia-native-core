@@ -2954,8 +2954,6 @@ void Application::loadSettings() {
     Menu::getInstance()->loadSettings();
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
-
-
     auto plugins = pluginManager->getPreferredDisplayPlugins();
     for (auto plugin : plugins) {
         auto menu = Menu::getInstance();
@@ -5192,7 +5190,6 @@ void Application::updateDisplayMode() {
         // FIXME probably excessive and useless context switching
         _offscreenContext->makeCurrent();
 
-        qDebug() << "Application::updateDisplayMode()... line:" << __LINE__ << "about to call newDisplayPlugin->activate()";
         bool active = newDisplayPlugin->activate();
 
         if (!active) {

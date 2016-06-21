@@ -19,6 +19,7 @@
 #include <gl/GlWindow.h>
 
 #include <PerfStat.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ViewFrustum.h>
 #include <shared/NsightHelpers.h>
 #include "OpenVrHelpers.h"

@@ -23,14 +23,12 @@
 #include <plugins/InputPlugin.h>
 #include <RenderArgs.h>
 #include <render/Scene.h>
-#include <ui-plugins/PluginContainer.h>
 
 namespace vr {
     class IVRSystem;
 }
 
-class ViveControllerManager : public InputPlugin  {
-    ACCESS_PLUGIN_CONTAINER_MIXIN
+class ViveControllerManager : public InputPlugin {
     Q_OBJECT
 public:
     // Plugin functions

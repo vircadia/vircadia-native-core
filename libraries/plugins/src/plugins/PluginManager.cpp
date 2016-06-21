@@ -133,10 +133,8 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
             }
         }
         for (auto plugin : displayPlugins) {
+            plugin->setContainer(_container);
             plugin->init();
-            if (_container) {
-                plugin->setContainer(_container);
-            }
         }
 
     });
@@ -172,10 +170,8 @@ const InputPluginList& PluginManager::getInputPlugins() {
         }
 
         for (auto plugin : inputPlugins) {
+            plugin->setContainer(_container);
             plugin->init();
-            if (_container) {
-                plugin->setContainer(_container);
-            }
         }
     });
     return inputPlugins;

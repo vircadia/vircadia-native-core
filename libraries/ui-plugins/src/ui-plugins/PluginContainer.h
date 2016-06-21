@@ -7,12 +7,10 @@
 //
 #pragma once
 
-#include <assert.h>
 #include <functional>
 #include <map>
 #include <stdint.h>
 
-#include <QtCore/QCoreApplication>
 #include <QtCore/QString>
 #include <QtCore/QVector>
 #include <QtCore/QPair>
@@ -87,11 +85,3 @@ protected:
     QRect _savedGeometry { 10, 120, 800, 600 };
 };
 
-/// Mixin this class to your class to get easy access to the PluginContainer
-#define ACCESS_PLUGIN_CONTAINER_MIXIN                              \
-public:                                                            \
-    virtual void setContainer(void* container) override {          \
-        _container = static_cast<PluginContainer*>(container);     \
-    }                                                              \
-protected:                                                         \
-    PluginContainer* _container { nullptr };

@@ -21,13 +21,9 @@
 #include <gl/GLEscrow.h>
 #include <shared/RateCounter.h>
 
-#include <ui-plugins/PluginContainer.h>
-
 #define THREADED_PRESENT 1
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
-
-    ACCESS_PLUGIN_CONTAINER_MIXIN
 
 protected:
     using Mutex = std::mutex;

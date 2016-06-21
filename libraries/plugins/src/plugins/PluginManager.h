@@ -26,7 +26,7 @@ public:
     void disableDisplays(const QStringList& displays);
     void disableInputs(const QStringList& inputs);
     void saveSettings();
-    void setContainer(void* container) { _container = container; }
+    void setContainer(PluginContainer* container) { _container = container; }
 private:
-    void* _container { nullptr };
+    PluginContainer* _container { nullptr };
 };
