@@ -10,16 +10,18 @@
 
 #include "DomainMetadata.h"
 
-#include <HifiConfigVariantMap.h>
+#include <AccountManager.h>
 #include <DependencyManager.h>
+#include <HifiConfigVariantMap.h>
 #include <LimitedNodeList.h>
 
+#include "DomainServer.h"
 #include "DomainServerNodeData.h"
 
 const QString DomainMetadata::USERS = "users";
-const QString DomainMetadata::USERS_NUM_TOTAL = "num_users";
-const QString DomainMetadata::USERS_NUM_ANON = "num_anon_users";
-const QString DomainMetadata::USERS_HOSTNAMES = "user_hostnames";
+const QString DomainMetadata::Users::NUM_TOTAL = "num_users";
+const QString DomainMetadata::Users::NUM_ANON = "num_anon_users";
+const QString DomainMetadata::Users::HOSTNAMES = "user_hostnames";
 // users metadata will appear as (JSON):
 // { "num_users": Number,
 //   "num_anon_users": Number,
@@ -27,25 +29,20 @@ const QString DomainMetadata::USERS_HOSTNAMES = "user_hostnames";
 // }
 
 const QString DomainMetadata::DESCRIPTORS = "descriptors";
-const QString DomainMetadata::DESCRIPTORS_DESCRIPTION = "description";
-const QString DomainMetadata::DESCRIPTORS_CAPACITY = "capacity"; // parsed from security
-const QString DomainMetadata::DESCRIPTORS_RESTRICTION = "restriction"; // parsed from ACL
-const QString DomainMetadata::DESCRIPTORS_MATURITY = "maturity";
-const QString DomainMetadata::DESCRIPTORS_HOSTS = "hosts";
-const QString DomainMetadata::DESCRIPTORS_TAGS = "tags";
+const QString DomainMetadata::Descriptors::DESCRIPTION = "description";
+const QString DomainMetadata::Descriptors::CAPACITY = "capacity"; // parsed from security
+const QString DomainMetadata::Descriptors::HOURS = "hours";
+const QString DomainMetadata::Descriptors::RESTRICTION = "restriction"; // parsed from ACL
+const QString DomainMetadata::Descriptors::MATURITY = "maturity";
+const QString DomainMetadata::Descriptors::HOSTS = "hosts";
+const QString DomainMetadata::Descriptors::TAGS = "tags";
 // descriptors metadata will appear as (JSON):
-// { "capacity": Number,
-//   TODO: "hours": String, // UTF-8 representation of the week, split into 15" segments
+// { "description": String, // capped description
+//   "capacity": Number,
+//   "hours": String, // UTF-8 representation of the week, split into 15" segments
 //   "restriction": String, // enum of either open, hifi, or acl
 //   "maturity": String, // enum corresponding to ESRB ratings
 //   "hosts": [ String ], // capped list of usernames
-//   "description": String, // capped description
-//   TODO: "img": {
-//      "src": String,
-//      "type": String,
-//      "size": Number,
-//      "updated_at": Number,
-//   },
 //   "tags": [ String ], // capped list of tags
 // }
 
@@ -54,36 +51,103 @@ const QString DomainMetadata::DESCRIPTORS_TAGS = "tags";
 //
 // it is meant to be sent to and consumed by an external API
 
-DomainMetadata::DomainMetadata() {
+DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
     _metadata[USERS] = {};
     _metadata[DESCRIPTORS] = {};
+
+    assert(dynamic_cast<DomainServer*>(domainServer));
+    DomainServer* server = static_cast<DomainServer*>(domainServer);
+
+    // update the metadata when a user (dis)connects
+    connect(server, &DomainServer::userConnected, this, &DomainMetadata::usersChanged);
+    connect(server, &DomainServer::userDisconnected, this, &DomainMetadata::usersChanged);
+
+    // update the metadata when security changes
+    connect(&server->_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
+        this, static_cast<void(DomainMetadata::*)()>(&DomainMetadata::securityChanged));
+
+    // initialize the descriptors
+    descriptorsChanged();
 }
 
-void DomainMetadata::setDescriptors(QVariantMap& settings) {
+QJsonObject DomainMetadata::get() {
+    maybeUpdateUsers();
+    return QJsonObject::fromVariantMap(_metadata);
+}
+
+QJsonObject DomainMetadata::get(const QString& group) {
+    maybeUpdateUsers();
+    return QJsonObject::fromVariantMap(_metadata[group].toMap());
+}
+
+void DomainMetadata::descriptorsChanged() {
     const QString CAPACITY = "security.maximum_user_capacity";
+    auto settings = static_cast<DomainServer*>(parent())->_settingsManager.getSettingsMap();
     const QVariant* capacityVariant = valueForKeyPath(settings, CAPACITY);
     unsigned int capacity = capacityVariant ? capacityVariant->toUInt() : 0;
 
-    // TODO: Keep parity with ACL development.
-    const QString RESTRICTION = "security.restricted_access";
-    const QString RESTRICTION_OPEN = "open";
-    // const QString RESTRICTION_HIFI = "hifi";
-    const QString RESTRICTION_ACL = "acl";
-    const QVariant* isRestrictedVariant = valueForKeyPath(settings, RESTRICTION);
-    bool isRestricted = isRestrictedVariant ? isRestrictedVariant->toBool() : false;
-    QString restriction = isRestricted ? RESTRICTION_ACL : RESTRICTION_OPEN;
+    auto descriptors = settings[DESCRIPTORS].toMap();
+    descriptors[Descriptors::CAPACITY] = capacity;
+    _metadata[DESCRIPTORS] = descriptors;
 
-    QVariantMap descriptors = settings[DESCRIPTORS].toMap();
-    descriptors[DESCRIPTORS_CAPACITY] = capacity;
-    descriptors[DESCRIPTORS_RESTRICTION] = restriction;
+    // update overwritten fields
+    securityChanged(false);
+
+#if DEV_BUILD || PR_BUILD
+    qDebug() << "Domain metadata descriptors set:" << _metadata[DESCRIPTORS];
+#endif
+
+    sendDescriptors();
+}
+
+void DomainMetadata::securityChanged(bool send) {
+    const QString RESTRICTION_OPEN = "open";
+    const QString RESTRICTION_ANON = "anon";
+    const QString RESTRICTION_HIFI = "hifi";
+    const QString RESTRICTION_ACL = "acl";
+
+    QString restriction;
+
+    const auto& settingsManager = static_cast<DomainServer*>(parent())->_settingsManager;
+    bool hasAnonymousAccess =
+        settingsManager.getStandardPermissionsForName(NodePermissions::standardNameAnonymous).canConnectToDomain;
+    bool hasHifiAccess = 
+        settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn).canConnectToDomain;
+    if (hasAnonymousAccess) {
+        restriction = hasHifiAccess ? RESTRICTION_OPEN : RESTRICTION_ANON;
+    } else if (hasHifiAccess) {
+        restriction = RESTRICTION_HIFI;
+    } else {
+        restriction = RESTRICTION_ACL;
+    }
+
+    auto descriptors = _metadata[DESCRIPTORS].toMap();
+    descriptors[Descriptors::RESTRICTION] = restriction;
     _metadata[DESCRIPTORS] = descriptors;
 
 #if DEV_BUILD || PR_BUILD
-    qDebug() << "Domain metadata descriptors set:" << descriptors;
+    qDebug() << "Domain metadata restriction set:" << restriction;
+#endif
+
+    if (send) {
+        sendDescriptors();
+    }
+}
+
+void DomainMetadata::usersChanged() {
+    ++_tic;
+
+#if DEV_BUILD || PR_BUILD
+    qDebug() << "Domain metadata users change detected";
 #endif
 }
 
-void DomainMetadata::updateUsers() {
+void DomainMetadata::maybeUpdateUsers() {
+    if (_lastTic == _tic) {
+        return;
+    }
+    _lastTic = _tic;
+
     static const QString DEFAULT_HOSTNAME = "*";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -113,20 +177,26 @@ void DomainMetadata::updateUsers() {
     });
 
     QVariantMap users = {
-        { USERS_NUM_TOTAL, numConnected },
-        { USERS_NUM_ANON, numConnectedAnonymously },
-        { USERS_HOSTNAMES, userHostnames }};
+        { Users::NUM_TOTAL, numConnected },
+        { Users::NUM_ANON, numConnectedAnonymously },
+        { Users::HOSTNAMES, userHostnames }};
     _metadata[USERS] = users;
+    ++_tic;
 
 #if DEV_BUILD || PR_BUILD
     qDebug() << "Domain metadata users updated:" << users;
 #endif
 }
 
-void DomainMetadata::usersChanged() {
-    ++_tic;
-
-#if DEV_BUILD || PR_BUILD
-    qDebug() << "Domain metadata users change detected";
-#endif
+void DomainMetadata::sendDescriptors() {
+    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(get(DESCRIPTORS)).toJson(QJsonDocument::Compact)));
+    const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
+    if (!domainID.isNull()) {
+        static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+        DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+            AccountManagerAuth::Required,
+            QNetworkAccessManager::PutOperation,
+            JSONCallbackParameters(),
+            domainUpdateJSON.toUtf8());
+    }
 }

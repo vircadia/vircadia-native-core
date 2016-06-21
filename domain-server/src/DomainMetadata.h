@@ -19,46 +19,48 @@
 class DomainMetadata : public QObject {
 Q_OBJECT
 
+public:
+    using Tic = uint32_t;
+
     static const QString USERS;
-    static const QString USERS_NUM_TOTAL;
-    static const QString USERS_NUM_ANON;
-    static const QString USERS_HOSTNAMES;
+    class Users {
+    public:
+        static const QString NUM_TOTAL;
+        static const QString NUM_ANON;
+        static const QString HOSTNAMES;
+    };
 
     static const QString DESCRIPTORS;
-    static const QString DESCRIPTORS_DESCRIPTION;
-    static const QString DESCRIPTORS_CAPACITY;
-    static const QString DESCRIPTORS_HOURS;
-    static const QString DESCRIPTORS_RESTRICTION;
-    static const QString DESCRIPTORS_MATURITY;
-    static const QString DESCRIPTORS_HOSTS;
-    static const QString DESCRIPTORS_TAGS;
-    static const QString DESCRIPTORS_IMG;
-    static const QString DESCRIPTORS_IMG_SRC;
-    static const QString DESCRIPTORS_IMG_TYPE;
-    static const QString DESCRIPTORS_IMG_SIZE;
-    static const QString DESCRIPTORS_IMG_UPDATED_AT;
+    class Descriptors {
+    public:
+        static const QString DESCRIPTION;
+        static const QString CAPACITY;
+        static const QString HOURS;
+        static const QString RESTRICTION;
+        static const QString MATURITY;
+        static const QString HOSTS;
+        static const QString TAGS;
+    };
 
-public:
-    DomainMetadata();
+    DomainMetadata(QObject* domainServer);
+    DomainMetadata() = delete;
 
-    // Returns the last set metadata
-    // If connected users have changed, metadata may need to be updated
-    // this should be checked by storing tic = getTic() between calls
-    // and testing it for equality before the next get (tic == getTic())
-    QJsonObject get() { return QJsonObject::fromVariantMap(_metadata); }
-    QJsonObject getUsers() { return QJsonObject::fromVariantMap(_metadata[USERS].toMap()); }
-    QJsonObject getDescriptors() { return QJsonObject::fromVariantMap(_metadata[DESCRIPTORS].toMap()); }
-
-    uint32_t getTic() { return _tic; }
-
-    void setDescriptors(QVariantMap& settings);
-    void updateUsers();
+    // Get cached metadata
+    QJsonObject get();
+    QJsonObject get(const QString& group);
 
 public slots:
+    void descriptorsChanged();
+    void securityChanged(bool send);
+    void securityChanged() { securityChanged(true); }
     void usersChanged();
 
 protected:
+    void maybeUpdateUsers();
+    void sendDescriptors();
+
     QVariantMap _metadata;
+    uint32_t _lastTic{ (uint32_t)-1 };
     uint32_t _tic{ 0 };
 };
 

@@ -116,6 +116,7 @@
           "name": "hosts",
           "label": "Hosts",
           "type": "table",
+          "can_add_new_rows": true,
           "help": "Usernames of hosts who can reliably show your domain to new visitors.",
           "numbered": false,
           "columns": [
@@ -130,6 +131,7 @@
           "name": "tags",
           "label": "Tags",
           "type": "table",
+          "can_add_new_rows": true,
           "help": "Common categories under which your domain falls.",
           "numbered": false,
           "columns": [
