@@ -707,6 +707,22 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         info.setParams(type, dimensions, _compoundShapeURL);
     } else if (type == SHAPE_TYPE_MESH) {
+        // compute meshPart local transforms
+        QVector<glm::mat4> localTransforms;
+        const FBXGeometry& geometry = _model->getFBXGeometry();
+        int numberOfMeshes = geometry.meshes.size();
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
+            if (mesh.clusters.size() > 0) {
+                const FBXCluster& cluster = mesh.clusters.at(0);
+                auto jointMatrix = _model->getRig()->getJointTransform(cluster.jointIndex);
+                localTransforms.push_back(jointMatrix * cluster.inverseBindMatrix);
+            } else {
+                glm::mat4 identity;
+                localTransforms.push_back(identity);
+            }
+        }
+
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
@@ -720,19 +736,21 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
 
         Extents extents;
-        glm::vec3 scaledModelOffset = _model->getOffset() * _model->getScale();
+        int meshCount = 0;
         for (auto& mesh : meshes) {
             const gpu::BufferView& vertices = mesh->getVertexBuffer();
             const gpu::BufferView& indices = mesh->getIndexBuffer();
             const gpu::BufferView& parts = mesh->getPartBuffer();
 
             // copy points
+            const glm::mat4& localTransform = localTransforms[meshCount];
             uint32_t meshIndexOffset = (uint32_t)points.size();
             gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
             points.reserve((int32_t)((gpu::Size)points.size() + vertices.getNumElements()));
             while (vertexItr != vertices.cend<const glm::vec3>()) {
-                points.push_back(*vertexItr);
-                extents.addPoint(*vertexItr);
+                glm::vec3 point = extractTranslation(localTransform * glm::translate(*vertexItr));
+                points.push_back(point);
+                extents.addPoint(point);
                 ++vertexItr;
             }
 
@@ -783,12 +801,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                         }
                         ++indexItr;
                     }
-                } else if (partItr->_topology == model::Mesh::QUADS) {
-                    // TODO: support model::Mesh::QUADS
                 }
-                // TODO? support model::Mesh::QUAD_STRIP?
                 ++partItr;
             }
+            ++meshCount;
         }
 
         // scale and shift
@@ -800,7 +816,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
         for (int i = 0; i < points.size(); ++i) {
-            points[i] = (points[i] * scaleToFit) + scaledModelOffset;
+            points[i] = (points[i] * scaleToFit);
         }
 
         pointCollection.push_back(points);
