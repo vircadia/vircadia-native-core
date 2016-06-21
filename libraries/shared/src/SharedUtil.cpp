@@ -864,7 +864,9 @@ bool getMemoryInfo(MemoryInfo& info) {
     }
     info.processUsedMemoryBytes = pmc.PrivateUsage;
     info.processPeakUsedMemoryBytes = pmc.PeakPagefileUsage;
-#endif
 
     return true;
+#endif
+
+    return false;
 }
