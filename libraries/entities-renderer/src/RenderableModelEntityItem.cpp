@@ -593,7 +593,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         // the model is still being downloaded.
         return false;
-    } else if (type == SHAPE_TYPE_MESH) {
+    } else if (type == SHAPE_TYPE_STATIC_MESH) {
         return (_model && _model->isLoaded());
     }
     return true;
@@ -706,7 +706,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         info.setParams(type, dimensions, _compoundShapeURL);
-    } else if (type == SHAPE_TYPE_MESH) {
+    } else if (type == SHAPE_TYPE_STATIC_MESH) {
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
         const FBXGeometry& geometry = _model->getFBXGeometry();
@@ -820,7 +820,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         pointCollection.push_back(points);
-        info.setParams(SHAPE_TYPE_MESH, 0.5f * dimensions, _modelURL);
+        info.setParams(SHAPE_TYPE_STATIC_MESH, 0.5f * dimensions, _modelURL);
     } else {
         ModelEntityItem::computeShapeInfo(info);
         info.setParams(type, 0.5f * dimensions);

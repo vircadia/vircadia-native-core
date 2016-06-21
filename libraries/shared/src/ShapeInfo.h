@@ -39,7 +39,7 @@ enum ShapeType {
     SHAPE_TYPE_HULL,
     SHAPE_TYPE_PLANE,
     SHAPE_TYPE_COMPOUND,
-    SHAPE_TYPE_MESH
+    SHAPE_TYPE_STATIC_MESH
 };
 
 class ShapeInfo {

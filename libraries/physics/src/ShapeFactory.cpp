@@ -161,7 +161,7 @@ btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
 
 // util method
 btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
-    assert(info.getType() == SHAPE_TYPE_MESH); // should only get here for mesh shapes
+    assert(info.getType() == SHAPE_TYPE_STATIC_MESH); // should only get here for mesh shapes
 
     const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
     assert(pointCollection.size() == 1); // should only have one mesh
@@ -274,7 +274,7 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             }
         }
         break;
-        case SHAPE_TYPE_MESH: {
+        case SHAPE_TYPE_STATIC_MESH: {
             btTriangleIndexVertexArray* dataArray = createStaticMeshArray(info);
             shape = new StaticMeshShape(dataArray);
         }

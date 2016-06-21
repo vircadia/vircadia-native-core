@@ -123,7 +123,7 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_HULL);
     addShapeType(SHAPE_TYPE_PLANE);
     addShapeType(SHAPE_TYPE_COMPOUND);
-    addShapeType(SHAPE_TYPE_MESH);
+    addShapeType(SHAPE_TYPE_STATIC_MESH);
 }
 
 QString getCollisionGroupAsString(uint8_t group) {

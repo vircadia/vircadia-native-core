@@ -41,7 +41,7 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             break;
         }
         case SHAPE_TYPE_COMPOUND:
-        case SHAPE_TYPE_MESH:
+        case SHAPE_TYPE_STATIC_MESH:
             _url = QUrl(url);
             break;
         default:
@@ -224,7 +224,7 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         }
         _doubleHashKey.setHash2(hash);
 
-        if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_MESH) {
+        if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_STATIC_MESH) {
             QString url = _url.toString();
             if (!url.isEmpty()) {
                 // fold the urlHash into both parts
