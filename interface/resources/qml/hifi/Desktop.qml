@@ -3,12 +3,12 @@ import QtQuick.Controls 1.4
 import QtWebEngine 1.1;
 import Qt.labs.settings 1.0
 
-import "../desktop"
+import "../desktop" as OriginalDesktop
 import ".."
 import "."
 import "./toolbars"
 
-Desktop {
+OriginalDesktop.Desktop {
     id: desktop
 
     MouseArea {
@@ -54,12 +54,13 @@ Desktop {
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
 
         var sysToolbar = desktop.getToolbar("com.highfidelity.interface.toolbar.system");
-        //toolbars[sysToolbar.objectName] = sysToolbar
         var toggleHudButton = sysToolbar.addButton({
+            objectName: "hudToggle",
             imageURL: "../../../icons/hud-01.svg",
             visible: true,
-
+            pinned: true,
         });
+
         toggleHudButton.yOffset = Qt.binding(function(){
             return desktop.pinned ? 50 : 0
         });

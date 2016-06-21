@@ -57,7 +57,7 @@ ApplicationWindow {
                 "particle-01.svg",
             ]
             property int iconIndex: 0
-            readonly property string toolIconUrl: "file:///C:/Users/bdavi/git/hifi/scripts/system/assets/images/tools/"
+            readonly property string toolIconUrl: "../../../../../scripts/system/assets/images/tools/"
             text: "Create Button"
             onClicked: {
                 var name = icons[iconIndex];

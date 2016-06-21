@@ -65,7 +65,7 @@ FocusScope {
 
             var oldChildren = expectedChildren;
             var newChildren = d.getRepositionChildren();
-            if (oldRecommendedRect != Qt.rect(0,0,0,0) 
+            if (oldRecommendedRect != Qt.rect(0,0,0,0) && oldRecommendedRect != Qt.rect(0,0,1,1)
                   && (oldRecommendedRect != newRecommendedRect
                       || oldChildren != newChildren)
                 ) {

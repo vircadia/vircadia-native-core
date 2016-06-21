@@ -15,15 +15,6 @@ class QmlWrapper : public QObject {
 public:
     QmlWrapper(QObject* qmlObject, QObject* parent = nullptr)
         : QObject(parent), _qmlObject(qmlObject) { 
-        
-        const QMetaObject *metaobject = qmlObject->metaObject();
-        int count = metaobject->propertyCount();
-        qDebug() << "Scanning properties for " << qmlObject;
-        for (int i = 0; i < count; ++i) {
-            QMetaProperty metaproperty = metaobject->property(i);
-            const char *name = metaproperty.name();
-            qDebug() << "Property " << name;
-        }
     }
 
     Q_INVOKABLE void writeProperty(QString propertyName, QVariant propertyValue) {

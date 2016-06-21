@@ -59,7 +59,7 @@ Item {
         height: 1.66 * window.height
         x: (window.width - width) / 2
         y: window.height / 2 - 0.375 * height
-        visible: gradientsSupported && window && window.focus && pane.visible
+        visible: gradientsSupported && window && window.focus && window.content.visible
         gradient: Gradient {
             // GradientStop position 0.5 is at full circumference of circle that fits inside the square.
             GradientStop { position: 0.0; color: "#ff000000" }    // black, 100% opacity
