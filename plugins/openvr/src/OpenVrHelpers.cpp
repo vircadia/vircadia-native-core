@@ -138,7 +138,7 @@ void showOpenVrKeyboard(bool show = true) {
             if (vr::VROverlayError_None == showKeyboardResult) {
                 _keyboardShown = true;
                 // Try to position the keyboard slightly below where the user is looking.
-                mat4 headPose = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+                mat4 headPose = cancelOutRollAndPitch(toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking));
                 mat4 keyboardTransform = glm::translate(headPose, vec3(0, -0.5, -1));
                 keyboardTransform = keyboardTransform * glm::rotate(mat4(), 3.14159f / 4.0f, vec3(-1, 0, 0));
                 auto keyboardTransformVr = toOpenVr(keyboardTransform);
