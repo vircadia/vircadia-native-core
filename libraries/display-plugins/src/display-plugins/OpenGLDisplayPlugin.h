@@ -24,6 +24,7 @@
 #define THREADED_PRESENT 1
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
+
 protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
@@ -135,7 +136,9 @@ protected:
     BasicFramebufferWrapperPtr _compositeFramebuffer;
     bool _lockCurrentTexture { false };
 
+
 private:
+    using Parent = DisplayPlugin;
     ProgramPtr _activeProgram;
 };
 

@@ -15,7 +15,7 @@
 #include <QtWidgets/QWidget>
 
 #include <GLMHelpers.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>

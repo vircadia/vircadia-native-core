@@ -9,7 +9,7 @@
 #include "SideBySideStereoDisplayPlugin.h"
 #include <GLMHelpers.h>
 #include <CursorManager.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <gl/GLWidget.h>
 #include "../CompositorHelper.h"
 

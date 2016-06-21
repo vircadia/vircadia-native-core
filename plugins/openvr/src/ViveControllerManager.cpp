@@ -20,7 +20,7 @@
 #include <gpu/Context.h>
 #include <DeferredLightingEffect.h>
 #include <NumericalConstants.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
 
 #include <controllers/UserInputMapper.h>

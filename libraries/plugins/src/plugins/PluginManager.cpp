@@ -17,7 +17,6 @@
 #include "RuntimePlugin.h"
 #include "DisplayPlugin.h"
 #include "InputPlugin.h"
-#include "PluginContainer.h"
 
 
 PluginManager* PluginManager::getInstance() {
@@ -133,9 +132,8 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
                 }
             }
         }
-        auto& container = PluginContainer::getInstance();
         for (auto plugin : displayPlugins) {
-            plugin->setContainer(&container);
+            plugin->setContainer(_container);
             plugin->init();
         }
 
@@ -171,9 +169,8 @@ const InputPluginList& PluginManager::getInputPlugins() {
             }
         }
 
-        auto& container = PluginContainer::getInstance();
         for (auto plugin : inputPlugins) {
-            plugin->setContainer(&container);
+            plugin->setContainer(_container);
             plugin->init();
         }
     });
