@@ -1,5 +1,5 @@
 {
-  "version": 1.4,
+  "version": 1.5,
   "settings": [
     {
       "name": "metaverse",
@@ -143,9 +143,57 @@
           ]
         },
         {
-          "name": "utc_offset",
+          "label": "Operating Hours",
+          "help": "\"Open\" domains can be searched using their operating hours. Hours are entered in the local timezone, selected below.",
+
+          "name": "weekday_hours",
+          "caption": "Weekday Hours (Monday-Friday)",
+          "type": "table",
+          "can_add_new_rows": false,
+          "columns": [
+            {
+              "name": "open",
+              "label": "Opening Time",
+              "type": "time",
+              "default": "00:00",
+              "editable": true
+            },
+            {
+              "name": "close",
+              "label": "Closing Time",
+              "type": "time",
+              "default": "23:59",
+              "editable": true
+            }
+          ]
+        },
+        {
+          "name": "weekend_hours",
+          "label": "Weekend Hours (Saturday/Sunday)",
+          "type": "table",
+          "can_add_new_rows": false,
+          "columns": [
+            {
+              "name": "open",
+              "label": "Opening Time",
+              "type": "time",
+              "default": "00:00",
+              "editable": true
+            },
+            {
+              "name": "close",
+              "label": "Closing Time",
+              "type": "time",
+              "default": "23:59",
+              "editable": true
+            }
+          ]
+        },
+        {
           "label": "Time Zone",
-          "help": "This server's time zone, used for searching open servers",
+          "name": "utc_offset",
+          "caption": "Time Zone",
+          "help": "This server's time zone. Used to define your server's operating hours.",
           "type": "select",
           "options": [
             {
