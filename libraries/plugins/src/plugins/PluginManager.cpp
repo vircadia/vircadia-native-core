@@ -69,6 +69,15 @@ static DisplayPluginList displayPlugins;
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
     static std::once_flag once;
+    static auto deviceAddedCallback = [](QString deviceName) {
+        qDebug() << "Added device: " << deviceName;
+        UserActivityLogger::getInstance().connectedDevice("display", deviceName);
+    };
+    static auto subdeviceAddedCallback = [](QString pluginName, QString deviceName) {
+        qDebug() << "Added subdevice: " << deviceName;
+        UserActivityLogger::getInstance().connectedDevice("display", pluginName + " | " + deviceName);
+    };
+
     std::call_once(once, [&] {
         // Grab the built in plugins
         displayPlugins = ::getDisplayPlugins();
@@ -84,7 +93,8 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
         }
         auto& container = PluginContainer::getInstance();
         for (auto plugin : displayPlugins) {
-            UserActivityLogger::getInstance().connectedDevice("display", plugin->getName());
+            connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback);
+            connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback);
             plugin->setContainer(&container);
             plugin->init();
         }
@@ -106,6 +116,15 @@ void PluginManager::disableDisplayPlugin(const QString& name) {
 const InputPluginList& PluginManager::getInputPlugins() {
     static InputPluginList inputPlugins;
     static std::once_flag once;
+    static auto deviceAddedCallback = [](QString deviceName) {
+        qDebug() << "Added device: " << deviceName;
+        UserActivityLogger::getInstance().connectedDevice("input", deviceName);
+    };
+    static auto subdeviceAddedCallback = [](QString pluginName, QString deviceName) {
+        qDebug() << "Added subdevice: " << deviceName;
+        UserActivityLogger::getInstance().connectedDevice("input", pluginName + " | " + deviceName);
+    };
+
     std::call_once(once, [&] {
         inputPlugins = ::getInputPlugins();
 
@@ -122,6 +141,8 @@ const InputPluginList& PluginManager::getInputPlugins() {
         auto& container = PluginContainer::getInstance();
         for (auto plugin : inputPlugins) {
             UserActivityLogger::getInstance().connectedDevice("input", plugin->getName());
+            connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback);
+            connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback);
             plugin->setContainer(&container);
             plugin->init();
         }
