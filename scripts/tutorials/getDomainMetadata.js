@@ -113,7 +113,9 @@ function displayMetadata(place, metadata) {
 }
 
 function clearMetadata() {
-    if (OVERLAY) { Overlays.deleteOverlay(OVERLAY); }
+    if (OVERLAY) {
+        Overlays.deleteOverlay(OVERLAY);
+    }
 }
 
 // Request JSON from a url, synchronously
