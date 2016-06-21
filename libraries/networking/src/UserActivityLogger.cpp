@@ -131,9 +131,7 @@ void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceNam
         "3D TV - Side by Side Stereo",
         "3D TV - Interleaved",
 
-        "Keyboard/Mouse",
-        "Neuron",
-        "SDL2"
+        "Keyboard/Mouse"
     };
 
     if (DEVICE_BLACKLIST.contains(deviceName)) {
