@@ -35,11 +35,19 @@ public:
     public:
         static const QString DESCRIPTION;
         static const QString CAPACITY;
-        static const QString HOURS;
         static const QString RESTRICTION;
         static const QString MATURITY;
         static const QString HOSTS;
         static const QString TAGS;
+        static const QString HOURS;
+        class Hours {
+        public:
+            static const QString WEEKDAY;
+            static const QString WEEKEND;
+            static const QString UTC_OFFSET;
+            static const QString OPEN;
+            static const QString CLOSE;
+        };
     };
 
     DomainMetadata(QObject* domainServer);

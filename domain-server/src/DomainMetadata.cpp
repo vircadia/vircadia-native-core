@@ -31,19 +31,28 @@ const QString DomainMetadata::Users::HOSTNAMES = "user_hostnames";
 const QString DomainMetadata::DESCRIPTORS = "descriptors";
 const QString DomainMetadata::Descriptors::DESCRIPTION = "description";
 const QString DomainMetadata::Descriptors::CAPACITY = "capacity"; // parsed from security
-const QString DomainMetadata::Descriptors::HOURS = "hours";
 const QString DomainMetadata::Descriptors::RESTRICTION = "restriction"; // parsed from ACL
 const QString DomainMetadata::Descriptors::MATURITY = "maturity";
 const QString DomainMetadata::Descriptors::HOSTS = "hosts";
 const QString DomainMetadata::Descriptors::TAGS = "tags";
+const QString DomainMetadata::Descriptors::HOURS = "hours";
+const QString DomainMetadata::Descriptors::Hours::WEEKDAY = "weekday";
+const QString DomainMetadata::Descriptors::Hours::WEEKEND = "weekend";
+const QString DomainMetadata::Descriptors::Hours::UTC_OFFSET = "utc_offset";
+const QString DomainMetadata::Descriptors::Hours::OPEN = "open";
+const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 // descriptors metadata will appear as (JSON):
 // { "description": String, // capped description
 //   "capacity": Number,
-//   "hours": String, // UTF-8 representation of the week, split into 15" segments
 //   "restriction": String, // enum of either open, hifi, or acl
 //   "maturity": String, // enum corresponding to ESRB ratings
 //   "hosts": [ String ], // capped list of usernames
 //   "tags": [ String ], // capped list of tags
+//   "hours": {
+//      "utc_offset": Number,
+//      "weekday": [ { "open": Time, "close": Time } ],
+//      "weekend": [ { "open": Time, "close": Time } ],
+//   }
 // }
 
 // metadata will appear as (JSON):
@@ -52,8 +61,14 @@ const QString DomainMetadata::Descriptors::TAGS = "tags";
 // it is meant to be sent to and consumed by an external API
 
 DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
-    _metadata[USERS] = {};
-    _metadata[DESCRIPTORS] = {};
+    // set up the structure necessary for casting during parsing (see parseHours, esp.)
+    _metadata[USERS] = QVariantMap {};
+    _metadata[DESCRIPTORS] = QVariantMap {
+        { Descriptors::HOURS, QVariantMap {
+            { Descriptors::Hours::WEEKDAY, QVariantList { QVariantMap{} } },
+            { Descriptors::Hours::WEEKEND, QVariantList { QVariantMap{} } }
+        } }
+    };
 
     assert(dynamic_cast<DomainServer*>(domainServer));
     DomainServer* server = static_cast<DomainServer*>(domainServer);
@@ -67,6 +82,7 @@ DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
         this, static_cast<void(DomainMetadata::*)()>(&DomainMetadata::securityChanged));
 
     // initialize the descriptors
+    securityChanged(false);
     descriptorsChanged();
 }
 
@@ -80,27 +96,78 @@ QJsonObject DomainMetadata::get(const QString& group) {
     return QJsonObject::fromVariantMap(_metadata[group].toMap());
 }
 
+void parseHours(QVariant delta, QVariant& target) {
+    using Hours = DomainMetadata::Descriptors::Hours;
+
+    // hours should be of the form [ { open: Time, close: Time } ]
+    assert(target.canConvert<QVariantList>());
+    auto& targetList = *static_cast<QVariantList*>(target.data());
+
+    // if/when multiple ranges are allowed, this list will need to be iterated
+    assert(targetList[0].canConvert<QVariantMap>());
+    auto& targetMap = *static_cast<QVariantMap*>(targetList[0].data());
+
+    auto deltaMap = delta.toList()[0].toMap();
+    if (deltaMap.isEmpty()) {
+        return;
+    }
+
+    // merge delta into base
+    auto open = deltaMap.find(Hours::OPEN);
+    if (open != deltaMap.end()) {
+        targetMap[Hours::OPEN] = open.value();
+    }
+    assert(targetMap[Hours::OPEN].canConvert<QString>());
+    auto close = deltaMap.find(Hours::CLOSE);
+    if (close != deltaMap.end()) {
+        targetMap[Hours::CLOSE] = close.value();
+    }
+    assert(targetMap[Hours::CLOSE].canConvert<QString>());
+}
+
 void DomainMetadata::descriptorsChanged() {
-    const QString CAPACITY = "security.maximum_user_capacity";
+    // get descriptors
+    assert(_metadata[DESCRIPTORS].canConvert<QVariantMap>());
+    auto& state = *static_cast<QVariantMap*>(_metadata[DESCRIPTORS].data());
     auto settings = static_cast<DomainServer*>(parent())->_settingsManager.getSettingsMap();
+    auto descriptors = settings[DESCRIPTORS].toMap();
+
+    // copy simple descriptors (description/maturity)
+    state[Descriptors::DESCRIPTION] = descriptors[Descriptors::DESCRIPTION]; 
+    state[Descriptors::MATURITY] = descriptors[Descriptors::MATURITY];
+
+    // copy array descriptors (hosts/tags)
+    state[Descriptors::HOSTS] = descriptors[Descriptors::HOSTS].toList();
+    state[Descriptors::TAGS] = descriptors[Descriptors::TAGS].toList();
+
+    // parse capacity
+    const QString CAPACITY = "security.maximum_user_capacity";
     const QVariant* capacityVariant = valueForKeyPath(settings, CAPACITY);
     unsigned int capacity = capacityVariant ? capacityVariant->toUInt() : 0;
+    state[Descriptors::CAPACITY] = capacity;
 
-    auto descriptors = settings[DESCRIPTORS].toMap();
-    descriptors[Descriptors::CAPACITY] = capacity;
-    _metadata[DESCRIPTORS] = descriptors;
-
-    // update overwritten fields
-    securityChanged(false);
+    // parse operating hours
+    const QString WEEKDAY_HOURS = "weekday_hours";
+    const QString WEEKEND_HOURS = "weekend_hours";
+    const QString UTC_OFFSET = "utc_offset";
+    assert(state[Descriptors::HOURS].canConvert<QVariantMap>());
+    auto& hours = *static_cast<QVariantMap*>(state[Descriptors::HOURS].data());
+    parseHours(descriptors.take(WEEKDAY_HOURS), hours[Descriptors::Hours::WEEKDAY]);
+    parseHours(descriptors.take(WEEKEND_HOURS), hours[Descriptors::Hours::WEEKEND]);
+    hours[Descriptors::Hours::UTC_OFFSET] = descriptors.take(UTC_OFFSET);
 
 #if DEV_BUILD || PR_BUILD
-    qDebug() << "Domain metadata descriptors set:" << _metadata[DESCRIPTORS];
+    qDebug() << "Domain metadata descriptors set:" << QJsonObject::fromVariantMap(_metadata[DESCRIPTORS].toMap());
 #endif
 
     sendDescriptors();
 }
 
 void DomainMetadata::securityChanged(bool send) {
+    // get descriptors
+    assert(_metadata[DESCRIPTORS].canConvert<QVariantMap>());
+    auto& state = *static_cast<QVariantMap*>(_metadata[DESCRIPTORS].data());
+
     const QString RESTRICTION_OPEN = "open";
     const QString RESTRICTION_ANON = "anon";
     const QString RESTRICTION_HIFI = "hifi";
@@ -121,9 +188,7 @@ void DomainMetadata::securityChanged(bool send) {
         restriction = RESTRICTION_ACL;
     }
 
-    auto descriptors = _metadata[DESCRIPTORS].toMap();
-    descriptors[Descriptors::RESTRICTION] = restriction;
-    _metadata[DESCRIPTORS] = descriptors;
+    state[Descriptors::RESTRICTION] = restriction;
 
 #if DEV_BUILD || PR_BUILD
     qDebug() << "Domain metadata restriction set:" << restriction;
@@ -176,15 +241,14 @@ void DomainMetadata::maybeUpdateUsers() {
         }
     });
 
-    QVariantMap users = {
-        { Users::NUM_TOTAL, numConnected },
-        { Users::NUM_ANON, numConnectedAnonymously },
-        { Users::HOSTNAMES, userHostnames }};
-    _metadata[USERS] = users;
-    ++_tic;
+    assert(_metadata[USERS].canConvert<QVariantMap>());
+    auto& users = *static_cast<QVariantMap*>(_metadata[USERS].data());
+    users[Users::NUM_TOTAL] = numConnected;
+    users[Users::NUM_ANON] = numConnectedAnonymously;
+    users[Users::HOSTNAMES] = userHostnames;
 
 #if DEV_BUILD || PR_BUILD
-    qDebug() << "Domain metadata users updated:" << users;
+    qDebug() << "Domain metadata users set:" << QJsonObject::fromVariantMap(_metadata[USERS].toMap());
 #endif
 }
 
@@ -193,10 +257,16 @@ void DomainMetadata::sendDescriptors() {
     const QUuid& domainID = DependencyManager::get<LimitedNodeList>()->getSessionUUID();
     if (!domainID.isNull()) {
         static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
-        DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+        QString path { DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)) };
+        DependencyManager::get<AccountManager>()->sendRequest(path,
             AccountManagerAuth::Required,
             QNetworkAccessManager::PutOperation,
             JSONCallbackParameters(),
             domainUpdateJSON.toUtf8());
+
+#if DEV_BUILD || PR_BUILD
+        qDebug() << "Domain metadata sent to" << path;
+        qDebug() << "Domain metadata update:" << domainUpdateJSON;
+#endif
     }
 }
