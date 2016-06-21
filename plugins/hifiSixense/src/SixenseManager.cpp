@@ -28,7 +28,6 @@
 #include <NumericalConstants.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
 #include <SettingHandle.h>
 
 #include <QLoggingCategory>

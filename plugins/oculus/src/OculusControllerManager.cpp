@@ -13,7 +13,7 @@
 
 #include <QtCore/QLoggingCategory>
 
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <controllers/UserInputMapper.h>
 #include <controllers/StandardControls.h>
 

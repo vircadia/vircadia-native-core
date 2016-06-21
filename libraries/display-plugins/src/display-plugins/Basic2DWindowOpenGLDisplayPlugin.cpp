@@ -13,8 +13,6 @@
 #include <QtGui/QGuiApplication>
 #include <QtWidgets/QAction>
 
-#include <plugins/PluginContainer.h>
-
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 
 static const QString FULLSCREEN = "Fullscreen";

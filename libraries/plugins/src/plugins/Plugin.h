@@ -14,6 +14,8 @@
 
 #include "Forward.h"
 
+#include <QDebug>
+
 class Plugin : public QObject {
 public:
     /// \return human-readable name
@@ -28,8 +30,11 @@ public:
     virtual const QString& getID() const { assert(false); return UNKNOWN_PLUGIN_ID; }
 
     virtual bool isSupported() const;
-    
-    void setContainer(PluginContainer* container);
+
+    /// Some plugins may need access to the PluginContainer, if the individual plugin
+    /// needs access to this, they should override these methods and store their own
+    /// type safe version of the pointer to the container.
+    virtual void setContainer(void* container) { }
 
     /// Called when plugin is initially loaded, typically at application start
     virtual void init();
@@ -65,7 +70,5 @@ public:
 
 protected:
     bool _active { false };
-    PluginContainer* _container { nullptr };
     static QString UNKNOWN_PLUGIN_ID;
-
 };

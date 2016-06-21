@@ -22,12 +22,12 @@
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
 #include <shared/NsightHelpers.h>
-#include <plugins/PluginContainer.h>
 #include <gl/Config.h>
 #include <gl/GLEscrow.h>
 #include <GLMHelpers.h>
 #include <CursorManager.h>
 #include "CompositorHelper.h"
+#include <ui/Menu.h>
 
 
 #if THREADED_PRESENT
@@ -202,6 +202,7 @@ private:
 
 #endif
 
+
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
     _sceneTextureEscrow.setRecycler([this](const gpu::TexturePointer& texture){
         cleanupForSceneTexture(texture);
@@ -233,9 +234,10 @@ bool OpenGLDisplayPlugin::activate() {
             cursorData.hotSpot = vec2(0.5f);
         }
     }
-
+    if (!_container) {
+        return false;
+    }
     _vsyncSupported = _container->getPrimaryWidget()->isVsyncSupported();
-
 
 #if THREADED_PRESENT
     // Start the present thread if necessary
@@ -272,7 +274,11 @@ bool OpenGLDisplayPlugin::activate() {
     _container->makeRenderingContextCurrent();
 #endif
 
-    return DisplayPlugin::activate();
+    if (isHmd() && (getHmdScreen() >= 0)) {
+        _container->showDisplayPluginsTools();
+    }
+
+    return Parent::activate();
 }
 
 void OpenGLDisplayPlugin::deactivate() {
@@ -288,7 +294,16 @@ void OpenGLDisplayPlugin::deactivate() {
     _container->makeRenderingContextCurrent();
 #endif
     internalDeactivate();
-    DisplayPlugin::deactivate();
+
+    _container->showDisplayPluginsTools(false);
+    if (!_container->currentDisplayActions().isEmpty()) {
+        auto menu = _container->getPrimaryMenu();
+        foreach(auto itemInfo, _container->currentDisplayActions()) {
+            menu->removeMenuItem(itemInfo.first, itemInfo.second);
+        }
+        _container->currentDisplayActions().clear();
+    }
+    Parent::deactivate();
 }
 
 
