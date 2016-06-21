@@ -16,14 +16,21 @@ location.hostChanged.connect(function(host) {
 
     // Fetch the domain ID from the metaverse
     var placeData = request(SERVER + '/places/' + host);
-    if (!placeData) { return; }
+    if (!placeData) {
+        print('Cannot find place name - abandoning metadata request for', host);
+        return;
+        
+    }
     var domainID = placeData.data.place.domain.id;
     print('Domain ID:', domainID);
 
     // Fetch the domain metadata from the metaverse
     var domainData = request(SERVER + '/domains/' + domainID);
     print(SERVER + '/domains/' + domainID);
-    if (!domainData) { return; }
+    if (!domainData) {
+        print('Cannot find domain data - abandoning metadata request for', domainID);
+        return;
+    }
     var metadata = domainData.domain;
     print('Domain metadata:', JSON.stringify(metadata));
 
