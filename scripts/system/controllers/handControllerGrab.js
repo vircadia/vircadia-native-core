@@ -10,9 +10,10 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, Reticle, Messages, setEntityCustomData, getEntityCustomData, vec3toStr */
+/*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, Reticle, Messages, setEntityCustomData, getEntityCustomData, vec3toStr, Xform */
 
 Script.include("/~/system/libraries/utils.js");
+Script.include("../libraries/Xform.js");
 
 //
 // add lines where the hand ray picking is happening
@@ -879,21 +880,29 @@ function MyController(hand) {
         var entities = Entities.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
         var i, l = entities.length;
         for (i = 0; i < l; i++) {
-            var grabProps = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
+            var props = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
             // does this entity have an attach point?
             var wearableData = getEntityCustomData("wearable", entities[i], undefined);
             if (wearableData && wearableData.joints) {
                 var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
                 if (wearableData.joints[handJointName]) {
+                    var handOffsetPos = wearableData.joints[handJointName][0];
+                    var handOffsetRot = wearableData.joints[handJointName][1];
+
+                    var handOffsetXform = new Xform(handOffsetRot, handOffsetPos);
+                    var objectXform = new Xform(props.rotation, props.position);
+                    var overlayXform = Xform.mul(objectXform, handOffsetXform.inv());
+
                     // draw the hotspot
                     this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
-                        position: grabProps.position,
+                        rotation: overlayXform.rot,
+                        position: overlayXform.pos,
                         size: 0.2,
                         color: { red: 90, green: 255, blue: 90 },
                         alpha: 0.7,
                         solid: true,
                         visible: true,
-                        ignoreRayIntersection: false,
+                        ignoreRayIntersection: true,
                         drawInFront: false
                     }));
                 }
