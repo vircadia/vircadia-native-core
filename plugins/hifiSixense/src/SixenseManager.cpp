@@ -66,14 +66,8 @@ const QString SHOW_DEBUG_RAW = "Debug Draw Raw Data";
 const QString SHOW_DEBUG_CALIBRATED = "Debug Draw Calibrated Data";
 
 bool SixenseManager::isSupported() const {
-#ifdef HAVE_SIXENSE
-
-#if defined(Q_OS_OSX)
-    return QSysInfo::macVersion() <= QSysInfo::MV_MAVERICKS;
-#else
+#if defined(HAVE_SIXENSE) && !defined(Q_OS_OSX)
     return true;
-#endif
-
 #else
     return false;
 #endif
