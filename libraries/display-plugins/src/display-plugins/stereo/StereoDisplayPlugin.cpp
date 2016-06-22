@@ -15,7 +15,7 @@
 
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <gl/GLWidget.h>
 #include <CursorManager.h>
 #include "../CompositorHelper.h"

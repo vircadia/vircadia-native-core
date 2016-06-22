@@ -13,7 +13,7 @@ if (WIN32)
 
     set(TARGET_NAME oculus)
     setup_hifi_plugin(Multimedia)
-    link_hifi_libraries(shared gl gpu controllers ui plugins display-plugins input-plugins audio-client networking)
+    link_hifi_libraries(shared gl gpu controllers ui plugins ui-plugins display-plugins input-plugins audio-client networking)
     
     include_hifi_library_headers(octree)
     

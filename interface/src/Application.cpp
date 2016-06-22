@@ -83,7 +83,6 @@
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
-#include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
@@ -119,7 +118,6 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
-#include "PluginContainerProxy.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -464,7 +462,6 @@ bool setupEssentials(int& argc, char** argv) {
 // continuing to overburden Application.cpp
 Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
-PluginContainer* _pluginContainer;
 
 
 // FIXME hack access to the internal share context for the Chromium helper
@@ -504,6 +501,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
+
+
+    PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
+    PluginManager::getInstance()->setContainer(pluginContainer);
+
     // FIXME this may be excessively conservative.  On the other hand
     // maybe I'm used to having an 8-core machine
     // Perhaps find the ideal thread count  and subtract 2 or 3
@@ -521,7 +523,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _entityClipboard->createRootElement();
 
-    _pluginContainer = new PluginContainerProxy();
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -2035,9 +2036,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Return:
                 if (isOption) {
                     if (_window->isFullScreen()) {
-                        _pluginContainer->unsetFullscreen();
+                        unsetFullscreen();
                     } else {
-                        _pluginContainer->setFullscreen(nullptr);
+                        setFullscreen(nullptr);
                     }
                 } else {
                     Menu::getInstance()->triggerOption(MenuOption::AddressBar);
@@ -2951,7 +2952,6 @@ void Application::loadSettings() {
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
     Menu::getInstance()->loadSettings();
-
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
@@ -5307,4 +5307,50 @@ void Application::showDesktop() {
 
 CompositorHelper& Application::getApplicationCompositor() const {
     return *DependencyManager::get<CompositorHelper>();
+}
+
+
+// virtual functions required for PluginContainer
+ui::Menu* Application::getPrimaryMenu() {
+    auto appMenu = _window->menuBar();
+    auto uiMenu = dynamic_cast<ui::Menu*>(appMenu);
+    return uiMenu;
+}
+
+void Application::showDisplayPluginsTools(bool show) {
+    DependencyManager::get<DialogsManager>()->hmdTools(show);
+}
+
+GLWidget* Application::getPrimaryWidget() {
+    return _glWidget;
+}
+
+MainWindow* Application::getPrimaryWindow() {
+    return getWindow();
+}
+
+QOpenGLContext* Application::getPrimaryContext() {
+    return _glWidget->context()->contextHandle();
+}
+
+bool Application::makeRenderingContextCurrent() {
+    return _offscreenContext->makeCurrent();
+}
+
+void Application::releaseSceneTexture(const gpu::TexturePointer& texture) {
+    Q_ASSERT(QThread::currentThread() == thread());
+    auto& framebufferMap = _lockedFramebufferMap;
+    Q_ASSERT(framebufferMap.contains(texture));
+    auto framebufferPointer = framebufferMap[texture];
+    framebufferMap.remove(texture);
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    framebufferCache->releaseFramebuffer(framebufferPointer);
+}
+
+void Application::releaseOverlayTexture(const gpu::TexturePointer& texture) {
+    _applicationOverlay.releaseOverlay(texture);
+}
+
+bool Application::isForeground() const { 
+    return _isForeground && !_window->isMinimized(); 
 }
