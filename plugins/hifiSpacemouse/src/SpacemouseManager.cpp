@@ -18,7 +18,6 @@
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
-#include <plugins/PluginContainer.h>
 #include <controllers/UserInputMapper.h>
 
 const QString SpacemouseManager::NAME { "Spacemouse" };
