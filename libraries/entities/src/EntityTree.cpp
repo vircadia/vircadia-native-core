@@ -130,30 +130,19 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     EntityItemProperties properties = origProperties;
 
     bool allowLockChange;
-    bool canRezPermanentEntities;
     QUuid senderID;
     if (senderNode.isNull()) {
         auto nodeList = DependencyManager::get<NodeList>();
         allowLockChange = nodeList->isAllowedEditor();
-        canRezPermanentEntities = nodeList->getThisNodeCanRez();
         senderID = nodeList->getSessionUUID();
     } else {
         allowLockChange = senderNode->isAllowedEditor();
-        canRezPermanentEntities = senderNode->getCanRez();
         senderID = senderNode->getUUID();
     }
 
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
         qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
-    }
-
-    if (!canRezPermanentEntities) {
-        // we don't allow a Node that can't create permanent entities to raise lifetimes on existing ones
-        if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME || properties.getLifetime() > _maxTmpEntityLifetime) {
-            qCDebug(entities) << "Capping disallowed entity lifetime adjustment.";
-            properties.setLifetime(_maxTmpEntityLifetime);
-        }
     }
 
     // enforce support for locked entities. If an entity is currently locked, then the only
@@ -329,17 +318,6 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (!nodeList) {
         qDebug() << "EntityTree::addEntity -- can't get NodeList";
         return nullptr;
-    }
-
-    bool clientOnly = props.getClientOnly();
-
-    if (!clientOnly && getIsClient() && !nodeList->getThisNodeCanRez() && nodeList->getThisNodeCanRezTmp()) {
-        // we are a client which is only allowed to rez temporary entities.  cap the lifetime.
-        if (props.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME) {
-            props.setLifetime(_maxTmpEntityLifetime);
-        } else {
-            props.setLifetime(glm::min(props.getLifetime(), _maxTmpEntityLifetime));
-        }
     }
 
     bool recordCreationTime = false;
@@ -876,6 +854,13 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             QString::number((int)pos.y) + "," +
             QString::number((int)pos.z);
     }
+    if (properties.lifetimeChanged()) {
+        int index = changedProperties.indexOf("lifetime");
+        if (index >= 0) {
+            float value = properties.getLifetime();
+            changedProperties[index] = QString("lifetime:") + QString::number((int)value);
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
@@ -913,12 +898,15 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 
+            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 10000; // usec
             if (!senderNode->getCanRez() && senderNode->getCanRezTmp()) {
-                // this node is only allowed to rez temporary entities.  cap the lifetime.
-                if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME) {
+                // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
+                if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
+                    properties.getLifetime() > _maxTmpEntityLifetime) {
                     properties.setLifetime(_maxTmpEntityLifetime);
-                } else {
-                    properties.setLifetime(glm::min(properties.getLifetime(), _maxTmpEntityLifetime));
+                    // also bump up the lastEdited time of the properties so that the interface that created this edit
+                    // will accept our adjustment to lifetime back into its own entity-tree.
+                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
                 }
             }
 
