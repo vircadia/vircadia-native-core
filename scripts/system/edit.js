@@ -340,7 +340,6 @@ var toolBar = (function() {
                 Messages.sendLocalMessage("edit-events", JSON.stringify({
                     enabled: active
                 }));
-                UserActivityLogger.enabledEdit();
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
@@ -350,6 +349,7 @@ var toolBar = (function() {
                     selectionManager.clearSelections();
                     cameraManager.disable();
                 } else {
+                    UserActivityLogger.enabledEdit();
                     hasShownPropertiesTool = false;
                     entityListTool.setVisible(true);
                     gridTool.setVisible(true);
