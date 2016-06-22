@@ -1693,9 +1693,13 @@ void EntityItem::updateCollisionMask(uint8_t value) {
 }
 
 void EntityItem::updateDynamic(bool value) {
-    if (_dynamic != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            _dynamic = false;
+    if (getDynamic() != value) {
+        // dynamic and STATIC_MESH are incompatible so we check for that case
+        if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            if (_dynamic) {
+                _dynamic = false;
+                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            }
         } else {
             _dynamic = value;
             _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
@@ -1749,7 +1753,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
     } else {
-        if (_dynamic) {
+        if (getDynamic()) {
             group = BULLET_COLLISION_GROUP_DYNAMIC;
         } else if (isMovingRelativeToParent() || hasActions()) {
             group = BULLET_COLLISION_GROUP_KINEMATIC;

@@ -283,7 +283,7 @@ public:
 
     void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
 
-    bool getDynamic() const { return _dynamic; }
+    bool getDynamic() const { return SHAPE_TYPE_STATIC_MESH == getShapeType() ? false : _dynamic; }
     void setDynamic(bool value) { _dynamic = value; }
 
     virtual bool shouldBePhysical() const { return false; }
@@ -348,7 +348,7 @@ public:
     void updateDynamic(bool value);
     void updateLifetime(float value);
     void updateCreated(uint64_t value);
-    virtual void updateShapeType(ShapeType type) { /* do nothing */ }
+    virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
