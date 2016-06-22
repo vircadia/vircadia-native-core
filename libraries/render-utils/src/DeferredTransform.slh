@@ -50,6 +50,13 @@ mat4 getProjection(int side) {
     return frameTransform._projection[side];
 }
 
+// positive near distance of the projection
+float getProjectionNear() {
+    float planeC = frameTransform._projection[0][2][3] + frameTransform._projection[0][2][2];
+    float planeD = frameTransform._projection[0][3][2];
+    return planeD / planeC;
+}
+
 mat4 getViewInverse() {
     return frameTransform._viewInverse;
 }

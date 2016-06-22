@@ -49,6 +49,7 @@ Column {
                 "Unlit",
                 "Occlusion",
                 "Lightmap",
+                "Scattering",
                 "Lighting",
                 "Shadow",
                 "Pyramid Depth",
@@ -56,7 +57,7 @@ Column {
                 "NormalCurvature",
                 "DiffusedCurvature",
                 "DiffusedNormalCurvature",
-                "Scattering",
+                "Debug Scattering",
                 "Ambient Occlusion",
                 "Ambient Occlusion Blurred",
                 "Custom Shader"
