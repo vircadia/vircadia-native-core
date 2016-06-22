@@ -414,7 +414,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _updateTimer.start();
 }
 
-void OffscreenQmlSurface::resize(const QSize& newSize_) {
+void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
     if (!_renderer || !_renderer->_quickWindow) {
         return;
@@ -433,7 +433,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_) {
     }
 
     QSize currentSize = _renderer->_quickWindow->geometry().size();
-    if (newSize == currentSize) {
+    if (newSize == currentSize && !forceResize) {
         return;
     }
 
