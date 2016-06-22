@@ -150,7 +150,8 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         gpu::Batch& batch = *renderArgs->_batch;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
