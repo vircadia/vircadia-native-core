@@ -23,6 +23,8 @@ public:
     bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
+    void init() override;
+
     int getHmdScreen() const override;
 
     // Stereo specific methods
