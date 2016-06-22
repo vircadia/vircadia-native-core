@@ -21,6 +21,8 @@ public:
     bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
+    void init() override;
+
     float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
 
     void customizeContext() override;

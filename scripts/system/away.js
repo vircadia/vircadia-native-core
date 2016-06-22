@@ -158,6 +158,8 @@ function goAway() {
         return;
     }
 
+    UserActivityLogger.toggledAway(true);
+
     isAway = true;
     print('going "away"');
     wasMuted = AudioDevice.getMuted();
@@ -189,6 +191,9 @@ function goActive() {
     if (!isAway) {
         return;
     }
+
+    UserActivityLogger.toggledAway(false);
+
     isAway = false;
     print('going "active"');
     if (!wasMuted) {

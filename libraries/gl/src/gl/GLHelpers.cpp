@@ -5,6 +5,7 @@
 #include <QtGui/QSurfaceFormat>
 #include <QtOpenGL/QGL>
 #include <QOpenGLContext>
+#include <QtCore/QRegularExpression>
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
@@ -37,6 +38,13 @@ const QGLFormat& getDefaultGLFormat() {
         QGLFormat::setDefaultFormat(glFormat);
     });
     return glFormat;
+}
+
+int glVersionToInteger(QString glVersion) {
+    QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
+    int majorNumber = versionParts[0].toInt();
+    int minorNumber = versionParts[1].toInt();
+    return majorNumber * 100 + minorNumber * 10;
 }
 
 QJsonObject getGLContextData() {

@@ -41,6 +41,12 @@ bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
 }
 
+void OpenVrDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
+}
+
 bool OpenVrDisplayPlugin::internalActivate() {
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 

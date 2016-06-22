@@ -36,6 +36,12 @@ const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }
 
+void OculusLegacyDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
+}
+
 void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }

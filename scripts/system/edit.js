@@ -150,6 +150,8 @@ function showMarketplace(marketplaceID) {
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
     marketplaceWindow.raise();
+
+    UserActivityLogger.logAction("opened_marketplace");
 }
 
 function hideMarketplace() {
@@ -347,6 +349,7 @@ var toolBar = (function() {
                     selectionManager.clearSelections();
                     cameraManager.disable();
                 } else {
+                    UserActivityLogger.enabledEdit();
                     hasShownPropertiesTool = false;
                     entityListTool.setVisible(true);
                     gridTool.setVisible(true);
