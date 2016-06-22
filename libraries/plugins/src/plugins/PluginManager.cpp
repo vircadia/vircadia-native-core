@@ -145,8 +145,8 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
             }
         }
         for (auto plugin : displayPlugins) {
-            connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback);
-            connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback);
+            connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
+            connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
             plugin->setContainer(_container);
             plugin->init();
         }
@@ -193,9 +193,8 @@ const InputPluginList& PluginManager::getInputPlugins() {
         }
 
         for (auto plugin : inputPlugins) {
-            UserActivityLogger::getInstance().connectedDevice("input", plugin->getName());
-            connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback);
-            connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback);
+            connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
+            connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
             plugin->setContainer(_container);
             plugin->init();
         }
