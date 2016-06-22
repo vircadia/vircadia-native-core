@@ -1157,9 +1157,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getPosition(),
                                                                   NEARBY_AVATAR_RADIUS_METERS) - 1;
         if (nearbyAvatars != lastCountOfNearbyAvatars) {
+            lastCountOfNearbyAvatars = nearbyAvatars;
             UserActivityLogger::getInstance().logAction("nearby_avatars", { { "count", nearbyAvatars } });
         }
     });
+    checkNearbyAvatarsTimer->start();
 
     // Track user activity event when we receive a mute packet
     auto onMutedByMixer = []() {
