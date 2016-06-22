@@ -228,7 +228,6 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     if (!_registeredWithInputMapper && _inputDevice->_trackedControllers > 0) {
         userInputMapper->registerDevice(_inputDevice);
         _registeredWithInputMapper = true;
-        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
     }
 }
 

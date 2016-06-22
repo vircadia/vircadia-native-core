@@ -23,6 +23,7 @@
 #include "AddressManager.h"
 #include "NodeList.h"
 #include "NetworkLogging.h"
+#include "UserActivityLogger.h"
 
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -130,6 +131,10 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
 }
 
 bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
+    static QString URL_TYPE_USER = "user";
+    static QString URL_TYPE_DOMAIN_ID = "domain_id";
+    static QString URL_TYPE_PLACE = "place";
+    static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
@@ -147,6 +152,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         if (handleUsername(lookupUrl.authority())) {
             // handled a username for lookup
 
+            UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_USER, lookupUrl.toString());
+
             // in case we're failing to connect to where we thought this user was
             // store their username as previous lookup so we can refresh their location via API
             _previousLookup = lookupUrl;
@@ -156,6 +163,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             bool hostChanged;
             if (handleNetworkAddress(lookupUrl.host()
                                      + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger, hostChanged)) {
+
+                UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_NETWORK_ADDRESS, lookupUrl.toString());
 
                 // a network address lookup clears the previous lookup since we don't expect to re-attempt it
                 _previousLookup.clear();
@@ -174,6 +183,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                 // we may have a path that defines a relative viewpoint - if so we should jump to that now
                 handlePath(path, trigger);
             } else if (handleDomainID(lookupUrl.host())){
+                UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_DOMAIN_ID, lookupUrl.toString());
+
                 // store this domain ID as the previous lookup in case we're failing to connect and want to refresh API info
                 _previousLookup = lookupUrl;
 
@@ -181,6 +192,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                 // try to look up the domain ID on the metaverse API
                 attemptDomainIDLookup(lookupUrl.host(), lookupUrl.path(), trigger);
             } else {
+                UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_PLACE, lookupUrl.toString());
+
                 // store this place name as the previous lookup in case we fail to connect and want to refresh API info
                 _previousLookup = lookupUrl;
 

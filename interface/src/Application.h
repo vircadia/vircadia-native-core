@@ -211,6 +211,8 @@ public:
 
     float getRenderResolutionScale() const;
 
+    qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
+
     bool isAboutToQuit() const { return _aboutToQuit; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
