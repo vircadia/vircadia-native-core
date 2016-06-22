@@ -36,7 +36,7 @@ const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }
 
-void OculusDisplayPlugin::init() {
+void OculusLegacyDisplayPlugin::init() {
     Plugin::init();
 
     emit deviceConnected(getName());
