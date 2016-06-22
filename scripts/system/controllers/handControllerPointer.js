@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
-/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print */
+/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print*/
 
 //
 //  handControllerPointer.js
