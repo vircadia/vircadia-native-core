@@ -63,7 +63,7 @@ bool ViveControllerManager::activate() {
     }
     Q_ASSERT(_system);
 
-    enableOpenVrKeyboard();
+    enableOpenVrKeyboard(_container);
 
     // OpenVR provides 3d mesh representations of the controllers
     // Disabled controller rendering code
