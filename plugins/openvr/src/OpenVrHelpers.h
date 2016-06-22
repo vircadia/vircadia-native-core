@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <controllers/Forward.h>
+#include <plugins/Forward.h>
 
 bool openVrSupported();
 
@@ -20,7 +21,7 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 void handleOpenVrEvents();
 bool openVrQuitRequested();
-void enableOpenVrKeyboard();
+void enableOpenVrKeyboard(PluginContainer* container);
 void disableOpenVrKeyboard();
 bool isOpenVrKeyboardShown();
 

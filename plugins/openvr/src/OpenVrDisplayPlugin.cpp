@@ -267,7 +267,7 @@ void OpenVrDisplayPlugin::unsuppressKeyboard() {
         return;
     }
     if (1 == _keyboardSupressionCount.fetch_sub(1)) {
-        enableOpenVrKeyboard();
+        enableOpenVrKeyboard(_container);
     }
 }
 
