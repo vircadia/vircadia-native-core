@@ -194,7 +194,8 @@ void enableOpenVrKeyboard(PluginContainer* container) {
     _overlayMenuConnection = QObject::connect(action, &QAction::triggered, [action] {
         if (action->isChecked()) {
             _overlayRevealed = true;
-            QTimer::singleShot(100, [&] { _overlayRevealed = false; });
+            const int KEYBOARD_DELAY_MS = 100;
+            QTimer::singleShot(KEYBOARD_DELAY_MS, [&] { _overlayRevealed = false; });
         }
     });
 

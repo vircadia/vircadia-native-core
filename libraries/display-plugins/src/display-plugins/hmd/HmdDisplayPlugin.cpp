@@ -420,8 +420,9 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
 }
 
 void HmdDisplayPlugin::compositeExtra() {
-    std::array<HandLaserInfo, 2> handLasers;
-    std::array<mat4, 2> renderHandPoses;
+    const int NUMBER_OF_HANDS = 2;
+    std::array<HandLaserInfo, NUMBER_OF_HANDS> handLasers;
+    std::array<mat4, NUMBER_OF_HANDS> renderHandPoses;
     Transform uiModelTransform;
     withPresentThreadLock([&] {
         handLasers = _handLasers;
@@ -443,9 +444,9 @@ void HmdDisplayPlugin::compositeExtra() {
     using namespace oglplus;
     useProgram(_laserProgram);
     _laserGeometry->Use();
-    std::array<mat4, 2> handLaserModelMatrices;
+    std::array<mat4, NUMBER_OF_HANDS> handLaserModelMatrices;
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
         if (renderHandPoses[i] == identity) {
             continue;
         }
@@ -485,7 +486,7 @@ void HmdDisplayPlugin::compositeExtra() {
         auto eyePose = _currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye);
         auto view = glm::inverse(eyePose);
         const auto& projection = _eyeProjections[eye];
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < NUMBER_OF_HANDS; ++i) {
             if (handLaserModelMatrices[i] == identity) {
                 continue;
             }

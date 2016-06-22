@@ -877,8 +877,8 @@ function MyController(hand) {
 
         // find entities near the avatar that might be equipable.
         var entities = Entities.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
-        var i, l = entities.length;
-        for (i = 0; i < l; i++) {
+        var i, length = entities.length;
+        for (i = 0; i < length; i++) {
             var grabProps = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
             // does this entity have an attach point?
             var wearableData = getEntityCustomData("wearable", entities[i], undefined);
