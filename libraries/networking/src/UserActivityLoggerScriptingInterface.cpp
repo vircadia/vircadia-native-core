@@ -20,6 +20,10 @@ void UserActivityLoggerScriptingInterface::openedMarketplace() {
     logAction("opened_marketplace");
 }
 
+void UserActivityLoggerScriptingInterface::toggledAway(bool isAway) {
+    logAction("toggled_away", { { "is_away", isAway } });
+}
+
 void UserActivityLoggerScriptingInterface::logAction(QString action, QJsonObject details) {
     QMetaObject::invokeMethod(&UserActivityLogger::getInstance(), "logAction",
                               Q_ARG(QString, action),

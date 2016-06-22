@@ -22,6 +22,7 @@ class UserActivityLoggerScriptingInterface : public QObject, public Dependency {
 public:
     Q_INVOKABLE void enabledEdit();
     Q_INVOKABLE void openedMarketplace();
+    Q_INVOKABLE void toggledAway(bool isAway);
 
 private:
     void logAction(QString action, QJsonObject details = {});
