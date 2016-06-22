@@ -21,7 +21,7 @@
 #include <OffscreenUi.h>
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ui/Menu.h>
 #include "../../interface/src/Menu.h"
 
