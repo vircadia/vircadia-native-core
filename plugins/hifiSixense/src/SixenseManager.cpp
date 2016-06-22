@@ -131,6 +131,7 @@ void SixenseManager::setSixenseFilter(bool filter) {
 void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     BAIL_IF_NOT_LOADED
 
+#ifdef HAVE_SIXENSE
     static bool sixenseHasBeenConnected { false };
     if (!sixenseHasBeenConnected && sixenseIsBaseConnected(0)) {
         sixenseHasBeenConnected = true;
@@ -146,6 +147,7 @@ void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibr
         _container->requestReset();
         _inputDevice->_requestReset = false;
     }
+#endif
 }
 
 void SixenseManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
