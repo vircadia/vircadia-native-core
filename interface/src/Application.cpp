@@ -132,6 +132,7 @@
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/ToolbarScriptingInterface.h"
 #include "scripting/RatesScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -438,6 +439,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -1534,7 +1536,7 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("Overlays", &_overlays);
     rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
+    rootContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
     rootContext->setContextProperty("Stats", Stats::getInstance());
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
@@ -2185,7 +2187,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_X:
                 if (isShifted && isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    offscreenUi->togglePinned();
+                    //offscreenUi->getRootContext()->engine()->clearComponentCache();
                     //OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
@@ -2834,7 +2837,6 @@ void Application::idle(float nsecsElapsed) {
     if (firstIdle) {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
-        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -3334,13 +3336,13 @@ void Application::updateThreads(float deltaTime) {
 }
 
 void Application::toggleOverlays() {
-    auto newOverlaysVisible = !_overlayConductor.getEnabled();
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, newOverlaysVisible);
-    _overlayConductor.setEnabled(newOverlaysVisible);
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
-    _overlayConductor.setEnabled(visible);
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 void Application::cycleCamera() {
@@ -4325,6 +4327,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
+    _overlayConductor.centerUI();
     getMyAvatar()->reset(andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
@@ -4641,6 +4644,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -5422,9 +5426,7 @@ void Application::readArgumentsFromLocalSocket() const {
 }
 
 void Application::showDesktop() {
-    if (!_overlayConductor.getEnabled()) {
-        _overlayConductor.setEnabled(true);
-    }
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 CompositorHelper& Application::getApplicationCompositor() const {

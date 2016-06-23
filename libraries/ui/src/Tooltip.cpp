@@ -47,10 +47,6 @@ void Tooltip::setImageURL(const QString& imageURL) {
     }
 }
 
-void Tooltip::setVisible(bool visible) {
-    QQuickItem::setVisible(visible);
-}
-
 QString Tooltip::showTip(const QString& title, const QString& description) {
     const QString newTipId = QUuid().createUuid().toString();
 

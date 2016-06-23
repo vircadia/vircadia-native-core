@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 
-import "../../windows-uit" as Windows
+import "../../windows" as Windows
 import "../../controls-uit" as Controls
 import "../../styles-uit"
 
@@ -23,15 +23,10 @@ Windows.Window {
     resizable: true
     modality: Qt.ApplicationModal
 
-    Item {
-        width: pane.contentWidth
-        implicitHeight: pane.scrollHeight
-
-        Controls.WebView {
-            id: webview
-            anchors.fill: parent
-            url: "https://metaverse.highfidelity.com/marketplace?category=avatars"
-            focus: true
-        }
+    Controls.WebView {
+        id: webview
+        anchors.fill: parent
+        url: "https://metaverse.highfidelity.com/marketplace?category=avatars"
+        focus: true
     }
 }
