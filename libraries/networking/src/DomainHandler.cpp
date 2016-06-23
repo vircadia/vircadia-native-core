@@ -408,7 +408,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     qCWarning(networking) << "The domain-server denied a connection request: " << reasonMessage;
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
-        _domainConnectionRefusals.append(reasonMessage);
+        _domainConnectionRefusals.insert(reasonMessage);
         emit domainConnectionRefused(reasonMessage, (int)reasonCode);
     }
 
