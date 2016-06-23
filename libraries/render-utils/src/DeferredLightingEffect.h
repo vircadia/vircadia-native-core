@@ -122,7 +122,7 @@ class RenderDeferredLocals {
 public:
     using JobModel = render::Job::ModelI<RenderDeferredLocals, DeferredFrameTransformPointer>;
     
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, bool points, bool spots);
 };
 
 
@@ -133,9 +133,47 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 };
 
+
+class RenderDeferredConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float bentRed MEMBER bentRed NOTIFY dirty)
+        Q_PROPERTY(float bentGreen MEMBER bentGreen NOTIFY dirty)
+        Q_PROPERTY(float bentBlue MEMBER bentBlue NOTIFY dirty)
+        Q_PROPERTY(float bentScale MEMBER bentScale NOTIFY dirty)
+
+        Q_PROPERTY(float curvatureOffset MEMBER curvatureOffset NOTIFY dirty)
+        Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
+
+
+        Q_PROPERTY(bool enablePointLights MEMBER enablePointLights NOTIFY dirty)
+        Q_PROPERTY(bool enableSpotLights MEMBER enableSpotLights NOTIFY dirty)
+public:
+    RenderDeferredConfig() : render::Job::Config(true) {}
+
+    float bentRed{ 1.5f };
+    float bentGreen{ 0.8f };
+    float bentBlue{ 0.3f };
+    float bentScale{ 1.5f };
+
+    float curvatureOffset{ 0.08f };
+    float curvatureScale{ 0.8f };
+
+    bool enablePointLights{ true };
+    bool enableSpotLights{ true };
+
+signals:
+    void dirty();
+};
+
+
 class RenderDeferred {
 public:
-    using JobModel = render::Job::ModelI<RenderDeferred, DeferredFrameTransformPointer>;
+    using Config = RenderDeferredConfig;
+    using JobModel = render::Job::ModelI<RenderDeferred, DeferredFrameTransformPointer, Config>;
+
+    RenderDeferred();
+
+    void configure(const Config& config);
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
     
@@ -143,7 +181,11 @@ public:
     RenderDeferredLocals lightsJob;
     RenderDeferredCleanup cleanupJob;
 
+protected:
     SubsurfaceScatteringResourcePointer _subsurfaceScatteringResource;
+
+    bool _enablePointLights{ true };
+    bool _enableSpotLights{ true };
 };
 
 #endif // hifi_DeferredLightingEffect_h

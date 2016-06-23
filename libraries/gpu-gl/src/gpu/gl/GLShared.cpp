@@ -700,7 +700,7 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
         }
         qCWarning(gpugllogging) << "GLShader::compileShader - errors:";
         qCWarning(gpugllogging) << temp;
-        delete[] temp;
+            delete[] temp;
 
         glDeleteShader(glshader);
         return false;

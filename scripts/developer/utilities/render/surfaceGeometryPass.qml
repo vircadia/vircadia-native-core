@@ -19,7 +19,7 @@ Column {
 
         Column{
             Repeater {
-                model: [ "Depth Threshold:depthThreshold:1.0", "Basis Scale:basisScale:1.0", "Curvature Scale:curvatureScale:200.0" ]
+                model: [ "Depth Threshold:depthThreshold:0.1", "Basis Scale:basisScale:2.0", "Curvature Scale:curvatureScale:10.0" ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
@@ -44,31 +44,5 @@ Column {
                 }
             }
         }
-
-        Column{
-            Repeater {
-                model: [ "Scattering Bent Red:Scattering:bentRed:2.0",
-                         "Scattering Bent Green:Scattering:bentGreen:2.0",
-                         "Scattering Bent Blue:Scattering:bentBlue:2.0",
-                         "Scattering Bent Scale:Scattering:bentScale:2.0",
-                         "Scattering Curvature Offset:Scattering:curvatureOffset:1.0",
-                         "Scattering Curvature Scale:Scattering:curvatureScale:1.0",
-                          ]
-                ConfigSlider {
-                    label: qsTr(modelData.split(":")[0])
-                    integral: false
-                    config: Render.getConfig(modelData.split(":")[1])
-                    property: modelData.split(":")[2]
-                    max: modelData.split(":")[3]
-                    min: 0.0
-                }
-            }
-        }
-        CheckBox {
-            text: "Show scatteringLUT"
-            checked: false
-            onCheckedChanged: { Render.getConfig("Scattering").showLUT = checked }
-        }
-
     }
 }

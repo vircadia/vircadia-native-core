@@ -217,6 +217,20 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, nullptr);
     }
 
+    // Scattering map
+    if (materialKey.isScatteringMap()) {
+        auto scatteringMap = textureMaps[model::MaterialKey::SCATTERING_MAP];
+        if (scatteringMap && scatteringMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, scatteringMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, nullptr);
+    }
+
     // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];

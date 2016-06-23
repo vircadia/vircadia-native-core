@@ -450,7 +450,10 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     
 }
 
-void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform) {
+void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, bool points, bool spots) {
+    if (!points && !spots) {
+        return;
+    }
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
 
@@ -492,7 +495,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         batch.setViewTransform(monoViewTransform);
 
         // Splat Point lights
-        if (!deferredLightingEffect->_pointLights.empty()) {
+        if (points && !deferredLightingEffect->_pointLights.empty()) {
             // POint light pipeline
             batch.setPipeline(deferredLightingEffect->_pointLight);
 
@@ -524,7 +527,7 @@ void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, 
         }
 
         // Splat spot lights
-        if (!deferredLightingEffect->_spotLights.empty()) {
+        if (spots && !deferredLightingEffect->_spotLights.empty()) {
             // Spot light pipeline
             batch.setPipeline(deferredLightingEffect->_spotLight);
 
@@ -603,16 +606,34 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
     }
 }
 
+RenderDeferred::RenderDeferred() :
+_subsurfaceScatteringResource(std::make_shared<SubsurfaceScatteringResource>())
+{
 
+}
+
+
+void RenderDeferred::configure(const Config& config) {
+
+    glm::vec4 bentInfo(config.bentRed, config.bentGreen, config.bentBlue, config.bentScale);
+    _subsurfaceScatteringResource->setBentNormalFactors(bentInfo);
+
+    glm::vec2 curvatureInfo(config.curvatureOffset, config.curvatureScale);
+    _subsurfaceScatteringResource->setCurvatureFactors(curvatureInfo);
+
+
+    _enablePointLights = config.enablePointLights;
+    _enableSpotLights = config.enableSpotLights;
+}
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFrameTransformPointer& deferredTransform) {
-    if (!_subsurfaceScatteringResource) {
-        _subsurfaceScatteringResource = std::make_shared<SubsurfaceScatteringResource>();
+    if (!_subsurfaceScatteringResource->getScatteringTable()) {
         _subsurfaceScatteringResource->generateScatteringTable(renderContext->args);
     }
     
     setupJob.run(sceneContext, renderContext, deferredTransform, _subsurfaceScatteringResource);
-    lightsJob.run(sceneContext, renderContext, deferredTransform);
+    
+    lightsJob.run(sceneContext, renderContext, deferredTransform, _enablePointLights, _enableSpotLights);
 
     cleanupJob.run(sceneContext, renderContext);
 }

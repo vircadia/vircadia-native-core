@@ -123,8 +123,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer));
-    const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
+ //   const auto scatteringInputs = render::Varying(SubsurfaceScattering::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer));
+ //   const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredFrameTransform);
@@ -147,7 +147,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, scatteringFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, curvatureFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         // Scene Octree Debuging job
