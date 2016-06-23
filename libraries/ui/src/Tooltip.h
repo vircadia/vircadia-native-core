@@ -39,8 +39,6 @@ public:
     static void closeTip(const QString& tipId);
 
 public slots:
-    virtual void setVisible(bool v);
-
     void setTitle(const QString& title);
     void setDescription(const QString& description);
     void setImageURL(const QString& imageURL);

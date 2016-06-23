@@ -105,3 +105,25 @@ QString HMDScriptingInterface::preferredAudioInput() const {
 QString HMDScriptingInterface::preferredAudioOutput() const {
     return qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
 }
+
+bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+    return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
+        enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
+        color, direction);
+}
+
+void HMDScriptingInterface::disableHandLasers(int hands) const {
+    qApp->getActiveDisplayPlugin()->setHandLaser(hands, DisplayPlugin::HandLaserMode::None);
+}
+
+bool HMDScriptingInterface::suppressKeyboard() {
+    return qApp->getActiveDisplayPlugin()->suppressKeyboard();
+}
+
+void HMDScriptingInterface::unsuppressKeyboard() {
+    qApp->getActiveDisplayPlugin()->unsuppressKeyboard();
+}
+
+bool HMDScriptingInterface::isKeyboardVisible() {
+    return qApp->getActiveDisplayPlugin()->isKeyboardVisible();
+}

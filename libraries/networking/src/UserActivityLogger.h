@@ -20,6 +20,7 @@
 #include <QNetworkReply>
 
 #include <SettingHandle.h>
+#include "AddressManager.h"
 
 class UserActivityLogger : public QObject {
     Q_OBJECT
@@ -42,7 +43,7 @@ public slots:
     void changedDomain(QString domainURL);
     void connectedDevice(QString typeOfDevice, QString deviceName);
     void loadedScript(QString scriptName);
-    void wentTo(QString destinationType, QString destinationName);
+    void wentTo(AddressManager::LookupTrigger trigger, QString destinationType, QString destinationName);
     
 private slots:
     void requestError(QNetworkReply& errorReply);
