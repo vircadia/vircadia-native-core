@@ -21,6 +21,9 @@
 #include <OffscreenUi.h>
 #include <controllers/Pose.h>
 #include <NumericalConstants.h>
+#include <ui-plugins/PluginContainer.h>
+#include <ui/Menu.h>
+#include "../../interface/src/Menu.h"
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
@@ -91,7 +94,7 @@ void releaseOpenVrSystem() {
 
 static char textArray[8192];
 
-static QMetaObject::Connection _focusConnection, _focusTextConnection;
+static QMetaObject::Connection _focusConnection, _focusTextConnection, _overlayMenuConnection;
 extern bool _openVrDisplayActive;
 static vr::IVROverlay* _overlay { nullptr };
 static QObject* _keyboardFocusObject { nullptr };
@@ -99,7 +102,8 @@ static QString _existingText;
 static Qt::InputMethodHints _currentHints;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 static bool _keyboardShown { false };
-static const uint32_t SHOW_KEYBOARD_DELAY_MS = 100;
+static bool _overlayRevealed { false };
+static const uint32_t SHOW_KEYBOARD_DELAY_MS = 400;
 
 void showOpenVrKeyboard(bool show = true) {
     if (!_overlay) {
@@ -175,12 +179,25 @@ void finishOpenVrKeyboardInput() {
 static const QString DEBUG_FLAG("HIFI_DISABLE_STEAM_VR_KEYBOARD");
 bool disableSteamVrKeyboard = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
-void enableOpenVrKeyboard() {
+void enableOpenVrKeyboard(PluginContainer* container) {
     if (disableSteamVrKeyboard) {
         return;
     }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     _overlay = vr::VROverlay();
+
+    
+    auto menu = container->getPrimaryMenu();
+    auto action = menu->getActionForOption(MenuOption::Overlays);
+
+    // When the overlays are revealed, suppress the keyboard from appearing on text focus for a tenth of a second. 
+    _overlayMenuConnection = QObject::connect(action, &QAction::triggered, [action] {
+        if (action->isChecked()) {
+            _overlayRevealed = true;
+            const int KEYBOARD_DELAY_MS = 100;
+            QTimer::singleShot(KEYBOARD_DELAY_MS, [&] { _overlayRevealed = false; });
+        }
+    });
 
     _focusConnection = QObject::connect(offscreenUi->getWindow(), &QQuickWindow::focusObjectChanged, [](QObject* object) {
         if (object != _keyboardFocusObject) {
@@ -190,6 +207,11 @@ void enableOpenVrKeyboard() {
 
     _focusTextConnection = QObject::connect(offscreenUi.data(), &OffscreenUi::focusTextChanged, [](bool focusText) {
         if (_openVrDisplayActive) {
+            if (_overlayRevealed) {
+                // suppress at most one text focus event
+                _overlayRevealed = false;
+                return;
+            }
             showOpenVrKeyboard(focusText);
         }
     });
@@ -200,6 +222,7 @@ void disableOpenVrKeyboard() {
     if (disableSteamVrKeyboard) {
         return;
     }
+    QObject::disconnect(_overlayMenuConnection);
     QObject::disconnect(_focusTextConnection);
     QObject::disconnect(_focusConnection);
 }

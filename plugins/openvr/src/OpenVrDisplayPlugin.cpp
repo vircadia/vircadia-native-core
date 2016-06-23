@@ -20,7 +20,7 @@
 
 #include <controllers/Pose.h>
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ViewFrustum.h>
 #include <display-plugins/CompositorHelper.h>
 #include <shared/NsightHelpers.h>
@@ -44,6 +44,12 @@ bool _openVrDisplayActive { false };
 
 bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
+}
+
+void OpenVrDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
 }
 
 bool OpenVrDisplayPlugin::internalActivate() {
@@ -267,7 +273,7 @@ void OpenVrDisplayPlugin::unsuppressKeyboard() {
         return;
     }
     if (1 == _keyboardSupressionCount.fetch_sub(1)) {
-        enableOpenVrKeyboard();
+        enableOpenVrKeyboard(_container);
     }
 }
 

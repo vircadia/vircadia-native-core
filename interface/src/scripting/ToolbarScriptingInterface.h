@@ -20,7 +20,7 @@ class ToolbarProxy;
 class ToolbarScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
-	Q_INVOKABLE QObject* getToolbar(const QString& toolbarId);
+    Q_INVOKABLE QObject* getToolbar(const QString& toolbarId);
 };
 
 #endif // hifi_ToolbarScriptingInterface_h

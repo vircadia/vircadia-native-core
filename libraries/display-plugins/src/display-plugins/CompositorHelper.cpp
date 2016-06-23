@@ -425,7 +425,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
             d = glm::normalize(overlaySurfacePoint);
         }
         reticlePosition = headPosition + (d * getReticleDepth());
-        quat reticleOrientation = quat(vec3(-spherical.y, spherical.x, 0.0f));
+        quat reticleOrientation = glm::quat_cast(_currentDisplayPlugin->getHeadPose());
         vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
         return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {

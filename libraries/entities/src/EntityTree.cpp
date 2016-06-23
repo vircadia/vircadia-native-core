@@ -150,8 +150,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
     if (!canRezPermanentEntities && (entity->getLifetime() != properties.getLifetime())) {
         // we don't allow a Node that can't create permanent entities to adjust lifetimes on existing ones
-        qCDebug(entities) << "Refusing disallowed entity lifetime adjustment.";
-        return false;
+        if (properties.lifetimeChanged()) {
+            qCDebug(entities) << "Refusing disallowed entity lifetime adjustment.";
+            return false;
+        }
     }
 
     // enforce support for locked entities. If an entity is currently locked, then the only
@@ -322,8 +324,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 bool EntityTree::permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp) {
     float lifeTime = properties.getLifetime();
 
-    if (lifeTime == 0.0f || lifeTime > _maxTmpEntityLifetime) {
-        // this is an attempt to rez a permanent entity.
+    if (lifeTime == ENTITY_ITEM_IMMORTAL_LIFETIME || lifeTime > _maxTmpEntityLifetime) {
+        // this is an attempt to rez a permanent or non-temporary entity.
         if (!canRez) {
             return false;
         }

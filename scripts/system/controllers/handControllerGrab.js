@@ -868,6 +868,7 @@ function MyController(hand) {
     };
 
     this.createHotspots = function () {
+        var props, overlay;
 
         var HAND_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
         var HAND_SPHERE_ALPHA = 0.7;
@@ -884,7 +885,7 @@ function MyController(hand) {
         if (DRAW_HAND_SPHERES) {
             // add tiny spheres around the palm.
             var handPosition = this.getHandPosition();
-            var overlay = Overlays.addOverlay("sphere", {
+            overlay = Overlays.addOverlay("sphere", {
                 position: handPosition,
                 size: HAND_SPHERE_RADIUS * 2,
                 color: HAND_SPHERE_COLOR,
@@ -909,7 +910,7 @@ function MyController(hand) {
         var _this = this;
         this.entityPropertyCache.getEntities().forEach(function (entityID) {
             if (_this.entityIsEquippableWithoutDistanceCheck(entityID)) {
-                var props = _this.entityPropertyCache.getProps(entityID);
+                props = _this.entityPropertyCache.getProps(entityID);
 
                 overlay = Overlays.addOverlay("sphere", {
                     rotation: props.rotation,
@@ -931,7 +932,7 @@ function MyController(hand) {
             }
 
             if (DRAW_GRAB_SPHERES && _this.entityIsGrabbable(entityID)) {
-                var props = _this.entityPropertyCache.getProps(entityID);
+                props = _this.entityPropertyCache.getProps(entityID);
 
                 overlay = Overlays.addOverlay("sphere", {
                     rotation: props.rotation,
@@ -956,16 +957,17 @@ function MyController(hand) {
 
     this.updateHotspots = function() {
         var _this = this;
+        var props;
         this.hotspotOverlays.forEach(function (overlayInfo) {
             if (overlayInfo.type === "hand") {
                 Overlays.editOverlay(overlayInfo.overlay, { position: _this.getHandPosition() });
             } else if (overlayInfo.type === "equip") {
                 _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
-                var props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
+                props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
                 Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
             } else if (overlayInfo.type === "near") {
                 _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
-                var props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
+                props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
                 Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
             }
         });

@@ -28,7 +28,7 @@
 #include <NumericalConstants.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <SettingHandle.h>
 
 #include <QLoggingCategory>
@@ -136,6 +136,12 @@ void SixenseManager::setSixenseFilter(bool filter) {
 
 void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     BAIL_IF_NOT_LOADED
+
+    static bool sixenseHasBeenConnected { false };
+    if (!sixenseHasBeenConnected && sixenseIsBaseConnected(0)) {
+        sixenseHasBeenConnected = true;
+        emit deviceConnected(getName());
+    }
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {

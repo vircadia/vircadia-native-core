@@ -65,7 +65,7 @@ FocusScope {
 
             var oldChildren = expectedChildren;
             var newChildren = d.getRepositionChildren();
-            if (oldRecommendedRect != Qt.rect(0,0,0,0) 
+            if (oldRecommendedRect != Qt.rect(0,0,0,0) && oldRecommendedRect != Qt.rect(0,0,1,1)
                   && (oldRecommendedRect != newRecommendedRect
                       || oldChildren != newChildren)
                 ) {
@@ -297,6 +297,9 @@ FocusScope {
 
     onPinnedChanged: {
         if (pinned) {
+            nullFocus.focus = true;
+            nullFocus.forceActiveFocus();
+
             // recalculate our non-pinned children
             hiddenChildren = d.findMatchingChildren(desktop, function(child){
                 return !d.isTopLevelWindow(child) && child.visible && !child.pinned;
@@ -477,6 +480,8 @@ FocusScope {
     }
 
     FocusHack { id: focusHack; }
+
+    FocusScope { id: nullFocus; }
 
     Rectangle {
         id: focusDebugger;

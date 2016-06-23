@@ -163,7 +163,6 @@ void Rig::destroyAnimGraph() {
 }
 
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
-
     _geometryOffset = AnimPose(geometry.offset);
     _invGeometryOffset = _geometryOffset.inverse();
     setModelOffset(modelOffset);
@@ -1224,8 +1223,7 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-
-    if (_animSkeleton) {
+    if (_animSkeleton && jointDataVec.size() == (int)_internalPoseSet._overrideFlags.size()) {
 
         // transform all the default poses into rig space.
         const AnimPose geometryToRigPose(_geometryToRigTransform);

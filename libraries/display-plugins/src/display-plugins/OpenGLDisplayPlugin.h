@@ -120,7 +120,7 @@ protected:
     QMap<gpu::TexturePointer, uint32_t> _sceneTextureToFrameIndexMap;
     uint32_t _currentPresentFrameIndex { 0 };
     float _compositeOverlayAlpha{ 1.0f };
-    
+
     gpu::TexturePointer _currentSceneTexture;
     gpu::TexturePointer _currentOverlayTexture;
 
@@ -164,5 +164,4 @@ private:
     ProgramPtr _activeProgram;
     float _overlayAlpha{ 1.0f };
 };
-
 

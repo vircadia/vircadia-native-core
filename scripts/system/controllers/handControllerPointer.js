@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
-/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print */
+/*globals Script, Overlays, Controller, Reticle, HMD, Camera, Entities, MyAvatar, Settings, Menu, ScriptDiscoveryService, Window, Vec3, Quat, print*/
 
 //
 //  handControllerPointer.js
@@ -14,15 +14,11 @@
 //
 
 // Control the "mouse" using hand controller. (HMD and desktop.)
-// For now:
-// Hydra thumb button 3 is left-mouse, button 4 is right-mouse.
-// A click in the center of the vive thumb pad is left mouse. Vive menu button is context menu (right mouse).
 // First-person only.
 // Starts right handed, but switches to whichever is free: Whichever hand was NOT most recently squeezed.
 //   (For now, the thumb buttons on both controllers are always on.)
-// When over a HUD element, the reticle is shown where the active hand controller beam intersects the HUD.
-// Otherwise, the active hand controller shows a red ball where a click will act.
-
+// When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
+// controller beam intersects the HUD.
 
 
 // UTILITIES -------------
@@ -89,20 +85,15 @@ function Trigger(label) {
             state = 'full';
         } else if (that.triggerSmoothedReleased()) {
             state = null;
-        // These depend on previous state:
-        // null -> squeezed ==> partial
-        // full -> !squeezed ==> partial
-        // Otherwise no change.
         } else if (that.triggerSmoothedSqueezed()) {
-            if (!state) {
-                state = 'partial';
-            }
-        } else if (state === 'full') {
+            // Another way to do this would be to have hysteresis in this branch, but that seems to make things harder to use.
+            // In particular, the vive has a nice detent as you release off of full, and we want that to be a transition from
+            // full to partial.
             state = 'partial';
         }
         that.state = state;
     };
-    // Answer a controller source function (answering either 0.0 or 1.0), with hysteresis.
+    // Answer a controller source function (answering either 0.0 or 1.0).
     that.partial = function () {
         return that.state ? 1.0 : 0.0; // either 'partial' or 'full'
     };
@@ -369,24 +360,9 @@ clickMapping.enable();
 
 // VISUAL AID -----------
 // Same properties as handControllerGrab search sphere
-var BALL_SIZE = 0.011;
-var BALL_ALPHA = 0.5;
-var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: BALL_ALPHA};
-var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: BALL_ALPHA};
-var fakeProjectionBall = Overlays.addOverlay("sphere", {
-    size: 5 * BALL_SIZE,
-    color: {red: 255, green: 10, blue: 10},
-    ignoreRayIntersection: true,
-    alpha: BALL_ALPHA,
-    visible: false,
-    solid: true,
-    drawInFront: true // Even when burried inside of something, show it.
-});
-var overlays = [fakeProjectionBall]; // If we want to try showing multiple balls and lasers.
-Script.scriptEnding.connect(function () {
-    overlays.forEach(Overlays.deleteOverlay);
-});
-var visualizationIsShowing = false; // Not whether it desired, but simply whether it is. Just an optimziation.
+var LASER_ALPHA = 0.5;
+var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: LASER_ALPHA};
+var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER_ALPHA};
 var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
 var systemLaserOn = false;
 function clearSystemLaser() {
@@ -401,81 +377,30 @@ function setColoredLaser() { // answer trigger state if lasers supported, else f
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 
 }
-function turnOffVisualization(optionalEnableClicks) { // because we're showing cursor on HUD
-    if (!optionalEnableClicks) {
-        expireMouseCursor();
-        clearSystemLaser();
-    } else if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
-        // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
-        systemLaserOn = setColoredLaser();
-        Reticle.visible = !systemLaserOn;
-    } else if ((systemLaserOn || Reticle.visible) && !activeTrigger.state) {
-        clearSystemLaser();
-        Reticle.visible = false;
-    }
-
-    if (!visualizationIsShowing) {
-        return;
-    }
-    visualizationIsShowing = false;
-    overlays.forEach(function (overlay) {
-        Overlays.editOverlay(overlay, {visible: false});
-    });
-}
-var MAX_RAY_SCALE = 32000; // Anything large. It's a scale, not a distance.
-function updateVisualization(controllerPosition, controllerDirection, hudPosition3d, hudPosition2d) {
-    ignore(controllerPosition, controllerDirection, hudPosition2d);
-    clearSystemLaser();
-    // Show an indication of where the cursor will appear when crossing a HUD element,
-    // and where in-world clicking will occur.
-    //
-    // There are a number of ways we could do this, but for now, it's a blue sphere that rolls along
-    // the HUD surface, and a red sphere that rolls along the 3d objects that will receive the click.
-    // We'll leave it to other scripts (like handControllerGrab) to show a search beam when desired.
-
-    function intersection3d(position, direction) {
-        // Answer in-world intersection (entity or 3d overlay), or way-out point
-        var pickRay = {origin: position, direction: direction};
-        var result = findRayIntersection(pickRay);
-        return result.intersects ? result.intersection : Vec3.sum(position, Vec3.multiply(MAX_RAY_SCALE, direction));
-    }
-
-    visualizationIsShowing = true;
-    // We'd rather in-world interactions be done at the termination of the hand beam
-    // -- intersection3d(controllerPosition, controllerDirection). Maybe have handControllerGrab
-    // direclty manipulate both entity and 3d overlay objects.
-    // For now, though, we present a false projection of the cursor onto whatever is below it. This is
-    // different from the hand beam termination because the false projection is from the camera, while
-    // the hand beam termination is from the hand.
-    /* // FIXME: We can tighten this up later, once we know what will and won't be included.
-    var eye = Camera.getPosition();
-    var falseProjection = intersection3d(eye, Vec3.subtract(hudPosition3d, eye));
-    Overlays.editOverlay(fakeProjectionBall, {visible: true, position: falseProjection});
-    */
-    Reticle.visible = false;
-
-    return visualizationIsShowing; // In case we change caller to act conditionally.
-}
 
 // MAIN OPERATIONS -----------
 //
 function update() {
     var now = Date.now();
+    function off() {
+        expireMouseCursor();
+        clearSystemLaser();
+    }
     if (!handControllerLockOut.expired(now)) {
-        return turnOffVisualization(); // Let them use mouse it in peace.
+        return off(); // Let them use mouse it in peace.
     }
     if (!Menu.isOptionChecked("First Person")) {
-        return turnOffVisualization(); // What to do? menus can be behind hand!
+        return off(); // What to do? menus can be behind hand!
     }
     if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
-        return turnOffVisualization(); // Don't mess with other apps or paused mouse activity
+        return off(); // Don't mess with other apps or paused mouse activity
     }
     leftTrigger.update();
     rightTrigger.update();
     var controllerPose = Controller.getPoseValue(activeHand);
     // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
     if (!controllerPose.valid) {
-        return turnOffVisualization(); // Controller is cradled.
+        return off(); // Controller is cradled.
     }
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
@@ -487,7 +412,7 @@ function update() {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
             print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
         }
-        return turnOffVisualization();
+        return off();
     }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
 
@@ -499,13 +424,22 @@ function update() {
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
         }
-        return turnOffVisualization(true);
+        if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
+            // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
+            systemLaserOn = setColoredLaser();
+            Reticle.visible = !systemLaserOn;
+        } else if ((systemLaserOn || Reticle.visible) && !activeTrigger.state) {
+            clearSystemLaser();
+            Reticle.visible = false;
+        }
+        return;
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
     if (!activeTrigger.state) {
-        return turnOffVisualization(); // No trigger (with hysteresis).
+        return off(); // No trigger
     }
-    updateVisualization(controllerPosition, controllerDirection, hudPoint3d, hudPoint2d);
+    clearSystemLaser();
+    Reticle.visible = false;
 }
 
 var UPDATE_INTERVAL = 50; // milliseconds. Script.update is too frequent.

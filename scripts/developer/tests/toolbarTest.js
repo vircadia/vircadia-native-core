@@ -13,7 +13,7 @@ var toolBar = (function() {
         newZoneButton,
         newParticleButton
 
-	var toolIconUrl = Script.resolvePath("assets/images/tools/");
+    var toolIconUrl = Script.resolvePath("../../system/assets/images/tools/");
 
     function initialize() {
         print("Toolbars: " + Toolbars);

@@ -135,7 +135,14 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
         _nextOwnershipBid = 0;
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
-        _body->activate();
+        if (_body->isKinematicObject()) {
+            // only force activate kinematic bodies (dynamic shouldn't need force and
+            // active static bodies are special (see PhysicsEngine::_activeStaticBodies))
+            _body->activate(true);
+            _lastKinematicStep = ObjectMotionState::getWorldSimulationStep();
+        } else {
+            _body->activate();
+        }
     }
 }
 

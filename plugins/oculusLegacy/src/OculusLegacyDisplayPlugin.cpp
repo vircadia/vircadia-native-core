@@ -26,7 +26,7 @@
 #include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
 
-#include "plugins/PluginContainer.h"
+#include <ui-plugins/PluginContainer.h>
 #include "OculusHelpers.h"
 
 using namespace oglplus;
@@ -34,6 +34,12 @@ using namespace oglplus;
 const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
+}
+
+void OculusLegacyDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
 }
 
 void OculusLegacyDisplayPlugin::resetSensors() {

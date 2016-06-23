@@ -18,7 +18,7 @@
 #include <gpu/Context.h>
 #include <DeferredLightingEffect.h>
 #include <NumericalConstants.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <UserActivityLogger.h>
 #include <OffscreenUi.h>
 
@@ -63,7 +63,7 @@ bool ViveControllerManager::activate() {
     }
     Q_ASSERT(_system);
 
-    enableOpenVrKeyboard();
+    enableOpenVrKeyboard(_container);
 
     // OpenVR provides 3d mesh representations of the controllers
     // Disabled controller rendering code
@@ -228,7 +228,6 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     if (!_registeredWithInputMapper && _inputDevice->_trackedControllers > 0) {
         userInputMapper->registerDevice(_inputDevice);
         _registeredWithInputMapper = true;
-        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
     }
 }
 
