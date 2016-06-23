@@ -408,6 +408,7 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
+    void toggleMenuUnderReticle() const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;

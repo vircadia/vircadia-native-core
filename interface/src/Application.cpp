@@ -921,17 +921,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
                 if (!offscreenUi->navigationFocused()) {
-                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                    offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
+                    toggleMenuUnderReticle();
                 }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
-            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
-                if (!offscreenUi->navigationFocused()) {
-                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                    offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
-                }
+                toggleMenuUnderReticle();
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
                 getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
@@ -1240,7 +1233,16 @@ QString Application::getUserAgent() {
     return userAgent;
 }
 
-
+void Application::toggleMenuUnderReticle() const {
+    // In HMD, if the menu is near the mouse but not under it, the reticle can be at a significantly
+    // different depth. When you focus on the menu, the cursor can appear to your crossed eyes as both
+    // on the menu and off.
+    // Even in 2D, it is arguable whether the user would want the menu to be to the side.
+    const float X_LEFT_SHIFT = 50.0;
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto reticlePosition = getApplicationCompositor().getReticlePosition();
+    offscreenUi->toggleMenu(QPoint(reticlePosition.x - X_LEFT_SHIFT, reticlePosition.y));
+}
 
 void Application::checkChangeCursor() {
     QMutexLocker locker(&_changeCursorLock);
@@ -2462,9 +2464,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto reticlePosition = getApplicationCompositor().getReticlePosition();
-        offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
+        toggleMenuUnderReticle();
     }
 
     _keysPressed.remove(event->key());
