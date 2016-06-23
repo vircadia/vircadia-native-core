@@ -54,9 +54,9 @@ public:
     static bool getDrawZoneBoundaries() { return _drawZoneBoundaries; }
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
     
-    virtual bool isReadyToComputeShape() override { return false; }
-    void setShapeType(ShapeType type) override { _shapeType = type; }
-    virtual ShapeType getShapeType() const override;
+    virtual bool isReadyToComputeShape() { return false; }
+    void setShapeType(ShapeType type) { _shapeType = type; }
+    virtual ShapeType getShapeType() const;
     
     virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
