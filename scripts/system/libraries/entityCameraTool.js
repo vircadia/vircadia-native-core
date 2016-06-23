@@ -141,7 +141,7 @@ CameraManager = function() {
     };
 
     that.enable = function() {
-        if (Camera.mode == "independent" || that.enabled) return;
+        if (Camera.mode == "independent" || that.enabled || HMD.active) return;
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.captureKeyEvents({
