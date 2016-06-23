@@ -396,6 +396,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     _renderer->_renderControl->_renderWindow = _proxyWindow;
 
+    connect(_renderer->_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
     if (!_qmlEngine->incubationController()) {
@@ -741,4 +743,22 @@ QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> funct
     }
 
     return function();
+}
+
+void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    if (!object) {
+        setFocusText(false);
+        return;
+    }
+
+    QInputMethodQueryEvent query(Qt::ImEnabled);
+    qApp->sendEvent(object, &query);
+    setFocusText(query.value(Qt::ImEnabled).toBool());
+}
+
+void OffscreenQmlSurface::setFocusText(bool newFocusText) {
+    if (newFocusText != _focusText) {
+        _focusText = newFocusText;
+        emit focusTextChanged(_focusText);
+    }
 }

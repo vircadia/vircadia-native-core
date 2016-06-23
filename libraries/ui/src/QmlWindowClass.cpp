@@ -163,8 +163,7 @@ void QmlWindowClass::setVisible(bool visible) {
         QMetaObject::invokeMethod(targetWindow, "showTabForUrl", Qt::QueuedConnection, Q_ARG(QVariant, _source), Q_ARG(QVariant, visible));
     } else {
         DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-            targetWindow->setVisible(visible);
-            //emit visibilityChanged(visible);
+            targetWindow->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
         });
     }
 }

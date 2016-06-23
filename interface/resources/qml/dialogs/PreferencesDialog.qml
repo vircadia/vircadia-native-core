@@ -13,14 +13,14 @@ import QtQuick.Controls 1.4
 
 import "../controls-uit" as HifiControls
 import "../styles-uit"
-import "../windows-uit"
+import "../windows"
 import "preferences"
 
-Window {
+ScrollingWindow {
     id: root
     title: "Preferences"
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     width: 500
     height: 577
     property var sections: []

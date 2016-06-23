@@ -17,6 +17,8 @@ class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     const QString& getName() const override { return NAME; }
 
+    void init() override;
+
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
 

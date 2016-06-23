@@ -150,6 +150,8 @@ function showMarketplace(marketplaceID) {
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
     marketplaceWindow.raise();
+
+    UserActivityLogger.logAction("opened_marketplace");
 }
 
 function hideMarketplace() {
@@ -181,7 +183,7 @@ var toolBar = (function() {
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x / 2,
+                x: (windowDimensions.x / 2) + (Tool.IMAGE_WIDTH * 2),
                 y: windowDimensions.y
             };
         }, {
@@ -347,6 +349,7 @@ var toolBar = (function() {
                     selectionManager.clearSelections();
                     cameraManager.disable();
                 } else {
+                    UserActivityLogger.enabledEdit();
                     hasShownPropertiesTool = false;
                     entityListTool.setVisible(true);
                     gridTool.setVisible(true);

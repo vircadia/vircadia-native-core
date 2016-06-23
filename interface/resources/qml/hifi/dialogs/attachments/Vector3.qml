@@ -3,7 +3,7 @@ import QtQuick.Controls 1.4
 
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
-import "../../../windows-uit"
+import "../../../windows"
 
 Item {
     id: root

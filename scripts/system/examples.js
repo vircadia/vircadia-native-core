@@ -9,10 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include([
-    "libraries/toolBars.js",
-]);
-
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
 var EXAMPLES_URL = "https://metaverse.highfidelity.com/examples";
@@ -37,6 +33,8 @@ function showExamples(marketplaceID) {
     print("setting examples URL to " + url);
     examplesWindow.setURL(url);
     examplesWindow.setVisible(true);
+
+    UserActivityLogger.openedMarketplace();
 }
 
 function hideExamples() {
@@ -52,87 +50,21 @@ function toggleExamples() {
     }
 }
 
-var toolBar = (function() {
-    var that = {},
-        toolBar,
-        browseExamplesButton;
+var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
-    function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.examples.toolbar", function(windowDimensions, toolbar) {
-            return {
-                x: windowDimensions.x / 2,
-                y: windowDimensions.y
-            };
-        }, {
-            x: -toolWidth / 2,
-            y: -TOOLBAR_MARGIN_Y - toolHeight
-        });
-        browseExamplesButton = toolBar.addTool({
-            imageURL: toolIconUrl + "examples-01.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: true,
-            showButtonDown: true
-        });
+var browseExamplesButton = toolBar.addButton({
+    imageURL: toolIconUrl + "examples-01.svg",
+    objectName: "examples",
+    yOffset: 50,
+    alpha: 0.9,
+});
 
-        toolBar.showTool(browseExamplesButton, true);
-    }
+var browseExamplesButtonDown = false;
 
-    var browseExamplesButtonDown = false;
-    that.mousePressEvent = function(event) {
-        var clickedOverlay,
-            url,
-            file;
+browseExamplesButton.clicked.connect(function(){
+    toggleExamples();
+});
 
-        if (!event.isLeftButton) {
-            // if another mouse button than left is pressed ignore it
-            return false;
-        }
-
-        clickedOverlay = Overlays.getOverlayAtPoint({
-            x: event.x,
-            y: event.y
-        });
-
-        if (browseExamplesButton === toolBar.clicked(clickedOverlay)) {
-            toggleExamples();
-            return true;
-        }
-
-        return false;
-    };
-
-    that.mouseReleaseEvent = function(event) {
-        var handled = false;
-
-
-        if (browseExamplesButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-        }
-
-        newModelButtonDown = false;
-        browseExamplesButtonDown = false;
-
-        return handled;
-    }
-
-    that.cleanup = function() {
-        toolBar.cleanup();
-    };
-
-    initialize();
-    return that;
-}());
-
-Controller.mousePressEvent.connect(toolBar.mousePressEvent)
-Script.scriptEnding.connect(toolBar.cleanup);
+Script.scriptEnding.connect(function () {
+    browseExamplesButton.clicked.disconnect();
+});
