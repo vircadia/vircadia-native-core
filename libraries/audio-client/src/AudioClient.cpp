@@ -326,13 +326,13 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     const int HALF_FORTY_FOUR = FORTY_FOUR / 2;
 
     if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
-        // use 48, which is a sample downsample, upsample
+        // use 48, which is a simple downsample, upsample
         adjustedAudioFormat.setSampleRate(AudioConstants::SAMPLE_RATE * 2);
     } else if (audioDevice.supportedSampleRates().contains(HALF_FORTY_FOUR)) {
         // use 22050, resample but closer to 24
         adjustedAudioFormat.setSampleRate(HALF_FORTY_FOUR);
     } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
-        // use 48000, resample
+        // use 44100, resample
         adjustedAudioFormat.setSampleRate(FORTY_FOUR);
     }
 #endif
