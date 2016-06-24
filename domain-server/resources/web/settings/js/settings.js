@@ -457,6 +457,8 @@ function disonnectHighFidelityAccount() {
   }, function(){
     // we need to post to settings to clear the access-token
     $(Settings.ACCESS_TOKEN_SELECTOR).val('').change();
+    // reset the domain id to get a new temporary name
+    $(Settings.DOMAIN_ID_SELECTOR).val('').change();
     saveSettings();
   });
 }

@@ -111,18 +111,18 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         return;
     }
 
-    // check for the temporary name parameter
-    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
-    if (args.contains(GET_TEMPORARY_NAME_SWITCH)) {
-        getTemporaryName();
-    }
-
     setupNodeListAndAssignments();
     setupAutomaticNetworking();
     if (!getID().isNull()) {
         setupHeartbeatToMetaverse();
         // send the first heartbeat immediately
         sendHeartbeatToMetaverse();
+    }
+
+    // check for the temporary name parameter
+    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
+    if (args.contains(GET_TEMPORARY_NAME_SWITCH)) {
+        getTemporaryName();
     }
 
     _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
@@ -251,12 +251,13 @@ void DomainServer::getTemporaryName(bool force) {
     // check if we already have a domain ID
     const QVariant* idValueVariant = valueForKeyPath(_settingsManager.getSettingsMap(), METAVERSE_DOMAIN_ID_KEY_PATH);
 
+    qInfo() << "Requesting temporary domain name";
     if (idValueVariant) {
-        qWarning() << "Temporary domain name requested but a domain ID is already present in domain-server settings.";
+        qDebug() << "A domain ID is already present in domain-server settings:" << idValueVariant->toString();
         if (force) {
-            qWarning() << "Temporary domain name will be requested to replace it.";
+            qDebug() << "Requesting temporary domain name to replace current ID:" << getID();
         } else {
-            qWarning() << "Temporary domain name will not be requested.";
+            qInfo() << "Abandoning request of temporary domain name.";
             return;
         }
     }
