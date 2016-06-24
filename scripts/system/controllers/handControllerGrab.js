@@ -38,7 +38,7 @@ var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only
 
 var PICK_WITH_HAND_RAY = true;
 
-var DRAW_GRAB_SPHERES = false;
+var DRAW_GRAB_BOXES = false;
 var DRAW_HAND_SPHERES = false;
 var DROP_WITHOUT_SHAKE = false;
 
@@ -80,6 +80,8 @@ var EQUIP_RADIUS = 0.1; // radius used for palm vs equip-hotspot for equipping.
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 
 var NEAR_GRAB_RADIUS = 0.15; // radius used for palm vs object for near grabbing.
+var NEAR_GRAB_MAX_DISTANCE = 1.0;  // you cannot grab objects that are this far away from your hand
+
 var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
 
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
@@ -870,26 +872,48 @@ function MyController(hand) {
     this.createHotspots = function () {
         var props, overlay;
 
-        var HAND_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
-        var HAND_SPHERE_ALPHA = 0.7;
-        var HAND_SPHERE_RADIUS = 0.01;
+        var HAND_EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
+        var HAND_EQUIP_SPHERE_ALPHA = 0.7;
+        var HAND_EQUIP_SPHERE_RADIUS = 0.01;
+
+        var HAND_GRAB_SPHERE_COLOR = { red: 90, green: 90, blue: 255 };
+        var HAND_GRAB_SPHERE_ALPHA = 0.3;
+        var HAND_GRAB_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
 
         var EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
         var EQUIP_SPHERE_ALPHA = 0.3;
 
-        var NEAR_SPHERE_COLOR = { red: 90, green: 90, blue: 255 };
-        var NEAR_SPHERE_ALPHA = 0.1;
+        var GRAB_BOX_COLOR = { red: 90, green: 90, blue: 255 };
+        var GRAB_BOX_ALPHA = 0.1;
 
         this.hotspotOverlays = [];
 
         if (DRAW_HAND_SPHERES) {
-            // add tiny spheres around the palm.
+            // add tiny green sphere around the palm.
             var handPosition = this.getHandPosition();
             overlay = Overlays.addOverlay("sphere", {
                 position: handPosition,
-                size: HAND_SPHERE_RADIUS * 2,
-                color: HAND_SPHERE_COLOR,
-                alpha: HAND_SPHERE_ALPHA,
+                size: HAND_EQUIP_SPHERE_RADIUS * 2,
+                color: HAND_EQUIP_SPHERE_COLOR,
+                alpha: HAND_EQUIP_SPHERE_ALPHA,
+                solid: true,
+                visible: true,
+                ignoreRayIntersection: true,
+                drawInFront: false
+            });
+
+            this.hotspotOverlays.push({
+                entityID: undefined,
+                overlay: overlay,
+                type: "hand"
+            });
+
+            // add larger blue sphere around the palm.
+            overlay = Overlays.addOverlay("sphere", {
+                position: handPosition,
+                size: HAND_GRAB_SPHERE_RADIUS * 2,
+                color: HAND_GRAB_SPHERE_COLOR,
+                alpha: HAND_GRAB_SPHERE_ALPHA,
                 solid: true,
                 visible: true,
                 ignoreRayIntersection: true,
@@ -931,15 +955,15 @@ function MyController(hand) {
                 });
             }
 
-            if (DRAW_GRAB_SPHERES && _this.entityIsGrabbable(entityID)) {
+            if (DRAW_GRAB_BOXES && _this.entityIsGrabbable(entityID)) {
                 props = _this.entityPropertyCache.getProps(entityID);
 
-                overlay = Overlays.addOverlay("sphere", {
+                overlay = Overlays.addOverlay("cube", {
                     rotation: props.rotation,
                     position: props.position,
-                    size: NEAR_GRAB_RADIUS * 2,
-                    color: NEAR_SPHERE_COLOR,
-                    alpha: NEAR_SPHERE_ALPHA,
+                    size: props.dimensions, //{x: props.dimensions.x, y: props.dimensions.y, z: props.dimensions.z},
+                    color: GRAB_BOX_COLOR,
+                    alpha: GRAB_BOX_ALPHA,
                     solid: true,
                     visible: true,
                     ignoreRayIntersection: true,
@@ -1254,7 +1278,7 @@ function MyController(hand) {
         }
 
         var grabbableEntities = candidateEntities.filter(function (entity) {
-            return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_RADIUS);
+            return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
         });
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
@@ -1807,11 +1831,11 @@ function MyController(hand) {
             this.lastUnequipCheckTime = now;
 
             if (props.parentID == MyAvatar.sessionUUID &&
-                Vec3.length(props.localPosition) > NEAR_GRAB_PICK_RADIUS * 2.0) {
+                Vec3.length(props.localPosition) > NEAR_GRAB_MAX_DISTANCE) {
                 var handPosition = this.getHandPosition();
                 // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
                 // need to fail the findEntities test.
-                var nearPickedCandidateEntities = Entities.findEntities(handPosition, EQUIP_RADIUS);
+                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
@@ -2270,18 +2294,18 @@ Menu.addMenuItem({
 
 Menu.addMenuItem({
     menuName: "Developer > Grab Script",
-    menuItemName: "Draw Grab Spheres",
+    menuItemName: "Draw Grab Boxes",
     isCheckable: true,
-    isChecked: DRAW_GRAB_SPHERES
+    isChecked: DRAW_GRAB_BOXES
 });
 
 function handleMenuItemEvent(menuItem) {
     if (menuItem === "Drop Without Shake") {
         DROP_WITHOUT_SHAKE = Menu.isOptionChecked("Drop Without Shake");
     }
-    if (menuItem === "Draw Grab Spheres") {
-        DRAW_GRAB_SPHERES = Menu.isOptionChecked("Draw Grab Spheres");
-        DRAW_HAND_SPHERES = DRAW_GRAB_SPHERES;
+    if (menuItem === "Draw Grab Boxes") {
+        DRAW_GRAB_BOXES = Menu.isOptionChecked("Draw Grab Boxes");
+        DRAW_HAND_SPHERES = DRAW_GRAB_BOXES;
     }
 }
 
