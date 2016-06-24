@@ -64,17 +64,25 @@ vr::IVRSystem* acquireOpenVrSystem() {
     if (hmdPresent) {
         Lock lock(mutex);
         if (!activeHmd) {
-            qCDebug(displayplugins) << "OpenVR: No vr::IVRSystem instance active, building";
+            #if DEV_BUILD
+                qCDebug(displayplugins) << "OpenVR: No vr::IVRSystem instance active, building";
+            #endif
             vr::EVRInitError eError = vr::VRInitError_None;
             activeHmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
-            qCDebug(displayplugins) << "OpenVR display: HMD is " << activeHmd << " error is " << eError;
+            #if DEV_BUILD
+                qCDebug(displayplugins) << "OpenVR display: HMD is " << activeHmd << " error is " << eError;
+            #endif
         }
         if (activeHmd) {
-            qCDebug(displayplugins) << "OpenVR: incrementing refcount";
+            #if DEV_BUILD
+                qCDebug(displayplugins) << "OpenVR: incrementing refcount";
+            #endif
             ++refCount;
         }
     } else {
-        qCDebug(displayplugins) << "OpenVR: no hmd present";
+        #if DEV_BUILD
+            qCDebug(displayplugins) << "OpenVR: no hmd present";
+        #endif
     }
     return activeHmd;
 }
@@ -82,10 +90,14 @@ vr::IVRSystem* acquireOpenVrSystem() {
 void releaseOpenVrSystem() {
     if (activeHmd) {
         Lock lock(mutex);
-        qCDebug(displayplugins) << "OpenVR: decrementing refcount";
+        #if DEV_BUILD
+            qCDebug(displayplugins) << "OpenVR: decrementing refcount";
+        #endif
         --refCount;
         if (0 == refCount) {
-            qCDebug(displayplugins) << "OpenVR: zero refcount, deallocate VR system";
+            #if DEV_BUILD
+                qCDebug(displayplugins) << "OpenVR: zero refcount, deallocate VR system";
+            #endif
             vr::VR_Shutdown();
             activeHmd = nullptr;
         }
@@ -261,7 +273,9 @@ void handleOpenVrEvents() {
             default:
                 break;
         }
-        qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+        #if DEV_BUILD
+            qDebug() << "OpenVR: Event " << activeHmd->GetEventTypeNameFromEnum((vr::EVREventType)event.eventType) << "(" << event.eventType << ")";
+        #endif
     }
 
 }
