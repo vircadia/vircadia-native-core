@@ -56,6 +56,9 @@ public slots:
     void getIsGroupMemberJSONCallback(QNetworkReply& requestReply);
     void getIsGroupMemberErrorCallback(QNetworkReply& requestReply);
 
+    void getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply);
+    void getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply);
+
 signals:
     void killNode(SharedNodePointer node);
     void connectedNode(SharedNodePointer node);
@@ -98,10 +101,12 @@ private:
     QHash<QString, QUuid> _connectionTokenHash;
     QHash<QString, QByteArray> _userPublicKeys;
     QHash<QString, bool> _inFlightPublicKeyRequests; // keep track of which we've already asked for
+    QHash<QString, bool> _domainOwnerFriends; // keep track of friends of the domain owner
 
     NodePermissions applyPermissionsForUser(bool isLocalUser, NodePermissions userPerms, QString verifiedUsername);
     void getGroupMemberships(const QString& username);
     void getIsGroupMember(const QString& username, const QUuid groupID);
+    void getDomainOwnerFriendsList();
 };
 
 

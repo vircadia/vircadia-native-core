@@ -142,6 +142,12 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
             qDebug() << "user-permissions: user is logged-into metavers, so:" << userPerms;
 
+            // if this user is a friend of the domain-owner, give them friend's permissions
+            if (_domainOwnerFriends.contains(verifiedUsername)) {
+                userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameFriends);
+                qDebug() << "user-permissions: user is friends with domain-owner, so:" << userPerms;
+            }
+
             // if this user is a known member of a group, give them the implied permissions
             foreach (QUuid groupID, _server->_settingsManager.getKnownGroupIDs()) {
                 if (groupID.isNull()) {
@@ -275,6 +281,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         // ask for their public key right now to make sure we have it
         requestUserPublicKey(username);
         getGroupMemberships(username); // optimistically get started on group memberships
+        getDomainOwnerFriendsList();
         return SharedNodePointer();
     }
 
@@ -284,6 +291,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         userPerms.setUserName(username);
         verifiedUsername = username;
         getGroupMemberships(username);
+        getDomainOwnerFriendsList();
     } else if (!username.isEmpty()) {
         // they sent us a username, but it didn't check out
         requestUserPublicKey(username);
@@ -717,5 +725,39 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
 }
 
 void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "getGroupID api call failed:" << requestReply.error();
+    qDebug() << "getIsGroupMember api call failed:" << requestReply.error();
+}
+
+void DomainGatekeeper::getDomainOwnerFriendsList() {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "getDomainOwnerFriendsListJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
+
+    const QString GET_FRIENDS_LIST_PATH = "api/v1/users";
+    QUrlQuery query;
+    query.addQueryItem("filter", "friends");
+
+    DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
+                                                          QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
+                                                          NULL, QVariantMap(), query);
+}
+
+void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    if (jsonObject["status"].toString() == "success") {
+        _domainOwnerFriends.clear();
+        QJsonArray friends = jsonObject["data"].toObject()["users"].toArray();
+        for (int i = 0; i < friends.size(); i++) {
+            QString friendUserName = friends.at(i).toObject()["username"].toString();
+            _domainOwnerFriends[friendUserName] = true;
+        }
+    } else {
+        qDebug() << "getDomainOwnerFriendsList api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+    }
+}
+
+void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply.error();
 }

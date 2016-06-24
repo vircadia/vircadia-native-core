@@ -16,11 +16,13 @@
 QString NodePermissions::standardNameLocalhost = QString("localhost");
 QString NodePermissions::standardNameLoggedIn = QString("logged-in");
 QString NodePermissions::standardNameAnonymous = QString("anonymous");
+QString NodePermissions::standardNameFriends = QString("friends");
 
 QStringList NodePermissions::standardNames = QList<QString>()
     << NodePermissions::standardNameLocalhost
     << NodePermissions::standardNameLoggedIn
-    << NodePermissions::standardNameAnonymous;
+    << NodePermissions::standardNameAnonymous
+    << NodePermissions::standardNameFriends;
 
 NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
     _id = perms["permissions_id"].toString();

@@ -218,6 +218,8 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 new NodePermissions(NodePermissions::standardNameAnonymous));
             _standardAgentPermissions[NodePermissions::standardNameLoggedIn].reset(
                 new NodePermissions(NodePermissions::standardNameLoggedIn));
+            _standardAgentPermissions[NodePermissions::standardNameFriends].reset(
+                new NodePermissions(NodePermissions::standardNameFriends));
 
             if (isRestrictedAccess) {
                 // only users in allow-users list can connect
@@ -340,6 +342,7 @@ void DomainServerSettingsManager::unpackPermissions() {
     bool foundLocalhost = false;
     bool foundAnonymous = false;
     bool foundLoggedIn = false;
+    bool foundFriends = false;
     bool needPack = false;
 
     QVariant* standardPermissions = valueForKeyPath(_configMap.getUserConfig(), AGENT_STANDARD_PERMISSIONS_KEYPATH);
@@ -368,6 +371,7 @@ void DomainServerSettingsManager::unpackPermissions() {
         foundLocalhost |= (id == NodePermissions::standardNameLocalhost);
         foundAnonymous |= (id == NodePermissions::standardNameAnonymous);
         foundLoggedIn |= (id == NodePermissions::standardNameLoggedIn);
+        foundFriends |= (id == NodePermissions::standardNameFriends);
         if (_standardAgentPermissions.contains(id)) {
             qDebug() << "duplicate name in standard permissions table: " << id;
             _standardAgentPermissions[id] |= perms;
@@ -421,6 +425,11 @@ void DomainServerSettingsManager::unpackPermissions() {
     }
     if (!foundLoggedIn) {
         NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameLoggedIn) };
+        _standardAgentPermissions[perms->getID()] = perms;
+        needPack = true;
+    }
+    if (!foundFriends) {
+        NodePermissionsPointer perms { new NodePermissions(NodePermissions::standardNameFriends) };
         _standardAgentPermissions[perms->getID()] = perms;
         needPack = true;
     }
