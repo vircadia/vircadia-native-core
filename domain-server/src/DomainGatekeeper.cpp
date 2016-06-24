@@ -149,15 +149,21 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
             }
 
             // if this user is a known member of a group, give them the implied permissions
-            foreach (QUuid groupID, _server->_settingsManager.getKnownGroupIDs()) {
-                if (groupID.isNull()) {
-                    continue;
-                }
+            foreach (QUuid groupID, _server->_settingsManager.getGroupIDs()) {
                 if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
                     userPerms |= _server->_settingsManager.getPermissionsForGroup(groupID);
                     qDebug() << "user-permissions: user is in group:" << groupID << "so:" << userPerms;
                 }
             }
+
+            // if this user is a known member of a blacklist group, remove the implied permissions
+            foreach (QUuid groupID, _server->_settingsManager.getBlacklistGroupIDs()) {
+                if (_server->_settingsManager.isGroupMember(verifiedUsername, groupID)) {
+                    userPerms &= ~_server->_settingsManager.getForbiddensForGroup(groupID);
+                    qDebug() << "user-permissions: user is in blacklist group:" << groupID << "so:" << userPerms;
+                }
+            }
+
         }
     }
 
@@ -689,7 +695,7 @@ void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage>
 void DomainGatekeeper::getGroupMemberships(const QString& username) {
     // loop through the groups mentioned on the settings page and ask if this user is in each.  The replies
     // will be received asynchronously and permissions will be updated as the answers come in.
-    QList<QUuid> groupIDs = _server->_settingsManager.getKnownGroupIDs();
+    QList<QUuid> groupIDs = _server->_settingsManager.getGroupIDs() + _server->_settingsManager.getBlacklistGroupIDs();
     foreach (QUuid groupID, groupIDs) {
         if (groupID.isNull()) {
             continue;

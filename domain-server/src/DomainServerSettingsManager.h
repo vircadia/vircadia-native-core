@@ -28,6 +28,7 @@ const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
 const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
+const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
 
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
@@ -55,7 +56,14 @@ public:
     bool havePermissionsForGroup(const QString& groupname) const { return _groupPermissions.contains(groupname); }
     NodePermissions getPermissionsForGroup(const QString& groupname) const;
     NodePermissions getPermissionsForGroup(const QUuid& groupID) const;
-    QList<QUuid> getKnownGroupIDs() { return _groupByID.keys(); }
+
+    // these remove permissions from users in certain groups
+    bool haveForbiddensForGroup(const QString& groupname) const { return _groupForbiddens.contains(groupname); }
+    NodePermissions getForbiddensForGroup(const QString& groupname) const;
+    NodePermissions getForbiddensForGroup(const QUuid& groupID) const;
+
+    QList<QUuid> getGroupIDs();
+    QList<QUuid> getBlacklistGroupIDs();
 
     // these are used to locally cache the result of calling "api/v1/groups/.../is_member/..." on metaverse's api
     void recordGroupMembership(const QString& name, const QUuid groupID, bool isMember);
@@ -100,7 +108,8 @@ private:
 
     NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
     NodePermissionsMap _agentPermissions; // specific account-names
-    NodePermissionsMap _groupPermissions; // permissions granted by membershipt to specific groups
+    NodePermissionsMap _groupPermissions; // permissions granted by membership to specific groups
+    NodePermissionsMap _groupForbiddens; // permissions denied due to membership in a specific group
     QHash<QUuid, NodePermissionsPointer> _groupByID; // similar to _groupPermissions but key is group-id rather than name
 
     // keep track of answers to api queries about which users are in which groups

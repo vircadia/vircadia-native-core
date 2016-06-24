@@ -60,6 +60,9 @@ public:
 
     NodePermissions& operator|=(const NodePermissions& rhs);
     NodePermissions& operator|=(const NodePermissionsPointer& rhs);
+    NodePermissions& operator&=(const NodePermissions& rhs);
+    NodePermissions& operator&=(const NodePermissionsPointer& rhs);
+    NodePermissions operator~();
     friend QDataStream& operator<<(QDataStream& out, const NodePermissions& perms);
     friend QDataStream& operator>>(QDataStream& in, NodePermissions& perms);
 
@@ -93,5 +96,7 @@ const NodePermissions DEFAULT_AGENT_PERMISSIONS;
 QDebug operator<<(QDebug debug, const NodePermissions& perms);
 QDebug operator<<(QDebug debug, const NodePermissionsPointer& perms);
 NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
+NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
+NodePermissionsPointer operator~(NodePermissionsPointer& lhs);
 
 #endif // hifi_NodePermissions_h

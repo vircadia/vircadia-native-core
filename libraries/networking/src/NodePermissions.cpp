@@ -85,6 +85,48 @@ NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermis
     return lhs;
 }
 
+NodePermissions& NodePermissions::operator&=(const NodePermissions& rhs) {
+    this->canConnectToDomain &= rhs.canConnectToDomain;
+    this->canAdjustLocks &= rhs.canAdjustLocks;
+    this->canRezPermanentEntities &= rhs.canRezPermanentEntities;
+    this->canRezTemporaryEntities &= rhs.canRezTemporaryEntities;
+    this->canWriteToAssetServer &= rhs.canWriteToAssetServer;
+    this->canConnectPastMaxCapacity &= rhs.canConnectPastMaxCapacity;
+    return *this;
+}
+NodePermissions& NodePermissions::operator&=(const NodePermissionsPointer& rhs) {
+    if (rhs) {
+        *this &= *rhs.get();
+    }
+    return *this;
+}
+NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs) {
+    if (lhs && rhs) {
+        *lhs.get() &= rhs;
+    }
+    return lhs;
+}
+
+NodePermissions NodePermissions::operator~() {
+    NodePermissions result = *this;
+    result.canConnectToDomain = !result.canConnectToDomain;
+    result.canAdjustLocks = !result.canAdjustLocks;
+    result.canRezPermanentEntities = !result.canRezPermanentEntities;
+    result.canRezTemporaryEntities = !result.canRezTemporaryEntities;
+    result.canWriteToAssetServer = !result.canWriteToAssetServer;
+    result.canConnectPastMaxCapacity = !result.canConnectPastMaxCapacity;
+    return result;
+}
+
+NodePermissionsPointer operator~(NodePermissionsPointer& lhs) {
+    if (lhs) {
+        NodePermissionsPointer result { new NodePermissions };
+        (*result.get()) = ~(*lhs.get());
+        return result;
+    }
+    return lhs;
+}
+
 QDataStream& operator<<(QDataStream& out, const NodePermissions& perms) {
     out << perms.canConnectToDomain;
     out << perms.canAdjustLocks;
