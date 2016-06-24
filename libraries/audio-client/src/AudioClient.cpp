@@ -34,6 +34,8 @@
 #include <QtMultimedia/QAudioOutput>
 
 #include <NodeList.h>
+#include <plugins/CodecPlugin.h>
+#include <plugins/PluginManager.h>
 #include <udt/PacketHeaders.h>
 #include <PositionalAudioStream.h>
 #include <SettingHandle.h>
@@ -134,6 +136,7 @@ AudioClient::AudioClient() :
     packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
     packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 }
 
 AudioClient::~AudioClient() {
@@ -474,6 +477,32 @@ void AudioClient::stop() {
     }
 }
 
+void AudioClient::negotiateAudioFormat() {
+    qDebug() << __FUNCTION__;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
+
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+
+    quint8 numberOfCodecs = (quint8)codecPlugins.size();
+    negotiateFormatPacket->writePrimitive(numberOfCodecs);
+    for (auto& plugin : codecPlugins) {
+        qDebug() << "Codec available:" << plugin->getName();
+        negotiateFormatPacket->writeString(plugin->getName());
+    }
+
+    // grab our audio mixer from the NodeList, if it exists
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+
+    if (audioMixer) {
+        // send off this mute packet
+        nodeList->sendPacket(std::move(negotiateFormatPacket), *audioMixer);
+    }
+}
+
+
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
 
     char bitset;
@@ -527,6 +556,16 @@ void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> me
 
     emit muteEnvironmentRequested(position, radius);
 }
+
+void AudioClient::handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message) {
+    qDebug() << __FUNCTION__;
+
+    // write them to our packet
+    QString selectedCodec = message->readString();
+
+    qDebug() << "selectedCodec:" << selectedCodec;
+}
+   
 
 QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
     QAudioDeviceInfo deviceInfo = defaultAudioDeviceForMode(mode);
@@ -1227,6 +1266,13 @@ void AudioClient::loadSettings() {
                                                                         windowSecondsForDesiredCalcOnTooManyStarves.get());
     _receivedAudioStream.setWindowSecondsForDesiredReduction(windowSecondsForDesiredReduction.get());
     _receivedAudioStream.setRepetitionWithFade(repetitionWithFade.get());
+
+    qDebug() << "---- Initializing Audio Client ----";
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (auto& plugin : codecPlugins) {
+        qDebug() << "Codec available:" << plugin->getName();
+    }
+
 }
 
 void AudioClient::saveSettings() {

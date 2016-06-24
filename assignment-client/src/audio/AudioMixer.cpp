@@ -90,6 +90,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
                                               PacketType::AudioStreamStats },
                                             this, "handleNodeAudioPacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::NegotiateAudioFormat, this, "handleNegotiateAudioFormat");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -444,6 +445,31 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
             }
         });
     }
+}
+
+void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    qDebug() << __FUNCTION__;
+
+    // read the codecs requested by the client
+    quint8 numberOfCodecs = 0;
+    message->readPrimitive(&numberOfCodecs);
+    QStringList codecList;
+    for (quint16 i = 0; i < numberOfCodecs; i++) {
+        QString requestedCodec = message->readString();
+        qDebug() << "requestedCodec:" << requestedCodec;
+        codecList.append(requestedCodec);
+    }
+    qDebug() << "all requested codecs:" << codecList;
+
+    auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
+
+    // write them to our packet
+    QString selectedCodec = codecList.front();
+    qDebug() << "selectedCodec:" << selectedCodec;
+    replyPacket->writeString(selectedCodec);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *sendingNode);
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {

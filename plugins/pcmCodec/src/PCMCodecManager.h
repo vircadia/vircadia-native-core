@@ -32,6 +32,7 @@ public:
     void deactivate() override;
 
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override;
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override;
 
 private:
     static const QString NAME;

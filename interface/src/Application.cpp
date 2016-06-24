@@ -1243,7 +1243,6 @@ QString Application::getUserAgent() {
         userAgent += " " + formatPluginName(cp->getName());
     }
 
-    qDebug() << __FUNCTION__ << ":" << userAgent;
     return userAgent;
 }
 
@@ -4440,6 +4439,9 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
+    if (node->getType() == NodeType::AudioMixer) {
+        DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+    }
 }
 
 void Application::nodeKilled(SharedNodePointer node) {

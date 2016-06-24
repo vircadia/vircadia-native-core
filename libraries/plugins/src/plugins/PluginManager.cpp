@@ -222,10 +222,11 @@ const CodecPluginList& PluginManager::getCodecPlugins() {
             }
         }
 
-        auto& container = PluginContainer::getInstance();
         for (auto plugin : codecPlugins) {
-            plugin->setContainer(&container);
+            plugin->setContainer(_container);
             plugin->init();
+
+            qDebug() << "init codec:" << plugin->getName();
         }
     });
     return codecPlugins;

@@ -43,3 +43,7 @@ void PCMCodecManager::decode(const QByteArray& encodedBuffer, QByteArray& decode
     decodedBuffer = encodedBuffer;
 }
 
+void PCMCodecManager::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+    // this codec doesn't actually do anything....
+    encodedBuffer = decodedBuffer;
+}

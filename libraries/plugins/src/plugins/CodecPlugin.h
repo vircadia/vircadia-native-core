@@ -15,5 +15,6 @@
 class CodecPlugin : public Plugin {
 public:
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
+    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) = 0;
 };
 
