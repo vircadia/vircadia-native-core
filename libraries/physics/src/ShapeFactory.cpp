@@ -67,7 +67,8 @@ static const btVector3 _unitSphereDirections[NUM_UNIT_SPHERE_DIRECTIONS] = {
 };
 
 
-btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& points) {
+// util method
+btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
     assert(points.size() > 0);
 
     btConvexHullShape* hull = new btConvexHullShape();
@@ -158,6 +159,84 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
     return hull;
 }
 
+// util method
+btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
+    assert(info.getType() == SHAPE_TYPE_STATIC_MESH); // should only get here for mesh shapes
+
+    const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+    assert(pointCollection.size() == 1); // should only have one mesh
+
+    const ShapeInfo::PointList& pointList = pointCollection[0];
+    assert(pointList.size() > 2); // should have at least one triangle's worth of points
+
+    const ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+    assert(triangleIndices.size() > 2); // should have at least one triangle's worth of indices
+
+    // allocate mesh buffers
+    btIndexedMesh mesh;
+    int32_t numIndices = triangleIndices.size();
+    const int32_t VERTICES_PER_TRIANGLE = 3;
+    mesh.m_numTriangles = numIndices / VERTICES_PER_TRIANGLE;
+    if (numIndices < INT16_MAX) {
+        // small number of points so we can use 16-bit indices
+        mesh.m_triangleIndexBase = new unsigned char[sizeof(int16_t) * (size_t)numIndices];
+        mesh.m_indexType = PHY_SHORT;
+        mesh.m_triangleIndexStride = VERTICES_PER_TRIANGLE * sizeof(int16_t);
+    } else {
+        mesh.m_triangleIndexBase = new unsigned char[sizeof(int32_t) * (size_t)numIndices];
+        mesh.m_indexType = PHY_INTEGER;
+        mesh.m_triangleIndexStride = VERTICES_PER_TRIANGLE * sizeof(int32_t);
+    }
+    mesh.m_numVertices = pointList.size();
+    mesh.m_vertexBase = new unsigned char[VERTICES_PER_TRIANGLE * sizeof(btScalar) * (size_t)mesh.m_numVertices];
+    mesh.m_vertexStride = VERTICES_PER_TRIANGLE * sizeof(btScalar);
+    mesh.m_vertexType = PHY_FLOAT;
+
+    // copy data into buffers
+    btScalar* vertexData = static_cast<btScalar*>((void*)(mesh.m_vertexBase));
+    for (int32_t i = 0; i < mesh.m_numVertices; ++i) {
+        int32_t j = i * VERTICES_PER_TRIANGLE;
+        const glm::vec3& point = pointList[i];
+        vertexData[j] = point.x;
+        vertexData[j + 1] = point.y;
+        vertexData[j + 2] = point.z;
+    }
+    if (numIndices < INT16_MAX) {
+        int16_t* indices = static_cast<int16_t*>((void*)(mesh.m_triangleIndexBase));
+        for (int32_t i = 0; i < numIndices; ++i) {
+            indices[i] = triangleIndices[i];
+        }
+    } else {
+        int32_t* indices = static_cast<int32_t*>((void*)(mesh.m_triangleIndexBase));
+        for (int32_t i = 0; i < numIndices; ++i) {
+            indices[i] = triangleIndices[i];
+        }
+    }
+
+    // store buffers in a new dataArray and return the pointer
+    // (external StaticMeshShape will own all of the data that was allocated here)
+    btTriangleIndexVertexArray* dataArray = new btTriangleIndexVertexArray;
+    dataArray->addIndexedMesh(mesh, mesh.m_indexType);
+    return dataArray;
+}
+
+// util method
+void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
+    assert(dataArray);
+    IndexedMeshArray& meshes = dataArray->getIndexedMeshArray();
+    for (int32_t i = 0; i < meshes.size(); ++i) {
+        btIndexedMesh mesh = meshes[i];
+        mesh.m_numTriangles = 0;
+        delete [] mesh.m_triangleIndexBase;
+        mesh.m_triangleIndexBase = nullptr;
+        mesh.m_numVertices = 0;
+        delete [] mesh.m_vertexBase;
+        mesh.m_vertexBase = nullptr;
+    }
+    meshes.clear();
+    delete dataArray;
+}
+
 btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
@@ -179,20 +258,25 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
         }
         break;
         case SHAPE_TYPE_COMPOUND: {
-            const QVector<QVector<glm::vec3>>& points = info.getPoints();
+            const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {
-                shape = createConvexHull(info.getPoints()[0]);
+                shape = createConvexHull(pointCollection[0]);
             } else {
                 auto compound = new btCompoundShape();
                 btTransform trans;
                 trans.setIdentity();
-                foreach (QVector<glm::vec3> hullPoints, points) {
+                foreach (const ShapeInfo::PointList& hullPoints, pointCollection) {
                     btConvexHullShape* hull = createConvexHull(hullPoints);
                     compound->addChildShape (trans, hull);
                 }
                 shape = compound;
             }
+        }
+        break;
+        case SHAPE_TYPE_STATIC_MESH: {
+            btTriangleIndexVertexArray* dataArray = createStaticMeshArray(info);
+            shape = new StaticMeshShape(dataArray);
         }
         break;
     }
@@ -227,4 +311,15 @@ void ShapeFactory::deleteShape(btCollisionShape* shape) {
         }
     }
     delete shape;
+}
+
+// the dataArray must be created before we create the StaticMeshShape
+ShapeFactory::StaticMeshShape::StaticMeshShape(btTriangleIndexVertexArray* dataArray)
+:   btBvhTriangleMeshShape(dataArray, true), _dataArray(dataArray) {
+    assert(dataArray);
+}
+
+ShapeFactory::StaticMeshShape::~StaticMeshShape() {
+    deleteStaticMeshArray(_dataArray);
+    _dataArray = nullptr;
 }

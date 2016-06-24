@@ -1282,13 +1282,14 @@ function MyController(hand) {
         });
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
-        this.intersectionDistance = rayPickInfo.distance;
-
         if (rayPickInfo.entityID) {
+            this.intersectionDistance = rayPickInfo.distance;
             this.entityPropertyCache.updateEntity(rayPickInfo.entityID);
             if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
                 grabbableEntities.push(rayPickInfo.entityID);
             }
+        } else {
+            this.intersectionDistance = 0;
         }
 
         if (grabbableEntities.length > 0) {
