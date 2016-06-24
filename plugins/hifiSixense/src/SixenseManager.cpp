@@ -66,14 +66,8 @@ const QString SHOW_DEBUG_RAW = "Debug Draw Raw Data";
 const QString SHOW_DEBUG_CALIBRATED = "Debug Draw Calibrated Data";
 
 bool SixenseManager::isSupported() const {
-#ifdef HAVE_SIXENSE
-
-#if defined(Q_OS_OSX)
-    return QSysInfo::macVersion() <= QSysInfo::MV_MAVERICKS;
-#else
+#if defined(HAVE_SIXENSE) && !defined(Q_OS_OSX)
     return true;
-#endif
-
 #else
     return false;
 #endif
@@ -137,6 +131,7 @@ void SixenseManager::setSixenseFilter(bool filter) {
 void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     BAIL_IF_NOT_LOADED
 
+#ifdef HAVE_SIXENSE
     static bool sixenseHasBeenConnected { false };
     if (!sixenseHasBeenConnected && sixenseIsBaseConnected(0)) {
         sixenseHasBeenConnected = true;
@@ -152,6 +147,7 @@ void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibr
         _container->requestReset();
         _inputDevice->_requestReset = false;
     }
+#endif
 }
 
 void SixenseManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
