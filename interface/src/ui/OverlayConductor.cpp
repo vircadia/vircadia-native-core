@@ -118,10 +118,12 @@ void OverlayConductor::update(float dt) {
     bool isDriving = updateAvatarHasDriveInput();
     bool drivingChanged = prevDriving != isDriving;
     bool isAtRest = updateAvatarIsAtRest();
+    bool shouldRecenter = false;
 
     if (_flags & SuppressedByDrive) {
         if (!isDriving) {
             _flags &= ~SuppressedByDrive;
+            shouldRecenter = true;
         }
     } else {
         if (myAvatar->getClearOverlayWhenMoving() && drivingChanged && isDriving) {
@@ -132,6 +134,7 @@ void OverlayConductor::update(float dt) {
     if (_flags & SuppressedByHead) {
         if (isAtRest) {
             _flags &= ~SuppressedByHead;
+            shouldRecenter = true;
         }
     } else {
         if (_hmdMode && headOutsideOverlay()) {
@@ -143,8 +146,8 @@ void OverlayConductor::update(float dt) {
     bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (0 == (_flags & SuppressMask));
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
-        if (targetVisible && _hmdMode) {
-            centerUI();
-        }
+    }
+    if (shouldRecenter) {
+        centerUI();
     }
 }
