@@ -555,7 +555,7 @@ function createNewDomainID(description, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
     "domain": {
-       "description": description
+       "private_description": description
     },
     "access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
   }
@@ -748,8 +748,8 @@ function chooseFromHighFidelityDomains(clickedButton) {
         _.each(data.data.domains, function(domain){
           var domainString = "";
 
-          if (domain.description) {
-            domainString += '"' + domain.description + '" - ';
+          if (domain.private_description) {
+            domainString += '"' + domain.private_description + '" - ';
           }
 
           domainString += domain.id;
