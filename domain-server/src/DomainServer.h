@@ -80,6 +80,8 @@ private slots:
     void handleTempDomainSuccess(QNetworkReply& requestReply);
     void handleTempDomainError(QNetworkReply& requestReply);
 
+    void handleMetaverseHeartbeatError(QNetworkReply& requestReply);
+
     void queuedQuit(QString quitMessage, int exitCode);
 
     void handleKeypairChange();
@@ -96,11 +98,13 @@ signals:
     void userDisconnected();
     
 private:
-    void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
+    const QUuid& getID();
+
+    void setupNodeListAndAssignments();
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
 
-    void optionallyGetTemporaryName(const QStringList& arguments);
+    void getTemporaryName(bool force = false);
 
     static bool packetVersionMatch(const udt::Packet& packet);
 
@@ -108,6 +112,7 @@ private:
 
     void setupAutomaticNetworking();
     void setupICEHeartbeatForFullNetworking();
+    void setupHeartbeatToMetaverse();
     void sendHeartbeatToMetaverse(const QString& networkAddress);
 
     void randomizeICEServerAddress(bool shouldTriggerHostLookup);
@@ -178,6 +183,7 @@ private:
     // These will be parented to this, they are not dangling
     DomainMetadata* _metadata { nullptr };
     QTimer* _iceHeartbeatTimer { nullptr };
+    QTimer* _metaverseHeartbeatTimer { nullptr };
 
     QList<QHostAddress> _iceServerAddresses;
     QSet<QHostAddress> _failedIceServerAddresses;
@@ -185,8 +191,6 @@ private:
     int _noReplyICEHeartbeats { 0 };
     int _numHeartbeatDenials { 0 };
     bool _connectedToICEServer { false };
-
-    bool _hasAccessToken { false };
 
     friend class DomainGatekeeper;
     friend class DomainMetadata;

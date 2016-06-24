@@ -118,7 +118,7 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             }
 
             bool visible = !properties.contains(VISIBILE_PROPERTY) || properties[VISIBILE_PROPERTY].toBool();
-            object->setProperty(VISIBILE_PROPERTY, visible);
+            object->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
             object->setProperty(SOURCE_PROPERTY, _source);
 
             // Forward messages received from QML on to the script

@@ -1002,7 +1002,7 @@ void Model::scaleToFit() {
     Extents modelMeshExtents = getUnscaledMeshExtents();
 
     // size is our "target size in world space"
-    // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+    // we need to set our model scale so that the extents of the mesh, fit in a box that size...
     glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
     glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
     setScaleInternal(rescaleDimensions);
