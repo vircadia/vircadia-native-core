@@ -16,6 +16,7 @@
 
 #include "Application.h"
 #include "MainWindow.h"
+#include <display-plugins/CompositorHelper.h>
 
 int DesktopScriptingInterface::getWidth() {
     QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
@@ -25,3 +26,8 @@ int DesktopScriptingInterface::getHeight() {
     QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
     return size.height();
 }
+
+void DesktopScriptingInterface::setOverlayAlpha(float alpha) {
+    qApp->getApplicationCompositor().setAlpha(alpha);
+}
+

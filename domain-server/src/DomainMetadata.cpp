@@ -63,12 +63,16 @@ const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
     // set up the structure necessary for casting during parsing (see parseHours, esp.)
     _metadata[USERS] = QVariantMap {};
-    _metadata[DESCRIPTORS] = QVariantMap {
-        { Descriptors::HOURS, QVariantMap {
-            { Descriptors::Hours::WEEKDAY, QVariantList { QVariantMap{} } },
-            { Descriptors::Hours::WEEKEND, QVariantList { QVariantMap{} } }
-        } }
-    };
+    _metadata[DESCRIPTORS] = QVariantMap { {
+        Descriptors::HOURS, QVariantMap {
+            { Descriptors::Hours::WEEKDAY, QVariantList {
+                QVariantList{ QVariant{}, QVariant{} } }
+            },
+            { Descriptors::Hours::WEEKEND, QVariantList {
+                QVariantList{ QVariant{}, QVariant{} } }
+            }
+        }
+    } };
 
     assert(dynamic_cast<DomainServer*>(domainServer));
     DomainServer* server = static_cast<DomainServer*>(domainServer);
@@ -96,33 +100,37 @@ QJsonObject DomainMetadata::get(const QString& group) {
     return QJsonObject::fromVariantMap(_metadata[group].toMap());
 }
 
+// merge delta into target
+// target should be of the form [ OpenTime, CloseTime ],
+// delta should be of the form [ { open: Time, close: Time } ]
 void parseHours(QVariant delta, QVariant& target) {
     using Hours = DomainMetadata::Descriptors::Hours;
 
-    // hours should be of the form [ { open: Time, close: Time } ]
     assert(target.canConvert<QVariantList>());
     auto& targetList = *static_cast<QVariantList*>(target.data());
 
     // if/when multiple ranges are allowed, this list will need to be iterated
-    assert(targetList[0].canConvert<QVariantMap>());
-    auto& targetMap = *static_cast<QVariantMap*>(targetList[0].data());
+    assert(targetList[0].canConvert<QVariantList>());
+    auto& hours = *static_cast<QVariantList*>(targetList[0].data());
 
-    auto deltaMap = delta.toList()[0].toMap();
-    if (deltaMap.isEmpty()) {
+    auto deltaHours = delta.toList()[0].toMap();
+    if (deltaHours.isEmpty()) {
         return;
     }
 
     // merge delta into base
-    auto open = deltaMap.find(Hours::OPEN);
-    if (open != deltaMap.end()) {
-        targetMap[Hours::OPEN] = open.value();
+    static const int OPEN_INDEX = 0;
+    static const int CLOSE_INDEX = 1;
+    auto open = deltaHours.find(Hours::OPEN);
+    if (open != deltaHours.end()) {
+        hours[OPEN_INDEX] = open.value();
     }
-    assert(targetMap[Hours::OPEN].canConvert<QString>());
-    auto close = deltaMap.find(Hours::CLOSE);
-    if (close != deltaMap.end()) {
-        targetMap[Hours::CLOSE] = close.value();
+    assert(hours[OPEN_INDEX].canConvert<QString>());
+    auto close = deltaHours.find(Hours::CLOSE);
+    if (close != deltaHours.end()) {
+        hours[CLOSE_INDEX] = close.value();
     }
-    assert(targetMap[Hours::CLOSE].canConvert<QString>());
+    assert(hours[CLOSE_INDEX].canConvert<QString>());
 }
 
 void DomainMetadata::descriptorsChanged() {

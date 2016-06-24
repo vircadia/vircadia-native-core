@@ -86,9 +86,11 @@ int main(int argc, char *argv[]) {
     setChild(engine, "offscreenFlags");
     setChild(engine, "Account");
     setChild(engine, "ApplicationCompositor");
+    setChild(engine, "Controller");
     setChild(engine, "Desktop");
     setChild(engine, "ScriptDiscoveryService");
     setChild(engine, "HMD");
+    setChild(engine, "GL");
     setChild(engine, "MenuHelper");
     setChild(engine, "Preferences");
     setChild(engine, "urlHandler");
@@ -101,3 +103,4 @@ int main(int argc, char *argv[]) {
 }
 
 #include "main.moc"
+

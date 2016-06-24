@@ -593,23 +593,25 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         // the model is still being downloaded.
         return false;
+    } else if (type == SHAPE_TYPE_STATIC_MESH) {
+        return (_model && _model->isLoaded());
     }
     return true;
 }
 
 void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType type = getShapeType();
+    glm::vec3 dimensions = getDimensions();
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
         // hence we assert that all geometries exist and are loaded
         assert(_model->isLoaded() && _model->isCollisionLoaded());
-        const FBXGeometry& renderGeometry = _model->getFBXGeometry();
         const FBXGeometry& collisionGeometry = _model->getCollisionFBXGeometry();
 
-        QVector<QVector<glm::vec3>>& points = info.getPoints();
-        points.clear();
+        ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+        pointCollection.clear();
         uint32_t i = 0;
 
         // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
@@ -619,8 +621,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
             // each meshPart is a convex hull
             foreach (const FBXMeshPart &meshPart, mesh.parts) {
-                points.push_back(QVector<glm::vec3>());
-                QVector<glm::vec3>& pointsInPart = points[i];
+                pointCollection.push_back(QVector<glm::vec3>());
+                ShapeInfo::PointList& pointsInPart = pointCollection[i];
 
                 // run through all the triangles and (uniquely) add each point to the hull
                 uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
@@ -664,7 +666,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
                 if (pointsInPart.size() == 0) {
                     qCDebug(entitiesrenderer) << "Warning -- meshPart has no faces";
-                    points.pop_back();
+                    pointCollection.pop_back();
                     continue;
                 }
                 ++i;
@@ -677,29 +679,136 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scale = getDimensions() / renderGeometry.getUnscaledMeshExtents().size();
+        glm::vec3 scaleToFit = dimensions / _model->getFBXGeometry().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
-        AABox box;
-        for (int i = 0; i < points.size(); i++) {
-            for (int j = 0; j < points[i].size(); j++) {
+        for (int i = 0; i < pointCollection.size(); i++) {
+            for (int j = 0; j < pointCollection[i].size(); j++) {
                 // compensate for registration
-                points[i][j] += _model->getOffset();
+                pointCollection[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
-                points[i][j] *= scale;
-                // this next subtraction is done so we can give info the offset, which will cause
-                // the shape-key to change.
-                points[i][j] -= _model->getOffset();
-                box += points[i][j];
+                pointCollection[i][j] *= scaleToFit;
+            }
+        }
+        info.setParams(type, dimensions, _compoundShapeURL);
+    } else if (type == SHAPE_TYPE_STATIC_MESH) {
+        // compute meshPart local transforms
+        QVector<glm::mat4> localTransforms;
+        const FBXGeometry& geometry = _model->getFBXGeometry();
+        int numberOfMeshes = geometry.meshes.size();
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
+            if (mesh.clusters.size() > 0) {
+                const FBXCluster& cluster = mesh.clusters.at(0);
+                auto jointMatrix = _model->getRig()->getJointTransform(cluster.jointIndex);
+                localTransforms.push_back(jointMatrix * cluster.inverseBindMatrix);
+            } else {
+                glm::mat4 identity;
+                localTransforms.push_back(identity);
             }
         }
 
-        glm::vec3 collisionModelDimensions = box.getDimensions();
-        info.setParams(type, collisionModelDimensions, _compoundShapeURL);
-        info.setOffset(_model->getOffset());
+        updateModelBounds();
+
+        // should never fall in here when collision model not fully loaded
+        assert(_model->isLoaded());
+
+        ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
+        pointCollection.clear();
+
+        ShapeInfo::PointList points;
+        ShapeInfo::TriangleIndices& triangleIndices = info.getTriangleIndices();
+        auto& meshes = _model->getGeometry()->getGeometry()->getMeshes();
+
+        Extents extents;
+        int meshCount = 0;
+        for (auto& mesh : meshes) {
+            const gpu::BufferView& vertices = mesh->getVertexBuffer();
+            const gpu::BufferView& indices = mesh->getIndexBuffer();
+            const gpu::BufferView& parts = mesh->getPartBuffer();
+
+            // copy points
+            const glm::mat4& localTransform = localTransforms[meshCount];
+            uint32_t meshIndexOffset = (uint32_t)points.size();
+            gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertices.cbegin<const glm::vec3>();
+            points.reserve((int32_t)((gpu::Size)points.size() + vertices.getNumElements()));
+            while (vertexItr != vertices.cend<const glm::vec3>()) {
+                glm::vec3 point = extractTranslation(localTransform * glm::translate(*vertexItr));
+                points.push_back(point);
+                extents.addPoint(point);
+                ++vertexItr;
+            }
+
+            // copy triangleIndices
+            triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
+            gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
+            while (partItr != parts.cend<const model::Mesh::Part>()) {
+
+                if (partItr->_topology == model::Mesh::TRIANGLES) {
+                    assert(partItr->_numIndices % 3 == 0);
+                    auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                    auto indexEnd = indexItr + partItr->_numIndices;
+                    while (indexItr != indexEnd) {
+                        triangleIndices.push_back(*indexItr + meshIndexOffset);
+                        ++indexItr;
+                    }
+                } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
+                    assert(partItr->_numIndices > 2);
+                    uint32_t approxNumIndices = 3 * partItr->_numIndices;
+                    if (approxNumIndices > (uint32_t)(triangleIndices.capacity() - triangleIndices.size())) {
+                        // we underestimated the final size of triangleIndices so we pre-emptively expand it
+                        triangleIndices.reserve(triangleIndices.size() + approxNumIndices);
+                    }
+
+                    auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
+                    auto indexEnd = indexItr + (partItr->_numIndices - 2);
+
+                    // first triangle uses the first three indices
+                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+                    triangleIndices.push_back(*(indexItr++) + meshIndexOffset);
+
+                    // the rest use previous and next index
+                    uint32_t triangleCount = 1;
+                    while (indexItr != indexEnd) {
+                        if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
+                            if (triangleCount % 2 == 0) {
+                                // even triangles use first two indices in order
+                                triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
+                                triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
+                            } else {
+                                // odd triangles swap order of first two indices
+                                triangleIndices.push_back(*(indexItr - 1) + meshIndexOffset);
+                                triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
+                            }
+                            triangleIndices.push_back(*indexItr + meshIndexOffset);
+                            ++triangleCount;
+                        }
+                        ++indexItr;
+                    }
+                }
+                ++partItr;
+            }
+            ++meshCount;
+        }
+
+        // scale and shift
+        glm::vec3 extentsSize = extents.size();
+        glm::vec3 scaleToFit = dimensions / extentsSize;
+        for (int i = 0; i < 3; ++i) {
+            if (extentsSize[i] < 1.0e-6f) {
+                scaleToFit[i] = 1.0f;
+            }
+        }
+        for (int i = 0; i < points.size(); ++i) {
+            points[i] = (points[i] * scaleToFit);
+        }
+
+        pointCollection.push_back(points);
+        info.setParams(SHAPE_TYPE_STATIC_MESH, 0.5f * dimensions, _modelURL);
     } else {
         ModelEntityItem::computeShapeInfo(info);
-        info.setParams(type, 0.5f * getDimensions());
+        info.setParams(type, 0.5f * dimensions);
         adjustShapeInfoByRegistration(info);
     }
 }

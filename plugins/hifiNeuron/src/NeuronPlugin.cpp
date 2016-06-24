@@ -387,6 +387,8 @@ bool NeuronPlugin::activate() {
     } else {
         qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
 
+        emit deviceConnected(getName());
+
         BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
         return true;
     }
