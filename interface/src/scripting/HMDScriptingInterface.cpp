@@ -19,6 +19,9 @@
 #include "Application.h"
 
 HMDScriptingInterface::HMDScriptingInterface() {
+	connect(qApp, &Application::activeDisplayPluginChanged, [this]{
+		emit displayModeChanged(isHMDMode());
+	});
 }
 
 glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
