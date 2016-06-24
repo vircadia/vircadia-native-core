@@ -144,6 +144,9 @@ void Agent::run() {
     connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
     messagesThread->start();
 
+    // make sure we hear about connected nodes so we can grab an ATP script if a request is pending
+    connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &Agent::nodeActivated);
+
     nodeList->addSetOfNodeTypesToNodeInterestSet({
         NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
@@ -164,52 +167,86 @@ void Agent::requestScript() {
         scriptURL = QUrl(_payload);
     }
 
-    // setup a network access manager and
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    // make sure this is not a script request for the file scheme
+    if (scriptURL.scheme() == URL_SCHEME_FILE) {
+        qWarning() << "Cannot load script for Agent from local filesystem.";
+        scriptRequestFinished();
+        return;
+    }
 
-    QNetworkDiskCache* cache = new QNetworkDiskCache();
-    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
-    networkAccessManager.setCache(cache);
+    auto request = ResourceManager::createResourceRequest(this, scriptURL);
 
-    QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    if (!request) {
+        qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
+        scriptRequestFinished();
+        return;
+    }
 
     // setup a timeout for script request
     static const int SCRIPT_TIMEOUT_MS = 10000;
-    _scriptRequestTimeout = new QTimer(this);
+    _scriptRequestTimeout = new QTimer;
     connect(_scriptRequestTimeout, &QTimer::timeout, this, &Agent::scriptRequestFinished);
     _scriptRequestTimeout->start(SCRIPT_TIMEOUT_MS);
 
-    qDebug() << "Downloading script at" << scriptURL.toString();
-    QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    connect(reply, &QNetworkReply::finished, this, &Agent::scriptRequestFinished);
+    connect(request, &ResourceRequest::finished, this, &Agent::scriptRequestFinished);
+
+    if (scriptURL.scheme() == URL_SCHEME_ATP) {
+        // we have an ATP URL for the script - if we're not currently connected to the AssetServer
+        // then wait for the nodeConnected signal to fire off the request
+
+        auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+        if (!assetServer || !assetServer->getActiveSocket()) {
+            qDebug() << "Waiting to connect to Asset Server for ATP script download.";
+            _pendingScriptRequest = request;
+
+            return;
+        }
+    }
+
+    qInfo() << "Requesting script at URL" << qPrintable(request->getUrl().toString());
+
+    request->send();
+}
+
+void Agent::nodeActivated(SharedNodePointer activatedNode) {
+    if (_pendingScriptRequest && activatedNode->getType() == NodeType::AssetServer) {
+        qInfo() << "Requesting script at URL" << qPrintable(_pendingScriptRequest->getUrl().toString());
+
+        _pendingScriptRequest->send();
+
+        _pendingScriptRequest = nullptr;
+    }
 }
 
 void Agent::scriptRequestFinished() {
-    auto reply = qobject_cast<QNetworkReply*>(sender());
+    auto request = qobject_cast<ResourceRequest*>(sender());
 
-    _scriptRequestTimeout->stop();
+    // stop the script request timeout, if it's running
+    if (_scriptRequestTimeout) {
+        QMetaObject::invokeMethod(_scriptRequestTimeout, "stop");
+        _scriptRequestTimeout->deleteLater();
+    }
 
-    if (reply && reply->error() == QNetworkReply::NoError) {
-        _scriptContents = reply->readAll();
-        qDebug() << "Downloaded script:" << _scriptContents;
+    if (request && request->getResult() == ResourceRequest::Success) {
+        _scriptContents = request->getData();
+        qInfo() << "Downloaded script:" << _scriptContents;
 
         // we could just call executeScript directly - we use a QueuedConnection to allow scriptRequestFinished
         // to return before calling executeScript
         QMetaObject::invokeMethod(this, "executeScript", Qt::QueuedConnection);
     } else {
-        if (reply) {
-            qDebug() << "Failed to download script at" << reply->url().toString() << " - bailing on assignment.";
-            qDebug() << "QNetworkReply error was" << reply->errorString();
+        if (request) {
+            qWarning() << "Failed to download script at" << request->getUrl().toString() << " - bailing on assignment.";
+            qWarning() << "ResourceRequest error was" << request->getResult();
         } else {
-            qDebug() << "Failed to download script - request timed out. Bailing on assignment.";
+            qWarning() << "Failed to download script - request timed out. Bailing on assignment.";
         }
 
         setFinished(true);
     }
 
-    reply->deleteLater();
+    request->deleteLater();
 }
 
 void Agent::executeScript() {
@@ -253,7 +290,6 @@ void Agent::executeScript() {
     packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
 
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
@@ -304,15 +340,12 @@ void Agent::setIsAvatar(bool isAvatar) {
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
-        _avatarBillboardTimer = new QTimer(this);
 
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
-        connect(_avatarBillboardTimer, &QTimer::timeout, this, &Agent::sendAvatarBillboardPacket);
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
-        _avatarBillboardTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
     }
 
     if (!_isAvatar) {
@@ -321,12 +354,6 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
-        }
-
-        if (_avatarBillboardTimer) {
-            _avatarBillboardTimer->stop();
-            delete _avatarBillboardTimer;
-            _avatarBillboardTimer = nullptr;
         }
     }
 }
@@ -338,19 +365,10 @@ void Agent::sendAvatarIdentityPacket() {
     }
 }
 
-void Agent::sendAvatarBillboardPacket() {
-    if (_isAvatar) {
-        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        scriptedAvatar->sendBillboardPacket();
-    }
-}
-
-
 void Agent::processAgentAvatarAndAudio(float deltaTime) {
     if (!_scriptEngine->isFinished() && _isAvatar) {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
-        const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
-            / (1000 * 1000)) + 0.5);
+        const int SCRIPT_AUDIO_BUFFER_SAMPLES = AudioConstants::SAMPLE_RATE / SCRIPT_FPS + 0.5;
         const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
         QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
@@ -397,7 +415,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 if (_numAvatarSoundSentBytes == soundByteArray.size()) {
                     // we're done with this sound object - so set our pointer back to NULL
                     // and our sent bytes back to zero
-                    _avatarSound = NULL;
+                    _avatarSound.clear();
                     _numAvatarSoundSentBytes = 0;
                 }
             }
@@ -455,7 +473,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
-    setIsAvatar(false);// will stop timers for sending billboards and identity packets
+    setIsAvatar(false);// will stop timers for sending identity packets
 
     if (_scriptEngine) {
         _scriptEngine->stop();

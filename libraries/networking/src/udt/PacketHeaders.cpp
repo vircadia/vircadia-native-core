@@ -12,13 +12,15 @@
 #include "PacketHeaders.h"
 
 #include <math.h>
+#include <mutex>
 
+#include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QMetaEnum>
 
 
 Q_DECLARE_METATYPE(PacketType);
-static int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
+int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
 
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
@@ -34,8 +36,8 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainServerAddedNode << PacketType::DomainServerConnectionToken
     << PacketType::DomainSettingsRequest << PacketType::DomainSettings
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
-    << PacketType::ICEPing << PacketType::ICEPingReply << PacketType::ICEServerHeartbeatDenied
-    << PacketType::AssignmentClientStatus << PacketType::StopNode
+    << PacketType::ICEServerHeartbeatACK << PacketType::ICEPing << PacketType::ICEPingReply
+    << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
     << PacketType::DomainServerRemovedNode;
 
 const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
@@ -43,14 +45,16 @@ const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
-            return 18;
+            return static_cast<PacketVersion>(DomainListVersion::PermissionsGrid);
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_LIGHT_HAS_FALLOFF_RADIUS;
+            return VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH;
+        case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
+        case PacketType::KillAvatar:
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AbsoluteSixByteRotations);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetGetInfo:
@@ -58,6 +62,16 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AssetUpload:
             // Removal of extension from Asset requests
             return 18;
+
+        case PacketType::DomainConnectionDenied:
+            return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesReasonCode);
+
+        case PacketType::DomainConnectRequest:
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
+
+        case PacketType::DomainServerAddedNode:
+            return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
+
         default:
             return 17;
     }
@@ -76,4 +90,37 @@ QDebug operator<<(QDebug debug, const PacketType& type) {
 
     debug.nospace().noquote() << (uint8_t) type << " (" << typeName << ")";
     return debug.space();
+}
+
+#if (PR_BUILD || DEV_BUILD)
+static bool sendWrongProtocolVersion = false;
+void sendWrongProtocolVersionsSignature(bool sendWrongVersion) {
+    sendWrongProtocolVersion = sendWrongVersion;
+}
+#endif
+
+QByteArray protocolVersionsSignature() {
+    static QByteArray protocolVersionSignature;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        QByteArray buffer;
+        QDataStream stream(&buffer, QIODevice::WriteOnly);
+        uint8_t numberOfProtocols = static_cast<uint8_t>(PacketType::LAST_PACKET_TYPE) + 1;
+        stream << numberOfProtocols;
+        for (uint8_t packetType = 0; packetType < numberOfProtocols; packetType++) {
+            uint8_t packetTypeVersion = static_cast<uint8_t>(versionForPacketType(static_cast<PacketType>(packetType)));
+            stream << packetTypeVersion;
+        }
+        QCryptographicHash hash(QCryptographicHash::Md5);
+        hash.addData(buffer);
+        protocolVersionSignature = hash.result();
+    });
+
+    #if (PR_BUILD || DEV_BUILD)
+    if (sendWrongProtocolVersion) {
+        return QByteArray("INCORRECTVERSION"); // only for debugging version checking
+    }
+    #endif
+
+    return protocolVersionSignature;
 }

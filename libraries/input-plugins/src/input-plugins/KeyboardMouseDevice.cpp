@@ -21,8 +21,11 @@
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 bool KeyboardMouseDevice::_enableMouse = true;
 
-void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) { 
-    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured); 
+void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->withLock([&, this]() {
+        _inputDevice->update(deltaTime, inputCalibrationData);
+    });
 
     // For touch event, we need to check that the last event is not too long ago
     // Maybe it's a Qt issue, but the touch event sequence (begin, update, end) is not always called properly
@@ -37,7 +40,7 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputC
     }
 }
 
-void KeyboardMouseDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void KeyboardMouseDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _axisStateMap.clear();
 }
 

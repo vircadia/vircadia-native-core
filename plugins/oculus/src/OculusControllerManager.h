@@ -24,14 +24,16 @@ class OculusControllerManager : public InputPlugin {
 public:
     // Plugin functions
     bool isSupported() const override;
-    bool isJointController() const override { return true; }
     const QString& getName() const override { return NAME; }
 
     bool activate() override;
     void deactivate() override;
 
     void pluginFocusOutEvent() override;
-    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
+
+private slots:
+    void stopHapticPulse(bool leftHand);
 
 private:
     class OculusInputDevice : public controller::InputDevice {
@@ -45,11 +47,11 @@ private:
     class RemoteDevice : public OculusInputDevice {
     public:
         using Pointer = std::shared_ptr<RemoteDevice>;
-        RemoteDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "Oculus Remote") {}
+        RemoteDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "OculusRemote") {}
 
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
-        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
         friend class OculusControllerManager;
@@ -58,16 +60,31 @@ private:
     class TouchDevice : public OculusInputDevice {
     public:
         using Pointer = std::shared_ptr<TouchDevice>;
-        TouchDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "Oculus Touch") {}
+        TouchDevice(OculusControllerManager& parent) : OculusInputDevice(parent, "OculusTouch") {}
 
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
-        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
+        bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
+
     private:
+        void stopHapticPulse(bool leftHand);
         void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
         int _trackedControllers { 0 };
+
+        // perform an action when the TouchDevice mutex is acquired.
+        using Locker = std::unique_lock<std::recursive_mutex>;
+        template <typename F>
+        void withLock(F&& f) { Locker locker(_lock); f(); }
+
+        float _leftHapticDuration { 0.0f };
+        float _leftHapticStrength { 0.0f };
+        float _rightHapticDuration { 0.0f };
+        float _rightHapticStrength { 0.0f };
+        mutable std::recursive_mutex _lock;
+
         friend class OculusControllerManager;
     };
 

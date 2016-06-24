@@ -72,6 +72,10 @@ void FBXReader::consolidateFBXMaterials() {
   // foreach (const QString& materialID, materials) {
     for (QHash<QString, FBXMaterial>::iterator it = _fbxMaterials.begin(); it != _fbxMaterials.end(); it++) {
         FBXMaterial& material = (*it);
+
+        // Maya is the exporting the shading model and we aretrying to use it
+        bool isMaterialLambert = (material.shadingModel.toLower() == "lambert");
+
         // the pure material associated with this part
         bool detectDifferentUVs = false;
         FBXTexture diffuseTexture;
@@ -171,10 +175,25 @@ void FBXReader::consolidateFBXMaterials() {
             emissiveTexture = getTexture(emissiveTextureID);
             detectDifferentUVs |= (emissiveTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
             material.emissiveTexture = emissiveTexture;
+
+            if (isMaterialLambert) {
+                // If the emissiveTextureID comes from the Texture bound to Emissive when material is lambert, we know it s exported from maya
+                // And the EMissiveColor is forced to 0.5 by Maya which is bad
+                // So we need to force it to 1.0
+                material.emissiveColor = vec3(1.0);
+            }
         }
 
         FBXTexture occlusionTexture;
         QString occlusionTextureID = occlusionTextures.value(material.materialID);
+        if (occlusionTextureID.isNull()) {
+            // 2nd chance
+            // For blender we use the ambient factor texture as AOMap ONLY if the ambientFactor value is > 0.0
+            if (material.ambientFactor > 0.0f) {
+                occlusionTextureID = ambientFactorTextures.value(material.materialID);
+            }
+        }
+
         if (!occlusionTextureID.isNull()) {
             occlusionTexture = getTexture(occlusionTextureID);
             detectDifferentUVs |= (occlusionTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
@@ -187,6 +206,14 @@ void FBXReader::consolidateFBXMaterials() {
 
         FBXTexture ambientTexture;
         QString ambientTextureID = ambientTextures.value(material.materialID);
+        if (ambientTextureID.isNull()) {
+            // 2nd chance
+            // For blender we use the ambient factor texture as Lightmap ONLY if the ambientFactor value is set to 0
+            if (material.ambientFactor == 0.0f) {
+                ambientTextureID = ambientFactorTextures.value(material.materialID);
+            }
+        }
+        
         if (_loadLightmaps && !ambientTextureID.isNull()) {
             ambientTexture = getTexture(ambientTextureID);
             detectDifferentUVs |= (ambientTexture.texcoordSet != 0) || (!ambientTexture.transform.isIdentity());
@@ -198,7 +225,7 @@ void FBXReader::consolidateFBXMaterials() {
         material._material = std::make_shared<model::Material>();
 
         // Emissive color is the mix of emissiveColor with emissiveFactor
-        auto emissive = material.emissiveColor * material.emissiveFactor;
+        auto emissive = material.emissiveColor * (isMaterialLambert ? 1.0f : material.emissiveFactor); // In lambert there is not emissiveFactor
         material._material->setEmissive(emissive);
 
         // Final diffuse color is the mix of diffuseColor with diffuseFactor
@@ -212,6 +239,18 @@ void FBXReader::consolidateFBXMaterials() {
             material._material->setRoughness(model::Material::shininessToRoughness(material.shininess));
             float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
             material._material->setMetallic(metallic);
+
+            if (isMaterialLambert) {
+                if (!material._material->getKey().isAlbedo()) {
+                    // switch emissive to material albedo as we tag the material to unlit
+                    material._material->setUnlit(true);
+                    material._material->setAlbedo(emissive);
+
+                    if (!material.emissiveTexture.isNull()) {
+                        material.albedoTexture = material.emissiveTexture;
+                    }
+                }
+            }
         }
 
         if (material.opacity <= 0.0f) {

@@ -33,8 +33,10 @@ static QVariantMap createDeviceMap(const controller::InputDevice::Pointer device
     for (const auto& inputMapping : userInputMapper->getAvailableInputs(device->getDeviceID())) {
         const auto& input = inputMapping.first;
         const auto inputName = QString(inputMapping.second).remove(SANITIZE_NAME_EXPRESSION);
+#ifdef DEBUG
         qCDebug(controllers) << "\tInput " << input.getChannel() << (int)input.getType()
             << QString::number(input.getID(), 16) << ": " << inputName;
+#endif
         deviceMap.insert(inputName, input.getID());
     }
     return deviceMap;
@@ -136,6 +138,24 @@ namespace controller {
 
     QVector<QString> ScriptingInterface::getActionNames() const {
         return DependencyManager::get<UserInputMapper>()->getActionNames();
+    }
+
+    bool ScriptingInterface::triggerHapticPulse(float strength, float duration, controller::Hand hand) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, duration, hand);
+    }
+
+    bool ScriptingInterface::triggerShortHapticPulse(float strength, controller::Hand hand) const {
+        const float SHORT_HAPTIC_DURATION_MS = 250.0f;
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, SHORT_HAPTIC_DURATION_MS, hand);
+    }
+
+    bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, duration, hand);
+    }
+
+    bool ScriptingInterface::triggerShortHapticPulseOnDevice(unsigned int device, float strength, controller::Hand hand) const {
+        const float SHORT_HAPTIC_DURATION_MS = 250.0f;
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, SHORT_HAPTIC_DURATION_MS, hand);
     }
 
     void ScriptingInterface::updateMaps() {

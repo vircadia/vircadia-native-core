@@ -35,6 +35,7 @@ const float METERS_PER_CENTIMETER = 0.01f;
 const float METERS_PER_MILLIMETER = 0.001f;
 const float MILLIMETERS_PER_METER = 1000.0f;
 const quint64 NSECS_PER_USEC = 1000;
+const quint64 NSECS_PER_MSEC = 1000000;
 const quint64 USECS_PER_MSEC = 1000;
 const quint64 MSECS_PER_SECOND = 1000;
 const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
@@ -43,5 +44,14 @@ const int BITS_IN_BYTE = 8;
 const int BYTES_PER_KILOBYTE = 1000;
 const int BYTES_PER_KILOBIT = BYTES_PER_KILOBYTE / BITS_IN_BYTE;
 const int KILO_PER_MEGA = 1000;
+
+#define KB_TO_BYTES_SHIFT 10
+#define MB_TO_BYTES_SHIFT 20
+
+#define MB_TO_BYTES(X) ((size_t)(X) << MB_TO_BYTES_SHIFT)
+#define KB_TO_BYTES(X) ((size_t)(X) << KB_TO_BYTES_SHIFT)
+
+#define BYTES_TO_MB(X) (X >> MB_TO_BYTES_SHIFT)
+#define BYTES_TO_KB(X) (X >> KB_TO_BYTES_SHIFT)
 
 #endif // hifi_NumericalConstants_h

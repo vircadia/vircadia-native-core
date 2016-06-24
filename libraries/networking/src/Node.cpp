@@ -16,15 +16,16 @@
 
 #include "Node.h"
 #include "SharedUtil.h"
+#include "NodePermissions.h"
 
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";
 
-static int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
-static int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
-static int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
+int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
+int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
+int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
 
 namespace NodeType {
     QHash<NodeType_t, QString> TypeNameHash;
@@ -47,7 +48,7 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, bool isAllowedEditor, bool canRez, const QUuid& connectionSecret,
+           const HifiSockAddr& localSocket, const NodePermissions& permissions, const QUuid& connectionSecret,
            QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
@@ -57,8 +58,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
-    _isAllowedEditor(isAllowedEditor),
-    _canRez(canRez)
+    _permissions(permissions)
 {
     // Update socket's object name
     setType(_type);
@@ -73,20 +73,17 @@ void Node::setType(char type) {
     _symmetricSocket.setObjectName(typeString);
 }
 
-void Node::updateClockSkewUsec(int clockSkewSample) {
-    _clockSkewMovingPercentile.updatePercentile((float)clockSkewSample);
-    _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
+void Node::updateClockSkewUsec(qint64 clockSkewSample) {
+    _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
+    _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
-
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
     out << node._uuid;
     out << node._publicSocket;
     out << node._localSocket;
-    out << node._isAllowedEditor;
-    out << node._canRez;
-
+    out << node._permissions;
     return out;
 }
 
@@ -95,9 +92,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._uuid;
     in >> node._publicSocket;
     in >> node._localSocket;
-    in >> node._isAllowedEditor;
-    in >> node._canRez;
-
+    in >> node._permissions;
     return in;
 }
 

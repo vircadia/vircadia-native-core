@@ -17,11 +17,11 @@ MovingPercentile::MovingPercentile(int numSamples, float percentile)
     _sampleIds(),
     _newSampleId(0),
     _indexOfPercentile(0),
-    _valueAtPercentile(0.0f)
+    _valueAtPercentile(0)
 {
 }
 
-void MovingPercentile::updatePercentile(float sample) {
+void MovingPercentile::updatePercentile(qint64 sample) {
 
     // insert the new sample into _samplesSorted
     int newSampleIndex;

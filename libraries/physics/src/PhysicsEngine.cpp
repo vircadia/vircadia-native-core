@@ -20,7 +20,6 @@
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
-        _sessionID(),
         _myAvatarController(nullptr) {
 }
 
@@ -50,6 +49,13 @@ void PhysicsEngine::init() {
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+
+        // By default Bullet will update the Aabb's of all objects every frame, even statics.
+        // This can waste CPU cycles so we configure Bullet to only update ACTIVE objects here.
+        // However, this means when a static object is moved we must manually update its Aabb
+        // in order for its broadphase collision queries to work correctly. Look at how we use
+        // _activeStaticBodies to track and update the Aabb's of moved static objects.
+        _dynamicsWorld->setForceUpdateAllAabbs(false);
     }
 }
 
@@ -80,9 +86,8 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
             motionState->updateBodyVelocities();
-            const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
-            const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
-            body->setSleepingThresholds(KINEMATIC_LINEAR_VELOCITY_THRESHOLD, KINEMATIC_ANGULAR_VELOCITY_THRESHOLD);
+            motionState->updateLastKinematicStep();
+            body->setSleepingThresholds(KINEMATIC_LINEAR_SPEED_THRESHOLD, KINEMATIC_ANGULAR_SPEED_THRESHOLD);
             break;
         }
         case MOTION_TYPE_DYNAMIC: {
@@ -103,9 +108,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
 
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
-            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-            body->setSleepingThresholds(DYNAMIC_LINEAR_VELOCITY_THRESHOLD, DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+            body->setSleepingThresholds(DYNAMIC_LINEAR_SPEED_THRESHOLD, DYNAMIC_ANGULAR_SPEED_THRESHOLD);
             if (!motionState->isMoving()) {
                 // try to initialize this object as inactive
                 body->forceActivationState(ISLAND_SLEEPING);
@@ -189,12 +192,18 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
                 stillNeedChange.push_back(object);
             }
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleEasyChanges(flags)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                stillNeedChange.push_back(object);
-            }
+            object->handleEasyChanges(flags);
+            object->clearIncomingDirtyFlags();
         }
+        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
+            _activeStaticBodies.push_back(object->getRigidBody());
+        }
+    }
+    // active static bodies have changed (in an Easy way) and need their Aabbs updated
+    // but we've configured Bullet to NOT update them automatically (for improved performance)
+    // so we must do it ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
     }
     return stillNeedChange;
 }
@@ -216,9 +225,7 @@ void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
     ContactMap::iterator contactItr = _contactMap.begin();
     while (contactItr != _contactMap.end()) {
         if (contactItr->first._a == motionState || contactItr->first._b == motionState) {
-            ContactMap::iterator iterToDelete = contactItr;
-            ++contactItr;
-            _contactMap.erase(iterToDelete);
+            contactItr = _contactMap.erase(contactItr);
         } else {
             ++contactItr;
         }
@@ -240,6 +247,7 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
+        BT_PROFILE("avatarController");
         // TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
         // be done on the main thread during the pre-simulation stuff
@@ -286,20 +294,20 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
 
     if (motionStateB &&
-        ((motionStateA && motionStateA->getSimulatorID() == _sessionID && !objectA->isStaticObject()) ||
+        ((motionStateA && motionStateA->getSimulatorID() == Physics::getSessionUUID() && !objectA->isStaticObject()) ||
          (objectA == characterObject))) {
         // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
-        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != _sessionID) {
+        if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != Physics::getSessionUUID()) {
             quint8 priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateB->bump(priorityA);
         }
     } else if (motionStateA &&
-               ((motionStateB && motionStateB->getSimulatorID() == _sessionID && !objectB->isStaticObject()) ||
+               ((motionStateB && motionStateB->getSimulatorID() == Physics::getSessionUUID() && !objectB->isStaticObject()) ||
                 (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
-        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != _sessionID) {
+        if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != Physics::getSessionUUID()) {
             quint8 priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateA->bump(priorityB);
         }
@@ -333,7 +341,7 @@ void PhysicsEngine::updateContactMap() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
-            if (!_sessionID.isNull()) {
+            if (!Physics::getSessionUUID().isNull()) {
                 doOwnershipInfection(objectA, objectB);
             }
         }
@@ -376,9 +384,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
         }
 
         if (type == CONTACT_EVENT_TYPE_END) {
-            ContactMap::iterator iterToDelete = contactItr;
-            ++contactItr;
-            _contactMap.erase(iterToDelete);
+            contactItr = _contactMap.erase(contactItr);
         } else {
             ++contactItr;
         }
@@ -388,6 +394,12 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
 
 const VectorOfMotionStates& PhysicsEngine::getOutgoingChanges() {
     BT_PROFILE("copyOutgoingChanges");
+    // Bullet will not deactivate static objects (it doesn't expect them to be active)
+    // so we must deactivate them ourselves
+    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
+        _activeStaticBodies[i]->forceActivationState(ISLAND_SLEEPING);
+    }
+    _activeStaticBodies.clear();
     _dynamicsWorld->synchronizeMotionStates();
     _hasOutgoingChanges = false;
     return _dynamicsWorld->getChangedMotionStates();

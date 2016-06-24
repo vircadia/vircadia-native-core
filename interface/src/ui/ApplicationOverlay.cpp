@@ -13,12 +13,12 @@
 
 #include <avatar/AvatarManager.h>
 #include <GLMHelpers.h>
-#include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
 #include <CursorManager.h>
 #include <PerfStat.h>
+#include <gl/Config.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -55,7 +55,6 @@ ApplicationOverlay::~ApplicationOverlay() {
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
     buildFramebufferObject();
@@ -89,8 +88,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     });
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
-
-    CHECK_GL_ERROR();
 }
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
@@ -281,7 +278,7 @@ void ApplicationOverlay::buildFramebufferObject() {
             _overlayFramebuffer->setRenderBuffer(0, newColorAttachment);
         }
     }
-    
+
     // If the overlay framebuffer still has no color attachment, no textures were available for rendering, so build a new one
     if (!_overlayFramebuffer->getRenderBuffer(0)) {
         const gpu::Sampler OVERLAY_SAMPLER(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
@@ -295,10 +292,6 @@ gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
         return gpu::TexturePointer();
     }
     auto result = _overlayFramebuffer->getRenderBuffer(0);
-    auto textureId = gpu::GLBackend::getTextureID(result, false);
-    if (!textureId) {
-        qDebug() << "Missing texture";
-    }
     _overlayFramebuffer->setRenderBuffer(0, gpu::TexturePointer());
     return result;
 }

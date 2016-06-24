@@ -50,8 +50,9 @@ public:
     virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
-    void updateShapeType(ShapeType type);
+    void setShapeType(ShapeType type);
     virtual ShapeType getShapeType() const;
+
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -76,7 +77,7 @@ public:
     }
 
     // model related properties
-    virtual void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
+    virtual void setModelURL(const QString& url);
     virtual void setCompoundShapeURL(const QString& url);
 
     // Animation related items...
@@ -105,6 +106,7 @@ public:
     void mapJoints(const QStringList& modelJointNames);
     bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
 
+    AnimationPointer getAnimation() const { return _animation; }
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
@@ -114,8 +116,6 @@ public:
     void setTextures(const QString& textures);
 
     virtual bool shouldBePhysical() const;
-
-    static void cleanupLoadedAnimations();
 
     virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
     virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
@@ -131,6 +131,7 @@ public:
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
+    ShapeType computeTrueShapeType() const;
 
 protected:
     // these are used:
@@ -140,9 +141,13 @@ protected:
     // they aren't currently updated from data in the model/rig, and they don't have a direct effect
     // on what's rendered.
     ReadWriteLockable _jointDataLock;
+
+    bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
     QVector<glm::quat> _absoluteJointRotationsInObjectFrame;
     QVector<bool> _absoluteJointRotationsInObjectFrameSet; // ever set?
     QVector<bool> _absoluteJointRotationsInObjectFrameDirty; // needs a relay to model/rig?
+    
+    bool _jointTranslationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
     QVector<glm::vec3> _absoluteJointTranslationsInObjectFrame;
     QVector<bool> _absoluteJointTranslationsInObjectFrameSet; // ever set?
     QVector<bool> _absoluteJointTranslationsInObjectFrameDirty; // needs a relay to model/rig?
@@ -156,6 +161,7 @@ protected:
     QUrl _parsedModelURL;
     QString _compoundShapeURL;
 
+    AnimationPointer _animation;
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
 
@@ -168,11 +174,6 @@ protected:
     bool _jointMappingCompleted;
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     QString _jointMappingURL;
-
-    static AnimationPointer getAnimation(const QString& url);
-    static QMap<QString, AnimationPointer> _loadedAnimations;
-    static AnimationCache _animationCache;
-
 };
 
 #endif // hifi_ModelEntityItem_h

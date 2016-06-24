@@ -53,6 +53,7 @@ typedef unsigned long long quint64;
 #include <SimpleMovingAverage.h>
 #include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
+#include <Packed.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -61,15 +62,17 @@ typedef unsigned long long quint64;
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
+using AvatarEntityMap = QMap<QUuid, QByteArray>;
+using AvatarEntityIDs = QSet<QUuid>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
 // avatar motion behaviors
-const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
+const quint32 AVATAR_MOTION_ACTION_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
 const quint32 AVATAR_MOTION_DEFAULTS =
-        AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
+        AVATAR_MOTION_ACTION_MOTOR_ENABLED |
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed
@@ -107,7 +110,6 @@ static const float MIN_AVATAR_SCALE = .005f;
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
-const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
@@ -135,6 +137,10 @@ class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
+// When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
+// the value to be reset when the sessionID changes.
+const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
+
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
@@ -160,13 +166,13 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
-    Q_PROPERTY(QString billboardURL READ getBillboardURL WRITE setBillboardFromURL)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
 public:
+
     static const QString FRAME_NAME;
 
     static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
@@ -274,6 +280,9 @@ public:
     Q_INVOKABLE QVariantList getAttachmentsVariant() const;
     Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
+    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
+
     void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -282,10 +291,20 @@ public:
 
     const HeadData* getHeadData() const { return _headData; }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& data);
-    QByteArray identityByteArray();
+    struct Identity {
+        QUuid uuid;
+        QUrl skeletonModelURL;
+        QVector<AttachmentData> attachmentData;
+        QString displayName;
+        AvatarEntityMap avatarEntityData;
+    };
 
-    bool hasBillboardChangedAfterParsing(const QByteArray& data);
+    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
+
+    // returns true if identity has changed, false otherwise.
+    bool processAvatarIdentity(const Identity& identity);
+
+    QByteArray identityByteArray();
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -303,12 +322,6 @@ public:
 
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
-
-    virtual void setBillboard(const QByteArray& billboard);
-    const QByteArray& getBillboard() const { return _billboard; }
-
-    void setBillboardFromURL(const QString& billboardURL);
-    const QString& getBillboardURL() { return _billboardURL; }
 
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
@@ -333,12 +346,15 @@ public:
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
 
+    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+    void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    AvatarEntityIDs getAndClearRecentlyDetachedIDs();
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
-    void sendBillboardPacket();
 
-    void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
 
@@ -377,9 +393,6 @@ protected:
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
 
-    QByteArray _billboard;
-    QString _billboardURL;
-
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal
 
@@ -404,6 +417,12 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
+
+    mutable ReadWriteLockable _avatarEntitiesLock;
+    AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityMap _avatarEntityData;
+    bool _avatarEntityDataLocallyEdited { false };
+    bool _avatarEntityDataChanged { false };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

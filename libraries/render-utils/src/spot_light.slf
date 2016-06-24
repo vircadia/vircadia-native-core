@@ -13,7 +13,7 @@
 //
 
 // Everything about deferred buffer
-<@include DeferredBuffer.slh@>
+<@include DeferredBufferRead.slh@>
 
 //Everything about deferred lighting
 <@include DeferredLighting.slh@>
@@ -31,6 +31,10 @@ void main(void) {
     // Grab the fragment data from the uv
     vec2 texCoord = _texCoord0.st / _texCoord0.q;
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, texCoord);
+
+    if (frag.mode == FRAG_MODE_UNLIT) {
+        discard;
+    }
 
     mat4 invViewMat = deferredTransform.viewInverse;
 
@@ -64,7 +68,7 @@ void main(void) {
     }
 
     // Eval shading
-    vec3 fragNormal = vec3(invViewMat * vec4(frag.normal, 0.0));
+    vec3 fragNormal = vec3(frag.normal);
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     vec4 shading = evalFragShading(fragNormal, fragLightDir, fragEyeDir, frag.metallic, frag.specular, frag.roughness);

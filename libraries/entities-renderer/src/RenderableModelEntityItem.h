@@ -38,6 +38,8 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    void doInitialModelSimulation();
+
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
@@ -75,12 +77,19 @@ public:
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet) override;
 
     virtual void loader() override;
-    virtual void locationChanged() override;
+    virtual void locationChanged(bool tellPhysics = true) override;
 
     virtual void resizeJointArrays(int newSize = -1) override;
 
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
+
+    // These operate on a copy of the animationProperties, so they can be accessed
+    // without having the entityTree lock.
+    bool hasRenderAnimation() const { return !_renderAnimationProperties.getURL().isEmpty(); }
+    const QString& getRenderAnimationURL() const { return _renderAnimationProperties.getURL(); }
+
+    render::ItemID getMetaRenderItem() { return _myMetaItem; }
 
 private:
     QVariantMap parseTexturesToMap(QString textures);
@@ -94,8 +103,9 @@ private:
     QVariantMap _currentTextures;
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
-    QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
+
+    AnimationPropertyGroup _renderAnimationProperties;
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 

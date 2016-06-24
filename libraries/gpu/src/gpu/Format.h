@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <memory>
 
-#include <glm/glm.hpp>
+#include "Forward.h"
 
 namespace gpu {
 
@@ -36,28 +36,6 @@ private:
 
     friend class Backend;
 };
-
-typedef int  Stamp;
-
-typedef unsigned int uint32;
-typedef int int32;
-typedef unsigned short uint16;
-typedef short int16;
-typedef unsigned char uint8;
-typedef char int8;
-
-typedef unsigned char Byte;
-    
-typedef size_t Offset;
-
-typedef glm::mat4 Mat4;
-typedef glm::mat3 Mat3;
-typedef glm::vec4 Vec4;
-typedef glm::ivec4 Vec4i;
-typedef glm::vec3 Vec3;
-typedef glm::vec2 Vec2;
-typedef glm::ivec2 Vec2i;
-typedef glm::uvec2 Vec2u;
 
 // Description of a scalar type
 enum Type {
@@ -192,6 +170,25 @@ enum Semantic {
     SRGBA,
     SBGRA,
 
+    // These are generic compression format smeantic for images
+    _FIRST_COMPRESSED,
+    COMPRESSED_R,
+
+    COMPRESSED_RGB, 
+    COMPRESSED_RGBA,
+
+    COMPRESSED_SRGB,
+    COMPRESSED_SRGBA,
+
+    // FIXME: Will have to be supported later:
+    /*COMPRESSED_BC3_RGBA,  // RGBA_S3TC_DXT5_EXT,
+    COMPRESSED_BC3_SRGBA, // SRGB_ALPHA_S3TC_DXT5_EXT
+
+    COMPRESSED_BC7_RGBA,
+    COMPRESSED_BC7_SRGBA, */
+
+    _LAST_COMPRESSED,
+
     R11G11B10,
 
     UNIFORM,
@@ -224,6 +221,7 @@ public:
 
     Dimension getDimension() const { return (Dimension)_dimension; }
     
+    bool isCompressed() const { return uint8(getSemantic() - _FIRST_COMPRESSED) <= uint8(_LAST_COMPRESSED - _FIRST_COMPRESSED); }
 
     Type getType() const { return (Type)_type; }
     bool isNormalized() const { return (getType() >= NORMALIZED_START); }
@@ -247,6 +245,7 @@ public:
     }
 
     static const Element COLOR_RGBA_32;
+    static const Element COLOR_SRGBA_32;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
     static const Element VEC2F_XY;

@@ -23,7 +23,9 @@
 #include "PhysicsEngine.h"
 #include "EntityMotionState.h"
 
-typedef QSet<EntityMotionState*> SetOfEntityMotionStates;
+class PhysicalEntitySimulation;
+using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation>;
+using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
 class PhysicalEntitySimulation :public EntitySimulation {
 public:
@@ -54,7 +56,7 @@ public:
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
 
-    void handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID);
+    void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }

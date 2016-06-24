@@ -28,7 +28,11 @@
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning( disable : 4068 )
+#elif defined(Q_OS_MAC)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpessimizing-move"
 #endif
+
 #include <oglplus/gl.hpp>
 
 #include <oglplus/all.hpp>
@@ -37,10 +41,11 @@
 #include <oglplus/bound/framebuffer.hpp>
 #include <oglplus/bound/renderbuffer.hpp>
 #include <oglplus/shapes/wrapper.hpp>
-#include <oglplus/shapes/plane.hpp>
 
 #ifdef _WIN32
 #pragma warning(pop)
+#elif defined(Q_OS_MAC)
+#pragma clang diagnostic pop
 #endif
 
 #include "NumericalConstants.h"
@@ -55,10 +60,13 @@ using ProgramPtr = std::shared_ptr<oglplus::Program>;
 using Mat4Uniform = oglplus::Uniform<mat4>;
 
 ProgramPtr loadDefaultShader();
+ProgramPtr loadCubemapShader();
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs);
+ShapeWrapperPtr loadSkybox(ProgramPtr program);
 ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect = 1.0f);
-ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov = PI / 3.0f * 2.0f, float aspect = 16.0f / 9.0f, int slices = 32, int stacks = 32);
-    
+ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov = PI / 3.0f * 2.0f, float aspect = 16.0f / 9.0f, int slices = 128, int stacks = 128);
+ShapeWrapperPtr loadLaser(const ProgramPtr& program);
+
 
 // A basic wrapper for constructing a framebuffer with a renderbuffer
 // for the depth attachment and an undefined type for the color attachement

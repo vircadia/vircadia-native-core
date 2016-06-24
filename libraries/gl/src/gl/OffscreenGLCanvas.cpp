@@ -83,3 +83,8 @@ void OffscreenGLCanvas::doneCurrent() {
 QObject* OffscreenGLCanvas::getContextObject() {
     return _context;
 }
+
+void OffscreenGLCanvas::moveToThreadWithContext(QThread* thread) {
+    moveToThread(thread);
+    _context->moveToThread(thread);
+}

@@ -16,6 +16,8 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 #include <glm/gtc/type_ptr.hpp>
+#include <QtGui/QWindow>
+#include <QQuickWindow>
 
 #include <ui/Menu.h>
 #include <NumericalConstants.h>
@@ -34,6 +36,7 @@ static const float reticleSize = TWO_PI / 100.0f;
 static QString _tooltipId;
 
 const uvec2 CompositorHelper::VIRTUAL_SCREEN_SIZE = uvec2(3960, 1188); // ~10% more pixel density than old version, 72dx240d FOV
+const QRect CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT = QRect(956, 0, 2048, 1188); // don't include entire width only center 2048
 const float CompositorHelper::VIRTUAL_UI_ASPECT_RATIO = (float)VIRTUAL_SCREEN_SIZE.x / (float)VIRTUAL_SCREEN_SIZE.y;
 const vec2 CompositorHelper::VIRTUAL_UI_TARGET_FOV = vec2(PI * 3.0f / 2.0f, PI * 3.0f / 2.0f / VIRTUAL_UI_ASPECT_RATIO);
 const vec2 CompositorHelper::MOUSE_EXTENTS_ANGULAR_SIZE = vec2(PI * 2.0f, PI * 0.95f); // horizontal: full sphere,  vertical: ~5deg from poles
@@ -255,7 +258,7 @@ glm::vec2 CompositorHelper::getReticlePosition() const {
         QMutexLocker locker(&_reticleLock);
         return _reticlePositionInHMD;
     }
-    return toGlm(QCursor::pos());
+    return toGlm(_renderingWidget->mapFromGlobal(QCursor::pos()));
 }
 
 bool CompositorHelper::getReticleOverDesktop() const {
@@ -321,17 +324,8 @@ void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFa
             sendFakeMouseEvent();
         }
     } else {
-        // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-        // remove it after we're done
-        const float REASONABLE_CHANGE = 50.0f;
-        glm::vec2 oldPos = toGlm(QCursor::pos());
-        auto distance = glm::distance(oldPos, position);
-        if (distance > REASONABLE_CHANGE) {
-            qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" <<
-                distance << " oldPos:" << oldPos.x << "," << oldPos.y << " newPos:" << position.x << "," << position.y;
-        }
-
-        QCursor::setPos(position.x, position.y);
+        const QPoint point(position.x, position.y);
+        QCursor::setPos(_renderingWidget->mapToGlobal(point));
     }
 }
 
@@ -342,7 +336,9 @@ void CompositorHelper::computeHmdPickRay(const glm::vec2& cursorPos, glm::vec3& 
 }
 
 glm::mat4 CompositorHelper::getUiTransform() const {
-    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose());
+    glm::mat4 modelMat;
+    _modelTransform.getMatrix(modelMat);
+    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose()) * modelMat;
 }
 
 //Finds the collision point of a world space ray
@@ -352,7 +348,7 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
     auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
 
-    float uiRadius = _oculusUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
+    float uiRadius = _hmdUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
 
     float instersectionDistance;
     if (raySphereIntersect(relativeDirection, relativePosition, uiRadius, &instersectionDistance)){
@@ -413,86 +409,25 @@ void CompositorHelper::updateTooltips() {
     //}
 }
 
-static const float FADE_DURATION = 500.0f;
-static const float FADE_IN_ALPHA = 1.0f;
-static const float FADE_OUT_ALPHA = 0.0f;
-
-void CompositorHelper::startFadeFailsafe(float endValue) {
-    _fadeStarted = usecTimestampNow();
-    _fadeFailsafeEndValue = endValue;
-
-    const int SLIGHT_DELAY = 10;
-    QTimer::singleShot(FADE_DURATION + SLIGHT_DELAY, [this]{
-        checkFadeFailsafe();
-    });
-}
-
-void CompositorHelper::checkFadeFailsafe() {
-    auto elapsedInFade = usecTimestampNow() - _fadeStarted;
-    if (elapsedInFade > FADE_DURATION) {
-        setAlpha(_fadeFailsafeEndValue);
-    }
-}
-
-void CompositorHelper::fadeIn() {
-    _fadeInAlpha = true;
-
-    _alphaPropertyAnimation->setDuration(FADE_DURATION);
-    _alphaPropertyAnimation->setStartValue(_alpha);
-    _alphaPropertyAnimation->setEndValue(FADE_IN_ALPHA);
-    _alphaPropertyAnimation->start();
-
-    // Sometimes, this "QPropertyAnimation" fails to complete the animation, and we end up with a partially faded
-    // state. So we will also have this fail-safe, where we record the timestamp of the fadeRequest, and the target
-    // value of the fade, and if after that time we still haven't faded all the way, we will kick it to the final
-    // fade value
-    startFadeFailsafe(FADE_IN_ALPHA);
-}
-
-void CompositorHelper::fadeOut() {
-    _fadeInAlpha = false;
-
-    _alphaPropertyAnimation->setDuration(FADE_DURATION);
-    _alphaPropertyAnimation->setStartValue(_alpha);
-    _alphaPropertyAnimation->setEndValue(FADE_OUT_ALPHA);
-    _alphaPropertyAnimation->start();
-    startFadeFailsafe(FADE_OUT_ALPHA);
-}
-
-void CompositorHelper::toggle() {
-    if (_fadeInAlpha) {
-        fadeOut();
-    } else {
-        fadeIn();
-    }
-}
-
-
-
+// eyePose and headPosition are in sensor space.
+// the resulting matrix should be in view space.
 glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::vec3& headPosition) const {
     glm::mat4 result;
     if (isHMD()) {
-        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
-        auto reticlePosition = getReticlePosition();
-        auto spherical = overlayToSpherical(reticlePosition);
-        // The pointer transform relative to the sensor
-        auto pointerTransform = glm::mat4_cast(quat(vec3(-spherical.y, spherical.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-        float reticleDepth = getReticleDepth();
-        if (reticleDepth != 1.0f) {
-            // Cursor position in UI space
-            auto cursorPosition = vec3(pointerTransform[3]) / pointerTransform[3].w;
-            // Ray to the cursor, in UI space
-            auto cursorRay = glm::normalize(cursorPosition - headPosition) * reticleDepth;
-            // Move the ray to be relative to the head pose
-            pointerTransform[3] = vec4(cursorRay + headPosition, 1);
-            // Scale up the cursor because of distance
-            reticleScale *= reticleDepth;
-        } 
-        glm::mat4 overlayXfm;
-        _modelTransform.getMatrix(overlayXfm);
-        pointerTransform = overlayXfm * pointerTransform;
-        pointerTransform = glm::inverse(eyePose) * pointerTransform;
-        result = glm::scale(pointerTransform, reticleScale);
+        vec2 spherical = overlayToSpherical(getReticlePosition());
+        vec3 overlaySurfacePoint = getPoint(spherical.x, spherical.y);  // overlay space
+        vec3 sensorSurfacePoint = _modelTransform.transform(overlaySurfacePoint);  // sensor space
+        vec3 d = sensorSurfacePoint - headPosition;
+        vec3 reticlePosition;
+        if (glm::length(d) >= EPSILON) {
+            d = glm::normalize(d);
+        } else {
+            d = glm::normalize(overlaySurfacePoint);
+        }
+        reticlePosition = headPosition + (d * getReticleDepth());
+        quat reticleOrientation = glm::quat_cast(_currentDisplayPlugin->getHeadPose());
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
+        return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;
         const auto canvasSize = vec2(toGlm(_renderingWidget->size()));;
@@ -503,7 +438,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         mousePosition.y *= -1.0f;
 
         vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-        return glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
+        result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
     return result;
 }

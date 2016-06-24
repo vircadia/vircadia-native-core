@@ -73,11 +73,9 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 AvatarManager::~AvatarManager() {
-    _myAvatar->die();
 }
 
 void AvatarManager::init() {
@@ -155,6 +153,15 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
+}
+
+void AvatarManager::postUpdate(float deltaTime) {
+    auto hashCopy = getHashCopy();
+    AvatarHash::iterator avatarIterator = hashCopy.begin();
+    for (avatarIterator = hashCopy.begin(); avatarIterator != hashCopy.end(); avatarIterator++) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        avatar->postUpdate(deltaTime);
+    }
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
@@ -250,6 +257,14 @@ void AvatarManager::clearOtherAvatars() {
     _myAvatar->clearLookAtTargetAvatar();
 }
 
+void AvatarManager::clearAllAvatars() {
+    clearOtherAvatars();
+
+    QWriteLocker locker(&_hashLock);
+
+    handleRemovedAvatar(_myAvatar);
+}
+
 void AvatarManager::setLocalLights(const QVector<AvatarManager::LocalLight>& localLights) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setLocalLights", Q_ARG(const QVector<AvatarManager::LocalLight>&, localLights));
@@ -302,10 +317,12 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
         // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
             MyAvatar* myAvatar = getMyAvatar();
-            const QString& collisionSoundURL = myAvatar->getCollisionSoundURL();
-            if (!collisionSoundURL.isEmpty()) {
-                const float velocityChange = glm::length(collision.velocityChange);
-                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01f;
+            auto collisionSound = myAvatar->getCollisionSound();
+            if (collisionSound) {
+                const auto characterController = myAvatar->getCharacterController();
+                const float avatarVelocityChange = (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
+                const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
+                const float MIN_AVATAR_COLLISION_ACCELERATION = 2.4f; // walking speed
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
                 if (!isSound) {
@@ -313,14 +330,24 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 }
                 // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
                 const float energy = velocityChange * velocityChange;
-                const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+                const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
                 const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
 
                 // For general entity collisionSoundURL, playSound supports changing the pitch for the sound based on the size of the object,
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
+
+                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                    return !injector || injector->isFinished();
+                });
+
+                static const int MAX_INJECTOR_COUNT = 3;
+                if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
+                    auto injector = AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR,
+                                                             myAvatar->getPosition());
+                    _collisionInjectors.emplace_back(injector);
+                }
                 myAvatar->collisionWithEntity(collision);
                 return;
             }

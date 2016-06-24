@@ -46,7 +46,7 @@ Column {
         Item {
             id: leadingSpace
             width: 1
-            height: isFirst ? hifi.dimensions.contentSpacing.y : 0
+            height: isFirst ? 7 : 0
             anchors.top: parent.top
         }
 
@@ -80,14 +80,14 @@ Column {
                 right: parent.right
                 top: topBar.bottom
             }
-            height: (isCollapsible ? 3 : 2) * hifi.dimensions.contentSpacing.y
+            height: isCollapsible ? 36 : 28
 
             RalewayRegular {
                 id: title
                 anchors {
                     left: parent.left
                     top: parent.top
-                    topMargin: hifi.dimensions.contentSpacing.y
+                    topMargin: 12
                 }
                 size: hifi.fontSizes.sectionName
                 font.capitalization: Font.AllUppercase
@@ -116,7 +116,7 @@ Column {
 
         LinearGradient {
             id: bottomBar
-            visible: isCollapsible
+            visible: desktop.gradientsSupported && isCollapsible
             width: frame.width
             height: visible ? 4 : 0
             x: -hifi.dimensions.contentMargin.x

@@ -14,6 +14,7 @@
 
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
+#include <ViewFrustum.h>
 
 #include "JurisdictionListener.h"
 #include "Octree.h"
@@ -22,7 +23,6 @@
 #include "OctreeRenderer.h"
 #include "OctreeSceneStats.h"
 #include "Octree.h"
-#include "ViewFrustum.h"
 
 // Generic client side Octree renderer class.
 class OctreeHeadlessViewer : public OctreeRenderer {
@@ -66,7 +66,6 @@ public slots:
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
 
 private:
-    ViewFrustum _viewFrustum;
     JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
 

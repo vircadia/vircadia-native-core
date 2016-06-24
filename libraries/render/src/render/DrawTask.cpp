@@ -46,7 +46,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        qDebug() << "Item could not be rendered: invalid key ?" << key;
+        qDebug() << "Item could not be rendered with invalid key" << key;
     }
 }
 
@@ -65,9 +65,62 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
+void render::renderStateSortShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+    const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems) {
+    auto& scene = sceneContext->_scene;
+    RenderArgs* args = renderContext->args;
+
+    int numItemsToDraw = (int)inItems.size();
+    if (maxDrawnItems != -1) {
+        numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
+    }
+
+    using SortedPipelines = std::vector<render::ShapeKey>;
+    using SortedShapes = std::unordered_map<render::ShapeKey, std::vector<Item>, render::ShapeKey::Hash, render::ShapeKey::KeyEqual>;
+    SortedPipelines sortedPipelines;
+    SortedShapes sortedShapes;
+    std::vector<Item> ownPipelineBucket;
+
+    for (auto i = 0; i < numItemsToDraw; ++i) {
+        auto item = scene->getItem(inItems[i].id);
+
+        {
+            assert(item.getKey().isShape());
+            const auto& key = item.getShapeKey();
+            if (key.isValid() && !key.hasOwnPipeline()) {
+                auto& bucket = sortedShapes[key];
+                if (bucket.empty()) {
+                    sortedPipelines.push_back(key);
+                }
+                bucket.push_back(item);
+            } else if (key.hasOwnPipeline()) {
+                ownPipelineBucket.push_back(item);
+            } else {
+                qDebug() << "Item could not be rendered with invalid key" << key;
+            }
+        }
+    }
+
+    // Then render
+    for (auto& pipelineKey : sortedPipelines) {
+        auto& bucket = sortedShapes[pipelineKey];
+        args->_pipeline = shapeContext->pickPipeline(args, pipelineKey);
+        if (!args->_pipeline) {
+            continue;
+        }
+        for (auto& item : bucket) {
+            item.render(args);
+        }
+    }
+    args->_pipeline = nullptr;
+    for (auto& item : ownPipelineBucket) {
+        item.render(args);
+    }
+}
+
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
     // render lights

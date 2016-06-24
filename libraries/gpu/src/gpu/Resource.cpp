@@ -109,40 +109,18 @@ void Resource::Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
     }
 }
 
-Resource::Sysmem::Sysmem() :
-    _stamp(0),
-    _size(0),
-    _data(NULL)
-{
-}
+Resource::Sysmem::Sysmem() {}
 
-Resource::Sysmem::Sysmem(Size size, const Byte* bytes) :
-    _stamp(0),
-    _size(0),
-    _data(NULL)
-{
-    if (size > 0) {
-        _size = allocateMemory(&_data, size);
-        if (_size >= size) {
-            if (bytes) {
-                memcpy(_data, bytes, size);
-            }
-        }
+Resource::Sysmem::Sysmem(Size size, const Byte* bytes) {
+    if (size > 0 && bytes) {
+        setData(_size, bytes);
     }
 }
 
-Resource::Sysmem::Sysmem(const Sysmem& sysmem) :
-    _stamp(0),
-    _size(0),
-    _data(NULL)
-{
+Resource::Sysmem::Sysmem(const Sysmem& sysmem) {
     if (sysmem.getSize() > 0) {
-        _size = allocateMemory(&_data, sysmem.getSize());
-        if (_size >= sysmem.getSize()) {
-            if (sysmem.readData()) {
-                memcpy(_data, sysmem.readData(), sysmem.getSize());
-            }
-        }
+        allocate(sysmem._size);
+        setData(_size, sysmem._data);
     }
 }
 
@@ -208,7 +186,6 @@ Resource::Size Resource::Sysmem::setData( Size size, const Byte* bytes ) {
     if (allocate(size) == size) {
         if (size && bytes) {
             memcpy( _data, bytes, _size );
-            _stamp++;
         }
     }
     return _size;
@@ -217,7 +194,6 @@ Resource::Size Resource::Sysmem::setData( Size size, const Byte* bytes ) {
 Resource::Size Resource::Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
     if (size && ((offset + size) <= getSize()) && bytes) {
         memcpy( _data + offset, bytes, size );
-        _stamp++;
         return size;
     }
     return 0;
@@ -264,64 +240,127 @@ Buffer::Size Buffer::getBufferGPUMemoryUsage() {
     return Context::getBufferGPUMemoryUsage();
 }
 
-Buffer::Buffer() :
-    Resource(),
-    _sysmem(new Sysmem()) {
+Buffer::Buffer(Size pageSize) :
+    _pageSize(pageSize) {
     _bufferCPUCount++;
-
 }
 
-Buffer::Buffer(Size size, const Byte* bytes) :
-    Resource(),
-    _sysmem(new Sysmem(size, bytes)) {
-    _bufferCPUCount++;
-    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
+Buffer::Buffer(Size size, const Byte* bytes, Size pageSize) : Buffer(pageSize) {
+    setData(size, bytes);
 }
 
-Buffer::Buffer(const Buffer& buf) :
-    Resource(),
-    _sysmem(new Sysmem(buf.getSysmem())) {
-    _bufferCPUCount++;
-    Buffer::updateBufferCPUMemoryUsage(0, _sysmem->getSize());
+Buffer::Buffer(const Buffer& buf) : Buffer(buf._pageSize) {
+    setData(buf.getSize(), buf.getData());
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
-    (*_sysmem) = buf.getSysmem();
+    const_cast<Size&>(_pageSize) = buf._pageSize;
+    setData(buf.getSize(), buf.getData());
     return (*this);
 }
 
 Buffer::~Buffer() {
     _bufferCPUCount--;
-
-    if (_sysmem) {
-        Buffer::updateBufferCPUMemoryUsage(_sysmem->getSize(), 0);
-        delete _sysmem;
-        _sysmem = NULL;
-    }
+    Buffer::updateBufferCPUMemoryUsage(_sysmem.getSize(), 0);
 }
 
 Buffer::Size Buffer::resize(Size size) {
+    _end = size;
     auto prevSize = editSysmem().getSize();
-    auto newSize = editSysmem().resize(size);
-    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
-    return newSize;
+    if (prevSize < size) {
+        auto newPages = getRequiredPageCount();
+        auto newSize = newPages * _pageSize;
+        editSysmem().resize(newSize);
+        // All new pages start off as clean, because they haven't been populated by data
+        _pages.resize(newPages, 0);
+        Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
+    }
+    return _end;
 }
 
+void Buffer::markDirty(Size offset, Size bytes) {
+    if (!bytes) {
+        return;
+    }
+    _flags |= DIRTY;
+    // Find the starting page
+    Size startPage = (offset / _pageSize);
+    // Non-zero byte count, so at least one page is dirty
+    Size pageCount = 1;
+    // How much of the page is after the offset?
+    Size remainder = _pageSize - (offset % _pageSize);
+    //  If there are more bytes than page space remaining, we need to increase the page count
+    if (bytes > remainder) {
+        // Get rid of the amount that will fit in the current page
+        bytes -= remainder;
+
+        pageCount += (bytes / _pageSize);
+        if (bytes % _pageSize) {
+            ++pageCount;
+        }
+    }
+
+    // Mark the pages dirty
+    for (Size i = 0; i < pageCount; ++i) {
+        _pages[i + startPage] |= DIRTY;
+    }
+}
+
+
 Buffer::Size Buffer::setData(Size size, const Byte* data) {
-    auto prevSize = editSysmem().getSize();
-    auto newSize = editSysmem().setData(size, data);
-    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
-    return newSize;
+    resize(size);
+    setSubData(0, size, data);
+    return _end;
 }
 
 Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
-    return editSysmem().setSubData( offset, size, data);
+    auto changedBytes = editSysmem().setSubData(offset, size, data);
+    if (changedBytes) {
+        markDirty(offset, changedBytes);
+    }
+    return changedBytes;
 }
 
 Buffer::Size Buffer::append(Size size, const Byte* data) {
-    auto prevSize = editSysmem().getSize();
-    auto newSize = editSysmem().append( size, data);
-    Buffer::updateBufferCPUMemoryUsage(prevSize, newSize);
-    return newSize;
+    auto offset = _end;
+    resize(_end + size);
+    setSubData(offset, size, data);
+    return _end;
 }
 
+Buffer::Size Buffer::getSize() const { 
+    Q_ASSERT(getSysmem().getSize() >= _end);
+    return _end;
+}
+
+Buffer::Size Buffer::getRequiredPageCount() const {
+    Size result = _end / _pageSize;
+    if (_end % _pageSize) {
+        ++result;
+    }
+    return result;
+}
+
+const Element BufferView::DEFAULT_ELEMENT = Element( gpu::SCALAR, gpu::UINT8, gpu::RAW );
+
+BufferView::BufferView() :
+BufferView(DEFAULT_ELEMENT) {}
+
+BufferView::BufferView(const Element& element) :
+    BufferView(BufferPointer(), element) {}
+
+BufferView::BufferView(Buffer* newBuffer, const Element& element) :
+    BufferView(BufferPointer(newBuffer), element) {}
+
+BufferView::BufferView(const BufferPointer& buffer, const Element& element) :
+    BufferView(buffer, DEFAULT_OFFSET, buffer ? buffer->getSize() : 0, element.getSize(), element) {}
+
+BufferView::BufferView(const BufferPointer& buffer, Size offset, Size size, const Element& element) :
+    BufferView(buffer, offset, size, element.getSize(), element) {}
+
+BufferView::BufferView(const BufferPointer& buffer, Size offset, Size size, uint16 stride, const Element& element) :
+    _buffer(buffer),
+    _offset(offset),
+    _size(size),
+    _element(element),
+    _stride(stride) {}

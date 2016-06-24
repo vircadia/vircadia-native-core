@@ -50,11 +50,12 @@ const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TY
                                                      Simulation::DIRTY_COLLISION_GROUP);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES |
                                                      Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL |
-                                                     Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
+                                                     Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY |
+                                                     Simulation::DIRTY_PHYSICS_ACTIVATION);
+
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
-const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS |
-                                                Simulation::DIRTY_PHYSICS_ACTIVATION);
+const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS);
 
 // These are the outgoing flags that the PhysicsEngine can affect:
 const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES;
@@ -80,11 +81,13 @@ public:
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    virtual bool handleEasyChanges(uint32_t& flags);
+    virtual void handleEasyChanges(uint32_t& flags);
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
+    void updateLastKinematicStep();
+
     virtual void updateBodyMassProperties();
 
     MotionStateType getType() const { return _type; }

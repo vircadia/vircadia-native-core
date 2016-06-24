@@ -58,7 +58,6 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotationsSet, getJointRotationsSet);
@@ -78,7 +77,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotationsSet, setJointRotationsSet);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
@@ -146,7 +145,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         dataAt += bytesFromAnimation;
     }
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
     if (animationPropertiesChanged) {
         _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
@@ -205,37 +204,18 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 }
 
 
-QMap<QString, AnimationPointer> ModelEntityItem::_loadedAnimations; // TODO: improve cleanup by leveraging the AnimationPointer(s)
-
-void ModelEntityItem::cleanupLoadedAnimations() {
-    foreach(AnimationPointer animation, _loadedAnimations) {
-        animation.clear();
-    }
-    _loadedAnimations.clear();
-}
-
-AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
-    AnimationPointer animation;
-
-    // if we don't already have this model then create it and initialize it
-    if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
-        animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
-        _loadedAnimations[url] = animation;
-    } else {
-        animation = _loadedAnimations[url];
-    }
-    return animation;
-}
-
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
     if (!hasAnimation() || jointsMapped()) {
         return;
     }
 
-    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL());
-    if (myAnimation && myAnimation->isLoaded()) {
-        QStringList animationJointNames = myAnimation->getJointNames();
+    if (!_animation || _animation->getURL().toString() != getAnimationURL()) {
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(getAnimationURL());
+    }
+
+    if (_animation && _animation->isLoaded()) {
+        QStringList animationJointNames = _animation->getJointNames();
 
         if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
             _jointMapping.resize(modelJointNames.size());
@@ -277,37 +257,54 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
 
-void ModelEntityItem::updateShapeType(ShapeType type) {
-    // BEGIN_TEMPORARY_WORKAROUND
-    // we have allowed inconsistent ShapeType's to be stored in SVO files in the past (this was a bug)
-    // but we are now enforcing the entity properties to be consistent.  To make the possible we're
-    // introducing a temporary workaround: we will ignore ShapeType updates that conflict with the
-    // _compoundShapeURL.
-    if (hasCompoundShapeURL()) {
-        type = SHAPE_TYPE_COMPOUND;
-    }
-    // END_TEMPORARY_WORKAROUND
-
+void ModelEntityItem::setShapeType(ShapeType type) {
     if (type != _shapeType) {
+        if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
+            // dynamic and STATIC_MESH are incompatible
+            // since the shape is being set here we clear the dynamic bit
+            _dynamic = false;
+            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+        }
         _shapeType = type;
         _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
     }
 }
 
-// virtual
 ShapeType ModelEntityItem::getShapeType() const {
-    if (_shapeType == SHAPE_TYPE_COMPOUND) {
-        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
-    } else {
-        return _shapeType;
+    return computeTrueShapeType();
+}
+
+ShapeType ModelEntityItem::computeTrueShapeType() const {
+    ShapeType type = _shapeType;
+    if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
+        // dynamic is incompatible with STATIC_MESH
+        // shouldn't fall in here but just in case --> fall back to COMPOUND
+        type = SHAPE_TYPE_COMPOUND;
+    }
+    if (type == SHAPE_TYPE_COMPOUND && !hasCompoundShapeURL()) {
+        // no compoundURL set --> fall back to NONE
+        type = SHAPE_TYPE_NONE;
+    }
+    return type;
+}
+
+void ModelEntityItem::setModelURL(const QString& url) {
+    if (_modelURL != url) {
+        _modelURL = url;
+        _parsedModelURL = QUrl(url);
+        if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
     }
 }
 
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     if (_compoundShapeURL != url) {
+        ShapeType oldType = computeTrueShapeType();
         _compoundShapeURL = url;
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-        _shapeType = _compoundShapeURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
+        if (oldType != computeTrueShapeType()) {
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
     }
 }
 
@@ -404,6 +401,7 @@ void ModelEntityItem::resizeJointArrays(int newSize) {
 
 void ModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
     _jointDataLock.withWriteLock([&] {
+        _jointRotationsExplicitlySet = rotations.size() > 0;
         resizeJointArrays(rotations.size());
         for (int index = 0; index < rotations.size(); index++) {
             if (_absoluteJointRotationsInObjectFrameSet[index]) {
@@ -416,6 +414,7 @@ void ModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
 
 void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
     _jointDataLock.withWriteLock([&] {
+        _jointRotationsExplicitlySet = rotationsSet.size() > 0;
         resizeJointArrays(rotationsSet.size());
         for (int index = 0; index < rotationsSet.size(); index++) {
             _absoluteJointRotationsInObjectFrameSet[index] = rotationsSet[index];
@@ -425,6 +424,7 @@ void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
 
 void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
     _jointDataLock.withWriteLock([&] {
+        _jointTranslationsExplicitlySet = translations.size() > 0;
         resizeJointArrays(translations.size());
         for (int index = 0; index < translations.size(); index++) {
             if (_absoluteJointTranslationsInObjectFrameSet[index]) {
@@ -437,6 +437,7 @@ void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translation
 
 void ModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
     _jointDataLock.withWriteLock([&] {
+        _jointTranslationsExplicitlySet = translationsSet.size() > 0;
         resizeJointArrays(translationsSet.size());
         for (int index = 0; index < translationsSet.size(); index++) {
             _absoluteJointTranslationsInObjectFrameSet[index] = translationsSet[index];
@@ -447,7 +448,9 @@ void ModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsS
 QVector<glm::quat> ModelEntityItem::getJointRotations() const {
     QVector<glm::quat> result;
     _jointDataLock.withReadLock([&] {
-        result = _absoluteJointRotationsInObjectFrame;
+        if (_jointRotationsExplicitlySet) {
+            result = _absoluteJointRotationsInObjectFrame;
+        }
     });
     return result;
 }
@@ -455,15 +458,20 @@ QVector<glm::quat> ModelEntityItem::getJointRotations() const {
 QVector<bool> ModelEntityItem::getJointRotationsSet() const {
     QVector<bool> result;
     _jointDataLock.withReadLock([&] {
-        result = _absoluteJointRotationsInObjectFrameSet;
+        if (_jointRotationsExplicitlySet) {
+            result = _absoluteJointRotationsInObjectFrameSet;
+        }
     });
+
     return result;
 }
 
 QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
     QVector<glm::vec3> result;
     _jointDataLock.withReadLock([&] {
-        result = _absoluteJointTranslationsInObjectFrame;
+        if (_jointTranslationsExplicitlySet) {
+            result = _absoluteJointTranslationsInObjectFrame;
+        }
     });
     return result;
 }
@@ -471,7 +479,9 @@ QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
 QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     QVector<bool> result;
     _jointDataLock.withReadLock([&] {
-        result = _absoluteJointTranslationsInObjectFrameSet;
+        if (_jointTranslationsExplicitlySet) {
+            result = _absoluteJointTranslationsInObjectFrameSet;
+        }
     });
     return result;
 }

@@ -21,17 +21,17 @@
 
 #include "RegisteredMetaTypes.h"
 
-static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
-static int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
-static int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
-static int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
-static int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
-static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
-static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
-static int xColorMetaTypeId = qRegisterMetaType<xColor>();
-static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
-static int collisionMetaTypeId = qRegisterMetaType<Collision>();
-static int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
+int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
+int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
+int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
+int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
+int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
+int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
+int quatMetaTypeId = qRegisterMetaType<glm::quat>();
+int xColorMetaTypeId = qRegisterMetaType<xColor>();
+int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
+int collisionMetaTypeId = qRegisterMetaType<Collision>();
+int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, mat4toScriptValue, mat4FromScriptValue);
@@ -128,7 +128,7 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.z = object.property("z").toVariant().toFloat();
 }
 
-QVariant vec3toVariant(const glm::vec3 &vec3) {
+QVariant vec3toVariant(const glm::vec3& vec3) {
     if (vec3.x != vec3.x || vec3.y != vec3.y || vec3.z != vec3.z) {
         // if vec3 contains a NaN don't try to convert it
         return QVariant();
@@ -140,6 +140,18 @@ QVariant vec3toVariant(const glm::vec3 &vec3) {
     return result;
 }
 
+QVariant vec4toVariant(const glm::vec4& vec4) {
+    if (isNaN(vec4.x) || isNaN(vec4.y) || isNaN(vec4.z) || isNaN(vec4.w)) {
+        // if vec4 contains a NaN don't try to convert it
+        return QVariant();
+    }
+    QVariantMap result;
+    result["x"] = vec4.x;
+    result["y"] = vec4.y;
+    result["z"] = vec4.z;
+    result["w"] = vec4.w;
+    return result;
+}
 
 QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector) {
     QScriptValue array = engine->newArray();
@@ -150,7 +162,7 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
 }
 
 
-glm::vec3 vec3FromVariant(const QVariant &object, bool& valid) {
+glm::vec3 vec3FromVariant(const QVariant& object, bool& valid) {
     glm::vec3 v;
     valid = false;
     if (!object.isValid() || object.isNull()) {
@@ -189,12 +201,49 @@ glm::vec3 vec3FromVariant(const QVariant &object, bool& valid) {
     return v;
 }
 
-glm::vec3 vec3FromVariant(const QVariant &object) {
+glm::vec3 vec3FromVariant(const QVariant& object) {
     bool valid = false;
     return vec3FromVariant(object, valid);
 }
 
-QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat &quat) {
+glm::vec4 vec4FromVariant(const QVariant& object, bool& valid) {
+    glm::vec4 v;
+    valid = false;
+    if (!object.isValid() || object.isNull()) {
+        return v;
+    } else if (object.canConvert<float>()) {
+        v = glm::vec4(object.toFloat());
+        valid = true;
+    } else if (object.canConvert<QVector4D>()) {
+        auto qvec4 = qvariant_cast<QVector4D>(object);
+        v.x = qvec4.x();
+        v.y = qvec4.y();
+        v.z = qvec4.z();
+        v.w = qvec4.w();
+        valid = true;
+    } else {
+        auto map = object.toMap();
+        auto x = map["x"];
+        auto y = map["y"];
+        auto z = map["z"];
+        auto w = map["w"];
+        if (x.canConvert<float>() && y.canConvert<float>() && z.canConvert<float>() && w.canConvert<float>()) {
+            v.x = x.toFloat();
+            v.y = y.toFloat();
+            v.z = z.toFloat();
+            v.w = w.toFloat();
+            valid = true;
+        }
+    }
+    return v;
+}
+
+glm::vec4 vec4FromVariant(const QVariant& object) {
+    bool valid = false;
+    return vec4FromVariant(object, valid);
+}
+
+QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat& quat) {
     QScriptValue obj = engine->newObject();
     if (quat.x != quat.x || quat.y != quat.y || quat.z != quat.z || quat.w != quat.w) {
         // if quat contains a NaN don't try to convert it
@@ -207,7 +256,7 @@ QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat &quat) {
     return obj;
 }
 
-void quatFromScriptValue(const QScriptValue &object, glm::quat &quat) {
+void quatFromScriptValue(const QScriptValue& object, glm::quat &quat) {
     quat.x = object.property("x").toVariant().toFloat();
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
@@ -245,12 +294,12 @@ glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
     return q;
 }
 
-glm::quat quatFromVariant(const QVariant &object) {
+glm::quat quatFromVariant(const QVariant& object) {
     bool valid = false;
     return quatFromVariant(object, valid);
 }
 
-QVariant quatToVariant(const glm::quat &quat) {
+QVariant quatToVariant(const glm::quat& quat) {
     if (quat.x != quat.x || quat.y != quat.y || quat.z != quat.z) {
         // if vec3 contains a NaN don't try to convert it
         return QVariant();

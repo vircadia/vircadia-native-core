@@ -13,6 +13,7 @@
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
+#include <QThreadPool>
 
 #include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
@@ -28,17 +29,16 @@
 
 #include "RenderableEntityItem.h"
 
-#include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
 #include "RenderableModelEntityItem.h"
 #include "RenderableParticleEffectEntityItem.h"
-#include "RenderableSphereEntityItem.h"
 #include "RenderableTextEntityItem.h"
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableLineEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
 #include "RenderablePolyLineEntityItem.h"
+#include "RenderableShapeEntityItem.h"
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
 #include <Rig.h>
@@ -55,8 +55,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _dontDoPrecisionPicking(false)
 {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
-    REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
-    REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, RenderableWebEntityItem::factory)
@@ -65,19 +63,63 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Line, RenderableLineEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyLine, RenderablePolyLineEntityItem::factory)
-    
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Shape, RenderableShapeEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableShapeEntityItem::boxFactory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableShapeEntityItem::sphereFactory)
+
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a
-    // signal tied to call it's deleteLater on doneRunning
+    // NOTE: We don't need to delete _entitiesScriptEngine because
+    //       it is registered with ScriptEngines, which will call deleteLater for us.
+}
+
+int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
+
+void entitiesScriptEngineDeleter(ScriptEngine* engine) {
+    class WaitRunnable : public QRunnable {
+        public:
+            WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
+            virtual void run() override {
+                _engine->waitTillDoneRunning();
+                _engine->deleteLater();
+            }
+
+        private:
+            ScriptEngine* _engine;
+    };
+
+    // Wait for the scripting thread from the thread pool to avoid hanging the main thread
+    QThreadPool::globalInstance()->start(new WaitRunnable(engine));
+}
+
+void EntityTreeRenderer::resetEntitiesScriptEngine() {
+    // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
+    auto oldEngine = _entitiesScriptEngine;
+
+    auto newEngine = new ScriptEngine(NO_SCRIPT, QString("Entities %1").arg(++_entitiesScriptEngineCount));
+    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
+
+    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
+    _entitiesScriptEngine->runInThread();
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
 }
 
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
-    _entitiesScriptEngine->unloadAllEntityScripts();
+
+    if (_entitiesScriptEngine) {
+        // Unload and stop the engine here (instead of in its deleter) to
+        // avoid marshalling unload signals back to this thread
+        _entitiesScriptEngine->unloadAllEntityScripts();
+        _entitiesScriptEngine->stop();
+    }
+
+    if (_wantScripts && !_shuttingDown) {
+        resetEntitiesScriptEngine();
+    }
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
@@ -94,7 +136,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
     _entitiesScriptEngine->unloadAllEntityScripts();
     foreach(auto entity, _entitiesInScene) {
         if (!entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+            ScriptEngine::loadEntityScript(_entitiesScriptEngine, entity->getEntityItemID(), entity->getScript(), true);
         }
     }
 }
@@ -105,10 +147,7 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities");
-        _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
-        _entitiesScriptEngine->runInThread();
-        DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
+        resetEntitiesScriptEngine();
     }
 
     forceRecheckEntities(); // setup our state to force checking our inside/outsideness of entities
@@ -122,6 +161,8 @@ void EntityTreeRenderer::init() {
 void EntityTreeRenderer::shutdown() {
     _entitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
     _shuttingDown = true;
+
+    clear(); // always clear() on shutdown
 }
 
 void EntityTreeRenderer::setTree(OctreePointer newTree) {
@@ -361,7 +402,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
     } else {
-        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
+        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), NetworkTexture::CUBE_TEXTURE);
         _pendingAmbientTexture = true;
 
         if (_ambientTexture && _ambientTexture->isLoaded()) {
@@ -391,7 +432,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
-                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), NetworkTexture::CUBE_TEXTURE);
                 _pendingSkyboxTexture = true;
 
                 if (_skyboxTexture && _skyboxTexture->isLoaded()) {
@@ -763,7 +804,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
         if (entity && entity->shouldPreloadScript()) {
             QString scriptUrl = entity->getScript();
             scriptUrl = ResourceManager::normalizeURL(scriptUrl);
-            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
+            ScriptEngine::loadEntityScript(_entitiesScriptEngine, entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();
         }
     }
@@ -801,16 +842,25 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         return;
     }
 
-    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
-    if (!entity) {
+    SharedSoundPointer collisionSound;
+    float mass = 1.0; // value doesn't get used, but set it so compiler is quiet
+    AACube minAACube;
+    bool success = false;
+    _tree->withReadLock([&] {
+        EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
+        if (entity) {
+            collisionSound = entity->getCollisionSound();
+            mass = entity->computeMass();
+            minAACube = entity->getMinimumAACube(success);
+        }
+    });
+    if (!success) {
+        return;
+    }
+    if (!collisionSound) {
         return;
     }
 
-    const QString& collisionSoundURL = entity->getCollisionSoundURL();
-    if (collisionSoundURL.isEmpty()) {
-        return;
-    }
-    const float mass = entity->computeMass();
     const float COLLISION_PENETRATION_TO_VELOCITY = 50; // as a subsitute for RELATIVE entity->getVelocity()
     // The collision.penetration is a pretty good indicator of changed velocity AFTER the initial contact,
     // but that first contact depends on exactly where we hit in the physics step.
@@ -832,16 +882,10 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
     const float volume = (energyFactorOfFull * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
 
-
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    bool success;
-    auto minAACube = entity->getMinimumAACube(success);
-    if (!success) {
-        return;
-    }
     const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
+    AudioInjector::playSound(collisionSound, volume, stretchFactor, position);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,

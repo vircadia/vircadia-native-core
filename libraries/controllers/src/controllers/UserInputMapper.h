@@ -30,6 +30,7 @@
 #include "DeviceProxy.h"
 #include "StandardControls.h"
 #include "Actions.h"
+#include "StateController.h"
 
 namespace controller {
 
@@ -55,8 +56,9 @@ namespace controller {
         using uint16 = uint16_t;
         using uint32 = uint32_t;
 
-        static const uint16_t ACTIONS_DEVICE;
         static const uint16_t STANDARD_DEVICE;
+        static const uint16_t ACTIONS_DEVICE;
+        static const uint16_t STATE_DEVICE;
 
         UserInputMapper();
         virtual ~UserInputMapper();
@@ -87,6 +89,8 @@ namespace controller {
         void setActionState(Action action, float value) { _actionStates[toInt(action)] = value; }
         void deltaActionState(Action action, float delta) { _actionStates[toInt(action)] += delta; }
         void setActionState(Action action, const Pose& value) { _poseStates[toInt(action)] = value; }
+        bool triggerHapticPulse(float strength, float duration, controller::Hand hand);
+        bool triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand);
 
         static Input makeStandardInput(controller::StandardButtonChannel button);
         static Input makeStandardInput(controller::StandardAxisChannel axis);
@@ -100,16 +104,26 @@ namespace controller {
         const DevicesMap& getDevices() { return _registeredDevices; }
         uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
         InputDevice::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
+        StateController::Pointer getStateDevice() { return _stateDevice; }
 
         MappingPointer newMapping(const QString& mappingName);
         MappingPointer parseMapping(const QString& json);
-        MappingPointer loadMapping(const QString& jsonFile);
+        MappingPointer loadMapping(const QString& jsonFile, bool enable = false);
         MappingPointer loadMappings(const QStringList& jsonFiles);
 
         void loadDefaultMapping(uint16 deviceID);
         void enableMapping(const QString& mappingName, bool enable = true);
+
+        void unloadMappings(const QStringList& jsonFiles);
+        void unloadMapping(const QString& jsonFile);
+
         float getValue(const Input& input) const;
         Pose getPose(const Input& input) const;
+
+        // perform an action when the UserInputMapper mutex is acquired.
+        using Locker = std::unique_lock<std::recursive_mutex>;
+        template <typename F>
+        void withLock(F&& f) { Locker locker(_lock); f(); }
 
     signals:
         void actionEvent(int action, float state);
@@ -120,6 +134,7 @@ namespace controller {
         // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
         uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
         DevicesMap _registeredDevices;
+        StateController::Pointer _stateDevice;
         uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
 
         std::vector<float> _actionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
@@ -127,9 +142,6 @@ namespace controller {
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
         std::vector<float> _lastStandardStates = std::vector<float>();
-
-        int recordDeviceOfType(const QString& deviceName);
-        QHash<const QString&, int> _deviceCounts;
 
         static float getValue(const EndpointPointer& endpoint, bool peek = false);
         static Pose getPose(const EndpointPointer& endpoint, bool peek = false);
@@ -173,7 +185,7 @@ namespace controller {
         RouteList _deviceRoutes;
         RouteList _standardRoutes;
 
-        using Locker = std::unique_lock<std::recursive_mutex>;
+        QSet<QString> _loadedRouteJsonFiles;
 
         mutable std::recursive_mutex _lock;
     };
@@ -186,6 +198,7 @@ Q_DECLARE_METATYPE(QVector<controller::Input::NamedPair>)
 Q_DECLARE_METATYPE(controller::Input)
 Q_DECLARE_METATYPE(controller::Action)
 Q_DECLARE_METATYPE(QVector<controller::Action>)
+Q_DECLARE_METATYPE(controller::Hand)
 
 // Cheating.
 using UserInputMapper = controller::UserInputMapper;

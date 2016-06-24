@@ -58,6 +58,8 @@ public:
     Q_INVOKABLE bool validFolder(const QString& path);
     Q_INVOKABLE QUrl pathToUrl(const QString& path);
     Q_INVOKABLE QUrl saveHelper(const QString& saveText, const QUrl& currentFolder, const QStringList& selectionFilters);
+
+    Q_INVOKABLE void openDirectory(const QString& path);
 };
 
 

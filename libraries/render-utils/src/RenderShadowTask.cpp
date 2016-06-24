@@ -34,7 +34,7 @@ using namespace render;
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
                           const render::ShapeBounds& inShapes) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
@@ -52,17 +52,19 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
         batch.setFramebuffer(fbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(1.0, 1.0, 1.0), 1.0), 1.0, 0, true);
+            vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);
 
         batch.setProjectionTransform(shadow.getProjection());
         batch.setViewTransform(shadow.getView());
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, ShapeKey());
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, ShapeKey::Builder().withSkinned());
-        args->_pipeline = shadowPipeline;
-        batch.setPipeline(shadowPipeline->pipeline);
 
         std::vector<ShapeKey> skinnedShapeKeys{};
+
+        // Iterate through all inShapes and render the unskinned
+        args->_pipeline = shadowPipeline;
+        batch.setPipeline(shadowPipeline->pipeline);
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
                 skinnedShapeKeys.push_back(items.first);
@@ -71,6 +73,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
             }
         }
 
+        // Reiterate to render the skinned
         args->_pipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
@@ -146,16 +149,15 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     }
 
     // Cache old render args
-    ViewFrustum* viewFrustum = args->_viewFrustum;
     RenderArgs::RenderMode mode = args->_renderMode;
 
-    auto nearClip = viewFrustum->getNearClip();
+    auto nearClip = args->getViewFrustum().getNearClip();
     float nearDepth = -args->_boomOffset.z;
     const int SHADOW_FAR_DEPTH = 20;
-    globalLight->shadow.setKeylightFrustum(viewFrustum, nearDepth, nearClip + SHADOW_FAR_DEPTH);
+    globalLight->shadow.setKeylightFrustum(args->getViewFrustum(), nearDepth, nearClip + SHADOW_FAR_DEPTH);
 
     // Set the keylight render args
-    args->_viewFrustum = globalLight->shadow.getFrustum().get();
+    args->pushViewFrustum(*(globalLight->shadow.getFrustum()));
     args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
 
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
@@ -165,6 +167,6 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     }
 
     // Reset the render args
-    args->_viewFrustum = viewFrustum;
+    args->popViewFrustum();
     args->_renderMode = mode;
 };

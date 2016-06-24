@@ -55,7 +55,7 @@ public:
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
     
     virtual bool isReadyToComputeShape() { return false; }
-    void updateShapeType(ShapeType type) { _shapeType = type; }
+    void setShapeType(ShapeType type) { _shapeType = type; }
     virtual ShapeType getShapeType() const;
     
     virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
@@ -70,6 +70,11 @@ public:
     const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
+    bool getFlyingAllowed() const { return _flyingAllowed; }
+    void setFlyingAllowed(bool value) { _flyingAllowed = value; }
+    bool getGhostingAllowed() const { return _ghostingAllowed; }
+    void setGhostingAllowed(bool value) { _ghostingAllowed = value; }
+
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
@@ -80,17 +85,22 @@ public:
 
     static const ShapeType DEFAULT_SHAPE_TYPE;
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
-    
+    static const bool DEFAULT_FLYING_ALLOWED;
+    static const bool DEFAULT_GHOSTING_ALLOWED;
+
 protected:
     KeyLightPropertyGroup _keyLightProperties;
-    
+
     ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
-    
+
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
     StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
+
+    bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
+    bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;

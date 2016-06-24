@@ -12,14 +12,21 @@
 #include "Texture.h"
 
 #include <glm/gtc/constants.hpp>
+
+#include <NumericalConstants.h>
+
 #include "GPULogging.h"
 #include "Context.h"
 
+#include "ColorUtils.h"
+
 using namespace gpu;
 
+int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
 std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
 std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
+std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
 void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
     if (prevObjectSize == newObjectSize) {
@@ -46,10 +53,26 @@ uint32_t Texture::getTextureGPUCount() {
 
 Texture::Size Texture::getTextureGPUMemoryUsage() {
     return Context::getTextureGPUMemoryUsage();
-
 }
 
-uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = {1, 1, 1, 6};
+Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
+    return Context::getTextureGPUVirtualMemoryUsage();
+}
+
+uint32_t Texture::getTextureGPUTransferCount() {
+    return Context::getTextureGPUTransferCount();
+}
+
+Texture::Size Texture::getAllowedGPUMemoryUsage() {
+    return _allowedCPUMemoryUsage;
+}
+
+void Texture::setAllowedGPUMemoryUsage(Size size) {
+    qDebug() << "New MAX texture memory " << BYTES_TO_MB(size) << " MB";
+    _allowedCPUMemoryUsage = size;
+}
+
+uint8 Texture::NUM_FACES_PER_TYPE[NUM_TYPES] = { 1, 1, 1, 6 };
 
 Texture::Pixels::Pixels(const Element& format, Size size, const Byte* bytes) :
     _format(format),
@@ -214,13 +237,6 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
     return tex;
 }
 
-Texture* Texture::createFromStorage(Storage* storage) {
-   Texture* tex = new Texture();
-   tex->_storage.reset(storage);
-   storage->assignTexture(tex);
-   return tex;
-}
-
 Texture::Texture():
     Resource()
 {
@@ -330,10 +346,6 @@ uint16 Texture::evalNumMips() const {
     double largerDim = std::max(std::max(_width, _height), _depth);
     double val = log(largerDim)/log(2.0);
     return 1 + (uint16) val;
-}
-
-uint16 Texture::maxMip() const {
-    return _maxMip;
 }
 
 bool Texture::assignStoredMip(uint16 level, const Element& format, Size size, const Byte* bytes) {
@@ -627,18 +639,6 @@ void SphericalHarmonics::assignPreset(int p) {
     }
 }
 
-
-
-glm::vec3 sRGBToLinear(glm::vec3& color) {
-    const float GAMMA_CORRECTION = 2.2f;
-    return glm::pow(color, glm::vec3(GAMMA_CORRECTION));
-}
-
-glm::vec3 linearTosRGB(glm::vec3& color) {
-    const float GAMMA_CORRECTION_INV = 1.0f / 2.2f;
-    return glm::pow(color, glm::vec3(GAMMA_CORRECTION_INV));
-}
-
 // Originial code for the Spherical Harmonics taken from "Sun and Black Cat- Igor Dykhta (igor dykhta email) � 2007-2014 "
 void sphericalHarmonicsAdd(float * result, int order, const float * inputA, const float * inputB) {
    const int numCoeff = order * order;
@@ -793,7 +793,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                             float(data[pixOffsetIndex+2]) * UCHAR_TO_FLOAT);
 
                 // Gamma correct
-                clr = sRGBToLinear(clr);
+                clr = ColorUtils::sRGBToLinearVec3(clr);
 
                 // scale color and add to previously accumulated coefficients
                 sphericalHarmonicsScale(shBuffB.data(), order,
@@ -857,8 +857,8 @@ void TextureSource::reset(const QUrl& url) {
     _imageUrl = url;
 }
 
-void TextureSource::resetTexture(gpu::Texture* texture) {
-    _gpuTexture.reset(texture);
+void TextureSource::resetTexture(gpu::TexturePointer texture) {
+    _gpuTexture = texture;
 }
 
 bool TextureSource::isDefined() const {
@@ -869,3 +869,27 @@ bool TextureSource::isDefined() const {
     }
 }
 
+bool Texture::setMinMip(uint16 newMinMip) {
+    uint16 oldMinMip = _minMip;
+    _minMip = std::min(std::max(_minMip, newMinMip), _maxMip);
+    return oldMinMip != _minMip;
+}
+
+bool Texture::incremementMinMip(uint16 count) {
+    return setMinMip(_minMip + count);
+}
+
+Vec3u Texture::evalMipDimensions(uint16 level) const { 
+    auto dimensions = getDimensions();
+    dimensions >>= level; 
+    return glm::max(dimensions, Vec3u(1));
+}
+
+std::function<uint32(const gpu::Texture& texture)> TEXTURE_ID_RESOLVER;
+
+uint32 Texture::getHardwareId() const {
+    if (TEXTURE_ID_RESOLVER) {
+        return TEXTURE_ID_RESOLVER(*this);
+    }
+    return 0;
+}

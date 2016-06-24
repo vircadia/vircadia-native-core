@@ -28,6 +28,12 @@ bool OculusDisplayPlugin::internalActivate() {
     return result;
 }
 
+void OculusDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
+}
+
 void OculusDisplayPlugin::cycleDebugOutput() {
     if (_session) {
         currentDebugMode = static_cast<ovrPerfHudMode>((currentDebugMode + 1) % ovrPerfHud_Count);
@@ -52,6 +58,16 @@ void OculusDisplayPlugin::customizeContext() {
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {
+    using namespace oglplus;
+    
+    // Present a final black frame to the HMD
+    _compositeFramebuffer->Bound(FramebufferTarget::Draw, [] {
+        Context::ClearColor(0, 0, 0, 1);
+        Context::Clear().ColorBuffer();
+    });
+
+    hmdPresent();
+    
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo.reset();
 #endif
@@ -74,7 +90,7 @@ void blit(const SrcFbo& srcFbo, const DstFbo& dstFbo) {
 
 void OculusDisplayPlugin::hmdPresent() {
 
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentRenderFrameIndex)
+    PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)_currentPresentFrameIndex)
 
     if (!_currentSceneTexture) {
         return;
@@ -84,10 +100,10 @@ void OculusDisplayPlugin::hmdPresent() {
     _sceneFbo->Commit();
     {
         _sceneLayer.SensorSampleTime = _currentPresentFrameInfo.sensorSampleTime;
-        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
-        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.headPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
+        _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentPresentFrameInfo.renderPose);
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
+        ovrResult result = ovr_SubmitFrame(_session, _currentPresentFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             logWarning("Failed to present");
         }

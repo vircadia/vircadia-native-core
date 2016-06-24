@@ -47,10 +47,6 @@ void Tooltip::setImageURL(const QString& imageURL) {
     }
 }
 
-void Tooltip::setVisible(bool visible) {
-    QQuickItem::setVisible(visible);
-}
-
 QString Tooltip::showTip(const QString& title, const QString& description) {
     const QString newTipId = QUuid().createUuid().toString();
 
@@ -84,16 +80,16 @@ void Tooltip::requestHyperlinkImage() {
             // should the network link be removed from UI at a later date.
 
             // we possibly have a valid place name - so ask the API for the associated info
-            AccountManager& accountManager = AccountManager::getInstance();
+            auto accountManager = DependencyManager::get<AccountManager>();
 
             JSONCallbackParameters callbackParams;
             callbackParams.jsonCallbackReceiver = this;
             callbackParams.jsonCallbackMethod = "handleAPIResponse";
 
-            accountManager.sendRequest(GET_PLACE.arg(_title),
-                                       AccountManagerAuth::None,
-                                       QNetworkAccessManager::GetOperation,
-                                       callbackParams);
+            accountManager->sendRequest(GET_PLACE.arg(_title),
+                                        AccountManagerAuth::None,
+                                        QNetworkAccessManager::GetOperation,
+                                        callbackParams);
         }
     }
 }

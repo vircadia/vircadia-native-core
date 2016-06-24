@@ -62,6 +62,10 @@ public:
 
     void createRootElement();
 
+
+    void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
+    bool permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp);
+
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
 
@@ -127,7 +131,7 @@ public:
     EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
-    virtual SpatiallyNestablePointer findByID(const QUuid& id) { return findEntityByID(id); }
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
@@ -194,8 +198,8 @@ public:
 
     void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
 
-    void setSimulation(EntitySimulation* simulation);
-    EntitySimulation* getSimulation() const { return _simulation; }
+    void setSimulation(EntitySimulationPointer simulation);
+    EntitySimulationPointer getSimulation() const { return _simulation; }
 
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
@@ -207,6 +211,7 @@ public:
                             bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;
 
+    glm::vec3 getContentsDimensions();
     float getContentsLargestDimension();
 
     virtual void resetEditStats() override {
@@ -249,6 +254,10 @@ public:
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
 
+    void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
+
+    static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
+
 public slots:
     void callLoader(EntityItemID entityID);
 
@@ -256,7 +265,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
-    void newCollisionSoundURL(const QUrl& url);
+    void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
 
 protected:
@@ -297,11 +306,10 @@ protected:
     mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
 
-    EntitySimulation* _simulation;
+    EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
     bool _wantTerseEditLogging = false;
-    void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 
 
     // some performance tracking properties - only used in server trees
@@ -324,9 +332,13 @@ protected:
 
     void fixupMissingParents(); // try to hook members of _missingParent to parent instances
     QVector<EntityItemWeakPointer> _missingParent; // entites with a parentID but no (yet) known parent instance
+    mutable QReadWriteLock _missingParentLock;
+
     // we maintain a list of avatarIDs to notice when an entity is a child of one.
     QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server
     QHash<QUuid, QSet<EntityItemID>> _childrenOfAvatars;  // which entities are children of which avatars
+
+    float _maxTmpEntityLifetime { DEFAULT_MAX_TMP_ENTITY_LIFETIME };
 };
 
 #endif // hifi_EntityTree_h

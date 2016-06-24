@@ -16,10 +16,12 @@
 
 #include <AABox.h>
 #include <AudioHRTF.h>
+#include <AudioLimiter.h>
 #include <UUIDHasher.h>
 
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
+
 
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
@@ -58,6 +60,11 @@ public:
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
+    // uses randomization to have the AudioMixer send a stats packet to this node around every second
+    bool shouldSendStats(int frameNumber);
+
+    AudioLimiter audioLimiter;
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
@@ -72,6 +79,8 @@ private:
     quint16 _outgoingMixedAudioSequenceNumber;
 
     AudioStreamStats _downstreamAudioStreamStats;
+
+    int _frameToSendStats { 0 };
 };
 
 #endif // hifi_AudioMixerClientData_h

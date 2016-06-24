@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 
 #ifdef _WIN32
 #include <math.h>
@@ -338,21 +339,18 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
         }
     });
 
-    int nonZeroSamples = 0;
+    // use the per listner AudioLimiter to render the mixed data...
+    listenerNodeData->audioLimiter.render(_mixedSamples, _clampedSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-    // enumerate the mixed samples and clamp any samples outside the min/max
-    // also check if we ended up with a silent frame
+    // check for silent audio after the peak limitor has converted the samples
+    bool hasAudio = false;
     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-
-        _clampedSamples[i] = int16_t(glm::clamp(int(_mixedSamples[i] * AudioConstants::MAX_SAMPLE_VALUE),
-                                                AudioConstants::MIN_SAMPLE_VALUE,
-                                                AudioConstants::MAX_SAMPLE_VALUE));
-        if (_clampedSamples[i] != 0.0f) {
-            ++nonZeroSamples;
+        if (_clampedSamples[i] != 0) {
+            hasAudio = true;
+            break;
         }
     }
-
-    return (nonZeroSamples > 0);
+    return hasAudio;
 }
 
 void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
@@ -577,14 +575,14 @@ void AudioMixer::domainSettingsRequestComplete() {
 void AudioMixer::broadcastMixes() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    int64_t nextFrame = 0;
-    QElapsedTimer timer;
-    timer.start();
-
-    int64_t usecToSleep = AudioConstants::NETWORK_FRAME_USECS;
+    auto nextFrameTimestamp = p_high_resolution_clock::now();
+    auto timeToSleep = std::chrono::microseconds(0);
 
     const int TRAILING_AVERAGE_FRAMES = 100;
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
+
+    int currentFrame { 1 };
+    int numFramesPerSecond { (int) ceil(AudioConstants::NETWORK_FRAMES_PER_SEC) };
 
     while (!_isFinished) {
         const float STRUGGLE_TRIGGER_SLEEP_PERCENTAGE_THRESHOLD = 0.10f;
@@ -595,12 +593,12 @@ void AudioMixer::broadcastMixes() {
         const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
         const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
 
-        if (usecToSleep < 0) {
-            usecToSleep = 0;
+        if (timeToSleep.count() < 0) {
+            timeToSleep = std::chrono::microseconds(0);
         }
 
         _trailingSleepRatio = (PREVIOUS_FRAMES_RATIO * _trailingSleepRatio)
-            + (usecToSleep * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
+            + (timeToSleep.count() * CURRENT_FRAME_RATIO / (float) AudioConstants::NETWORK_FRAME_USECS);
 
         float lastCutoffRatio = _performanceThrottlingRatio;
         bool hasRatioChanged = false;
@@ -694,10 +692,11 @@ void AudioMixer::broadcastMixes() {
                     nodeList->sendPacket(std::move(mixPacket), *node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
-                    static const int FRAMES_PER_SECOND = int(ceilf(1.0f / AudioConstants::NETWORK_FRAME_SECS));
-
                     // send an audio stream stats packet to the client approximately every second
-                    if (nextFrame % FRAMES_PER_SECOND == 0) {
+                    ++currentFrame;
+                    currentFrame %= numFramesPerSecond;
+
+                    if (nodeData->shouldSendStats(currentFrame)) {
                         nodeData->sendAudioStreamStatsPackets(node);
                     }
 
@@ -718,11 +717,14 @@ void AudioMixer::broadcastMixes() {
             break;
         }
 
-        usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - (timer.nsecsElapsed() / 1000);
+        // push the next frame timestamp to when we should send the next
+        nextFrameTimestamp += std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
 
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
+        // sleep as long as we need until next frame, if we can
+        auto now = p_high_resolution_clock::now();
+        timeToSleep = std::chrono::duration_cast<std::chrono::microseconds>(nextFrameTimestamp - now);
+
+        std::this_thread::sleep_for(timeToSleep);
     }
 }
 

@@ -33,6 +33,16 @@ QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as uni
 
 const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default material name";
 
+namespace {
+template<class T>
+T& checked_at(QVector<T>& vector, int i) {
+    if (i < 0 || i >= vector.size()) {
+        throw std::out_of_range("index " + std::to_string(i) + "is out of range");
+    }
+    return vector[i];
+}
+}
+
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
 }
 
@@ -455,9 +465,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             FaceGroup faceGroup = faceGroups[meshPartCount];
             bool specifiesUV = false;
             foreach(OBJFace face, faceGroup) {
-                glm::vec3 v0 = vertices[face.vertexIndices[0]];
-                glm::vec3 v1 = vertices[face.vertexIndices[1]];
-                glm::vec3 v2 = vertices[face.vertexIndices[2]];
+                glm::vec3 v0 = checked_at(vertices, face.vertexIndices[0]);
+                glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
+                glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
                 meshPart.triangleIndices.append(mesh.vertices.count()); // not face.vertexIndices into vertices
                 mesh.vertices << v0;
                 meshPart.triangleIndices.append(mesh.vertices.count());
@@ -467,19 +477,19 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
                 glm::vec3 n0, n1, n2;
                 if (face.normalIndices.count()) {
-                    n0 = normals[face.normalIndices[0]];
-                    n1 = normals[face.normalIndices[1]];
-                    n2 = normals[face.normalIndices[2]];
+                    n0 = checked_at(normals, face.normalIndices[0]);
+                    n1 = checked_at(normals, face.normalIndices[1]);
+                    n2 = checked_at(normals, face.normalIndices[2]);
                 } else { // generate normals from triangle plane if not provided
                     n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
                 }
                 mesh.normals << n0 << n1 << n2;
                 if (face.textureUVIndices.count()) {
                     specifiesUV = true;
-                    mesh.texCoords
-                    << textureUVs[face.textureUVIndices[0]]
-                    << textureUVs[face.textureUVIndices[1]]
-                    << textureUVs[face.textureUVIndices[2]];
+                    mesh.texCoords <<
+                    checked_at(textureUVs, face.textureUVIndices[0]) <<
+                    checked_at(textureUVs, face.textureUVIndices[1]) <<
+                    checked_at(textureUVs, face.textureUVIndices[2]);
                 } else {
                     glm::vec2 corner(0.0f, 1.0f);
                     mesh.texCoords << corner << corner << corner;
@@ -613,7 +623,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
     return geometryPtr;
 }
-
 
 void fbxDebugDump(const FBXGeometry& fbxgeo) {
     qCDebug(modelformat) << "---------------- fbxGeometry ----------------";

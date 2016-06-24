@@ -248,7 +248,11 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
     READ_OPTIONAL_STRING(mirrorFlagVar, jsonObj);
 
-    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
+    // animation urls can be relative to the containing url document.
+    auto tempUrl = QUrl(url);
+    tempUrl = jsonUrl.resolved(tempUrl);
+
+    auto node = std::make_shared<AnimClip>(id, tempUrl.toString(), startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     if (!startFrameVar.isEmpty()) {
         node->setStartFrameVar(startFrameVar);
@@ -568,12 +572,13 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 }
 
 AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
-    _url(url),
-    _resource(nullptr) {
-
-    _resource = new Resource(url);
-    connect(_resource, &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
-    connect(_resource, &Resource::failed, this, &AnimNodeLoader::onRequestError);
+    _url(url)
+{
+    _resource = QSharedPointer<Resource>::create(url);
+    _resource->setSelf(_resource);
+    connect(_resource.data(), &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
+    connect(_resource.data(), &Resource::failed, this, &AnimNodeLoader::onRequestError);
+    _resource->ensureLoading();
 }
 
 AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& jsonUrl) {

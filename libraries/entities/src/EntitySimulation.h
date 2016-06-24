@@ -22,8 +22,9 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-typedef QSet<EntityItemPointer> SetOfEntities;
-typedef QVector<EntityItemPointer> VectorOfEntities;
+using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
+using SetOfEntities = QSet<EntityItemPointer>;
+using VectorOfEntities = QVector<EntityItemPointer>;
 
 // the EntitySimulation needs to know when these things change on an entity,
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
@@ -41,11 +42,15 @@ const int DIRTY_SIMULATION_FLAGS =
         Simulation::DIRTY_MATERIAL |
         Simulation::DIRTY_SIMULATOR_ID;
 
-class EntitySimulation : public QObject {
+class EntitySimulation : public QObject, public std::enable_shared_from_this<EntitySimulation> {
 Q_OBJECT
 public:
     EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
+
+    inline EntitySimulationPointer getThisPointer() const {
+        return std::const_pointer_cast<EntitySimulation>(shared_from_this());
+    }
 
     /// \param tree pointer to EntityTree which is stored internally
     void setEntityTree(EntityTreePointer tree);
@@ -92,7 +97,7 @@ protected:
 
     void expireMortalEntities(const quint64& now);
     void callUpdateOnEntitiesThatNeedIt(const quint64& now);
-    void sortEntitiesThatMoved();
+    virtual void sortEntitiesThatMoved();
 
     QMutex _mutex{ QMutex::Recursive };
 

@@ -15,10 +15,8 @@
 #include <qobject.h>
 #include <qvector.h>
 
-#ifdef HAVE_SDL2
 #include <SDL.h>
 #undef main
-#endif
 
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
@@ -26,10 +24,7 @@
 class Joystick : public QObject, public controller::InputDevice {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
-
-#ifdef HAVE_SDL2
     Q_PROPERTY(int instanceId READ getInstanceId)
-#endif
     
 public:
     using Pointer = std::shared_ptr<Joystick>;
@@ -39,33 +34,30 @@ public:
     // Device functions
     virtual controller::Input::NamedVector getAvailableInputs() const override;
     virtual QString getDefaultMappingConfig() const override;
-    virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
     virtual void focusOutEvent() override;
+
+    bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
     
     Joystick() : InputDevice("GamePad") {}
     ~Joystick();
     
-#ifdef HAVE_SDL2
     Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameController);
-#endif
     
     void closeJoystick();
 
-#ifdef HAVE_SDL2
     void handleAxisEvent(const SDL_ControllerAxisEvent& event);
     void handleButtonEvent(const SDL_ControllerButtonEvent& event);
-#endif
     
-#ifdef HAVE_SDL2
     int getInstanceId() const { return _instanceId; }
-#endif
     
 private:
-#ifdef HAVE_SDL2
     SDL_GameController* _sdlGameController;
     SDL_Joystick* _sdlJoystick;
+    SDL_Haptic* _sdlHaptic;
     SDL_JoystickID _instanceId;
-#endif
+
+    mutable controller::Input::NamedVector _availableInputs;
 };
 
 #endif // hifi_Joystick_h

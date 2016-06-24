@@ -32,6 +32,7 @@ typedef std::shared_ptr<Rig> RigPointer;
 // However only specific methods thread-safe.  Noted below.
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
+    Q_OBJECT
 public:
     struct StateHandler {
         AnimVariantMap results;
@@ -41,15 +42,10 @@ public:
     };
 
     struct HeadParameters {
-        float leanSideways = 0.0f; // degrees
-        float leanForward = 0.0f; // degrees
-        float torsoTwist = 0.0f; // degrees
-        bool enableLean = false;
         glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
         glm::quat rigHeadOrientation = glm::quat();  // rig space (-z forward)
         glm::vec3 rigHeadPosition = glm::vec3();     // rig space
         bool isInHMD = false;
-        int leanJointIndex = -1;
         int neckJointIndex = -1;
         bool isTalking = false;
     };
@@ -93,7 +89,6 @@ public:
     QStringList getAnimationRoles() const;
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);
-    void prefetchAnimation(const QString& url);
 
     void initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset);
     void reset(const FBXGeometry& geometry);
@@ -104,12 +99,6 @@ public:
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
-    // geometry space
-    bool getJointStateRotation(int index, glm::quat& rotation) const;
-
-    // geometry space
-    bool getJointStateTranslation(int index, glm::vec3& translation) const;
-
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
@@ -119,8 +108,6 @@ public:
 
     // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
-
-    // geometry space
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
 
     // legacy
@@ -202,8 +189,6 @@ public:
     // rig space
     bool getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const;
 
-    const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
-
     // rig space
     AnimPose getAbsoluteDefaultPose(int index) const;
 
@@ -223,13 +208,15 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
- protected:
+signals:
+    void onLoadComplete();
+
+protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
                                  glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;
@@ -238,6 +225,7 @@ public:
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
+    AnimPose _invGeometryOffset;
 
     struct PoseSet {
         AnimPoseVec _relativePoses; // geometry space relative to parent.
@@ -271,7 +259,6 @@ public:
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
-    glm::vec3 _eyesInRootFrame { Vectors::ZERO };
 
     QUrl _animGraphURL;
     std::shared_ptr<AnimNode> _animNode;
@@ -289,13 +276,28 @@ public:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
-    enum class UserAnimState {
-        None = 0,
-        A,
-        B
+
+    struct UserAnimState {
+        enum ClipNodeEnum {
+            None = 0,
+            A,
+            B
+        };
+
+        UserAnimState() : clipNodeEnum(UserAnimState::None) {}
+        UserAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
     };
-    UserAnimState _userAnimState { UserAnimState::None };
-    QString _currentUserAnimURL;
+
+    UserAnimState _userAnimState;
+
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
 
@@ -303,7 +305,6 @@ public:
     SimpleMovingAverage _averageLateralSpeed { 10 };
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
-    std::vector<AnimNode::Pointer> _prefetchedAnimations;
 
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };

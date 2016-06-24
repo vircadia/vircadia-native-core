@@ -45,7 +45,7 @@ public:
     };
     
     AudioInjector(QObject* parent);
-    AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
+    AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
     bool isFinished() const { return _state == State::Finished; }
@@ -60,7 +60,7 @@ public:
 
     static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
     static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
-    static AudioInjector* playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position);
+    static AudioInjector* playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position);
 
 public slots:
     void restart();

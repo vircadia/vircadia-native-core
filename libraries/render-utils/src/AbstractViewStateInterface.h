@@ -28,14 +28,14 @@ class PickRay;
 /// Interface provided by Application to other objects that need access to the current view state details
 class AbstractViewStateInterface {
 public:
-    /// gets the current view frustum for rendering the view state
-    virtual ViewFrustum* getCurrentViewFrustum() = 0;
+    /// copies the current view frustum for rendering the view state
+    virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const = 0;
 
-    /// gets the shadow view frustum for rendering the view state
-    virtual ViewFrustum* getShadowViewFrustum() = 0;
+    /// copies the shadow view frustum for rendering the view state
+    virtual void copyShadowViewFrustum(ViewFrustum& viewOut) const = 0;
 
     virtual QThread* getMainThread() = 0;
-    
+
     virtual PickRay computePickRay(float x, float y) const = 0;
 
     virtual glm::vec3 getAvatarPosition() const = 0;
@@ -46,7 +46,7 @@ public:
     virtual render::ScenePointer getMain3DScene() = 0;
     virtual render::EnginePointer getRenderEngine() = 0;
 
-    virtual void pushPreRenderLambda(void* key, std::function<void()> func) = 0;
+    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) = 0;
 
     // FIXME - we shouldn't assume that there's a single instance of an AbstractViewStateInterface
     static AbstractViewStateInterface* instance();

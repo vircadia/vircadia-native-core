@@ -46,6 +46,20 @@ protected:
     btRigidBody* _me;
 };
 
+CharacterController::CharacterMotor::CharacterMotor(const glm::vec3& vel, const glm::quat& rot, float horizTimescale, float vertTimescale) {
+    velocity = glmToBullet(vel);
+    rotation = glmToBullet(rot);
+    hTimescale = horizTimescale;
+    if (hTimescale < MIN_CHARACTER_MOTOR_TIMESCALE) {
+        hTimescale = MIN_CHARACTER_MOTOR_TIMESCALE;
+    }
+    vTimescale = vertTimescale;
+    if (vTimescale < 0.0f) {
+        vTimescale = hTimescale;
+    } else if (vTimescale < MIN_CHARACTER_MOTOR_TIMESCALE) {
+        vTimescale = MIN_CHARACTER_MOTOR_TIMESCALE;
+    }
+}
 
 CharacterController::CharacterController() {
    _halfHeight = 1.0f;
@@ -70,6 +84,17 @@ CharacterController::CharacterController() {
     _hasSupport = false;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
+}
+
+CharacterController::~CharacterController() {
+    if (_rigidBody) {
+        btCollisionShape* shape = _rigidBody->getCollisionShape();
+        if (shape) {
+            delete shape;
+        }
+        delete _rigidBody;
+        _rigidBody = nullptr;
+    }
 }
 
 bool CharacterController::needsRemoval() const {
@@ -162,60 +187,16 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     _hasSupport = checkForSupport(collisionWorld);
 }
 
+const btScalar MIN_TARGET_SPEED = 0.001f;
+const btScalar MIN_TARGET_SPEED_SQUARED = MIN_TARGET_SPEED * MIN_TARGET_SPEED;
+
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
-
-    const btScalar MIN_SPEED = 0.001f;
-
-    btVector3 actualVelocity = _rigidBody->getLinearVelocity() - _parentVelocity;
-    if (actualVelocity.length() < MIN_SPEED) {
-        actualVelocity = btVector3(0.0f, 0.0f, 0.0f);
-    }
-
-    btVector3 desiredVelocity = _targetVelocity;
-    if (desiredVelocity.length() < MIN_SPEED) {
-        desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
-    }
-
-    // decompose into horizontal and vertical components.
-    btVector3 actualVertVelocity = actualVelocity.dot(_currentUp) * _currentUp;
-    btVector3 actualHorizVelocity = actualVelocity - actualVertVelocity;
-    btVector3 desiredVertVelocity = desiredVelocity.dot(_currentUp) * _currentUp;
-    btVector3 desiredHorizVelocity = desiredVelocity - desiredVertVelocity;
-
-    btVector3 finalVelocity;
-
-    switch (_state) {
-    case State::Ground:
-    case State::Takeoff:
-        {
-            // horizontal ground control
-            const btScalar WALK_ACCELERATION_TIMESCALE = 0.1f;
-            btScalar tau = dt / WALK_ACCELERATION_TIMESCALE;
-            finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity + actualVertVelocity;
-        }
-        break;
-    case State::InAir:
-        {
-            // horizontal air control
-            const btScalar IN_AIR_ACCELERATION_TIMESCALE = 2.0f;
-            btScalar tau = dt / IN_AIR_ACCELERATION_TIMESCALE;
-            finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity + actualVertVelocity;
-        }
-        break;
-    case State::Hover:
-        {
-            // vertical and horizontal air control
-            const btScalar FLY_ACCELERATION_TIMESCALE = 0.2f;
-            btScalar tau = dt / FLY_ACCELERATION_TIMESCALE;
-            finalVelocity = tau * desiredVelocity + (1.0f - tau) * actualVelocity;
-        }
-        break;
-    }
-
-    _rigidBody->setLinearVelocity(finalVelocity + _parentVelocity);
+    btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
+    computeNewVelocity(dt, velocity);
+    _rigidBody->setLinearVelocity(velocity + _parentVelocity);
 
     // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
-    // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
+    // Rather than add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
 
     const float MINIMUM_TIME_REMAINING = 0.005f;
@@ -283,6 +264,10 @@ void CharacterController::setState(State desiredState, const char* reason) {
 #else
 void CharacterController::setState(State desiredState) {
 #endif
+    if (!_flyingAllowed && desiredState == State::Hover) {
+        desiredState = State::InAir;
+    }
+
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
         qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
@@ -382,10 +367,6 @@ void CharacterController::getPositionAndOrientation(glm::vec3& position, glm::qu
     }
 }
 
-void CharacterController::setTargetVelocity(const glm::vec3& velocity) {
-    _targetVelocity = glmToBullet(velocity);
-}
-
 void CharacterController::setParentVelocity(const glm::vec3& velocity) {
     _parentVelocity = glmToBullet(velocity);
 }
@@ -419,6 +400,129 @@ glm::vec3 CharacterController::getLinearVelocity() const {
     return velocity;
 }
 
+glm::vec3 CharacterController::getVelocityChange() const {
+    if (_rigidBody) {
+        return bulletToGLM(_velocityChange);
+    }
+    return glm::vec3(0.0f);
+}
+
+void CharacterController::clearMotors() {
+    _motors.clear();
+}
+
+void CharacterController::addMotor(const glm::vec3& velocity, const glm::quat& rotation, float horizTimescale, float vertTimescale) {
+    _motors.push_back(CharacterController::CharacterMotor(velocity, rotation, horizTimescale, vertTimescale));
+}
+
+void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVelocity, std::vector<btVector3>& velocities, std::vector<btScalar>& weights) {
+    assert(index < (int)(_motors.size()));
+    CharacterController::CharacterMotor& motor = _motors[index];
+    if (motor.hTimescale >= MAX_CHARACTER_MOTOR_TIMESCALE && motor.vTimescale >= MAX_CHARACTER_MOTOR_TIMESCALE) {
+        // nothing to do
+        return;
+    }
+
+    // rotate into motor-frame
+    btVector3 axis = motor.rotation.getAxis();
+    btScalar angle = motor.rotation.getAngle();
+    btVector3 velocity = worldVelocity.rotate(axis, -angle);
+
+    if (_state == State::Hover || motor.hTimescale == motor.vTimescale) {
+        // modify velocity
+        btScalar tau = dt / motor.hTimescale;
+        if (tau > 1.0f) {
+            tau = 1.0f;
+        }
+        velocity += (motor.velocity - velocity) * tau;
+
+        // rotate back into world-frame
+        velocity = velocity.rotate(axis, angle);
+
+        // store the velocity and weight
+        velocities.push_back(velocity);
+        weights.push_back(tau);
+    } else {
+        // compute local UP
+        btVector3 up = _currentUp.rotate(axis, -angle);
+
+        // split velocity into horizontal and vertical components
+        btVector3 vVelocity = velocity.dot(up) * up;
+        btVector3 hVelocity = velocity - vVelocity;
+        btVector3 vTargetVelocity = motor.velocity.dot(up) * up;
+        btVector3 hTargetVelocity = motor.velocity - vTargetVelocity;
+
+        // modify each component separately
+        btScalar maxTau = 0.0f;
+        if (motor.hTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
+            btScalar tau = dt / motor.hTimescale;
+            if (tau > 1.0f) {
+                tau = 1.0f;
+            }
+            maxTau = tau;
+            hVelocity += (hTargetVelocity - hVelocity) * tau;
+        }
+        if (motor.vTimescale < MAX_CHARACTER_MOTOR_TIMESCALE) {
+            btScalar tau = dt / motor.vTimescale;
+            if (tau > 1.0f) {
+                tau = 1.0f;
+            }
+            if (tau > maxTau) {
+                maxTau = tau;
+            }
+            vVelocity += (vTargetVelocity - vVelocity) * tau;
+        }
+
+        // add components back together and rotate into world-frame
+        velocity = (hVelocity + vVelocity).rotate(axis, angle);
+
+        // store velocity and weights
+        velocities.push_back(velocity);
+        weights.push_back(maxTau);
+    }
+}
+
+void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
+    if (velocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+        velocity = btVector3(0.0f, 0.0f, 0.0f);
+    }
+
+    // measure velocity changes and their weights
+    std::vector<btVector3> velocities;
+    velocities.reserve(_motors.size());
+    std::vector<btScalar> weights;
+    weights.reserve(_motors.size());
+    for (int i = 0; i < (int)_motors.size(); ++i) {
+        applyMotor(i, dt, velocity, velocities, weights);
+    }
+    assert(velocities.size() == weights.size());
+
+    // blend velocity changes according to relative weights
+    btScalar totalWeight = 0.0f;
+    for (size_t i = 0; i < weights.size(); ++i) {
+        totalWeight += weights[i];
+    }
+    if (totalWeight > 0.0f) {
+        velocity = btVector3(0.0f, 0.0f, 0.0f);
+        for (size_t i = 0; i < velocities.size(); ++i) {
+            velocity += (weights[i] / totalWeight) * velocities[i];
+        }
+    }
+    if (velocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+        velocity = btVector3(0.0f, 0.0f, 0.0f);
+    }
+
+    // 'thrust' is applied at the very end
+    velocity += dt * _linearAcceleration;
+    _targetVelocity = velocity;
+}
+
+void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {
+    btVector3 btVelocity = glmToBullet(velocity);
+    computeNewVelocity(dt, btVelocity);
+    velocity = bulletToGLM(btVelocity);
+}
+
 void CharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
         quint64 now = usecTimestampNow();
@@ -426,9 +530,7 @@ void CharacterController::preSimulation() {
         // slam body to where it is supposed to be
         _rigidBody->setWorldTransform(_characterBodyTransform);
         btVector3 velocity = _rigidBody->getLinearVelocity();
-
-        btVector3 actualVertVelocity = velocity.dot(_currentUp) * _currentUp;
-        btVector3 actualHorizVelocity = velocity - actualVertVelocity;
+        _preSimulationVelocity = velocity;
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
@@ -467,6 +569,8 @@ void CharacterController::preSimulation() {
         }
 
         bool jumpButtonHeld = _pendingFlags & PENDING_FLAG_JUMP;
+
+        btVector3 actualHorizVelocity = velocity - velocity.dot(_currentUp) * _currentUp;
         bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
 
         switch (_state) {
@@ -493,10 +597,17 @@ void CharacterController::preSimulation() {
         case State::InAir: {
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
-            } else if (jumpButtonHeld && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
-                SET_STATE(State::Hover, "double jump button");
-            } else if (jumpButtonHeld && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
-                SET_STATE(State::Hover, "jump button held");
+            } else {
+                btVector3 desiredVelocity = _targetVelocity;
+                if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+                    desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
+                }
+                bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
+                if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
+                    SET_STATE(State::Hover, "double jump button");
+                } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
+                    SET_STATE(State::Hover, "jump button held");
+                }
             }
             break;
         }
@@ -520,6 +631,9 @@ void CharacterController::preSimulation() {
 
 void CharacterController::postSimulation() {
     // postSimulation() exists for symmetry and just in case we need to do something here later
+
+    btVector3 velocity = _rigidBody->getLinearVelocity();
+    _velocityChange = velocity - _preSimulationVelocity;
 }
 
 
@@ -532,4 +646,14 @@ bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPositio
     avatarRigidBodyPosition = bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset();
     avatarRigidBodyRotation = bulletToGLM(worldTrans.getRotation());
     return true;
+}
+
+void CharacterController::setFlyingAllowed(bool value) {
+    if (_flyingAllowed != value) {
+        _flyingAllowed = value;
+
+        if (!_flyingAllowed && _state == State::Hover) {
+            SET_STATE(State::InAir, "flying not allowed");
+        }
+    }
 }

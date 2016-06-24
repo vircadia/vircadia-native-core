@@ -9,12 +9,8 @@ var numDynein = 2;
 var numKinesin = 2;
 var percentOnMainMT = 100;
 
-var baseLocation;
-if (USE_LOCAL_HOST === true) {
-    baseLocation = "http://localhost:8080/";
-} else {
-    baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/"
-}
+
+baseLocation = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/"
 
 var WORLD_OFFSET = {
     x: 0,

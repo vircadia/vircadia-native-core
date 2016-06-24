@@ -30,7 +30,7 @@ class OffscreenQmlRenderThread;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
-
+    Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
@@ -55,6 +55,7 @@ public:
         _mouseTranslator = mouseTranslator;
     }
 
+    bool isFocusText() const { return _focusText; }
     void pause();
     void resume();
     bool isPaused() const;
@@ -66,15 +67,21 @@ public:
     QQmlContext* getRootContext();
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
-    virtual bool eventFilter(QObject* originalDestination, QEvent* event);
+    bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
 signals:
     void textureUpdated(unsigned int texture);
+    void focusObjectChanged(QObject* newFocus);
+    void focusTextChanged(bool focusText);
 
 public slots:
     void requestUpdate();
     void requestRender();
     void onAboutToQuit();
+
+protected:
+    bool filterEnabled(QObject* originalDestination, QEvent* event) const;
+    void setFocusText(bool newFocusText);
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
@@ -82,6 +89,7 @@ private:
 
 private slots:
     void updateQuick();
+    void onFocusObjectChanged(QObject* newFocus);
 
 private:
     friend class OffscreenQmlRenderThread;
@@ -94,6 +102,7 @@ private:
     bool _render{ false };
     bool _polish{ true };
     bool _paused{ true };
+    bool _focusText { false };
     uint8_t _maxFps{ 60 };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };

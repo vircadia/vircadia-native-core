@@ -27,7 +27,7 @@
 #include "skin_model_normal_map_vert.h"
 
 #include "model_frag.h"
-#include "model_emissive_frag.h"
+#include "model_unlit_frag.h"
 #include "model_shadow_frag.h"
 #include "model_normal_map_frag.h"
 #include "model_normal_specular_map_frag.h"
@@ -37,13 +37,13 @@
 #include "model_lightmap_normal_specular_map_frag.h"
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
-#include "model_translucent_emissive_frag.h"
+#include "model_translucent_unlit_frag.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
 #include "overlay3D_translucent_frag.h"
-#include "overlay3D_emissive_frag.h"
-#include "overlay3D_translucent_emissive_frag.h"
+#include "overlay3D_unlit_frag.h"
+#include "overlay3D_translucent_unlit_frag.h"
 
 #include "drawOpaqueStencil_frag.h"
 
@@ -75,20 +75,16 @@ gpu::BufferView getDefaultMaterialBuffer() {
 
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
     // Set a default albedo map
-    batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
         DependencyManager::get<TextureCache>()->getWhiteTexture());
     // Set a default normal map
-    batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::NORMAL_FITTING,
         DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    // Set default coordinates
-    if (pipeline.locations->texcoordMatrices >= 0) {
-        static const glm::mat4 TEX_COORDS[2];
-        batch._glUniformMatrix4fv(pipeline.locations->texcoordMatrices, 2, false, (const float*)&TEX_COORDS);
-    }
+
     // Set a default material
     if (pipeline.locations->materialBufferUnit >= 0) {
         static const gpu::BufferView OPAQUE_SCHEMA_BUFFER = getDefaultMaterialBuffer();
-        batch.setUniformBuffer(ShapePipeline::Slot::MATERIAL_GPU, OPAQUE_SCHEMA_BUFFER);
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, OPAQUE_SCHEMA_BUFFER);
     }
 }
 
@@ -98,7 +94,7 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
     if (pipeline.locations->lightBufferUnit >= 0) {
         DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
             pipeline.locations->lightBufferUnit,
-            -1);
+            pipeline.locations->lightAmbientMapUnit);
     }
 }
 
@@ -106,13 +102,13 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
     auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
     auto pixelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_translucent_frag));
-    auto pixelEmissive = gpu::Shader::createPixel(std::string(overlay3D_emissive_frag));
-    auto pixelTranslucentEmissive = gpu::Shader::createPixel(std::string(overlay3D_translucent_emissive_frag));
+    auto pixelUnlit = gpu::Shader::createPixel(std::string(overlay3D_unlit_frag));
+    auto pixelTranslucentUnlit = gpu::Shader::createPixel(std::string(overlay3D_translucent_unlit_frag));
 
     auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);
     auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
-    auto emissiveOpaqueProgram = gpu::Shader::createProgram(vertex, pixelEmissive);
-    auto emissiveTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentEmissive);
+    auto unlitOpaqueProgram = gpu::Shader::createProgram(vertex, pixelUnlit);
+    auto unlitTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentUnlit);
 
     for (int i = 0; i < 8; i++) {
         bool isCulled = (i & 1);
@@ -142,9 +138,9 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         isOpaque ? builder.withOpaque() : builder.withTranslucent();
 
         auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
-        auto emissiveProgram = isOpaque ? emissiveOpaqueProgram : emissiveTranslucentProgram;
-        plumber.addPipeline(builder.withoutEmissive().build(), simpleProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withEmissive().build(), emissiveProgram, state, &batchSetter);
+        auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
+        plumber.addPipeline(builder.withoutUnlit().build(), simpleProgram, state, &lightBatchSetter);
+        plumber.addPipeline(builder.withUnlit().build(), unlitProgram, state, &batchSetter);
     }
 }
 
@@ -205,12 +201,12 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
 
     // Pixel shaders
     auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
-    auto modelEmissivePixel = gpu::Shader::createPixel(std::string(model_emissive_frag));
+    auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
     auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
     auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
     auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(model_translucent_frag));
-    auto modelTranslucentEmissivePixel = gpu::Shader::createPixel(std::string(model_translucent_emissive_frag));
+    auto modelTranslucentUnlitPixel = gpu::Shader::createPixel(std::string(model_translucent_unlit_frag));
     auto modelShadowPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
     auto modelLightmapPixel = gpu::Shader::createPixel(std::string(model_lightmap_frag));
     auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));
@@ -223,8 +219,8 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder(),
         modelVertex, modelPixel);
     addPipeline(
-        Key::Builder().withEmissive(),
-        modelVertex, modelEmissivePixel);
+        Key::Builder().withUnlit(),
+        modelVertex, modelUnlitPixel);
     addPipeline(
         Key::Builder().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
@@ -239,8 +235,8 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         Key::Builder().withTranslucent(),
         modelVertex, modelTranslucentPixel);
     addPipeline(
-        Key::Builder().withTranslucent().withEmissive(),
-        modelVertex, modelTranslucentEmissivePixel);
+        Key::Builder().withTranslucent().withUnlit(),
+        modelVertex, modelTranslucentUnlitPixel);
     addPipeline(
         Key::Builder().withTranslucent().withTangents(),
         modelNormalMapVertex, modelTranslucentPixel);
@@ -300,4 +296,5 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
+
 }

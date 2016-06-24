@@ -1,21 +1,22 @@
 var fs = require('fs');
 var path = require('path');
 
-exports.searchPaths = function(name, binaryType, releaseType) {
-    function platformExtension(name) {
-        if (name == "Interface" || name == "High Fidelity") {
-            if (process.platform == "darwin") {
-                return ".app/Contents/MacOS/" + name
-            } else if (process.platform == "win32") {
-                return ".exe"
-            } else {
-                return ""
-            }
+function platformExtension(name) {
+    if (name == "Interface") {
+        if (process.platform == "darwin") {
+            return ".app/Contents/MacOS/" + name
+        } else if (process.platform == "win32") {
+            return ".exe"
         } else {
-            return process.platform == "win32" ? ".exe" : ""
+            return ""
         }
+    } else {
+        return process.platform == "win32" ? ".exe" : ""
     }
+}
 
+
+exports.searchPaths = function(name, binaryType, releaseType) {
     var extension = platformExtension(name);
     var devBasePath = "../build/" + name + "/";
 
@@ -68,6 +69,7 @@ exports.discoveredPath = function (name, binaryType, releaseType) {
 
             try {
                 var stats = fs.lstatSync(testPath);
+                var extension = platformExtension(name);
 
                 if (stats.isFile() || (stats.isDirectory() && extension == ".app")) {
                     console.log("Found " + name + " at " + testPath);
@@ -79,11 +81,6 @@ exports.discoveredPath = function (name, binaryType, releaseType) {
         }
 
         return null;
-    }
-
-    // for a released server console on OS X, assume the name of the interface executable is "High Fidelity"
-    if (releaseType && process.platform == "darwin" && name == "Interface") {
-        name = "High Fidelity";
     }
 
     // attempt to find a binary at the usual paths, return null if it doesn't exist

@@ -71,7 +71,7 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) { _entitiesScriptEngine = engine; }
+    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
     float calculateCost(float mass, float oldVelocity, float newVelocity);
 public slots:
 
@@ -80,9 +80,10 @@ public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to rez new entities
     Q_INVOKABLE bool canRez();
+    Q_INVOKABLE bool canRezTmp();
 
     /// adds a model with the specific properties
-    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties);
+    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool clientOnly = false);
 
     /// temporary method until addEntity can be used from QJSEngine
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position);
@@ -171,6 +172,7 @@ public slots:
 
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
+    Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
 signals:
@@ -178,6 +180,7 @@ signals:
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
+    void canRezTmpChanged(bool canRez);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
@@ -200,11 +203,11 @@ signals:
     void debitEnergySource(float value);
 
 private:
-    bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
+    bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
-    
+
     EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
                                                      EntityTypes::EntityType entityType = EntityTypes::Unknown);
 
@@ -214,6 +217,8 @@ private:
         bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     EntityTreePointer _entityTree;
+
+    std::recursive_mutex _entitiesScriptEngineLock;
     EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
     
     bool _bidOnSimulationOwnership { false };

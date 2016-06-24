@@ -9,6 +9,7 @@
 
 #include "sdf_text3D_vert.h"
 #include "sdf_text3D_frag.h"
+#include "sdf_text3D_overlay_frag.h"
 
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
@@ -46,15 +47,15 @@ struct QuadBuilder {
 
 
 
-static QHash<QString, Font*> LOADED_FONTS;
+static QHash<QString, Font::Pointer> LOADED_FONTS;
 
-Font* Font::load(QIODevice& fontFile) {
-    Font* result = new Font();
-    result->read(fontFile);
-    return result;
+Font::Pointer Font::load(QIODevice& fontFile) {
+    Pointer font = std::make_shared<Font>();
+    font->read(fontFile);
+    return font;
 }
 
-Font* Font::load(const QString& family) {
+Font::Pointer Font::load(const QString& family) {
     if (!LOADED_FONTS.contains(family)) {
 
         static const QString SDFF_COURIER_PRIME_FILENAME{ ":/CourierPrime.sdff" };
@@ -220,10 +221,13 @@ void Font::setupGPU() {
         {
             auto vertexShader = gpu::Shader::createVertex(std::string(sdf_text3D_vert));
             auto pixelShader = gpu::Shader::createPixel(std::string(sdf_text3D_frag));
+            auto pixelShaderOverlay = gpu::Shader::createPixel(std::string(sdf_text3D_overlay_frag));
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
+            gpu::ShaderPointer programOverlay = gpu::Shader::createProgram(vertexShader, pixelShaderOverlay);
 
             gpu::Shader::BindingSet slotBindings;
             gpu::Shader::makeProgram(*program, slotBindings);
+            gpu::Shader::makeProgram(*programOverlay, slotBindings);
 
             _fontLoc = program->getTextures().findLocation("Font");
             _outlineLoc = program->getUniforms().findLocation("Outline");
@@ -237,9 +241,10 @@ void Font::setupGPU() {
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
             _pipeline = gpu::Pipeline::create(program, state);
 
-            auto layeredState = std::make_shared<gpu::State>(state->getValues());
-            layeredState->setDepthTest(false);
-            _layeredPipeline = gpu::Pipeline::create(program, layeredState);
+            auto layeredState = std::make_shared<gpu::State>();
+            layeredState->setCullMode(gpu::State::CULL_BACK);
+            layeredState->setDepthTest(true, true, gpu::LESS_EQUAL);
+            _layeredPipeline = gpu::Pipeline::create(programOverlay, layeredState);
         }
 
         // Sanity checks
@@ -358,7 +363,7 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
     
     // need the gamma corrected color here
-    glm::vec4 lrgba = glm::vec4(ColorUtils::toLinearVec3(glm::vec3(*color)), color->a);
+    glm::vec4 lrgba = ColorUtils::sRGBToLinearVec4(*color);
     batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
 
     batch.setInputFormat(_format);

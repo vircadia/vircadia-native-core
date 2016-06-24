@@ -1,5 +1,5 @@
 //
-//  CullTask.cpp
+//  SortTask.cpp
 //  render/src/render
 //
 //  Created by Sam Gateau on 2/2/16.
@@ -42,7 +42,7 @@ struct BackToFrontSort {
 
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
@@ -60,7 +60,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     for (auto itemDetails : inItems) {
         auto item = scene->getItem(itemDetails.id);
         auto bound = itemDetails.bound; // item.getBound();
-        float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
+        float distance = args->getViewFrustum().distanceToCamera(bound.calcCenter());
 
         itemBoundSorts.emplace_back(ItemBoundSort(distance, distance, distance, itemDetails.id, bound));
     }

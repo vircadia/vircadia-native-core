@@ -33,7 +33,7 @@ public:
     QObject* getEventHandler();
 
     void update(const quint64& now) override;
-    bool needsToCallUpdate() const { return _webSurface != nullptr; }
+    bool needsToCallUpdate() const override { return _webSurface != nullptr; }
 
     SIMPLE_RENDERABLE();
 

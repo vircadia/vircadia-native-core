@@ -19,7 +19,7 @@
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
 
-#include "ProceduralShaders.h"
+#include "ProceduralCommon_frag.h"
 
 // Userdata parsing constants
 static const QString PROCEDURAL_USER_DATA_KEY = "ProceduralEntity";
@@ -39,6 +39,7 @@ static const std::string STANDARD_UNIFORM_NAMES[Procedural::NUM_STANDARD_UNIFORM
     "iFrameCount",
     "iWorldScale",
     "iWorldPosition",
+    "iWorldOrientation",
     "iChannelResolution"
 };
 
@@ -95,13 +96,11 @@ bool Procedural::parseVersion(const QJsonValue& version) {
 
 bool Procedural::parseUrl(const QUrl& shaderUrl) {
     if (!shaderUrl.isValid()) {
-        qWarning() << "Invalid shader URL: " << shaderUrl;
+        if (!shaderUrl.isEmpty()) {
+            qWarning() << "Invalid shader URL: " << shaderUrl;
+        }
         _networkShader.reset();
         return false;
-    }
-
-    if (_shaderUrl == shaderUrl) {
-        return true;
     }
 
     _shaderUrl = shaderUrl;
@@ -206,9 +205,10 @@ bool Procedural::ready() {
     return true;
 }
 
-void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size) {
+void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation) {
     _entityDimensions = size;
     _entityPosition = position;
+    _entityOrientation = glm::mat3_cast(orientation);
     if (_shaderUrl.isLocalFile()) {
         auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
@@ -231,7 +231,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         std::string fragmentShaderSource = _fragmentSource;
         size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
         if (replaceIndex != std::string::npos) {
-            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), SHADER_COMMON);
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag);
         }
 
         replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);
@@ -408,10 +408,10 @@ void Procedural::setupUniforms() {
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[SCALE]) {
+    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[ORIENTATION]) {
         // FIXME move into the 'set once' section, since this doesn't change over time
         _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[SCALE], _entityDimensions);
+            batch._glUniform(_standardUniformSlots[ORIENTATION], _entityOrientation);
         });
     }
 

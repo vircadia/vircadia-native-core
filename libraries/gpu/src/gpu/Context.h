@@ -34,10 +34,13 @@ public:
     int _ISNumIndexBufferChanges = 0;
 
     int _RSNumTextureBounded = 0;
+    int _RSAmountTextureMemoryBounded = 0;
 
     int _DSNumAPIDrawcalls = 0;
     int _DSNumDrawcalls = 0;
     int _DSNumTriangles = 0;
+
+    int _PSNumSetPipelines = 0;
  
     ContextStats() {}
     ContextStats(const ContextStats& stats) = default;
@@ -92,7 +95,7 @@ public:
     virtual void syncCache() = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-    // UBO class... layout MUST match the layout in TransformCamera.slh
+    // UBO class... layout MUST match the layout in Transform.slh
     class TransformCamera {
     public:
         mutable Mat4 _view;
@@ -128,6 +131,9 @@ public:
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+    static void updateTextureGPUVirtualMemoryUsage(Resource::Size prevObjectSize, Resource::Size newObjectSize);
+    static void incrementTextureGPUTransferCount();
+    static void decrementTextureGPUTransferCount();
 
 protected:
     StereoState  _stereo;
@@ -177,6 +183,8 @@ public:
 
     static uint32_t getTextureGPUCount();
     static Size getTextureGPUMemoryUsage();
+    static Size getTextureGPUVirtualMemoryUsage();
+    static uint32_t getTextureGPUTransferCount();
 
 protected:
     Context(const Context& context);
@@ -199,9 +207,13 @@ protected:
     static void incrementBufferGPUCount();
     static void decrementBufferGPUCount();
     static void updateBufferGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+
     static void incrementTextureGPUCount();
     static void decrementTextureGPUCount();
     static void updateTextureGPUMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void updateTextureGPUVirtualMemoryUsage(Size prevObjectSize, Size newObjectSize);
+    static void incrementTextureGPUTransferCount();
+    static void decrementTextureGPUTransferCount();
 
     // Buffer and Texture Counters
     static std::atomic<uint32_t> _bufferGPUCount;
@@ -209,6 +221,9 @@ protected:
 
     static std::atomic<uint32_t> _textureGPUCount;
     static std::atomic<Size> _textureGPUMemoryUsage;
+    static std::atomic<Size> _textureGPUVirtualMemoryUsage;
+    static std::atomic<uint32_t> _textureGPUTransferCount;
+
 
     friend class Backend;
 };

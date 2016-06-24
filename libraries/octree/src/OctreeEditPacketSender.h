@@ -75,7 +75,7 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew) { }
+    virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) { }
 
     void processNackPacket(ReceivedMessage& message, SharedNodePointer sendingNode);
 
@@ -89,7 +89,7 @@ protected:
     void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
     void queuePendingPacketToNodes(std::unique_ptr<NLPacket> packet);
     void queuePacketToNodes(std::unique_ptr<NLPacket> packet);
-    std::unique_ptr<NLPacket> initializePacket(PacketType type, int nodeClockSkew);
+    std::unique_ptr<NLPacket> initializePacket(PacketType type, qint64 nodeClockSkew);
     void releaseQueuedPacket(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packetBuffer); // releases specific queued packet
 
     void processPreServerExistsPackets();

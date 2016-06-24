@@ -59,13 +59,13 @@ public:
 
     virtual glm::vec3 getPosition(bool& success) const;
     virtual glm::vec3 getPosition() const;
-    virtual void setPosition(const glm::vec3& position, bool& success);
+    virtual void setPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
     virtual void setPosition(const glm::vec3& position);
 
     virtual glm::quat getOrientation(bool& success) const;
     virtual glm::quat getOrientation() const;
     virtual glm::quat getOrientation(int jointIndex, bool& success) const;
-    virtual void setOrientation(const glm::quat& orientation, bool& success);
+    virtual void setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
     virtual void setOrientation(const glm::quat& orientation);
 
     virtual glm::vec3 getVelocity(bool& success) const;
@@ -102,7 +102,7 @@ public:
     virtual void setLocalTransform(const Transform& transform);
 
     virtual glm::vec3 getLocalPosition() const;
-    virtual void setLocalPosition(const glm::vec3& position);
+    virtual void setLocalPosition(const glm::vec3& position, bool tellPhysics = true);
 
     virtual glm::quat getLocalOrientation() const;
     virtual void setLocalOrientation(const glm::quat& orientation);
@@ -142,6 +142,17 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
+    bool hasAncestorOfType(NestableType nestableType);
+
+    void getLocalTransformAndVelocities(Transform& localTransform,
+                                        glm::vec3& localVelocity,
+                                        glm::vec3& localAngularVelocity) const;
+
+    void setLocalTransformAndVelocities(
+            const Transform& localTransform,
+            const glm::vec3& localVelocity,
+            const glm::vec3& localAngularVelocity);
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
@@ -157,7 +168,7 @@ protected:
     mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
-    virtual void locationChanged(); // called when a this object's location has changed
+    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { } // called when a this object's dimensions have changed
 
     // _queryAACube is used to decide where something lives in the octree

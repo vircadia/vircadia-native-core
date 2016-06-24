@@ -50,6 +50,8 @@ public:
     ScriptsModel* scriptsModel() { return &_scriptsModel; };
     ScriptsModelFilter* scriptsModelFilter() { return &_scriptsModelFilter; };
 
+    QString getDefaultScriptsLocation() const;
+
     Q_INVOKABLE void loadOneScript(const QString& scriptFilename);
     Q_INVOKABLE ScriptEngine* loadScript(const QUrl& scriptFilename = QString(),
         bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
@@ -62,8 +64,11 @@ public:
     Q_INVOKABLE QVariantList getPublic();
     Q_INVOKABLE QVariantList getLocal();
 
+    Q_PROPERTY(QString defaultScriptsPath READ getDefaultScriptsLocation)
+
     // Called at shutdown time
     void shutdownScripting();
+    bool isStopped() const { return _isStopped; }
 
 signals:
     void scriptCountChanged();
@@ -83,20 +88,19 @@ protected:
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEngine* engine);
 
-
-    Setting::Handle<bool> _firstRun { "firstRun", true };
     QReadWriteLock _scriptEnginesHashLock;
     QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
     QSet<ScriptEngine*> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
-    std::atomic<bool> _stoppingAllScripts { false };
     std::list<ScriptInitializer> _scriptInitializers;
     mutable Setting::Handle<QString> _scriptsLocationHandle;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
+    std::atomic<bool> _isStopped { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);
+QString expandScriptPath(const QString& rawPath);
 QUrl expandScriptUrl(const QUrl& rawScriptURL);
 
 #endif // hifi_ScriptEngine_h

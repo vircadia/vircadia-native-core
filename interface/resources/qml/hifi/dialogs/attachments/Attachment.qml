@@ -8,7 +8,7 @@ import "."
 import ".."
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
-import "../../../windows-uit"
+import "../../../windows"
 
 Item {
     height: column.height + 2 * 8

@@ -22,8 +22,7 @@
 
 OctreeRenderer::OctreeRenderer() :
     _tree(NULL),
-    _managedTree(false),
-    _viewFrustum(NULL)
+    _managedTree(false)
 {
 }
 
@@ -74,16 +73,19 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
         bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
         
         OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
-        int clockSkew = sourceNode ? sourceNode->getClockSkewUsec() : 0;
-        int flightTime = arrivedAt - sentAt + clockSkew;
+        qint64 clockSkew = sourceNode ? sourceNode->getClockSkewUsec() : 0;
+        qint64 flightTime = arrivedAt - sentAt + clockSkew;
 
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
 
         if (extraDebugging) {
-            qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
-                   " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld",
-                   debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                   sequence, flightTime, message.getSize(), message.getBytesLeftToRead());
+            qCDebug(octree) << "OctreeRenderer::processDatagram() ... "
+                               "Got Packet Section color:" << packetIsColored <<
+                               "compressed:" << packetIsCompressed <<
+                               "sequence: " <<  sequence << 
+                               "flight: " << flightTime << " usec" <<
+                               "size:" << message.getSize() <<
+                               "data:" << message.getBytesLeftToRead();
         }
         
         _packetsInLastWindow++;
@@ -128,12 +130,16 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
                     packetData.loadFinalizedContent(reinterpret_cast<const unsigned char*>(message.getRawMessage() + message.getPosition()),
                         sectionLength);
                     if (extraDebugging) {
-                        qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
-                            " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld"
-                            " subsection:%d sectionLength:%d uncompressed:%d",
-                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                            sequence, flightTime, message.getSize(), message.getBytesLeftToRead(), subsection, sectionLength,
-                            packetData.getUncompressedSize());
+                        qCDebug(octree) << "OctreeRenderer::processDatagram() ... "
+                            "Got Packet Section color:" << packetIsColored <<
+                            "compressed:" << packetIsCompressed <<
+                            "sequence: " << sequence <<
+                            "flight: " << flightTime << " usec" <<
+                            "size:" << message.getSize() <<
+                            "data:" << message.getBytesLeftToRead() <<
+                            "subsection:" << subsection <<
+                            "sectionLength:" << sectionLength <<
+                            "uncompressed:" << packetData.getUncompressedSize();
                     }
 
                     if (extraDebugging) {
@@ -194,9 +200,9 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
 
 bool OctreeRenderer::renderOperation(OctreeElementPointer element, void* extraData) {
     RenderArgs* args = static_cast<RenderArgs*>(extraData);
-    if (element->isInView(*args->_viewFrustum)) {
+    if (element->isInView(args->getViewFrustum())) {
         if (element->hasContent()) {
-            if (element->calculateShouldRender(args->_viewFrustum, args->_sizeScale, args->_boundaryLevelAdjust)) {
+            if (element->calculateShouldRender(args->getViewFrustum(), args->_sizeScale, args->_boundaryLevelAdjust)) {
                 args->_renderer->renderElement(element, args);
             } else {
                 return false; // if we shouldn't render, then we also should stop recursing.

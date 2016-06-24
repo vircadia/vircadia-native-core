@@ -18,14 +18,14 @@ class Line3DOverlay : public Base3DOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Line3DOverlay();
     Line3DOverlay(const Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
-    virtual AABox getBounds() const;
+    virtual AABox getBounds() const override;
 
     // getters
     const glm::vec3& getStart() const { return _start; }
@@ -38,7 +38,7 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
-    virtual Line3DOverlay* createClone() const;
+    virtual Line3DOverlay* createClone() const override;
 
 protected:
     glm::vec3 _start;

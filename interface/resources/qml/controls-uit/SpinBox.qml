@@ -28,7 +28,7 @@ SpinBox {
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
-    height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
+    height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
 
     y: spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0
 
@@ -51,20 +51,21 @@ SpinBox {
         horizontalAlignment: Qt.AlignLeft
         padding.left: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
         padding.right: hifi.dimensions.spinnerSize
+        padding.top: 0
 
         incrementControl: HiFiGlyphs {
             id: incrementButton
             text: hifi.glyphs.caratUp
-            x: 6
-            y: 2
+            x: 10
+            y: 1
             size: hifi.dimensions.spinnerSize
             color: styleData.upPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
 
         decrementControl: HiFiGlyphs {
             text: hifi.glyphs.caratDn
-            x: 6
-            y: -3
+            x: 10
+            y: -1
             size: hifi.dimensions.spinnerSize
             color: styleData.downPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }

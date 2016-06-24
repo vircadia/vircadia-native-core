@@ -15,23 +15,27 @@ import Qt.labs.settings 1.0
 
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
-import "../../windows-uit"
+import "../../windows"
 
-Window {
+ScrollingWindow {
     id: root
     objectName: "RunningScripts"
     title: "Running Scripts"
     resizable: true
-    destroyOnInvisible: true
-    x: 40; y: 40
-    implicitWidth: 400; implicitHeight: 695
-    minSize: Qt.vector2d(200, 300)
+    destroyOnHidden: true
+    implicitWidth: 424
+    implicitHeight: isHMD ? 695 : 728
+    minSize: Qt.vector2d(424, 300)
 
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property bool isHMD: false
+
+    onVisibleChanged: console.log("Running scripts visible changed to " + visible)
+    onShownChanged: console.log("Running scripts visible changed to " + visible)
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -44,7 +48,10 @@ Window {
         onScriptCountChanged: updateRunningScripts();
     }
 
-    Component.onCompleted: updateRunningScripts()
+    Component.onCompleted: {
+        isHMD = HMD.active;
+        updateRunningScripts();
+    }
 
     function setDefaultFocus() {
         // Work around FocusScope of scrollable window.
@@ -79,6 +86,11 @@ Window {
         scripts.reloadAllScripts();
     }
 
+    function loadDefaults() {
+        console.log("Load default scripts");
+        scripts.loadOneScript(scripts.defaultScriptsPath + "/defaultScripts.js");
+    }
+
     function stopAll() {
         console.log("Stop all scripts");
         scripts.stopAllScripts();
@@ -97,30 +109,110 @@ Window {
                 spacing: hifi.dimensions.contentSpacing.x
 
                 HifiControls.Button {
-                    text: "Reload all"
+                    text: "Reload All"
                     color: hifi.buttons.black
                     onClicked: reloadAll()
                 }
 
                 HifiControls.Button {
-                    text: "Stop all"
+                    text: "Remove All"
                     color: hifi.buttons.red
                     onClicked: stopAll()
                 }
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.Table {
-                tableModel: runningScriptsModel
+                model: runningScriptsModel
+                id: table
                 height: 185
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
                 anchors.right: parent.right
+                expandSelectedRow: true
+
+                itemDelegate: Item {
+                    anchors {
+                        left: parent ? parent.left : undefined
+                        leftMargin: hifi.dimensions.tablePadding
+                        right: parent ? parent.right : undefined
+                        rightMargin: hifi.dimensions.tablePadding
+                    }
+
+                    FiraSansSemiBold {
+                        id: textItem
+                        text: styleData.value
+                        size: hifi.fontSizes.tableText
+                        color: table.colorScheme == hifi.colorSchemes.light
+                                   ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            top: parent.top
+                            topMargin: 3
+                        }
+
+                        HiFiGlyphs {
+                            id: reloadButton
+                            text: hifi.glyphs.reloadSmall
+                            color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
+                            anchors {
+                                top: parent.top
+                                right: stopButton.left
+                                verticalCenter: parent.verticalCenter
+                            }
+                            MouseArea {
+                                id: reloadButtonArea
+                                anchors { fill: parent; margins: -2 }
+                                onClicked: reloadScript(model.url)
+                            }
+                        }
+
+                        HiFiGlyphs {
+                            id: stopButton
+                            text: hifi.glyphs.closeSmall
+                            color: stopButtonArea.pressed ? hifi.colors.white : parent.color
+                            anchors {
+                                top: parent.top
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                            }
+                            MouseArea {
+                                id: stopButtonArea
+                                anchors { fill: parent; margins: -2 }
+                                onClicked: stopScript(model.url)
+                            }
+                        }
+
+                    }
+
+                    FiraSansSemiBold {
+                        text: runningScriptsModel.get(styleData.row) ? runningScriptsModel.get(styleData.row).url : ""
+                        elide: Text.ElideMiddle
+                        size: hifi.fontSizes.tableText
+                        color: table.colorScheme == hifi.colorSchemes.light
+                                   ? (styleData.selected ? hifi.colors.black : hifi.colors.lightGray)
+                                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                        anchors {
+                            top: textItem.bottom
+                            left: parent.left
+                            right: parent.right
+                        }
+                        visible: styleData.selected
+                    }
+                }
+
+                TableViewColumn {
+                    role: "name"
+                }
             }
 
             HifiControls.VerticalSpacer {
-                height: hifi.dimensions.controlInterlineHeight + 2  // Table view draws a little taller than it's height.
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
             }
         }
 
@@ -131,7 +223,6 @@ Window {
 
             Row {
                 spacing: hifi.dimensions.contentSpacing.x
-                anchors.right: parent.right
 
                 HifiControls.Button {
                     text: "from URL"
@@ -169,22 +260,32 @@ Window {
                         onTriggered: ApplicationInterface.loadDialog();
                     }
                 }
+
+                HifiControls.Button {
+                    text: "Load Defaults"
+                    color: hifi.buttons.black
+                    height: 26
+                    onClicked: loadDefaults()
+                }
             }
 
             HifiControls.VerticalSpacer {}
 
             HifiControls.TextField {
                 id: filterEdit
+                isSearchField: true
                 anchors.left: parent.left
                 anchors.right: parent.right
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
-                placeholderText: "filter"
+                placeholderText: "Filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.Tree {
                 id: treeView
@@ -195,7 +296,9 @@ Window {
                 anchors.right: parent.right
             }
 
-            HifiControls.VerticalSpacer {}
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight + 2  // Add space for border
+            }
 
             HifiControls.TextField {
                 id: selectedScript
@@ -236,7 +339,25 @@ Window {
                 }
             }
 
-            HifiControls.VerticalSpacer { }
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight - (!isHMD ? 3 : 0)
+            }
+
+            HifiControls.TextAction {
+                id: directoryButton
+                icon: hifi.glyphs.script
+                iconSize: 24
+                text: "Reveal Scripts Folder"
+                onClicked: fileDialogHelper.openDirectory(scripts.defaultScriptsPath)
+                colorScheme: hifi.colorSchemes.dark
+                anchors.left: parent.left
+                visible: !isHMD
+            }
+
+            HifiControls.VerticalSpacer {
+                height: hifi.dimensions.controlInterlineHeight - 3
+                visible: !isHMD
+            }
         }
     }
 }

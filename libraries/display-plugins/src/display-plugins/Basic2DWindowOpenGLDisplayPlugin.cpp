@@ -13,7 +13,7 @@
 #include <QtGui/QGuiApplication>
 #include <QtWidgets/QAction>
 
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 
@@ -29,8 +29,6 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
                 _container->unsetFullscreen();
             }
         }, true, false);
-
-    updateFramerate();
 
     return Parent::internalActivate();
 }

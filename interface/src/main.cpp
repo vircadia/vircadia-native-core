@@ -25,29 +25,32 @@
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
+#include <thread>
 
 #ifdef HAS_BUGSPLAT
 #include <BuildInfo.h>
 #include <BugSplat.h>
+#include <CrashReporter.h>
 #endif
-
 
 int main(int argc, const char* argv[]) {
-    disableQtBearerPoll(); // Fixes wifi ping spikes
-
 #if HAS_BUGSPLAT
-    // Prevent other threads from hijacking the Exception filter, and allocate 4MB up-front that may be useful in
-    // low-memory scenarios.
-    static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
-    static const char* BUG_SPLAT_DATABASE = "interface_alpha";
-    static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
-    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, qPrintable(BuildInfo::VERSION),
-                             nullptr, BUG_SPLAT_FLAGS };
+    static QString BUG_SPLAT_DATABASE = "interface_alpha";
+    static QString BUG_SPLAT_APPLICATION_NAME = "Interface";
+    CrashReporter crashReporter { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION };
 #endif
+
+    disableQtBearerPoll(); // Fixes wifi ping spikes
     
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
     bool instanceMightBeRunning = true;
+
+    QStringList arguments;
+    for (int i = 0; i < argc; ++i) {
+        arguments << argv[i];
+    }
+
 
 #ifdef Q_OS_WIN
     // Try to create a shared memory block - if it can't be created, there is an instance of
@@ -67,12 +70,6 @@ int main(int argc, const char* argv[]) {
 
         // Try to connect - if we can't connect, interface has probably just gone down
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
-
-            QStringList arguments;
-            for (int i = 0; i < argc; ++i) {
-                arguments << argv[i];
-            }
-
             QCommandLineParser parser;
             QCommandLineOption urlOption("url", "", "value");
             parser.addOption(urlOption);
@@ -105,13 +102,14 @@ int main(int argc, const char* argv[]) {
     // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
     // not made more complicated than it already is.
     bool override = false;
-    QString glVersion;
+    QJsonObject glData;
     {
         OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
         bool valid = true;
-        glVersion = openGLVersionChecker.checkVersion(valid, override);
+        glData = openGLVersionChecker.checkVersion(valid, override);
         if (!valid) {
             if (override) {
+                auto glVersion = glData["version"].toString();
                 qCDebug(interfaceapp, "Running on insufficient OpenGL version: %s.", glVersion.toStdString().c_str());
             } else {
                 qCDebug(interfaceapp, "Early exit due to OpenGL version.");
@@ -129,15 +127,15 @@ int main(int argc, const char* argv[]) {
     const char* CLOCK_SKEW = "--clockSkew";
     const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
     if (clockSkewOption) {
-        int clockSkew = atoi(clockSkewOption);
+        qint64 clockSkew = atoll(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
-        qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
+        qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
     }
 
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    Application::initPlugins();
+    Application::initPlugins(arguments);
 
     int exitCode;
     {
@@ -146,14 +144,14 @@ int main(int argc, const char* argv[]) {
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {
-            auto& accountManager = AccountManager::getInstance();
-            if (accountManager.isLoggedIn()) {
-                UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+            auto accountManager = DependencyManager::get<AccountManager>();
+            if (accountManager->isLoggedIn()) {
+                UserActivityLogger::getInstance().insufficientGLVersion(glData);
             } else {
-                QObject::connect(&AccountManager::getInstance(), &AccountManager::loginComplete, [glVersion](){
+                QObject::connect(accountManager.data(), &AccountManager::loginComplete, [glData](){
                     static bool loggedInsufficientGL = false;
                     if (!loggedInsufficientGL) {
-                        UserActivityLogger::getInstance().insufficientGLVersion(glVersion);
+                        UserActivityLogger::getInstance().insufficientGLVersion(glData);
                         loggedInsufficientGL = true;
                     }
                 });
@@ -167,18 +165,28 @@ int main(int argc, const char* argv[]) {
         server.removeServer(applicationName);
         server.listen(applicationName);
 
-        QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
+        QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
 #ifdef HAS_BUGSPLAT
-        AccountManager& accountManager = AccountManager::getInstance();
-        mpSender.setDefaultUserName(qPrintable(accountManager.getAccountInfo().getUsername()));
-        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
-            mpSender.setDefaultUserName(qPrintable(newUsername));
+        auto accountManager = DependencyManager::get<AccountManager>();
+        crashReporter.mpSender.setDefaultUserName(qPrintable(accountManager->getAccountInfo().getUsername()));
+        QObject::connect(accountManager.data(), &AccountManager::usernameChanged, &app, [&crashReporter](const QString& newUsername) {
+            crashReporter.mpSender.setDefaultUserName(qPrintable(newUsername));
         });
 
         // BugSplat WILL NOT work with file paths that do not use OS native separators.
-        auto logPath = QDir::toNativeSeparators(app.getLogger()->getFilename());
-        mpSender.sendAdditionalFile(qPrintable(logPath));
+        auto logger = app.getLogger();
+        auto logPath = QDir::toNativeSeparators(logger->getFilename());
+        crashReporter.mpSender.sendAdditionalFile(qPrintable(logPath));
+
+        QMetaObject::Connection connection;
+        connection = QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&crashReporter, &connection](QString newFilename) {
+            // We only want to add the first rolled log file (the "beginning" of the log) to BugSplat to ensure we don't exceed the 2MB
+            // zipped limit, so we disconnect here.
+            QObject::disconnect(connection);
+            auto rolledLogPath = QDir::toNativeSeparators(newFilename);
+            crashReporter.mpSender.sendAdditionalFile(qPrintable(rolledLogPath));
+        });
 #endif
 
         printSystemInformation();
@@ -195,7 +203,7 @@ int main(int argc, const char* argv[]) {
     Application::shutdownPlugins();
 
     qCDebug(interfaceapp, "Normal exit.");
-#ifndef DEBUG
+#if !defined(DEBUG) && !defined(Q_OS_LINUX)
     // HACK: exit immediately (don't handle shutdown callbacks) for Release build
     _exit(exitCode);
 #endif

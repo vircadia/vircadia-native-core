@@ -46,8 +46,6 @@ Head::Head(Avatar* owningAvatar) :
     _mouth3(0.0f),
     _mouth4(0.0f),
     _mouthTime(0.0f),
-    _renderLookatVectors(false),
-    _renderLookatTarget(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlinkVelocity(0.0f),
@@ -56,8 +54,6 @@ Head::Head(Avatar* owningAvatar) :
     _deltaPitch(0.0f),
     _deltaYaw(0.0f),
     _deltaRoll(0.0f),
-    _deltaLeanSideways(0.0f),
-    _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
     _lookingAtMeStarted(0),
@@ -72,7 +68,6 @@ void Head::init() {
 
 void Head::reset() {
     _baseYaw = _basePitch = _baseRoll = 0.0f;
-    _leanForward = _leanSideways = 0.0f;
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
@@ -120,13 +115,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             auto eyeTracker = DependencyManager::get<EyeTracker>();
             _isEyeTrackerConnected = eyeTracker->isTracking();
         }
-
-        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-        //  since everyone else will see the full joint rotations for other people.  
-        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-        float currentTwist = getTorsoTwist();
-        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {
@@ -230,7 +218,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     
     _leftEyePosition = _rightEyePosition = getPosition();
-    _eyePosition = calculateAverageEyePosition();
+    _eyePosition = getPosition();
 
     if (!billboard && _owningAvatar) {
         auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
@@ -238,6 +226,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             skeletonModel->getEyePositions(_leftEyePosition, _rightEyePosition);
         }
     }
+
+    _eyePosition = calculateAverageEyePosition();
 }
 
 void Head::calculateMouthShapes() {
@@ -301,33 +291,13 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
     }
 }
 
-void Head::relaxLean(float deltaTime) {
+void Head::relax(float deltaTime) {
     // restore rotation, lean to neutral positions
     const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
     float relaxationFactor = 1.0f - glm::min(deltaTime / LEAN_RELAXATION_PERIOD, 1.0f);
     _deltaYaw *= relaxationFactor;
     _deltaPitch *= relaxationFactor;
     _deltaRoll *= relaxationFactor;
-    _leanSideways *= relaxationFactor;
-    _leanForward *= relaxationFactor;
-    _deltaLeanSideways *= relaxationFactor;
-    _deltaLeanForward *= relaxationFactor;
-}
-
-void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
-}
-
-void Head::renderLookAts(RenderArgs* renderArgs) {
-    renderLookAts(renderArgs, _leftEyePosition, _rightEyePosition);
-}
-
-void Head::renderLookAts(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition) {
-    if (_renderLookatVectors) {
-        renderLookatVectors(renderArgs, leftEyePosition, rightEyePosition, getCorrectedLookAtPosition());
-    }
-    if (_renderLookatTarget) {
-        renderLookatTarget(renderArgs, getCorrectedLookAtPosition());
-    }
 }
 
 void Head::setScale (float scale) {
@@ -434,37 +404,4 @@ float Head::getFinalPitch() const {
 
 float Head::getFinalRoll() const {
     return glm::clamp(_baseRoll + _deltaRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL);
-}
-
-void Head::addLeanDeltas(float sideways, float forward) {
-    _deltaLeanSideways += sideways;
-    _deltaLeanForward += forward;
-}
-
-void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
-    auto& batch = *renderArgs->_batch;
-    auto transform = Transform{};
-    batch.setModelTransform(transform);
-    // FIXME: THe line width of 2.0f is not supported anymore, we ll need a workaround
-
-    glm::vec4 startColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glm::vec4 endColor(1.0f, 1.0f, 1.0f, 0.0f);
-    
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->bindSimpleProgram(batch);
-    geometryCache->renderLine(batch, leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
-    geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
-}
-
-void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) {
-    auto& batch = *renderArgs->_batch;
-    auto transform = Transform{};
-    transform.setTranslation(lookatPosition);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    const float LOOK_AT_TARGET_RADIUS = 0.075f;
-    transform.postScale(LOOK_AT_TARGET_RADIUS);
-    const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(batch, LOOK_AT_TARGET_COLOR);
 }

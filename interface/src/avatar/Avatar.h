@@ -64,6 +64,7 @@ public:
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
+    void updateAvatarEntities();
     void simulate(float deltaTime);
     virtual void simulateAttachments(float deltaTime);
 
@@ -77,9 +78,9 @@ public:
 
     void updateRenderItem(render::PendingChanges& pendingChanges);
 
+    virtual void postUpdate(float deltaTime);
+
     //setters
-    void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
-    void setDisplayingLookatTarget(bool displayingLookatTarget) { getHead()->setRenderLookatTarget(displayingLookatTarget); }
     void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
     bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
@@ -209,7 +210,6 @@ protected:
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
 
-    float _leanScale;
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
@@ -232,11 +232,8 @@ protected:
 
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
-
-    virtual void updateJointMappings() override;
 
     virtual void updatePalms();
 
@@ -251,7 +248,7 @@ private:
     bool _initialized;
     bool _shouldAnimate { true };
     bool _shouldSkipRender { false };
-    bool _isLookAtTarget;
+    bool _isLookAtTarget { false };
 
     float getBoundingRadius() const;
 

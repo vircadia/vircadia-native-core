@@ -1,5 +1,6 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
+import QtGraphicalEffects 1.0
 
 import "."
 
@@ -44,6 +45,12 @@ Overlay {
         }
     }
 
+    ColorOverlay {
+        id: color
+        anchors.fill: image
+        source: image
+    }
+
     function updateSubImage(subImage) {
         var keys = Object.keys(subImage);
         for (var i = 0; i < keys.length; ++i) {
@@ -70,6 +77,7 @@ Overlay {
                 case "alpha": root.opacity = value; break;
                 case "imageURL": image.source = value; break;
                 case "subImage": updateSubImage(value); break;
+                case "color": color.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, root.opacity); break;
                 default: console.log("OVERLAY Unhandled image property " + key);
             }
         }

@@ -13,16 +13,20 @@
 
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QJsonObject>
 
 #include "Config.h"
 #include "GLWidget.h"
+#include "GLHelpers.h"
+
+#define MINIMUM_GL_VERSION 410
 
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
 {
 }
 
-QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
+QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     valid = true;
     override = false;
 
@@ -38,12 +42,12 @@ QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
         messageBox.setStandardButtons(QMessageBox::Ok);
         messageBox.setDefaultButton(QMessageBox::Ok);
         messageBox.exec();
-        return QString();
+        return QJsonObject();
     }
     
     // Retrieve OpenGL version
     glWidget->initializeGL();
-    QString glVersion = QString((const char*)glGetString(GL_VERSION));
+    QJsonObject glData = getGLContextData();
     delete glWidget;
 
     // Compare against minimum
@@ -51,11 +55,13 @@ QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     // - major_number.minor_number 
     // - major_number.minor_number.release_number
     // Reference: https://www.opengl.org/sdk/docs/man/docbook4/xhtml/glGetString.xml
+    const QString version { "version" };
+    QString glVersion = glData[version].toString();
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
     int majorNumber = versionParts[0].toInt();
     int minorNumber = versionParts[1].toInt();
-    int minimumMajorNumber = GPU_CORE_MINIMUM / 100;
-    int minimumMinorNumber = (GPU_CORE_MINIMUM - minimumMajorNumber * 100) / 10;
+    int minimumMajorNumber = MINIMUM_GL_VERSION / 100;
+    int minimumMinorNumber = (MINIMUM_GL_VERSION - minimumMajorNumber * 100) / 10;
     valid = (majorNumber > minimumMajorNumber
         || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
 
@@ -72,5 +78,5 @@ QString OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
         override = messageBox.exec() == QMessageBox::Ignore;
     }
 
-    return glVersion;
+    return glData;
 }

@@ -10,6 +10,7 @@
 //
 
 #include "AddressBarDialog.h"
+#include "Application.h"
 
 #include <QMessageBox>
 
@@ -22,7 +23,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     auto addressManager = DependencyManager::get<AddressManager>();
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
-    connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
     connect(addressManager.data(), &AddressManager::goBackPossible, this, [this] (bool isPossible) {
         if (isPossible != _backEnabled) {
             _backEnabled = isPossible;
@@ -39,15 +39,21 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
 }
 
-void AddressBarDialog::hide() {
-    ((QQuickItem*)parent())->setEnabled(false);
-}
-
 void AddressBarDialog::loadAddress(const QString& address) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
         DependencyManager::get<AddressManager>()->handleLookupString(address);
     }
+}
+
+void AddressBarDialog::loadHome() {
+    qDebug() << "Called LoadHome";
+    QString homeLocation = qApp->getBookmarks()->addressForBookmark(Bookmarks::HOME_BOOKMARK);
+    const QString DEFAULT_HOME_LOCATION = "localhost";
+    if (homeLocation == "") {
+        homeLocation = DEFAULT_HOME_LOCATION;
+    }
+    DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }
 
 void AddressBarDialog::loadBack() {

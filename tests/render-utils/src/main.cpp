@@ -12,10 +12,11 @@
 #include <string>
 #include <vector>
 
-#include <gpu/GLBackend.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/QOpenGLDebugLoggerWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -98,7 +99,7 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 1);
+        setGLFormatVersion(format);
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
@@ -110,7 +111,7 @@ public:
         show();
         makeCurrent();
 
-        gpu::Context::init<gpu::GLBackend>();
+        gpu::Context::init<gpu::gl::GLBackend>();
 
 
         setupDebugLogger(this);
@@ -155,10 +156,6 @@ protected:
 //static const wchar_t* EXAMPLE_TEXT = L"Hello";
 //static const wchar_t* EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
 static const glm::uvec2 QUAD_OFFSET(10, 10);
-
-static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
-        1.0, 0.5, 0.5 }, { 0.5, 0.5, 1.0 } };
-
 
 void testShaderBuild(const char* vs_src, const char * fs_src) {
     auto vs = gpu::Shader::createVertex(std::string(vs_src));

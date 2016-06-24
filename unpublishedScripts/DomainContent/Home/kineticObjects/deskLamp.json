@@ -1,0 +1,131 @@
+{
+    "Entities": [{
+        "color": {
+            "blue": 83,
+            "green": 199,
+            "red": 252
+        },
+        "created": "2016-03-24T22:21:38Z",
+        "cutoff": 90,
+        "dimensions": {
+            "x": 11,
+            "y": 11,
+            "z": 11
+        },
+        "falloffRadius": 0.2,
+        "id": "{47e2c415-854c-4b6a-b71e-06c760675afd}",
+        "intensity": 33,
+        "isSpotlight": 0,
+        "name": "home_light_livingRoomLight",
+        "parentID": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
+        "position": {
+            "x": 0,
+            "y": 0.11,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 20.784608840942383,
+            "x": 1094.28076171875,
+            "y": 449.9404296875,
+            "z": -91.635543823242188
+        },
+        "rotation": {
+            "w": 0.6360476016998291,
+            "x": 0.26325368881225586,
+            "y": -0.27753552794456482,
+            "z": -0.67013490200042725
+        },
+        "type": "Light",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}",
+        "visible": 0
+    }, {
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.obj",
+        "created": "2016-03-22T22:55:11Z",
+        "dimensions": {
+            "x": 0.35158795118331909,
+            "y": 0.27823561429977417,
+            "z": 0.35158795118331909
+        },
+        "dynamic": 1,
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{6c59ca6f-e3f6-42c1-ae4d-1549b5bdaee1}",
+        "modelURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Shade.fbx",
+        "name": "home_model_bulldogShade",
+        "position": {
+            "x": 0.085205078125,
+            "y": 0.5194091796875,
+            "z": 0
+        },
+        "queryAACube": {
+            "scale": 0.56977474689483643,
+            "x": -0.28488737344741821,
+            "y": -0.072393476963043213,
+            "z": -0.28485685586929321
+        },
+        "restitution": 0.20000000298023224,
+        "rotation": {
+            "w": 0.98724901676177979,
+            "x": -0.0033740350045263767,
+            "y": -0.15913932025432587,
+            "z": 0.0016243136487901211
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true}}"
+    }, {
+        "angularVelocity": {
+            "x": 0.0087265009060502052,
+            "y": 0.005478390958160162,
+            "z": 0.0057442504912614822
+        },
+        "collisionsWillMove": 1,
+        "compoundShapeURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.obj",
+        "created": "2016-03-22T22:50:49Z",
+        "dimensions": {
+            "x": 0.26436957716941833,
+            "y": 0.73171323537826538,
+            "z": 0.26436954736709595
+        },
+        "dynamic": 1,
+        "script": "atp:/switches/livingRoomDeskLamp.js",
+        "gravity": {
+            "x": 0,
+            "y": -10,
+            "z": 0
+        },
+        "id": "{f59b50d8-13fb-4ceb-b80a-62cd03428a7c}",
+        "modelURL": "atp:/kineticObjects/lamp/Lamp-Bulldog-Base.fbx",
+        "name": "home_model_BulldogBase",
+        "position": {
+            "x": 0.08642578125,
+            "y": 0.306884765625,
+            "z": 0.00026702880859375
+        },
+        "queryAACube": {
+            "scale": 0.82169753313064575,
+            "x": -0.40962806344032288,
+            "y": -0.41084876656532288,
+            "z": -0.41084876656532288
+        },
+        "rotation": {
+            "w": 0.84690523147583008,
+            "x": 4.9625090468907729e-05,
+            "y": -0.53174382448196411,
+            "z": 4.0798266127239913e-05
+        },
+        "shapeType": "compound",
+        "type": "Model",
+        "userData": "{\"hifiHomeKey\":{\"reset\":true},\"home-switch\":{\"state\":\"off\"}}",
+        "velocity": {
+            "x": -0.0026286719366908073,
+            "y": 0.0016162246465682983,
+            "z": 0.0042029935866594315
+        }
+    }],
+    "Version": 57
+}

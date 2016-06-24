@@ -1,0 +1,917 @@
+{
+    "version": "1.0",
+    "root": {
+        "id": "userAnimStateMachine",
+        "type": "stateMachine",
+        "data": {
+            "currentState": "userAnimNone",
+            "states": [
+                {
+                    "id": "userAnimNone",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "userAnimA", "state": "userAnimA" },
+                        { "var": "userAnimB", "state": "userAnimB" }
+                    ]
+                },
+                {
+                    "id": "userAnimA",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "userAnimNone", "state": "userAnimNone" },
+                        { "var": "userAnimB", "state": "userAnimB" }
+                    ]
+                },
+                {
+                    "id": "userAnimB",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "userAnimNone", "state": "userAnimNone" },
+                        { "var": "userAnimA", "state": "userAnimA" }
+                    ]
+                }
+            ]
+        },
+        "children": [
+            {
+                "id": "userAnimNone",
+                "type": "overlay",
+                "data": {
+                    "alpha": 1.0,
+                    "alphaVar": "ikOverlayAlpha",
+                    "boneSet": "fullBody"
+                },
+                "children": [
+                    {
+                        "id": "ik",
+                        "type": "inverseKinematics",
+                        "data": {
+                            "targets": [
+                                {
+                                    "jointName": "RightHand",
+                                    "positionVar": "rightHandPosition",
+                                    "rotationVar": "rightHandRotation",
+                                    "typeVar": "rightHandType"
+                                },
+                                {
+                                    "jointName": "LeftHand",
+                                    "positionVar": "leftHandPosition",
+                                    "rotationVar": "leftHandRotation",
+                                    "typeVar": "leftHandType"
+                                },
+                                {
+                                    "jointName": "RightFoot",
+                                    "positionVar": "rightFootPosition",
+                                    "rotationVar": "rightFootRotation",
+                                    "typeVar": "rightFootType"
+                                },
+                                {
+                                    "jointName": "LeftFoot",
+                                    "positionVar": "leftFootPosition",
+                                    "rotationVar": "leftFootRotation",
+                                    "typeVar": "leftFootType"
+                                },
+                                {
+                                    "jointName": "Neck",
+                                    "positionVar": "neckPosition",
+                                    "rotationVar": "neckRotation",
+                                    "typeVar": "neckType"
+                                },
+                                {
+                                    "jointName": "Head",
+                                    "positionVar": "headPosition",
+                                    "rotationVar": "headRotation",
+                                    "typeVar": "headType"
+                                }
+                            ]
+                        },
+                        "children": []
+                    },
+                    {
+                        "id": "manipulatorOverlay",
+                        "type": "overlay",
+                        "data": {
+                            "alpha": 1.0,
+                            "boneSet": "spineOnly"
+                        },
+                        "children": [
+                            {
+                                "id": "spineLean",
+                                "type": "manipulator",
+                                "data": {
+                                    "alpha": 0.0,
+                                    "joints": [
+                                        { "type": "absoluteRotation", "jointName": "Spine", "var": "lean" }
+                                    ]
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "rightHandOverlay",
+                                "type": "overlay",
+                                "data": {
+                                    "alpha": 0.0,
+                                    "boneSet": "rightHand",
+                                    "alphaVar": "rightHandOverlayAlpha"
+                                },
+                                "children": [
+                                    {
+                                        "id": "rightHandStateMachine",
+                                        "type": "stateMachine",
+                                        "data": {
+                                            "currentState": "rightHandGrasp",
+                                            "states": [
+                                                {
+                                                    "id": "rightHandGrasp",
+                                                    "interpTarget": 3,
+                                                    "interpDuration": 3,
+                                                    "transitions": []
+                                                }
+                                            ]
+                                        },
+                                        "children": [
+                                            {
+                                                "id": "rightHandGrasp",
+                                                "type": "blendLinear",
+                                                "data": {
+                                                    "alpha": 0.0,
+                                                    "alphaVar": "rightHandGraspAlpha"
+                                                },
+                                                "children": [
+                                                    {
+                                                        "id": "rightHandGraspOpen",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/hydra_pose_open_right.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 0.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "rightHandGraspClosed",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/hydra_pose_closed_right.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 0.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "leftHandOverlay",
+                                        "type": "overlay",
+                                        "data": {
+                                            "alpha": 0.0,
+                                            "boneSet": "leftHand",
+                                            "alphaVar" : "leftHandOverlayAlpha"
+                                        },
+                                        "children": [
+                                            {
+                                                "id": "leftHandStateMachine",
+                                                "type": "stateMachine",
+                                                "data": {
+                                                    "currentState": "leftHandGrasp",
+                                                    "states": [
+                                                        {
+                                                            "id": "leftHandGrasp",
+                                                            "interpTarget": 3,
+                                                            "interpDuration": 3,
+                                                            "transitions": []
+                                                        }
+                                                    ]
+                                                },
+                                                "children": [
+                                                    {
+                                                        "id": "leftHandGrasp",
+                                                        "type": "blendLinear",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "leftHandGraspAlpha"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "leftHandGraspOpen",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/hydra_pose_open_left.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 0.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "leftHandGraspClosed",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/hydra_pose_closed_left.fbx",
+                                                                    "startFrame": 10.0,
+                                                                    "endFrame": 10.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "mainStateMachine",
+                                                "type": "stateMachine",
+                                                "data": {
+                                                    "currentState": "idle",
+                                                    "states": [
+                                                        {
+                                                            "id": "idle",
+                                                            "interpTarget": 10,
+                                                            "interpDuration": 10,
+                                                            "transitions": [
+                                                                { "var": "isMovingForward", "state": "idleToWalkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "idleToWalkFwd",
+                                                            "interpTarget": 3,
+                                                            "interpDuration": 3,
+                                                            "transitions": [
+                                                                { "var": "idleToWalkFwdOnDone", "state": "walkFwd" },
+                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "walkFwd",
+                                                            "interpTarget": 16,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "walkBwd",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                { "var": "isMovingForward", "state": "walkFwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "strafeRight",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                { "var": "isMovingForward", "state": "walkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "strafeLeft",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                { "var": "isMovingForward", "state": "walkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "turnRight",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotTurning", "state": "idle" },
+                                                                { "var": "isMovingForward", "state": "walkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "turnLeft",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotTurning", "state": "idle" },
+                                                                { "var": "isMovingForward", "state": "walkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "fly",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotFlying", "state": "idle" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "takeoffStand",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotTakeoff", "state": "inAirStand" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "takeoffRun",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotTakeoff", "state": "inAirRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "inAirStand",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 6,
+                                                            "interpType": "snapshotPrev",
+                                                            "transitions": [
+                                                                { "var": "isNotInAir", "state": "landStandImpact" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "inAirRun",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 6,
+                                                            "interpType": "snapshotPrev",
+                                                            "transitions": [
+                                                                { "var": "isNotInAir", "state": "landRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "landStandImpact",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 4,
+                                                            "transitions": [
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "landStandImpactOnDone", "state": "landStand" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "landStand",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 1,
+                                                            "transitions": [
+                                                                { "var": "isMovingForward", "state": "idleToWalkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" },
+                                                                { "var": "landStandOnDone", "state": "idle" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "landRun",
+                                                            "interpTarget": 1,
+                                                            "interpDuration": 7,
+                                                            "transitions": [
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "landRunOnDone", "state": "walkFwd" }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "children": [
+                                                    {
+                                                        "id": "idle",
+                                                        "type": "stateMachine",
+                                                        "data": {
+                                                            "currentState": "idleStand",
+                                                            "states": [
+                                                                {
+                                                                    "id": "idleStand",
+                                                                    "interpTarget": 6,
+                                                                    "interpDuration": 6,
+                                                                    "transitions": [
+                                                                        { "var": "isTalking", "state": "idleTalk" }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "id": "idleTalk",
+                                                                    "interpTarget": 6,
+                                                                    "interpDuration": 6,
+                                                                    "transitions": [
+                                                                        { "var": "notIsTalking", "state": "idleStand" }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "idleStand",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/idle.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 300.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "idleTalk",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/talk.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 800.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "walkFwd",
+                                                        "type": "blendLinearMove",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "desiredSpeed": 1.4,
+                                                            "characteristicSpeeds": [0.5, 1.4, 4.5],
+                                                            "alphaVar": "moveForwardAlpha",
+                                                            "desiredSpeedVar": "moveForwardSpeed"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "walkFwdShort",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/walk_short_fwd.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 39.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "walkFwdNormal",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/walk_fwd.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 35.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "walkFwdRun",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/run_fwd.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 21.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "idleToWalkFwd",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/idle_to_walk.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 13.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "walkBwd",
+                                                        "type": "blendLinearMove",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "desiredSpeed": 1.4,
+                                                            "characteristicSpeeds": [0.6, 1.45],
+                                                            "alphaVar": "moveBackwardAlpha",
+                                                            "desiredSpeedVar": "moveBackwardSpeed"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "walkBwdShort",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/walk_short_bwd.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 38.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "walkBwdNormal",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/walk_bwd.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 36.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "turnLeft",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/turn_left.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 28.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "turnRight",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/turn_left.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 30.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true,
+                                                            "mirrorFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "strafeLeft",
+                                                        "type": "blendLinearMove",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "desiredSpeed": 1.4,
+                                                            "characteristicSpeeds": [0.2, 0.65],
+                                                            "alphaVar": "moveLateralAlpha",
+                                                            "desiredSpeedVar": "moveLateralSpeed"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "strafeLeftShort",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/side_step_short_left.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 28.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "strafeLeftNormal",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/side_step_left.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 30.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "strafeRight",
+                                                        "type": "blendLinearMove",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "desiredSpeed": 1.4,
+                                                            "characteristicSpeeds": [0.2, 0.65],
+                                                            "alphaVar": "moveLateralAlpha",
+                                                            "desiredSpeedVar": "moveLateralSpeed"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "strafeRightShort",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/side_step_short_right.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 28.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "strafeRightNormal",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/side_step_right.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 30.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "fly",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/fly.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 80.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "takeoffStand",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/jump_standing_takeoff.fbx",
+                                                            "startFrame": 17.0,
+                                                            "endFrame": 25.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "takeoffRun",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/jump_takeoff.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 2.5,
+                                                            "timeScale": 0.01,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "inAirStand",
+                                                        "type": "blendLinear",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "inAirAlpha"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "inAirStandPreApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/jump_standing_apex.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 0.0,
+                                                                    "timeScale": 0.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirStandApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/jump_standing_apex.fbx",
+                                                                    "startFrame": 1.0,
+                                                                    "endFrame": 1.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirStandPostApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/jump_standing_apex.fbx",
+                                                                    "startFrame": 2.0,
+                                                                    "endFrame": 2.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "inAirRun",
+                                                        "type": "blendLinear",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "inAirAlpha"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "inAirRunPreApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/jump_in_air.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 0.0,
+                                                                    "timeScale": 0.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirRunApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/jump_in_air.fbx",
+                                                                    "startFrame": 6.0,
+                                                                    "endFrame": 6.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirRunPostApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "animations/jump_in_air.fbx",
+                                                                    "startFrame": 11.0,
+                                                                    "endFrame": 11.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "id": "landStandImpact",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/jump_standing_land.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 6.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "landStand",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/jump_standing_land.fbx",
+                                                            "startFrame": 6.0,
+                                                            "endFrame": 28.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "landRun",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "animations/jump_land.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 6.0,
+                                                            "timeScale": 0.65,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "userAnimA",
+                "type": "clip",
+                "data": {
+                    "url": "animations/idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "userAnimB",
+                "type": "clip",
+                "data": {
+                    "url": "animations/idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            }
+        ]
+    }
+}

@@ -14,6 +14,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <atomic>
 #include <btBulletDynamicsCommon.h>
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
@@ -33,10 +34,13 @@ class btDynamicsWorld;
 
 //#define DEBUG_STATE_CHANGE
 
+const btScalar MAX_CHARACTER_MOTOR_TIMESCALE = 60.0f; // one minute
+const btScalar MIN_CHARACTER_MOTOR_TIMESCALE = 0.05f;
+
 class CharacterController : public btCharacterControllerInterface {
 public:
     CharacterController();
-    virtual ~CharacterController() {}
+    virtual ~CharacterController();
 
     bool needsRemoval() const;
     bool needsAddition() const;
@@ -62,13 +66,21 @@ public:
     virtual void jump() override;
     virtual bool onGround() const override;
 
+    void clearMotors();
+    void addMotor(const glm::vec3& velocity, const glm::quat& rotation, float horizTimescale, float vertTimescale = -1.0f);
+    void applyMotor(int index, btScalar dt, btVector3& worldVelocity, std::vector<btVector3>& velocities, std::vector<btScalar>& weights);
+    void computeNewVelocity(btScalar dt, btVector3& velocity);
+    void computeNewVelocity(btScalar dt, glm::vec3& velocity);
+
+    // HACK for legacy 'thrust' feature
+    void setLinearAcceleration(const glm::vec3& acceleration) { _linearAcceleration = glmToBullet(acceleration); }
+
     void preSimulation();
     void postSimulation();
 
     void setPositionAndOrientation( const glm::vec3& position, const glm::quat& orientation);
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
-    void setTargetVelocity(const glm::vec3& velocity);
     void setParentVelocity(const glm::vec3& parentVelocity);
     void setFollowParameters(const glm::mat4& desiredWorldMatrix, float timeRemaining);
     float getFollowTime() const { return _followTime; }
@@ -77,6 +89,7 @@ public:
     glm::vec3 getFollowVelocity() const;
 
     glm::vec3 getLinearVelocity() const;
+    glm::vec3 getVelocityChange() const;
 
     float getCapsuleRadius() const { return _radius; }
     float getCapsuleHalfHeight() const { return _halfHeight; }
@@ -93,10 +106,14 @@ public:
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
+    bool isEnabled() const { return _enabled; }  // thread-safe
     void setEnabled(bool enabled);
-    bool isEnabled() const { return _enabled && _dynamicsWorld; }
+    bool isEnabledAndReady() const { return _enabled && _dynamicsWorld; }
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
+
+    void setFlyingAllowed(bool value);
+
 
 protected:
 #ifdef DEBUG_STATE_CHANGE
@@ -109,9 +126,21 @@ protected:
     bool checkForSupport(btCollisionWorld* collisionWorld) const;
 
 protected:
+    struct CharacterMotor {
+        CharacterMotor(const glm::vec3& vel, const glm::quat& rot, float horizTimescale, float vertTimescale = -1.0f);
+
+        btVector3 velocity { btVector3(0.0f, 0.0f, 0.0f) }; // local-frame
+        btQuaternion rotation; // local-to-world
+        btScalar hTimescale { MAX_CHARACTER_MOTOR_TIMESCALE }; // horizontal
+        btScalar vTimescale { MAX_CHARACTER_MOTOR_TIMESCALE }; // vertical
+    };
+
+    std::vector<CharacterMotor> _motors;
     btVector3 _currentUp;
     btVector3 _targetVelocity;
     btVector3 _parentVelocity;
+    btVector3 _preSimulationVelocity;
+    btVector3 _velocityChange;
     btTransform _followDesiredBodyTransform;
     btScalar _followTimeRemaining;
     btTransform _characterBodyTransform;
@@ -138,8 +167,9 @@ protected:
     btScalar _followTime;
     btVector3 _followLinearDisplacement;
     btQuaternion _followAngularDisplacement;
+    btVector3 _linearAcceleration;
 
-    bool _enabled;
+    std::atomic_bool _enabled;
     State _state;
     bool _isPushingUp;
 
@@ -147,6 +177,8 @@ protected:
     btRigidBody* _rigidBody { nullptr };
     uint32_t _pendingFlags { 0 };
     uint32_t _previousFlags { 0 };
+
+    bool _flyingAllowed { true };
 };
 
 #endif // hifi_CharacterControllerInterface_h

@@ -60,7 +60,7 @@ public:
     qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
     
-    void bind(const QHostAddress& address, quint16 port = 0) { _udpSocket.bind(address, port); setSystemBufferSizes(); }
+    void bind(const QHostAddress& address, quint16 port = 0);
     void rebind();
     
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
@@ -86,7 +86,10 @@ public slots:
 private slots:
     void readPendingDatagrams();
     void rateControlSync();
-    
+
+    void handleSocketError(QAbstractSocket::SocketError socketError);
+    void handleStateChanged(QAbstractSocket::SocketState socketState);
+
 private:
     void setSystemBufferSizes();
     Connection& findOrCreateConnection(const HifiSockAddr& sockAddr);

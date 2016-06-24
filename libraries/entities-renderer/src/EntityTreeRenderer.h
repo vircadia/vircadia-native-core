@@ -88,6 +88,8 @@ public:
     // For Scene.shouldRenderEntities
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
+    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _bestZone; }
+
 signals:
     void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
     void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
@@ -126,6 +128,8 @@ protected:
     }
 
 private:
+    void resetEntitiesScriptEngine();
+
     void addEntityToScene(EntityItemPointer entity);
     bool findBestZoneAndMaybeContainingEntities(const glm::vec3& avatarPosition, QVector<EntityItemID>* entitiesContainingAvatar);
 
@@ -155,7 +159,7 @@ private:
     NetworkTexturePointer _ambientTexture;
 
     bool _wantScripts;
-    ScriptEngine* _entitiesScriptEngine;
+    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
 
     bool isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
                           const EntityItemID& id, const Collision& collision);
@@ -196,6 +200,8 @@ private:
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
+
+    static int _entitiesScriptEngineCount;
 };
 
 

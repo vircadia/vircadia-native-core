@@ -62,6 +62,11 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap turn when in HMD", getter, setter));
     }
     {
+        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenMoving(); };
+        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
+    }
+    {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
         auto preference = new BrowsePreference("Snapshots", "Put my snapshots here", getter, setter);
@@ -125,16 +130,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->float { return myAvatar->getLeanScale(); };
-        auto setter = [=](float value) { myAvatar->setLeanScale(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Lean scale (applies to Faceshift users)", getter, setter);
-        preference->setMin(0);
-        preference->setMax(99.9f);
-        preference->setDecimals(2);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScaleVerbose(value); }; // The hell?
         auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);
@@ -143,11 +138,6 @@ void setupPreferences() {
         preference->setDecimals(2);
         preference->setStep(1);
         preferences->addPreference(preference);
-    }
-    {
-        auto getter = [=]()->float { return myAvatar->getHead()->getPupilDilation(); };
-        auto setter = [=](float value) { myAvatar->getHead()->setPupilDilation(value); }; 
-        preferences->addPreference(new SliderPreference(AVATAR_TUNING, "Pupil dilation", getter, setter));
     }
     {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };

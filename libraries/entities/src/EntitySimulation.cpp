@@ -35,6 +35,7 @@ void EntitySimulation::updateEntities() {
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
     updateEntitiesInternal(now);
+    PerformanceTimer perfTimer("sortingEntities");
     sortEntitiesThatMoved();
 }
 
@@ -63,7 +64,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity->isDead());
     if (entity->isSimulated()) {
         QMutexLocker lock(&_mutex);
-        entity->clearActions(this);
+        entity->clearActions(getThisPointer());
         removeEntityInternal(entity);
         _entitiesToDelete.insert(entity);
     }
@@ -73,13 +74,18 @@ void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
     if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
         QMutexLocker lock(&_mutex);
         _simpleKinematicEntities.insert(entity);
+        entity->setLastSimulated(usecTimestampNow());
     }
 }
 
 void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+        int numKinematicEntities = _simpleKinematicEntities.size();
         _simpleKinematicEntities.insert(entity);
+        if (numKinematicEntities != _simpleKinematicEntities.size()) {
+            entity->setLastSimulated(usecTimestampNow());
+        }
     } else {
         _simpleKinematicEntities.remove(entity);
     }
@@ -133,10 +139,8 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
 
 // protected
 void EntitySimulation::sortEntitiesThatMoved() {
-    QMutexLocker lock(&_mutex);
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
-    PerformanceTimer perfTimer("sortingEntities");
     MovingEntitiesOperator moveOperator(_entityTree);
     AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
@@ -257,7 +261,14 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
         EntityItemPointer entity = *itemItr;
-        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+
+        // The entity-server doesn't know where avatars are, so don't attempt to do simple extrapolation for
+        // children of avatars.  See related code in EntityMotionState::remoteSimulationOutOfSync.
+        bool ancestryIsKnown;
+        entity->getMaximumAACube(ancestryIsKnown);
+        bool hasAvatarAncestor = entity->hasAncestorOfType(NestableType::Avatar);
+
+        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo() && ancestryIsKnown && !hasAvatarAncestor) {
             entity->simulate(now);
             _entitiesToSort.insert(entity);
             ++itemItr;

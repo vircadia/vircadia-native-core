@@ -14,6 +14,10 @@
 
 #include "EntitySimulation.h"
 
+class SimpleEntitySimulation;
+using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
+
+
 /// provides simple velocity + gravity extrapolation of EntityItem's
 
 class SimpleEntitySimulation : public EntitySimulation {
@@ -29,6 +33,8 @@ protected:
     virtual void removeEntityInternal(EntityItemPointer entity) override;
     virtual void changeEntityInternal(EntityItemPointer entity) override;
     virtual void clearEntitiesInternal() override;
+
+    virtual void sortEntitiesThatMoved() override;
 
     SetOfEntities _entitiesWithSimulationOwner;
     SetOfEntities _entitiesThatNeedSimulationOwner;

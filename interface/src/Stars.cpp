@@ -14,7 +14,6 @@
 #include <mutex>
 
 #include <QElapsedTimer>
-#include <gpu/Context.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -42,25 +41,10 @@ static const float TAU = 6.28318530717958f;
 //static const float MILKY_WAY_RATIO = 0.4f;
 static const char* UNIFORM_TIME_NAME = "iGlobalTime";
 
-
-
-Stars::Stars() {
-}
-
-Stars::~Stars() {
-}
-
 // Produce a random float value between 0 and 1
 static float frand() {
     return (float)rand() / (float)RAND_MAX;
 }
-
-// Produce a random radian value between 0 and 2 PI (TAU)
-/*
-static float rrand() {
-    return frand() * TAU;
-}
- */
 
 // http://mathworld.wolfram.com/SpherePointPicking.html
 static vec2 randPolar() {
@@ -115,59 +99,56 @@ struct StarVertex {
     vec4 colorAndSize;
 };
 
-// FIXME star colors
-void Stars::render(RenderArgs* renderArgs, float alpha) {
-    static gpu::BufferPointer vertexBuffer;
-    static gpu::Stream::FormatPointer streamFormat;
-    static gpu::Element positionElement, colorElement;
-    static gpu::PipelinePointer _gridPipeline;
-    static gpu::PipelinePointer _starsPipeline;
-    static int32_t _timeSlot{ -1 };
-    static std::once_flag once;
+static const int STARS_VERTICES_SLOT{ 0 };
+static const int STARS_COLOR_SLOT{ 1 };
 
-    const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 1;
+gpu::PipelinePointer Stars::_gridPipeline{};
+gpu::PipelinePointer Stars::_starsPipeline{};
+int32_t Stars::_timeSlot{ -1 };
 
-    std::call_once(once, [&] {
-        {
-            auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
-            auto ps = gpu::Shader::createPixel(std::string(starsGrid_frag));
-            auto program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram((*program));
-            _timeSlot = program->getBuffers().findLocation(UNIFORM_TIME_NAME);
-            if (_timeSlot == gpu::Shader::INVALID_LOCATION) {
-                _timeSlot = program->getUniforms().findLocation(UNIFORM_TIME_NAME);
-            }
-            auto state = gpu::StatePointer(new gpu::State());
-            // enable decal blend
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-            state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-            _gridPipeline = gpu::Pipeline::create(program, state);
+void Stars::init() {
+    if (!_gridPipeline) {
+        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
+        auto ps = gpu::Shader::createPixel(std::string(starsGrid_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+        _timeSlot = program->getBuffers().findLocation(UNIFORM_TIME_NAME);
+        if (_timeSlot == gpu::Shader::INVALID_LOCATION) {
+            _timeSlot = program->getUniforms().findLocation(UNIFORM_TIME_NAME);
         }
-        {
-            auto vs = gpu::Shader::createVertex(std::string(stars_vert));
-            auto ps = gpu::Shader::createPixel(std::string(stars_frag));
-            auto program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram((*program));
-            auto state = gpu::StatePointer(new gpu::State());
-            // enable decal blend
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-            state->setAntialiasedLineEnable(true); // line smoothing also smooth points
-            state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-            _starsPipeline = gpu::Pipeline::create(program, state);
-            
-        }
+        auto state = gpu::StatePointer(new gpu::State());
+        // enable decal blend
+        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _gridPipeline = gpu::Pipeline::create(program, state);
+    }
 
+    if (!_starsPipeline) {
+        auto vs = gpu::Shader::createVertex(std::string(stars_vert));
+        auto ps = gpu::Shader::createPixel(std::string(stars_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+        auto state = gpu::StatePointer(new gpu::State());
+        // enable decal blend
+        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        state->setAntialiasedLineEnable(true); // line smoothing also smooth points
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _starsPipeline = gpu::Pipeline::create(program, state);
+    }
+
+    unsigned limit = STARFIELD_NUM_STARS;
+    std::vector<StarVertex> points;
+    points.resize(limit);
+
+    { // generate stars
         QElapsedTimer startTime;
         startTime.start();
+
         vertexBuffer.reset(new gpu::Buffer);
 
         srand(STARFIELD_SEED);
-        unsigned limit = STARFIELD_NUM_STARS;
-        std::vector<StarVertex> points;
-        points.resize(limit);
         for (size_t star = 0; star < limit; ++star) {
             points[star].position = vec4(fromPolar(randPolar()), 1);
             float size = frand() * 2.5f + 0.5f;
@@ -179,16 +160,32 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
                 points[star].colorAndSize = vec4(color, size);
             }
         }
+
         double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
         qDebug() << "Total time to generate stars: " << timeDiff << " msec";
+    }
 
-        vertexBuffer->append(sizeof(StarVertex) * limit, (const gpu::Byte*)&points[0]);
-        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
-        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW), 0);
-        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));
-        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
-        colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
-    });
+    gpu::Element positionElement, colorElement;
+    const size_t VERTEX_STRIDE = sizeof(StarVertex);
+
+    vertexBuffer->append(VERTEX_STRIDE * limit, (const gpu::Byte*)&points[0]);
+    streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+    streamFormat->setAttribute(gpu::Stream::POSITION, STARS_VERTICES_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::XYZW), 0);
+    streamFormat->setAttribute(gpu::Stream::COLOR, STARS_COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));
+    positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
+    colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
+
+    size_t offset = offsetof(StarVertex, position);
+    positionView = gpu::BufferView(vertexBuffer, offset, vertexBuffer->getSize(), VERTEX_STRIDE, positionElement);
+
+    offset = offsetof(StarVertex, colorAndSize);
+    colorView = gpu::BufferView(vertexBuffer, offset, vertexBuffer->getSize(), VERTEX_STRIDE, colorElement);
+}
+
+// FIXME star colors
+void Stars::render(RenderArgs* renderArgs, float alpha) {
+    std::call_once(once, [&]{ init(); });
+
 
     auto modelCache = DependencyManager::get<ModelCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -197,8 +194,8 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
 
     gpu::Batch& batch = *renderArgs->_batch;
     batch.setViewTransform(Transform());
-    batch.setProjectionTransform(renderArgs->_viewFrustum->getProjection());
-    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation()) *
+    batch.setProjectionTransform(renderArgs->getViewFrustum().getProjection());
+    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->getViewFrustum().getOrientation()) *
         quat(vec3(TILT, 0, 0))));
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
 
@@ -210,17 +207,10 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     batch._glUniform1f(_timeSlot, secs);
     geometryCache->renderCube(batch);
 
-    static const size_t VERTEX_STRIDE = sizeof(StarVertex);
-    size_t offset = offsetof(StarVertex, position);
-    gpu::BufferView posView(vertexBuffer, offset, vertexBuffer->getSize(), VERTEX_STRIDE, positionElement);
-    offset = offsetof(StarVertex, colorAndSize);
-    gpu::BufferView colView(vertexBuffer, offset, vertexBuffer->getSize(), VERTEX_STRIDE, colorElement);
-    
     // Render the stars
     batch.setPipeline(_starsPipeline);
-
     batch.setInputFormat(streamFormat);
-    batch.setInputBuffer(VERTICES_SLOT, posView);
-    batch.setInputBuffer(COLOR_SLOT, colView);
+    batch.setInputBuffer(STARS_VERTICES_SLOT, positionView);
+    batch.setInputBuffer(STARS_COLOR_SLOT, colorView);
     batch.draw(gpu::Primitive::POINTS, STARFIELD_NUM_STARS);
 }

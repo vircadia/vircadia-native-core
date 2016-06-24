@@ -44,28 +44,22 @@
 
 
 namespace controller {
-    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
     const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
+    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0x00FF;
+    const uint16_t UserInputMapper::STATE_DEVICE = Input::INVALID_DEVICE - 0x0100;
 }
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 controller::UserInputMapper::UserInputMapper() {
     registerDevice(std::make_shared<ActionsDevice>());
+    registerDevice(_stateDevice = std::make_shared<StateController>());
     registerDevice(std::make_shared<StandardController>());
 }
 
 namespace controller {
 
-    
-UserInputMapper::~UserInputMapper() {
-}
 
-int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
-    if (!_deviceCounts.contains(deviceName)) {
-        _deviceCounts[deviceName] = 0;
-    }
-    _deviceCounts[deviceName] += 1;
-    return _deviceCounts[deviceName];
+UserInputMapper::~UserInputMapper() {
 }
 
 void UserInputMapper::registerDevice(InputDevice::Pointer device) {
@@ -75,9 +69,8 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
     const auto& deviceID = device->_deviceID;
 
-    recordDeviceOfType(device->getName());
-
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
+
     for (const auto& inputMapping : device->getAvailableInputs()) {
         const auto& input = inputMapping.first;
         // Ignore aliases
@@ -100,6 +93,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
 
     _registeredDevices[deviceID] = device;
+
     auto mapping = loadMappings(device->getDefaultMappingConfigs());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
@@ -109,19 +103,34 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     emit hardwareChanged();
 }
 
-// FIXME remove the associated device mappings
 void UserInputMapper::removeDevice(int deviceID) {
+
     Locker locker(_lock);
     auto proxyEntry = _registeredDevices.find(deviceID);
+
     if (_registeredDevices.end() == proxyEntry) {
         qCWarning(controllers) << "Attempted to remove unknown device " << deviceID;
         return;
     }
-    auto proxy = proxyEntry->second;
+
+    auto device = proxyEntry->second;
+    qCDebug(controllers) << "Unregistering input device <" << device->getName() << "> deviceID = " << deviceID;
+
+    unloadMappings(device->getDefaultMappingConfigs());
+
     auto mappingsEntry = _mappingsByDevice.find(deviceID);
     if (_mappingsByDevice.end() != mappingsEntry) {
         disableMapping(mappingsEntry->second);
         _mappingsByDevice.erase(mappingsEntry);
+    }
+
+    for (const auto& inputMapping : device->getAvailableInputs()) {
+        const auto& input = inputMapping.first;
+        auto endpoint = _endpointsByInput.find(input);
+        if (endpoint != _endpointsByInput.end()) {
+            _inputsByEndpoint.erase((*endpoint).second);
+            _endpointsByInput.erase(input);
+        }
     }
 
     _registeredDevices.erase(proxyEntry);
@@ -137,7 +146,6 @@ void UserInputMapper::loadDefaultMapping(uint16 deviceID) {
         qCWarning(controllers) << "Unknown deviceID " << deviceID;
         return;
     }
-
 
     auto mapping = loadMappings(proxyEntry->second->getDefaultMappingConfigs());
     if (mapping) {
@@ -235,11 +243,15 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 
 void UserInputMapper::update(float deltaTime) {
     Locker locker(_lock);
+
+    static uint64_t updateCount = 0;
+    ++updateCount;
+
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
     }
-    
+
     for (auto& channel : _poseStates) {
         channel = Pose();
     }
@@ -323,10 +335,28 @@ QVector<QString> UserInputMapper::getActionNames() const {
     return result;
 }
 
-static int actionMetaTypeId = qRegisterMetaType<Action>();
-static int inputMetaTypeId = qRegisterMetaType<Input>();
-static int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
-static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
+bool UserInputMapper::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    bool toReturn = false;
+    for (auto device : _registeredDevices) {
+        toReturn = toReturn || device.second->triggerHapticPulse(strength, duration, hand);
+    }
+    return toReturn;
+}
+
+bool UserInputMapper::triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand) {
+    Locker locker(_lock);
+    if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
+        return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, hand);
+    }
+    return false;
+}
+
+int actionMetaTypeId = qRegisterMetaType<Action>();
+int inputMetaTypeId = qRegisterMetaType<Input>();
+int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
+int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
+int handMetaTypeId = qRegisterMetaType<controller::Hand>();
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);
@@ -334,6 +364,8 @@ QScriptValue actionToScriptValue(QScriptEngine* engine, const Action& action);
 void actionFromScriptValue(const QScriptValue& object, Action& action);
 QScriptValue inputPairToScriptValue(QScriptEngine* engine, const Input::NamedPair& inputPair);
 void inputPairFromScriptValue(const QScriptValue& object, Input::NamedPair& inputPair);
+QScriptValue handToScriptValue(QScriptEngine* engine, const controller::Hand& hand);
+void handFromScriptValue(const QScriptValue& object, controller::Hand& hand);
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input) {
     QScriptValue obj = engine->newObject();
@@ -372,12 +404,21 @@ void inputPairFromScriptValue(const QScriptValue& object, Input::NamedPair& inpu
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
+QScriptValue handToScriptValue(QScriptEngine* engine, const controller::Hand& hand) {
+    return engine->newVariant((int)hand);
+}
+
+void handFromScriptValue(const QScriptValue& object, controller::Hand& hand) {
+    hand = Hand(object.toVariant().toInt());
+}
+
 void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<Action> >(engine);
     qScriptRegisterSequenceMetaType<Input::NamedVector>(engine);
     qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+    qScriptRegisterMetaType(engine, handToScriptValue, handFromScriptValue);
 
     qScriptRegisterMetaType(engine, Pose::toScriptValue, Pose::fromScriptValue);
 }
@@ -694,11 +735,16 @@ Pose UserInputMapper::getPose(const Input& input) const {
     return getPose(endpoint);
 }
 
-Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
+Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile, bool enable) {
     Locker locker(_lock);
     if (jsonFile.isEmpty()) {
         return Mapping::Pointer();
     }
+    // Each mapping only needs to be loaded once
+    if (_loadedRouteJsonFiles.contains(jsonFile)) {
+        return Mapping::Pointer();
+    }
+    _loadedRouteJsonFiles.insert(jsonFile);
     QString json;
     {
         QFile file(jsonFile);
@@ -707,7 +753,11 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
         }
         file.close();
     }
-    return parseMapping(json);
+    auto result = parseMapping(json);
+    if (enable) {
+        enableMapping(result->name);
+    }
+    return result;
 }
 
 MappingPointer UserInputMapper::loadMappings(const QStringList& jsonFiles) {
@@ -726,6 +776,18 @@ MappingPointer UserInputMapper::loadMappings(const QStringList& jsonFiles) {
     return result;
 }
 
+void UserInputMapper::unloadMappings(const QStringList& jsonFiles) {
+    for (const QString& jsonFile : jsonFiles) {
+        unloadMapping(jsonFile);
+    }
+}
+
+void UserInputMapper::unloadMapping(const QString& jsonFile) {
+    auto entry = _loadedRouteJsonFiles.find(jsonFile);
+    if (entry != _loadedRouteJsonFiles.end()) {
+        _loadedRouteJsonFiles.erase(entry);
+    }
+}
 
 static const QString JSON_NAME = QStringLiteral("name");
 static const QString JSON_CHANNELS = QStringLiteral("channels");
@@ -961,7 +1023,7 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     result->json = QString(QJsonDocument(obj).toJson());
     result->source = parseSource(obj[JSON_CHANNEL_FROM]);
     result->debug = obj[JSON_CHANNEL_DEBUG].toBool();
-    result->debug = obj[JSON_CHANNEL_PEEK].toBool();
+    result->peek = obj[JSON_CHANNEL_PEEK].toBool();
     if (!result->source) {
         qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
         return Route::Pointer();
@@ -1033,7 +1095,7 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
         Route::Pointer route = parseRoute(channelIt);
 
         if (!route) {
-            qWarning() << "Couldn't parse route";
+            qWarning() << "Couldn't parse route:" << mapping->name << QString(QJsonDocument(channelIt.toObject()).toJson());
             continue;
         }
 

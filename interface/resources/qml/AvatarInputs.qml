@@ -23,7 +23,9 @@ Hifi.AvatarInputs {
     readonly property int mirrorWidth: 265
     readonly property int iconSize: 24
     readonly property int iconPadding: 5
-    
+
+    readonly property bool shouldReposition: true
+
     Settings {
         category: "Overlay.AvatarInputs"
         property alias x: root.x

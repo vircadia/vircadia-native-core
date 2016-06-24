@@ -12,6 +12,7 @@
 #include "DomainServer.h"
 
 #include <memory>
+#include <random>
 
 #include <QDir>
 #include <QJsonDocument>
@@ -25,6 +26,7 @@
 
 #include <AccountManager.h>
 #include <BuildInfo.h>
+#include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <LogUtils.h>
@@ -42,7 +44,7 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -59,8 +61,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
-    _settingsManager(),
-    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
+    _settingsManager()
 {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
@@ -77,7 +78,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     // make sure we have a fresh AccountManager instance
     // (need this since domain-server can restart itself and maintain static variables)
-    AccountManager::getInstance(true);
+    DependencyManager::set<AccountManager>();
 
     auto args = arguments();
 
@@ -96,6 +97,13 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
+    // if a connected node loses connection privileges, hang up on it
+    connect(&_gatekeeper, &DomainGatekeeper::killNode, this, &DomainServer::handleKillNode);
+
+    // if permissions are updated, relay the changes to the Node datastructures
+    connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
+            &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -111,6 +119,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         optionallyGetTemporaryName(args);
     }
+
+    _metadata = new DomainMetadata(this);
 }
 
 DomainServer::~DomainServer() {
@@ -195,8 +205,8 @@ bool DomainServer::optionallySetupOAuth() {
         _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
     }
 
-    AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.setAuthURL(_oauthProviderURL);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setAuthURL(_oauthProviderURL);
 
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
@@ -239,17 +249,17 @@ void DomainServer::optionallyGetTemporaryName(const QStringList& arguments) {
 
         // we've been asked to grab a temporary name from the API
         // so fire off that request now
-        auto& accountManager = AccountManager::getInstance();
+        auto accountManager = DependencyManager::get<AccountManager>();
 
-        // ask our auth endpoint for our balance
+        // get callbacks for temporary domain result
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleTempDomainSuccess";
         callbackParameters.errorCallbackReceiver = this;
         callbackParameters.errorCallbackMethod = "handleTempDomainError";
 
-        accountManager.sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
-                                   QNetworkAccessManager::PostOperation, callbackParameters);
+        accountManager->sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
+                                    QNetworkAccessManager::PostOperation, callbackParameters);
     }
 }
 
@@ -301,6 +311,26 @@ const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_net
 const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
 const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
 const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
+
+
+
+bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
+    PacketType headerType = NLPacket::typeInHeader(packet);
+    PacketVersion headerVersion = NLPacket::versionInHeader(packet);
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+    // if this is a mismatching connect packet, we can't simply drop it on the floor
+    // send back a packet to the interface that tells them we refuse connection for a mismatch
+    if (headerType == PacketType::DomainConnectRequest
+        && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
+        DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
+    }
+
+    // let the normal nodeList implementation handle all other packets.
+    return nodeList->isPacketVerified(packet);
+}
+
 
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
@@ -369,10 +399,15 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
+
+    // set a custum packetVersionMatch as the verify packet operator for the udt::Socket
+    nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
 }
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
@@ -395,7 +430,7 @@ bool DomainServer::resetAccountManagerAccessToken() {
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
 
                 // clear any existing access token from AccountManager
-                AccountManager::getInstance().setAccessTokenForCurrentAuthURL(QString());
+                DependencyManager::get<AccountManager>()->setAccessTokenForCurrentAuthURL(QString());
 
                 return false;
             }
@@ -405,7 +440,7 @@ bool DomainServer::resetAccountManagerAccessToken() {
         }
 
         // give this access token to the AccountManager
-        AccountManager::getInstance().setAccessTokenForCurrentAuthURL(accessToken);
+        DependencyManager::get<AccountManager>()->setAccessTokenForCurrentAuthURL(accessToken);
 
         return true;
 
@@ -432,7 +467,9 @@ void DomainServer::setupAutomaticNetworking() {
         setupICEHeartbeatForFullNetworking();
     }
 
-    if (!resetAccountManagerAccessToken()) {
+    _hasAccessToken = resetAccountManagerAccessToken();
+
+    if (!_hasAccessToken) {
         qDebug() << "Will not send heartbeat to Metaverse API without an access token.";
         qDebug() << "If this is not a temporary domain add an access token to your config file or via the web interface.";
 
@@ -457,7 +494,7 @@ void DomainServer::setupAutomaticNetworking() {
                 nodeList->startSTUNPublicSocketUpdate();
             } else {
                 // send our heartbeat to data server so it knows what our network settings are
-                sendHeartbeatToDataServer();
+                sendHeartbeatToMetaverse();
             }
         } else {
             qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
@@ -466,7 +503,7 @@ void DomainServer::setupAutomaticNetworking() {
             return;
         }
     } else {
-        sendHeartbeatToDataServer();
+        sendHeartbeatToMetaverse();
     }
 
     qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
@@ -475,12 +512,15 @@ void DomainServer::setupAutomaticNetworking() {
     const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
 
     QTimer* dataHeartbeatTimer = new QTimer(this);
-    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
+    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToMetaverse()));
     dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
 void DomainServer::setupICEHeartbeatForFullNetworking() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    // lookup the available ice-server hosts now
+    updateICEServerAddresses();
 
     // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
     connect(limitedNodeList.data(), &LimitedNodeList::localSockAddrChanged,
@@ -492,23 +532,29 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
     limitedNodeList->startSTUNPublicSocketUpdate();
 
     // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
-    auto& accountManager = AccountManager::getInstance();
-    auto domainID = accountManager.getAccountInfo().getDomainID();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainID = accountManager->getAccountInfo().getDomainID();
 
     // if we have an access token and we don't have a private key or the current domain ID has changed
     // we should generate a new keypair
-    if (!accountManager.getAccountInfo().hasPrivateKey() || domainID != limitedNodeList->getSessionUUID()) {
-        accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+    if (!accountManager->getAccountInfo().hasPrivateKey() || domainID != limitedNodeList->getSessionUUID()) {
+        accountManager->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
     }
 
     // hookup to the signal from account manager that tells us when keypair is available
-    connect(&accountManager, &AccountManager::newKeypair, this, &DomainServer::handleKeypairChange);
+    connect(accountManager.data(), &AccountManager::newKeypair, this, &DomainServer::handleKeypairChange);
 
     if (!_iceHeartbeatTimer) {
         // setup a timer to heartbeat with the ice-server every so often
         _iceHeartbeatTimer = new QTimer { this };
         connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
         _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+    }
+}
+
+void DomainServer::updateICEServerAddresses() {
+    if (_iceAddressLookupID == -1) {
+        _iceAddressLookupID = QHostInfo::lookupHost(ICE_SERVER_DEFAULT_HOSTNAME, this, SLOT(handleICEHostInfo(QHostInfo)));
     }
 }
 
@@ -652,7 +698,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    
+
     QDataStream packetStream(message->getMessage());
     NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr(), false);
 
@@ -664,15 +710,22 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
     nodeData->setNodeInterestSet(nodeRequestData.interestList.toSet());
 
+    // update the connecting hostname in case it has changed
+    nodeData->setPlaceName(nodeRequestData.placeName);
+
     sendDomainListToNode(sendingNode, message->getSenderSockAddr());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& otherNode){
-        if (otherNode->getType() == NodeType::Agent) {
-            result++;
+    nodeList->eachNode([&](const SharedNodePointer& node){
+        // only count unassigned agents (i.e., users)
+        if (node->getType() == NodeType::Agent) {
+            auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData && !nodeData->wasAssigned()) {
+                result++;
+            }
         }
     });
     return result;
@@ -718,12 +771,16 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
 }
 
 void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
-    
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(newNode->getLinkedData());
-    
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
+
     // reply back to the user with a PacketType::DomainList
     sendDomainListToNode(newNode, nodeData->getSendingSockAddr());
-    
+
+    // if this node is a user (unassigned Agent), signal
+    if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
+        emit userConnected();
+    }
+
     // send out this node to our other connected nodes
     broadcastNewNode(newNode);
 }
@@ -740,8 +797,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
-    extendedHeaderStream << (quint8) node->isAllowedEditor();
-    extendedHeaderStream << (quint8) node->getCanRez();
+    extendedHeaderStream << node->getPermissions();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
@@ -949,9 +1005,9 @@ void DomainServer::setupPendingAssignmentCredits() {
 
 void DomainServer::sendPendingTransactionsToServer() {
 
-    AccountManager& accountManager = AccountManager::getInstance();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
-    if (accountManager.hasValidAccessToken()) {
+    if (accountManager->hasValidAccessToken()) {
 
         // enumerate the pending transactions and send them to the server to complete payment
         TransactionHash::iterator i = _pendingAssignmentCredits.begin();
@@ -962,7 +1018,7 @@ void DomainServer::sendPendingTransactionsToServer() {
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
-            accountManager.sendRequest("api/v1/transactions",
+            accountManager->sendRequest("api/v1/transactions",
                                        AccountManagerAuth::Required,
                                        QNetworkAccessManager::PostOperation,
                                        transactionCallbackParams, i.value()->postJson().toJson());
@@ -1015,73 +1071,130 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToMetaverse(newPublicSockAddr.getAddress().toString());
 }
 
-void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
-    const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     const QUuid& domainID = nodeList->getSessionUUID();
 
-    // setup the domain object to send to the data server
-    const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
-    const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
-
+    // Setup the domain object to send to the data server
     QJsonObject domainObject;
+
     if (!networkAddress.isEmpty()) {
+        static const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
         domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
     }
 
+    static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
     // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
     const QString RESTRICTED_ACCESS_FLAG = "restricted";
 
-    domainObject[RESTRICTED_ACCESS_FLAG] =
-        _settingsManager.valueOrDefaultValueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH).toBool();
+    // consider the domain to have restricted access if "anonymous" connections can't connect to the domain.
+    NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
 
-    // add the number of currently connected agent users
-    int numConnectedAuthedUsers = 0;
+    if (_metadata) {
+        // Add the metadata to the heartbeat
+        static const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+        domainObject[DOMAIN_HEARTBEAT_KEY] = _metadata->get(DomainMetadata::USERS);
+    }
 
-    nodeList->eachNode([&numConnectedAuthedUsers](const SharedNodePointer& node){
-        if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
-            ++numConnectedAuthedUsers;
-        }
-    });
+    QString domainUpdateJSON = QString("{\"domain\":%1}").arg(QString(QJsonDocument(domainObject).toJson(QJsonDocument::Compact)));
 
-    const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
-    const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
-
-    QJsonObject heartbeatObject;
-    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedAuthedUsers;
-    domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
-
-    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
-
-    AccountManager::getInstance().sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+    static const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+    DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                               AccountManagerAuth::Required,
                                               QNetworkAccessManager::PutOperation,
                                               JSONCallbackParameters(),
                                               domainUpdateJSON.toUtf8());
 }
 
+void DomainServer::sendICEServerAddressToMetaverseAPI() {
+    if (!_iceServerSocket.isNull()) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        const QUuid& domainID = nodeList->getSessionUUID();
+
+        const QString ICE_SERVER_ADDRESS = "ice_server_address";
+
+        QJsonObject domainObject;
+
+        // we're using full automatic networking and we have a current ice-server socket, use that now
+        domainObject[ICE_SERVER_ADDRESS] = _iceServerSocket.getAddress().toString();
+
+        QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+
+        // make sure we hear about failure so we can retry
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.errorCallbackReceiver = this;
+        callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
+
+        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to" << _iceServerSocket.getAddress().toString();
+
+        static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
+
+        DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_ICE_ADDRESS_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+                                                  AccountManagerAuth::Optional,
+                                                  QNetworkAccessManager::PutOperation,
+                                                  callbackParameters,
+                                                  domainUpdateJSON.toUtf8());
+    }
+}
+
+void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
+    const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
+
+    qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was" << requestReply.errorString();
+    qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
+
+    QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
+}
+
 void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
 
-        auto& accountManager = AccountManager::getInstance();
+        auto accountManager = DependencyManager::get<AccountManager>();
         auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-        if (!accountManager.getAccountInfo().hasPrivateKey()) {
+        if (!accountManager->getAccountInfo().hasPrivateKey()) {
             qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
             qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
 
             if (!limitedNodeList->getSessionUUID().isNull()) {
-                accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+                accountManager->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
             } else {
                 qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
             }
 
             return;
+        }
+
+        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 3 };
+
+        // increase the count of no reply ICE heartbeats and check the current value
+        ++_noReplyICEHeartbeats;
+
+        if (_noReplyICEHeartbeats > FAILOVER_NO_REPLY_ICE_HEARTBEATS) {
+            qWarning() << "There have been" << _noReplyICEHeartbeats - 1 << "heartbeats sent with no reply from the ice-server";
+            qWarning() << "Clearing the current ice-server socket and selecting a new candidate ice-server";
+
+            // add the current address to our list of failed addresses
+            _failedIceServerAddresses << _iceServerSocket.getAddress();
+
+            // if we've failed to hear back for three heartbeats, we clear the current ice-server socket and attempt
+            // to randomize a new one
+            _iceServerSocket.clear();
+
+            // reset the number of no reply ICE hearbeats
+            _noReplyICEHeartbeats = 0;
+
+            // reset the connection flag for ICE server
+            _connectedToICEServer = false;
+
+            // randomize our ice-server address (and simultaneously look up any new hostnames for available ice-servers)
+            randomizeICEServerAddress(true);
         }
 
         // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
@@ -1127,7 +1240,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             auto plaintext = QByteArray::fromRawData(_iceServerHeartbeatPacket->getPayload(), _iceServerHeartbeatPacket->getPayloadSize());
 
             // generate a signature for the plaintext data in the packet
-            auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
+            auto signature = accountManager->getAccountInfo().signPlaintext(plaintext);
 
             // pack the signature with the data
             heartbeatDataStream << signature;
@@ -1135,6 +1248,11 @@ void DomainServer::sendHeartbeatToIceServer() {
 
         // send the heartbeat packet to the ice server now
         limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
+
+    } else {
+        qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
+        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+
     }
 }
 
@@ -1678,9 +1796,12 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
                     QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
                     const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
-                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
 
-                    if (settingsUsername == headerUsername && headerPassword == settingsPassword) {
+                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
+                    QString hexHeaderPassword = QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
+
+                    if (settingsUsername == headerUsername
+                        && (settingsPassword.isEmpty() || hexHeaderPassword == settingsPassword)) {
                         return true;
                     }
                 }
@@ -1779,11 +1900,10 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
-
     // if this peer connected via ICE then remove them from our ICE peers hash
     _gatekeeper.removeICEPeer(node->getUUID());
 
-    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
     if (nodeData) {
         // if this node's UUID matches a static assignment we need to throw it back in the assignment queue
@@ -1795,15 +1915,22 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
 
-        // If this node was an Agent ask DomainServerNodeData to potentially remove the interpolation we stored
-        nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
-                                       uuidStringWithoutCurlyBraces(node->getUUID()));
-
         // cleanup the connection secrets that we set up for this node (on the other nodes)
         foreach (const QUuid& otherNodeSessionUUID, nodeData->getSessionSecretHash().keys()) {
             SharedNodePointer otherNode = DependencyManager::get<LimitedNodeList>()->nodeWithUUID(otherNodeSessionUUID);
             if (otherNode) {
-                reinterpret_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+                static_cast<DomainServerNodeData*>(otherNode->getLinkedData())->getSessionSecretHash().remove(node->getUUID());
+            }
+        }
+
+        if (node->getType() == NodeType::Agent) {
+            // if this node was an Agent ask DomainServerNodeData to remove the interpolation we potentially stored
+            nodeData->removeOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
+                    uuidStringWithoutCurlyBraces(node->getUUID()));
+
+            // if this node is a user (unassigned Agent), signal
+            if (!nodeData->wasAssigned()) {
+                emit userDisconnected();
             }
         }
     }
@@ -1974,49 +2101,68 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
 void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
     // This packet has been matched to a source node and they're asking not to be in the domain anymore
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    
+
     const QUuid& nodeUUID = message->getSourceID();
-    
+
     qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
-    
+
     // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
     // packet to nodes that don't care about this type
     auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
-    
+
     if (nodeToKill) {
-        auto nodeType = nodeToKill->getType();
-        limitedNodeList->killNodeWithUUID(nodeUUID);
-        
-        static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
-        
-        removedNodePacket->reset();
-        removedNodePacket->write(nodeUUID.toRfc4122());
-    
-        // broadcast out the DomainServerRemovedNode message
-        limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
-            // only send the removed node packet to nodes that care about the type of node this was
-            auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
-            return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
-        }, [&limitedNodeList](const SharedNodePointer& otherNode){
-            limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
-        });
+        handleKillNode(nodeToKill);
     }
+}
+
+void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
+    auto nodeType = nodeToKill->getType();
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    const QUuid& nodeUUID = nodeToKill->getUUID();
+
+    limitedNodeList->killNodeWithUUID(nodeUUID);
+
+    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+
+    removedNodePacket->reset();
+    removedNodePacket->write(nodeUUID.toRfc4122());
+
+    // broadcast out the DomainServerRemovedNode message
+    limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+        // only send the removed node packet to nodes that care about the type of node this was
+        auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+        return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+    }, [&limitedNodeList](const SharedNodePointer& otherNode){
+        limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+    });
 }
 
 void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {
     static const int NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN = 3;
 
-    static int numHeartbeatDenials = 0;
-    if (++numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
+    if (++_numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
         qDebug() << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
             << "- re-generating keypair now";
 
         // we've hit our threshold of heartbeat denials, trigger a keypair re-generation
         auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-        AccountManager::getInstance().generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+        DependencyManager::get<AccountManager>()->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
 
         // reset our number of heartbeat denials
-        numHeartbeatDenials = 0;
+        _numHeartbeatDenials = 0;
+    }
+
+    // even though we can't get into this ice-server it is responding to us, so we reset our number of no-reply heartbeats
+    _noReplyICEHeartbeats = 0;
+}
+
+void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message) {
+    // we don't do anything with this ACK other than use it to tell us to keep talking to the same ice-server
+    _noReplyICEHeartbeats = 0;
+
+    if (!_connectedToICEServer) {
+        _connectedToICEServer = true;
+        qInfo() << "Connected to ice-server at" << _iceServerSocket;
     }
 }
 
@@ -2029,4 +2175,90 @@ void DomainServer::handleKeypairChange() {
         // send a heartbeat to the ice server immediately
         sendHeartbeatToIceServer();
     }
+}
+
+void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
+    // clear the ICE address lookup ID so that it can fire again
+    _iceAddressLookupID = -1;
+
+    if (hostInfo.error() != QHostInfo::NoError) {
+        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+
+        // if we don't have an ICE server to use yet, trigger a retry
+        if (_iceServerSocket.isNull()) {
+            const int ICE_ADDRESS_LOOKUP_RETRY_MS = 1000;
+
+            QTimer::singleShot(ICE_ADDRESS_LOOKUP_RETRY_MS, this, SLOT(updateICEServerAddresses()));
+        }
+
+    } else {
+        int countBefore = _iceServerAddresses.count();
+
+        _iceServerAddresses = hostInfo.addresses();
+
+        if (countBefore == 0) {
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+        }
+
+        if (_iceServerSocket.isNull()) {
+            // we don't have a candidate ice-server yet, pick now (without triggering a host lookup since we just did one)
+            randomizeICEServerAddress(false);
+        }
+    }
+}
+
+void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
+    if (shouldTriggerHostLookup) {
+        updateICEServerAddresses();
+    }
+
+    // create a list by removing the already failed ice-server addresses
+    auto candidateICEAddresses = _iceServerAddresses;
+
+    auto it = candidateICEAddresses.begin();
+
+    while (it != candidateICEAddresses.end()) {
+        if (_failedIceServerAddresses.contains(*it)) {
+            // we already tried this address and it failed, remove it from list of candidates
+            it = candidateICEAddresses.erase(it);
+        } else {
+            // keep this candidate, it hasn't failed yet
+            ++it;
+        }
+    }
+
+    if (candidateICEAddresses.empty()) {
+        // we ended up with an empty list since everything we've tried has failed
+        // so clear the set of failed addresses and start going through them again
+
+        qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
+            << ICE_SERVER_DEFAULT_HOSTNAME;
+
+        _failedIceServerAddresses.clear();
+        candidateICEAddresses = _iceServerAddresses;
+    }
+
+    // of the list of available addresses that we haven't tried, pick a random one
+    int maxIndex = candidateICEAddresses.size() - 1;
+    int indexToTry = 0;
+
+    if (maxIndex > 0) {
+        static std::random_device randomDevice;
+        static std::mt19937 generator(randomDevice());
+        std::uniform_int_distribution<> distribution(0, maxIndex);
+
+        indexToTry = distribution(generator);
+    }
+
+    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    qInfo() << "Set candidate ice-server socket to" << _iceServerSocket;
+
+    // clear our number of hearbeat denials, this should be re-set on ice-server change
+    _numHeartbeatDenials = 0;
+
+    // immediately fire an ICE heartbeat once we've picked a candidate ice-server
+    sendHeartbeatToIceServer();
+
+    // immediately send an update to the metaverse API when our ice-server changes
+    sendICEServerAddressToMetaverseAPI();
 }

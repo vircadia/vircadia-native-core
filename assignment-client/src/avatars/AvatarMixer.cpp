@@ -36,14 +36,7 @@ const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXE
 
 AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     ThreadedAssignment(message),
-    _broadcastThread(),
-    _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _trailingSleepRatio(1.0f),
-    _performanceThrottlingRatio(0.0f),
-    _sumListeners(0),
-    _numStatFrames(0),
-    _sumBillboardPackets(0),
-    _sumIdentityPackets(0)
+    _broadcastThread()
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
@@ -51,8 +44,10 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "handleAvatarBillboardPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
 }
 
 AvatarMixer::~AvatarMixer() {
@@ -66,13 +61,18 @@ AvatarMixer::~AvatarMixer() {
 
 // An 80% chance of sending a identity packet within a 5 second interval.
 // assuming 60 htz update rate.
-const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
+const float IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
 
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
-    int idleTime = QDateTime::currentMSecsSinceEpoch() - _lastFrameTimestamp;
+    int idleTime = AVATAR_DATA_SEND_INTERVAL_MSECS;
+
+    if (_lastFrameTimestamp.time_since_epoch().count() > 0) {
+        auto idleDuration = p_high_resolution_clock::now() - _lastFrameTimestamp;
+        idleTime = std::chrono::duration_cast<std::chrono::microseconds>(idleDuration).count();
+    }
 
     ++_numStatFrames;
 
@@ -245,32 +245,13 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
-                    // make sure we send out identity and billboard packets to and from new arrivals.
+                    // make sure we send out identity packets to and from new arrivals.
                     bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
 
-                    // we will also force a send of billboard or identity packet
-                    // if either has changed in the last frame
-                    if (otherNodeData->getBillboardChangeTimestamp() > 0
-                        && (forceSend
-                            || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
-                            || distribution(generator) < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-
-                        QByteArray rfcUUID = otherNode->getUUID().toRfc4122();
-                        QByteArray billboard = otherNodeData->getAvatar().getBillboard();
-
-                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, rfcUUID.size() + billboard.size());
-                        billboardPacket->write(rfcUUID);
-                        billboardPacket->write(billboard);
-
-                        nodeList->sendPacket(std::move(billboardPacket), *node);
-
-                        ++_sumBillboardPackets;
-                    }
-
-                    if (otherNodeData->getIdentityChangeTimestamp() > 0
+                    if (otherNodeData->getIdentityChangeTimestamp().time_since_epoch().count() > 0
                         && (forceSend
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                            || distribution(generator) < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+                            || distribution(generator) < IDENTITY_SEND_PROBABILITY)) {
 
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
 
@@ -385,7 +366,7 @@ void AvatarMixer::broadcastAvatarData() {
             otherAvatar.doneEncoding(false);
         });
 
-    _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
+    _lastFrameTimestamp = p_high_resolution_clock::now();
 }
 
 void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -436,25 +417,13 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             AvatarData& avatar = nodeData->getAvatar();
 
             // parse the identity packet and update the change timestamp if appropriate
-            if (avatar.hasIdentityChangedAfterParsing(message->getMessage())) {
+            AvatarData::Identity identity;
+            AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
+            if (avatar.processAvatarIdentity(identity)) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
-                nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+                nodeData->flagIdentityChange();
             }
         }
-    }
-}
-
-void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-    if (nodeData) {
-        AvatarData& avatar = nodeData->getAvatar();
-
-        // parse the billboard packet and update the change timestamp if appropriate
-        if (avatar.hasBillboardChangedAfterParsing(message->getMessage())) {
-            QMutexLocker nodeDataLocker(&nodeData->getMutex());
-            nodeData->setBillboardChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
-        }
-
     }
 }
 
@@ -466,7 +435,6 @@ void AvatarMixer::sendStatsPacket() {
     QJsonObject statsObject;
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
 
-    statsObject["average_billboard_packets_per_frame"] = (float) _sumBillboardPackets / (float) _numStatFrames;
     statsObject["average_identity_packets_per_frame"] = (float) _sumIdentityPackets / (float) _numStatFrames;
 
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100;
@@ -507,7 +475,6 @@ void AvatarMixer::sendStatsPacket() {
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);
 
     _sumListeners = 0;
-    _sumBillboardPackets = 0;
     _sumIdentityPackets = 0;
     _numStatFrames = 0;
 }
@@ -547,6 +514,19 @@ void AvatarMixer::domainSettingsRequestComplete() {
     _broadcastThread.start();
 }
 
+void AvatarMixer::handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID) {
+    // if this client is using packet versions we don't expect.
+    if ((type == PacketTypeEnum::Value::AvatarIdentity || type == PacketTypeEnum::Value::AvatarData) && !senderUUID.isNull()) {
+        // Echo an empty AvatarData packet back to that client.
+        // This should trigger a version mismatch dialog on their side.
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto node = nodeList->nodeWithUUID(senderUUID);
+        if (node) {
+            auto emptyPacket = NLPacket::create(PacketType::AvatarData, 0);
+            nodeList->sendPacket(std::move(emptyPacket), *node);
+        }
+    }
+}
 
 void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";

@@ -17,7 +17,6 @@
 void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
     qScriptRegisterMetaType(engine, soundSharedPointerToScriptValue, soundSharedPointerFromScriptValue);
-    qScriptRegisterMetaType(engine, soundPointerToScriptValue, soundPointerFromScriptValue);
 }
 
 AudioScriptingInterface& AudioScriptingInterface::getInstance() {
@@ -31,13 +30,14 @@ AudioScriptingInterface::AudioScriptingInterface() :
 
 }
 
-ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
+ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;
 
         QMetaObject::invokeMethod(this, "playSound", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(ScriptAudioInjector*, injector),
-                                  Q_ARG(Sound*, sound), Q_ARG(const AudioInjectorOptions&, injectorOptions));
+                                  Q_ARG(SharedSoundPointer, sound),
+                                  Q_ARG(const AudioInjectorOptions&, injectorOptions));
         return injector;
     }
 

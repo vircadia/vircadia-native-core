@@ -156,7 +156,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
     assert(entity->isDead());
-    entity->clearActions(this);
+    entity->clearActions(getThisPointer());
     removeEntityInternal(entity);
 }
 // end EntitySimulation overrides
@@ -217,6 +217,12 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
         } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
             entity->computeShapeInfo(shapeInfo);
+            int numPoints = shapeInfo.getLargestSubshapePointCount();
+            if (numPoints > MAX_HULL_POINTS) {
+                qWarning() << "convex hull with" << numPoints
+                    << "points for entity" << entity->getName()
+                    << "at" << entity->getPosition() << " will be reduced";
+            }
             btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
             if (shape) {
                 EntityMotionState* motionState = new EntityMotionState(shape, entity);
@@ -225,7 +231,7 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
                 result.push_back(motionState);
                 entityItr = _entitiesToAddToPhysics.erase(entityItr);
             } else {
-                //qDebug() << "Warning!  Failed to generate new shape for entity." << entity->getName();
+                //qWarning() << "Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
             }
         } else {
@@ -251,7 +257,7 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
     _pendingChanges.clear();
 }
 
-void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID) {
+void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates) {
     QMutexLocker lock(&_mutex);
 
     // walk the motionStates looking for those that correspond to entities
@@ -261,7 +267,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
             EntityItemPointer entity = entityState->getEntity();
             assert(entity.get());
-            if (entityState->isCandidateForOwnership(sessionID)) {
+            if (entityState->isCandidateForOwnership()) {
                 _outgoingChanges.insert(entityState);
             }
             _entitiesToSort.insert(entity);
@@ -272,7 +278,7 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
     if (_lastStepSendPackets != numSubsteps) {
         _lastStepSendPackets = numSubsteps;
 
-        if (sessionID.isNull()) {
+        if (Physics::getSessionUUID().isNull()) {
             // usually don't get here, but if so --> nothing to do
             _outgoingChanges.clear();
             return;
@@ -282,12 +288,12 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
         QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
         while (stateItr != _outgoingChanges.end()) {
             EntityMotionState* state = *stateItr;
-            if (!state->isCandidateForOwnership(sessionID)) {
+            if (!state->isCandidateForOwnership()) {
                 // prune
                 stateItr = _outgoingChanges.erase(stateItr);
-            } else if (state->shouldSendUpdate(numSubsteps, sessionID)) {
+            } else if (state->shouldSendUpdate(numSubsteps)) {
                 // update
-                state->sendUpdate(_entityPacketSender, sessionID, numSubsteps);
+                state->sendUpdate(_entityPacketSender, numSubsteps);
                 ++stateItr;
             } else {
                 ++stateItr;

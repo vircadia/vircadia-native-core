@@ -151,9 +151,11 @@ public:
     float metallic{ 0.0f };
     float roughness{ 1.0f };
     float emissiveIntensity{ 1.0f };
+    float ambientFactor{ 1.0f };
 
     QString materialID;
     QString name;
+    QString shadingModel;
     model::MaterialPointer _material;
 
     FBXTexture normalTexture;
@@ -270,6 +272,7 @@ inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
+    using Pointer = std::shared_ptr<FBXGeometry>;
 
     QString author;
     QString applicationName; ///< the name of the application that generated the model
@@ -330,6 +333,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
+Q_DECLARE_METATYPE(FBXGeometry::Pointer)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
@@ -434,6 +438,7 @@ public:
     QHash<QString, QString> shininessTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> ambientFactorTextures;
     QHash<QString, QString> occlusionTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;

@@ -34,12 +34,15 @@
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
+#include <plugins/DisplayPlugin.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <SimpleMovingAverage.h>
 #include <StDev.h>
 #include <ViewFrustum.h>
 #include <AbstractUriHandler.h>
+#include <shared/RateCounter.h>
 
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
@@ -85,16 +88,40 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, public AbstractUriHandler {
+class Application : public QApplication, 
+                    public AbstractViewStateInterface, 
+                    public AbstractScriptingServicesInterface, 
+                    public AbstractUriHandler,
+                    public PluginContainer {
     Q_OBJECT
 
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
-    friend class PluginContainerProxy;
 
 public:
+
+    // virtual functions required for PluginContainer
+    virtual ui::Menu* getPrimaryMenu() override;
+    virtual void requestReset() override { resetSensors(true); }
+    virtual void showDisplayPluginsTools(bool show) override;
+    virtual GLWidget* getPrimaryWidget() override;
+    virtual MainWindow* getPrimaryWindow() override;
+    virtual QOpenGLContext* getPrimaryContext() override;
+    virtual bool makeRenderingContextCurrent() override;
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override;
+    virtual bool isForeground() const override;
+
+    virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
+
+    enum Event {
+        Present = DisplayPlugin::Present,
+        Paint = Present + 1,
+        Lambda = Paint + 1
+    };
+
     // FIXME? Empty methods, do we still need them?
-    static void initPlugins();
+    static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer& startup_time);
@@ -104,6 +131,9 @@ public:
 
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
+
+    // Return an HTTP User-Agent string with OS and device information.
+    Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
     void initializeUi();
@@ -117,6 +147,7 @@ public:
     QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
+    QRect getRecommendedOverlayRect() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
@@ -127,14 +158,12 @@ public:
     Camera* getCamera() { return &_myCamera; }
     const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
-    ViewFrustum* getViewFrustum();
-    const ViewFrustum* getViewFrustum() const;
+    void copyViewFrustum(ViewFrustum& viewOut) const;
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
-    ViewFrustum* getDisplayViewFrustum();
-    const ViewFrustum* getDisplayViewFrustum() const;
-    ViewFrustum* getShadowViewFrustum() override { return &_shadowViewFrustum; }
+    void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -154,12 +183,10 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-    bool isForeground() const { return _isForeground; }
 
-    uint32_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _fps; }
-    float getTargetFrameRate(); // frames/second
-    float getLastInstanteousFps() const { return _lastInstantaneousFps; }
+    size_t getFrameCount() const { return _frameCount; }
+    float getFps() const { return _frameCounter.rate(); }
+    float getTargetFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -169,16 +196,13 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
+    virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { copyDisplayViewFrustum(viewOut); }
     virtual QThread* getMainThread() override { return thread(); }
     virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;
     virtual qreal getDevicePixelRatio() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
-
-    DisplayPlugin* getActiveDisplayPlugin();
-    const DisplayPlugin* getActiveDisplayPlugin() const;
 
     FileLogger* getLogger() const { return _logger; }
 
@@ -187,6 +211,8 @@ public:
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     float getRenderResolutionScale() const;
+
+    qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
     bool isAboutToQuit() const { return _aboutToQuit; }
 
@@ -212,20 +238,17 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
-    virtual void pushPreRenderLambda(void* key, std::function<void()> func) override;
+    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
-    float getAvatarSimrate();
-    void setAvatarSimrateSample(float sample);
 
-    float getAverageSimsPerSecond();
+    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
+    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
 
 signals:
     void svoImportRequested(const QString& url);
-
-    void checkBackgroundDownloads();
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
@@ -257,6 +280,10 @@ public slots:
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
 
+#if (PR_BUILD || DEV_BUILD)
+    void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
+#endif
+
 #ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
     void calibrateEyeTracker1Point();
@@ -272,11 +299,12 @@ public slots:
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
 
+    void resetPhysicsReadyInformation();
+
     void reloadResourceCaches();
 
     void updateHeartbeat() const;
 
-    static void crashApplication();
     static void deadlockApplication();
 
     void rotationModeChanged() const;
@@ -286,7 +314,6 @@ public slots:
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
-    void idle(uint64_t now);
     void aboutToQuit();
 
     void resettingDomain();
@@ -310,14 +337,15 @@ private slots:
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     void setSessionUUID(const QUuid& sessionUUID) const;
+
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
-    void nodeActivated(SharedNodePointer node) const;
+    void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
     void updateDisplayMode();
-    void updateInputModes();
+    void domainConnectionRefused(const QString& reasonMessage, int reason);
 
 private:
     static void initDisplay();
@@ -325,6 +353,8 @@ private:
 
     void cleanupBeforeQuit();
 
+    bool shouldPaint(float nsecsElapsed);
+    void idle(float nsecsElapsed);
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -332,12 +362,12 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
     static void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection() const;
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
     int sendNackPackets();
 
@@ -388,7 +418,7 @@ private:
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
-    std::mutex _displayPluginLock;
+    mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
@@ -397,20 +427,24 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
+    uint32_t _frameCount { 0 };
+
     // Frame Rate Measurement
-    int _frameCount;
-    float _fps;
+    RateCounter<> _frameCounter;
+    RateCounter<> _avatarSimCounter;
+    RateCounter<> _simCounter;
+
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    float _lastInstantaneousFps { 0.0f };
 
     ShapeManager _shapeManager;
-    PhysicalEntitySimulation _entitySimulation;
+    PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
+    mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
@@ -490,12 +524,6 @@ private:
 
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
-
-    SimpleMovingAverage _framesPerSecond{10};
-    quint64 _lastFramesPerSecondUpdate = 0;
-    SimpleMovingAverage _simsPerSecond{10};
-    int _simsPerSecondReport = 0;
-    quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
     bool _isGLInitialized { false };
@@ -506,7 +534,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
 
@@ -517,10 +544,20 @@ private:
 
     QThread* _deadlockWatchdogThread;
 
-    std::map<void*, std::function<void()>> _preRenderLambdas;
-    std::mutex _preRenderLambdasLock;
+    std::map<void*, std::function<void()>> _postUpdateLambdas;
+    std::mutex _postUpdateLambdasLock;
 
-    std::atomic<uint32_t> _processOctreeStatsCounter { 0 };
+    std::atomic<uint32_t> _fullSceneReceivedCounter { 0 }; // how many times have we received a full-scene octree stats packet
+    uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
+    uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
+    uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
+
+    bool _keyboardDeviceHasFocus { true };
+
+    bool _recentlyClearedDomain { false };
+
+    QString _returnFromFullScreenMirrorTo;
 };
 
 #endif // hifi_Application_h

@@ -27,13 +27,14 @@
 #include "NodeType.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
+#include "NodePermissions.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         bool isAllowedEditor, bool canRez, const QUuid& connectionSecret = QUuid(),
+         const NodePermissions& permissions, const QUuid& connectionSecret = QUuid(),
          QObject* parent = 0);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -54,15 +55,16 @@ public:
     int getPingMs() const { return _pingMs; }
     void setPingMs(int pingMs) { _pingMs = pingMs; }
 
-    int getClockSkewUsec() const { return _clockSkewUsec; }
-    void updateClockSkewUsec(int clockSkewSample);
+    qint64 getClockSkewUsec() const { return _clockSkewUsec; }
+    void updateClockSkewUsec(qint64 clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
-    void setIsAllowedEditor(bool isAllowedEditor) { _isAllowedEditor = isAllowedEditor; }
-    bool isAllowedEditor() { return _isAllowedEditor; }
-
-    void setCanRez(bool canRez) { _canRez = canRez; }
-    bool getCanRez() { return _canRez; }
+    void setPermissions(const NodePermissions& newPermissions) { _permissions = newPermissions; }
+    NodePermissions getPermissions() const { return _permissions; }
+    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
+    bool getCanRez() const { return _permissions.canRezPermanentEntities; }
+    bool getCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
+    bool getCanWriteToAssetServer() const { return _permissions.canWriteToAssetServer; }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
@@ -78,11 +80,10 @@ private:
     std::unique_ptr<NodeData> _linkedData;
     bool _isAlive;
     int _pingMs;
-    int _clockSkewUsec;
+    qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
-    bool _isAllowedEditor;
-    bool _canRez;
+    NodePermissions _permissions;
 };
 
 Q_DECLARE_METATYPE(Node*)

@@ -56,6 +56,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         auto height = _antialiasingBuffer->getHeight();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -93,7 +94,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
 
 void Antialiasing::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
 
@@ -117,8 +118,8 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
 
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
@@ -126,7 +127,6 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         // FXAA step
         getAntialiasingPipeline();
         batch.setResourceTexture(0, framebufferCache->getLightingTexture());
-        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
 
@@ -134,7 +134,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         float left, right, bottom, top, nearVal, farVal;
         glm::vec4 nearClipPlane, farClipPlane;
 
-        args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        args->getViewFrustum().computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
         // float depthScale = (farVal - nearVal) / farVal;
         // float nearScale = -1.0f / nearVal;

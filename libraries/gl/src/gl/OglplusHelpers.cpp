@@ -6,8 +6,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OglplusHelpers.h"
-#include <QSharedPointer>
+
 #include <set>
+#include <oglplus/shapes/plane.hpp>
+#include <oglplus/shapes/sky_box.hpp>
 
 using namespace oglplus;
 using namespace oglplus::shapes;
@@ -20,11 +22,13 @@ uniform mat4 mvp = mat4(1);
 in vec3 Position;
 in vec2 TexCoord;
 
+out vec3 vPosition;
 out vec2 vTexCoord;
 
 void main() {
   gl_Position = mvp * vec4(Position, 1);
-  vTexCoord = TexCoord ;
+  vTexCoord = TexCoord;
+  vPosition = Position;
 }
 
 )VS";
@@ -35,12 +39,36 @@ static const char * SIMPLE_TEXTURED_FS = R"FS(#version 410 core
 uniform sampler2D sampler;
 uniform float alpha = 1.0;
 
+in vec3 vPosition;
 in vec2 vTexCoord;
+
+out vec4 FragColor;
+
+void main() {
+    FragColor = texture(sampler, vTexCoord);
+    FragColor.a *= alpha;
+    if (FragColor.a <= 0.0) {
+        discard;
+    }
+}
+
+)FS";
+
+
+static const char * SIMPLE_TEXTURED_CUBEMAP_FS = R"FS(#version 410 core
+#pragma line __LINE__
+
+uniform samplerCube sampler;
+uniform float alpha = 1.0;
+
+in vec3 vPosition;
+in vec3 vTexCoord;
+
 out vec4 FragColor;
 
 void main() {
 
-    FragColor = texture(sampler, vTexCoord);
+    FragColor = texture(sampler, vPosition);
     FragColor.a *= alpha;
 }
 
@@ -50,6 +78,12 @@ void main() {
 ProgramPtr loadDefaultShader() {
     ProgramPtr result;
     compileProgram(result, SIMPLE_TEXTURED_VS, SIMPLE_TEXTURED_FS);
+    return result;
+}
+
+ProgramPtr loadCubemapShader() {
+    ProgramPtr result;
+    compileProgram(result, SIMPLE_TEXTURED_VS, SIMPLE_TEXTURED_CUBEMAP_FS);
     return result;
 }
 
@@ -91,6 +125,10 @@ ShapeWrapperPtr loadPlane(ProgramPtr program, float aspect) {
     return ShapeWrapperPtr(
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, shapes::Plane(a, b), *program)
     );
+}
+
+ShapeWrapperPtr loadSkybox(ProgramPtr program) {
+    return ShapeWrapperPtr(new shapes::ShapeWrapper(std::initializer_list<std::string>{ "Position" }, shapes::SkyBox(), *program));
 }
 
 // Return a point's cartesian coordinates on a sphere from pitch and yaw
@@ -298,7 +336,7 @@ public:
 
     /// Returns the instructions for rendering of faces
     DrawingInstructions Instructions(PrimitiveType primitive) const {
-        DrawingInstructions instr = this->MakeInstructions();
+        DrawingInstructions instr = MakeInstructions();
         DrawOperation operation;
         operation.method = DrawOperation::Method::DrawElements;
         operation.mode = primitive;
@@ -306,8 +344,8 @@ public:
         operation.count = _prim_count * 3;
         operation.restart_index = DrawOperation::NoRestartIndex();
         operation.phase = 0;
-        this->AddInstruction(instr, operation);
-        return std::move(instr);
+        AddInstruction(instr, operation);
+        return instr;
     }
 
     /// Returns the instructions for rendering of faces
@@ -321,6 +359,94 @@ ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov, float aspect, i
     return ShapeWrapperPtr(
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, SphereSection(fov, aspect, slices, stacks), *program)
     );
+}
+
+namespace oglplus {
+    namespace shapes {
+
+        class Laser : public DrawingInstructionWriter, public DrawMode {
+        public:
+            using IndexArray = std::vector<GLuint>;
+            using PosArray = std::vector<float>;
+            /// The type of the index container returned by Indices()
+            // vertex positions
+            PosArray _pos_data;
+            IndexArray _idx_data;
+            unsigned int _prim_count { 0 };
+
+        public:
+            Laser() {
+                int vertices = 2;
+                _pos_data.resize(vertices * 3);
+                _pos_data[0] = 0;
+                _pos_data[1] = 0;
+                _pos_data[2] = 0;
+
+                _pos_data[3] = 0;
+                _pos_data[4] = 0;
+                _pos_data[5] = -1;
+
+                _idx_data.push_back(0);
+                _idx_data.push_back(1);
+                _prim_count = 1;
+            }
+
+            /// Returns the winding direction of faces
+            FaceOrientation FaceWinding(void) const {
+                return FaceOrientation::CCW;
+            }
+
+            /// Queries the bounding sphere coordinates and dimensions
+            template <typename T>
+            void BoundingSphere(Sphere<T>& bounding_sphere) const {
+                bounding_sphere = Sphere<T>(0, 0, -0.5, 0.5);
+            }
+
+            typedef GLuint(Laser::*VertexAttribFunc)(std::vector<GLfloat>&) const;
+
+            /// Makes the vertex positions and returns the number of values per vertex
+            template <typename T>
+            GLuint Positions(std::vector<T>& dest) const {
+                dest.clear();
+                dest.insert(dest.begin(), _pos_data.begin(), _pos_data.end());
+                return 3;
+            }
+
+            typedef VertexAttribsInfo<
+                Laser,
+                std::tuple<VertexPositionsTag>
+            > VertexAttribs;
+
+
+            /// Returns element indices that are used with the drawing instructions
+            const IndexArray & Indices(Default = Default()) const {
+                return _idx_data;
+            }
+
+            /// Returns the instructions for rendering of faces
+            DrawingInstructions Instructions(PrimitiveType primitive) const {
+                DrawingInstructions instr = MakeInstructions();
+                DrawOperation operation;
+                operation.method = DrawOperation::Method::DrawElements;
+                operation.mode = primitive;
+                operation.first = 0;
+                operation.count = _prim_count * 3;
+                operation.restart_index = DrawOperation::NoRestartIndex();
+                operation.phase = 0;
+                AddInstruction(instr, operation);
+                return instr;
+            }
+
+            /// Returns the instructions for rendering of faces
+            DrawingInstructions Instructions(Default = Default()) const {
+                return Instructions(PrimitiveType::Lines);
+            }
+        };
+    }
+}
+
+ShapeWrapperPtr loadLaser(const ProgramPtr& program) {
+    return std::make_shared<shapes::ShapeWrapper>(shapes::ShapeWrapper("Position", shapes::Laser(), *program));
 }
 
 void TextureRecycler::setSize(const uvec2& size) {

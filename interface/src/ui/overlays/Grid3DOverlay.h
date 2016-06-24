@@ -19,22 +19,22 @@ class Grid3DOverlay : public Planar3DOverlay {
 
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
 
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
 
-    virtual AABox getBounds() const;
+    virtual AABox getBounds() const override;
 
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
-    virtual Grid3DOverlay* createClone() const;
+    virtual Grid3DOverlay* createClone() const override;
 
     // Grids are UI tools, and may not be intersected (pickable)
-    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&) { return false; }
+    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&) override { return false; }
 
 private:
     void updateGrid();

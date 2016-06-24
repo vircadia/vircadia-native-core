@@ -32,11 +32,12 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
-    getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
+    getEntityPacketSender()->queueEditEntityMessage(packetType, _entityTree, entityID, properties);
 }
 
 bool EntityScriptingInterface::canAdjustLocks() {
@@ -47,6 +48,11 @@ bool EntityScriptingInterface::canAdjustLocks() {
 bool EntityScriptingInterface::canRez() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRez();
+}
+
+bool EntityScriptingInterface::canRezTmp() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmp();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -123,9 +129,16 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
+
+    if (clientOnly) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
+        propertiesWithSimID.setClientOnly(clientOnly);
+        propertiesWithSimID.setOwningAvatarID(myNodeID);
+    }
 
     auto dimensions = propertiesWithSimID.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
@@ -272,13 +285,21 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (!entity) {
+            return;
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
+            // don't edit other avatar's avatarEntities
+            return;
+        }
+
         if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (!entity) {
-                return;
-            }
+
             //existing entity, retrieve old velocity for check down below
             oldVelocity = entity->getVelocity().length();
 
@@ -296,6 +317,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             }
         }
         properties = convertLocationFromScriptSemantics(properties);
+        properties.setClientOnly(entity->getClientOnly());
+        properties.setOwningAvatarID(entity->getOwningAvatarID());
 
         float cost = calculateCost(density * volume, oldVelocity, newVelocity);
         cost *= costMultiplier;
@@ -384,6 +407,14 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
 
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+                    // don't delete other avatar's avatarEntities
+                    shouldDelete = false;
+                    return;
+                }
+
                 auto dimensions = entity->getDimensions();
                 float volume = dimensions.x * dimensions.y * dimensions.z;
                 auto density = entity->getDensity();
@@ -414,7 +445,13 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 }
 
+void EntityScriptingInterface::setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) {
+    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+    _entitiesScriptEngine = engine;
+}
+
 void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
+    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     if (_entitiesScriptEngine) {
         EntityItemID entityID{ id };
         _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
@@ -475,13 +512,20 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
+                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
-    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking, entitiesToInclude, entitiesToDiscard);
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+// FIXME - we should remove this API and encourage all users to use findRayIntersection() instead. We've changed
+//         findRayIntersection() to be blocking because it never makes sense for a script to get back a non-answer
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, 
+                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+
+    qWarning() << "Entities.findRayIntersectionBlocking() is obsolete, use Entities.findRayIntersection() instead.";
     const QVector<EntityItemID>& entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     const QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
     return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
@@ -753,15 +797,20 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
 
 
 bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
-                                            std::function<bool(EntitySimulation*, EntityItemPointer)> actor) {
+                                            std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor) {
     if (!_entityTree) {
         return false;
     }
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
+
+    EntityItemProperties properties;
+
     EntityItemPointer entity;
     bool doTransmit = false;
     _entityTree->withWriteLock([&] {
-        EntitySimulation* simulation = _entityTree->getSimulation();
+        EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {
             qDebug() << "actionWorker -- unknown entity" << entityID;
@@ -773,15 +822,20 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
+        if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+            return;
+        }
+
         doTransmit = actor(simulation, entity);
         if (doTransmit) {
+            properties.setClientOnly(entity->getClientOnly());
+            properties.setOwningAvatarID(entity->getOwningAvatarID());
             _entityTree->entityChanged(entity);
         }
     });
 
     // transmit the change
     if (doTransmit) {
-        EntityItemProperties properties;
         _entityTree->withReadLock([&] {
             properties = entity->getProperties();
         });
@@ -802,7 +856,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
     QUuid actionID = QUuid::createUuid();
     auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
     bool success = false;
-    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             // create this action even if the entity doesn't have physics info.  it will often be the
             // case that a script adds an action immediately after an object is created, and the physicsInfo
             // is computed asynchronously.
@@ -817,6 +871,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
             if (!action) {
                 return false;
             }
+            action->setIsMine(true);
             success = entity->addAction(simulation, action);
             entity->grabSimulationOwnership();
             return false; // Physics will cause a packet to be sent, so don't send from here.
@@ -829,7 +884,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
 
 
 bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments) {
-    return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             bool success = entity->updateAction(simulation, actionID, arguments);
             if (success) {
                 entity->grabSimulationOwnership();
@@ -840,7 +895,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
 
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
     bool success = false;
-    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             success = entity->removeAction(simulation, actionID);
             if (success) {
                 // reduce from grab to poke
@@ -853,7 +908,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
 
 QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
     QVector<QUuid> result;
-    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             QList<QUuid> actionIDs = entity->getActionIDs();
             result = QVector<QUuid>::fromList(actionIDs);
             return false; // don't send an edit packet
@@ -863,7 +918,7 @@ QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
 
 QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, const QUuid& actionID) {
     QVariantMap result;
-    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
             result = entity->getActionArguments(actionID);
             return false; // don't send an edit packet
         });
@@ -1069,6 +1124,27 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     QStringList result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    if (!entity) {
+        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        return result;
+    }
+
+    _entityTree->withReadLock([&] {
+        entity->forEachChild([&](SpatiallyNestablePointer child) {
+            result.push_back(child->getID());
+        });
+    });
+
     return result;
 }
 

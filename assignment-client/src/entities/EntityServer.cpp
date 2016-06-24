@@ -56,7 +56,7 @@ OctreePointer EntityServer::createTree() {
     tree->createRootElement();
     tree->addNewlyCreatedHook(this);
     if (!_entitySimulation) {
-        SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
+        SimpleEntitySimulationPointer simpleSimulation { new SimpleEntitySimulation() };
         simpleSimulation->setEntityTree(tree);
         tree->setSimulation(simpleSimulation);
         _entitySimulation = simpleSimulation;
@@ -268,6 +268,14 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     qDebug("wantTerseEditLogging=%s", debug::valueOf(wantTerseEditLogging));
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+
+    int maxTmpEntityLifetime;
+    if (readOptionInt("maxTmpLifetime", settingsSectionObject, maxTmpEntityLifetime)) {
+        tree->setEntityMaxTmpLifetime(maxTmpEntityLifetime);
+    } else {
+        tree->setEntityMaxTmpLifetime(EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME);
+    }
+
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 }

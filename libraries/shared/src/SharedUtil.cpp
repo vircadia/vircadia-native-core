@@ -19,12 +19,16 @@
 #include <time.h>
 #include <mutex>
 
+#include <glm/glm.hpp>
+
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
 #ifdef Q_OS_WIN
-#include "CPUID.h"
+#include "CPUIdent.h"
+#include <Psapi.h>
 #endif
 
 
@@ -43,8 +47,8 @@
 #include "OctalCode.h"
 #include "SharedLogging.h"
 
-static int usecTimestampNowAdjust = 0; // in usec
-void usecTimestampNowForceClockSkew(int clockSkew) {
+static qint64 usecTimestampNowAdjust = 0; // in usec
+void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
@@ -247,12 +251,6 @@ int getNthBit(unsigned char byte, int ordinal) {
     return ERROR_RESULT;
 }
 
-bool isBetween(int64_t value, int64_t max, int64_t min) {
-    return ((value <= max) && (value >= min));
-}
-
-
-
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
     byte |= ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
@@ -260,12 +258,7 @@ void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
 
 bool isInEnvironment(const char* environment) {
     char* environmentString = getenv("HIFI_ENVIRONMENT");
-
-    if (environmentString && strcmp(environmentString, environment) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return (environmentString && strcmp(environmentString, environment) == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -463,19 +456,44 @@ void printVoxelCode(unsigned char* voxelCode) {
 }
 
 #ifdef _WIN32
-    void usleep(int waitTime) {
-        const quint64 BUSY_LOOP_USECS = 2000;
-        quint64 compTime = waitTime + usecTimestampNow();
-        quint64 compTimeSleep = compTime - BUSY_LOOP_USECS;
-        while (true) {
-            if (usecTimestampNow() < compTimeSleep) {
-                QThread::msleep(1);
-            }
-            if (usecTimestampNow() >= compTime) {
-                break;
-            }
+void usleep(int waitTime) {
+    // Use QueryPerformanceCounter for least overhead
+    LARGE_INTEGER now; // ticks
+    QueryPerformanceCounter(&now);
+
+    static int64_t ticksPerSec = 0;
+    if (ticksPerSec == 0) {
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        ticksPerSec = frequency.QuadPart;
+    }
+
+    // order ops to avoid loss in precision
+    int64_t waitTicks = (ticksPerSec * waitTime) / USECS_PER_SECOND;
+    int64_t sleepTicks = now.QuadPart + waitTicks;
+
+    // Busy wait with sleep/yield where possible
+    while (true) {
+        QueryPerformanceCounter(&now);
+        if (now.QuadPart >= sleepTicks) {
+            break;
+        }
+
+        // Sleep if we have at least 1ms to spare
+        const int64_t MIN_SLEEP_USECS = 1000;
+        // msleep is allowed to overshoot, so give it a 100us berth
+        const int64_t MIN_SLEEP_USECS_BERTH = 100;
+        // order ops to avoid loss in precision
+        int64_t sleepFor = ((sleepTicks - now.QuadPart) * USECS_PER_SECOND) / ticksPerSec - MIN_SLEEP_USECS_BERTH;
+        if (sleepFor > MIN_SLEEP_USECS) {
+            Sleep((DWORD)(sleepFor / USECS_PER_MSEC));
+        // Yield otherwise
+        } else {
+            // Use Qt to delegate, as SwitchToThread is only supported starting with XP
+            QThread::yieldCurrentThread();
         }
     }
+}
 #endif
 
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
@@ -632,26 +650,74 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-bool isNaN(float value) {
-    return value != value;
-}
 
-QString formatUsecTime(float usecs, int prec) {
-    static const quint64 SECONDS_PER_MINUTE = 60;
-    static const quint64 USECS_PER_MINUTE = USECS_PER_SECOND * SECONDS_PER_MINUTE;
+// glm::abs() works for signed or unsigned types
+template <typename T>
+QString formatUsecTime(T usecs) {
+    static const int PRECISION = 3;
+    static const int FRACTION_MASK = pow(10, PRECISION);
+
+    static const T USECS_PER_MSEC = 1000;
+    static const T USECS_PER_SECOND = 1000 * USECS_PER_MSEC;
+    static const T USECS_PER_MINUTE = USECS_PER_SECOND * 60;
+    static const T USECS_PER_HOUR = USECS_PER_MINUTE * 60;
 
     QString result;
-    if (usecs > USECS_PER_MINUTE) {
-        result = QString::number(usecs / USECS_PER_MINUTE, 'f', prec) + "min";
-    } else if (usecs > USECS_PER_SECOND) {
-        result = QString::number(usecs / USECS_PER_SECOND, 'f', prec) + 's';
-    } else if (usecs > USECS_PER_MSEC) {
-        result = QString::number(usecs / USECS_PER_MSEC, 'f', prec) + "ms";
+    if (glm::abs(usecs) > USECS_PER_HOUR) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_HOUR);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_HOUR)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_HOUR, 'f', PRECISION);
+        }
+        result += " hrs";
+    } else if (glm::abs(usecs) > USECS_PER_MINUTE) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_MINUTE);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_MINUTE)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_MINUTE, 'f', PRECISION);
+        }
+        result += " mins";
+    } else if (glm::abs(usecs) > USECS_PER_SECOND) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_SECOND);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_SECOND)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_SECOND, 'f', PRECISION);
+        }
+        result += " secs";
+    } else if (glm::abs(usecs) > USECS_PER_MSEC) {
+        if (std::is_integral<T>::value) {
+            result = QString::number(usecs / USECS_PER_MSEC);
+            result += "." + QString::number(((int)(usecs * FRACTION_MASK / USECS_PER_MSEC)) % FRACTION_MASK);
+        } else {
+            result = QString::number(usecs / USECS_PER_MSEC, 'f', PRECISION);
+        }
+        result += " msecs";
     } else {
-        result = QString::number(usecs, 'f', prec) + "us";
+        result = QString::number(usecs) + " usecs";
     }
     return result;
 }
+
+
+QString formatUsecTime(quint64 usecs) {
+    return formatUsecTime<quint64>(usecs);
+}
+
+QString formatUsecTime(qint64 usecs) {
+    return formatUsecTime<qint64>(usecs);
+}
+
+QString formatUsecTime(float usecs) {
+    return formatUsecTime<float>(usecs);
+}
+
+QString formatUsecTime(double usecs) {
+    return formatUsecTime<double>(usecs);
+}
+
 
 QString formatSecondsElapsed(float seconds) {
     QString result;
@@ -758,10 +824,10 @@ void printSystemInformation() {
 
     qDebug() << "CPUID";
 
-    qDebug() << "\tCPU Vendor: " << CPUID::Vendor().c_str();
-    qDebug() << "\tCPU Brand:  " << CPUID::Brand().c_str();
+    qDebug() << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
+    qDebug() << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
 
-    for (auto& feature : CPUID::getAllFeatures()) {
+    for (auto& feature : CPUIdent::getAllFeatures()) {
         qDebug().nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
     }
 #endif
@@ -777,4 +843,30 @@ void printSystemInformation() {
         qDebug().noquote().nospace() << "\t" <<
             (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
     }
+}
+
+bool getMemoryInfo(MemoryInfo& info) {
+#ifdef Q_OS_WIN
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (!GlobalMemoryStatusEx(&ms)) {
+        return false;
+    }
+
+    info.totalMemoryBytes = ms.ullTotalPhys;
+    info.availMemoryBytes = ms.ullAvailPhys;
+    info.usedMemoryBytes = ms.ullTotalPhys - ms.ullAvailPhys;
+
+
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return false;
+    }
+    info.processUsedMemoryBytes = pmc.PrivateUsage;
+    info.processPeakUsedMemoryBytes = pmc.PeakPagefileUsage;
+
+    return true;
+#endif
+
+    return false;
 }

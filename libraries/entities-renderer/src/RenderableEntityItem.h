@@ -25,6 +25,8 @@ enum class RenderItemStatusIcon {
     PACKET_RECEIVED = 2,
     SIMULATION_OWNER = 3,
     HAS_ACTIONS = 4,
+    OTHER_SIMULATION_OWNER = 5,
+    CLIENT_ONLY = 6,
     NONE = 255
 };
 
@@ -92,7 +94,7 @@ private:
 public: \
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { return _renderHelper.addToScene(self, scene, pendingChanges); } \
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
-    virtual void locationChanged() override { EntityItem::locationChanged(); _renderHelper.notifyChanged(); } \
+    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); _renderHelper.notifyChanged(); } \
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); _renderHelper.notifyChanged(); } \
 private: \
     SimpleRenderableEntityItem _renderHelper;

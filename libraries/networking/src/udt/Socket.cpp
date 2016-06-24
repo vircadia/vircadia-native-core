@@ -36,6 +36,26 @@ Socket::Socket(QObject* parent) :
     
     // start our timer for the synchronization time interval
     _synTimer->start(_synInterval);
+
+    // make sure we hear about errors and state changes from the underlying socket
+    connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+            this, SLOT(handleSocketError(QAbstractSocket::SocketError)));
+    connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &Socket::handleStateChanged);
+}
+
+void Socket::bind(const QHostAddress& address, quint16 port) {
+    _udpSocket.bind(address, port);
+    setSystemBufferSizes();
+
+#if defined(Q_OS_LINUX)
+    auto sd = _udpSocket.socketDescriptor();
+    int val = IP_PMTUDISC_DONT;
+    setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+#elif defined(Q_OS_WINDOWS)
+    auto sd = _udpSocket.socketDescriptor();
+    int val = 0; // false
+    setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+#endif
 }
 
 void Socket::rebind() {
@@ -390,4 +410,14 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
         addr.push_back(connectionPair.first);
     }
     return addr;
+}
+
+void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
+    qCWarning(networking) << "udt::Socket error -" << socketError;
+}
+
+void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
+    if (socketState != QAbstractSocket::BoundState) {
+        qCWarning(networking) << "udt::Socket state changed - state is now" << socketState;
+    }
 }

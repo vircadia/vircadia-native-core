@@ -16,7 +16,6 @@
 
 #include "SDL2Manager.h"
 
-#ifdef HAVE_SDL2
 static_assert(
     (int)controller::A == (int)SDL_CONTROLLER_BUTTON_A &&
     (int)controller::B == (int)SDL_CONTROLLER_BUTTON_B &&
@@ -40,29 +39,17 @@ static_assert(
     (int)controller::LT == (int)SDL_CONTROLLER_AXIS_TRIGGERLEFT &&
     (int)controller::RT == (int)SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
     "SDL2 equvalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
-#endif
 
 
 const QString SDL2Manager::NAME = "SDL2";
 
-#ifdef HAVE_SDL2
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
     SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
     return SDL_JoystickInstanceID(joystick);
 }
-#endif
-
-SDL2Manager::SDL2Manager() :
-#ifdef HAVE_SDL2
-_openJoysticks(),
-#endif
-_isInitialized(false)
-{
-}
 
 void SDL2Manager::init() {
-#ifdef HAVE_SDL2
-    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER) == 0);
+    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0);
 
     if (initSuccess) {
         int joystickCount = SDL_NumJoysticks();
@@ -79,6 +66,7 @@ void SDL2Manager::init() {
                     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                     userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick.get());
+                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
                 }
             }
         }
@@ -88,66 +76,50 @@ void SDL2Manager::init() {
     else {
         qDebug() << "Error initializing SDL2 Manager";
     }
-#endif
 }
 
 void SDL2Manager::deinit() {
-#ifdef HAVE_SDL2
     _openJoysticks.clear();
 
     SDL_Quit();
-#endif
 }
 
 bool SDL2Manager::activate() {
     InputPlugin::activate();
 
-#ifdef HAVE_SDL2
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->registerDevice(joystick);
         emit joystickAdded(joystick.get());
     }
     return true;
-#else
-    return false;
-#endif
 }
 
 void SDL2Manager::deactivate() {
-#ifdef HAVE_SDL2
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->removeDevice(joystick->getDeviceID());
         emit joystickRemoved(joystick.get());
     }
-#endif
     InputPlugin::deactivate();
 }
 
 
 bool SDL2Manager::isSupported() const {
-#ifdef HAVE_SDL2
     return true;
-#else
-    return false;
-#endif
 }
 
 void SDL2Manager::pluginFocusOutEvent() {
-#ifdef HAVE_SDL2
     for (auto joystick : _openJoysticks) {
         joystick->focusOutEvent();
     }
-#endif
 }
 
-void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
-#ifdef HAVE_SDL2
+void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     if (_isInitialized) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         for (auto joystick : _openJoysticks) {
-            joystick->update(deltaTime, inputCalibrationData, jointsCaptured);
+            joystick->update(deltaTime, inputCalibrationData);
         }
         
         PerformanceTimer perfTimer("SDL2Manager::update");
@@ -186,6 +158,7 @@ void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrati
                     _openJoysticks[id] = joystick;
                     userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick.get());
+                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
                 if (_openJoysticks.contains(event.cdevice.which)) {
@@ -197,5 +170,4 @@ void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrati
             }
         }
     }
-#endif
 }

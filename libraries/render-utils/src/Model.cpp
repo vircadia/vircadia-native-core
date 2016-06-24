@@ -29,13 +29,52 @@
 
 using namespace std;
 
-static int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
-static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
-static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
+int weakNetworkGeometryPointerTypeId = qRegisterMetaType<std::weak_ptr<NetworkGeometry> >();
+int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
-model::MaterialPointer Model::_collisionHullMaterial;
+const int NUM_COLLISION_HULL_COLORS = 24;
+std::vector<model::MaterialPointer> _collisionHullMaterials;
+
+void initCollisionHullMaterials() {
+    // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
+    // (no browns, greys, or dark shades)
+    float component[NUM_COLLISION_HULL_COLORS] = {
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.2f, 0.4f, 0.6f, 0.8f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        0.8f, 0.6f, 0.4f, 0.2f
+    };
+    _collisionHullMaterials.reserve(NUM_COLLISION_HULL_COLORS);
+
+    // each component gets the same cuve
+    // but offset by a multiple of one third the full width
+    int numComponents = 3;
+    int sectionWidth = NUM_COLLISION_HULL_COLORS / numComponents;
+    int greenPhase = sectionWidth;
+    int bluePhase = 2 * sectionWidth;
+
+    // we stride through the colors to scatter adjacent shades
+    // so they don't tend to group together for large models
+    for (int i = 0; i < sectionWidth; ++i) {
+        for (int j = 0; j < numComponents; ++j) {
+            model::MaterialPointer material;
+            material = std::make_shared<model::Material>();
+            int index = j * sectionWidth + i;
+            float red = component[index];
+            float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
+            float blue = component[(index + bluePhase) % NUM_COLLISION_HULL_COLORS];
+            material->setAlbedo(glm::vec3(red, green, blue));
+            material->setMetallic(0.02f);
+            material->setRoughness(0.5f);
+            _collisionHullMaterials.push_back(material);
+        }
+    }
+}
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
@@ -132,7 +171,7 @@ void Model::updateRenderItems() {
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
     std::weak_ptr<Model> weakSelf = shared_from_this();
-    AbstractViewStateInterface::instance()->pushPreRenderLambda(key, [weakSelf]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
@@ -726,10 +765,6 @@ glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     return translatedPoint;
 }
 
-bool Model::getJointState(int index, glm::quat& rotation) const {
-    return _rig->getJointStateRotation(index, rotation);
-}
-
 void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
@@ -967,7 +1002,7 @@ void Model::scaleToFit() {
     Extents modelMeshExtents = getUnscaledMeshExtents();
 
     // size is our "target size in world space"
-    // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
+    // we need to set our model scale so that the extents of the mesh, fit in a box that size...
     glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
     glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
     setScaleInternal(rescaleDimensions);
@@ -1221,13 +1256,10 @@ void Model::segregateMeshGroups() {
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             if (showingCollisionHull) {
-                if (!_collisionHullMaterial) {
-                    _collisionHullMaterial = std::make_shared<model::Material>();
-                    _collisionHullMaterial->setAlbedo(glm::vec3(1.0f, 0.5f, 0.0f));
-                    _collisionHullMaterial->setMetallic(0.02f);
-                    _collisionHullMaterial->setRoughness(0.5f);
+                if (_collisionHullMaterials.empty()) {
+                    initCollisionHullMaterials();
                 }
-                _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(networkMesh, partIndex, _collisionHullMaterial, transform, offset);
+                _collisionRenderItemsSet << std::make_shared<MeshPartPayload>(networkMesh, partIndex, _collisionHullMaterials[partIndex % NUM_COLLISION_HULL_COLORS], transform, offset);
             } else {
                 _modelMeshRenderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
             }

@@ -97,6 +97,14 @@ int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destina
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
 int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput);
 
+// alternate compression method that picks the smallest three quaternion components.
+// and packs them into 15 bits each. An additional 2 bits are used to encode which component
+// was omitted.  Also because the components are encoded from the -1/sqrt(2) to 1/sqrt(2) which
+// gives us some extra precision over the -1 to 1 range.  The final result will have a maximum
+// error of +- 4.3e-5 error per compoenent.
+int packOrientationQuatToSixBytes(unsigned char* buffer, const glm::quat& quatInput);
+int unpackOrientationQuatFromSixBytes(const unsigned char* buffer, glm::quat& quatOutput);
+
 // Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
 // are never greater than 1000 to 1, this allows us to encode each component in 16bits
 int packFloatRatioToTwoByte(unsigned char* buffer, float ratio);
@@ -229,8 +237,8 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
 glm::vec2 getFacingDir2D(const glm::quat& rot);
 glm::vec2 getFacingDir2D(const glm::mat4& m);
 
-bool isNaN(glm::vec3 value);
-bool isNaN(glm::quat value);
+inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
+inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
 
 glm::mat4 orthoInverse(const glm::mat4& m);
 

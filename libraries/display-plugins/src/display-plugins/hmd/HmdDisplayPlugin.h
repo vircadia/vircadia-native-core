@@ -10,6 +10,7 @@
 #include <ThreadSafeValueCache.h>
 
 #include <QtGlobal>
+#include <Transform.h>
 
 #include "../OpenGLDisplayPlugin.h"
 
@@ -26,44 +27,71 @@ public:
     void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
+    QRect getRecommendedOverlayRect() const override final;
+
     virtual glm::mat4 getHeadPose() const override;
 
-    using EyePoses = std::array<glm::mat4, 2>;
-
-    struct FrameInfo {
-        EyePoses eyePoses;
-        glm::mat4 headPose;
-        double sensorSampleTime { 0 };
-        double predictedDisplayTime { 0 };
-    };
-
+    bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
 
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
     virtual void postPreview() {};
+    virtual void updatePresentPose();
 
     bool internalActivate() override;
+    void compositeScene() override;
     void compositeOverlay() override;
     void compositePointer() override;
     void internalPresent() override;
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
+    void compositeExtra() override;
 
+    struct HandLaserInfo {
+        HandLaserMode mode { HandLaserMode::None };
+        vec4 color { 1.0f };
+        vec3 direction { 0, 0, -1 };
+
+        // Is this hand laser info suitable for drawing?
+        bool valid() const {
+            return (mode != HandLaserMode::None && color.a > 0.0f && direction != vec3());
+        }
+    };
+
+    Transform _uiModelTransform;
+    std::array<HandLaserInfo, 2> _handLasers;
+    std::array<glm::mat4, 2> _handPoses;
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
+    std::array<glm::mat4, 2> _eyeInverseProjections;
+
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
     float _ipd { 0.064f };
 
+    struct FrameInfo {
+        glm::mat4 rawRenderPose;
+        glm::mat4 renderPose;
+        glm::mat4 rawPresentPose;
+        glm::mat4 presentPose;
+        double sensorSampleTime { 0 };
+        double predictedDisplayTime { 0 };
+        glm::mat3 presentReprojection;
+    };
+
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
-    ThreadSafeValueCache<FrameInfo> _currentRenderFrameInfo;
+    FrameInfo _currentRenderFrameInfo;
 
 private:
     bool _enablePreview { false };
     bool _monoPreview { true };
+    bool _enableReprojection { true };
     ShapeWrapperPtr _sphereSection;
+    ProgramPtr _reprojectionProgram;
+    ProgramPtr _laserProgram;
+    ShapeWrapperPtr _laserGeometry;
 };
 

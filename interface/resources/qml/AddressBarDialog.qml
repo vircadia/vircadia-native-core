@@ -17,17 +17,31 @@ import "windows"
 Window {
     id: root
     HifiConstants { id: hifi }
-    anchors.centerIn: parent
+
     objectName: "AddressBarDialog"
     frame: HiddenFrame {}
+    hideBackground: true
 
-    visible: false
-    destroyOnInvisible: false
+    shown: false
+    destroyOnHidden: false
     resizable: false
     scale: 1.25  // Make this dialog a little larger than normal
 
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
+
+    Component.onCompleted: {
+        root.parentChanged.connect(center);
+        center();
+    }
+    Component.onDestruction: {
+        root.parentChanged.disconnect(center);
+    }
+
+    function center() {
+        // Explicitly center in order to avoid warnings at shutdown
+        anchors.centerIn = parent;
+    }
 
     AddressBarDialog {
         id: addressBarDialog
@@ -43,14 +57,34 @@ Window {
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
             Image {
+                id: homeButton
+                source: "../images/home-button.svg"
+                width: 29
+                height: 26
+                anchors {
+                    left: parent.left
+                    leftMargin: parent.height + 2 * hifi.layout.spacing
+                    verticalCenter: parent.verticalCenter
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {
+                        addressBarDialog.loadHome()
+                    }
+                }
+            }
+
+            Image {
                 id: backArrow
                 source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/left-arrow-disabled.svg"
+                width: 22
+                height: 26
                 anchors {
-                    fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing + 6
-                    rightMargin: parent.height + hifi.layout.spacing * 60
-                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    left: homeButton.right
+                    leftMargin: 2 * hifi.layout.spacing
+                    verticalCenter: parent.verticalCenter
                 }
 
                 MouseArea {
@@ -65,12 +99,12 @@ Window {
             Image {
                 id: forwardArrow
                 source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/right-arrow-disabled.svg"
+                width: 22
+                height: 26
                 anchors {
-                    fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 9
-                    rightMargin: parent.height + hifi.layout.spacing * 53
-                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    left: backArrow.right
+                    leftMargin: 2 * hifi.layout.spacing
+                    verticalCenter: parent.verticalCenter
                 }
 
                 MouseArea {
@@ -88,7 +122,7 @@ Window {
                 focus: true
                 anchors {
                     fill: parent
-                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 5
+                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 7
                     rightMargin: hifi.layout.spacing * 2
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
@@ -112,14 +146,14 @@ Window {
         if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text)
         }
-        root.visible = false;
+        root.shown = false;
     }
 
     Keys.onPressed: {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.visible = false
+                root.shown = false
                 event.accepted = true
                 break
             case Qt.Key_Enter:

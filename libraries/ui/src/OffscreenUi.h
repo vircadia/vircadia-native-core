@@ -12,7 +12,11 @@
 #ifndef hifi_OffscreenUi_h
 #define hifi_OffscreenUi_h
 
+#include <unordered_map>
+#include <functional>
+
 #include <QtCore/QVariant>
+#include <QtCore/QQueue>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QInputDialog>
@@ -22,21 +26,35 @@
 
 #include "OffscreenQmlElement.h"
 
+class VrMenu;
+
+#define OFFSCREEN_VISIBILITY_PROPERTY "shown"
 
 class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     Q_OBJECT
 
+    friend class VrMenu;
 public:
     OffscreenUi();
     virtual void create(QOpenGLContext* context) override;
     void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    void hide(const QString& name);
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
     bool navigationFocused();
     void setNavigationFocused(bool focused);
     void unfocusWindows();
     void toggleMenu(const QPoint& screenCoordinates);
+
+
+    // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
+    void setPinned(bool pinned = true);
+
+    void togglePinned();
+
+    bool eventFilter(QObject* originalDestination, QEvent* event) override;
+    void addMenuInitializer(std::function<void(VrMenu*)> f);
 
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
@@ -123,6 +141,8 @@ public:
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
 
+    unsigned int getMenuUserDataId() const;
+
 signals:
     void showDesktop();
 
@@ -131,6 +151,9 @@ private:
 
     QQuickItem* _desktop { nullptr };
     QQuickItem* _toolWindow { nullptr };
+    std::unordered_map<int, bool> _pressedKeys;
+    VrMenu* _vrMenu { nullptr };
+    QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers; 
 };
 
 #endif

@@ -39,6 +39,7 @@ public:
     Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
+    int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
 
 signals:
     void avatarAddedEvent(const QUuid& sessionUUID);
@@ -53,7 +54,6 @@ private slots:
     
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    void processAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:

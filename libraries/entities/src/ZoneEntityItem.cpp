@@ -23,8 +23,12 @@
 bool ZoneEntityItem::_zonesArePickable = false;
 bool ZoneEntityItem::_drawZoneBoundaries = false;
 
+
 const ShapeType ZoneEntityItem::DEFAULT_SHAPE_TYPE = SHAPE_TYPE_BOX;
 const QString ZoneEntityItem::DEFAULT_COMPOUND_SHAPE_URL = "";
+const bool ZoneEntityItem::DEFAULT_FLYING_ALLOWED = true;
+const bool ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED = true;
+
 
 EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity { new ZoneEntityItem(entityID) };
@@ -55,6 +59,9 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
 
     _skyboxProperties.getProperties(properties);
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
+
     return properties;
 }
 
@@ -66,9 +73,12 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     
     bool somethingChangedInStage = _stageProperties.setProperties(properties);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
 
     bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
 
@@ -107,7 +117,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     bytesRead += bytesFromStage;
     dataAt += bytesFromStage;
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
@@ -115,6 +125,9 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
                                                                            propertyFlags, overwriteLocalData, somethingChanged);
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
+
+    READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
+    READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
 
     return bytesRead;
 }
@@ -125,13 +138,16 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += _keyLightProperties.getEntityProperties(params);
-    
+
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
     requestedProperties += _stageProperties.getEntityProperties(params);
     requestedProperties += _skyboxProperties.getEntityProperties(params);
-    
+
+    requestedProperties += PROP_FLYING_ALLOWED;
+    requestedProperties += PROP_GHOSTING_ALLOWED;
+
     return requestedProperties;
 }
 
@@ -155,10 +171,12 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
-    
+
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
+    APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
+    APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
 }
 
 void ZoneEntityItem::debugDump() const {
