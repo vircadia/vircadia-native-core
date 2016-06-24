@@ -1173,10 +1173,12 @@ function MyController(hand) {
         }
 
         var rayPickInfo = this.calcRayPickInfo(this.hand);
-        this.intersectionDistance = rayPickInfo.distance;
         if (rayPickInfo.entityID) {
             candidateEntities.push(rayPickInfo.entityID);
             this.entityPropertyCache.addEntity(rayPickInfo.entityID);
+            this.intersectionDistance = rayPickInfo.distance;
+        } else {
+            this.intersectionDistance = 0;
         }
 
         var grabbableEntities = candidateEntities.filter(function (entity) {
