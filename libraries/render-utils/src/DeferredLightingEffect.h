@@ -115,7 +115,9 @@ class RenderDeferredSetup {
 public:
   //  using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
     
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform,
+        const gpu::TexturePointer& diffusedCurvature2,
+        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
 
 class RenderDeferredLocals {
@@ -144,9 +146,13 @@ class RenderDeferredConfig : public render::Job::Config {
         Q_PROPERTY(float curvatureOffset MEMBER curvatureOffset NOTIFY dirty)
         Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
 
-
+        Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
+        Q_PROPERTY(bool showScatteringBRDF MEMBER showScatteringBRDF NOTIFY dirty)
+        
         Q_PROPERTY(bool enablePointLights MEMBER enablePointLights NOTIFY dirty)
         Q_PROPERTY(bool enableSpotLights MEMBER enableSpotLights NOTIFY dirty)
+
+        
 public:
     RenderDeferredConfig() : render::Job::Config(true) {}
 
@@ -158,6 +164,9 @@ public:
     float curvatureOffset{ 0.08f };
     float curvatureScale{ 0.8f };
 
+    bool enableScattering{ true };
+    bool showScatteringBRDF{ false };
+
     bool enablePointLights{ true };
     bool enableSpotLights{ true };
 
@@ -168,14 +177,15 @@ signals:
 
 class RenderDeferred {
 public:
+    using Inputs = render::VaryingSet3 < DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer >;
     using Config = RenderDeferredConfig;
-    using JobModel = render::Job::ModelI<RenderDeferred, DeferredFrameTransformPointer, Config>;
+    using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
     RenderDeferred();
 
     void configure(const Config& config);
 
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
     
     RenderDeferredSetup setupJob;
     RenderDeferredLocals lightsJob;

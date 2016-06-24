@@ -13,7 +13,7 @@
 uniform sampler2D scatteringLUT;
 
 vec3 fetchBRDF(float LdotN, float curvature) {
-    return texture(scatteringLUT, vec2( LdotN * 0.5 + 0.5, curvature)).xyz;
+    return texture(scatteringLUT, vec2( clamp(LdotN * 0.5 + 0.5, 0.0, 1.0), curvature)).xyz;
 }
 
 vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
@@ -27,7 +27,7 @@ vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
 // Subsurface Scattering parameters
 struct ScatteringParameters {
     vec4 normalBendInfo; // R, G, B, factor
-    vec4 curvatureInfo;// Offset, Scale
+    vec4 curvatureInfo;// Offset, Scale, level
 };
 
 uniform subsurfaceScatteringParametersBuffer {
@@ -38,8 +38,16 @@ vec3 getBendFactor() {
     return parameters.normalBendInfo.xyz * parameters.normalBendInfo.w;
 }
 
+float getScatteringLevel() {
+    return parameters.curvatureInfo.z;
+}
+
+bool showBRDF() {
+    return parameters.curvatureInfo.w > 0.0;
+}
+
 float unpackCurvature(float packedCurvature) {
-    return abs(packedCurvature * 2 - 1) * 0.5f * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
+    return abs(packedCurvature * 2 - 1) * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
 }
 
 <@endfunc@>

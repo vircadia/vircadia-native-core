@@ -157,6 +157,7 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 <$declareDeferredCurvature()$>
 <@include SubsurfaceScattering.slh@>
 <$declareSubsurfaceScatteringResource()$>
+<!<$declareEvalGlobalSpecularIrradiance(0, 1, 0)$>!>
 
 vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec4 blurredCurvature, vec4 diffusedCurvature, float roughness) {
     // prepareGlobalLight
@@ -169,7 +170,7 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     // Get light
     Light light = getLight();
     vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
-    float metallic = 1.0;
+    float metallic = 0.0;
 
     vec3 fragLightDir = -normalize(getLightDirection(light));
     
@@ -184,14 +185,52 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     vec3 rN = normalize(mix(normal, bentNormalLow, bendFactorSpectrum.x));
     vec3 gN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.y));
     vec3 bN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.z));
+    
 
+  /*  vec3 rN = normalize(mix(normal, bentNormalHigh, bendFactorSpectrum.x));
+    vec3 gN = normalize(mix(normal, bentNormalHigh, bendFactorSpectrum.y));
+    vec3 bN = normalize(mix(normal, bentNormalHigh, bendFactorSpectrum.z));
+    */
     vec3 NdotLSpectrum  = vec3(dot(rN, fragLightDir), dot(gN, fragLightDir), dot(bN, fragLightDir));
 
     // --> Look up the pre-integrated curvature-dependent BDRF textures
-    vec3 bdrf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
+    vec3 brdf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
+
+        // The position of the pixel fragment in Eye space then in world space
+
+    float scatteringLevel = getScatteringLevel();
+
+    vec4 shading;
+    float standardDiffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
+    { // Key Sun Lighting
+        // Diffuse Lighting
+        //float diffuse = clamp(dot(normal, fragLightDir), 0.0, 1.0);
+    
+        // Specular Lighting
+        vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+        vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
+        float power = specularDistribution(roughness, fragNormal, halfDir);
+        vec3 specular = power * fresnelColor * standardDiffuse;
+
+        shading = vec4(specular, (1 - fresnelColor.x));
+    }
+    
+    if (scatteringLevel < 0.1) {
+        brdf = vec3(standardDiffuse);
+    }
+    vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
 
 
-    return vec3(bdrf);
+    // Diffuse from ambient
+  //  color += albedo * evalSphericalLight(getLightAmbientSphere(light), bentNormalHigh).xyz *getLightAmbientIntensity(light);
+
+    // Specular highlight from ambient
+    vec3 specularLighting = evalGlobalSpecularIrradiance(light, fragEyeDir, fragNormal, roughness, fresnel, 1.0);
+   // color += specularLighting;
+
+    if ( showBRDF())
+        return brdf;
+    return vec3(color);
 }
 <@endfunc@>
 

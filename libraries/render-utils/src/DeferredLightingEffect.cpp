@@ -350,7 +350,10 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 
-void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform, const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
+void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+    const DeferredFrameTransformPointer& frameTransform,
+    const gpu::TexturePointer& diffusedCurvature2,
+    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -390,7 +393,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // Subsurface scattering specific
         batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, framebufferCache->getCurvatureTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, framebufferCache->getCurvatureTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, diffusedCurvature2);
 
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
 
@@ -621,17 +624,21 @@ void RenderDeferred::configure(const Config& config) {
     glm::vec2 curvatureInfo(config.curvatureOffset, config.curvatureScale);
     _subsurfaceScatteringResource->setCurvatureFactors(curvatureInfo);
 
+    _subsurfaceScatteringResource->setLevel((float)config.enableScattering);
+    _subsurfaceScatteringResource->setShowBRDF(config.showScatteringBRDF);
 
     _enablePointLights = config.enablePointLights;
     _enableSpotLights = config.enableSpotLights;
 }
 
-void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const DeferredFrameTransformPointer& deferredTransform) {
+void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     if (!_subsurfaceScatteringResource->getScatteringTable()) {
         _subsurfaceScatteringResource->generateScatteringTable(renderContext->args);
     }
     
-    setupJob.run(sceneContext, renderContext, deferredTransform, _subsurfaceScatteringResource);
+    auto& deferredTransform = inputs.get0();
+    auto& diffusedCurvature2 = inputs.get2()->getRenderBuffer(0);
+    setupJob.run(sceneContext, renderContext, deferredTransform, diffusedCurvature2, _subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, _enablePointLights, _enableSpotLights);
 

@@ -73,9 +73,11 @@ public:
 
 class BlurGaussianConfig : public Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty) // expose enabled flag
+    Q_PROPERTY(bool enabled WRITE setEnabled READ isEnabled NOTIFY dirty) // expose enabled flag
     Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty) // expose enabled flag
 public:
+
+    BlurGaussianConfig() : Job::Config(true) {}
 
     float filterScale{ 1.2f };
 signals :
@@ -112,6 +114,7 @@ class BlurGaussianDepthAwareConfig : public BlurGaussianConfig {
     Q_OBJECT
         Q_PROPERTY(float depthThreshold MEMBER depthThreshold NOTIFY dirty) // expose enabled flag
 public:
+    BlurGaussianDepthAwareConfig() : BlurGaussianConfig() {}
 
     float depthThreshold{ 2.0f };
 signals:

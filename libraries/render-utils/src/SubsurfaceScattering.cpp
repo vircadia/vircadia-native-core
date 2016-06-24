@@ -64,6 +64,26 @@ glm::vec2 SubsurfaceScatteringResource::getCurvatureFactors() const {
     return _parametersBuffer.get<Parameters>().curvatureInfo;
 }
 
+
+void SubsurfaceScatteringResource::setLevel(float level) {
+    if (level != getLevel()) {
+        _parametersBuffer.edit<Parameters>().level = level;
+    }
+}
+float SubsurfaceScatteringResource::getLevel() const {
+    return _parametersBuffer.get<Parameters>().level;
+}
+
+void SubsurfaceScatteringResource::setShowBRDF(bool show) {
+    if (show != isShowBRDF()) {
+        _parametersBuffer.edit<Parameters>().showBRDF = show;
+    }
+}
+bool SubsurfaceScatteringResource::isShowBRDF() const {
+    return (bool)_parametersBuffer.get<Parameters>().showBRDF;
+}
+
+
 void SubsurfaceScatteringResource::generateScatteringTable(RenderArgs* args) {
     if (!_scatteringTable) {
         _scatteringTable = generatePreIntegratedScattering(args);

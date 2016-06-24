@@ -216,6 +216,7 @@ public:
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     bool isEnabled() { return alwaysEnabled || enabled; }
+    void setEnabled(bool enable) { enabled = enable; }
 
     bool alwaysEnabled{ true };
     bool enabled{ true };
@@ -344,7 +345,7 @@ public:
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
-            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
+            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
                 jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
             }
             renderContext->jobConfig.reset();

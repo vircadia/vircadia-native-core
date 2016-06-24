@@ -29,6 +29,14 @@ public:
     void setCurvatureFactors(const glm::vec2& sbCurvatureFactors);
     glm::vec2 getCurvatureFactors() const;
 
+    void setLevel(float level);
+    float getLevel() const;
+
+
+    void setShowBRDF(bool show);
+    bool isShowBRDF() const;
+
+
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
 
     gpu::TexturePointer getScatteringTable() const { return _scatteringTable; }
@@ -45,7 +53,8 @@ protected:
     public:
         glm::vec4 normalBentInfo{ 1.5f, 0.8f, 0.3f, 1.5f };
         glm::vec2 curvatureInfo{ 0.08f, 0.8f };
-        glm::vec2 spare{ 0.0f };
+        float level{ 1.0f };
+        float showBRDF{ 0.0f };
 
         Parameters() {}
     };

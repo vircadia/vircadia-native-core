@@ -28,7 +28,7 @@ public:
 
     float depthThreshold{ 0.1f };
     float basisScale{ 1.0f };
-    float curvatureScale{ 1.0f }; // Mean curvature value scaling (SI SI Dimension is [1/meters])
+    float curvatureScale{ 10.0f };
 
     double getGpuTime() { return gpuTime; }
 
@@ -63,16 +63,7 @@ private:
         glm::vec4 resolutionInfo { -1.0f, 0.0f, 0.0f, 0.0f };
         // Curvature algorithm
         glm::vec4 curvatureInfo{ 0.0f };
-        // Dithering info 
-        glm::vec4 ditheringInfo { 0.0f, 0.0f, 0.01f, 1.0f };
-        // Sampling info
-        glm::vec4 sampleInfo { 11.0f, 1.0f/11.0f, 7.0f, 1.0f };
-        // Blurring info
-        glm::vec4 blurInfo { 1.0f, 3.0f, 2.0f, 0.0f };
-         // gaussian distribution coefficients first is the sampling radius (max is 6)
-        const static int GAUSSIAN_COEFS_LENGTH = 8;
-        float _gaussianCoefs[GAUSSIAN_COEFS_LENGTH];
-        
+
         Parameters() {}
     };
     gpu::BufferView _parametersBuffer;

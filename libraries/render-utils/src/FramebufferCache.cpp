@@ -107,7 +107,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
 
     // For AO:
     auto pointMipSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT);
-    _depthPyramidTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    _depthPyramidTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
     _depthPyramidFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _depthPyramidFramebuffer->setRenderBuffer(0, _depthPyramidTexture);
     _depthPyramidFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);

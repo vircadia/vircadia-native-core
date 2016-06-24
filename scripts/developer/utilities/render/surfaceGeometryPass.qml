@@ -19,7 +19,7 @@ Column {
 
         Column{
             Repeater {
-                model: [ "Depth Threshold:depthThreshold:0.1", "Basis Scale:basisScale:2.0", "Curvature Scale:curvatureScale:10.0" ]
+                model: [ "Depth Threshold:depthThreshold:0.1", "Basis Scale:basisScale:2.0", "Curvature Scale:curvatureScale:100.0" ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
@@ -32,6 +32,11 @@ Column {
         }
 
         Column{
+            CheckBox {
+                text: "Diffuse Curvature 1"
+                checked: true
+                onCheckedChanged: { Render.getConfig("DiffuseCurvature").enabled = checked }
+            }        
             Repeater {
                 model: [ "Blur Scale:DiffuseCurvature:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvature:depthThreshold:10.0", "Blur Scale2:DiffuseCurvature2:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvature2:depthThreshold:10.0"]
                 ConfigSlider {
@@ -42,6 +47,12 @@ Column {
                     max: modelData.split(":")[3]
                     min: 0.0
                 }
+            }
+
+            CheckBox {
+                text: "Diffuse Curvature 2"
+                checked: true
+                onCheckedChanged: { Render.getConfig("DiffuseCurvature2").enabled = checked }
             }
         }
     }
