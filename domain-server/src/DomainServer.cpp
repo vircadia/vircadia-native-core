@@ -470,6 +470,9 @@ bool DomainServer::resetAccountManagerAccessToken() {
 
 void DomainServer::setupAutomaticNetworking() {
     qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
+
+    resetAccountManagerAccessToken();
+
     _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
 
