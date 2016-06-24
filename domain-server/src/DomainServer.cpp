@@ -1081,6 +1081,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     // Setup the domain object to send to the data server
     QJsonObject domainObject;
 
+    // add the version
+    static const QString VERSION_KEY = "version";
+    domainObject[VERSION_KEY] = BuildInfo::VERSION;
+
+    // add networking
     if (!networkAddress.isEmpty()) {
         static const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
         domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
@@ -1089,10 +1094,10 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     static const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
 
-    // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
-    const QString RESTRICTED_ACCESS_FLAG = "restricted";
 
-    // consider the domain to have restricted access if "anonymous" connections can't connect to the domain.
+    // add access level for anonymous connections
+    // consider the domain to be "restricted" if anonymous connections are disallowed
+    static const QString RESTRICTED_ACCESS_FLAG = "restricted";
     NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
     domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
 
