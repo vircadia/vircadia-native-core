@@ -320,6 +320,11 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         return nullptr;
     }
 
+    if (!properties.getClientOnly() && getIsClient() &&
+        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp()) {
+        return nullptr;
+    }
+
     bool recordCreationTime = false;
     if (props.getCreated() == UNKNOWN_CREATED_TIME) {
         // the entity's creation time was not specified in properties, which means this is a NEW entity
