@@ -324,6 +324,14 @@ EntityPropertiesCache.prototype.getWearableProps = function(entityID) {
         return undefined;
     }
 };
+EntityPropertiesCache.prototype.getEquipHotspotsProps = function(entityID) {
+    var props = this.cache[entityID];
+    if (props) {
+        return props.userData.equipHotspots ? props.userData.equipHotspots : {};
+    } else {
+        return undefined;
+    }
+};
 
 function MyController(hand) {
     this.hand = hand;
@@ -1083,8 +1091,8 @@ function MyController(hand) {
     };
 
     this.entityIsEquippableWithDistanceCheck = function (entityID, handPosition) {
+        var distance, handJointName;
         var props = this.entityPropertyCache.getProps(entityID);
-        var distance = Vec3.distance(props.position, handPosition);
         var grabProps = this.entityPropertyCache.getGrabProps(entityID);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
@@ -1096,30 +1104,81 @@ function MyController(hand) {
             return false;
         }
 
-        if (distance > EQUIP_RADIUS) {
-            if (debug) {
-                print("equip is skipping '" + props.name + "': too far away, " + distance + " meters");
-            }
-            return false;
-        }
+        var equipHotspotsProps = this.entityPropertyCache.getEquipHotspotsProps(entityID);
+        if (equipHotspotsProps && equipHotspotsProps.length > 0) {
+            var i, length = equipHotspotsProps.length;
+            for (i = 0; i < length; i++) {
+                var hotspot = equipHotspotsProps[i];
+                if (!hotspot.position) {
+                    if (debug) {
+                        print("equip is skipping '" + props.name + "': equip hotspot[" + i + "] is missing a position");
+                    }
+                    continue;
+                }
 
-        var wearableProps = this.entityPropertyCache.getWearableProps(entityID);
-        if (!wearableProps || !wearableProps.joints) {
-            if (debug) {
-                print("equip is skipping '" + props.name + "': no wearable attach-point");
-            }
-            return false;
-        }
+                if (!hotspot.radius) {
+                    if (debug) {
+                        print("equip is skipping '" + props.name + "': equip hotspot[" + i + "] is missing a radius");
+                    }
+                    continue;
+                }
 
-        var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-        if (!wearableProps.joints[handJointName]) {
-            if (debug) {
-                print("equip is skipping '" + props.name + "': no wearable joint for " + handJointName);
-            }
-            return false;
-        }
+                distance = Vec3.distance(hotspot.position, handPosition);
+                if (distance > hotspot.radius) {
+                    if (debug) {
+                        print("equip is skipping '" + props.name + "': equip hotspot[" + i + "] is too far away, " + distance + " meters");
+                    }
+                    continue;
+                }
 
-        return true;
+                if (!hotspot.joints) {
+                    if (debug) {
+                        print("equip is skipping '" + props.name + "': equip hotspot[" + i + "] is missing joints");
+                    }
+                    continue;
+                }
+
+                handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+                if (!hotspot.joints[handJointName]) {
+                    if (debug) {
+                        print("equip is skipping '" + props.name + "': equip hotspot[" + i + "] is missing joint." + handJointName);
+                    }
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+
+        } else {
+
+            distance = Vec3.distance(props.position, handPosition);
+            if (distance > EQUIP_RADIUS) {
+                if (debug) {
+                    print("equip is skipping '" + props.name + "': too far away, " + distance + " meters");
+                }
+                return false;
+            }
+
+            var wearableProps = this.entityPropertyCache.getWearableProps(entityID);
+            if (!wearableProps || !wearableProps.joints) {
+                if (debug) {
+                    print("equip is skipping '" + props.name + "': no wearable attach-point");
+                }
+                return false;
+            }
+
+            handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+            if (!wearableProps.joints[handJointName]) {
+                if (debug) {
+                    print("equip is skipping '" + props.name + "': no wearable joint for " + handJointName);
+                }
+                return false;
+            }
+
+            return true;
+        }
     };
 
     this.entityIsGrabbable = function (entityID) {
