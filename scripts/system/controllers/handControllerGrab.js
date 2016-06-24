@@ -37,6 +37,9 @@ var THUMB_ON_VALUE = 0.5;
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
 var PICK_WITH_HAND_RAY = true;
+
+var DRAW_GRAB_BOXES = false;
+var DRAW_HAND_SPHERES = false;
 var DROP_WITHOUT_SHAKE = false;
 
 //
@@ -67,16 +70,22 @@ var LINE_ENTITY_DIMENSIONS = {
 
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
+
 //
 // near grabbing
 //
 
-var GRAB_RADIUS = 0.06; // if the ray misses but an object is this close, it will still be selected
+var EQUIP_RADIUS = 0.1; // radius used for palm vs equip-hotspot for equipping.
+
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
-var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing to be selected
+
+var NEAR_GRAB_RADIUS = 0.15; // radius used for palm vs object for near grabbing.
+var NEAR_GRAB_MAX_DISTANCE = 1.0;  // you cannot grab objects that are this far away from your hand
+
+var NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
+
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
-var SHOW_GRAB_SPHERE = false; // draw a green sphere to show the grab search position and size
 var CHECK_TOO_FAR_UNEQUIP_TIME = 1.0; // seconds
 
 //
@@ -253,7 +262,8 @@ function restore2DMode() {
     }
 }
 
-// constructor
+// EntityPropertiesCache is a helper class that contains a cache of entity properties.
+// the hope is to prevent excess calls to Entity.getEntityProperties()
 function EntityPropertiesCache() {
     this.cache = {};
 }
@@ -264,34 +274,55 @@ EntityPropertiesCache.prototype.findEntities = function(position, radius) {
     var entities = Entities.findEntities(position, radius);
     var _this = this;
     entities.forEach(function (x) {
-        _this.addEntity(x);
+        _this.updateEntity(x);
     });
 };
-EntityPropertiesCache.prototype.addEntity = function(entityID) {
+EntityPropertiesCache.prototype.updateEntity = function(entityID) {
     var props = Entities.getEntityProperties(entityID, GRABBABLE_PROPERTIES);
-    var grabbableProps = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
-    var grabProps = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-    var wearableProps = getEntityCustomData("wearable", entityID, {});
-    this.cache[entityID] = { props: props, grabbableProps: grabbableProps, grabProps: grabProps, wearableProps: wearableProps };
+
+    // convert props.userData from a string to an object.
+    var userData = {};
+    if (props.userData) {
+        try {
+            userData = JSON.parse(props.userData);
+        } catch(err) {
+            print("WARNING: malformed userData on " + entityID + ", name = " + props.name + ", error = " + err);
+        }
+    }
+    props.userData = userData;
+
+    this.cache[entityID] = props;
 };
 EntityPropertiesCache.prototype.getEntities = function() {
     return Object.keys(this.cache);
 }
 EntityPropertiesCache.prototype.getProps = function(entityID) {
     var obj = this.cache[entityID]
-    return obj ? obj.props : undefined;
+    return obj ? obj : undefined;
 };
 EntityPropertiesCache.prototype.getGrabbableProps = function(entityID) {
-    var obj = this.cache[entityID]
-    return obj ? obj.grabbableProps : undefined;
+    var props = this.cache[entityID];
+    if (props) {
+        return props.userData.grabbableKey ? props.userData.grabbableKey : DEFAULT_GRABBABLE_DATA;
+    } else {
+        return undefined;
+    }
 };
 EntityPropertiesCache.prototype.getGrabProps = function(entityID) {
-    var obj = this.cache[entityID]
-    return obj ? obj.grabProps : undefined;
+    var props = this.cache[entityID];
+    if (props) {
+        return props.userData.grabKey ? props.userData.grabKey : {};
+    } else {
+        return undefined;
+    }
 };
 EntityPropertiesCache.prototype.getWearableProps = function(entityID) {
-    var obj = this.cache[entityID]
-    return obj ? obj.wearableProps : undefined;
+    var props = this.cache[entityID];
+    if (props) {
+        return props.userData.wearable ? props.userData.wearable : {};
+    } else {
+        return undefined;
+    }
 };
 
 function MyController(hand) {
@@ -322,7 +353,6 @@ function MyController(hand) {
     //for visualizations
     this.overlayLine = null;
     this.particleBeamObject = null;
-    this.grabSphere = null;
 
     //for lights
     this.spotlight = null;
@@ -383,7 +413,7 @@ function MyController(hand) {
     }
 
     this.setState = function(newState, reason) {
-        this.grabSphereOff();
+
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             var oldStateName = stateToName(this.state);
             var newStateName = stateToName(newState);
@@ -489,39 +519,6 @@ function MyController(hand) {
             });
         }
     }
-
-    this.grabSphereOn = function() {
-        var color = {red: 0, green: 255, blue: 0};
-        if (this.grabSphere === null) {
-            var sphereProperties = {
-                position: this.getHandPosition(),
-                size: GRAB_RADIUS*2,
-                color: color,
-                alpha: 0.1,
-                solid: true,
-                ignoreRayIntersection: true,
-                drawInFront: true, // Even when burried inside of something, show it.
-                visible: true
-            }
-            this.grabSphere = Overlays.addOverlay("sphere", sphereProperties);
-        } else {
-            Overlays.editOverlay(this.grabSphere, {
-                position: this.getHandPosition(),
-                size: GRAB_RADIUS*2,
-                color: color,
-                alpha: 0.1,
-                solid: true,
-                visible: true
-            });
-        }
-    }
-
-    this.grabSphereOff = function() {
-        if (this.grabSphere !== null) {
-            Overlays.deleteOverlay(this.grabSphere);
-            this.grabSphere = null;
-        }
-    };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
@@ -872,43 +869,147 @@ function MyController(hand) {
         }
     };
 
-    this.searchEnter = function() {
-        this.equipHotspotOverlays = [];
+    this.createHotspots = function () {
+        var props, overlay;
+
+        var HAND_EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
+        var HAND_EQUIP_SPHERE_ALPHA = 0.7;
+        var HAND_EQUIP_SPHERE_RADIUS = 0.01;
+
+        var HAND_GRAB_SPHERE_COLOR = { red: 90, green: 90, blue: 255 };
+        var HAND_GRAB_SPHERE_ALPHA = 0.3;
+        var HAND_GRAB_SPHERE_RADIUS = NEAR_GRAB_RADIUS;
+
+        var EQUIP_SPHERE_COLOR = { red: 90, green: 255, blue: 90 };
+        var EQUIP_SPHERE_ALPHA = 0.3;
+
+        var GRAB_BOX_COLOR = { red: 90, green: 90, blue: 255 };
+        var GRAB_BOX_ALPHA = 0.1;
+
+        this.hotspotOverlays = [];
+
+        if (DRAW_HAND_SPHERES) {
+            // add tiny green sphere around the palm.
+            var handPosition = this.getHandPosition();
+            overlay = Overlays.addOverlay("sphere", {
+                position: handPosition,
+                size: HAND_EQUIP_SPHERE_RADIUS * 2,
+                color: HAND_EQUIP_SPHERE_COLOR,
+                alpha: HAND_EQUIP_SPHERE_ALPHA,
+                solid: true,
+                visible: true,
+                ignoreRayIntersection: true,
+                drawInFront: false
+            });
+
+            this.hotspotOverlays.push({
+                entityID: undefined,
+                overlay: overlay,
+                type: "hand"
+            });
+
+            // add larger blue sphere around the palm.
+            overlay = Overlays.addOverlay("sphere", {
+                position: handPosition,
+                size: HAND_GRAB_SPHERE_RADIUS * 2,
+                color: HAND_GRAB_SPHERE_COLOR,
+                alpha: HAND_GRAB_SPHERE_ALPHA,
+                solid: true,
+                visible: true,
+                ignoreRayIntersection: true,
+                drawInFront: false
+            });
+
+            this.hotspotOverlays.push({
+                entityID: undefined,
+                overlay: overlay,
+                type: "hand"
+            });
+        }
 
         // find entities near the avatar that might be equipable.
-        var entities = Entities.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
-        var i, length = entities.length;
-        for (i = 0; i < length; i++) {
-            var grabProps = Entities.getEntityProperties(entities[i], GRABBABLE_PROPERTIES);
-            // does this entity have an attach point?
-            var wearableData = getEntityCustomData("wearable", entities[i], undefined);
-            if (wearableData && wearableData.joints) {
-                var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-                if (wearableData.joints[handJointName]) {
-                    // draw the hotspot
-                    this.equipHotspotOverlays.push(Overlays.addOverlay("sphere", {
-                        position: grabProps.position,
-                        size: 0.2,
-                        color: { red: 90, green: 255, blue: 90 },
-                        alpha: 0.7,
-                        solid: true,
-                        visible: true,
-                        ignoreRayIntersection: false,
-                        drawInFront: false
-                    }));
-                }
+        this.entityPropertyCache.clear();
+        this.entityPropertyCache.findEntities(MyAvatar.position, HOTSPOT_DRAW_DISTANCE);
+
+        var _this = this;
+        this.entityPropertyCache.getEntities().forEach(function (entityID) {
+            if (_this.entityIsEquippableWithoutDistanceCheck(entityID)) {
+                props = _this.entityPropertyCache.getProps(entityID);
+
+                overlay = Overlays.addOverlay("sphere", {
+                    rotation: props.rotation,
+                    position: props.position,
+                    size: EQUIP_RADIUS * 2,
+                    color: EQUIP_SPHERE_COLOR,
+                    alpha: EQUIP_SPHERE_ALPHA,
+                    solid: true,
+                    visible: true,
+                    ignoreRayIntersection: true,
+                    drawInFront: false
+                });
+
+                _this.hotspotOverlays.push({
+                    entityID: entityID,
+                    overlay: overlay,
+                    type: "equip"
+                });
             }
-        }
+
+            if (DRAW_GRAB_BOXES && _this.entityIsGrabbable(entityID)) {
+                props = _this.entityPropertyCache.getProps(entityID);
+
+                overlay = Overlays.addOverlay("cube", {
+                    rotation: props.rotation,
+                    position: props.position,
+                    size: props.dimensions, //{x: props.dimensions.x, y: props.dimensions.y, z: props.dimensions.z},
+                    color: GRAB_BOX_COLOR,
+                    alpha: GRAB_BOX_ALPHA,
+                    solid: true,
+                    visible: true,
+                    ignoreRayIntersection: true,
+                    drawInFront: false
+                });
+
+                _this.hotspotOverlays.push({
+                    entityID: entityID,
+                    overlay: overlay,
+                    type: "near"
+                });
+            }
+        });
+    };
+
+    this.updateHotspots = function() {
+        var _this = this;
+        var props;
+        this.hotspotOverlays.forEach(function (overlayInfo) {
+            if (overlayInfo.type === "hand") {
+                Overlays.editOverlay(overlayInfo.overlay, { position: _this.getHandPosition() });
+            } else if (overlayInfo.type === "equip") {
+                _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
+                props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
+                Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
+            } else if (overlayInfo.type === "near") {
+                _this.entityPropertyCache.updateEntity(overlayInfo.entityID);
+                props = _this.entityPropertyCache.getProps(overlayInfo.entityID);
+                Overlays.editOverlay(overlayInfo.overlay, { position: props.position, rotation: props.rotation });
+            }
+        });
+    };
+
+    this.destroyHotspots = function() {
+        this.hotspotOverlays.forEach(function (overlayInfo) {
+            Overlays.deleteOverlay(overlayInfo.overlay);
+        });
+        this.hotspotOverlays = [];
+    };
+
+    this.searchEnter = function() {
+        this.createHotspots();
     };
 
     this.searchExit = function() {
-
-        // delete all equip hotspots
-        var i, l = this.equipHotspotOverlays.length;
-        for (i = 0; i < l; i++) {
-            Overlays.deleteOverlay(this.equipHotspotOverlays[i]);
-        }
-        this.equipHotspotOverlays = [];
+        this.destroyHotspots();
     };
 
     ///
@@ -975,7 +1076,13 @@ function MyController(hand) {
         return grabbableProps && grabbableProps.wantsTrigger;
     };
 
-    this.entityIsEquippable = function (entityID, handPosition) {
+    this.entityIsEquippableWithoutDistanceCheck = function (entityID) {
+        var props = this.entityPropertyCache.getProps(entityID);
+        var handPosition = props.position;
+        return this.entityIsEquippableWithDistanceCheck(entityID, handPosition);
+    };
+
+    this.entityIsEquippableWithDistanceCheck = function (entityID, handPosition) {
         var props = this.entityPropertyCache.getProps(entityID);
         var distance = Vec3.distance(props.position, handPosition);
         var grabProps = this.entityPropertyCache.getGrabProps(entityID);
@@ -989,9 +1096,9 @@ function MyController(hand) {
             return false;
         }
 
-        if (distance > NEAR_PICK_MAX_DISTANCE) {
+        if (distance > EQUIP_RADIUS) {
             if (debug) {
-                print("equip is skipping '" + props.name + "': too far away.");
+                print("equip is skipping '" + props.name + "': too far away, " + distance + " meters");
             }
             return false;
         }
@@ -1104,7 +1211,7 @@ function MyController(hand) {
         return true;
     };
 
-    this.entityIsNearGrabbable = function(entityID, handPosition) {
+    this.entityIsNearGrabbable = function(entityID, handPosition, maxDistance) {
 
         if (!this.entityIsGrabbable(entityID)) {
             return false;
@@ -1114,7 +1221,7 @@ function MyController(hand) {
         var distance = Vec3.distance(props.position, handPosition);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
-        if (distance > NEAR_PICK_MAX_DISTANCE) {
+        if (distance > maxDistance) {
             // too far away, don't grab
             if (debug) {
                 print(" grab is skipping '" + props.name + "': too far away.");
@@ -1129,6 +1236,8 @@ function MyController(hand) {
         var _this = this;
         var name;
 
+        this.updateHotspots();
+
         this.grabbedEntity = null;
         this.isInitialGrab = false;
         this.shouldResetParentOnRelease = false;
@@ -1142,16 +1251,12 @@ function MyController(hand) {
 
         var handPosition = this.getHandPosition();
 
-        if (SHOW_GRAB_SPHERE) {
-            this.grabSphereOn();
-        }
-
         this.entityPropertyCache.clear();
-        this.entityPropertyCache.findEntities(handPosition, GRAB_RADIUS);
+        this.entityPropertyCache.findEntities(handPosition, NEAR_GRAB_RADIUS);
         var candidateEntities = this.entityPropertyCache.getEntities();
 
         var equippableEntities = candidateEntities.filter(function (entity) {
-            return _this.entityIsEquippable(entity, handPosition);
+            return _this.entityIsEquippableWithDistanceCheck(entity, handPosition);
         });
 
         var entity;
@@ -1172,18 +1277,20 @@ function MyController(hand) {
             }
         }
 
+        var grabbableEntities = candidateEntities.filter(function (entity) {
+            return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
+        });
+
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         if (rayPickInfo.entityID) {
-            candidateEntities.push(rayPickInfo.entityID);
-            this.entityPropertyCache.addEntity(rayPickInfo.entityID);
             this.intersectionDistance = rayPickInfo.distance;
+            this.entityPropertyCache.updateEntity(rayPickInfo.entityID);
+            if (this.entityIsGrabbable(rayPickInfo.entityID) && rayPickInfo.distance < NEAR_GRAB_PICK_RADIUS) {
+                grabbableEntities.push(rayPickInfo.entityID);
+            }
         } else {
             this.intersectionDistance = 0;
         }
-
-        var grabbableEntities = candidateEntities.filter(function (entity) {
-            return _this.entityIsNearGrabbable(entity, handPosition);
-        });
 
         if (grabbableEntities.length > 0) {
             // sort by distance
@@ -1725,11 +1832,11 @@ function MyController(hand) {
             this.lastUnequipCheckTime = now;
 
             if (props.parentID == MyAvatar.sessionUUID &&
-                Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
+                Vec3.length(props.localPosition) > NEAR_GRAB_MAX_DISTANCE) {
                 var handPosition = this.getHandPosition();
                 // the center of the equipped object being far from the hand isn't enough to autoequip -- we also
                 // need to fail the findEntities test.
-                var nearPickedCandidateEntities = Entities.findEntities(handPosition, GRAB_RADIUS);
+                var nearPickedCandidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
                 if (nearPickedCandidateEntities.indexOf(this.grabbedEntity) == -1) {
                     // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
                     print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
@@ -2175,16 +2282,31 @@ function cleanup() {
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
 
+if (!Menu.menuExists("Developer > Grab Script")) {
+    Menu.addMenu("Developer > Grab Script");
+}
+
 Menu.addMenuItem({
-    menuName: "Developer > Hands",
+    menuName: "Developer > Grab Script",
     menuItemName: "Drop Without Shake",
     isCheckable: true,
     isChecked: DROP_WITHOUT_SHAKE
 });
 
+Menu.addMenuItem({
+    menuName: "Developer > Grab Script",
+    menuItemName: "Draw Grab Boxes",
+    isCheckable: true,
+    isChecked: DRAW_GRAB_BOXES
+});
+
 function handleMenuItemEvent(menuItem) {
     if (menuItem === "Drop Without Shake") {
         DROP_WITHOUT_SHAKE = Menu.isOptionChecked("Drop Without Shake");
+    }
+    if (menuItem === "Draw Grab Boxes") {
+        DRAW_GRAB_BOXES = Menu.isOptionChecked("Draw Grab Boxes");
+        DRAW_HAND_SPHERES = DRAW_GRAB_BOXES;
     }
 }
 
