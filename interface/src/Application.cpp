@@ -1593,7 +1593,7 @@ void Application::initializeUi() {
         if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
-        if (name == TouchscreenDevice::NAME) {
+        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
             _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
     }

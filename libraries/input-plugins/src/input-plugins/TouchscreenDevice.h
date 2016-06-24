@@ -36,11 +36,10 @@ public:
 
     // Plugin functions
     virtual bool isSupported() const override { return true; }
-    virtual bool isJointController() const override { return false; }
     virtual const QString& getName() const override { return NAME; }
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
@@ -58,7 +57,7 @@ protected:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         virtual void focusOutEvent() override;
 
         controller::Input makeInput(TouchAxisChannel axis) const;

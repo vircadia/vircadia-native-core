@@ -22,8 +22,10 @@
 
 const QString TouchscreenDevice::NAME = "Touchscreen";
 
-void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
-    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
+void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->withLock([&, this]() {
+        _inputDevice->update(deltaTime, inputCalibrationData);
 
     // at DPI 100 use these arbitrary values to divide dragging distance 
     static const float DPI_SCALE_X = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchX() / 100.0), 1.0f, 10.0f)
@@ -51,7 +53,7 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
     }
 }
 
-void TouchscreenDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+void TouchscreenDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _axisStateMap.clear();
 }
 
