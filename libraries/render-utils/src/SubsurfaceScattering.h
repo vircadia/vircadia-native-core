@@ -92,7 +92,7 @@ public:
     float curvatureOffset{ 0.08f };
     float curvatureScale{ 0.8f };
 
-    bool showLUT{ false };
+    bool showLUT{ true };
 
 signals:
     void dirty();

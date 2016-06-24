@@ -220,10 +220,10 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
  
-    if (!updateScatteringFramebuffer(curvatureFramebuffer, scatteringFramebuffer)) {
+ /*   if (!updateScatteringFramebuffer(curvatureFramebuffer, scatteringFramebuffer)) {
         return;
     }
-
+*/
     const auto theLight = DependencyManager::get<DeferredLightingEffect>()->getLightStage().lights[0];
     
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
@@ -231,7 +231,7 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
 
         batch.setViewportTransform(args->_viewport);
 
-        batch.setFramebuffer(_scatteringFramebuffer);
+   /*     batch.setFramebuffer(_scatteringFramebuffer);
 
         batch.setPipeline(pipeline);
 
@@ -251,7 +251,7 @@ void SubsurfaceScattering::run(const render::SceneContextPointer& sceneContext, 
         batch.setResourceTexture(ScatteringTask_LinearMapSlot, framebufferCache->getDepthPyramidTexture());
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+*/
         if (_showLUT) {
             auto viewportSize = std::min(args->_viewport.z, args->_viewport.w) >> 1;
             batch.setViewportTransform(glm::ivec4(0, 0, viewportSize, viewportSize));
@@ -359,9 +359,9 @@ void diffuseScatter(gpu::TexturePointer& lut) {
             vec3 val = integrate(x, y);
 
             // Convert to linear
-            val.x = sqrt(val.x);
-            val.y = sqrt(val.y);
-            val.z = sqrt(val.z);
+           // val.x = sqrt(val.x);
+           // val.y = sqrt(val.y);
+           // val.z = sqrt(val.z);
 
             // Convert to 24-bit image.
             unsigned char valI[3];
@@ -464,7 +464,7 @@ void diffuseProfile(gpu::TexturePointer& profile) {
 
 gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScattering(RenderArgs* args) {
 
-    auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 128, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, 256, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
     diffuseProfile(profileMap);
 
     const int WIDTH = 128;

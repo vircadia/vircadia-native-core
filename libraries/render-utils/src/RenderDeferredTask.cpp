@@ -124,8 +124,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawLight>("DrawLight", lights);
 
     const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer));
- //   const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", scatteringInputs);
-
+   
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
@@ -136,6 +135,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Render transparent objects forward in LightingBuffer
     addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
     
+    const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", deferredLightingInputs);
+
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
 

@@ -178,21 +178,17 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     vec3 bentNormalLow = normalize( (diffusedCurvature.xyz - 0.5f) * 2.0f );
     float curvature = unpackCurvature(diffusedCurvature.w);
 
-
     vec3 rS = bentNormalHigh;
     
     vec3 bendFactorSpectrum = getBendFactor();
-    vec3 rN = normalize(mix(normal, bentNormalLow, bendFactorSpectrum.x));
+   // vec3 rN = normalize(mix(normal, bentNormalLow, bendFactorSpectrum.x));
+    vec3 rN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.x));
     vec3 gN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.y));
     vec3 bN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.z));
     
-
-  /*  vec3 rN = normalize(mix(normal, bentNormalHigh, bendFactorSpectrum.x));
-    vec3 gN = normalize(mix(normal, bentNormalHigh, bendFactorSpectrum.y));
-    vec3 bN = normalize(mix(normal, bentNormalHigh, bendFactorSpectrum.z));
-    */
     vec3 NdotLSpectrum  = vec3(dot(rN, fragLightDir), dot(gN, fragLightDir), dot(bN, fragLightDir));
 
+    //return 0.5 * (NdotLSpectrum + vec3(1.0));
     // --> Look up the pre-integrated curvature-dependent BDRF textures
     vec3 brdf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
 
@@ -218,7 +214,8 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     if (scatteringLevel < 0.1) {
         brdf = vec3(standardDiffuse);
     }
-    vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
+    
+     vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
 
 
     // Diffuse from ambient
@@ -230,7 +227,11 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
 
     if ( showBRDF())
         return brdf;
-    return vec3(color);
+ 
+ vec3 debugNdotL = 0.5 * (NdotLSpectrum + vec3(1.0));
+ return vec3(debugNdotL.z, curvature, 0.0 );
+
+ return vec3(color);
 }
 <@endfunc@>
 

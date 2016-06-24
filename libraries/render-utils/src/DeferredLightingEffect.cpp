@@ -636,8 +636,8 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
         _subsurfaceScatteringResource->generateScatteringTable(renderContext->args);
     }
     
-    auto& deferredTransform = inputs.get0();
-    auto& diffusedCurvature2 = inputs.get2()->getRenderBuffer(0);
+    auto deferredTransform = inputs.get0();
+    auto diffusedCurvature2 = inputs.get2()->getRenderBuffer(0);
     setupJob.run(sceneContext, renderContext, deferredTransform, diffusedCurvature2, _subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, _enablePointLights, _enableSpotLights);
