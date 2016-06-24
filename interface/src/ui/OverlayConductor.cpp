@@ -123,7 +123,9 @@ void OverlayConductor::update(float dt) {
     if (_flags & SuppressedByDrive) {
         if (!isDriving) {
             _flags &= ~SuppressedByDrive;
-            shouldRecenter = true;
+            if (_flags & SuppressMask) {
+                shouldRecenter = true;
+            }
         }
     } else {
         if (myAvatar->getClearOverlayWhenMoving() && drivingChanged && isDriving) {
@@ -134,7 +136,9 @@ void OverlayConductor::update(float dt) {
     if (_flags & SuppressedByHead) {
         if (isAtRest) {
             _flags &= ~SuppressedByHead;
-            shouldRecenter = true;
+            if (_flags & SuppressMask) {
+                shouldRecenter = true;
+            }
         }
     } else {
         if (_hmdMode && headOutsideOverlay()) {
