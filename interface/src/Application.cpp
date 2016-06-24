@@ -5350,13 +5350,7 @@ void Application::updateDisplayMode() {
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
 
-	// go into first person when they are in HMD mode, since 3rd person HMD is dumb
-	if (isHMDMode() && !menu->isOptionChecked(MenuOption::FirstPerson)) {
-		menu->setIsOptionChecked(MenuOption::FirstPerson, true);
-		cameraMenuChanged();
-	}
-
-	Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
+    Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
 mat4 Application::getEyeProjection(int eye) const {
