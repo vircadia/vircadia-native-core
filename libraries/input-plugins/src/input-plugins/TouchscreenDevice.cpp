@@ -26,6 +26,7 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {
         _inputDevice->update(deltaTime, inputCalibrationData);
+    });
 
     // at DPI 100 use these arbitrary values to divide dragging distance 
     static const float DPI_SCALE_X = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchX() / 100.0), 1.0f, 10.0f)
