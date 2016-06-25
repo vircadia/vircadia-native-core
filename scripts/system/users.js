@@ -359,14 +359,17 @@ var usersWindow = (function () {
         usersTimer = null,
         USERS_UPDATE_TIMEOUT = 5000, // ms = 5s
 
+        showMe,
         myVisibility,
 
         MENU_NAME = "View",
         MENU_ITEM = "Users Online",
         MENU_ITEM_AFTER = "Overlays",
 
+        SETTING_USERS_SHOW_ME = "UsersWindow.ShowMe",
+        SETTING_USERS_VISIBLE_TO = "UsersWindow.VisibleTo",
         SETTING_USERS_WINDOW_MINIMIZED = "UsersWindow.Minimized",
-        SETINGS_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
+        SETTING_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
         // +ve x, y values are offset from left, top of screen; -ve from right, bottom.
 
         isVisible = true,
@@ -550,7 +553,7 @@ var usersWindow = (function () {
     function pollUsers() {
         var url = API_URL;
 
-        if (displayControl.getValue() === DISPLAY_FRIENDS) {
+        if (showMe === DISPLAY_FRIENDS) {
             url += API_FRIENDS_FILTER;
         }
 
@@ -681,9 +684,11 @@ var usersWindow = (function () {
 
     function onFindableByChanged(event) {
         if (VISIBILITY_VALUES.indexOf(event) !== -1) {
+            myVisibility = event;
             visibilityControl.setValue(event);
+            Settings.setValue(SETTING_USERS_VISIBLE_TO, myVisibility);
         } else {
-            print("Error: Unrecognized onFindableByChanged value: " + myVisibility);
+            print("Error: Unrecognized onFindableByChanged value: " + event);
         }
     }
 
@@ -713,11 +718,15 @@ var usersWindow = (function () {
                 usersTimer = null;
             }
             pollUsers();
+            showMe = displayControl.getValue();
+            Settings.setValue(SETTING_USERS_SHOW_ME, showMe);
             return;
         }
 
         if (visibilityControl.handleClick(clickedOverlay)) {
-            GlobalServices.findableBy = visibilityControl.getValue();
+            myVisibility = visibilityControl.getValue();
+            GlobalServices.findableBy = myVisibility;
+            Settings.setValue(SETTING_USERS_VISIBLE_TO, myVisibility);
             return;
         }
 
@@ -869,7 +878,7 @@ var usersWindow = (function () {
             // Save offset of bottom of window to nearest edge of the window.
             offset.x = (windowPosition.x + WINDOW_WIDTH / 2 < viewport.x / 2) ? windowPosition.x : windowPosition.x - viewport.x;
             offset.y = (windowPosition.y < viewport.y / 2) ? windowPosition.y : windowPosition.y - viewport.y;
-            Settings.setValue(SETINGS_USERS_WINDOW_OFFSET, JSON.stringify(offset));
+            Settings.setValue(SETTING_USERS_WINDOW_OFFSET, JSON.stringify(offset));
             isMovingWindow = false;
         }
     }
@@ -925,9 +934,9 @@ var usersWindow = (function () {
 
         viewport = Controller.getViewportDimensions();
 
-        offsetSetting = Settings.getValue(SETINGS_USERS_WINDOW_OFFSET);
+        offsetSetting = Settings.getValue(SETTING_USERS_WINDOW_OFFSET);
         if (offsetSetting !== "") {
-            offset = JSON.parse(Settings.getValue(SETINGS_USERS_WINDOW_OFFSET));
+            offset = JSON.parse(Settings.getValue(SETTING_USERS_WINDOW_OFFSET));
         }
         if (offset.hasOwnProperty("x") && offset.hasOwnProperty("y")) {
             windowPosition.x = offset.x < 0 ? viewport.x + offset.x : offset.x;
@@ -1048,9 +1057,14 @@ var usersWindow = (function () {
             alpha: FRIENDS_BUTTON_ALPHA
         });
 
+        showMe = Settings.getValue(SETTING_USERS_SHOW_ME, "");
+        if (DISPLAY_VALUES.indexOf(showMe) === -1) {
+            showMe = DISPLAY_EVERYONE;
+        }
+
         displayControl = new PopUpMenu({
             prompt: DISPLAY_PROMPT,
-            value: DISPLAY_VALUES[0],
+            value: showMe,
             values: DISPLAY_VALUES,
             displayValues: DISPLAY_DISPLAY_VALUES,
             x: 0,
@@ -1075,10 +1089,9 @@ var usersWindow = (function () {
             visible: isVisible && !isMinimized
         });
 
-        myVisibility = GlobalServices.findableBy;
+        myVisibility = Settings.getValue(SETTING_USERS_VISIBLE_TO, "");
         if (VISIBILITY_VALUES.indexOf(myVisibility) === -1) {
-            print("Error: Unrecognized findableBy value: " + myVisibility);
-            myVisibility = VISIBILITY_ALL;
+            myVisibility = VISIBILITY_FRIENDS;
         }
 
         visibilityControl = new PopUpMenu({
