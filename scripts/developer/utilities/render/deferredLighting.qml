@@ -57,6 +57,11 @@ Column {
                     min: 0.0
                 }
             }
+            CheckBox {
+                text: "Scattering Table"
+                checked: Render.getConfig("Scattering").showLUT
+                onCheckedChanged: { Render.getConfig("Scattering").showLUT = checked }
+            }
         }
     }
 }

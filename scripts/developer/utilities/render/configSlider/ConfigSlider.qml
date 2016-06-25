@@ -39,8 +39,8 @@ Item {
 
     Label {
         text: sliderControl.value.toFixed(root.integral ? 0 : 2)
-        anchors.left: root.labelControl.right
-        anchors.leftMargin: 8
+        anchors.left: root.left
+        anchors.leftMargin: 200
         anchors.top: root.top
         anchors.topMargin: 7
     }

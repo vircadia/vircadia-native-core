@@ -401,10 +401,7 @@ void diffuseScatterGPU(gpu::TexturePointer& profileMap, gpu::TexturePointer& lut
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        
-        // Stencil test the curvature pass for objects pixels only, not the background
-        //  state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-        
+
         makePipeline = gpu::Pipeline::create(program, state);
     }
 
@@ -469,8 +466,8 @@ gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScatterin
 
     const int WIDTH = 128;
     const int HEIGHT = 128;
-    auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, WIDTH, HEIGHT, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-    diffuseScatter(scatteringLUT);
-    //diffuseScatterGPU(profileMap, scatteringLUT, args);
+    auto scatteringLUT = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_SRGBA_32, WIDTH, HEIGHT, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    //diffuseScatter(scatteringLUT);
+    diffuseScatterGPU(profileMap, scatteringLUT, args);
     return scatteringLUT;
 }

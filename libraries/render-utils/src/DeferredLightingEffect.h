@@ -165,7 +165,7 @@ public:
     float curvatureScale{ 0.8f };
 
     bool enableScattering{ true };
-    bool showScatteringBRDF{ false };
+    bool showScatteringBRDF{ true };
 
     bool enablePointLights{ true };
     bool enableSpotLights{ true };

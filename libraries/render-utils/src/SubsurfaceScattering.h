@@ -54,7 +54,7 @@ protected:
         glm::vec4 normalBentInfo{ 1.5f, 0.8f, 0.3f, 1.5f };
         glm::vec2 curvatureInfo{ 0.08f, 0.8f };
         float level{ 1.0f };
-        float showBRDF{ 0.0f };
+        float showBRDF{ 1.0f };
 
         Parameters() {}
     };

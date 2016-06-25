@@ -228,8 +228,8 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     if ( showBRDF())
         return brdf;
  
- vec3 debugNdotL = 0.5 * (NdotLSpectrum + vec3(1.0));
- return vec3(debugNdotL.z, curvature, 0.0 );
+ //vec3 debugNdotL = 0.5 * (NdotLSpectrum + vec3(1.0));
+ //return vec3(debugNdotL.z, curvature, 0.0 );
 
  return vec3(color);
 }

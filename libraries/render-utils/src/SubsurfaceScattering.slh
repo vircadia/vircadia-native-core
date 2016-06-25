@@ -51,4 +51,5 @@ float unpackCurvature(float packedCurvature) {
 }
 
 
+
 <@endfunc@>
