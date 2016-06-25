@@ -370,7 +370,7 @@ var usersWindow = (function () {
         // +ve x, y values are offset from left, top of screen; -ve from right, bottom.
 
         isVisible = true,
-        isMinimized = false,
+        isMinimized = true,
         isBorderVisible = false,
 
         viewport,
@@ -387,6 +387,12 @@ var usersWindow = (function () {
         scrollbarBarPosition = {},
         scrollbarBarClickedAt, // 0.0 .. 1.0
         scrollbarValue = 0.0; // 0.0 .. 1.0
+
+    function isValueTrue(value) {
+        // Work around Boolean Settings values being read as string when Interface starts up but as Booleans when re-read after
+        // Being written if refresh script.
+        return value === true || value === "true";
+    }
 
     function calculateWindowHeight() {
         var AUDIO_METER_HEIGHT = 52,
@@ -664,6 +670,7 @@ var usersWindow = (function () {
             }
         });
         updateOverlayVisibility();
+        Settings.setValue(SETTING_USERS_WINDOW_MINIMIZED, isMinimized);
     }
 
     function onMenuItemEvent(event) {
@@ -1121,12 +1128,10 @@ var usersWindow = (function () {
         pollUsers();
 
         // Set minimized at end - setup code does not handle `minimized == false` correctly
-        setMinimized(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false));
+        setMinimized(isValueTrue(Settings.getValue(SETTING_USERS_WINDOW_MINIMIZED, false)));
     }
 
     function tearDown() {
-        Settings.setValue(SETTING_USERS_WINDOW_MINIMIZED, isMinimized);
-
         Menu.removeMenuItem(MENU_NAME, MENU_ITEM);
 
         Script.clearTimeout(usersTimer);
