@@ -361,9 +361,9 @@ var usersWindow = (function () {
 
         myVisibility,
 
-        MENU_NAME = "Tools",
+        MENU_NAME = "View",
         MENU_ITEM = "Users Online",
-        MENU_ITEM_AFTER = "Chat...",
+        MENU_ITEM_AFTER = "Overlays",
 
         SETTING_USERS_WINDOW_MINIMIZED = "UsersWindow.Minimized",
         SETINGS_USERS_WINDOW_OFFSET = "UsersWindow.Offset",
