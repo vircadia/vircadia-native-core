@@ -457,6 +457,8 @@ function disonnectHighFidelityAccount() {
   }, function(){
     // we need to post to settings to clear the access-token
     $(Settings.ACCESS_TOKEN_SELECTOR).val('').change();
+    // reset the domain id to get a new temporary name
+    $(Settings.DOMAIN_ID_SELECTOR).val('').change();
     saveSettings();
   });
 }
@@ -555,7 +557,7 @@ function createNewDomainID(description, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
     "domain": {
-       "description": description
+       "private_description": description
     },
     "access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
   }
@@ -748,8 +750,8 @@ function chooseFromHighFidelityDomains(clickedButton) {
         _.each(data.data.domains, function(domain){
           var domainString = "";
 
-          if (domain.description) {
-            domainString += '"' + domain.description + '" - ';
+          if (domain.private_description) {
+            domainString += '"' + domain.private_description + '" - ';
           }
 
           domainString += domain.id;
