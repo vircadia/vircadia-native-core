@@ -334,7 +334,7 @@ var toolBar = (function() {
 
     that.setActive = function(active) {
         if (active != isActive) {
-            if (active && !Entities.canAdjustLocks()) {
+            if (active && !Entities.canRez() && !Entities.canRezTmp()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
                 Messages.sendLocalMessage("edit-events", JSON.stringify({

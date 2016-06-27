@@ -208,9 +208,9 @@ function isShakingMouse() { // True if the person is waving the mouse around try
     return isShaking;
 }
 var NON_LINEAR_DIVISOR = 2;
-var MINIMUM_SEEK_DISTANCE = 0.01;
-function updateSeeking() {
-    if (!Reticle.visible || isShakingMouse()) {
+var MINIMUM_SEEK_DISTANCE = 0.1;
+function updateSeeking(doNotStartSeeking) {
+    if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
         if (!isSeeking) {
             print('Start seeking mouse.');
             isSeeking = true;
@@ -224,8 +224,8 @@ function updateSeeking() {
     if (!lookAt2D) { // If this happens, something has gone terribly wrong.
         print('Cannot seek without lookAt position');
         isSeeking = false;
-        return;
-    } // E.g., if parallel to location in HUD
+        return; // E.g., if parallel to location in HUD
+    }
     var copy = Reticle.position;
     function updateDimension(axis) {
         var distanceBetween = lookAt2D[axis] - Reticle.position[axis];
@@ -353,6 +353,16 @@ clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigg
 clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
+clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
+    // Allow the reticle depth to be set correctly:
+    // Wait a tick for the context menu to be displayed, and then simulate a (non-hand-controller) mouse move
+    // so that the system updates qml state (Reticle.pointingAtSystemOverlay) before it gives us a mouseMove.
+    // We don't want the system code to always do this for us, because, e.g., we do not want to get a mouseMove
+    // after the Left/RightSecondaryThumb gives us a context menu. Only from the mouse.
+    Script.setTimeout(function () {
+        Reticle.setPosition(Reticle.position);
+    }, 0);
+});
 // Partial smoothed trigger is activation.
 clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
 clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
@@ -386,6 +396,7 @@ function update() {
         expireMouseCursor();
         clearSystemLaser();
     }
+    updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
         return off(); // Let them use mouse it in peace.
     }

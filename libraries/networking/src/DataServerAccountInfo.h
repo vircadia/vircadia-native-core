@@ -22,6 +22,7 @@ const float SATOSHIS_PER_CREDIT = 100000000.0f;
 
 class DataServerAccountInfo : public QObject {
     Q_OBJECT
+    const static QString EMPTY_KEY;
 public:
     DataServerAccountInfo() {};
     DataServerAccountInfo(const DataServerAccountInfo& otherInfo);
@@ -52,6 +53,9 @@ public:
     void setDomainID(const QUuid& domainID) { _domainID = domainID; }
     const QUuid& getDomainID() const { return _domainID; }
 
+    void setTemporaryDomain(const QUuid& domainID, const QString& key) { _temporaryDomainID = domainID; _temporaryDomainApiKey = key; }
+    const QString& getTemporaryDomainKey(const QUuid& domainID) { return domainID == _temporaryDomainID ? _temporaryDomainApiKey : EMPTY_KEY; }
+
     bool hasProfile() const;
 
     void setProfileInfoFromJSON(const QJsonObject& jsonObject);
@@ -67,7 +71,9 @@ private:
     QString _xmppPassword;
     QString _discourseApiKey;
     QUuid _walletID;
-    QUuid _domainID; // if this holds account info for a domain, this holds the ID of that domain
+    QUuid _domainID;
+    QUuid _temporaryDomainID;
+    QString _temporaryDomainApiKey;
     QByteArray _privateKey;
 
 };
