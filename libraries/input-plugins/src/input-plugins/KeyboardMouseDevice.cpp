@@ -255,4 +255,3 @@ QString KeyboardMouseDevice::InputDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/keyboardMouse.json";
     return MAPPING_JSON;
 }
-
