@@ -31,12 +31,14 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
         _groupID = perms["group_id"].toUuid();
     }
 
-    canConnectToDomain = perms["id_can_connect"].toBool();
-    canAdjustLocks = perms["id_can_adjust_locks"].toBool();
-    canRezPermanentEntities = perms["id_can_rez"].toBool();
-    canRezTemporaryEntities = perms["id_can_rez_tmp"].toBool();
-    canWriteToAssetServer = perms["id_can_write_to_asset_server"].toBool();
-    canConnectPastMaxCapacity = perms["id_can_connect_past_max_capacity"].toBool();
+    permissions = NodePermissions::Permissions();
+    permissions |= perms["id_can_connect"].toBool() ? Permission::canConnectToDomain : Permission::none;
+    permissions |= perms["id_can_adjust_locks"].toBool() ? Permission::canAdjustLocks : Permission::none;
+    permissions |= perms["id_can_rez"].toBool() ? Permission::canRezPermanentEntities : Permission::none;
+    permissions |= perms["id_can_rez_tmp"].toBool() ? Permission::canRezTemporaryEntities : Permission::none;
+    permissions |= perms["id_can_write_to_asset_server"].toBool() ? Permission::canWriteToAssetServer : Permission::none;
+    permissions |= perms["id_can_connect_past_max_capacity"].toBool() ?
+        Permission::canConnectPastMaxCapacity : Permission::none;
 }
 
 QVariant NodePermissions::toVariant() {
@@ -45,31 +47,24 @@ QVariant NodePermissions::toVariant() {
     if (_groupIDSet) {
         values["group_id"] = _groupID;
     }
-    values["id_can_connect"] = canConnectToDomain;
-    values["id_can_adjust_locks"] = canAdjustLocks;
-    values["id_can_rez"] = canRezPermanentEntities;
-    values["id_can_rez_tmp"] = canRezTemporaryEntities;
-    values["id_can_write_to_asset_server"] = canWriteToAssetServer;
-    values["id_can_connect_past_max_capacity"] = canConnectPastMaxCapacity;
+    values["id_can_connect"] = can(Permission::canConnectToDomain);
+    values["id_can_adjust_locks"] = can(Permission::canAdjustLocks);
+    values["id_can_rez"] = can(Permission::canRezPermanentEntities);
+    values["id_can_rez_tmp"] = can(Permission::canRezTemporaryEntities);
+    values["id_can_write_to_asset_server"] = can(Permission::canWriteToAssetServer);
+    values["id_can_connect_past_max_capacity"] = can(Permission::canConnectPastMaxCapacity);
     return QVariant(values);
 }
 
 void NodePermissions::setAll(bool value) {
-    canConnectToDomain = value;
-    canAdjustLocks = value;
-    canRezPermanentEntities = value;
-    canRezTemporaryEntities = value;
-    canWriteToAssetServer = value;
-    canConnectPastMaxCapacity = value;
+    permissions = NodePermissions::Permissions();
+    if (value) {
+        permissions = ~permissions;
+    }
 }
 
 NodePermissions& NodePermissions::operator|=(const NodePermissions& rhs) {
-    this->canConnectToDomain |= rhs.canConnectToDomain;
-    this->canAdjustLocks |= rhs.canAdjustLocks;
-    this->canRezPermanentEntities |= rhs.canRezPermanentEntities;
-    this->canRezTemporaryEntities |= rhs.canRezTemporaryEntities;
-    this->canWriteToAssetServer |= rhs.canWriteToAssetServer;
-    this->canConnectPastMaxCapacity |= rhs.canConnectPastMaxCapacity;
+    permissions |= rhs.permissions;
     return *this;
 }
 NodePermissions& NodePermissions::operator|=(const NodePermissionsPointer& rhs) {
@@ -84,14 +79,15 @@ NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermis
     }
     return lhs;
 }
+NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs) {
+    if (lhs) {
+        lhs.get()->permissions |= rhs;
+    }
+    return lhs;
+}
 
 NodePermissions& NodePermissions::operator&=(const NodePermissions& rhs) {
-    this->canConnectToDomain &= rhs.canConnectToDomain;
-    this->canAdjustLocks &= rhs.canAdjustLocks;
-    this->canRezPermanentEntities &= rhs.canRezPermanentEntities;
-    this->canRezTemporaryEntities &= rhs.canRezTemporaryEntities;
-    this->canWriteToAssetServer &= rhs.canWriteToAssetServer;
-    this->canConnectPastMaxCapacity &= rhs.canConnectPastMaxCapacity;
+    permissions &= rhs.permissions;
     return *this;
 }
 NodePermissions& NodePermissions::operator&=(const NodePermissionsPointer& rhs) {
@@ -106,15 +102,16 @@ NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, const NodePermis
     }
     return lhs;
 }
+NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs) {
+    if (lhs) {
+        lhs.get()->permissions &= rhs;
+    }
+    return lhs;
+}
 
 NodePermissions NodePermissions::operator~() {
     NodePermissions result = *this;
-    result.canConnectToDomain = !result.canConnectToDomain;
-    result.canAdjustLocks = !result.canAdjustLocks;
-    result.canRezPermanentEntities = !result.canRezPermanentEntities;
-    result.canRezTemporaryEntities = !result.canRezTemporaryEntities;
-    result.canWriteToAssetServer = !result.canWriteToAssetServer;
-    result.canConnectPastMaxCapacity = !result.canConnectPastMaxCapacity;
+    result.permissions = ~permissions;
     return result;
 }
 
@@ -128,43 +125,35 @@ NodePermissionsPointer operator~(NodePermissionsPointer& lhs) {
 }
 
 QDataStream& operator<<(QDataStream& out, const NodePermissions& perms) {
-    out << perms.canConnectToDomain;
-    out << perms.canAdjustLocks;
-    out << perms.canRezPermanentEntities;
-    out << perms.canRezTemporaryEntities;
-    out << perms.canWriteToAssetServer;
-    out << perms.canConnectPastMaxCapacity;
+    out << (uint)perms.permissions;
     return out;
 }
 
 QDataStream& operator>>(QDataStream& in, NodePermissions& perms) {
-    in >> perms.canConnectToDomain;
-    in >> perms.canAdjustLocks;
-    in >> perms.canRezPermanentEntities;
-    in >> perms.canRezTemporaryEntities;
-    in >> perms.canWriteToAssetServer;
-    in >> perms.canConnectPastMaxCapacity;
+    uint permissionsInt;
+    in >> permissionsInt;
+    perms.permissions = (NodePermissions::Permissions)permissionsInt;
     return in;
 }
 
 QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     debug.nospace() << "[permissions: " << perms.getID() << " --";
-    if (perms.canConnectToDomain) {
+    if (perms.can(NodePermissions::Permission::canConnectToDomain)) {
         debug << " connect";
     }
-    if (perms.canAdjustLocks) {
+    if (perms.can(NodePermissions::Permission::canAdjustLocks)) {
         debug << " locks";
     }
-    if (perms.canRezPermanentEntities) {
+    if (perms.can(NodePermissions::Permission::canRezPermanentEntities)) {
         debug << " rez";
     }
-    if (perms.canRezTemporaryEntities) {
+    if (perms.can(NodePermissions::Permission::canRezTemporaryEntities)) {
         debug << " rez-tmp";
     }
-    if (perms.canWriteToAssetServer) {
+    if (perms.can(NodePermissions::Permission::canWriteToAssetServer)) {
         debug << " asset-server";
     }
-    if (perms.canConnectPastMaxCapacity) {
+    if (perms.can(NodePermissions::Permission::canConnectPastMaxCapacity)) {
         debug << " ignore-max-cap";
     }
     debug.nospace() << "]";

@@ -140,7 +140,7 @@ NodePermissions DomainGatekeeper::applyPermissionsForUser(bool isLocalUser,
         } else {
             // they are logged into metaverse, but we don't have specific permissions for them.
             userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn);
-            qDebug() << "user-permissions: user is logged-into metavers, so:" << userPerms;
+            qDebug() << "user-permissions: user is logged-into metaverse, so:" << userPerms;
 
             // if this user is a friend of the domain-owner, give them friend's permissions
             if (_domainOwnerFriends.contains(verifiedUsername)) {
@@ -188,9 +188,9 @@ void DomainGatekeeper::updateNodePermissions() {
         if (node->getPermissions().isAssignment) {
             // this node is an assignment-client
             userPerms.isAssignment = true;
-            userPerms.canAdjustLocks = true;
-            userPerms.canRezPermanentEntities = true;
-            userPerms.canRezTemporaryEntities = true;
+            userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
+            userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
         } else {
             // this node is an agent
             const QHostAddress& addr = node->getLocalSocket().getAddress();
@@ -201,7 +201,7 @@ void DomainGatekeeper::updateNodePermissions() {
 
         node->setPermissions(userPerms);
 
-        if (!userPerms.canConnectToDomain) {
+        if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
             qDebug() << "node" << node->getUUID() << "no longer has permission to connect.";
             // hang up on this node
             nodesToKill << node;
@@ -257,9 +257,9 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     // always allow assignment clients to create and destroy entities
     NodePermissions userPerms;
     userPerms.isAssignment = true;
-    userPerms.canAdjustLocks = true;
-    userPerms.canRezPermanentEntities = true;
-    userPerms.canRezTemporaryEntities = true;
+    userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
+    userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
     newNode->setPermissions(userPerms);
     return newNode;
 }
@@ -306,13 +306,13 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     userPerms = applyPermissionsForUser(isLocalUser, userPerms, verifiedUsername);
 
-    if (!userPerms.canConnectToDomain) {
+    if (!userPerms.can(NodePermissions::Permission::canConnectToDomain)) {
         sendConnectionDeniedPacket("You lack the required permissions to connect to this domain.",
                                    nodeConnection.senderSockAddr, DomainHandler::ConnectionRefusedReason::TooManyUsers);
         return SharedNodePointer();
     }
 
-    if (!userPerms.canConnectPastMaxCapacity && !isWithinMaxCapacity()) {
+    if (!userPerms.can(NodePermissions::Permission::canConnectPastMaxCapacity) && !isWithinMaxCapacity()) {
         // we can't allow this user to connect because we are at max capacity
         sendConnectionDeniedPacket("Too many connected users.", nodeConnection.senderSockAddr,
                                    DomainHandler::ConnectionRefusedReason::TooManyUsers);

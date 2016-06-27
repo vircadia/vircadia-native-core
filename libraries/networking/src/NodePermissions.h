@@ -46,13 +46,17 @@ public:
     static QString standardNameFriends;
     static QStringList standardNames;
 
-    // the initializations here should match the defaults in describe-settings.json
-    bool canConnectToDomain { true };
-    bool canAdjustLocks { false };
-    bool canRezPermanentEntities { false };
-    bool canRezTemporaryEntities { false };
-    bool canWriteToAssetServer { false };
-    bool canConnectPastMaxCapacity { false };
+    enum class Permission {
+        none = 0,
+        canConnectToDomain = 1,
+        canAdjustLocks = 2,
+        canRezPermanentEntities = 4,
+        canRezTemporaryEntities = 8,
+        canWriteToAssetServer = 16,
+        canConnectPastMaxCapacity = 32
+    };
+    Q_DECLARE_FLAGS(Permissions, Permission)
+    Permissions permissions;
 
     QVariant toVariant();
 
@@ -66,6 +70,10 @@ public:
     friend QDataStream& operator<<(QDataStream& out, const NodePermissions& perms);
     friend QDataStream& operator>>(QDataStream& in, NodePermissions& perms);
 
+    void clear(Permission p) { permissions &= (Permission) (~(uint)p); }
+    void set(Permission p) { permissions |= p; }
+    bool can(Permission p) const { return permissions.testFlag(p); }
+
 protected:
     QString _id;
     QString _userName;
@@ -73,6 +81,7 @@ protected:
     bool _groupIDSet { false };
     QUuid _groupID;
 };
+Q_DECLARE_OPERATORS_FOR_FLAGS(NodePermissions::Permissions)
 
 
 // wrap QHash in a class that forces all keys to be lowercase
@@ -96,7 +105,9 @@ const NodePermissions DEFAULT_AGENT_PERMISSIONS;
 QDebug operator<<(QDebug debug, const NodePermissions& perms);
 QDebug operator<<(QDebug debug, const NodePermissionsPointer& perms);
 NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
+NodePermissionsPointer& operator|=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs);
 NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, const NodePermissionsPointer& rhs);
+NodePermissionsPointer& operator&=(NodePermissionsPointer& lhs, NodePermissions::Permission rhs);
 NodePermissionsPointer operator~(NodePermissionsPointer& lhs);
 
 #endif // hifi_NodePermissions_h

@@ -1099,7 +1099,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     // consider the domain to be "restricted" if anonymous connections are disallowed
     static const QString RESTRICTED_ACCESS_FLAG = "restricted";
     NodePermissions anonymousPermissions = _settingsManager.getPermissionsForName(NodePermissions::standardNameAnonymous);
-    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.canConnectToDomain;
+    domainObject[RESTRICTED_ACCESS_FLAG] = !anonymousPermissions.can(NodePermissions::Permission::canConnectToDomain);
 
     const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
     if (!temporaryDomainKey.isEmpty()) {

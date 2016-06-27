@@ -61,10 +61,10 @@ public:
 
     void setPermissions(const NodePermissions& newPermissions) { _permissions = newPermissions; }
     NodePermissions getPermissions() const { return _permissions; }
-    bool isAllowedEditor() const { return _permissions.canAdjustLocks; }
-    bool getCanRez() const { return _permissions.canRezPermanentEntities; }
-    bool getCanRezTmp() const { return _permissions.canRezTemporaryEntities; }
-    bool getCanWriteToAssetServer() const { return _permissions.canWriteToAssetServer; }
+    bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
+    bool getCanRez() const { return _permissions.can(NodePermissions::Permission::canRezPermanentEntities); }
+    bool getCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
+    bool getCanWriteToAssetServer() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);

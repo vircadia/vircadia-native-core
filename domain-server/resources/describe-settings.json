@@ -409,7 +409,7 @@
               "label": "Connect",
               "type": "checkbox",
               "editable": true,
-              "default": true
+              "default": false
             },
             {
               "name": "id_can_adjust_locks",
@@ -478,7 +478,7 @@
               "label": "Connect",
               "type": "checkbox",
               "editable": true,
-              "default": true
+              "default": false
             },
             {
               "name": "id_can_adjust_locks",
@@ -549,7 +549,7 @@
               "label": "Connect",
               "type": "checkbox",
               "editable": true,
-              "default": true
+              "default": false
             },
             {
               "name": "id_can_adjust_locks",
@@ -620,7 +620,7 @@
               "label": "Connect",
               "type": "checkbox",
               "editable": true,
-              "default": true
+              "default": false
             },
             {
               "name": "id_can_adjust_locks",

@@ -223,14 +223,16 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             if (isRestrictedAccess) {
                 // only users in allow-users list can connect
-                _standardAgentPermissions[NodePermissions::standardNameAnonymous]->canConnectToDomain = false;
-                _standardAgentPermissions[NodePermissions::standardNameLoggedIn]->canConnectToDomain = false;
+                _standardAgentPermissions[NodePermissions::standardNameAnonymous]->clear(
+                    NodePermissions::Permission::canConnectToDomain);
+                _standardAgentPermissions[NodePermissions::standardNameLoggedIn]->clear(
+                    NodePermissions::Permission::canConnectToDomain);
             } // else anonymous and logged-in retain default of canConnectToDomain = true
 
             foreach (QString allowedUser, allowedUsers) {
                 // even if isRestrictedAccess is false, we have to add explicit rows for these users.
-                // defaults to canConnectToDomain = true
                 _agentPermissions[allowedUser].reset(new NodePermissions(allowedUser));
+                _agentPermissions[allowedUser]->set(NodePermissions::Permission::canConnectToDomain);
             }
 
             foreach (QString allowedEditor, allowedEditors) {
@@ -238,10 +240,10 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                     _agentPermissions[allowedEditor].reset(new NodePermissions(allowedEditor));
                     if (isRestrictedAccess) {
                         // they can change locks, but can't connect.
-                        _agentPermissions[allowedEditor]->canConnectToDomain = false;
+                        _agentPermissions[allowedEditor]->clear(NodePermissions::Permission::canConnectToDomain);
                     }
                 }
-                _agentPermissions[allowedEditor]->canAdjustLocks = true;
+                _agentPermissions[allowedEditor]->set(NodePermissions::Permission::canAdjustLocks);
             }
 
             QList<QHash<QString, NodePermissionsPointer>> permissionsSets;
@@ -249,11 +251,16 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             foreach (auto permissionsSet, permissionsSets) {
                 foreach (QString userName, permissionsSet.keys()) {
                     if (onlyEditorsAreRezzers) {
-                        permissionsSet[userName]->canRezPermanentEntities = permissionsSet[userName]->canAdjustLocks;
-                        permissionsSet[userName]->canRezTemporaryEntities = permissionsSet[userName]->canAdjustLocks;
+                        if (permissionsSet[userName]->can(NodePermissions::Permission::canAdjustLocks)) {
+                            permissionsSet[userName]->set(NodePermissions::Permission::canRezPermanentEntities);
+                            permissionsSet[userName]->set(NodePermissions::Permission::canRezTemporaryEntities);
+                        } else {
+                            permissionsSet[userName]->clear(NodePermissions::Permission::canRezPermanentEntities);
+                            permissionsSet[userName]->clear(NodePermissions::Permission::canRezTemporaryEntities);
+                        }
                     } else {
-                        permissionsSet[userName]->canRezPermanentEntities = true;
-                        permissionsSet[userName]->canRezTemporaryEntities = true;
+                        permissionsSet[userName]->set(NodePermissions::Permission::canRezPermanentEntities);
+                        permissionsSet[userName]->set(NodePermissions::Permission::canRezTemporaryEntities);
                     }
                 }
             }
