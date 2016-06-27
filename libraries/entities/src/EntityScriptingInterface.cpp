@@ -179,6 +179,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
+                propertiesWithSimID.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
                 success = false;
@@ -376,6 +377,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
+            properties.setLastEdited(entity->getLastEdited());
 
             // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
             // if they've changed.

@@ -11,7 +11,7 @@
 #include <SettingHandle.h>
 
 #include "DisplayPlugin.h"
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 
 static Setting::Handle<float> IPD_SCALE_HANDLE("hmd.ipdScale", 1.0f);
 

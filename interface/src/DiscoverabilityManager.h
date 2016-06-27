@@ -49,7 +49,6 @@ private:
     DiscoverabilityManager();
     
     Setting::Handle<int> _mode;
-    QString _sessionID;
     QJsonObject _lastLocationObject;
 };
 

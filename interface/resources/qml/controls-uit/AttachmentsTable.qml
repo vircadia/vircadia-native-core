@@ -15,7 +15,7 @@ import QtQuick.XmlListModel 2.0
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
-import "../windows-uit"
+import "../windows"
 import "../hifi/models"
 
 TableView {

@@ -48,7 +48,7 @@ var selectedInputMenu = "";
 var selectedOutputMenu = "";
 
 function setupAudioMenus() {
-    Menu.addMenu("Audio > Devices", "Advanced");
+    Menu.addMenu("Audio > Devices");
     Menu.addSeparator("Audio > Devices","Output Audio Device");
 
     var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);

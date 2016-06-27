@@ -2,22 +2,24 @@ import QtQuick 2.3
 import QtQuick.Controls 1.2
 import QtWebEngine 1.1
 
-import "controls"
-import "styles"
+import "controls-uit"
+import "styles-uit"
 import "windows"
 
-Window {
+ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     title: "Browser"
     resizable: true
-    destroyOnInvisible: true
+    destroyOnHidden: true
     width: 800
     height: 600
     property alias webView: webview
-    
+    x: 100
+    y: 100
+
     Component.onCompleted: {
-        visible = true
+        shown = true
         addressBar.text = webview.url
     }
 
@@ -30,15 +32,9 @@ Window {
 
     Item {
         id:item
-        anchors.fill: parent
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: webview.top
-            color: "white"
-        }
-    
+        width: pane.contentWidth
+        implicitHeight: pane.scrollHeight
+
         Row {
             id: buttons
             spacing: 4
@@ -46,25 +42,37 @@ Window {
             anchors.topMargin: 8
             anchors.left: parent.left
             anchors.leftMargin: 8
-            FontAwesome { 
-                id: back; text: "\uf0a8"; size: 48; enabled: webview.canGoBack; 
+            HiFiGlyphs {
+                id: back;
+                enabled: webview.canGoBack;
+                text: hifi.glyphs.backward
                 color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
             }
-            FontAwesome { 
-                id: forward; text: "\uf0a9"; size: 48; enabled: webview.canGoForward;  
+
+            HiFiGlyphs {
+                id: forward;
+                enabled: webview.canGoForward;
+                text: hifi.glyphs.forward
                 color: enabled ? hifi.colors.text : hifi.colors.disabledText
-                MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
+                size: 48
+                MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
-            FontAwesome { 
-                id: reload; size: 48; text: webview.loading ? "\uf057" : "\uf021" 
-                MouseArea { anchors.fill: parent;  onClicked: webview.loading ? webview.stop() : webview.reload() }
+
+            HiFiGlyphs {
+                id: reload;
+                enabled: webview.canGoForward;
+                text: webview.loading ? hifi.glyphs.close : hifi.glyphs.reload
+                color: enabled ? hifi.colors.text : hifi.colors.disabledText
+                size: 48
+                MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
         }
 
-        Border {
+        Item {
+            id: border
             height: 48
-            radius: 8
             anchors.top: parent.top
             anchors.topMargin: 8
             anchors.right: parent.right
@@ -86,15 +94,18 @@ Window {
                     onSourceChanged: console.log("Icon url: " + source)
                 }
             }
-    
-            TextInput {
+
+            TextField {
                 id: addressBar
                 anchors.right: parent.right
                 anchors.rightMargin: 8
                 anchors.left: barIcon.right
                 anchors.leftMargin: 0
                 anchors.verticalCenter: parent.verticalCenter
-
+                focus: true
+                colorScheme: hifi.colorSchemes.dark
+                placeholderText: "Enter URL"
+                Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
                 Keys.onPressed: {
                     switch(event.key) {
                         case Qt.Key_Enter:
@@ -110,7 +121,7 @@ Window {
             }
         }
 
-        WebView {
+        WebEngineView {
             id: webview
             url: "http://highfidelity.com"
             anchors.top: buttons.bottom
@@ -119,7 +130,7 @@ Window {
             anchors.left: parent.left
             anchors.right: parent.right
             onLoadingChanged: {
-                if (loadRequest.status == WebEngineView.LoadSucceededStatus) {
+                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                     addressBar.text = loadRequest.url
                 }
             }
@@ -127,7 +138,7 @@ Window {
                 console.log("New icon: " + icon)
             }
             
-            profile: desktop.browserProfile
+            //profile: desktop.browserProfile
     
         }
 

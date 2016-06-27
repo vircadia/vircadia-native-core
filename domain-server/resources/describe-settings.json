@@ -1,5 +1,5 @@
 {
-  "version": 1.4,
+  "version": 1.5,
   "settings": [
     {
       "name": "metaverse",
@@ -116,6 +116,7 @@
           "name": "hosts",
           "label": "Hosts",
           "type": "table",
+          "can_add_new_rows": true,
           "help": "Usernames of hosts who can reliably show your domain to new visitors.",
           "numbered": false,
           "columns": [
@@ -130,6 +131,7 @@
           "name": "tags",
           "label": "Tags",
           "type": "table",
+          "can_add_new_rows": true,
           "help": "Common categories under which your domain falls.",
           "numbered": false,
           "columns": [
@@ -137,6 +139,218 @@
               "name": "tag",
               "label": "Tag",
               "can_set": true
+            }
+          ]
+        },
+        {
+          "label": "Operating Hours",
+          "help": "\"Open\" domains can be searched using their operating hours. Hours are entered in the local timezone, selected below.",
+
+          "name": "weekday_hours",
+          "caption": "Weekday Hours (Monday-Friday)",
+          "type": "table",
+          "can_add_new_rows": false,
+          "columns": [
+            {
+              "name": "open",
+              "label": "Opening Time",
+              "type": "time",
+              "default": "00:00",
+              "editable": true
+            },
+            {
+              "name": "close",
+              "label": "Closing Time",
+              "type": "time",
+              "default": "23:59",
+              "editable": true
+            }
+          ]
+        },
+        {
+          "name": "weekend_hours",
+          "label": "Weekend Hours (Saturday/Sunday)",
+          "type": "table",
+          "can_add_new_rows": false,
+          "columns": [
+            {
+              "name": "open",
+              "label": "Opening Time",
+              "type": "time",
+              "default": "00:00",
+              "editable": true
+            },
+            {
+              "name": "close",
+              "label": "Closing Time",
+              "type": "time",
+              "default": "23:59",
+              "editable": true
+            }
+          ]
+        },
+        {
+          "label": "Time Zone",
+          "name": "utc_offset",
+          "caption": "Time Zone",
+          "help": "This server's time zone. Used to define your server's operating hours.",
+          "type": "select",
+          "options": [
+            {
+              "value": "-12",
+              "label": "UTC-12:00"
+            },
+            {
+              "value": "-11",
+              "label": "UTC-11:00"
+            },
+            {
+              "value": "-10",
+              "label": "UTC-10:00"
+            },
+            {
+              "value": "-9.5",
+              "label": "UTC-09:30"
+            },
+            {
+              "value": "-9",
+              "label": "UTC-09:00"
+            },
+            {
+              "value": "-8",
+              "label": "UTC-08:00"
+            },
+            {
+              "value": "-7",
+              "label": "UTC-07:00"
+            },
+            {
+              "value": "-6",
+              "label": "UTC-06:00"
+            },
+            {
+              "value": "-5",
+              "label": "UTC-05:00"
+            },
+            {
+              "value": "-4",
+              "label": "UTC-04:00"
+            },
+            {
+              "value": "-3.5",
+              "label": "UTC-03:30"
+            },
+            {
+              "value": "-3",
+              "label": "UTC-03:00"
+            },
+            {
+              "value": "-2",
+              "label": "UTC-02:00"
+            },
+            {
+              "value": "-1",
+              "label": "UTC-01:00"
+            },
+            {
+              "value": "",
+              "label": "UTC±00:00"
+            },
+            {
+              "value": "1",
+              "label": "UTC+01:00"
+            },
+            {
+              "value": "2",
+              "label": "UTC+02:00"
+            },
+            {
+              "value": "3",
+              "label": "UTC+03:00"
+            },
+            {
+              "value": "3.5",
+              "label": "UTC+03:30"
+            },
+            {
+              "value": "4",
+              "label": "UTC+04:00"
+            },
+            {
+              "value": "4.5",
+              "label": "UTC+04:30"
+            },
+            {
+              "value": "5",
+              "label": "UTC+05:00"
+            },
+            {
+              "value": "5.5",
+              "label": "UTC+05:30"
+            },
+            {
+              "value": "5.75",
+              "label": "UTC+05:45"
+            },
+            {
+              "value": "6",
+              "label": "UTC+06:00"
+            },
+            {
+              "value": "6.5",
+              "label": "UTC+06:30"
+            },
+            {
+              "value": "7",
+              "label": "UTC+07:00"
+            },
+            {
+              "value": "8",
+              "label": "UTC+08:00"
+            },
+            {
+              "value": "8.5",
+              "label": "UTC+08:30"
+            },
+            {
+              "value": "8.75",
+              "label": "UTC+08:45"
+            },
+            {
+              "value": "9",
+              "label": "UTC+09:00"
+            },
+            {
+              "value": "9.5",
+              "label": "UTC+09:30"
+            },
+            {
+              "value": "10",
+              "label": "UTC+10:00"
+            },
+            {
+              "value": "10.5",
+              "label": "UTC+10:30"
+            },
+            {
+              "value": "11",
+              "label": "UTC+11:00"
+            },
+            {
+              "value": "12",
+              "label": "UTC+12:00"
+            },
+            {
+              "value": "12.75",
+              "label": "UTC+12:45"
+            },
+            {
+              "value": "13",
+              "label": "UTC+13:00"
+            },
+            {
+              "value": "14",
+              "label": "UTC+14:00"
             }
           ]
         }
@@ -170,7 +384,7 @@
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
-          "help": "Indicate which users or groups can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
+          "help": "Indicate which users or groups can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
           "caption": "Standard Permissions",
           "can_add_new_rows": false,
 
@@ -180,7 +394,7 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
               "span": 6
             }
           ],
@@ -249,7 +463,7 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
               "span": 6
             }
           ],

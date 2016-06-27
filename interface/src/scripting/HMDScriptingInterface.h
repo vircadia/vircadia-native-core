@@ -1,4 +1,4 @@
-//
+
 //  HMDScriptingInterface.h
 //  interface/src/scripting
 //
@@ -11,6 +11,8 @@
 
 #ifndef hifi_HMDScriptingInterface_h
 #define hifi_HMDScriptingInterface_h
+
+#include <atomic>
 
 #include <QtScript/QScriptValue>
 class QScriptContext;
@@ -31,11 +33,27 @@ public:
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
     Q_INVOKABLE glm::vec2 overlayFromWorldPoint(const glm::vec3& position) const;
     Q_INVOKABLE glm::vec3 worldPointFromOverlay(const glm::vec2& overlay) const;
-
     Q_INVOKABLE glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
     Q_INVOKABLE glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
     Q_INVOKABLE QString preferredAudioInput() const;
     Q_INVOKABLE QString preferredAudioOutput() const;
+
+    Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
+
+    Q_INVOKABLE void disableHandLasers(int hands) const;
+    /// Suppress the activation of any on-screen keyboard so that a script operation will 
+    /// not be interrupted by a keyboard popup
+    /// Returns false if there is already an active keyboard displayed.
+    /// Clients should re-enable the keyboard when the operation is complete and ensure
+    /// that they balance any call to suppressKeyboard() that returns true with a corresponding 
+    /// call to unsuppressKeyboard() within a reasonable amount of time
+    Q_INVOKABLE bool suppressKeyboard();
+
+    /// Enable the keyboard following a suppressKeyboard call
+    Q_INVOKABLE void unsuppressKeyboard();
+
+    /// Query the display plugin to determine the current VR keyboard visibility
+    Q_INVOKABLE bool isKeyboardVisible();
 
 public:
     HMDScriptingInterface();

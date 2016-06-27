@@ -26,9 +26,9 @@
 
 class JSONCallbackParameters {
 public:
-    JSONCallbackParameters(QObject* jsonCallbackReceiver = NULL, const QString& jsonCallbackMethod = QString(),
-                           QObject* errorCallbackReceiver = NULL, const QString& errorCallbackMethod = QString(),
-                           QObject* updateReceiver = NULL, const QString& updateSlot = QString());
+    JSONCallbackParameters(QObject* jsonCallbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
+                           QObject* errorCallbackReceiver = nullptr, const QString& errorCallbackMethod = QString(),
+                           QObject* updateReceiver = nullptr, const QString& updateSlot = QString());
 
     bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
 
@@ -86,7 +86,11 @@ public:
 
     static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
 
+    QUuid getSessionID() const { return _sessionID; }
     void setSessionID(const QUuid& sessionID) { _sessionID = sessionID; }
+
+    void setTemporaryDomain(const QUuid& domainID, const QString& key);
+    const QString& getTemporaryDomainKey(const QUuid& domainID) { return _accountInfo.getTemporaryDomainKey(domainID); }
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
@@ -139,7 +143,7 @@ private:
     bool _isWaitingForKeypairResponse { false };
     QByteArray _pendingPrivateKey;
 
-    QUuid _sessionID;
+    QUuid _sessionID { QUuid::createUuid() };
 };
 
 #endif // hifi_AccountManager_h

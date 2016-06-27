@@ -96,7 +96,9 @@ bool Procedural::parseVersion(const QJsonValue& version) {
 
 bool Procedural::parseUrl(const QUrl& shaderUrl) {
     if (!shaderUrl.isValid()) {
-        qWarning() << "Invalid shader URL: " << shaderUrl;
+        if (!shaderUrl.isEmpty()) {
+            qWarning() << "Invalid shader URL: " << shaderUrl;
+        }
         _networkShader.reset();
         return false;
     }

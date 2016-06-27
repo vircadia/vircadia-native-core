@@ -135,7 +135,14 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
         _nextOwnershipBid = 0;
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
-        _body->activate();
+        if (_body->isKinematicObject()) {
+            // only force activate kinematic bodies (dynamic shouldn't need force and
+            // active static bodies are special (see PhysicsEngine::_activeStaticBodies))
+            _body->activate(true);
+            _lastKinematicStep = ObjectMotionState::getWorldSimulationStep();
+        } else {
+            _body->activate();
+        }
     }
 }
 
@@ -151,6 +158,11 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         return MOTION_TYPE_STATIC;
     }
     assert(entityTreeIsLocked());
+
+    if (_entity->getShapeType() == SHAPE_TYPE_STATIC_MESH
+        || (_body && _body->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)) {
+        return MOTION_TYPE_STATIC;
+    }
 
     if (_entity->getDynamic()) {
         if (!_entity->getParentID().isNull()) {

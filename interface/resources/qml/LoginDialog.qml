@@ -14,7 +14,7 @@ import "controls"
 import "styles"
 import "windows"
 
-Window {
+ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     objectName: "LoginDialog"
@@ -22,8 +22,9 @@ Window {
     width: loginDialog.implicitWidth
     // FIXME make movable
     anchors.centerIn: parent
-    destroyOnInvisible: false
-    visible: false
+    destroyOnHidden: false
+    hideBackground: true
+    shown: false
 
     LoginDialog {
         id: loginDialog
@@ -268,8 +269,8 @@ Window {
         }
     }
 
-    onVisibleChanged: {
-        if (!visible) {
+    onShownChanged: {
+        if (!shown) {
             username.text = ""
             password.text = ""
             loginDialog.statusText = ""
@@ -282,7 +283,7 @@ Window {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.visible = false;
+                root.shown = false;
                 event.accepted = true;
                 break;
 

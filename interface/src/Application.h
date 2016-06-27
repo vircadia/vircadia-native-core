@@ -34,6 +34,7 @@
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
 #include <plugins/DisplayPlugin.h>
+#include <ui-plugins/PluginContainer.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <SimpleMovingAverage.h>
@@ -86,14 +87,32 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, public AbstractUriHandler {
+class Application : public QApplication, 
+                    public AbstractViewStateInterface, 
+                    public AbstractScriptingServicesInterface, 
+                    public AbstractUriHandler,
+                    public PluginContainer {
     Q_OBJECT
 
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
-    friend class PluginContainerProxy;
 
 public:
+
+    // virtual functions required for PluginContainer
+    virtual ui::Menu* getPrimaryMenu() override;
+    virtual void requestReset() override { resetSensors(true); }
+    virtual void showDisplayPluginsTools(bool show) override;
+    virtual GLWidget* getPrimaryWidget() override;
+    virtual MainWindow* getPrimaryWindow() override;
+    virtual QOpenGLContext* getPrimaryContext() override;
+    virtual bool makeRenderingContextCurrent() override;
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override;
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override;
+    virtual bool isForeground() const override;
+
+    virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
+
     enum Event {
         Present = DisplayPlugin::Present,
         Paint = Present + 1,
@@ -163,7 +182,6 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-    bool isForeground() const { return _isForeground; }
 
     size_t getFrameCount() const { return _frameCount; }
     float getFps() const { return _frameCounter.rate(); }
@@ -185,8 +203,6 @@ public:
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
-    DisplayPluginPointer getActiveDisplayPlugin() const;
-
     FileLogger* getLogger() const { return _logger; }
 
     glm::vec2 getViewportDimensions() const;
@@ -194,6 +210,8 @@ public:
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     float getRenderResolutionScale() const;
+
+    qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
     bool isAboutToQuit() const { return _aboutToQuit; }
 
@@ -390,6 +408,7 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
+    void toggleMenuUnderReticle() const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;

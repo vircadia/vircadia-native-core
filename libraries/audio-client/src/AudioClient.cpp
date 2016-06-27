@@ -102,7 +102,6 @@ AudioClient::AudioClient() :
     _reverbOptions(&_scriptReverbOptions),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
-    _loopbackResampler(NULL),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream, this),
     _stats(&_receivedAudioStream),
@@ -315,54 +314,35 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 
     // FIXME: directly using 24khz has a bug somewhere that causes channels to be swapped.
     // Continue using our internal resampler, for now.
-    if (true || !audioDevice.isFormatSupported(desiredAudioFormat)) {
-        qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
-        qCDebug(audioclient, "The desired audio format is not supported by this device");
+    qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
 
-        if (desiredAudioFormat.channelCount() == 1) {
-            adjustedAudioFormat = desiredAudioFormat;
-            adjustedAudioFormat.setChannelCount(2);
-
-            if (false && audioDevice.isFormatSupported(adjustedAudioFormat)) {
-                return true;
-            } else {
-                adjustedAudioFormat.setChannelCount(1);
-            }
-        }
-
-        const int FORTY_FOUR = 44100;
-
-        adjustedAudioFormat = desiredAudioFormat;
+    const int FORTY_FOUR = 44100;
+    adjustedAudioFormat = desiredAudioFormat;
 
 #ifdef Q_OS_ANDROID
-        adjustedAudioFormat.setSampleRate(FORTY_FOUR);
+    adjustedAudioFormat.setSampleRate(FORTY_FOUR);
 #else
 
-        const int HALF_FORTY_FOUR = FORTY_FOUR / 2;
+    const int HALF_FORTY_FOUR = FORTY_FOUR / 2;
 
-        if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
-            // use 48, which is a sample downsample, upsample
-            adjustedAudioFormat.setSampleRate(AudioConstants::SAMPLE_RATE * 2);
-        } else if (audioDevice.supportedSampleRates().contains(HALF_FORTY_FOUR)) {
-            // use 22050, resample but closer to 24
-            adjustedAudioFormat.setSampleRate(HALF_FORTY_FOUR);
-        } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
-            // use 48000, resample
-            adjustedAudioFormat.setSampleRate(FORTY_FOUR);
-        }
+    if (audioDevice.supportedSampleRates().contains(AudioConstants::SAMPLE_RATE * 2)) {
+        // use 48, which is a simple downsample, upsample
+        adjustedAudioFormat.setSampleRate(AudioConstants::SAMPLE_RATE * 2);
+    } else if (audioDevice.supportedSampleRates().contains(HALF_FORTY_FOUR)) {
+        // use 22050, resample but closer to 24
+        adjustedAudioFormat.setSampleRate(HALF_FORTY_FOUR);
+    } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
+        // use 44100, resample
+        adjustedAudioFormat.setSampleRate(FORTY_FOUR);
+    }
 #endif
 
-        if (adjustedAudioFormat != desiredAudioFormat) {
-            // return the nearest in case it needs 2 channels
-            adjustedAudioFormat = audioDevice.nearestFormat(adjustedAudioFormat);
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        // set the adjustedAudioFormat to the desiredAudioFormat, since it will work
-        adjustedAudioFormat = desiredAudioFormat;
+    if (adjustedAudioFormat != desiredAudioFormat) {
+        // return the nearest in case it needs 2 channels
+        adjustedAudioFormat = audioDevice.nearestFormat(adjustedAudioFormat);
         return true;
+    } else {
+        return false;
     }
 }
 
@@ -467,11 +447,6 @@ void AudioClient::stop() {
     // "switch" to invalid devices in order to shut down the state
     switchInputToAudioDevice(QAudioDeviceInfo());
     switchOutputToAudioDevice(QAudioDeviceInfo());
-
-    if (_loopbackResampler) {
-        delete _loopbackResampler;
-        _loopbackResampler = NULL;
-    }
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
@@ -675,16 +650,10 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         }
     }
 
-    // do we need to setup a resampler?
-    if (_inputFormat.sampleRate() != _outputFormat.sampleRate() && !_loopbackResampler) {
-        qCDebug(audioclient) << "Attemping to create a resampler for input format to output format for audio loopback.";
-
-        assert(_inputFormat.sampleSize() == 16);
-        assert(_outputFormat.sampleSize() == 16);
-        int channelCount = (_inputFormat.channelCount() == 2 && _outputFormat.channelCount() == 2) ? 2 : 1;
-
-        _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
-    }
+    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
+    // multimedia OS they should be. If there is a device that this is not true for, we can
+    // add back support to do resampling.
+    Q_ASSERT(_inputFormat.sampleRate() == _outputFormat.sampleRate());
 
     static QByteArray loopBackByteArray;
 
@@ -696,7 +665,8 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
-    possibleResampling(_loopbackResampler,
+    auto NO_RESAMPLER = nullptr;
+    possibleResampling(NO_RESAMPLER,
                        inputSamples, loopbackSamples,
                        numInputSamples, numLoopbackSamples,
                        _inputFormat, _outputFormat);
@@ -1037,12 +1007,6 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
         // if we were using an input to network resampler, delete it here
         delete _networkToOutputResampler;
         _networkToOutputResampler = NULL;
-    }
-
-    if (_loopbackResampler) {
-        // if we were using an input to output resample, delete it here
-        delete _loopbackResampler;
-        _loopbackResampler = NULL;
     }
 
     if (!outputDeviceInfo.isNull()) {
