@@ -16,6 +16,9 @@
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
 
+#if defined(Q_OS_MAC)
+#include <OpenGL/CGLCurrent.h>
+#endif
 #include <gl/QOpenGLContextWrapper.h>
 #include <gpu/Texture.h>
 #include <gl/GLWidget.h>
@@ -597,8 +600,14 @@ void OpenGLDisplayPlugin::enableVsync(bool enable) {
     if (!_vsyncSupported) {
         return;
     }
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
     wglSwapIntervalEXT(enable ? 1 : 0);
+#elif defined(Q_OS_MAC)
+    GLint interval = enable ? 1 : 0;
+    CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+#else
+    // TODO: Fill in for linux
+    return;
 #endif
 }
 
@@ -606,9 +615,14 @@ bool OpenGLDisplayPlugin::isVsyncEnabled() {
     if (!_vsyncSupported) {
         return true;
     }
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
     return wglGetSwapIntervalEXT() != 0;
+#elif defined(Q_OS_MAC)
+    GLint interval;
+    CGLGetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+    return interval != 0;
 #else
+    // TODO: Fill in for linux
     return true;
 #endif
 }

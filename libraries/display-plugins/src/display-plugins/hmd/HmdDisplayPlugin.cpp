@@ -200,7 +200,10 @@ static ProgramPtr getReprojectionProgram() {
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     // Only enable mirroring if we know vsync is disabled
+    // On Mac, this won't work due to how the contexts are handled, so don't try
+#if !defined(Q_OS_MAC)
     enableVsync(false);
+#endif
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
     compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);

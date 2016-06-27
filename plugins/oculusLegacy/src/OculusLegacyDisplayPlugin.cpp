@@ -73,6 +73,7 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
     //  - resolution and one component of position match
     //  - resolution matches
     //  - position matches
+    // If it still picks the wrong screen, you'll have to mess with your monitor configuration
     QList<int> matches({ -1, -1, -1, -1 });
     if (hmd) {
         QPoint targetPosition{ hmd->WindowsPos.x, hmd->WindowsPos.y };
