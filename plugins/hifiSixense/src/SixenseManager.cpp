@@ -77,6 +77,7 @@ bool SixenseManager::activate() {
     InputPlugin::activate();
 
 #ifdef HAVE_SIXENSE
+    #if !defined(Q_OS_LINUX)
     _container->addMenu(MENU_PATH);
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { setSixenseFilter(clicked); },
@@ -89,6 +90,7 @@ bool SixenseManager::activate() {
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, SHOW_DEBUG_CALIBRATED,
                             [this] (bool clicked) { _inputDevice->setDebugDrawCalibrated(clicked); },
                             true, false);
+    #endif
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
@@ -106,8 +108,10 @@ void SixenseManager::deactivate() {
     InputPlugin::deactivate();
 
 #ifdef HAVE_SIXENSE
+    #if !defined(Q_OS_LINUX)
     _container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
     _container->removeMenu(MENU_PATH);
+    #endif
 
     _inputDevice->_poseStateMap.clear();
 
