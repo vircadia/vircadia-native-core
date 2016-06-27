@@ -14,6 +14,7 @@
 
 #include <controllers/InputDevice.h>
 #include "InputPlugin.h"
+#include <QtGui/qtouchdevice.h>
 
 class QTouchEvent;
 class QGestureEvent;
@@ -32,10 +33,10 @@ public:
 	enum TouchGestureAxisChannel {
         TOUCH_GESTURE_PINCH_POS = TOUCH_AXIS_Y_NEG + 1,
         TOUCH_GESTURE_PINCH_NEG,
-	};
+    };
 
     // Plugin functions
-    virtual bool isSupported() const override { return true; }
+    virtual bool isSupported() const override { return QTouchDevice::devices().count() > 0; }
     virtual const QString& getName() const override { return NAME; }
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
@@ -71,6 +72,7 @@ public:
 
 protected:
     qreal _lastPinchScale;
+    qreal _scaleFactor;
     glm::vec2 _firstTouchVec;
     glm::vec2 _currentTouchVec;
     int _touchPointCount;

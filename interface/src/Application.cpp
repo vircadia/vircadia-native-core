@@ -961,7 +961,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Setup the _keyboardMouseDevice, _touchscreenDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
-    userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
+    // if the _touchscreenDevice is not supported it will not be registered
+    if (_touchscreenDevice) {
+        userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
+    }
 
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
@@ -2712,7 +2715,7 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
-    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+    if (_touchscreenDevice->isActive()) {
         _touchscreenDevice->touchUpdateEvent(event);
     }
 }
@@ -2733,7 +2736,7 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchBeginEvent(event);
     }
-    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+    if (_touchscreenDevice->isActive()) {
         _touchscreenDevice->touchBeginEvent(event);
     }
 
@@ -2753,7 +2756,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->touchEndEvent(event);
     }
-    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+    if (_touchscreenDevice->isActive()) {
         _touchscreenDevice->touchEndEvent(event);
     }
 
@@ -2761,7 +2764,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
 }
 
 void Application::touchGestureEvent(QGestureEvent* event) {
-    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+    if (_touchscreenDevice->isActive()) {
         _touchscreenDevice->touchGestureEvent(event);
     }
 }

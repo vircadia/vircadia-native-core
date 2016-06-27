@@ -85,7 +85,7 @@ public:
 
     void wheelEvent(QWheelEvent* event);
 
-    static void enableMouse(bool enableMouse) { _enableMouse = enableMouse; }
+    static void enableTouchpad(bool enableTouchpad) { _enableTouchpad = enableTouchpad; }
     
     static const QString NAME;
 
@@ -125,7 +125,7 @@ protected:
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 
-    static bool _enableMouse;
+    static bool _enableTouchpad;
 };
 
 #endif // hifi_KeyboardMouseDevice_h

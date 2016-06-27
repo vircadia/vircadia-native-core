@@ -51,6 +51,13 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
             distanceScaleY = (_currentTouchVec.y - _firstTouchVec.y) / DPI_SCALE_Y;
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = distanceScaleY;
         }
+    } else  if (_touchPointCount == 2) {
+        if (_scaleFactor > _lastPinchScale && _scaleFactor != 0) {
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()] = 1.0f;
+        } else if (_scaleFactor != 0) {
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()] = 1.0f;
+        }
+        _lastPinchScale = _scaleFactor;
     }
 }
 
@@ -64,12 +71,12 @@ void TouchscreenDevice::InputDevice::focusOutEvent() {
 void TouchscreenDevice::touchBeginEvent(const QTouchEvent* event) {
     const QTouchEvent::TouchPoint& point = event->touchPoints().at(0);
     _firstTouchVec = glm::vec2(point.pos().x(), point.pos().y());
-    KeyboardMouseDevice::enableMouse(false);
+    KeyboardMouseDevice::enableTouchpad(false);
 }
 
 void TouchscreenDevice::touchEndEvent(const QTouchEvent* event) {
     _touchPointCount = 0;
-    KeyboardMouseDevice::enableMouse(true);
+    KeyboardMouseDevice::enableTouchpad(true);
 }
 
 void TouchscreenDevice::touchUpdateEvent(const QTouchEvent* event) {
@@ -81,13 +88,7 @@ void TouchscreenDevice::touchUpdateEvent(const QTouchEvent* event) {
 void TouchscreenDevice::touchGestureEvent(const QGestureEvent* event) {
     if (QGesture* gesture = event->gesture(Qt::PinchGesture)) {
         QPinchGesture* pinch = static_cast<QPinchGesture*>(gesture);
-        qreal scaleFactor = pinch->totalScaleFactor();
-        if (scaleFactor > _lastPinchScale && scaleFactor != 0) {
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()] = 1.0f;
-        } else if (scaleFactor != 0) {
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()] = 1.0f;
-        }
-        _lastPinchScale = scaleFactor;
+        _scaleFactor = pinch->totalScaleFactor();
     }
 }
 
