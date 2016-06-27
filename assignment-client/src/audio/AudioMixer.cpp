@@ -47,6 +47,8 @@
 #include <NodeList.h>
 #include <Node.h>
 #include <OctreeConstants.h>
+#include <plugins/PluginManager.h>
+#include <plugins/CodecPlugin.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
@@ -447,6 +449,20 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
+DisplayPluginList getDisplayPlugins() {
+    DisplayPluginList result;
+    return result;
+}
+
+InputPluginList getInputPlugins() {
+    InputPluginList result;
+    return result;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+}
+
+
 void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     qDebug() << __FUNCTION__;
 
@@ -460,6 +476,15 @@ void AudioMixer::handleNegotiateAudioFormat(QSharedPointer<ReceivedMessage> mess
         codecList.append(requestedCodec);
     }
     qDebug() << "all requested codecs:" << codecList;
+
+    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    if (codecPlugins.size() > 0) {
+        for (auto& plugin : codecPlugins) {
+            qDebug() << "Codec available:" << plugin->getName();
+        }
+    } else {
+        qDebug() << "No Codecs available...";
+    }
 
     auto replyPacket = NLPacket::create(PacketType::SelectedAudioFormat);
 

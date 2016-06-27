@@ -39,11 +39,13 @@ bool PCMCodecManager::isSupported() const {
 
 
 void PCMCodecManager::decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) {
+    qDebug() << __FUNCTION__ << "encodedBuffer:" << encodedBuffer.size();
     // this codec doesn't actually do anything....
     decodedBuffer = encodedBuffer;
 }
 
 void PCMCodecManager::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+    qDebug() << __FUNCTION__ << "decodedBuffer:" << decodedBuffer.size();
     // this codec doesn't actually do anything....
     encodedBuffer = decodedBuffer;
 }

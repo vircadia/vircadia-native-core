@@ -38,6 +38,8 @@
 #include <Sound.h>
 #include <StDev.h>
 
+#include <plugins/CodecPlugin.h>
+
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 #include "AudioSRC.h"
@@ -296,7 +298,8 @@ private:
 
     bool _hasReceivedFirstPacket = false;
 
-    //CodecPluginPointer _codec { nullptr };
+    CodecPluginPointer _codec;
+    QString _selectedCodecName;
 };
 
 
