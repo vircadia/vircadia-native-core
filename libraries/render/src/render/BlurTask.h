@@ -116,7 +116,7 @@ class BlurGaussianDepthAwareConfig : public BlurGaussianConfig {
 public:
     BlurGaussianDepthAwareConfig() : BlurGaussianConfig() {}
 
-    float depthThreshold{ 2.0f };
+    float depthThreshold{ 1.0f };
 signals:
     void dirty(); 
 protected:

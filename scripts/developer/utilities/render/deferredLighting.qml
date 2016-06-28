@@ -58,6 +58,11 @@ Column {
                 }
             }
             CheckBox {
+                text: "Scattering Profile"
+                checked: Render.getConfig("Scattering").showProfile
+                onCheckedChanged: { Render.getConfig("Scattering").showProfile = checked }
+            }
+            CheckBox {
                 text: "Scattering Table"
                 checked: Render.getConfig("Scattering").showLUT
                 onCheckedChanged: { Render.getConfig("Scattering").showLUT = checked }

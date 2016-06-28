@@ -263,7 +263,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+      //  state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         _blurVPipeline = gpu::Pipeline::create(program, state);
     }
@@ -286,7 +286,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurHPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    //    state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         _blurHPipeline = gpu::Pipeline::create(program, state);
     }
@@ -339,6 +339,10 @@ void BlurGaussianDepthAware::run(const SceneContextPointer& sceneContext, const 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         batch.setFramebuffer(blurringResources.finalFramebuffer);
+        if (_inOutResources._generateOutputFramebuffer) {
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
+        }
+
         batch.setPipeline(blurHPipeline);
         batch.setResourceTexture(BlurTask_SourceSlot, blurringResources.blurringTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);

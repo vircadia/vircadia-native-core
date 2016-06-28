@@ -38,7 +38,7 @@ Column {
                 onCheckedChanged: { Render.getConfig("DiffuseCurvature").enabled = checked }
             }        
             Repeater {
-                model: [ "Blur Scale:DiffuseCurvature:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvature:depthThreshold:10.0", "Blur Scale2:DiffuseCurvature2:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvature2:depthThreshold:10.0"]
+                model: [ "Blur Scale:DiffuseCurvature:filterScale:2.0", "Blur Depth Threshold:DiffuseCurvature:depthThreshold:1.0", "Blur Scale2:DiffuseCurvature2:filterScale:2.0", "Blur Depth Threshold 2:DiffuseCurvature2:depthThreshold:1.0"]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false

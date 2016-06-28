@@ -159,7 +159,7 @@ static const std::string DEFAULT_CURVATURE_SHADER{
 static const std::string DEFAULT_NORMAL_CURVATURE_SHADER{
     "vec4 getFragmentColor() {"
     //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
-     "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+     "    return vec4(vec3(texture(curvatureMap, uv).xyz), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
     " }"
 };
@@ -175,7 +175,7 @@ static const std::string DEFAULT_DIFFUSED_CURVATURE_SHADER{
 static const std::string DEFAULT_DIFFUSED_NORMAL_CURVATURE_SHADER{
     "vec4 getFragmentColor() {"
     //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
-    "    return vec4(pow(vec3(texture(diffusedCurvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    "    return vec4(vec3(texture(diffusedCurvatureMap, uv).xyz), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
     " }"
 };

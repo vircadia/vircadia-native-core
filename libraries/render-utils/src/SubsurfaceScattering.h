@@ -39,10 +39,12 @@ public:
 
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
 
+    gpu::TexturePointer getScatteringProfile() const { return _scatteringProfile; }
     gpu::TexturePointer getScatteringTable() const { return _scatteringTable; }
 
     void generateScatteringTable(RenderArgs* args);
-    static gpu::TexturePointer generatePreIntegratedScattering(RenderArgs* args);
+    static gpu::TexturePointer generateScatteringProfile(RenderArgs* args);
+    static gpu::TexturePointer generatePreIntegratedScattering(const gpu::TexturePointer& profile, RenderArgs* args);
 
 protected:
 
@@ -62,6 +64,7 @@ protected:
 
 
 
+    gpu::TexturePointer _scatteringProfile;
     gpu::TexturePointer _scatteringTable;
 };
 
@@ -80,6 +83,7 @@ class SubsurfaceScatteringConfig : public render::Job::Config {
     Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
 
 
+    Q_PROPERTY(bool showProfile MEMBER showProfile NOTIFY dirty)
     Q_PROPERTY(bool showLUT MEMBER showLUT NOTIFY dirty)
 public:
     SubsurfaceScatteringConfig() : render::Job::Config(true) {}
@@ -92,6 +96,7 @@ public:
     float curvatureOffset{ 0.08f };
     float curvatureScale{ 0.8f };
 
+    bool showProfile{ true };
     bool showLUT{ true };
 
 signals:
@@ -121,6 +126,7 @@ private:
 
     gpu::PipelinePointer _showLUTPipeline;
     gpu::PipelinePointer getShowLUTPipeline();
+    bool _showProfile{ false };
     bool _showLUT{ false };
 };
 

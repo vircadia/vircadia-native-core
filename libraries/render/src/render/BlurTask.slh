@@ -62,7 +62,7 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
 
     vec4 sampleCenter = texture(sourceMap, texcoord);
 
-    vec2 finalStep = parameters.filterInfo.x * direction * pixelStep;
+    vec2 finalStep = getFilterScale() * direction * pixelStep;
     vec4 srcBlurred = vec4(0.0);
     
     for(int i = 0; i < NUM_TAPS; i++) {
@@ -99,9 +99,10 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
     float filterScale = getFilterScale();
     float scale = distanceToProjectionWindow / sampleDepth;
 
-    vec2 finalStep = filterScale * scale * direction * pixelStep;
+    vec2 finalStep = filterScale * scale * direction * pixelStep; // *1000.0;
 
-    vec4 srcBlurred = vec4(0.0);
+    // Accumulate the center sample
+    vec4 srcBlurred = gaussianDistributionCurve[0] * sampleCenter;
     
     for(int i = 1; i < NUM_TAPS; i++) {
         // Fetch color and depth for current sample.
@@ -111,7 +112,8 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
 
         
         // If the difference in depth is huge, we lerp color back.
-        float s = clamp(depthThreshold * distanceToProjectionWindow /* * filterScale*/ * abs(srcDepth - sampleDepth), 0.0, 1.0);
+        float s = clamp(/*depthThreshold */12.0 * distanceToProjectionWindow  * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
+       // float s = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
         srcSample = mix(srcSample, sampleCenter, s);
 
         // Accumulate.

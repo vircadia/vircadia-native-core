@@ -108,7 +108,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     const auto theCurvatureVarying = curvatureFramebufferAndDepth[0];
 
-#define SIMPLE_BLUR 1
+//#define SIMPLE_BLUR 1
 #if SIMPLE_BLUR
     const auto curvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first);
     const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussian>("DiffuseCurvature2", curvatureFramebufferAndDepth.get<SurfaceGeometryPass::Outputs>().first, true);
