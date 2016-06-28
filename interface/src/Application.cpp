@@ -2015,6 +2015,13 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+// attempt to start ZIP download project
+bool Appplication::importZIPFromURL(const QString& urlString) {
+    emit zipImportRequested(urlString);
+    return true;
+}
+// end attempt
+
 bool Application::event(QEvent* event) {
 
     if (!Menu::getInstance()) {
