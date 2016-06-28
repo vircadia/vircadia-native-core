@@ -21,7 +21,9 @@
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
 
-#include <TextureCache.h>
+#include <NetworkAccessManager.h>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 #include <gpu/DrawUnitQuadTexcoord_vert.h>
 #include <gpu/DrawTexture_frag.h>
 
@@ -64,26 +66,37 @@ bool HmdDisplayPlugin::internalActivate() {
 
     _firstPreview = true;
     if (_previewTextureID == 0) {
-        const QString url("https://hifi-content.s3.amazonaws.com/samuel/preview.png");
-        _previewTexture = DependencyManager::get<TextureCache>()->getTexture(url);
-
-//        const QString path("/Users/computer33/Documents/preview.png");
-//        QImage previewTexture(path);
-//        if (!previewTexture.isNull()) {
-        if (_previewTexture && _previewTexture->isLoaded()) {
-//            previewTexture = previewTexture.mirrored(false, true);
-            glGenTextures(1, &_previewTextureID);
-            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _previewTexture->getWidth(), _previewTexture->getHeight(), 0,
-                         GL_BGRA, GL_UNSIGNED_BYTE, _previewTexture->getGPUTexture()->accessStoredMipFace(0)->readData());
-            using namespace oglplus;
-            oglplus::Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-            oglplus::Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
+        const QUrl previewURL("https://hifi-content.s3.amazonaws.com/samuel/preview.png");
+        QNetworkAccessManager& manager = NetworkAccessManager::getInstance();
+        QNetworkRequest request(previewURL);
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+//        connect(&manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(downloadFinished(QNetworkReply*)));
+        manager.get(request);
     }
 
     return Parent::internalActivate();
+}
+
+void HmdDisplayPlugin::downloadFinished(QNetworkReply* reply) {
+    if (reply->error() != QNetworkReply::NetworkError::NoError) {
+        qDebug() << "HMDDisplayPlugin: error downloading preview image" << reply->errorString();
+        return;
+    }
+
+    QImage previewTexture;
+    previewTexture.loadFromData(reply->readAll());
+
+    if (!previewTexture.isNull()) {
+        previewTexture = previewTexture.mirrored(false, true);
+        glGenTextures(1, &_previewTextureID);
+        glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, previewTexture.width(), previewTexture.height(), 0,
+                         GL_BGRA, GL_UNSIGNED_BYTE, previewTexture.bits());
+        using namespace oglplus;
+        Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+        Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 void HmdDisplayPlugin::internalDeactivate() {
@@ -270,7 +283,8 @@ void HmdDisplayPlugin::customizeContext() {
 
     using namespace oglplus;
     if (!_enablePreview) {
-        compileProgram(_previewProgram, DrawUnitQuadTexcoord_vert, DrawTexture_frag);
+        std::string version("#version 410 core\n");
+        compileProgram(_previewProgram, version + DrawUnitQuadTexcoord_vert, version + DrawTexture_frag);
         PREVIEW_TEXTURE_LOCATION = Uniform<int>(*_previewProgram, "colorMap").Location();
     }
 
@@ -313,8 +327,8 @@ void HmdDisplayPlugin::compositeScene() {
     useProgram(_reprojectionProgram);
 
     using namespace oglplus;
-    oglplus::Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-    oglplus::Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+    Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+    Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
     Uniform<glm::mat3>(*_reprojectionProgram, REPROJECTION_MATRIX_LOCATION).Set(_currentPresentFrameInfo.presentReprojection);
     //Uniform<glm::mat4>(*_reprojectionProgram, PROJECTION_MATRIX_LOCATION).Set(_eyeProjections);
     //Uniform<glm::mat4>(*_reprojectionProgram, INVERSE_PROJECTION_MATRIX_LOCATION).Set(_eyeInverseProjections);
@@ -385,7 +399,7 @@ void HmdDisplayPlugin::internalPresent() {
     if (_enablePreview) {
         float windowAspect = aspect(windowSize);
         float sceneAspect = aspect(_renderTargetSize);
-        if (_enablePreview && _monoPreview) {
+        if (_monoPreview) {
             sceneAspect /= 2.0f;
         }
         float aspectRatio = sceneAspect / windowAspect;
@@ -419,9 +433,9 @@ void HmdDisplayPlugin::internalPresent() {
         });
         swapBuffers();
     } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
-        if (_previewTexture) qDebug() << _previewTexture->getBytesReceived();
-        if (PREVIEW_TEXTURE_LOCATION != -1 && _previewTextureID != 0) {
+        if (_previewTextureID != 0) {
             useProgram(_previewProgram);
+            windowSize *= devicePixelRatio;
             glViewport(0, 0, windowSize.x, windowSize.y);
             glUniform1i(PREVIEW_TEXTURE_LOCATION, 0);
             glActiveTexture(GL_TEXTURE0);

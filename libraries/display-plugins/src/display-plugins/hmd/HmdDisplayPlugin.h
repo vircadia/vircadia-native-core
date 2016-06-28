@@ -14,8 +14,7 @@
 
 #include "../OpenGLDisplayPlugin.h"
 
-class NetworkTexture;
-using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
+class QNetworkReply;
 
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
@@ -89,6 +88,9 @@ protected:
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
 
+public slots:
+    void downloadFinished(QNetworkReply* reply);
+
 private:
     bool _enablePreview { false };
     bool _monoPreview { true };
@@ -96,7 +98,6 @@ private:
     bool _firstPreview { true };
     ProgramPtr _previewProgram;
     GLuint _previewTextureID { 0 };
-    NetworkTexturePointer _previewTexture { nullptr };
     glm::uvec2 _prevWindowSize { 0, 0 };
     qreal _prevDevicePixelRatio { 0 };
     ShapeWrapperPtr _sphereSection;
