@@ -35,7 +35,10 @@ public:
 
     void setShowBRDF(bool show);
     bool isShowBRDF() const;
-
+    void setShowCurvature(bool show);
+    bool isShowCurvature() const;
+    void setShowDiffusedNormal(bool show);
+    bool isShowDiffusedNormal() const;
 
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
 
@@ -56,7 +59,12 @@ protected:
         glm::vec4 normalBentInfo{ 1.5f, 0.8f, 0.3f, 1.5f };
         glm::vec2 curvatureInfo{ 0.08f, 0.8f };
         float level{ 1.0f };
-        float showBRDF{ 1.0f };
+        float showBRDF{ 0.0f };
+        float showCurvature{ 0.0f };
+        float showDiffusedNormal{ 0.0f };
+        float spare1{ 0.0f };
+        float spare2{ 0.0f };
+
 
         Parameters() {}
     };
@@ -96,8 +104,8 @@ public:
     float curvatureOffset{ 0.08f };
     float curvatureScale{ 0.8f };
 
-    bool showProfile{ true };
-    bool showLUT{ true };
+    bool showProfile{ false };
+    bool showLUT{ false };
 
 signals:
     void dirty();

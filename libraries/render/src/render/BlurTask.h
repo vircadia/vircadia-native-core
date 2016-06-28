@@ -79,7 +79,7 @@ public:
 
     BlurGaussianConfig() : Job::Config(true) {}
 
-    float filterScale{ 1.2f };
+    float filterScale{ 0.2f };
 signals :
     void dirty();
 

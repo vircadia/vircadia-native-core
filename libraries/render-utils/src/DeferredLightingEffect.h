@@ -148,6 +148,8 @@ class RenderDeferredConfig : public render::Job::Config {
 
         Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
         Q_PROPERTY(bool showScatteringBRDF MEMBER showScatteringBRDF NOTIFY dirty)
+        Q_PROPERTY(bool showCurvature MEMBER showCurvature NOTIFY dirty)
+        Q_PROPERTY(bool showDiffusedNormal MEMBER showDiffusedNormal NOTIFY dirty)
         
         Q_PROPERTY(bool enablePointLights MEMBER enablePointLights NOTIFY dirty)
         Q_PROPERTY(bool enableSpotLights MEMBER enableSpotLights NOTIFY dirty)
@@ -162,10 +164,12 @@ public:
     float bentScale{ 1.5f };
 
     float curvatureOffset{ 0.08f };
-    float curvatureScale{ 0.8f };
+    float curvatureScale{ 0.9f };
 
     bool enableScattering{ true };
-    bool showScatteringBRDF{ true };
+    bool showScatteringBRDF{ false };
+    bool showCurvature{ false };
+    bool showDiffusedNormal{ false };
 
     bool enablePointLights{ true };
     bool enableSpotLights{ true };

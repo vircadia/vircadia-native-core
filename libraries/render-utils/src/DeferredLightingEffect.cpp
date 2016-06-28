@@ -626,6 +626,8 @@ void RenderDeferred::configure(const Config& config) {
 
     _subsurfaceScatteringResource->setLevel((float)config.enableScattering);
     _subsurfaceScatteringResource->setShowBRDF(config.showScatteringBRDF);
+    _subsurfaceScatteringResource->setShowCurvature(config.showCurvature);
+    _subsurfaceScatteringResource->setShowDiffusedNormal(config.showDiffusedNormal);
 
     _enablePointLights = config.enablePointLights;
     _enableSpotLights = config.enableSpotLights;

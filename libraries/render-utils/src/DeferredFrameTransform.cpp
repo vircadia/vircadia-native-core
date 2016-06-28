@@ -36,13 +36,12 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     cameraTransform.getMatrix(frameTransformBuffer.invView);
     cameraTransform.getInverseMatrix(frameTransformBuffer.view);
 
+    args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.projectionMono);
+
     // Running in stero ?
     bool isStereo = args->_context->isStereo();
     if (!isStereo) {
-        // Eval the mono projection
-        mat4 monoProjMat;
-        args->getViewFrustum().evalProjectionMatrix(monoProjMat);
-        frameTransformBuffer.projection[0] = monoProjMat;
+        frameTransformBuffer.projection[0] = frameTransformBuffer.projectionMono;
         frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
         frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
     } else {

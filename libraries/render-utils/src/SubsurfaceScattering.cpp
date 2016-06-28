@@ -84,6 +84,23 @@ bool SubsurfaceScatteringResource::isShowBRDF() const {
     return (bool)_parametersBuffer.get<Parameters>().showBRDF;
 }
 
+void SubsurfaceScatteringResource::setShowCurvature(bool show) {
+    if (show != isShowCurvature()) {
+        _parametersBuffer.edit<Parameters>().showCurvature = show;
+    }
+}
+bool SubsurfaceScatteringResource::isShowCurvature() const {
+    return (bool)_parametersBuffer.get<Parameters>().showCurvature;
+}
+
+void SubsurfaceScatteringResource::setShowDiffusedNormal(bool show) {
+    if (show != isShowDiffusedNormal()) {
+        _parametersBuffer.edit<Parameters>().showDiffusedNormal = show;
+    }
+}
+bool SubsurfaceScatteringResource::isShowDiffusedNormal() const {
+    return (bool)_parametersBuffer.get<Parameters>().showDiffusedNormal;
+}
 
 void SubsurfaceScatteringResource::generateScatteringTable(RenderArgs* args) {
     if (!_scatteringProfile) {

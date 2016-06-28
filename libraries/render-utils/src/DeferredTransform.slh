@@ -19,6 +19,7 @@ struct DeferredFrameTransform {
     vec4 _depthInfo;
     vec4 _stereoInfo;
     mat4 _projection[2];
+    mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
 };
@@ -48,6 +49,9 @@ float getProjScale(int resolutionLevel) {
 }
 mat4 getProjection(int side) {
     return frameTransform._projection[side];
+}
+mat4 getProjectionMono() {
+    return frameTransform._projectionMono;
 }
 
 // positive near distance of the projection

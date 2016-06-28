@@ -13,8 +13,8 @@ var qml = Script.resolvePath('deferredLighting.qml');
 var window = new OverlayWindow({
     title: 'Deferred Lighting Pass',
     source: qml,
-    width: 400, height: 400,
+    width: 400, height: 350,
 });
-window.setPosition(250, 750);
+window.setPosition(250, 800);
 window.closed.connect(function() { Script.stop(); });
 

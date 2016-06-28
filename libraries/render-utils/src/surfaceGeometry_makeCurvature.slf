@@ -112,6 +112,14 @@ void main(void) {
 
     // The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);
+    vec3 worldPos = (frameTransform._viewInverse * vec4(eyePos, 1.0)).xyz;
+
+    if (texcoordPos.y > 0.5) {
+        outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
+    } else {
+        outFragColor = vec4(fract(10.0 * eyePos.xyz), 1.0);
+    }
+   // return;
 
     // Calculate the perspective scale.
     // Clamp to 0.5
@@ -142,14 +150,14 @@ void main(void) {
     vec4 py =  vec4(eyePos + ay, 0.0);
     vec4 pz =  vec4(eyePos + az, 0.0);
 
-    /*
+
     if (texcoordPos.y > 0.5) {
         outFragColor = vec4(fract(px.xyz), 1.0);
     } else {
         outFragColor = vec4(fract(eyePos.xyz), 1.0);
     }
-    return;
-    */
+ //   return;
+
 
     /* IN case the axis end point goes behind mid way near plane, this shouldn't happen
     if (px.z >= -nearPlaneScale) {
@@ -165,10 +173,12 @@ void main(void) {
     
 
     // Project px, py pz to homogeneous clip space
-    mat4 viewProj = getProjection(stereoSide.x);
+   // mat4 viewProj = getProjection(stereoSide.x);
+    mat4 viewProj = getProjectionMono();
     px = viewProj * px;
     py = viewProj * py;
     pz = viewProj * pz;
+
 
     // then to normalized clip space
     px.xy /= px.w;
@@ -177,20 +187,37 @@ void main(void) {
 
     vec2 nclipPos = (texcoordPos - 0.5) * 2.0;
 
-/*
+
+    //vec4 clipPos = frameTransform._projection[stereoSide.x] * vec4(eyePos, 1.0);
+    vec4 clipPos = getProjectionMono() * vec4(eyePos, 1.0);
+    nclipPos = clipPos.xy / clipPos.w;
+
     if (texcoordPos.y > 0.5) {
-        outFragColor = vec4(px.xy * 0.5 + 0.5, 0.0, 1.0);
+     //   outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
+        outFragColor = vec4(fract(10.0 * (nclipPos)), 0.0, 1.0);
+
     } else {
-        outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
+        outFragColor = vec4(fract(10.0 * (clipPos.xy / clipPos.w)), 0.0, 1.0);
+      //  outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
     }
-    return;
-*/
+    //return;
+
 
     float pixPerspectiveScaleInv = 1.0 / (perspectiveScale);
     px.xy = (px.xy - nclipPos) * pixPerspectiveScaleInv;
     py.xy = (py.xy - nclipPos) * pixPerspectiveScaleInv;
     pz.xy = (pz.xy - nclipPos) * pixPerspectiveScaleInv;
     
+    if (texcoordPos.y > 0.5) {
+        //   outFragColor = vec4(fract(10.0 * worldPos.xyz), 1.0);
+        outFragColor = vec4(fract(10.0 * (px.xy)), 0.0, 1.0);
+
+    } else {
+        outFragColor = vec4(fract(10.0 * (py.xy)), 0.0, 1.0);
+        //  outFragColor = vec4(nclipPos * 0.5 + 0.5, 0.0, 1.0);
+    }
+  //  return;
+
     // Calculate dF/dx, dF/dy and dF/dz using chain rule
     vec4 dFdx = dFdu * px.x + dFdv * px.y;
     vec4 dFdy = dFdu * py.x + dFdv * py.y;

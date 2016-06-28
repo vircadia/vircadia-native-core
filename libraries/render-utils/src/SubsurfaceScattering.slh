@@ -117,6 +117,7 @@ vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
 struct ScatteringParameters {
     vec4 normalBendInfo; // R, G, B, factor
     vec4 curvatureInfo;// Offset, Scale, level
+    vec4 debugFlags;
 };
 
 uniform subsurfaceScatteringParametersBuffer {
@@ -133,6 +134,16 @@ float getScatteringLevel() {
 
 bool showBRDF() {
     return parameters.curvatureInfo.w > 0.0;
+}
+
+bool showCurvature() {
+    return parameters.debugFlags.x > 0.0;
+}
+bool showDiffusedNormal() {
+    return parameters.debugFlags.y > 0.0;
+}
+float unpackCurvatureSigned(float packedCurvature) {
+    return (packedCurvature * 2 - 1) * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
 }
 
 float unpackCurvature(float packedCurvature) {

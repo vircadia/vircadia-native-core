@@ -40,6 +40,16 @@ Column {
                 checked: Render.getConfig("RenderDeferred").showScatteringBRDF
                 onCheckedChanged: { Render.getConfig("RenderDeferred").showScatteringBRDF = checked }
             }
+            CheckBox {
+                text: "Show Curvature"
+                checked: Render.getConfig("RenderDeferred").showCurvature
+                onCheckedChanged: { Render.getConfig("RenderDeferred").showCurvature = checked }
+            }
+            CheckBox {
+                text: "Show Diffused Normal"
+                checked: Render.getConfig("RenderDeferred").showDiffusedNormal
+                onCheckedChanged: { Render.getConfig("RenderDeferred").showDiffusedNormal = checked }
+            }
             Repeater {
                 model: [ "Scattering Bent Red:RenderDeferred:bentRed:2.0",
                          "Scattering Bent Green:RenderDeferred:bentGreen:2.0",

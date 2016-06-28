@@ -13,8 +13,8 @@ var qml = Script.resolvePath('surfaceGeometryPass.qml');
 var window = new OverlayWindow({
     title: 'Surface Geometry Pass',
     source: qml,
-    width: 400, height: 400,
+    width: 400, height: 300,
 });
-window.setPosition(250, 500);
+window.setPosition(250, 400);
 window.closed.connect(function() { Script.stop(); });
 
