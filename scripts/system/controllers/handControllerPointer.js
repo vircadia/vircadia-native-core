@@ -125,8 +125,18 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
+var reticleMinX, reticleMaxX, reticleMinY, reticleMaxY;
+function updateRecommendedArea() {
+    var rectangle = Controller.getRecommendedOverlayRect();
+    reticleMinX = rectangle.x;
+    reticleMaxX = rectangle.x + rectangle.width;
+    reticleMinY = rectangle.y;
+    reticleMaxY = rectangle.y + rectangle.height;
+}
 var setReticlePosition = function (point2d) {
     weMovedReticle = true;
+    point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
+    point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
     Reticle.setPosition(point2d);
 };
 
@@ -463,6 +473,7 @@ Script.scriptEnding.connect(function () {
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
+    updateRecommendedArea();
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
