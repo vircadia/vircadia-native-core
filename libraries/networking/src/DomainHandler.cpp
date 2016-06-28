@@ -117,7 +117,6 @@ void DomainHandler::hardReset() {
     _hostname = QString();
     _sockAddr.clear();
 
-    _hasSignalledProtocolMismatch = false;
     _domainConnectionRefusals.clear();
 
     _hasCheckedForAccessToken = false;
