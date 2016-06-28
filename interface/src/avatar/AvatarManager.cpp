@@ -398,3 +398,51 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 
     return findAvatar(sessionID);
 }
+
+RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
+                                                                 const QScriptValue& avatarIdsToInclude,
+                                                                 const QScriptValue& avatarIdsToDiscard) {
+    if (QThread::currentThread() != thread()) {
+        RayToAvatarIntersectionResult result;
+        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection", Qt::BlockingQueuedConnection,
+                                  Q_ARG(const QScriptValue&, avatarIdsToInclude),
+                                  Q_ARG(const QScriptValue&, avatarIdsToDiscard),
+                                  Q_RETURN_ARG(RayToAvatarIntersectionResult, result));
+        return result;
+    }
+
+    RayToAvatarIntersectionResult result;
+
+    QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
+    QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
+
+    glm::vec3 normDirection = glm::normalize(ray.direction);
+
+    for (auto avatarData : _avatarHash) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
+            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
+            continue;
+        }
+
+        float distance;
+
+        glm::vec3 start;
+        glm::vec3 end;
+        float radius;
+        avatar->getCapsule(start, end, radius);
+
+        bool intersects = findRayCapsuleIntersection(ray.origin, normDirection, start, end, radius, distance);
+        if (intersects && (!result.intersects || distance < result.distance)) {
+            result.intersects = true;
+            result.avatarID = avatar->getID();
+            result.distance = distance;
+        }
+    }
+
+    if (result.intersects) {
+        result.intersection = ray.origin + normDirection * result.distance;
+    }
+
+    return result;
+}
