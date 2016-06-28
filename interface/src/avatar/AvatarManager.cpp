@@ -405,6 +405,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
     if (QThread::currentThread() != thread()) {
         RayToAvatarIntersectionResult result;
         QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection", Qt::BlockingQueuedConnection,
+                                  Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QScriptValue&, avatarIdsToInclude),
                                   Q_ARG(const QScriptValue&, avatarIdsToDiscard),
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result));
