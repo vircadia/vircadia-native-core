@@ -13,6 +13,9 @@
 
 #include "../OpenGLDisplayPlugin.h"
 
+class NetworkTexture;
+using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
+
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     using Parent = OpenGLDisplayPlugin;
 public:
@@ -39,6 +42,7 @@ protected:
     virtual void updatePresentPose();
 
     bool internalActivate() override;
+    void internalDeactivate() override;
     void compositeScene() override;
     void compositeOverlay() override;
     void compositePointer() override;
@@ -73,6 +77,12 @@ private:
     bool _enablePreview { false };
     bool _monoPreview { true };
     bool _enableReprojection { true };
+    bool _firstPreview { true };
+    ProgramPtr _previewProgram;
+    GLuint _previewTextureID { 0 };
+    NetworkTexturePointer _previewTexture { nullptr };
+    glm::uvec2 _prevWindowSize { 0, 0 };
+    qreal _prevDevicePixelRatio { 0 };
     ShapeWrapperPtr _sphereSection;
     ProgramPtr _reprojectionProgram;
 };

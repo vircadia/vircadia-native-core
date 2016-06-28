@@ -20,6 +20,10 @@
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
 
+#include <TextureCache.h>
+#include <gpu/DrawUnitQuadTexcoord_vert.h>
+#include <gpu/DrawTexture_frag.h>
+
 #include "../Logging.h"
 #include "../CompositorHelper.h"
 
@@ -58,7 +62,36 @@ bool HmdDisplayPlugin::internalActivate() {
         _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
     });
 
+    _firstPreview = true;
+    if (_previewTextureID == 0) {
+        const QString url("https://hifi-content.s3.amazonaws.com/samuel/preview.png");
+        _previewTexture = DependencyManager::get<TextureCache>()->getTexture(url);
+
+//        const QString path("/Users/computer33/Documents/preview.png");
+//        QImage previewTexture(path);
+//        if (!previewTexture.isNull()) {
+        if (_previewTexture && _previewTexture->isLoaded()) {
+//            previewTexture = previewTexture.mirrored(false, true);
+            glGenTextures(1, &_previewTextureID);
+            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _previewTexture->getWidth(), _previewTexture->getHeight(), 0,
+                         GL_BGRA, GL_UNSIGNED_BYTE, _previewTexture->getGPUTexture()->accessStoredMipFace(0)->readData());
+            using namespace oglplus;
+            oglplus::Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+            oglplus::Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+
     return Parent::internalActivate();
+}
+
+void HmdDisplayPlugin::internalDeactivate() {
+    if (_previewTextureID != 0) {
+        glDeleteTextures(1, &_previewTextureID);
+        _previewTextureID = 0;
+    }
+    Parent::internalDeactivate();
 }
 
 
@@ -196,6 +229,7 @@ static ProgramPtr getReprojectionProgram() {
 }
 #endif
 
+static GLint PREVIEW_TEXTURE_LOCATION = -1;
 
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
@@ -206,9 +240,14 @@ void HmdDisplayPlugin::customizeContext() {
 #endif
     _enablePreview = !isVsyncEnabled();
     _sphereSection = loadSphereSection(_program, CompositorHelper::VIRTUAL_UI_TARGET_FOV.y, CompositorHelper::VIRTUAL_UI_ASPECT_RATIO);
-    compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
     
     using namespace oglplus;
+    if (!_enablePreview) {
+        compileProgram(_previewProgram, DrawUnitQuadTexcoord_vert, DrawTexture_frag);
+        PREVIEW_TEXTURE_LOCATION = Uniform<int>(*_previewProgram, "colorMap").Location();
+    }
+
+    compileProgram(_reprojectionProgram, REPROJECTION_VS, REPROJECTION_FS);
     REPROJECTION_MATRIX_LOCATION = Uniform<glm::mat3>(*_reprojectionProgram, "reprojection").Location();
     INVERSE_PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "inverseProjections").Location();
     PROJECTION_MATRIX_LOCATION = Uniform<glm::mat4>(*_reprojectionProgram, "projections").Location();
@@ -217,6 +256,7 @@ void HmdDisplayPlugin::customizeContext() {
 void HmdDisplayPlugin::uncustomizeContext() {
     _sphereSection.reset();
     _compositeFramebuffer.reset();
+    _previewProgram.reset();
     _reprojectionProgram.reset();
     Parent::uncustomizeContext();
 }
@@ -241,8 +281,8 @@ void HmdDisplayPlugin::compositeScene() {
     useProgram(_reprojectionProgram);
 
     using namespace oglplus;
-    Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-    Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+    oglplus::Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+    oglplus::Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
     Uniform<glm::mat3>(*_reprojectionProgram, REPROJECTION_MATRIX_LOCATION).Set(_currentPresentFrameInfo.presentReprojection);
     //Uniform<glm::mat4>(*_reprojectionProgram, PROJECTION_MATRIX_LOCATION).Set(_eyeProjections);
     //Uniform<glm::mat4>(*_reprojectionProgram, INVERSE_PROJECTION_MATRIX_LOCATION).Set(_eyeInverseProjections);
@@ -312,12 +352,13 @@ void HmdDisplayPlugin::internalPresent() {
     hmdPresent();
 
     // screen preview mirroring
+    auto window = _container->getPrimaryWidget();
+    auto windowSize = toGlm(window->size());
+    auto devicePixelRatio = window->devicePixelRatio();
     if (_enablePreview) {
-        auto window = _container->getPrimaryWidget();
-        auto windowSize = toGlm(window->size());
         float windowAspect = aspect(windowSize);
         float sceneAspect = aspect(_renderTargetSize);
-        if (_monoPreview) {
+        if (_enablePreview && _monoPreview) {
             sceneAspect /= 2.0f;
         }
         float aspectRatio = sceneAspect / windowAspect;
@@ -350,6 +391,20 @@ void HmdDisplayPlugin::internalPresent() {
                 BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
         });
         swapBuffers();
+    } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
+        if (_previewTexture) qDebug() << _previewTexture->getBytesReceived();
+        if (PREVIEW_TEXTURE_LOCATION != -1 && _previewTextureID != 0) {
+            useProgram(_previewProgram);
+            glViewport(0, 0, windowSize.x, windowSize.y);
+            glUniform1i(PREVIEW_TEXTURE_LOCATION, 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            swapBuffers();
+            _firstPreview = false;
+            _prevWindowSize = windowSize;
+            _prevDevicePixelRatio = devicePixelRatio;
+        }
     }
 
     postPreview();
