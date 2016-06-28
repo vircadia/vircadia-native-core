@@ -159,6 +159,11 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     }
     assert(entityTreeIsLocked());
 
+    if (_entity->getShapeType() == SHAPE_TYPE_STATIC_MESH
+        || (_body && _body->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)) {
+        return MOTION_TYPE_STATIC;
+    }
+
     if (_entity->getDynamic()) {
         if (!_entity->getParentID().isNull()) {
             // if something would have been dynamic but is a child of something else, force it to be kinematic, instead.

@@ -10,6 +10,7 @@
 #include <ThreadSafeValueCache.h>
 
 #include <QtGlobal>
+#include <Transform.h>
 
 #include "../OpenGLDisplayPlugin.h"
 
@@ -33,7 +34,7 @@ public:
 
     virtual glm::mat4 getHeadPose() const override;
 
-
+    bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
 
 protected:
     virtual void hmdPresent() = 0;
@@ -50,7 +51,22 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
+    void compositeExtra() override;
 
+    struct HandLaserInfo {
+        HandLaserMode mode { HandLaserMode::None };
+        vec4 color { 1.0f };
+        vec3 direction { 0, 0, -1 };
+
+        // Is this hand laser info suitable for drawing?
+        bool valid() const {
+            return (mode != HandLaserMode::None && color.a > 0.0f && direction != vec3());
+        }
+    };
+
+    Transform _uiModelTransform;
+    std::array<HandLaserInfo, 2> _handLasers;
+    std::array<glm::mat4, 2> _handPoses;
     std::array<glm::mat4, 2> _eyeOffsets;
     std::array<glm::mat4, 2> _eyeProjections;
     std::array<glm::mat4, 2> _eyeInverseProjections;
@@ -85,5 +101,7 @@ private:
     qreal _prevDevicePixelRatio { 0 };
     ShapeWrapperPtr _sphereSection;
     ProgramPtr _reprojectionProgram;
+    ProgramPtr _laserProgram;
+    ShapeWrapperPtr _laserGeometry;
 };
 

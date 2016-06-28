@@ -132,6 +132,7 @@
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/ToolbarScriptingInterface.h"
 #include "scripting/RatesScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -438,6 +439,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -919,17 +921,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
                 if (!offscreenUi->navigationFocused()) {
-                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                    offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
+                    toggleMenuUnderReticle();
                 }
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
-            } else if (action == controller::toInt(controller::Action::UI_NAV_SELECT)) {
-                if (!offscreenUi->navigationFocused()) {
-                    auto reticlePosition = getApplicationCompositor().getReticlePosition();
-                    offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
-                }
+                toggleMenuUnderReticle();
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
                 getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
@@ -968,6 +963,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     updateHeartbeat();
 
     loadSettings();
+
+    // Now that we've loaded the menu and thus switched to the previous display plugin
+    // we can unlock the desktop repositioning code, since all the positions will be 
+    // relative to the desktop size for this plugin
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->getDesktop()->setProperty("repositionLocked", false);
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1238,7 +1240,16 @@ QString Application::getUserAgent() {
     return userAgent;
 }
 
-
+void Application::toggleMenuUnderReticle() const {
+    // In HMD, if the menu is near the mouse but not under it, the reticle can be at a significantly
+    // different depth. When you focus on the menu, the cursor can appear to your crossed eyes as both
+    // on the menu and off.
+    // Even in 2D, it is arguable whether the user would want the menu to be to the side.
+    const float X_LEFT_SHIFT = 50.0;
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto reticlePosition = getApplicationCompositor().getReticlePosition();
+    offscreenUi->toggleMenu(QPoint(reticlePosition.x - X_LEFT_SHIFT, reticlePosition.y));
+}
 
 void Application::checkChangeCursor() {
     QMutexLocker locker(&_changeCursorLock);
@@ -1534,7 +1545,7 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("Overlays", &_overlays);
     rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
+    rootContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
     rootContext->setContextProperty("Stats", Stats::getInstance());
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
@@ -1575,13 +1586,7 @@ void Application::initializeUi() {
     });
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
-        static qreal oldDevicePixelRatio = 0;
-        qreal devicePixelRatio = getActiveDisplayPlugin()->devicePixelRatio();
-        if (devicePixelRatio != oldDevicePixelRatio) {
-            oldDevicePixelRatio = devicePixelRatio;
-            qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL();
-        }
+        resizeGL();
     });
 
     // This will set up the input plugins UI
@@ -1713,22 +1718,22 @@ void Application::paintGL() {
             if (isHMDMode()) {
                 mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
                 _myCamera.setPosition(extractTranslation(camMat));
-                _myCamera.setRotation(glm::quat_cast(camMat));
+                _myCamera.setOrientation(glm::quat_cast(camMat));
             } else {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                _myCamera.setRotation(myAvatar->getHead()->getCameraOrientation());
+                _myCamera.setOrientation(myAvatar->getHead()->getCameraOrientation());
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             if (isHMDMode()) {
                 auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                _myCamera.setOrientation(glm::normalize(glm::quat_cast(hmdWorldMat)));
                 _myCamera.setPosition(extractTranslation(hmdWorldMat) +
                     myAvatar->getOrientation() * boomOffset);
             } else {
-                _myCamera.setRotation(myAvatar->getHead()->getOrientation());
+                _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
                 if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + _myCamera.getRotation() * boomOffset);
+                        + _myCamera.getOrientation() * boomOffset);
                 } else {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                         + myAvatar->getOrientation() * boomOffset);
@@ -1747,7 +1752,7 @@ void Application::paintGL() {
 
                 glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
 
-                _myCamera.setRotation(worldMirrorRotation);
+                _myCamera.setOrientation(worldMirrorRotation);
 
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 // Mirror HMD lateral offsets
@@ -1758,7 +1763,7 @@ void Application::paintGL() {
                    + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                    + mirrorBodyOrientation * hmdOffset);
             } else {
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
+                _myCamera.setOrientation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                     + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
@@ -1771,11 +1776,11 @@ void Application::paintGL() {
             if (cameraEntity != nullptr) {
                 if (isHMDMode()) {
                     glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                    _myCamera.setRotation(cameraEntity->getRotation() * hmdRotation);
+                    _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
                     glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                     _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
                 } else {
-                    _myCamera.setRotation(cameraEntity->getRotation());
+                    _myCamera.setOrientation(cameraEntity->getRotation());
                     _myCamera.setPosition(cameraEntity->getPosition());
                 }
             }
@@ -1956,7 +1961,8 @@ void Application::resizeGL() {
     static qreal lastDevicePixelRatio = 0;
     qreal devicePixelRatio = _window->devicePixelRatio();
     if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
-        offscreenUi->resize(fromGlm(uiSize));
+        qDebug() << "Device pixel ratio changed, triggering resize";
+        offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
         lastDevicePixelRatio = devicePixelRatio;
     }
@@ -2185,7 +2191,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_X:
                 if (isShifted && isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    offscreenUi->togglePinned();
+                    //offscreenUi->getRootContext()->engine()->clearComponentCache();
                     //OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
@@ -2459,9 +2466,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto reticlePosition = getApplicationCompositor().getReticlePosition();
-        offscreenUi->toggleMenu(QPoint(reticlePosition.x, reticlePosition.y));
+        toggleMenuUnderReticle();
     }
 
     _keysPressed.remove(event->key());
@@ -2834,7 +2839,6 @@ void Application::idle(float nsecsElapsed) {
     if (firstIdle) {
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
-        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -3312,9 +3316,9 @@ void Application::updateMyAvatarLookAtPosition() {
             if (isLookingAtSomeone) {
                 deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
             }
-            lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
+            lookAtSpot = origin + _myCamera.getOrientation() * glm::quat(glm::radians(glm::vec3(
                 eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
-                glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
+                glm::inverse(_myCamera.getOrientation()) * (lookAtSpot - origin);
         }
     }
 
@@ -3334,13 +3338,13 @@ void Application::updateThreads(float deltaTime) {
 }
 
 void Application::toggleOverlays() {
-    auto newOverlaysVisible = !_overlayConductor.getEnabled();
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, newOverlaysVisible);
-    _overlayConductor.setEnabled(newOverlaysVisible);
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
-    _overlayConductor.setEnabled(visible);
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 void Application::cycleCamera() {
@@ -4030,7 +4034,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 
     // Set the viewFrustum up with the correct position and orientation of the camera
     viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getRotation());
+    viewFrustum.setOrientation(camera.getOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
@@ -4303,7 +4307,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
                                     myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * myAvatar->getScale());
     }
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-    _mirrorCamera.setRotation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+    _mirrorCamera.setOrientation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
 
     // set the bounds of rear mirror view
@@ -4325,6 +4329,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
+    _overlayConductor.centerUI();
     getMyAvatar()->reset(andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
@@ -4641,6 +4646,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -5344,7 +5350,6 @@ void Application::updateDisplayMode() {
         _displayPlugin = newDisplayPlugin;
     }
 
-
     emit activeDisplayPluginChanged();
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
@@ -5422,9 +5427,7 @@ void Application::readArgumentsFromLocalSocket() const {
 }
 
 void Application::showDesktop() {
-    if (!_overlayConductor.getEnabled()) {
-        _overlayConductor.setEnabled(true);
-    }
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 CompositorHelper& Application::getApplicationCompositor() const {

@@ -50,8 +50,9 @@ public:
     virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
-    void updateShapeType(ShapeType type);
+    void setShapeType(ShapeType type);
     virtual ShapeType getShapeType() const;
+
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
@@ -76,7 +77,7 @@ public:
     }
 
     // model related properties
-    virtual void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
+    virtual void setModelURL(const QString& url);
     virtual void setCompoundShapeURL(const QString& url);
 
     // Animation related items...
@@ -130,6 +131,7 @@ public:
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
+    ShapeType computeTrueShapeType() const;
 
 protected:
     // these are used:

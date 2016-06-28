@@ -194,23 +194,23 @@ void ShapeManagerTests::addCompoundShape() {
     int numHullPoints = tetrahedron.size();
 
     // compute the points of the hulls
-    QVector< QVector<glm::vec3> > hulls;
+    ShapeInfo::PointCollection pointCollection;
     int numHulls = 5;
     glm::vec3 offsetNormal(1.0f, 0.0f, 0.0f);
     for (int i = 0; i < numHulls; ++i) {
         glm::vec3 offset = (float)(i - numHulls/2) * offsetNormal;
-        QVector<glm::vec3> hull;
+        ShapeInfo::PointList pointList;
         float radius = (float)(i + 1);
         for (int j = 0; j < numHullPoints; ++j) {
             glm::vec3 point = radius * tetrahedron[j] + offset;
-            hull.push_back(point);
+            pointList.push_back(point);
         }
-        hulls.push_back(hull);
+        pointCollection.push_back(pointList);
     }
 
     // create the ShapeInfo
     ShapeInfo info;
-    info.setConvexHulls(hulls);
+    info.setPointCollection(hulls);
 
     // create the shape
     ShapeManager shapeManager;

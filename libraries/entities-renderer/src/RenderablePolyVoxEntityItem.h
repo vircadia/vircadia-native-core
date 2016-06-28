@@ -123,7 +123,7 @@ public:
                            std::function<void(int, int, int, uint8_t)> thunk);
 
     void setMesh(model::MeshPointer mesh);
-    void setCollisionPoints(const QVector<QVector<glm::vec3>> points, AABox box);
+    void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
 
     uint8_t getVoxelInternal(int x, int y, int z);

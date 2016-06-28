@@ -64,7 +64,6 @@ public:
 
 
     void setEntityMaxTmpLifetime(float maxTmpEntityLifetime) { _maxTmpEntityLifetime = maxTmpEntityLifetime; }
-    bool permissionsAllowRez(const EntityItemProperties& properties, bool canRez, bool canRezTmp);
 
     /// Implements our type specific root element factory
     virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;

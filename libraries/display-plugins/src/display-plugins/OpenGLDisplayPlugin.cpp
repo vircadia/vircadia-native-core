@@ -218,9 +218,10 @@ OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
 }
 
 void OpenGLDisplayPlugin::cleanupForSceneTexture(const gpu::TexturePointer& sceneTexture) {
-    Lock lock(_mutex);
-    Q_ASSERT(_sceneTextureToFrameIndexMap.contains(sceneTexture));
-    _sceneTextureToFrameIndexMap.remove(sceneTexture);
+    withRenderThreadLock([&] {
+        Q_ASSERT(_sceneTextureToFrameIndexMap.contains(sceneTexture));
+        _sceneTextureToFrameIndexMap.remove(sceneTexture);
+    });
 }
 
 
@@ -278,6 +279,15 @@ bool OpenGLDisplayPlugin::activate() {
     _container->makeRenderingContextCurrent();
 #endif
 
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    connect(compositorHelper.data(), &CompositorHelper::alphaChanged, [this] {
+        auto compositorHelper = DependencyManager::get<CompositorHelper>();
+        auto animation = new QPropertyAnimation(this, "overlayAlpha");
+        animation->setDuration(200);
+        animation->setEndValue(compositorHelper->getAlpha());
+        animation->start();
+    });
+
     if (isHmd() && (getHmdScreen() >= 0)) {
         _container->showDisplayPluginsTools();
     }
@@ -287,6 +297,9 @@ bool OpenGLDisplayPlugin::activate() {
 
 void OpenGLDisplayPlugin::deactivate() {
     
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    disconnect(compositorHelper.data());
+
 #if THREADED_PRESENT
     auto presentThread = DependencyManager::get<PresentThread>();
     // Does not return until the GL transition has completeed
@@ -413,10 +426,9 @@ void OpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::Tex
         return;
     }
 
-    {
-        Lock lock(_mutex);
+    withRenderThreadLock([&] {
         _sceneTextureToFrameIndexMap[sceneTexture] = frameIndex;
-    }
+    });
 
     // Submit it to the presentation thread via escrow
     _sceneTextureEscrow.submit(sceneTexture);
@@ -450,11 +462,12 @@ void OpenGLDisplayPlugin::updateTextures() {
 }
 
 void OpenGLDisplayPlugin::updateFrameData() {
-    Lock lock(_mutex);
-    auto previousFrameIndex = _currentPresentFrameIndex;
-    _currentPresentFrameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
-    auto skippedCount = (_currentPresentFrameIndex - previousFrameIndex) - 1;
-    _droppedFrameRate.increment(skippedCount);
+    withPresentThreadLock([&] {
+        auto previousFrameIndex = _currentPresentFrameIndex;
+        _currentPresentFrameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
+        auto skippedCount = (_currentPresentFrameIndex - previousFrameIndex) - 1;
+        _droppedFrameRate.increment(skippedCount);
+    });
 }
 
 void OpenGLDisplayPlugin::compositeOverlay() {
@@ -463,25 +476,22 @@ void OpenGLDisplayPlugin::compositeOverlay() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     useProgram(_program);
+    // set the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
     // check the alpha
-    auto overlayAlpha = compositorHelper->getAlpha();
-    if (overlayAlpha > 0.0f) {
-        // set the alpha
-        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
-        // Overlay draw
-        if (isStereo()) {
-            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
-            for_each_eye([&](Eye eye) {
-                eyeViewport(eye);
-                drawUnitQuad();
-            });
-        } else {
-            // Overlay draw
-            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+    // Overlay draw
+    if (isStereo()) {
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
             drawUnitQuad();
-        }
+        });
+    } else {
+        // Overlay draw
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+        drawUnitQuad();
     }
+    // restore the alpha
     Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
@@ -490,23 +500,19 @@ void OpenGLDisplayPlugin::compositePointer() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
     useProgram(_program);
-    // check the alpha
-    auto overlayAlpha = compositorHelper->getAlpha();
-    if (overlayAlpha > 0.0f) {
-        // set the alpha
-        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
-        if (isStereo()) {
-            for_each_eye([&](Eye eye) {
-                eyeViewport(eye);
-                drawUnitQuad();
-            });
-        } else {
+    // set the alpha
+    Uniform<float>(*_program, _alphaUniform).Set(_compositeOverlayAlpha);
+    Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
+    if (isStereo()) {
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
             drawUnitQuad();
-        }
+        });
+    } else {
+        drawUnitQuad();
     }
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+    // restore the alpha
     Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
@@ -526,14 +532,14 @@ void OpenGLDisplayPlugin::compositeLayers() {
     }
     _compositeFramebuffer->Bound(Framebuffer::Target::Draw, [&] {
         Context::Viewport(targetRenderSize.x, targetRenderSize.y);
-        Context::Clear().DepthBuffer();
-        glBindTexture(GL_TEXTURE_2D, getSceneTextureId());
-        compositeScene();
+        auto sceneTextureId = getSceneTextureId();
         auto overlayTextureId = getOverlayTextureId();
+        glBindTexture(GL_TEXTURE_2D, sceneTextureId);
+        compositeScene();
         if (overlayTextureId) {
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glBindTexture(GL_TEXTURE_2D, overlayTextureId);
+            Context::Enable(Capability::Blend);
+            Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
             compositeOverlay();
 
             auto compositorHelper = DependencyManager::get<CompositorHelper>();
@@ -541,11 +547,16 @@ void OpenGLDisplayPlugin::compositeLayers() {
                 auto& cursorManager = Cursor::Manager::instance();
                 const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
                 glBindTexture(GL_TEXTURE_2D, cursorData.texture);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, overlayTextureId);
                 compositePointer();
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glActiveTexture(GL_TEXTURE0);
             }
             glBindTexture(GL_TEXTURE_2D, 0);
-            glDisable(GL_BLEND);
+            Context::Disable(Capability::Blend);
         }
+        compositeExtra();
     });
 }
 
@@ -583,7 +594,11 @@ float OpenGLDisplayPlugin::newFramePresentRate() const {
 }
 
 float OpenGLDisplayPlugin::droppedFrameRate() const {
-    return _droppedFrameRate.rate();
+    float result;
+    withRenderThreadLock([&] {
+        result = _droppedFrameRate.rate();
+    });
+    return result;
 }
 
 float OpenGLDisplayPlugin::presentRate() const {
@@ -708,4 +723,19 @@ void OpenGLDisplayPlugin::useProgram(const ProgramPtr& program) {
         program->Bind();
         _activeProgram = program;
     }
+}
+
+void OpenGLDisplayPlugin::assertIsRenderThread() const {
+    Q_ASSERT(QThread::currentThread() != _presentThread);
+}
+
+void OpenGLDisplayPlugin::assertIsPresentThread() const {
+    Q_ASSERT(QThread::currentThread() == _presentThread);
+}
+
+bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    withRenderThreadLock([&] {
+        _compositeOverlayAlpha = _overlayAlpha;
+    });
+    return Parent::beginFrameRender(frameIndex);
 }
