@@ -1970,10 +1970,24 @@ function MyController(hand) {
 
         var noVelocity = false;
         if (this.grabbedEntity !== null) {
+
+            // If this looks like the release after adjusting something still held in the other hand, print the position
+            // and rotation of the held thing to help content creators set the userData.
+            var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
+            if (grabData.refCount > 1) {
+                grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+                if (grabbedProperties && grabbedProperties.localPosition && grabbedProperties.localRotation) {
+                    print((this.hand === RIGHT_HAND ? '"LeftHand"' : '"RightHand"') + ":" +
+                          '[{"x":' + grabbedProperties.localPosition.x + ', "y":' + grabbedProperties.localPosition.y +
+                          ', "z":' + grabbedProperties.localPosition.z + '}, {"x":' + grabbedProperties.localRotation.x +
+                          ', "y":' + grabbedProperties.localRotation.y + ', "z":' + grabbedProperties.localRotation.z +
+                          ', "w":' + grabbedProperties.localRotation.w + '}]');
+                }
+            }
+
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
                 // sometimes we want things to stay right where they are when we let go.
-                var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
                 if (releaseVelocityData.disableReleaseVelocity === true ||
                     // this next line allowed both:
@@ -1993,12 +2007,6 @@ function MyController(hand) {
             grabbedEntity: this.grabbedEntity,
             joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
         }));
-
-
-        grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
-        print("adjusted position: " + vec3toStr(grabbedProperties.localPosition));
-        print("adjusted rotation: " + quatToStr(grabbedProperties.localRotation));
-
 
         this.grabbedEntity = null;
 
