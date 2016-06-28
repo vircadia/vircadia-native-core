@@ -41,6 +41,8 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
+    QVariantMap& getDescriptorsMap();
+
     bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
     bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
     NodePermissions getStandardPermissionsForName(const QString& name) const;
@@ -71,6 +73,8 @@ private:
     HifiConfigVariantMap _configMap;
 
     friend class DomainServer;
+
+    void validateDescriptorsMap();
 
     void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
