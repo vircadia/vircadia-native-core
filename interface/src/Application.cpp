@@ -1579,13 +1579,7 @@ void Application::initializeUi() {
     });
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
-        static qreal oldDevicePixelRatio = 0;
-        qreal devicePixelRatio = getActiveDisplayPlugin()->devicePixelRatio();
-        if (devicePixelRatio != oldDevicePixelRatio) {
-            oldDevicePixelRatio = devicePixelRatio;
-            qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL();
-        }
+        resizeGL();
     });
 
     // This will set up the input plugins UI
@@ -1960,7 +1954,8 @@ void Application::resizeGL() {
     static qreal lastDevicePixelRatio = 0;
     qreal devicePixelRatio = _window->devicePixelRatio();
     if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
-        offscreenUi->resize(fromGlm(uiSize));
+        qDebug() << "Device pixel ratio changed, triggering resize";
+        offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
         lastDevicePixelRatio = devicePixelRatio;
     }
