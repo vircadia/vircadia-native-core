@@ -70,14 +70,16 @@ bool HmdDisplayPlugin::internalActivate() {
         QNetworkAccessManager& manager = NetworkAccessManager::getInstance();
         QNetworkRequest request(previewURL);
         request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-//        connect(&manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(downloadFinished(QNetworkReply*)));
-        manager.get(request);
+        auto rep = manager.get(request);
+        connect(rep, SIGNAL(finished()), this, SLOT(downloadFinished()));
     }
 
     return Parent::internalActivate();
 }
 
-void HmdDisplayPlugin::downloadFinished(QNetworkReply* reply) {
+void HmdDisplayPlugin::downloadFinished() {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
+
     if (reply->error() != QNetworkReply::NetworkError::NoError) {
         qDebug() << "HMDDisplayPlugin: error downloading preview image" << reply->errorString();
         return;
@@ -432,20 +434,19 @@ void HmdDisplayPlugin::internalPresent() {
                 BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
         });
         swapBuffers();
-    } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
-        if (_previewTextureID != 0) {
-            useProgram(_previewProgram);
-            windowSize *= devicePixelRatio;
-            glViewport(0, 0, windowSize.x, windowSize.y);
-            glUniform1i(PREVIEW_TEXTURE_LOCATION, 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            swapBuffers();
-            _firstPreview = false;
-            _prevWindowSize = windowSize;
-            _prevDevicePixelRatio = devicePixelRatio;
-        }
+    } else if (_previewTextureID != 0 && (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio)) {
+        useProgram(_previewProgram);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glViewport(0, 0, windowSize.x * devicePixelRatio, windowSize.y * devicePixelRatio);
+        glUniform1i(PREVIEW_TEXTURE_LOCATION, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        swapBuffers();
+        _firstPreview = false;
+        _prevWindowSize = windowSize;
+        _prevDevicePixelRatio = devicePixelRatio;
     }
 
     postPreview();

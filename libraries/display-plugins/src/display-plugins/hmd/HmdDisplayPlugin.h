@@ -17,6 +17,7 @@
 class QNetworkReply;
 
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
+    Q_OBJECT
     using Parent = OpenGLDisplayPlugin;
 public:
     bool isHmd() const override final { return true; }
@@ -89,7 +90,7 @@ protected:
     FrameInfo _currentRenderFrameInfo;
 
 public slots:
-    void downloadFinished(QNetworkReply* reply);
+    void downloadFinished();
 
 private:
     bool _enablePreview { false };
