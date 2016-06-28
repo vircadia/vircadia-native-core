@@ -27,6 +27,7 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <NLPacketList.h>
+#include <NumericalConstants.h>
 
 #include "DomainServerSettingsManager.h"
 
@@ -263,23 +264,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
         if (oldVersion < 1.5) {
             // This was prior to operating hours, so add default hours
-            static const QString WEEKDAY_HOURS{ "descriptors.weekday_hours" };
-            static const QString WEEKEND_HOURS{ "descriptors.weekend_hours" };
-            static const QString UTC_OFFSET{ "descriptors.utc_offset" };
-
-            QVariant* weekdayHours = valueForKeyPath(_configMap.getUserConfig(), WEEKDAY_HOURS, true);
-            QVariant* weekendHours = valueForKeyPath(_configMap.getUserConfig(), WEEKEND_HOURS, true);
-            QVariant* utcOffset = valueForKeyPath(_configMap.getUserConfig(), UTC_OFFSET, true);
-
-            *weekdayHours = QVariantList { QVariantMap{ { "open", QVariant("00:00") }, { "close", QVariant("23:59") } } };
-            *weekendHours = QVariantList { QVariantMap{ { "open", QVariant("00:00") }, { "close", QVariant("23:59") } } };
-            *utcOffset = QVariant(QTimeZone::systemTimeZone().offsetFromUtc(QDateTime::currentDateTime()) / (float)3600);
-
-            // write the new settings to file
-            persistToFile();
-
-            // reload the master and user config so the merged config is correct
-            _configMap.loadMasterAndUserConfig(_argumentList);
+            validateDescriptorsMap();
         }
     }
 
@@ -287,6 +272,49 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
     // write the current description version to our settings
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
+}
+
+QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
+    validateDescriptorsMap();
+
+    static const QString DESCRIPTORS{ "descriptors" };
+    return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
+}
+
+void DomainServerSettingsManager::validateDescriptorsMap() {
+    static const QString WEEKDAY_HOURS{ "descriptors.weekday_hours" };
+    static const QString WEEKEND_HOURS{ "descriptors.weekend_hours" };
+    static const QString UTC_OFFSET{ "descriptors.utc_offset" };
+
+    QVariant* weekdayHours = valueForKeyPath(_configMap.getUserConfig(), WEEKDAY_HOURS, true);
+    QVariant* weekendHours = valueForKeyPath(_configMap.getUserConfig(), WEEKEND_HOURS, true);
+    QVariant* utcOffset = valueForKeyPath(_configMap.getUserConfig(), UTC_OFFSET, true);
+
+    static const QString OPEN{ "open" };
+    static const QString CLOSE{ "close" };
+    static const QString DEFAULT_OPEN{ "00:00" };
+    static const QString DEFAULT_CLOSE{ "23:59" };
+    bool wasMalformed = false;
+    if (weekdayHours->isNull()) {
+        *weekdayHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
+        wasMalformed = true;
+    }
+    if (weekendHours->isNull()) {
+        *weekendHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
+        wasMalformed = true;
+    }
+    if (utcOffset->isNull()) {
+        *utcOffset = QVariant(QTimeZone::systemTimeZone().offsetFromUtc(QDateTime::currentDateTime()) / (float)SECS_PER_HOUR);
+        wasMalformed = true;
+    }
+
+    if (wasMalformed) {
+        // write the new settings to file
+        persistToFile();
+
+        // reload the master and user config so the merged config is correct
+        _configMap.loadMasterAndUserConfig(_argumentList);
+    }
 }
 
 void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
