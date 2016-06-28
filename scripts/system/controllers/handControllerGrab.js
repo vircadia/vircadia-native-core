@@ -27,7 +27,7 @@ var WANT_DEBUG_SEARCH_NAME = null;
 
 var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
 var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.75; //  Squeezed far enough to complete distant grab
+var TRIGGER_GRAB_VALUE = 0.50; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
@@ -1993,6 +1993,12 @@ function MyController(hand) {
             grabbedEntity: this.grabbedEntity,
             joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
         }));
+
+
+        grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "localRotation"]);
+        print("adjusted position: " + vec3toStr(grabbedProperties.localPosition));
+        print("adjusted rotation: " + quatToStr(grabbedProperties.localRotation));
+
 
         this.grabbedEntity = null;
 
