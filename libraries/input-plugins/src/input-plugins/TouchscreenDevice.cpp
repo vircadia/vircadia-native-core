@@ -56,12 +56,12 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = distanceScaleY;
         }
     } else  if (_touchPointCount == 2) {
-        if (_scaleFactor > _lastPinchScale && _scaleFactor != 0) {
+        if (_pinchScale > _lastPinchScale && _pinchScale != 0) {
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()] = 1.0f;
-        } else if (_scaleFactor != 0) {
+        } else if (_pinchScale != 0) {
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()] = 1.0f;
         }
-        _lastPinchScale = _scaleFactor;
+        _lastPinchScale = _pinchScale;
     }
 }
 
@@ -75,7 +75,7 @@ void TouchscreenDevice::InputDevice::focusOutEvent() {
 void TouchscreenDevice::touchBeginEvent(const QTouchEvent* event) {
     const QTouchEvent::TouchPoint& point = event->touchPoints().at(0);
     _firstTouchVec = glm::vec2(point.pos().x(), point.pos().y());
-    KeyboardMouseDevice::enableTouchpad(false);
+    KeyboardMouseDevice::enableTouch(false);
     if (_screenDPI != event->window()->screen()->physicalDotsPerInch()) {
         // at DPI 100 use these arbitrary values to divide dragging distance 
         // the value is clamped from 1 to 10 so up to 1000 DPI would be supported atm
@@ -89,7 +89,7 @@ void TouchscreenDevice::touchBeginEvent(const QTouchEvent* event) {
 
 void TouchscreenDevice::touchEndEvent(const QTouchEvent* event) {
     _touchPointCount = 0;
-    KeyboardMouseDevice::enableTouchpad(true);
+    KeyboardMouseDevice::enableTouch(true);
 }
 
 void TouchscreenDevice::touchUpdateEvent(const QTouchEvent* event) {
@@ -101,7 +101,7 @@ void TouchscreenDevice::touchUpdateEvent(const QTouchEvent* event) {
 void TouchscreenDevice::touchGestureEvent(const QGestureEvent* event) {
     if (QGesture* gesture = event->gesture(Qt::PinchGesture)) {
         QPinchGesture* pinch = static_cast<QPinchGesture*>(gesture);
-        _scaleFactor = pinch->totalScaleFactor();
+        _pinchScale = pinch->totalScaleFactor();
     }
 }
 

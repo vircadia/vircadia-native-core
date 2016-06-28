@@ -19,7 +19,7 @@
 #include <NumericalConstants.h>
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
-bool KeyboardMouseDevice::_enableTouchpad = true;
+bool KeyboardMouseDevice::_enableTouch = true;
 
 void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -133,7 +133,7 @@ glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
 }
 
 void KeyboardMouseDevice::touchBeginEvent(const QTouchEvent* event) {
-    if (_enableTouchpad) {
+    if (_enableTouch) {
         _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
         _lastTouch = evalAverageTouchPoints(event->touchPoints());
         _lastTouchTime = _clock.now();
@@ -141,7 +141,7 @@ void KeyboardMouseDevice::touchBeginEvent(const QTouchEvent* event) {
 }
 
 void KeyboardMouseDevice::touchEndEvent(const QTouchEvent* event) {
-    if (_enableTouchpad) {
+    if (_enableTouch) {
         _isTouching = false;
         _lastTouch = evalAverageTouchPoints(event->touchPoints());
         _lastTouchTime = _clock.now();
@@ -149,14 +149,13 @@ void KeyboardMouseDevice::touchEndEvent(const QTouchEvent* event) {
 }
 
 void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
-    if (_enableTouchpad) {
+    if (_enableTouch) {
         auto currentPos = evalAverageTouchPoints(event->touchPoints());
         _lastTouchTime = _clock.now();
 
         if (!_isTouching) {
             _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
-        }
-        else {
+        } else {
             auto currentMove = currentPos - _lastTouch;
 
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()] = (currentMove.x > 0 ? currentMove.x : 0.0f);

@@ -72,7 +72,7 @@ public:
 
 protected:
     qreal _lastPinchScale;
-    qreal _scaleFactor;
+    qreal _pinchScale;
     qreal _screenDPI;
     glm::vec2 _screenDPIScale;
     glm::vec2 _firstTouchVec;

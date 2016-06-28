@@ -12,7 +12,7 @@
           "to": "Actions.Yaw"
         },
 
-		    { "from": { "makeAxis" : [
+        { "from": { "makeAxis" : [
                 [ "Touchscreen.DragUp" ],
                 [ "Touchscreen.DragDown" ] 
             ] 
