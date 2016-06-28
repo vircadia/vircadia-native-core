@@ -36,7 +36,7 @@ public:
     };
 
     // Plugin functions
-    virtual bool isSupported() const override { return QTouchDevice::devices().count() > 0; }
+    virtual bool isSupported() const override;
     virtual const QString& getName() const override { return NAME; }
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
@@ -73,6 +73,8 @@ public:
 protected:
     qreal _lastPinchScale;
     qreal _scaleFactor;
+    qreal _screenDPI;
+    glm::vec2 _screenDPIScale;
     glm::vec2 _firstTouchVec;
     glm::vec2 _currentTouchVec;
     int _touchPointCount;

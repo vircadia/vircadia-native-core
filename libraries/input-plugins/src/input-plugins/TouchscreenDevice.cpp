@@ -14,6 +14,7 @@
 #include <QtGui/QTouchEvent>
 #include <QGestureEvent>
 #include <QGuiApplication>
+#include <QWindow>
 #include <QScreen>
 
 #include <controllers/UserInputMapper.h>
@@ -22,33 +23,36 @@
 
 const QString TouchscreenDevice::NAME = "Touchscreen";
 
+bool TouchscreenDevice::isSupported() const {
+    for (auto touchDevice : QTouchDevice::devices()) {
+        if (touchDevice->type() == QTouchDevice::TouchScreen) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {
         _inputDevice->update(deltaTime, inputCalibrationData);
     });
 
-    // at DPI 100 use these arbitrary values to divide dragging distance 
-    static const float DPI_SCALE_X = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchX() / 100.0), 1.0f, 10.0f)
-                       * 600.0f;
-    static const float DPI_SCALE_Y = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchY() / 100.0), 1.0f, 10.0f)
-                       * 200.0f;
-
     float distanceScaleX, distanceScaleY;
     if (_touchPointCount == 1) {
         if (_firstTouchVec.x < _currentTouchVec.x) {
-            distanceScaleX = (_currentTouchVec.x - _firstTouchVec.x) / DPI_SCALE_X;
+            distanceScaleX = (_currentTouchVec.x - _firstTouchVec.x) / _screenDPIScale.x;
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()] = distanceScaleX;
         } else if (_firstTouchVec.x > _currentTouchVec.x) {
-            distanceScaleX = (_firstTouchVec.x - _currentTouchVec.x) / DPI_SCALE_X;
+            distanceScaleX = (_firstTouchVec.x - _currentTouchVec.x) / _screenDPIScale.x;
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()] = distanceScaleX;
         }
         // Y axis is inverted, positive is pointing up the screen
         if (_firstTouchVec.y > _currentTouchVec.y) {
-            distanceScaleY = (_firstTouchVec.y - _currentTouchVec.y) / DPI_SCALE_Y;
+            distanceScaleY = (_firstTouchVec.y - _currentTouchVec.y) / _screenDPIScale.y;
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()] = distanceScaleY;
         } else if (_firstTouchVec.y < _currentTouchVec.y) {
-            distanceScaleY = (_currentTouchVec.y - _firstTouchVec.y) / DPI_SCALE_Y;
+            distanceScaleY = (_currentTouchVec.y - _firstTouchVec.y) / _screenDPIScale.y;
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = distanceScaleY;
         }
     } else  if (_touchPointCount == 2) {
@@ -72,6 +76,15 @@ void TouchscreenDevice::touchBeginEvent(const QTouchEvent* event) {
     const QTouchEvent::TouchPoint& point = event->touchPoints().at(0);
     _firstTouchVec = glm::vec2(point.pos().x(), point.pos().y());
     KeyboardMouseDevice::enableTouchpad(false);
+    if (_screenDPI != event->window()->screen()->physicalDotsPerInch()) {
+        // at DPI 100 use these arbitrary values to divide dragging distance 
+        // the value is clamped from 1 to 10 so up to 1000 DPI would be supported atm
+        _screenDPIScale.x = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchX() / 100.0), 1.0f, 10.0f)
+            * 600.0f;
+        _screenDPIScale.y = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchY() / 100.0), 1.0f, 10.0f)
+            * 200.0f;
+        _screenDPI = event->window()->screen()->physicalDotsPerInch();
+    }
 }
 
 void TouchscreenDevice::touchEndEvent(const QTouchEvent* event) {
