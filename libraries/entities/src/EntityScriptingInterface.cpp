@@ -191,9 +191,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     if (success) {
         emit debitEnergySource(cost);
         queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
-    }
 
-    return id;
+        return id;
+    } else {
+        return QUuid();
+    }
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
