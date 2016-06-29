@@ -425,13 +425,20 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
         }
 
         float distance;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
 
-        glm::vec3 start;
-        glm::vec3 end;
-        float radius;
-        avatar->getCapsule(start, end, radius);
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+        AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        if (!avatarBounds.findRayIntersection(ray.origin, normDirection, distance, face, surfaceNormal)) {
+            // ray doesn't intersect avatar's bounding-box
+            continue;
+        }
 
-        bool intersects = findRayCapsuleIntersection(ray.origin, normDirection, start, end, radius, distance);
+        QString extraInfo;
+        bool intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
+                                                                           distance, face, surfaceNormal, extraInfo, true);
+
         if (intersects && (!result.intersects || distance < result.distance)) {
             result.intersects = true;
             result.avatarID = avatar->getID();
