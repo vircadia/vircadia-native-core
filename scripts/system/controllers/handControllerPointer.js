@@ -398,7 +398,7 @@ function update() {
     }
     updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
-        return off(); // Let them use mouse it in peace.
+        return off(); // Let them use mouse in peace.
     }
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
@@ -406,13 +406,13 @@ function update() {
     if (!Window.hasFocus() || !Reticle.allowMouseCapture) {
         return off(); // Don't mess with other apps or paused mouse activity
     }
-    leftTrigger.update();
-    rightTrigger.update();
     var controllerPose = Controller.getPoseValue(activeHand);
     // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
     if (!controllerPose.valid) {
         return off(); // Controller is cradled.
     }
+    leftTrigger.update();
+    rightTrigger.update();
     var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
                                       MyAvatar.position);
     // This gets point direction right, but if you want general quaternion it would be more complicated:
@@ -452,12 +452,7 @@ function update() {
     clearSystemLaser();
     Reticle.visible = false;
 }
-
-var UPDATE_INTERVAL = 50; // milliseconds. Script.update is too frequent.
-var updater = Script.setInterval(update, UPDATE_INTERVAL);
-Script.scriptEnding.connect(function () {
-    Script.clearInterval(updater);
-});
+setupHandler(Script.update, update);
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
