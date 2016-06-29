@@ -773,6 +773,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto gpuIdent = GPUIdent::getInstance();
     auto glContextData = getGLContextData();
     QJsonObject properties = {
+        { "version", applicationVersion() },
         { "previousSessionCrashed", _previousSessionCrashed },
         { "previousSessionRuntime", sessionRunTime.get() },
         { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -963,6 +964,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     updateHeartbeat();
 
     loadSettings();
+
+    // Now that we've loaded the menu and thus switched to the previous display plugin
+    // we can unlock the desktop repositioning code, since all the positions will be 
+    // relative to the desktop size for this plugin
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->getDesktop()->setProperty("repositionLocked", false);
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1579,13 +1587,7 @@ void Application::initializeUi() {
     });
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
-        static qreal oldDevicePixelRatio = 0;
-        qreal devicePixelRatio = getActiveDisplayPlugin()->devicePixelRatio();
-        if (devicePixelRatio != oldDevicePixelRatio) {
-            oldDevicePixelRatio = devicePixelRatio;
-            qDebug() << "Device pixel ratio changed, triggering GL resize";
-            resizeGL();
-        }
+        resizeGL();
     });
 
     // This will set up the input plugins UI
@@ -1717,22 +1719,22 @@ void Application::paintGL() {
             if (isHMDMode()) {
                 mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
                 _myCamera.setPosition(extractTranslation(camMat));
-                _myCamera.setRotation(glm::quat_cast(camMat));
+                _myCamera.setOrientation(glm::quat_cast(camMat));
             } else {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                _myCamera.setRotation(myAvatar->getHead()->getCameraOrientation());
+                _myCamera.setOrientation(myAvatar->getHead()->getCameraOrientation());
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             if (isHMDMode()) {
                 auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                _myCamera.setOrientation(glm::normalize(glm::quat_cast(hmdWorldMat)));
                 _myCamera.setPosition(extractTranslation(hmdWorldMat) +
                     myAvatar->getOrientation() * boomOffset);
             } else {
-                _myCamera.setRotation(myAvatar->getHead()->getOrientation());
+                _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
                 if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + _myCamera.getRotation() * boomOffset);
+                        + _myCamera.getOrientation() * boomOffset);
                 } else {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                         + myAvatar->getOrientation() * boomOffset);
@@ -1751,7 +1753,7 @@ void Application::paintGL() {
 
                 glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
 
-                _myCamera.setRotation(worldMirrorRotation);
+                _myCamera.setOrientation(worldMirrorRotation);
 
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 // Mirror HMD lateral offsets
@@ -1762,7 +1764,7 @@ void Application::paintGL() {
                    + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                    + mirrorBodyOrientation * hmdOffset);
             } else {
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
+                _myCamera.setOrientation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                     + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
@@ -1775,11 +1777,11 @@ void Application::paintGL() {
             if (cameraEntity != nullptr) {
                 if (isHMDMode()) {
                     glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                    _myCamera.setRotation(cameraEntity->getRotation() * hmdRotation);
+                    _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
                     glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                     _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
                 } else {
-                    _myCamera.setRotation(cameraEntity->getRotation());
+                    _myCamera.setOrientation(cameraEntity->getRotation());
                     _myCamera.setPosition(cameraEntity->getPosition());
                 }
             }
@@ -1960,7 +1962,8 @@ void Application::resizeGL() {
     static qreal lastDevicePixelRatio = 0;
     qreal devicePixelRatio = _window->devicePixelRatio();
     if (offscreenUi->size() != fromGlm(uiSize) || devicePixelRatio != lastDevicePixelRatio) {
-        offscreenUi->resize(fromGlm(uiSize));
+        qDebug() << "Device pixel ratio changed, triggering resize";
+        offscreenUi->resize(fromGlm(uiSize), true);
         _offscreenContext->makeCurrent();
         lastDevicePixelRatio = devicePixelRatio;
     }
@@ -3314,9 +3317,9 @@ void Application::updateMyAvatarLookAtPosition() {
             if (isLookingAtSomeone) {
                 deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
             }
-            lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
+            lookAtSpot = origin + _myCamera.getOrientation() * glm::quat(glm::radians(glm::vec3(
                 eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
-                glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
+                glm::inverse(_myCamera.getOrientation()) * (lookAtSpot - origin);
         }
     }
 
@@ -4032,7 +4035,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 
     // Set the viewFrustum up with the correct position and orientation of the camera
     viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getRotation());
+    viewFrustum.setOrientation(camera.getOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
@@ -4305,7 +4308,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
                                     myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * myAvatar->getScale());
     }
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-    _mirrorCamera.setRotation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+    _mirrorCamera.setOrientation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
 
     // set the bounds of rear mirror view
@@ -5347,7 +5350,6 @@ void Application::updateDisplayMode() {
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
     }
-
 
     emit activeDisplayPluginChanged();
 

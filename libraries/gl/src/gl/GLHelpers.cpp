@@ -6,6 +6,14 @@
 #include <QtOpenGL/QGL>
 #include <QOpenGLContext>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QProcessEnvironment>
+#ifdef DEBUG
+static bool enableDebug = true;
+#else
+static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
+static bool enableDebug = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
@@ -15,9 +23,9 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
         setGLFormatVersion(format);
-#ifdef DEBUG
-        format.setOption(QSurfaceFormat::DebugContext);
-#endif
+        if (enableDebug) {
+            format.setOption(QSurfaceFormat::DebugContext);
+        }
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         QSurfaceFormat::setDefaultFormat(format);
     });
