@@ -456,6 +456,15 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
+
+                glm::mat4 meshTransform;
+                if (mesh.clusters.size() > 0) {
+                    int jointIndex = mesh.clusters[0].jointIndex;
+                    meshTransform = _rig->getJointTransform(jointIndex);
+                } else {
+                    meshTransform = mesh.modelTransform;
+                }
+
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
 
@@ -474,10 +483,10 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i2 = part.quadIndices[vIndex++];
                             int i3 = part.quadIndices[vIndex++];
 
-                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
-                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
-                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
-                            glm::vec3 mv3 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f));
+                            glm::vec3 mv0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                            glm::vec3 mv3 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i3], 1.0f));
 
                             // track the mesh parts in model space
                             if (!atLeastOnePointInBounds) {
@@ -517,9 +526,9 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i1 = part.triangleIndices[vIndex++];
                             int i2 = part.triangleIndices[vIndex++];
 
-                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
-                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
-                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                            glm::vec3 mv0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
 
                             // track the mesh parts in model space
                             if (!atLeastOnePointInBounds) {
