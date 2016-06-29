@@ -17,6 +17,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "../gl41/GL41Backend.h"
+#include "../gl45/GL45Backend.h"
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -31,25 +32,21 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-
 static const QString DEBUG_FLAG("HIFI_ENABLE_OPENGL_45");
-bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+static bool enableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 Backend* GLBackend::createBackend() {
-
-#if 0
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     GLBackend* result; 
     if (enableOpenGL45 && version >= 0x0405) {
-        result = new gpu::gl45::GLBackend;
+        qDebug() << "Using OpenGL 4.5 backend";
+        result = new gpu::gl45::GL45Backend();
     } else {
-        result = new gpu::gl41::GLBackend;
+        qDebug() << "Using OpenGL 4.1 backend";
+        result = new gpu::gl41::GL41Backend();
     }
-#else 
-    GLBackend* result = new gpu::gl41::GL41Backend;
-#endif
     result->initInput();
     result->initTransform();
     gl::GLTexture::initTextureTransferHelper();
@@ -114,6 +111,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_glUniform3fv),
     (&::gpu::gl::GLBackend::do_glUniform4fv),
     (&::gpu::gl::GLBackend::do_glUniform4iv),
+    (&::gpu::gl::GLBackend::do_glUniformMatrix3fv),
     (&::gpu::gl::GLBackend::do_glUniformMatrix4fv),
 
     (&::gpu::gl::GLBackend::do_glColor4f),
@@ -512,6 +510,22 @@ void GLBackend::do_glUniform4iv(Batch& batch, size_t paramOffset) {
         batch._params[paramOffset + 1]._uint,
         (const GLint*)batch.editData(batch._params[paramOffset + 0]._uint));
 
+    (void)CHECK_GL_ERROR();
+}
+
+void GLBackend::do_glUniformMatrix3fv(Batch& batch, size_t paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    updatePipeline();
+
+    glUniformMatrix3fv(
+        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
+        batch._params[paramOffset + 2]._uint,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
     (void)CHECK_GL_ERROR();
 }
 

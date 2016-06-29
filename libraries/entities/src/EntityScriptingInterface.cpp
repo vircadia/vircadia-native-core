@@ -32,6 +32,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -47,6 +48,11 @@ bool EntityScriptingInterface::canAdjustLocks() {
 bool EntityScriptingInterface::canRez() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRez();
+}
+
+bool EntityScriptingInterface::canRezTmp() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmp();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -173,6 +179,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
+                propertiesWithSimID.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
                 success = false;
@@ -184,9 +191,11 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     if (success) {
         emit debitEnergySource(cost);
         queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
-    }
 
-    return id;
+        return id;
+    } else {
+        return QUuid();
+    }
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const glm::vec3& position) {
@@ -370,6 +379,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
+            properties.setLastEdited(entity->getLastEdited());
 
             // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
             // if they've changed.
@@ -1118,6 +1128,27 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     QStringList result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
+    QVector<QUuid> result;
+    if (!_entityTree) {
+        return result;
+    }
+
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    if (!entity) {
+        qDebug() << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+        return result;
+    }
+
+    _entityTree->withReadLock([&] {
+        entity->forEachChild([&](SpatiallyNestablePointer child) {
+            result.push_back(child->getID());
+        });
+    });
+
     return result;
 }
 

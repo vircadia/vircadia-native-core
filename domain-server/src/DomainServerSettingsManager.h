@@ -19,14 +19,14 @@
 #include <HTTPManager.h>
 
 #include <ReceivedMessage.h>
+#include "NodePermissions.h"
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
 const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
-
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
-const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
+const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
+const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
@@ -41,16 +41,31 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
+    QVariantMap& getDescriptorsMap();
+
+    bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
+    bool havePermissionsForName(const QString& name) const { return _agentPermissions.contains(name); }
+    NodePermissions getStandardPermissionsForName(const QString& name) const;
+    NodePermissions getPermissionsForName(const QString& name) const;
+    QStringList getAllNames() { return _agentPermissions.keys(); }
+
+signals:
+    void updateNodePermissions();
+
+
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
 
 private:
+    QStringList _argumentList;
+
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
-    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
+    bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
     QJsonObject settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName);
+    void sortPermissions();
     void persistToFile();
 
     double _descriptionVersion;
@@ -58,6 +73,14 @@ private:
     HifiConfigVariantMap _configMap;
 
     friend class DomainServer;
+
+    void validateDescriptorsMap();
+
+    void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
+    void packPermissions();
+    void unpackPermissions();
+    NodePermissionsMap _standardAgentPermissions; // anonymous, logged-in, localhost
+    NodePermissionsMap _agentPermissions; // specific account-names
 };
 
 #endif // hifi_DomainServerSettingsManager_h

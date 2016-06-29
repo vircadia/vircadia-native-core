@@ -44,7 +44,8 @@ namespace controller {
         LS_TOUCH,
         LEFT_THUMB_UP,
         LS_CENTER,
-        LS_OUTER,
+        LS_X,
+        LS_Y,
 
         RIGHT_PRIMARY_THUMB,
         RIGHT_SECONDARY_THUMB,
@@ -53,7 +54,8 @@ namespace controller {
         RS_TOUCH,
         RIGHT_THUMB_UP,
         RS_CENTER,
-        RS_OUTER,
+        RS_X,
+        RS_Y,
 
         LEFT_PRIMARY_INDEX,
         LEFT_SECONDARY_INDEX,
@@ -66,9 +68,7 @@ namespace controller {
         RIGHT_SECONDARY_INDEX_TOUCH,
         RIGHT_INDEX_POINT,
 
-        LEFT_GRIP,
         LEFT_GRIP_TOUCH,
-        RIGHT_GRIP,
         RIGHT_GRIP_TOUCH,
 
         NUM_STANDARD_BUTTONS
@@ -85,9 +85,9 @@ namespace controller {
         // Triggers
         LT,
         RT,
-        // Grips (Oculus touch squeeze)
-        LG,
-        RG,
+        // Grips
+        LEFT_GRIP,
+        RIGHT_GRIP,
         NUM_STANDARD_AXES,
         LZ = LT,
         RZ = RT

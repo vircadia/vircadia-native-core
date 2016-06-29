@@ -49,7 +49,7 @@ SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
 }
 
 void SDL2Manager::init() {
-    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER) == 0);
+    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0);
 
     if (initSuccess) {
         int joystickCount = SDL_NumJoysticks();
@@ -66,6 +66,7 @@ void SDL2Manager::init() {
                     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                     userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick.get());
+                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
                 }
             }
         }
@@ -157,6 +158,7 @@ void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrati
                     _openJoysticks[id] = joystick;
                     userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick.get());
+                    emit subdeviceConnected(getName(), SDL_GameControllerName(controller));
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
                 if (_openJoysticks.contains(event.cdevice.which)) {

@@ -45,11 +45,11 @@ const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
-            return 18;
+            return static_cast<PacketVersion>(DomainListVersion::PermissionsGrid);
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS;
+            return VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
@@ -68,6 +68,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
 
         case PacketType::DomainConnectRequest:
             return static_cast<PacketVersion>(DomainConnectRequestVersion::HasProtocolVersions);
+
+        case PacketType::DomainServerAddedNode:
+            return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
 
         default:
             return 17;

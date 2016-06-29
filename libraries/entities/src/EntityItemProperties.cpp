@@ -88,8 +88,21 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
-const char* shapeTypeNames[] = {"none", "box", "sphere", "ellipsoid", "plane", "compound", "capsule-x",
-    "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"};
+const char* shapeTypeNames[] = {
+    "none",
+    "box",
+    "sphere",
+    "capsule-x",
+    "capsule-y",
+    "capsule-z",
+    "cylinder-x",
+    "cylinder-y",
+    "cylinder-z",
+    "hull",
+    "plane",
+    "compound",
+    "static-mesh"
+};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
@@ -101,15 +114,16 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_NONE);
     addShapeType(SHAPE_TYPE_BOX);
     addShapeType(SHAPE_TYPE_SPHERE);
-    addShapeType(SHAPE_TYPE_ELLIPSOID);
-    addShapeType(SHAPE_TYPE_PLANE);
-    addShapeType(SHAPE_TYPE_COMPOUND);
     addShapeType(SHAPE_TYPE_CAPSULE_X);
     addShapeType(SHAPE_TYPE_CAPSULE_Y);
     addShapeType(SHAPE_TYPE_CAPSULE_Z);
     addShapeType(SHAPE_TYPE_CYLINDER_X);
     addShapeType(SHAPE_TYPE_CYLINDER_Y);
     addShapeType(SHAPE_TYPE_CYLINDER_Z);
+    addShapeType(SHAPE_TYPE_HULL);
+    addShapeType(SHAPE_TYPE_PLANE);
+    addShapeType(SHAPE_TYPE_COMPOUND);
+    addShapeType(SHAPE_TYPE_STATIC_MESH);
 }
 
 QString getCollisionGroupAsString(uint8_t group) {

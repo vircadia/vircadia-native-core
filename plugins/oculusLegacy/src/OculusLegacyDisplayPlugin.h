@@ -23,11 +23,13 @@ public:
     bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
+    void init() override;
+
     int getHmdScreen() const override;
 
     // Stereo specific methods
     void resetSensors() override;
-    void beginFrameRender(uint32_t frameIndex) override;
+    bool beginFrameRender(uint32_t frameIndex) override;
 
     float getTargetFrameRate() const override;
 

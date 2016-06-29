@@ -136,6 +136,7 @@ public:
     virtual void do_glUniform3fv(Batch& batch, size_t paramOffset) final;
     virtual void do_glUniform4fv(Batch& batch, size_t paramOffset) final;
     virtual void do_glUniform4iv(Batch& batch, size_t paramOffset) final;
+    virtual void do_glUniformMatrix3fv(Batch& batch, size_t paramOffset) final;
     virtual void do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) final;
 
     virtual void do_glColor4f(Batch& batch, size_t paramOffset) final;
@@ -185,7 +186,7 @@ protected:
     virtual void killInput() final;
     virtual void syncInputStateCache() final;
     virtual void resetInputStage() final;
-    virtual void updateInput() = 0;
+    virtual void updateInput();
 
     struct InputStageState {
         bool _invalidFormat { true };

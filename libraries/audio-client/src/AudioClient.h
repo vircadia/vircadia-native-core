@@ -260,7 +260,6 @@ private:
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
-    AudioSRC* _loopbackResampler;
 
     // Adds Reverb
     void configureReverb();

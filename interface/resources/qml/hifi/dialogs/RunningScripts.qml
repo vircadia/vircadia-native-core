@@ -15,17 +15,17 @@ import Qt.labs.settings 1.0
 
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
-import "../../windows-uit"
+import "../../windows"
 
-Window {
+ScrollingWindow {
     id: root
     objectName: "RunningScripts"
     title: "Running Scripts"
     resizable: true
-    destroyOnInvisible: true
-    implicitWidth: 400
+    destroyOnHidden: true
+    implicitWidth: 424
     implicitHeight: isHMD ? 695 : 728
-    minSize: Qt.vector2d(200, 300)
+    minSize: Qt.vector2d(424, 300)
 
     HifiConstants { id: hifi }
 
@@ -33,6 +33,9 @@ Window {
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
     property bool isHMD: false
+
+    onVisibleChanged: console.log("Running scripts visible changed to " + visible)
+    onShownChanged: console.log("Running scripts visible changed to " + visible)
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -83,6 +86,11 @@ Window {
         scripts.reloadAllScripts();
     }
 
+    function loadDefaults() {
+        console.log("Load default scripts");
+        scripts.loadOneScript(scripts.defaultScriptsPath + "/defaultScripts.js");
+    }
+
     function stopAll() {
         console.log("Stop all scripts");
         scripts.stopAllScripts();
@@ -101,13 +109,13 @@ Window {
                 spacing: hifi.dimensions.contentSpacing.x
 
                 HifiControls.Button {
-                    text: "Reload all"
+                    text: "Reload All"
                     color: hifi.buttons.black
                     onClicked: reloadAll()
                 }
 
                 HifiControls.Button {
-                    text: "Stop all"
+                    text: "Remove All"
                     color: hifi.buttons.red
                     onClicked: stopAll()
                 }
@@ -215,7 +223,6 @@ Window {
 
             Row {
                 spacing: hifi.dimensions.contentSpacing.x
-                anchors.right: parent.right
 
                 HifiControls.Button {
                     text: "from URL"
@@ -252,6 +259,13 @@ Window {
                         running: false
                         onTriggered: ApplicationInterface.loadDialog();
                     }
+                }
+
+                HifiControls.Button {
+                    text: "Load Defaults"
+                    color: hifi.buttons.black
+                    height: 26
+                    onClicked: loadDefaults()
                 }
             }
 

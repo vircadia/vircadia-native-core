@@ -62,9 +62,9 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap turn when in HMD", getter, setter));
     }
     {
-        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenDriving(); };
-        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenDriving(value); };
-        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when driving", getter, setter));
+        auto getter = [=]()->bool {return myAvatar->getClearOverlayWhenMoving(); };
+        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
@@ -126,16 +126,6 @@ void setupPreferences() {
         auto preference = new SpinnerPreference(AVATAR_TUNING, "Vertical field of view", getter, setter);
         preference->setMin(1);
         preference->setMax(180);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = [=]()->float { return myAvatar->getLeanScale(); };
-        auto setter = [=](float value) { myAvatar->setLeanScale(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Lean scale (applies to Faceshift users)", getter, setter);
-        preference->setMin(0);
-        preference->setMax(99.9f);
-        preference->setDecimals(2);
         preference->setStep(1);
         preferences->addPreference(preference);
     }

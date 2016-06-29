@@ -56,12 +56,15 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
 
+        bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
+        void hapticsHelper(float deltaTime, bool leftHand);
+
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool isLeftHand);
         void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                              const vec3& linearVelocity, const vec3& angularVelocity, bool isLeftHand);
-        void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int outerPseudoButton);
+        void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
 
         class FilteredStick {
         public:
@@ -90,8 +93,19 @@ private:
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
+        // perform an action when the InputDevice mutex is acquired.
+        using Locker = std::unique_lock<std::recursive_mutex>;
+        template <typename F>
+        void withLock(F&& f) { Locker locker(_lock); f(); }
+
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
+        float _leftHapticStrength { 0.0f };
+        float _leftHapticDuration { 0.0f };
+        float _rightHapticStrength { 0.0f };
+        float _rightHapticDuration { 0.0f };
+        mutable std::recursive_mutex _lock;
+
         friend class ViveControllerManager;
     };
 

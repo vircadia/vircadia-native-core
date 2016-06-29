@@ -26,27 +26,36 @@
 #include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
 
-#include "plugins/PluginContainer.h"
+#include <ui-plugins/PluginContainer.h>
 #include "OculusHelpers.h"
 
 using namespace oglplus;
 
-const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Legacy)");
+const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift");
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
+}
+
+void OculusLegacyDisplayPlugin::init() {
+    Plugin::init();
+
+    emit deviceConnected(getName());
 }
 
 void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
 
-void OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+bool OculusLegacyDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.predictedDisplayTime = _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _trackingState = ovrHmd_GetTrackingState(_hmd, _currentRenderFrameInfo.predictedDisplayTime);
     _currentRenderFrameInfo.rawRenderPose = _currentRenderFrameInfo.renderPose = toGlm(_trackingState.HeadPose.ThePose);
-    Lock lock(_mutex);
-    _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    withRenderThreadLock([&]{
+        _frameInfos[frameIndex] = _currentRenderFrameInfo;
+    });
+    return Parent::beginFrameRender(frameIndex);
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {

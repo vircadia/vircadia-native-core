@@ -1,19 +1,27 @@
 {
     "name": "Vive to Standard",
     "channels": [
-        { "from": "Vive.LY", "when": "Vive.LSOuter", "filters": ["invert"], "to": "Standard.LY" },
-        { "from": "Vive.LX", "when": "Vive.LSOuter", "to": "Standard.LX" },
-
-        { "from": "Vive.LT", "to": "Standard.LT" },
-        { "from": "Vive.LeftGrip", "to": "Standard.LB" },
+        { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
+        { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
+        { 
+        	"from": "Vive.LT", "to": "Standard.LT",
+        	"filters": [
+                { "type": "deadZone", "min": 0.05 }
+            ]
+        },
+        { "from": "Vive.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "Vive.LS", "to": "Standard.LS" },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
-        { "from": "Vive.RY", "when": "Vive.RSOuter", "filters": ["invert"], "to": "Standard.RY" },
-        { "from": "Vive.RX", "when": "Vive.RSOuter", "to": "Standard.RX" },
-
-        { "from": "Vive.RT", "to": "Standard.RT" },
-        { "from": "Vive.RightGrip", "to": "Standard.RB" },
+        { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
+        { "from": "Vive.RX", "when": "Vive.RSX", "to": "Standard.RX" },
+        { 
+        	"from": "Vive.RT", "to": "Standard.RT",
+        	"filters": [
+                { "type": "deadZone", "min": 0.05 }
+            ]
+        },
+        { "from": "Vive.RightGrip", "to": "Standard.RightGrip" },
         { "from": "Vive.RS", "to": "Standard.RS" },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
 

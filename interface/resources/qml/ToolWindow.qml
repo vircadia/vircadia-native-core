@@ -15,18 +15,18 @@ import QtWebEngine 1.1
 import QtWebChannel 1.0
 import Qt.labs.settings 1.0
 
-import "windows-uit"
+import "windows"
 import "controls-uit"
 import "styles-uit"
 
-Window {
+ScrollingWindow {
     id: toolWindow
     resizable: true
     objectName: "ToolWindow"
     destroyOnCloseButton: false
-    destroyOnInvisible: false
+    destroyOnHidden: false
     closable: true
-    visible: false
+    shown: false
     title: "Edit"
     property alias tabView: tabView
     implicitWidth: 520; implicitHeight: 695
@@ -142,7 +142,7 @@ Window {
                 return;
             }
         }
-        visible = false;
+        shown = false;
     }
 
     function findIndexForUrl(source) {
@@ -172,7 +172,7 @@ Window {
 
         var tab = tabView.getTab(index);
         if (newVisible) {
-            toolWindow.visible = true
+            toolWindow.shown = true
             tab.enabled = true
         } else {
             tab.enabled = false;

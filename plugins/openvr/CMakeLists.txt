@@ -12,7 +12,7 @@ if (WIN32)
     set(TARGET_NAME openvr)
     setup_hifi_plugin(OpenGL Script Qml Widgets)
     link_hifi_libraries(shared gl networking controllers ui 
-        plugins display-plugins input-plugins script-engine
+        plugins display-plugins ui-plugins input-plugins script-engine
         render-utils model gpu render model-networking fbx)
 
     include_hifi_library_headers(octree)

@@ -452,6 +452,7 @@
                 var elTextText = document.getElementById("property-text-text");
                 var elTextLineHeight = document.getElementById("property-text-line-height");
                 var elTextTextColor = document.getElementById("property-text-text-color");
+                var elTextFaceCamera = document.getElementById("property-text-face-camera");
                 var elTextTextColorRed = document.getElementById("property-text-text-color-red");
                 var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
                 var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
@@ -546,17 +547,10 @@
 
                                 disableProperties();
                             } else {
-                                var activeElement = document.activeElement;
-    
-                                try {
-                                    var selected = (activeElement
-                                               && activeElement.selectionStart == 0
-                                               && activeElement.selectionEnd == activeElement.value.length);
-                                } catch (e) {
-                                    var  selected = false;
-                                }
+            
     
                                 properties = data.selections[0].properties;
+
                                 elID.innerHTML = properties.id;
     
                                 elType.innerHTML = properties.type;
@@ -571,7 +565,6 @@
                                 } else {
                                     enableProperties();
                                 }
-
     
                                 elName.value = properties.name;
     
@@ -679,7 +672,6 @@
 
                                 } else {
                                     for (var i = 0; i < elShapeSections.length; i++) {
-                                        console.log("Hiding shape section " + elShapeSections[i])
                                         elShapeSections[i].style.display = 'none';
                                     }
                                 }
@@ -735,6 +727,7 @@
     
                                     elTextText.value = properties.text;
                                     elTextLineHeight.value = properties.lineHeight.toFixed(4);
+                                    elTextFaceCamera = properties.faceCamera;
                                     elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red  + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
                                     elTextTextColorRed.value = properties.textColor.red;
                                     elTextTextColorGreen.value = properties.textColor.green;
@@ -811,9 +804,10 @@
                                     elYTextureURL.value = properties.yTextureURL;
                                     elZTextureURL.value = properties.zTextureURL;
                                 }
-    
-                                if (selected) {
-                                    activeElement.focus();
+                                
+                                var activeElement = document.activeElement;
+                                
+                                if(typeof activeElement.select!=="undefined"){
                                     activeElement.select();
                                 }
                             }
@@ -996,8 +990,8 @@
                 elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
     
                 elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
+                elTextFaceCamera.addEventListener('change', createEmitCheckedPropertyUpdateFunction('faceCamera'));
                 elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
-    
                 var textTextColorChangeFunction = createEmitColorPropertyUpdateFunction(
                     'textColor', elTextTextColorRed, elTextTextColorGreen, elTextTextColorBlue);
                 elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
@@ -1178,7 +1172,7 @@
                 for (var i = 0; i < els.length; i++) {
                     var clicked = false;
                     var originalText;
-                    els[i].onfocus = function() {
+                    els[i].onfocus = function(e) {
                         originalText = this.value;
                         this.select();
                         clicked = false;
@@ -1652,6 +1646,7 @@
                 <option value="box">Box</option>
                 <option value="sphere">Sphere</option>
                 <option value="compound">Compound</option>
+                <option value="static-mesh">Static Mesh</option>
             </select>
         </div>
         <div class="model-group model-section zone-section property url ">
@@ -1714,6 +1709,10 @@
         <div class="text-group text-section property text">
             <label for="property-text-text">Text content</label>
             <input type="text" id="property-text-text">
+        </div>
+        <div class="text-group text-section property checkbox">
+            <input type="checkbox" id="property-text-face-camera">
+            <label for="property-text-face-camera">&nbsp;Face Camera</label>
         </div>
         <div class="text-group text-section property number">
             <label>Line height <span class="unit">m</span></label>

@@ -34,7 +34,7 @@
 #include <QtQml/QQmlContext>
 
 #include <plugins/Plugin.h>
-#include <plugins/PluginContainer.h>
+#include <ui-plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/KeyboardMouseDevice.h>
@@ -90,8 +90,8 @@ public:
     virtual MainWindow* getPrimaryWindow() override { return nullptr; }
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
     virtual ui::Menu* getPrimaryMenu() override { return nullptr; }
-    virtual bool isForeground() override { return true; }
-    virtual const DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer();  }
+    virtual bool isForeground() const override { return true; }
+    virtual DisplayPluginPointer getActiveDisplayPlugin() const override { return DisplayPluginPointer();  }
 };
 
 class MyControllerScriptingInterface : public controller::ScriptingInterface {

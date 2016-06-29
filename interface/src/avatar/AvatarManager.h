@@ -25,6 +25,7 @@
 #include "AvatarMotionState.h"
 
 class MyAvatar;
+class AudioInjector;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
@@ -93,6 +94,8 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
+
+    std::list<QPointer<AudioInjector>> _collisionInjectors;
 
     SetOfAvatarMotionStates _motionStatesThatMightUpdate;
     SetOfMotionStates _motionStatesToAddToPhysics;
