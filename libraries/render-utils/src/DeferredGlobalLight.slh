@@ -132,31 +132,22 @@ vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenua
 
     vec3 fragLightDir = -normalize(getLightDirection(light));
 
-    vec3 bentNormalHigh = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
-    vec3 bentNormalLow = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
+    vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
+    vec3 lowNormal = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
     float curvature = unpackCurvature(diffusedCurvature.w);
 
     if (showDiffusedNormal()) {
         return diffusedCurvature.xyz;
-        return bentNormalLow * 0.5 + vec3(0.5);
+        return lowNormal * 0.5 + vec3(0.5);
     }
     if (showCurvature()) {
         float curvatureSigned = unpackCurvatureSigned(diffusedCurvature.w);
         return (curvatureSigned > 0 ? vec3(curvatureSigned, 0.0, 0.0) : vec3(0.0, 0.0, -curvatureSigned));
     }
-    vec3 rS = bentNormalHigh;
 
-    vec3 bendFactorSpectrum = getBendFactor();
-    // vec3 rN = normalize(mix(normal, bentNormalLow, bendFactorSpectrum.x));
-    vec3 rN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.x));
-    vec3 gN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.y));
-    vec3 bN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.z));
+    vec3 bentNdotL = evalScatteringBentNdotL(fragNormal, midNormal, lowNormal, fragLightDir);
 
-    vec3 NdotLSpectrum = vec3(dot(rN, fragLightDir), dot(gN, fragLightDir), dot(bN, fragLightDir));
-
-    //return 0.5 * (NdotLSpectrum + vec3(1.0));
-    // --> Look up the pre-integrated curvature-dependent BDRF textures
-    vec3 brdf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
+    vec3 brdf = fetchBRDFSpectrum(bentNdotL, curvature);
 
     // The position of the pixel fragment in Eye space then in world space
 
@@ -267,31 +258,22 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
 
     vec3 fragLightDir = -normalize(getLightDirection(light));
     
-    vec3 bentNormalHigh = normalize( (blurredCurvature.xyz - 0.5f) * 2.0f );
-    vec3 bentNormalLow = normalize( (diffusedCurvature.xyz - 0.5f) * 2.0f );
+    vec3 midNormal = normalize((blurredCurvature.xyz - 0.5f) * 2.0f);
+    vec3 lowNormal = normalize((diffusedCurvature.xyz - 0.5f) * 2.0f);
     float curvature = unpackCurvature(diffusedCurvature.w);
 
     if (showDiffusedNormal()) {
         return diffusedCurvature.xyz;
-        return bentNormalLow * 0.5 + vec3(0.5);
+        return lowNormal * 0.5 + vec3(0.5);
     }
     if (showCurvature()) {
         float curvatureSigned = unpackCurvatureSigned(diffusedCurvature.w);
         return (curvatureSigned > 0 ? vec3(curvatureSigned, 0.0, 0.0) : vec3(0.0, 0.0, -curvatureSigned));
     }
-    vec3 rS = bentNormalHigh;
-    
-    vec3 bendFactorSpectrum = getBendFactor();
-   // vec3 rN = normalize(mix(normal, bentNormalLow, bendFactorSpectrum.x));
-    vec3 rN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.x));
-    vec3 gN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.y));
-    vec3 bN = normalize(mix(bentNormalHigh, bentNormalLow, bendFactorSpectrum.z));
-    
-    vec3 NdotLSpectrum  = vec3(dot(rN, fragLightDir), dot(gN, fragLightDir), dot(bN, fragLightDir));
 
-    //return 0.5 * (NdotLSpectrum + vec3(1.0));
-    // --> Look up the pre-integrated curvature-dependent BDRF textures
-    vec3 brdf = fetchBRDFSpectrum(NdotLSpectrum, curvature);
+    vec3 bentNdotL = evalScatteringBentNdotL(fragNormal, midNormal, lowNormal, fragLightDir);
+
+    vec3 brdf = fetchBRDFSpectrum(bentNdotL, curvature);
 
         // The position of the pixel fragment in Eye space then in world space
 
@@ -332,7 +314,7 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
  //vec3 debugNdotL = 0.5 * (NdotLSpectrum + vec3(1.0));
  //return vec3(debugNdotL.z, curvature, 0.0 );
 
- return vec3(color);
+    return vec3(color);
 }
 <@endfunc@>
 

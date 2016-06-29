@@ -150,6 +150,18 @@ float unpackCurvature(float packedCurvature) {
     return abs(packedCurvature * 2 - 1) * parameters.curvatureInfo.y + parameters.curvatureInfo.x;
 }
 
+vec3 evalScatteringBentNdotL(vec3 normal, vec3 midNormal, vec3 lowNormal, vec3 lightDir) {
+    vec3 bendFactorSpectrum = getBendFactor();
+    // vec3 rN = normalize(mix(normal, lowNormal, bendFactorSpectrum.x));
+    vec3 rN = normalize(mix(midNormal, lowNormal, bendFactorSpectrum.x));
+    vec3 gN = normalize(mix(midNormal, lowNormal, bendFactorSpectrum.y));
+    vec3 bN = normalize(mix(midNormal, lowNormal, bendFactorSpectrum.z));
+
+    vec3 NdotLSpectrum = vec3(dot(rN, lightDir), dot(gN, lightDir), dot(bN, lightDir));
+
+    return NdotLSpectrum;
+}
+
 
 
 <@endfunc@>
