@@ -66,7 +66,7 @@ const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 void parseHours(QVariant delta, QVariant& target) {
     using Hours = DomainMetadata::Descriptors::Hours;
     static const QVariantList DEFAULT_HOURS{
-        QVariantList{ "00:00", "23:59" }
+        { QVariantList{ "00:00", "23:59" } }
     };
     target.setValue(DEFAULT_HOURS);
 
