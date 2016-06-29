@@ -64,7 +64,6 @@ bool HmdDisplayPlugin::internalActivate() {
         _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
     });
 
-    _firstPreview = true;
     if (_previewTextureID == 0) {
         const QUrl previewURL("https://hifi-content.s3.amazonaws.com/samuel/preview.png");
         QNetworkAccessManager& manager = NetworkAccessManager::getInstance();
@@ -98,6 +97,7 @@ void HmdDisplayPlugin::downloadFinished() {
         Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
         Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
         glBindTexture(GL_TEXTURE_2D, 0);
+        _firstPreview = true;
     }
 }
 
