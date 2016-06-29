@@ -62,7 +62,7 @@ function makeBow() {
         shapeType: 'compound',
         compoundShapeURL: COLLISION_HULL_URL,
         script: SCRIPT_URL,
-        collidesWith: 'dynamic,kinetmatic,static',
+        collidesWith: 'dynamic,kinematic,static',
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true
