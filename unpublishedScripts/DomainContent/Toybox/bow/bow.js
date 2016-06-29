@@ -484,8 +484,9 @@
                 Entities.editEntity(this.arrow, arrowProperties);
                 this.playShootArrowSound();
 
-                var whichHand = this.hand === 'left' ? 0 : 1;
-                Controller.triggerShortHapticPulse(whichHand, 2);
+                var backHand = this.hand === 'left' ? 1 : 0;
+                var haptic = Controller.triggerShortHapticPulse(1, backHand);
+                print('JBP TRIGGERED HAPTIC ' + haptic +" hand: "+ backHand)
 
                 //clear the strings back to only the single straight one
                 this.deleteStrings();
