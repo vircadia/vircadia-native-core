@@ -186,7 +186,7 @@ protected:
     virtual void killInput() final;
     virtual void syncInputStateCache() final;
     virtual void resetInputStage() final;
-    virtual void updateInput() = 0;
+    virtual void updateInput();
 
     struct InputStageState {
         bool _invalidFormat { true };
