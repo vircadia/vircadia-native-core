@@ -84,20 +84,10 @@ void HmdDisplayPlugin::downloadFinished() {
         return;
     }
 
-    QImage previewTexture;
-    previewTexture.loadFromData(reply->readAll());
+    _previewTexture.loadFromData(reply->readAll());
 
-    if (!previewTexture.isNull()) {
-        previewTexture = previewTexture.mirrored(false, true);
-        glGenTextures(1, &_previewTextureID);
-        glBindTexture(GL_TEXTURE_2D, _previewTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, previewTexture.width(), previewTexture.height(), 0,
-                         GL_BGRA, GL_UNSIGNED_BYTE, previewTexture.bits());
-        using namespace oglplus;
-        Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
-        Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        _previewAspect = ((float)previewTexture.width())/((float)previewTexture.height());
+    if (!_previewTexture.isNull()) {
+        _previewAspect = ((float)_previewTexture.width())/((float)_previewTexture.height());
         _firstPreview = true;
     }
 }
@@ -286,7 +276,7 @@ void HmdDisplayPlugin::customizeContext() {
 
     using namespace oglplus;
     if (!_enablePreview) {
-        std::string version("#version 410 core\n");
+        const std::string version("#version 410 core\n");
         compileProgram(_previewProgram, version + DrawUnitQuadTexcoord_vert, version + DrawTexture_frag);
         PREVIEW_TEXTURE_LOCATION = Uniform<int>(*_previewProgram, "colorMap").Location();
     }
@@ -436,7 +426,18 @@ void HmdDisplayPlugin::internalPresent() {
                 BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
         });
         swapBuffers();
-    } else if (_previewTextureID != 0 && (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio)) {
+    } else if (_firstPreview || windowSize != _prevWindowSize || devicePixelRatio != _prevDevicePixelRatio) {
+        if (_firstPreview) {
+            glGenTextures(1, &_previewTextureID);
+            glBindTexture(GL_TEXTURE_2D, _previewTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _previewTexture.width(), _previewTexture.height(), 0,
+                         GL_BGRA, GL_UNSIGNED_BYTE, _previewTexture.mirrored(false, true).bits());
+            using namespace oglplus;
+            Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
+            Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            _firstPreview = false;
+        }
         useProgram(_previewProgram);
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -446,7 +447,6 @@ void HmdDisplayPlugin::internalPresent() {
         glBindTexture(GL_TEXTURE_2D, _previewTextureID);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         swapBuffers();
-        _firstPreview = false;
         _prevWindowSize = windowSize;
         _prevDevicePixelRatio = devicePixelRatio;
     }

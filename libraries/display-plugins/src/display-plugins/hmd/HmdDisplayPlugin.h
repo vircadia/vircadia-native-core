@@ -14,8 +14,6 @@
 
 #include "../OpenGLDisplayPlugin.h"
 
-class QNetworkReply;
-
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
     Q_OBJECT
     using Parent = OpenGLDisplayPlugin;
@@ -97,13 +95,17 @@ private:
     bool _monoPreview { true };
     bool _enableReprojection { true };
     bool _firstPreview { true };
+
     ProgramPtr _previewProgram;
+    QImage _previewTexture;
+    float _previewAspect { 0 };
     GLuint _previewTextureID { 0 };
     glm::uvec2 _prevWindowSize { 0, 0 };
     qreal _prevDevicePixelRatio { 0 };
-    float _previewAspect { 0 };
-    ShapeWrapperPtr _sphereSection;
+
     ProgramPtr _reprojectionProgram;
+    ShapeWrapperPtr _sphereSection;
+
     ProgramPtr _laserProgram;
     ShapeWrapperPtr _laserGeometry;
 };
