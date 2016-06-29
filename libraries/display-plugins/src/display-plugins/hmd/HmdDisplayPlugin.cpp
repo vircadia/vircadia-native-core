@@ -38,6 +38,20 @@ QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
     return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
 
+QImage HmdDisplayPlugin::getScreenshot() const {
+    using namespace oglplus;
+    QImage screenshot(_compositeFramebuffer->size.x, _compositeFramebuffer->size.y, QImage::Format_RGBA8888);
+    auto windowSize = toGlm(_container->getPrimaryWidget()->size());
+    _compositeFramebuffer->Bound(Framebuffer::Target::Read, [&] {
+        Context::BlitFramebuffer(
+            0, 0, _compositeFramebuffer->size.x, _compositeFramebuffer->size.y,
+            0, 0, windowSize.x, windowSize.y,
+            BufferSelectBit::ColorBuffer, BlitFilter::Nearest);
+        Context::ReadPixels(0, 0, _compositeFramebuffer->size.x, _compositeFramebuffer->size.y, enums::PixelDataFormat::RGBA, enums::PixelDataType::UnsignedByte, screenshot.bits());
+    });
+    return screenshot.mirrored(false, true);
+}
+
 bool HmdDisplayPlugin::internalActivate() {
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
 
