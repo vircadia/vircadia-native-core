@@ -58,6 +58,7 @@ public slots:
 signals:
     void domainChanged(const QString& domainHostname);
     void svoImportRequested(const QString& url);
+    void zipImportRequested(const QString& url); // zip project
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode);
     void snapshotTaken(const QString& path);
 

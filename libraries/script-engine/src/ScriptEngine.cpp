@@ -49,6 +49,7 @@
 #include "BatchLoader.h"
 #include "DataViewClass.h"
 #include "EventTypes.h"
+#include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
 #include "ScriptCache.h"
@@ -501,6 +502,10 @@ void ScriptEngine::init() {
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
+
+    // unzip project
+    registerGlobalObject("File", new FileScriptingInterface(this));
+    
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
