@@ -97,6 +97,7 @@ void HmdDisplayPlugin::downloadFinished() {
         Texture::MinFilter(TextureTarget::_2D, TextureMinFilter::Linear);
         Texture::MagFilter(TextureTarget::_2D, TextureMagFilter::Linear);
         glBindTexture(GL_TEXTURE_2D, 0);
+        _previewAspect = ((float)previewTexture.width())/((float)previewTexture.height());
         _firstPreview = true;
     }
 }
@@ -396,30 +397,31 @@ void HmdDisplayPlugin::internalPresent() {
 
     // screen preview mirroring
     auto window = _container->getPrimaryWidget();
-    auto windowSize = toGlm(window->size());
     auto devicePixelRatio = window->devicePixelRatio();
+    auto windowSize = toGlm(window->size());
+    windowSize *= devicePixelRatio;
+    float windowAspect = aspect(windowSize);
+    float sceneAspect = _enablePreview ? aspect(_renderTargetSize) : _previewAspect;
+    if (_enablePreview && _monoPreview) {
+        sceneAspect /= 2.0f;
+    }
+    float aspectRatio = sceneAspect / windowAspect;
+
+    uvec2 targetViewportSize = windowSize;
+    if (aspectRatio < 1.0f) {
+        targetViewportSize.x *= aspectRatio;
+    } else {
+        targetViewportSize.y /= aspectRatio;
+    }
+
+    uvec2 targetViewportPosition;
+    if (targetViewportSize.x < windowSize.x) {
+        targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
+    } else if (targetViewportSize.y < windowSize.y) {
+        targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
+    }
+
     if (_enablePreview) {
-        float windowAspect = aspect(windowSize);
-        float sceneAspect = aspect(_renderTargetSize);
-        if (_monoPreview) {
-            sceneAspect /= 2.0f;
-        }
-        float aspectRatio = sceneAspect / windowAspect;
-
-        uvec2 targetViewportSize = windowSize;
-        if (aspectRatio < 1.0f) {
-            targetViewportSize.x *= aspectRatio;
-        } else {
-            targetViewportSize.y /= aspectRatio;
-        }
-
-        uvec2 targetViewportPosition;
-        if (targetViewportSize.x < windowSize.x) {
-            targetViewportPosition.x = (windowSize.x - targetViewportSize.x) / 2;
-        } else if (targetViewportSize.y < windowSize.y) {
-            targetViewportPosition.y = (windowSize.y - targetViewportSize.y) / 2;
-        }
-        
         using namespace oglplus;
         Context::Clear().ColorBuffer();
         auto sourceSize = _compositeFramebuffer->size;
@@ -438,7 +440,7 @@ void HmdDisplayPlugin::internalPresent() {
         useProgram(_previewProgram);
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT);
-        glViewport(0, 0, windowSize.x * devicePixelRatio, windowSize.y * devicePixelRatio);
+        glViewport(targetViewportPosition.x, targetViewportPosition.y, targetViewportSize.x, targetViewportSize.y);
         glUniform1i(PREVIEW_TEXTURE_LOCATION, 0);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, _previewTextureID);

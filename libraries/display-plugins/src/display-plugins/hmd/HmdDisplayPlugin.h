@@ -101,6 +101,7 @@ private:
     GLuint _previewTextureID { 0 };
     glm::uvec2 _prevWindowSize { 0, 0 };
     qreal _prevDevicePixelRatio { 0 };
+    float _previewAspect { 0 };
     ShapeWrapperPtr _sphereSection;
     ProgramPtr _reprojectionProgram;
     ProgramPtr _laserProgram;
