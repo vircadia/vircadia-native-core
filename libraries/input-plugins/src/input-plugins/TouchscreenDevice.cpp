@@ -77,6 +77,8 @@ void TouchscreenDevice::touchBeginEvent(const QTouchEvent* event) {
     _firstTouchVec = glm::vec2(point.pos().x(), point.pos().y());
     KeyboardMouseDevice::enableTouch(false);
     if (_screenDPI != event->window()->screen()->physicalDotsPerInch()) {
+        _screenDPIScale.x = (float)event->window()->screen()->physicalDotsPerInchX();
+        _screenDPIScale.y = (float)event->window()->screen()->physicalDotsPerInchY();
         _screenDPI = event->window()->screen()->physicalDotsPerInch();
     }
 }
