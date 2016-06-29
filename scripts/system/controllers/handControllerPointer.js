@@ -125,13 +125,12 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
-var reticleMinX, reticleMaxX, reticleMinY, reticleMaxY;
+var MARGIN = 50;
+var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
 function updateRecommendedArea() {
-    var rectangle = Controller.getRecommendedOverlayRect();
-    reticleMinX = rectangle.x;
-    reticleMaxX = rectangle.x + rectangle.width;
-    reticleMinY = rectangle.y;
-    reticleMaxY = rectangle.y + rectangle.height;
+    var dims = Controller.getViewportDimensions();
+    reticleMaxX = dims.x - MARGIN;
+    reticleMaxY = dims.y - MARGIN;
 }
 var setReticlePosition = function (point2d) {
     weMovedReticle = true;
