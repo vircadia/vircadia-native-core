@@ -773,6 +773,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto gpuIdent = GPUIdent::getInstance();
     auto glContextData = getGLContextData();
     QJsonObject properties = {
+        { "version", applicationVersion() },
         { "previousSessionCrashed", _previousSessionCrashed },
         { "previousSessionRuntime", sessionRunTime.get() },
         { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -963,6 +964,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     updateHeartbeat();
 
     loadSettings();
+
+    // Now that we've loaded the menu and thus switched to the previous display plugin
+    // we can unlock the desktop repositioning code, since all the positions will be 
+    // relative to the desktop size for this plugin
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->getDesktop()->setProperty("repositionLocked", false);
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -5342,7 +5350,6 @@ void Application::updateDisplayMode() {
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
     }
-
 
     emit activeDisplayPluginChanged();
 
