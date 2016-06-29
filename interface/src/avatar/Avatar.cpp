@@ -1089,8 +1089,8 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
     glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
-    start = getPosition() - glm::vec3(0, halfExtents.y, 0);
-    end = getPosition() + glm::vec3(0, halfExtents.y, 0);
+    start = getPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    end = getPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
     radius = halfExtents.x;
 }
 
