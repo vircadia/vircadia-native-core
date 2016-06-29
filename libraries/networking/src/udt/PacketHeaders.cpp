@@ -49,7 +49,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_PROPERLY_ENCODE_SHAPE_EDITS;
+            return VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:

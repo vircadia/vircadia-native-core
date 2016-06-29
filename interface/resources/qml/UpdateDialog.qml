@@ -3,11 +3,11 @@ import QtQuick 2.3
 import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
 import QtGraphicalEffects 1.0
-import "controls"
-import "styles"
+import "controls-uit"
+import "styles-uit"
 import "windows"
 
-Window {
+ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
     objectName: "UpdateDialog"

@@ -12,6 +12,9 @@
 Script.load("system/progress.js");
 Script.load("system/away.js");
 Script.load("system/users.js");
+Script.load("system/mute.js");
+Script.load("system/goto.js");
+Script.load("system/hmd.js");
 Script.load("system/examples.js");
 Script.load("system/edit.js");
 Script.load("system/selectAudioDevice.js");
@@ -21,3 +24,4 @@ Script.load("system/controllers/handControllerPointer.js");
 Script.load("system/controllers/squeezeHands.js");
 Script.load("system/controllers/grab.js");
 Script.load("system/dialTone.js");
+Script.load("system/firstPersonHMD.js");

@@ -24,6 +24,13 @@ FocusScope {
     readonly property int invalid_position: -9999;
     property rect recommendedRect: Qt.rect(0,0,0,0);
     property var expectedChildren;
+    property bool repositionLocked: true
+
+    onRepositionLockedChanged: {
+        if (!repositionLocked) {
+            d.handleSizeChanged();
+        }
+    }
 
     onHeightChanged: d.handleSizeChanged();
     
@@ -56,6 +63,10 @@ FocusScope {
         id: d
 
         function handleSizeChanged() {
+            if (desktop.repositionLocked) {
+                return;
+            }
+
             var oldRecommendedRect = recommendedRect;
             var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
             var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
@@ -64,7 +75,7 @@ FocusScope {
 
             var oldChildren = expectedChildren;
             var newChildren = d.getRepositionChildren();
-            if (oldRecommendedRect != Qt.rect(0,0,0,0) 
+            if (oldRecommendedRect != Qt.rect(0,0,0,0) && oldRecommendedRect != Qt.rect(0,0,1,1)
                   && (oldRecommendedRect != newRecommendedRect
                       || oldChildren != newChildren)
                 ) {
@@ -93,6 +104,17 @@ FocusScope {
             return item;
         }
 
+        function findMatchingChildren(item, predicate) {
+            var results = [];
+            for (var i in item.children) {
+                var child = item.children[i];
+                if (predicate(child)) {
+                    results.push(child);
+                }
+            }
+            return results;
+        }
+
         function isTopLevelWindow(item) {
             return item.topLevelWindow;
         }
@@ -106,19 +128,9 @@ FocusScope {
         }
 
         function getTopLevelWindows(predicate) {
-            var currentWindows = [];
-            if (!desktop) {
-                console.log("Could not find desktop for " + item)
-                return currentWindows;
-            }
-
-            for (var i = 0; i < desktop.children.length; ++i) {
-                var child = desktop.children[i];
-                if (isTopLevelWindow(child) && (!predicate || predicate(child))) {
-                    currentWindows.push(child)
-                }
-            }
-            return currentWindows;
+            return findMatchingChildren(desktop, function(child) {
+                return (isTopLevelWindow(child) && (!predicate || predicate(child)));
+            });
         }
 
         function getDesktopWindow(item) {
@@ -227,22 +239,16 @@ FocusScope {
         }
 
         function getRepositionChildren(predicate) {
-            var currentWindows = [];
-            if (!desktop) {
-                console.log("Could not find desktop");
-                return currentWindows;
-            }
-
-            for (var i = 0; i < desktop.children.length; ++i) {
-                var child = desktop.children[i];
-                if (child.shouldReposition === true && (!predicate || predicate(child))) {
-                    currentWindows.push(child)
-                }
-            }
-            return currentWindows;
+            return findMatchingChildren(desktop, function(child) {
+                return (child.shouldReposition === true && (!predicate || predicate(child)));
+            });
         }
 
         function repositionAll() {
+            if (desktop.repositionLocked) {
+                return;
+            }
+
             var oldRecommendedRect = recommendedRect;
             var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
             var newRecommendedRect = Controller.getRecommendedOverlayRect();
@@ -264,6 +270,63 @@ FocusScope {
 
         }
     }
+
+    property bool pinned: false
+    property var hiddenChildren: []
+
+    function togglePinned() {
+        pinned = !pinned
+    }
+
+    function setPinned(newPinned) {
+        pinned = newPinned
+    }
+
+    property real unpinnedAlpha: 1.0;
+
+    Behavior on unpinnedAlpha {
+        NumberAnimation {
+            easing.type: Easing.Linear;
+            duration: 300
+        }
+    }
+
+    state: "NORMAL"
+    states: [
+        State {
+            name: "NORMAL"
+            PropertyChanges { target: desktop; unpinnedAlpha: 1.0 }
+        },
+        State {
+            name: "PINNED"
+            PropertyChanges { target: desktop; unpinnedAlpha: 0.0 }
+        }
+    ]
+
+    transitions: [
+        Transition {
+             NumberAnimation { properties: "unpinnedAlpha"; duration: 300 }
+        }
+    ]
+
+    onPinnedChanged: {
+        if (pinned) {
+            nullFocus.focus = true;
+            nullFocus.forceActiveFocus();
+
+            // recalculate our non-pinned children
+            hiddenChildren = d.findMatchingChildren(desktop, function(child){
+                return !d.isTopLevelWindow(child) && child.visible && !child.pinned;
+            });
+
+            hiddenChildren.forEach(function(child){
+                child.opacity = Qt.binding(function(){ return desktop.unpinnedAlpha });
+            });
+        }
+        state = pinned ? "PINNED" : "NORMAL"
+    }
+
+    onShowDesktop: pinned = false
 
     function raise(item) {
         var targetWindow = d.getDesktopWindow(item);
@@ -422,7 +485,6 @@ FocusScope {
         event.accepted = false;
     }
 
-
     function unfocusWindows() {
         var windows = d.getTopLevelWindows();
         for (var i = 0; i < windows.length; ++i) {
@@ -432,6 +494,8 @@ FocusScope {
     }
 
     FocusHack { id: focusHack; }
+
+    FocusScope { id: nullFocus; }
 
     Rectangle {
         id: focusDebugger;

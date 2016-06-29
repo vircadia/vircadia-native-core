@@ -150,7 +150,8 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
+    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         gpu::Batch& batch = *renderArgs->_batch;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -166,7 +167,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         batch.setViewTransform(Transform());
         
         float screenRatio = ((float)qApp->getDevicePixelRatio());
-        float renderRatio = ((float)screenRatio * qApp->getRenderResolutionScale());
+        float renderRatio = ((float)qApp->getRenderResolutionScale());
         
         auto viewport = qApp->getMirrorViewRect();
         glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());

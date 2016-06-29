@@ -95,7 +95,7 @@ public:
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _alphaSpread; }
 
-    void updateShapeType(ShapeType type);
+    void setShapeType(ShapeType type);
     virtual ShapeType getShapeType() const { return _shapeType; }
 
     virtual void debugDump() const;

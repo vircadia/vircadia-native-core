@@ -21,6 +21,8 @@ public:
     bool isSupported() const override;
     const QString& getName() const override { return NAME; }
 
+    void init() override;
+
     float getTargetFrameRate() const override { return TARGET_RATE_OpenVr; }
 
     void customizeContext() override;
@@ -29,6 +31,10 @@ public:
     void resetSensors() override;
     bool beginFrameRender(uint32_t frameIndex) override;
     void cycleDebugOutput() override { _lockCurrentTexture = !_lockCurrentTexture; }
+
+    bool suppressKeyboard() override;
+    void unsuppressKeyboard() override;
+    bool isKeyboardVisible() override;
 
 protected:
     bool internalActivate() override;
@@ -39,9 +45,10 @@ protected:
     bool isHmdMounted() const override;
     void postPreview() override;
 
+
 private:
     vr::IVRSystem* _system { nullptr };
     std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
+    std::atomic<uint32_t> _keyboardSupressionCount{ 0 };
     static const QString NAME;
-    mutable Mutex _poseMutex;
 };

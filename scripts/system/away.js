@@ -158,6 +158,8 @@ function goAway() {
         return;
     }
 
+    UserActivityLogger.toggledAway(true);
+
     isAway = true;
     print('going "away"');
     wasMuted = AudioDevice.getMuted();
@@ -176,9 +178,11 @@ function goAway() {
 
     // tell the Reticle, we want to stop capturing the mouse until we come back
     Reticle.allowMouseCapture = false;
-    if (HMD.active) {
-        Reticle.visible = false;
-    }
+    // Allow users to find their way to other applications, our menus, etc.
+    // For desktop, that means we want the reticle visible.
+    // For HMD, the hmd preview will show the system mouse because of allowMouseCapture,
+    // but we want to turn off our Reticle so that we don't get two in preview and a stuck one in headset.
+    Reticle.visible = !HMD.active;
     wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
 
     avatarPosition = MyAvatar.position;
@@ -189,6 +193,9 @@ function goActive() {
     if (!isAway) {
         return;
     }
+
+    UserActivityLogger.toggledAway(false);
+
     isAway = false;
     print('going "active"');
     if (!wasMuted) {

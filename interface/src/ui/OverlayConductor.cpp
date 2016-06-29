@@ -17,179 +17,137 @@
 #include "OverlayConductor.h"
 
 OverlayConductor::OverlayConductor() {
+
 }
 
 OverlayConductor::~OverlayConductor() {
 }
 
-void OverlayConductor::update(float dt) {
+bool OverlayConductor::headOutsideOverlay() const {
+    glm::mat4 hmdMat = qApp->getHMDSensorPose();
+    glm::vec3 hmdPos = extractTranslation(hmdMat);
+    glm::vec3 hmdForward = transformVectorFast(hmdMat, glm::vec3(0.0f, 0.0f, -1.0f));
 
-    updateMode();
+    Transform uiTransform = qApp->getApplicationCompositor().getModelTransform();
+    glm::vec3 uiPos = uiTransform.getTranslation();
+    glm::vec3 uiForward = uiTransform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 
-    switch (_mode) {
-    case SITTING: {
-        // when sitting, the overlay is at the origin, facing down the -z axis.
-        // the camera is taken directly from the HMD.
-        Transform identity;
-        qApp->getApplicationCompositor().setModelTransform(identity);
-        qApp->getApplicationCompositor().setCameraBaseTransform(identity);
-        break;
+    const float MAX_COMPOSITOR_DISTANCE = 0.99f; // If you're 1m from center of ui sphere, you're at the surface.
+    const float MAX_COMPOSITOR_ANGLE = 180.0f;  // rotation check is effectively disabled
+    if (glm::distance(uiPos, hmdPos) > MAX_COMPOSITOR_DISTANCE ||
+        glm::dot(uiForward, hmdForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE))) {
+        return true;
     }
-    case STANDING: {
-        // when standing, the overlay is at a reference position, which is set when the overlay is
-        // enabled.  The camera is taken directly from the HMD, but in world space.
-        // So the sensorToWorldMatrix must be applied.
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        Transform t;
-        t.evalFromRawMatrix(myAvatar->getSensorToWorldMatrix());
-        qApp->getApplicationCompositor().setCameraBaseTransform(t);
-
-        // detect when head moves out side of sweet spot, or looks away.
-        mat4 headMat = myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose();
-        vec3 headWorldPos = extractTranslation(headMat);
-        vec3 headForward = glm::quat_cast(headMat) * glm::vec3(0.0f, 0.0f, -1.0f);
-        Transform modelXform = qApp->getApplicationCompositor().getModelTransform();
-        vec3 compositorWorldPos = modelXform.getTranslation();
-        vec3 compositorForward = modelXform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
-        const float MAX_COMPOSITOR_DISTANCE = 0.6f;
-        const float MAX_COMPOSITOR_ANGLE = 110.0f;
-        if (_enabled && (glm::distance(headWorldPos, compositorWorldPos) > MAX_COMPOSITOR_DISTANCE ||
-                         glm::dot(headForward, compositorForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE)))) {
-            // fade out the overlay
-            setEnabled(false);
-        }
-        break;
-    }
-    case FLAT:
-        // do nothing
-        break;
-    }
+    return false;
 }
 
-void OverlayConductor::updateMode() {
+bool OverlayConductor::updateAvatarIsAtRest() {
+
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    if (myAvatar->getClearOverlayWhenDriving()) {
-        float speed = glm::length(myAvatar->getVelocity());
-        const float MIN_DRIVING = 0.2f;
-        const float MAX_NOT_DRIVING = 0.01f;
-        const quint64 REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE = 200 * 1000;
-        const quint64 REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE = 1000 * 1000;
-        bool nowDriving = _driving; // Assume current _driving mode unless...
-        if (speed > MIN_DRIVING) {  // ... we're definitely moving...
-            nowDriving = true;
-        } else if (speed < MAX_NOT_DRIVING) { // ... or definitely not.
-            nowDriving = false;
-        }
-        // Check that we're in this new mode for long enough to really trigger a transition.
-        if (nowDriving == _driving) {  // If there's no change in state, clear any attepted timer.
-            _timeInPotentialMode = 0;
-        } else if (_timeInPotentialMode == 0) { // We've just changed with no timer, so start timing now.
-            _timeInPotentialMode = usecTimestampNow();
-        } else if ((usecTimestampNow() - _timeInPotentialMode) > (nowDriving ? REQUIRED_USECS_IN_NEW_MODE_BEFORE_INVISIBLE : REQUIRED_USECS_IN_NEW_MODE_BEFORE_VISIBLE)) {
-            _timeInPotentialMode = 0; // a real transition
-            if (nowDriving) {
-                _wantsOverlays = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-            } else { // reset when coming out of driving
-                _mode = FLAT;  // Seems appropriate to let things reset, below, after the following.
-                // All reset of, e.g., room-scale location as though by apostrophe key, without all the other adjustments.
-                qApp->getActiveDisplayPlugin()->resetSensors();
-                myAvatar->reset(true, false, false);
-            }
-            if (_wantsOverlays) {
-                setEnabled(!nowDriving, false);
-            }
-            _driving = nowDriving;
-        } // Else haven't accumulated enough time in new mode, but keep timing.
+
+    const quint64 REST_ENABLE_TIME_USECS = 1000 * 1000; // 1 s
+    const quint64 REST_DISABLE_TIME_USECS = 200 * 1000;  // 200 ms
+
+    const float AT_REST_THRESHOLD = 0.01f;
+    bool desiredAtRest = glm::length(myAvatar->getVelocity()) < AT_REST_THRESHOLD;
+    if (desiredAtRest != _desiredAtRest) {
+        // start timer
+        _desiredAtRestTimer = usecTimestampNow() + (desiredAtRest ? REST_ENABLE_TIME_USECS : REST_DISABLE_TIME_USECS);
     }
 
-    Mode newMode;
-    if (qApp->isHMDMode()) {
-        newMode = SITTING;
+    _desiredAtRest = desiredAtRest;
+
+    if (_desiredAtRestTimer != 0 && usecTimestampNow() > _desiredAtRestTimer) {
+        // timer expired
+        // change state!
+        _currentAtRest = _desiredAtRest;
+        // disable timer
+        _desiredAtRestTimer = 0;
+    }
+
+    return _currentAtRest;
+}
+
+bool OverlayConductor::updateAvatarHasDriveInput() {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+    const quint64 DRIVE_ENABLE_TIME_USECS = 200 * 1000;  // 200 ms
+    const quint64 DRIVE_DISABLE_TIME_USECS = 1000 * 1000; // 1 s
+
+    bool desiredDriving = myAvatar->hasDriveInput();
+    if (desiredDriving != _desiredDriving) {
+        // start timer
+        _desiredDrivingTimer = usecTimestampNow() + (desiredDriving ? DRIVE_ENABLE_TIME_USECS : DRIVE_DISABLE_TIME_USECS);
+    }
+
+    _desiredDriving = desiredDriving;
+
+    if (_desiredDrivingTimer != 0 && usecTimestampNow() > _desiredDrivingTimer) {
+        // timer expired
+        // change state!
+        _currentDriving = _desiredDriving;
+        // disable timer
+        _desiredDrivingTimer = 0;
+    }
+
+    return _currentDriving;
+}
+
+void OverlayConductor::centerUI() {
+    // place the overlay at the current hmd position in sensor space
+    auto camMat = cancelOutRollAndPitch(qApp->getHMDSensorPose());
+    qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
+}
+
+void OverlayConductor::update(float dt) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    bool currentVisible = !offscreenUi->getDesktop()->property("pinned").toBool();
+
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    // centerUI when hmd mode is first enabled and mounted
+    if (qApp->isHMDMode() && qApp->getActiveDisplayPlugin()->isDisplayVisible()) {
+        if (!_hmdMode) {
+            _hmdMode = true;
+            centerUI();
+        }
     } else {
-        newMode = FLAT;
+        _hmdMode = false;
     }
 
-    if (newMode != _mode) {
-        switch (newMode) {
-        case SITTING: {
-            // enter the SITTING state
-            // place the overlay at origin
-            Transform identity;
-            qApp->getApplicationCompositor().setModelTransform(identity);
-            break;
-        }
-        case STANDING: {  // STANDING mode is not currently used.
-            // enter the STANDING state
-            // place the overlay at the current hmd position in world space
-            auto camMat = cancelOutRollAndPitch(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
-            Transform t;
-            t.setTranslation(extractTranslation(camMat));
-            t.setRotation(glm::quat_cast(camMat));
-            qApp->getApplicationCompositor().setModelTransform(t);
-            break;
-        }
+    bool prevDriving = _currentDriving;
+    bool isDriving = updateAvatarHasDriveInput();
+    bool drivingChanged = prevDriving != isDriving;
+    bool isAtRest = updateAvatarIsAtRest();
+    bool shouldRecenter = false;
 
-        case FLAT:
-            // do nothing
-            break;
+    if (_flags & SuppressedByDrive) {
+        if (!isDriving) {
+            _flags &= ~SuppressedByDrive;
+             shouldRecenter = true;
+        }
+    } else {
+        if (myAvatar->getClearOverlayWhenMoving() && drivingChanged && isDriving) {
+            _flags |= SuppressedByDrive;
         }
     }
 
-    _mode = newMode;
-
-}
-
-void OverlayConductor::setEnabled(bool enabled, bool toggleQmlEvents) {
-
-    if (enabled == _enabled) {
-        return;
+    if (_flags & SuppressedByHead) {
+        if (isAtRest) {
+            _flags &= ~SuppressedByHead;
+            shouldRecenter = true;
+        }
+    } else {
+        if (_hmdMode && headOutsideOverlay()) {
+            _flags |= SuppressedByHead;
+        }
     }
 
-    if (toggleQmlEvents) { // Could recurse on us with the wrong toggleQmlEvents flag, and not need in the !toggleQmlEvent case anyway.
-        Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
+
+    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (0 == (_flags & SuppressMask));
+    if (targetVisible != currentVisible) {
+        offscreenUi->setPinned(!targetVisible);
     }
-
-    _enabled = enabled; // set the new value
-
-    // if the new state is visible/enabled...
-    if (_enabled) {
-        // alpha fadeIn the overlay mesh.
-        qApp->getApplicationCompositor().fadeIn();
-
-        // enable mouse clicks from script
-        qApp->getOverlays().enable();
-
-        // enable QML events
-        if (toggleQmlEvents) {
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            offscreenUi->getRootItem()->setEnabled(true);
-        }
-
-        if (_mode == STANDING) {
-            // place the overlay at the current hmd position in world space
-            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            auto camMat = cancelOutRollAndPitch(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
-            Transform t;
-            t.setTranslation(extractTranslation(camMat));
-            t.setRotation(glm::quat_cast(camMat));
-            qApp->getApplicationCompositor().setModelTransform(t);
-        }
-    } else { // other wise, if the new state is hidden/not enabled
-        // alpha fadeOut the overlay mesh.
-        qApp->getApplicationCompositor().fadeOut();
-
-        // disable mouse clicks from script
-        qApp->getOverlays().disable();
-
-        // disable QML events
-        if (toggleQmlEvents) { // I'd really rather always do this, but it looses drive state. bugzid:501
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            offscreenUi->getRootItem()->setEnabled(false);
-        }
+    if (shouldRecenter && !_flags) {
+        centerUI();
     }
 }
-
-bool OverlayConductor::getEnabled() const {
-    return _enabled;
-}
-
