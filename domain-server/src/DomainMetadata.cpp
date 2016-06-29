@@ -50,8 +50,8 @@ const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 //   "tags": [ String ], // capped list of tags
 //   "hours": {
 //      "utc_offset": Number,
-//      "weekday": [ { "open": Time, "close": Time } ],
-//      "weekend": [ { "open": Time, "close": Time } ],
+//      "weekday": [ [ Time, Time ] ],
+//      "weekend": [ [ Time, Time ] ],
 //   }
 // }
 
@@ -65,13 +65,10 @@ const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 // delta should be of the form [ { open: Time, close: Time } ]
 void parseHours(QVariant delta, QVariant& target) {
     using Hours = DomainMetadata::Descriptors::Hours;
-
-    assert(target.canConvert<QVariantList>());
-    auto& targetList = *static_cast<QVariantList*>(target.data());
-
-    // if/when multiple ranges are allowed, this list will need to be iterated
-    assert(targetList[0].canConvert<QVariantList>());
-    auto& hours = *static_cast<QVariantList*>(targetList[0].data());
+    static const QVariantList DEFAULT_HOURS{
+        { QVariantList{ "00:00", "23:59" } }
+    };
+    target.setValue(DEFAULT_HOURS);
 
     if (!delta.canConvert<QVariantList>()) {
         return;
@@ -83,25 +80,21 @@ void parseHours(QVariant delta, QVariant& target) {
     }
 
     auto& deltaHours = *static_cast<QVariantMap*>(deltaList.first().data());
-    if (deltaHours.isEmpty()) {
+    auto open = deltaHours.find(Hours::OPEN);
+    auto close = deltaHours.find(Hours::CLOSE);
+    if (open == deltaHours.end() || close == deltaHours.end()) {
         return;
     }
 
-    // merge delta into base
+    // merge delta into new hours
     static const int OPEN_INDEX = 0;
     static const int CLOSE_INDEX = 1;
-    auto open = deltaHours.find(Hours::OPEN);
-    if (open != deltaHours.end()) {
-        hours[OPEN_INDEX] = open.value();
-    }
+    auto& hours = *static_cast<QVariantList*>(static_cast<QVariantList*>(target.data())->first().data());
+    hours[OPEN_INDEX] = open.value();
+    hours[CLOSE_INDEX] = close.value();
+
     assert(hours[OPEN_INDEX].canConvert<QString>());
-
-    auto close = deltaHours.find(Hours::CLOSE);
-    if (close != deltaHours.end()) {
-        hours[CLOSE_INDEX] = close.value();
-    }
     assert(hours[CLOSE_INDEX].canConvert<QString>());
-
 }
 
 DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
@@ -109,12 +102,8 @@ DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
     _metadata[USERS] = QVariantMap {};
     _metadata[DESCRIPTORS] = QVariantMap { {
         Descriptors::HOURS, QVariantMap {
-            { Descriptors::Hours::WEEKDAY, QVariantList {
-                QVariantList{ QVariant{}, QVariant{} } }
-            },
-            { Descriptors::Hours::WEEKEND, QVariantList {
-                QVariantList{ QVariant{}, QVariant{} } }
-            }
+            { Descriptors::Hours::WEEKDAY, QVariant{} },
+            { Descriptors::Hours::WEEKEND, QVariant{} }
         }
     } };
 
