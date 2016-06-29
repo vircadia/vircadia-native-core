@@ -468,7 +468,7 @@ glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& 
 
 // cancel out roll 
 glm::quat cancelOutRoll(const glm::quat& q) {
-    glm::vec3 forward = q * glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 forward = q * Vectors::FRONT;
     return glm::quat_cast(glm::inverse(glm::lookAt(Vectors::ZERO, forward, Vectors::UP)));
 }
 
