@@ -125,7 +125,7 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
-var MARGIN = 50;
+var MARGIN = 25;
 var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
 function updateRecommendedArea() {
     var dims = Controller.getViewportDimensions();
