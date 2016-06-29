@@ -9,7 +9,7 @@
               [ "Touchscreen.DragRight" ] 
           ] 
         },
-          "to": "Actions.Yaw"
+          "to": "Actions.Yaw", "filters": [ { "type": "scale", "scale": 0.12 } ]
         },
 
         { "from": { "makeAxis" : [
@@ -17,7 +17,7 @@
                 [ "Touchscreen.DragDown" ] 
             ] 
           },
-          "to": "Actions.Pitch"
+          "to": "Actions.Pitch", "filters": [ { "type": "scale", "scale": 0.04 } ]
         }	
     ]
 }

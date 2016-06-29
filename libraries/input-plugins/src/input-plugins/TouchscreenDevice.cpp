@@ -77,12 +77,6 @@ void TouchscreenDevice::touchBeginEvent(const QTouchEvent* event) {
     _firstTouchVec = glm::vec2(point.pos().x(), point.pos().y());
     KeyboardMouseDevice::enableTouch(false);
     if (_screenDPI != event->window()->screen()->physicalDotsPerInch()) {
-        // at DPI 100 use these arbitrary values to divide dragging distance 
-        // the value is clamped from 1 to 10 so up to 1000 DPI would be supported atm
-        _screenDPIScale.x = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchX() / 100.0), 1.0f, 10.0f)
-            * 600.0f;
-        _screenDPIScale.y = glm::clamp((float)(qApp->primaryScreen()->physicalDotsPerInchY() / 100.0), 1.0f, 10.0f)
-            * 200.0f;
         _screenDPI = event->window()->screen()->physicalDotsPerInch();
     }
 }
