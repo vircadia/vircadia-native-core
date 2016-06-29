@@ -143,7 +143,6 @@
 
             //disable the opposite hand in handControllerGrab.js by message
             var handToDisable = this.hand === 'right' ? 'left' : 'right';
-            print("disabling hand: " + handToDisable);
             Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
@@ -202,7 +201,7 @@
         },
 
         createArrow: function() {
-            print('create arrow')
+            // print('create arrow')
             this.playArrowNotchSound();
 
             var arrow = Entities.addEntity({
@@ -486,7 +485,6 @@
 
                 var backHand = this.hand === 'left' ? 1 : 0;
                 var haptic = Controller.triggerShortHapticPulse(1, backHand);
-                print('JBP TRIGGERED HAPTIC ' + haptic +" hand: "+ backHand)
 
                 //clear the strings back to only the single straight one
                 this.deleteStrings();
