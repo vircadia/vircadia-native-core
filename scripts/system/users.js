@@ -599,8 +599,6 @@ var usersWindow = (function () {
         usersRequest.ontimeout = pollUsersTimedOut;
         usersRequest.onreadystatechange = processUsers;
         usersRequest.send();
-
-        checkLoggedIn();
     }
 
     processUsers = function () {
@@ -645,6 +643,8 @@ var usersWindow = (function () {
                 calculateWindowHeight();
                 updateUsersDisplay();
                 updateOverlayPositions();
+
+                checkLoggedIn();
 
             } else {
                 print("Error: Request for users status returned " + usersRequest.status + " " + usersRequest.statusText);

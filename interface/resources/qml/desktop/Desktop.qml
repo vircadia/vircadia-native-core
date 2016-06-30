@@ -24,6 +24,13 @@ FocusScope {
     readonly property int invalid_position: -9999;
     property rect recommendedRect: Qt.rect(0,0,0,0);
     property var expectedChildren;
+    property bool repositionLocked: true
+
+    onRepositionLockedChanged: {
+        if (!repositionLocked) {
+            d.handleSizeChanged();
+        }
+    }
 
     onHeightChanged: d.handleSizeChanged();
     
@@ -52,11 +59,14 @@ FocusScope {
         readonly property real menu: 8000
     }
 
-
     QtObject {
         id: d
 
         function handleSizeChanged() {
+            if (desktop.repositionLocked) {
+                return;
+            }
+
             var oldRecommendedRect = recommendedRect;
             var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
             var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
@@ -235,6 +245,10 @@ FocusScope {
         }
 
         function repositionAll() {
+            if (desktop.repositionLocked) {
+                return;
+            }
+
             var oldRecommendedRect = recommendedRect;
             var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
             var newRecommendedRect = Controller.getRecommendedOverlayRect();

@@ -43,6 +43,8 @@ public:
     QVariantMap& getUserSettingsMap() { return _configMap.getUserConfig(); }
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
+    QVariantMap& getDescriptorsMap();
+
     // these give access to anonymous/localhost/logged-in settings from the domain-server settings page
     bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name); }
     NodePermissions getStandardPermissionsForName(const QString& name) const;
@@ -96,6 +98,8 @@ private:
     HifiConfigVariantMap _configMap;
 
     friend class DomainServer;
+
+    void validateDescriptorsMap();
 
     // these cause calls to metaverse's group api
     void requestMissingGroupIDs();

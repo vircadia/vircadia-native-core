@@ -62,6 +62,9 @@
 #include <render/CullTask.h>
 
 #include "TestWindow.h"
+#include "TestFbx.h"
+#include "TestFloorGrid.h"
+#include "TestFloorTexture.h"
 #include "TestInstancedShapes.h"
 #include "TestShapes.h"
 
@@ -90,8 +93,8 @@ class MyTestWindow : public TestWindow {
 #endif
         updateCamera();
         _testBuilders = TestBuilders({
-            //[this] { return new TestFbx(_shapePlumber); },
-            [] { return new TestShapes(); },
+            [this] { return new TestFbx(_shapePlumber); },
+            [] { return new TestInstancedShapes(); },
         });
     }
 
