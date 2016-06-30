@@ -24,8 +24,6 @@
 
 #include <DependencyManager.h>
 
-#include "UUID.h"
-
 class JSONCallbackParameters {
 public:
     JSONCallbackParameters(QObject* jsonCallbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
