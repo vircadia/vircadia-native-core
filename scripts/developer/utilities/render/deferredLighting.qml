@@ -27,56 +27,5 @@ Column {
             checked: true
             onCheckedChanged: { Render.getConfig("RenderDeferred").enableSpotLights = checked }
         }
-
-        Column{
-            CheckBox {
-                text: "Scattering"
-                checked: true
-                onCheckedChanged: { Render.getConfig("RenderDeferred").enableScattering = checked }
-            }
-
-            CheckBox {
-                text: "Show Scattering BRDF"
-                checked: Render.getConfig("RenderDeferred").showScatteringBRDF
-                onCheckedChanged: { Render.getConfig("RenderDeferred").showScatteringBRDF = checked }
-            }
-            CheckBox {
-                text: "Show Curvature"
-                checked: Render.getConfig("RenderDeferred").showCurvature
-                onCheckedChanged: { Render.getConfig("RenderDeferred").showCurvature = checked }
-            }
-            CheckBox {
-                text: "Show Diffused Normal"
-                checked: Render.getConfig("RenderDeferred").showDiffusedNormal
-                onCheckedChanged: { Render.getConfig("RenderDeferred").showDiffusedNormal = checked }
-            }
-            Repeater {
-                model: [ "Scattering Bent Red:RenderDeferred:bentRed:2.0",
-                         "Scattering Bent Green:RenderDeferred:bentGreen:2.0",
-                         "Scattering Bent Blue:RenderDeferred:bentBlue:2.0",
-                         "Scattering Bent Scale:RenderDeferred:bentScale:5.0",
-                         "Scattering Curvature Offset:RenderDeferred:curvatureOffset:1.0",
-                         "Scattering Curvature Scale:RenderDeferred:curvatureScale:2.0",
-                          ]
-                ConfigSlider {
-                    label: qsTr(modelData.split(":")[0])
-                    integral: false
-                    config: Render.getConfig(modelData.split(":")[1])
-                    property: modelData.split(":")[2]
-                    max: modelData.split(":")[3]
-                    min: 0.0
-                }
-            }
-            CheckBox {
-                text: "Scattering Profile"
-                checked: Render.getConfig("Scattering").showProfile
-                onCheckedChanged: { Render.getConfig("Scattering").showProfile = checked }
-            }
-            CheckBox {
-                text: "Scattering Table"
-                checked: Render.getConfig("Scattering").showLUT
-                onCheckedChanged: { Render.getConfig("Scattering").showLUT = checked }
-            }
-        }
     }
 }

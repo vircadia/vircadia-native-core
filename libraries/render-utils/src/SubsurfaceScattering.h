@@ -90,9 +90,11 @@ class SubsurfaceScatteringConfig : public render::Job::Config {
     Q_PROPERTY(float curvatureOffset MEMBER curvatureOffset NOTIFY dirty)
     Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
 
+    Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
+    Q_PROPERTY(bool showScatteringBRDF MEMBER showScatteringBRDF NOTIFY dirty)
+    Q_PROPERTY(bool showCurvature MEMBER showCurvature NOTIFY dirty)
+    Q_PROPERTY(bool showDiffusedNormal MEMBER showDiffusedNormal NOTIFY dirty)
 
-    Q_PROPERTY(bool showProfile MEMBER showProfile NOTIFY dirty)
-    Q_PROPERTY(bool showLUT MEMBER showLUT NOTIFY dirty)
 public:
     SubsurfaceScatteringConfig() : render::Job::Config(true) {}
 
@@ -102,10 +104,12 @@ public:
     float bentScale{ 1.5f };
 
     float curvatureOffset{ 0.08f };
-    float curvatureScale{ 0.8f };
+    float curvatureScale{ 0.9f };
 
-    bool showProfile{ false };
-    bool showLUT{ false };
+    bool enableScattering{ true };
+    bool showScatteringBRDF{ false };
+    bool showCurvature{ false };
+    bool showDiffusedNormal{ false };
 
 signals:
     void dirty();
@@ -113,21 +117,53 @@ signals:
 
 class SubsurfaceScattering {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    //using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Outputs = SubsurfaceScatteringResourcePointer;
     using Config = SubsurfaceScatteringConfig;
-    using JobModel = render::Job::ModelIO<SubsurfaceScattering, Inputs, gpu::FramebufferPointer, Config>;
+    using JobModel = render::Job::ModelO<SubsurfaceScattering, Outputs, Config>;
 
     SubsurfaceScattering();
 
     void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& scatteringFramebuffer);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, Outputs& outputs);
 
 private:
     SubsurfaceScatteringResourcePointer _scatteringResource;
+};
 
-    bool updateScatteringFramebuffer(const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& scatteringFramebuffer);
-    gpu::FramebufferPointer _scatteringFramebuffer;
 
+
+class DebugSubsurfaceScatteringConfig : public render::Job::Config {
+    Q_OBJECT
+
+    Q_PROPERTY(bool showProfile MEMBER showProfile NOTIFY dirty)
+    Q_PROPERTY(bool showLUT MEMBER showLUT NOTIFY dirty)
+    Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
+    Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
+public:
+    DebugSubsurfaceScatteringConfig() : render::Job::Config(true) {}
+
+    bool showProfile{ false };
+    bool showLUT{ false };
+    bool showCursorPixel{ false };
+    glm::vec2 debugCursorTexcoord{ 0.5, 0.5 };
+
+signals:
+    void dirty();
+};
+
+class DebugSubsurfaceScattering {
+public:
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Config = DebugSubsurfaceScatteringConfig;
+    using JobModel = render::Job::ModelI<DebugSubsurfaceScattering, Inputs, Config>;
+
+    DebugSubsurfaceScattering();
+
+    void configure(const Config& config);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+private:
 
     gpu::PipelinePointer _scatteringPipeline;
     gpu::PipelinePointer getScatteringPipeline();
@@ -136,6 +172,8 @@ private:
     gpu::PipelinePointer getShowLUTPipeline();
     bool _showProfile{ false };
     bool _showLUT{ false };
+    bool _showCursorPixel{ false };
+    glm::vec2 _debugCursorTexcoord;
 };
 
 #endif // hifi_SubsurfaceScattering_h

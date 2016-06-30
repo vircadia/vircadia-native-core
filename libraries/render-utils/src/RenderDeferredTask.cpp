@@ -117,13 +117,15 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto diffusedCurvatureFramebuffer = addJob<render::BlurGaussianDepthAware>("DiffuseCurvature2", curvatureFramebufferAndDepth, true);
 #endif
 
+    const auto scatteringResource = addJob<SubsurfaceScattering>("Scattering");
+
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer));
+    const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer, scatteringResource));
    
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
@@ -134,8 +136,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // Render transparent objects forward in LightingBuffer
     addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-    
-    const auto scatteringFramebuffer = addJob<SubsurfaceScattering>("Scattering", deferredLightingInputs);
+
 
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
@@ -147,6 +148,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
+        addJob<DebugSubsurfaceScattering>("DebugScattering", deferredLightingInputs);
+
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(diffusedCurvatureFramebuffer, curvatureFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
@@ -165,9 +168,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
             addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
     }
-
-    // FIXME: Hit effect is never used, let's hide it for now, probably a more generic way to add custom post process effects
-    // addJob<HitEffect>("HitEffect");
 
     // Blit!
     addJob<Blit>("Blit");

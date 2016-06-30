@@ -138,38 +138,11 @@ public:
 
 class RenderDeferredConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float bentRed MEMBER bentRed NOTIFY dirty)
-        Q_PROPERTY(float bentGreen MEMBER bentGreen NOTIFY dirty)
-        Q_PROPERTY(float bentBlue MEMBER bentBlue NOTIFY dirty)
-        Q_PROPERTY(float bentScale MEMBER bentScale NOTIFY dirty)
+    Q_PROPERTY(bool enablePointLights MEMBER enablePointLights NOTIFY dirty)
+    Q_PROPERTY(bool enableSpotLights MEMBER enableSpotLights NOTIFY dirty)
 
-        Q_PROPERTY(float curvatureOffset MEMBER curvatureOffset NOTIFY dirty)
-        Q_PROPERTY(float curvatureScale MEMBER curvatureScale NOTIFY dirty)
-
-        Q_PROPERTY(bool enableScattering MEMBER enableScattering NOTIFY dirty)
-        Q_PROPERTY(bool showScatteringBRDF MEMBER showScatteringBRDF NOTIFY dirty)
-        Q_PROPERTY(bool showCurvature MEMBER showCurvature NOTIFY dirty)
-        Q_PROPERTY(bool showDiffusedNormal MEMBER showDiffusedNormal NOTIFY dirty)
-        
-        Q_PROPERTY(bool enablePointLights MEMBER enablePointLights NOTIFY dirty)
-        Q_PROPERTY(bool enableSpotLights MEMBER enableSpotLights NOTIFY dirty)
-
-        
 public:
     RenderDeferredConfig() : render::Job::Config(true) {}
-
-    float bentRed{ 1.5f };
-    float bentGreen{ 0.8f };
-    float bentBlue{ 0.3f };
-    float bentScale{ 1.5f };
-
-    float curvatureOffset{ 0.08f };
-    float curvatureScale{ 0.9f };
-
-    bool enableScattering{ true };
-    bool showScatteringBRDF{ false };
-    bool showCurvature{ false };
-    bool showDiffusedNormal{ false };
 
     bool enablePointLights{ true };
     bool enableSpotLights{ true };
@@ -181,7 +154,7 @@ signals:
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet3 < DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer >;
+    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
@@ -196,7 +169,6 @@ public:
     RenderDeferredCleanup cleanupJob;
 
 protected:
-    SubsurfaceScatteringResourcePointer _subsurfaceScatteringResource;
 
     bool _enablePointLights{ true };
     bool _enableSpotLights{ true };

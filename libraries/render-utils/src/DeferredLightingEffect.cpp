@@ -609,38 +609,23 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
     }
 }
 
-RenderDeferred::RenderDeferred() :
-_subsurfaceScatteringResource(std::make_shared<SubsurfaceScatteringResource>())
-{
+RenderDeferred::RenderDeferred() {
 
 }
 
 
 void RenderDeferred::configure(const Config& config) {
 
-    glm::vec4 bentInfo(config.bentRed, config.bentGreen, config.bentBlue, config.bentScale);
-    _subsurfaceScatteringResource->setBentNormalFactors(bentInfo);
-
-    glm::vec2 curvatureInfo(config.curvatureOffset, config.curvatureScale);
-    _subsurfaceScatteringResource->setCurvatureFactors(curvatureInfo);
-
-    _subsurfaceScatteringResource->setLevel((float)config.enableScattering);
-    _subsurfaceScatteringResource->setShowBRDF(config.showScatteringBRDF);
-    _subsurfaceScatteringResource->setShowCurvature(config.showCurvature);
-    _subsurfaceScatteringResource->setShowDiffusedNormal(config.showDiffusedNormal);
-
     _enablePointLights = config.enablePointLights;
     _enableSpotLights = config.enableSpotLights;
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
-    if (!_subsurfaceScatteringResource->getScatteringTable()) {
-        _subsurfaceScatteringResource->generateScatteringTable(renderContext->args);
-    }
-    
     auto deferredTransform = inputs.get0();
     auto diffusedCurvature2 = inputs.get2()->getRenderBuffer(0);
-    setupJob.run(sceneContext, renderContext, deferredTransform, diffusedCurvature2, _subsurfaceScatteringResource);
+    auto subsurfaceScatteringResource = inputs.get3();
+
+    setupJob.run(sceneContext, renderContext, deferredTransform, diffusedCurvature2, subsurfaceScatteringResource);
     
     lightsJob.run(sceneContext, renderContext, deferredTransform, _enablePointLights, _enableSpotLights);
 

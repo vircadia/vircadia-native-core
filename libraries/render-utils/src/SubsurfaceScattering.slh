@@ -109,8 +109,7 @@ vec3 fetchBRDFSpectrum(vec3 LdotNSpectrum, float curvature) {
     return vec3(
         fetchBRDF(LdotNSpectrum.r, curvature).r,
         fetchBRDF(LdotNSpectrum.g, curvature).g,
-        fetchBRDF(LdotNSpectrum.b, curvature).b
-    );
+        fetchBRDF(LdotNSpectrum.b, curvature).b);
 }
 
 // Subsurface Scattering parameters

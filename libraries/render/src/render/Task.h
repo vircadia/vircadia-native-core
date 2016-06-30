@@ -113,7 +113,7 @@ public:
     using Parent = std::tuple<Varying, Varying, Varying>;
 
     VaryingSet3() : Parent(Varying(T0()), Varying(T1()), Varying(T2())) {}
-    VaryingSet3(const VaryingSet3& trio) : Parent(std::get<0>(trio), std::get<1>(trio), std::get<2>(trio)) {}
+    VaryingSet3(const VaryingSet3& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src)) {}
     VaryingSet3(const Varying& first, const Varying& second, const Varying& third) : Parent(first, second, third) {}
 
     const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
@@ -124,6 +124,28 @@ public:
 
     const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
     T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+};
+
+template <class T0, class T1, class T2, class T3>
+class VaryingSet4 : public std::tuple<Varying, Varying, Varying, Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying, Varying>;
+
+    VaryingSet4() : Parent(Varying(T0()), Varying(T1()), Varying(T2()), Varying(T3())) {}
+    VaryingSet4(const VaryingSet4& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src)) {}
+    VaryingSet4(const Varying& first, const Varying& second, const Varying& third, const Varying& fourth) : Parent(first, second, third, fourth) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
+    T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
 };
 
 template < class T, int NUM >
