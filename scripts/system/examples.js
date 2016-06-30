@@ -53,7 +53,7 @@ function toggleExamples() {
 var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
 var browseExamplesButton = toolBar.addButton({
-    imageURL: toolIconUrl + "examples-01.svg",
+    imageURL: toolIconUrl + "market.svg",
     objectName: "examples",
     buttonState: 1,
     alpha: 0.9

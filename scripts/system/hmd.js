@@ -30,7 +30,7 @@ function onClicked(){
 if (headset) {
     button = toolBar.addButton({
         objectName: "hmdToggle",
-        imageURL: Script.resolvePath("assets/images/tools/hmd-switch-01.svg"),
+        imageURL: Script.resolvePath("assets/images/tools/switch.svg"),
         visible: true,
         alpha: 0.9,
     });

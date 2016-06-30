@@ -14,7 +14,7 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 
 var button = toolBar.addButton({
     objectName: "mute",
-    imageURL: Script.resolvePath("assets/images/tools/mic-01.svg"),
+    imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
     visible: true,
     alpha: 0.9,
 });
