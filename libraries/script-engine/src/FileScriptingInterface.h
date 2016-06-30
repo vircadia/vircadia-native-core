@@ -3,7 +3,7 @@
 //  interface/src/scripting
 //
 //  Created by Elisa Lupin-Jimenez on 6/28/16.
-//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,9 +21,16 @@ public:
     FileScriptingInterface(QObject* parent);
 
 public slots:
-    QScriptValue hasFocus();
+	void unzipFile();
+
+signals:
+	void downloadZip();
 
 };
+
+private:
+	void downloadZip();
+	void unzipFile();
 
 
 

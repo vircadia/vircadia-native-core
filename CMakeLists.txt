@@ -201,6 +201,7 @@ set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
+option(GET_QUAZIP "Get QuaZip library automatically as external project" 1)
 
 
 if (WIN32)

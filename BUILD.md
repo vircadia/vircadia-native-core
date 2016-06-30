@@ -5,6 +5,7 @@
 * [OpenSSL](https://www.openssl.org/community/binaries.html) ~> 1.0.1m
   * IMPORTANT: Using the recommended version of OpenSSL is critical to avoid security vulnerabilities.
 * [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
+* [QuaZip](http://sourceforge.net/projects/quazip/files/quazip/) ~> 0.7.1
 
 ####CMake External Project Dependencies
 
