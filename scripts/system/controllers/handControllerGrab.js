@@ -1144,9 +1144,11 @@ function MyController(hand) {
         var grabProps = this.entityPropertyCache.getGrabProps(hotspot.entityID);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
-        // Controller.Standard.LeftHand
         var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
-        if (refCount > 0 && this.getOtherHandController().grabbedEntity != hotspot.entityID) {
+        var okToEquipFromOtherHand = ((this.getOtherHandController().state == STATE_NEAR_GRABBING ||
+                                       this.getOtherHandController().state == STATE_DISTANCE_HOLDING) &&
+                                      this.getOtherHandController().grabbedEntity == hotspot.entityID);
+        if (refCount > 0 && !okToEquipFromOtherHand) {
             if (debug) {
                 print("equip is skipping '" + props.name + "': grabbed by someone else");
             }
