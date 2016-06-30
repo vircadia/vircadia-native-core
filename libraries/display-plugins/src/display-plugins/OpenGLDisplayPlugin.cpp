@@ -647,12 +647,14 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
 }
 
 QImage OpenGLDisplayPlugin::getScreenshot() const {
-    QImage result;
+    using namespace oglplus;
+    QImage screenshot(_compositeFramebuffer->size.x, _compositeFramebuffer->size.y, QImage::Format_RGBA8888);
     withMainThreadContext([&] {
-        static auto widget = _container->getPrimaryWidget();
-        result = widget->grabFrameBuffer();
+        auto windowSize = toGlm(_container->getPrimaryWidget()->size());
+        Framebuffer::Bind(Framebuffer::Target::Read, _compositeFramebuffer->fbo);
+        Context::ReadPixels(0, 0, _compositeFramebuffer->size.x, _compositeFramebuffer->size.y, enums::PixelDataFormat::RGBA, enums::PixelDataType::UnsignedByte, screenshot.bits());
     });
-    return result;
+    return screenshot.mirrored(false, true);
 }
 
 uint32_t OpenGLDisplayPlugin::getSceneTextureId() const {
