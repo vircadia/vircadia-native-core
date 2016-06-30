@@ -435,6 +435,9 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
             continue;
         }
 
+        avatarModel->invalidCalculatedMeshBoxes();
+        avatarModel->recalculateMeshBoxes(true);
+
         QString extraInfo;
         bool intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
                                                                            distance, face, surfaceNormal, extraInfo, true);
