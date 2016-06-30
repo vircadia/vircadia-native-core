@@ -1144,10 +1144,11 @@ function MyController(hand) {
         var grabProps = this.entityPropertyCache.getGrabProps(hotspot.entityID);
         var debug = (WANT_DEBUG_SEARCH_NAME && props.name === WANT_DEBUG_SEARCH_NAME);
 
+        // Controller.Standard.LeftHand
         var refCount = ("refCount" in grabProps) ? grabProps.refCount : 0;
-        if (refCount > 0) {
+        if (refCount > 0 && this.getOtherHandController().grabbedEntity != hotspot.entityID) {
             if (debug) {
-                print("equip is skipping '" + props.name + "': it is already grabbed");
+                print("equip is skipping '" + props.name + "': grabbed by someone else");
             }
             return false;
         }
@@ -1698,6 +1699,12 @@ function MyController(hand) {
             this.grabbedEntity = saveGrabbedID;
         }
 
+        var otherHandController = this.getOtherHandController();
+        if (otherHandController.grabbedEntity == this.grabbedEntity &&
+            (otherHandController.state == STATE_NEAR_GRABBING || otherHandController.state == STATE_DISTANCE_HOLDING)) {
+            otherHandController.setState(STATE_OFF, "other hand grabbed this entity");
+        }
+
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties, false);
 
@@ -1817,7 +1824,6 @@ function MyController(hand) {
             this.setState(STATE_OFF, "entity has no position property");
             return;
         }
-
 
         var now = Date.now();
         if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * CHECK_TOO_FAR_UNEQUIP_TIME) {
@@ -2175,6 +2181,10 @@ function MyController(hand) {
             data = null;
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+    };
+
+    this.getOtherHandController = function() {
+        return (this.hand === RIGHT_HAND) ? leftController : rightController;
     };
 }
 
