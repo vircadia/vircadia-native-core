@@ -650,7 +650,6 @@ QImage OpenGLDisplayPlugin::getScreenshot() const {
     using namespace oglplus;
     QImage screenshot(_compositeFramebuffer->size.x, _compositeFramebuffer->size.y, QImage::Format_RGBA8888);
     withMainThreadContext([&] {
-        auto windowSize = toGlm(_container->getPrimaryWidget()->size());
         Framebuffer::Bind(Framebuffer::Target::Read, _compositeFramebuffer->fbo);
         Context::ReadPixels(0, 0, _compositeFramebuffer->size.x, _compositeFramebuffer->size.y, enums::PixelDataFormat::RGBA, enums::PixelDataType::UnsignedByte, screenshot.bits());
     });
