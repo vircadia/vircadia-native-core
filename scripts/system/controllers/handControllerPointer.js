@@ -125,8 +125,17 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
+var MARGIN = 25;
+var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
+function updateRecommendedArea() {
+    var dims = Controller.getViewportDimensions();
+    reticleMaxX = dims.x - MARGIN;
+    reticleMaxY = dims.y - MARGIN;
+}
 var setReticlePosition = function (point2d) {
     weMovedReticle = true;
+    point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
+    point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
     Reticle.setPosition(point2d);
 };
 
@@ -439,7 +448,7 @@ function update() {
     }
     updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
-        return off(); // Let them use mouse it in peace.
+        return off(); // Let them use mouse in peace.
     }
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
@@ -475,17 +484,13 @@ function update() {
     clearSystemLaser();
     Reticle.visible = false;
 }
-
-var UPDATE_INTERVAL = 50; // milliseconds. Script.update is too frequent.
-var updater = Script.setInterval(update, UPDATE_INTERVAL);
-Script.scriptEnding.connect(function () {
-    Script.clearInterval(updater);
-});
+setupHandler(Script.update, update);
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
+    updateRecommendedArea();
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);

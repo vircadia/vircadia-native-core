@@ -773,6 +773,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto gpuIdent = GPUIdent::getInstance();
     auto glContextData = getGLContextData();
     QJsonObject properties = {
+        { "version", applicationVersion() },
         { "previousSessionCrashed", _previousSessionCrashed },
         { "previousSessionRuntime", sessionRunTime.get() },
         { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
