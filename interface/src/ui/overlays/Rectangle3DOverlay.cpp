@@ -53,13 +53,15 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
         transform.setRotation(rotation);
 
         batch->setModelTransform(transform);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
         if (getIsSolid()) {
             glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
             glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
-            DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, rectangleColor);
+            geometryCache->bindSimpleProgram(*batch);
+            geometryCache->renderQuad(*batch, topLeft, bottomRight, rectangleColor);
         } else {
-            auto geometryCache = DependencyManager::get<GeometryCache>();
+            geometryCache->bindSimpleProgram(*batch, false, false, true, true);
             if (getIsDashedLine()) {
                 glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
                 glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
@@ -89,7 +91,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }

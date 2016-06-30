@@ -97,7 +97,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
     _lastColor = colorX;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    
+
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
 
@@ -149,6 +149,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
             geometryCache->updateVertices(_quadVerticesID, points, color);
         }
         
+        geometryCache->bindSimpleProgram(batch);
         geometryCache->renderVertices(batch, gpu::TRIANGLES, _quadVerticesID);
         
     } else {
@@ -187,6 +188,8 @@ void Circle3DOverlay::render(RenderArgs* args) {
             geometryCache->updateVertices(_lineVerticesID, points, color);
         }
         
+        // Render unlit
+        geometryCache->bindSimpleProgram(batch, false, false, true);
         if (getIsDashedLine()) {
             geometryCache->renderVertices(batch, gpu::LINES, _lineVerticesID);
         } else {
@@ -279,7 +282,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Circle3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }

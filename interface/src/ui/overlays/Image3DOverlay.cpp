@@ -92,8 +92,10 @@ void Image3DOverlay::render(RenderArgs* args) {
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
-
-    DependencyManager::get<GeometryCache>()->renderQuad(
+    
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->bindSimpleProgram(*batch, true, false);
+    geometryCache->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
         glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
     );
@@ -102,7 +104,7 @@ void Image3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Image3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (_emissive) {
         builder.withUnlit();
     }

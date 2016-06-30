@@ -75,10 +75,11 @@ void Grid3DOverlay::render(RenderArgs* args) {
         transform.setScale(glm::vec3(getDimensions(), 1.0f));
         transform.setTranslation(position);
         batch->setModelTransform(transform);
-
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->bindSimpleProgram(*batch, false, false, true, true);
         const float MINOR_GRID_EDGE = 0.0025f;
         const float MAJOR_GRID_EDGE = 0.005f;
-        DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
+        geometryCache->renderGrid(*batch, minCorner, maxCorner,
             _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
             _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
             gridColor, _drawInFront);
