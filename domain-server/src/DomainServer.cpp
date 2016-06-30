@@ -112,6 +112,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         return;
     }
 
+    _settingsManager.requestMissingGroupIDs();
+
     setupNodeListAndAssignments();
     setupAutomaticNetworking();
     if (!getID().isNull()) {

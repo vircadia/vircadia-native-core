@@ -1004,6 +1004,11 @@ void DomainServerSettingsManager::persistToFile() {
 }
 
 void DomainServerSettingsManager::requestMissingGroupIDs() {
+    if (!DependencyManager::get<AccountManager>()->hasAuthEndpoint()) {
+        // can't yet.
+        return;
+    }
+
     QHashIterator<QString, NodePermissionsPointer> i_permissions(_groupPermissions.get());
     while (i_permissions.hasNext()) {
         i_permissions.next();
@@ -1044,40 +1049,73 @@ void DomainServerSettingsManager::getGroupID(const QString& groupname) {
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getGroupIDErrorCallback";
 
-    const QString GET_GROUP_ID_PATH = "api/v1/get_group_id/%1";
+    const QString GET_GROUP_ID_PATH = "api/v1/groups/name/%1";
 
-    qDebug() << "Requesting group ID for group named" << groupname;
+    qDebug() << "************* Requesting group ID for group named" << groupname;
 
     DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_ID_PATH.arg(groupname),
-                                                          AccountManagerAuth::None,
+                                                          AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams);
 }
 
 void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestReply) {
+    // {
+    //     "data":{
+    //         "groups":[{
+    //             "description":null,
+    //             "id":"fd55479a-265d-4990-854e-3d04214ad1b0",
+    //             "is_list":false,
+    //             "membership":{
+    //                 "permissions":{
+    //                     "custom_1=":false,
+    //                     "custom_2=":false,
+    //                     "custom_3=":false,
+    //                     "custom_4=":false,
+    //                     "del_group=":true,
+    //                     "invite_member=":true,
+    //                     "kick_member=":true,
+    //                     "list_members=":true,
+    //                     "mv_group=":true,
+    //                     "query_members=":true,
+    //                     "rank_member=":true
+    //                 },
+    //                 "rank":{
+    //                     "name=":"owner",
+    //                     "order=":0
+    //                 }
+    //             },
+    //             "name":"Blerg Blah"
+    //         }]
+    //     },
+    //     "status":"success"
+    // }
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
-
     if (jsonObject["status"].toString() == "success") {
-        QString groupName = jsonObject["group_name"].toString();
-        QUuid groupID = QUuid(jsonObject["group_id"].toString());
+        QJsonArray groups = jsonObject["data"].toObject()["groups"].toArray();
+        for (int i = 0; i < groups.size(); i++) {
+            QJsonObject group = groups.at(i).toObject();
+            QString groupName = group["name"].toString();
+            QUuid groupID = QUuid(group["id"].toString());
 
-        bool found = false;
-        if (_groupPermissions.contains(groupName)) {
-            qDebug() << "ID for group:" << groupName << "is" << groupID;
-            _groupPermissions[groupName]->setGroupID(groupID);
-            _groupByID[groupID] = _groupPermissions[groupName];
-            found = true;
-        }
-        if (_groupForbiddens.contains(groupName)) {
-            qDebug() << "ID for group:" << groupName << "is" << groupID;
-            _groupForbiddens[groupName]->setGroupID(groupID);
-            _groupByID[groupID] = _groupForbiddens[groupName];
-            found = true;
-        }
+            bool found = false;
+            if (_groupPermissions.contains(groupName)) {
+                qDebug() << "ID for group:" << groupName << "is" << groupID;
+                _groupPermissions[groupName]->setGroupID(groupID);
+                _groupByID[groupID] = _groupPermissions[groupName];
+                found = true;
+            }
+            if (_groupForbiddens.contains(groupName)) {
+                qDebug() << "ID for group:" << groupName << "is" << groupID;
+                _groupForbiddens[groupName]->setGroupID(groupID);
+                _groupByID[groupID] = _groupForbiddens[groupName];
+                found = true;
+            }
 
-        if (found) {
-            packPermissions();
-        } else {
-            qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
+            if (found) {
+                packPermissions();
+            } else {
+                qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
+            }
         }
     } else {
         qDebug() << "getGroupID api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
@@ -1085,7 +1123,7 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
 }
 
 void DomainServerSettingsManager::getGroupIDErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "getGroupID api call failed:" << requestReply.error();
+    qDebug() << "******************** getGroupID api call failed:" << requestReply.error();
 }
 
 void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, bool isMember) {

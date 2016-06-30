@@ -711,20 +711,39 @@ void DomainGatekeeper::getIsGroupMember(const QString& username, const QUuid gro
     callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
 
-    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/is_member/%2";
+    const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/%1/membership/%2";
     QString groupIDStr = groupID.toString().mid(1,36);
     DependencyManager::get<AccountManager>()->sendRequest(GET_IS_GROUP_MEMBER_PATH.arg(groupIDStr).arg(username),
-                                                          AccountManagerAuth::None,
+                                                          AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams);
 }
 
 void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply) {
+    // {
+    //     "data":{
+    //         "username":"sethalves",
+    //         "groups":{
+    //             "fd55479a-265d-4990-854e-3d04214ad1b0":{
+    //                 "name":"Blerg Blah",
+    //                 "rank":{
+    //                     "name":"admin",
+    //                     "order":1
+    //                 }
+    //             }
+    //         }
+    //     },
+    //     "status":"success"
+    // }
+
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     if (jsonObject["status"].toString() == "success") {
-        QString username = jsonObject["username"].toString();
-        QUuid groupID = QUuid(jsonObject["group_id"].toString());
-        bool isMember = jsonObject["is_member"].toBool();
-        _server->_settingsManager.recordGroupMembership(username, groupID, isMember);
+        QJsonObject data = jsonObject["data"].toObject();
+        QJsonObject groups = data["groups"].toObject();
+        QString username = data["username"].toString();
+        _server->_settingsManager.clearGroupMemberships(username);
+        foreach (auto groupID, groups.keys()) {
+            _server->_settingsManager.recordGroupMembership(username, groupID, true);
+        }
     } else {
         qDebug() << "getIsGroupMember api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
     }
