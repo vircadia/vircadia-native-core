@@ -24,6 +24,8 @@
 
 #include <DependencyManager.h>
 
+#include "UUID.h"
+
 class JSONCallbackParameters {
 public:
     JSONCallbackParameters(QObject* jsonCallbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
@@ -86,6 +88,7 @@ public:
 
     static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
 
+    QString getSessionIDWithoutCurlyBraces() const { return uuidStringWithoutCurlyBraces(_sessionID); }
     QUuid getSessionID() const { return _sessionID; }
     void setSessionID(const QUuid& sessionID) { _sessionID = sessionID; }
 
