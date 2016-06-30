@@ -55,16 +55,20 @@ var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
 var browseExamplesButton = toolBar.addButton({
     imageURL: toolIconUrl + "examples-01.svg",
     objectName: "examples",
-    yOffset: 50,
-    alpha: 0.9,
+    buttonState: 1,
+    alpha: 0.9
 });
 
-var browseExamplesButtonDown = false;
-
-browseExamplesButton.clicked.connect(function(){
+function onExamplesWindowVisibilityChanged() {
+    browseExamplesButton.writeProperty('buttonState', examplesWindow.visible ? 0 : 1);
+}
+function onClick() {
     toggleExamples();
-});
+}
+browseExamplesButton.clicked.connect(onClick);
+examplesWindow.visibleChanged.connect(onExamplesWindowVisibilityChanged);
 
 Script.scriptEnding.connect(function () {
-    browseExamplesButton.clicked.disconnect();
+    browseExamplesButton.clicked.disconnect(onClick);
+    examplesWindow.visibleChanged.disconnect(onExamplesWindowVisibilityChanged);
 });
