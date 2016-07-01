@@ -1,14 +1,25 @@
-//check if trigger is down
-//if trigger is down, check if thumb is down
-//if both are down, enter 'teleport mode'
-//aim controller to change landing spot
-//visualize aim + spot (line + circle)
-//release trigger to teleport then exit teleport mode
-//if thumb is release, exit teleport mode
+//v1
+//check if trigger is down xxx
+//if trigger is down, check if thumb is down xxx
+//if both are down, enter 'teleport mode' xxx
+//aim controller to change landing spot xxx
+//visualize aim + spot (line + circle) xxx
+//release trigger to teleport then exit teleport mode xxx
+//if thumb is release, exit teleport mode xxx
 
 //v2: show room boundaries when choosing a place to teleport
 //v2: smooth fade screen in/out?
-//v2: haptic feedbackasd
+//v2: haptic feedback
+
+
+// alternate notes for philip:
+// try just thumb to teleport
+// cancel if destination is within ~1m of current location
+
+
+//try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
+
+
 
 var inTeleportMode = false;
 
