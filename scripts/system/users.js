@@ -826,6 +826,10 @@ var usersWindow = (function () {
     function onMouseMoveEvent(event) {
         var isVisible;
 
+        if (!isLoggedIn) {
+            return;
+        }
+
         if (isMovingScrollbar) {
             if (scrollbarBackgroundPosition.x - WINDOW_MARGIN <= event.x
                     && event.x <= scrollbarBackgroundPosition.x + SCROLLBAR_BACKGROUND_WIDTH + WINDOW_MARGIN
