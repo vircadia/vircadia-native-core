@@ -309,5 +309,11 @@ calculateHandSizeRatio = function() {
 
 clamp = function(val, min, max){
      return Math.max(min, Math.min(max, val))
- } 
+}
 
+// flattens an array of arrays into a single array
+// example: flatten([[1], [3, 4], []) => [1, 3, 4]
+// NOTE: only does one level of flattening, it is not recursive.
+flatten = function(array) {
+    return [].concat.apply([], array);
+}
