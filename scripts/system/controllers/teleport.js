@@ -124,7 +124,7 @@ function Teleporter() {
         // Entities.deleteEntity(_this.targetEntity);
         Overlays.deleteOverlay(_this.targetOverlay);
         this.enableGrab();
-        
+
         this.updateConnected = false;
         Script.setTimeout(function() {
             inTeleportMode = false;
@@ -274,16 +274,16 @@ function Teleporter() {
     };
 
     this.updateTargetOverlay = function(intersection) {
-        this.intersection=intersection;
+        this.intersection = intersection;
         var position = {
             x: intersection.intersection.x,
-            y: intersection.intersection.y+TARGET_MODEL_DIMENSIONS.y,
+            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y,
             z: intersection.intersection.z
         }
         Overlays.editOverlay(this.targetOverlay, {
             position: position
         });
-        
+
     };
 
     this.disableGrab = function() {
@@ -299,11 +299,8 @@ function Teleporter() {
         print('TELEPORT CALLED');
 
         var offset = getAvatarFootOffset();
- 
-        // _this.intersectionPosition.y+=offset;
-        // print('OFFSET IS::: ' + JSON.stringify(offset))
-        // print('TELEPORT POSITION IS:: ' + JSON.stringify(_this.intersectionPosition));
-        _this.intersection.intersection.y+=offset;
+
+        _this.intersection.intersection.y += offset;
         MyAvatar.position = _this.intersection.intersection;
         this.exitTeleportMode();
     };
