@@ -13,7 +13,7 @@
 
 
 // alternate notes for philip:
-// try just thumb to teleport
+// try just thumb to teleport xxx
 // cancel if destination is within ~1m of current location
 
 
@@ -22,6 +22,13 @@
 var inTeleportMode = false;
 
 var easyMode = true;
+
+var TARGET_MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/potted_plant/potted_plant.fbx';
+var TARGET_MODEL_DIMENSIONS = {
+    x: 1.1005,
+    y: 2.1773,
+    z: 1.0739
+};
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -62,24 +69,22 @@ function Teleporter() {
         print('jbp initialize')
         this.createMappings();
         this.disableGrab();
-        _this.targetEntity = Entities.addEntity({
-            name: 'Hifi-Teleporter-Target-Entity',
-            position: MyAvatar.position,
-            type: 'Sphere',
-            dimensions: {
-                x: 0.2,
-                y: 0.2,
-                z: 0.2
-            },
-            color: {
-                red: 255,
-                green: 255,
-                blue: 255
-            },
-            collisionless: true,
-            collidesWith: '',
-            visible: true
+
+        var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
+        var towardsMe = Quat.angleAxis(cameraEuler.y + 180, {
+            x: 0,
+            y: 1,
+            z: 0
         });
+
+        var targetOverlayProps = {
+            url: TARGET_MODEL_URL,
+            position: MyAvatar.position,
+            rotation: towardsMe,
+            dimensions: TARGET_MODEL_DIMENSIONS
+        };
+
+        _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
     };
 
 
@@ -106,59 +111,28 @@ function Teleporter() {
         this.teleportHand = hand;
         this.initialize();
         this.updateConnected = true;
-        if (easyMode !== true) {
-            Script.update.connect(this.update);
+        Script.update.connect(this.update);
 
-        } else {
-            Script.update.connect(this.updateEasy);
-
-        }
     };
 
     this.exitTeleportMode = function(value) {
         print('jbp value on exit: ' + value);
+        Script.update.disconnect(this.update);
         this.disableMappings();
         this.rightOverlayOff();
         this.leftOverlayOff();
-        Entities.deleteEntity(_this.targetEntity);
+        // Entities.deleteEntity(_this.targetEntity);
+        Overlays.deleteOverlay(_this.targetOverlay);
         this.enableGrab();
-        if (easyMode !== true) {
-            Script.update.disconnect(this.update);
-        } else {
-            Script.update.disconnect(this.updateEasy);
-        }
+        
         this.updateConnected = false;
-        inTeleportMode = false;
-
+        Script.setTimeout(function() {
+            inTeleportMode = false;
+        }, 100);
     };
+
 
     this.update = function() {
-        //print('in teleporter update')
-
-        if (teleporter.teleportHand === 'left') {
-            teleporter.leftRay();
-            if (leftPad.buttonValue === 0) {
-                _this.exitTeleportMode();
-                return;
-            }
-            if (leftTrigger.buttonValue === 0) {
-                _this.teleport();
-            }
-        } else {
-            teleporter.rightRay();
-            if (rightPad.buttonValue === 0) {
-                _this.exitTeleportMode();
-                return;
-            }
-            if (rightTrigger.buttonValue === 0) {
-                _this.teleport();
-            }
-        }
-
-
-    };
-
-    this.updateEasy = function() {
 
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
@@ -199,7 +173,8 @@ function Teleporter() {
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-            this.updateTargetEntity(rightIntersection);
+            this.updateTargetOverlay(rightIntersection);
+
         };
     };
 
@@ -221,10 +196,10 @@ function Teleporter() {
             green: 255,
             blue: 0
         });
-        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
+        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], []);
 
         if (leftIntersection.intersects) {
-            this.updateTargetEntity(leftIntersection);
+            this.updateTargetOverlay(leftIntersection);
         };
     };
 
@@ -298,18 +273,17 @@ function Teleporter() {
         }
     };
 
-    this.updateTargetEntity = function(intersection) {
-        var targetProps = Entities.getEntityProperties(this.targetEntity);
+    this.updateTargetOverlay = function(intersection) {
+        this.intersection=intersection;
         var position = {
             x: intersection.intersection.x,
-            y: intersection.intersection.y + targetProps.dimensions.y / 2,
+            y: intersection.intersection.y+TARGET_MODEL_DIMENSIONS.y,
             z: intersection.intersection.z
         }
-        Entities.editEntity(this.targetEntity, {
+        Overlays.editOverlay(this.targetOverlay, {
             position: position
         });
-
-
+        
     };
 
     this.disableGrab = function() {
@@ -321,17 +295,16 @@ function Teleporter() {
     };
 
     this.teleport = function(value) {
-        //todo
-        //get the y position of the teleport landing spot
-        print('value on teleport: ' + value)
-        var properties = Entities.getEntityProperties(teleporter.targetEntity);
+
+        print('TELEPORT CALLED');
+
         var offset = getAvatarFootOffset();
-        properties.position.y += offset;
-
-        print('OFFSET IS::: ' + JSON.stringify(offset))
-        print('TELEPORT POSITION IS:: ' + JSON.stringify(properties.position));
-        MyAvatar.position = properties.position;
-
+ 
+        // _this.intersectionPosition.y+=offset;
+        // print('OFFSET IS::: ' + JSON.stringify(offset))
+        // print('TELEPORT POSITION IS:: ' + JSON.stringify(_this.intersectionPosition));
+        _this.intersection.intersection.y+=offset;
+        MyAvatar.position = _this.intersection.intersection;
         this.exitTeleportMode();
     };
 }
@@ -438,7 +411,7 @@ function cleanup() {
     teleporter.disableMappings();
     teleporter.rightOverlayOff();
     teleporter.leftOverlayOff();
-    Entities.deleteEntity(teleporter.targetEntity);
+    Overlays.deleteOverlay(teleporter.targetOverlay);
     if (teleporter.updateConnected !== null) {
         Script.update.disconnect(teleporter.update);
     }
