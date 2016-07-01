@@ -16,13 +16,14 @@ var button = toolBar.addButton({
     objectName: "mute",
     imageURL: Script.resolvePath("assets/images/tools/mic.svg"),
     visible: true,
-    alpha: 0.9,
+    buttonState: 1,
+    alpha: 0.9
 });
 
 function onMuteToggled() {
     // We could just toggle state, but we're less likely to get out of wack if we read the AudioDevice.
-    // muted => "on" button state => buttonState 1
-    button.writeProperty('buttonState', AudioDevice.getMuted() ? 1 : 0);
+    // muted => button "on" state => 1. go figure.
+    button.writeProperty('buttonState', AudioDevice.getMuted() ? 0 : 1);
 }
 onMuteToggled();
 function onClicked(){
