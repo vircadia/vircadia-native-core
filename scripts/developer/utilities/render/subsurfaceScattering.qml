@@ -71,6 +71,11 @@ Column {
                 checked: Render.getConfig("DebugScattering").showCursorPixel
                 onCheckedChanged: { Render.getConfig("DebugScattering").showCursorPixel = checked }
             }
+            CheckBox {
+                text: "Skin Specular Beckmann"
+                checked: Render.getConfig("DebugScattering").showSpecularTable
+                onCheckedChanged: { Render.getConfig("DebugScattering").showSpecularTable = checked }
+            }
         }
     }
 }

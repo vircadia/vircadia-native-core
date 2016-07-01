@@ -91,7 +91,8 @@ float fetchOcclusionMap(vec2 uv) {
 <@if withScattering@>
 uniform sampler2D scatteringMap;
 float fetchScatteringMap(vec2 uv) {
-    return step(0.5, texture(scatteringMap, uv).r); // boolean scattering for now
+    //return step(0.5, texture(scatteringMap, uv).r); // boolean scattering for now
+    return texture(scatteringMap, uv).r; // boolean scattering for now
 }
 <@endif@>
 

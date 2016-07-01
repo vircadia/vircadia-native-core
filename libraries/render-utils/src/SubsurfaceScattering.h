@@ -44,10 +44,13 @@ public:
 
     gpu::TexturePointer getScatteringProfile() const { return _scatteringProfile; }
     gpu::TexturePointer getScatteringTable() const { return _scatteringTable; }
+    gpu::TexturePointer getScatteringSpecular() const { return _scatteringSpecular; }
 
     void generateScatteringTable(RenderArgs* args);
+
     static gpu::TexturePointer generateScatteringProfile(RenderArgs* args);
     static gpu::TexturePointer generatePreIntegratedScattering(const gpu::TexturePointer& profile, RenderArgs* args);
+    static gpu::TexturePointer generateScatteringSpecularBeckmann(RenderArgs* args);
 
 protected:
 
@@ -74,6 +77,7 @@ protected:
 
     gpu::TexturePointer _scatteringProfile;
     gpu::TexturePointer _scatteringTable;
+    gpu::TexturePointer _scatteringSpecular;
 };
 
 using SubsurfaceScatteringResourcePointer = std::shared_ptr<SubsurfaceScatteringResource>;
@@ -138,6 +142,7 @@ class DebugSubsurfaceScatteringConfig : public render::Job::Config {
 
     Q_PROPERTY(bool showProfile MEMBER showProfile NOTIFY dirty)
     Q_PROPERTY(bool showLUT MEMBER showLUT NOTIFY dirty)
+    Q_PROPERTY(bool showSpecularTable MEMBER showSpecularTable NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
 public:
@@ -145,6 +150,7 @@ public:
 
     bool showProfile{ false };
     bool showLUT{ false };
+    bool showSpecularTable{ false };
     bool showCursorPixel{ false };
     glm::vec2 debugCursorTexcoord{ 0.5, 0.5 };
 
@@ -172,6 +178,7 @@ private:
     gpu::PipelinePointer getShowLUTPipeline();
     bool _showProfile{ false };
     bool _showLUT{ false };
+    bool _showSpecularTable{ false };
     bool _showCursorPixel{ false };
     glm::vec2 _debugCursorTexcoord;
 };

@@ -19,6 +19,8 @@
 
 #include "subsurfaceScattering_makeProfile_frag.h"
 #include "subsurfaceScattering_makeLUT_frag.h"
+#include "subsurfaceScattering_makeSpecularBeckmann_frag.h"
+
 #include "subsurfaceScattering_drawScattering_frag.h"
 
 enum ScatteringShaderBufferSlots {
@@ -108,6 +110,9 @@ void SubsurfaceScatteringResource::generateScatteringTable(RenderArgs* args) {
     }
     if (!_scatteringTable) {
         _scatteringTable = generatePreIntegratedScattering(_scatteringProfile, args);
+    }
+    if (!_scatteringSpecular) {
+        _scatteringSpecular = generateScatteringSpecularBeckmann(args);
     }
 }
 
@@ -372,6 +377,41 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     });
 }
 
+void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* args) {
+    int width = beckmannMap->getWidth();
+    int height = beckmannMap->getHeight();
+
+    gpu::PipelinePointer makePipeline;
+    {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeSpecularBeckmann_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        makePipeline = gpu::Pipeline::create(program, state);
+    }
+
+    auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    makeFramebuffer->setRenderBuffer(0, beckmannMap);
+
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        batch.enableStereo(false);
+
+        batch.setViewportTransform(glm::ivec4(0, 0, width, height));
+
+        batch.setFramebuffer(makeFramebuffer);
+        batch.setPipeline(makePipeline);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.setResourceTexture(0, nullptr);
+        batch.setPipeline(nullptr);
+        batch.setFramebuffer(nullptr);
+    });
+}
+
 gpu::TexturePointer SubsurfaceScatteringResource::generateScatteringProfile(RenderArgs* args) {
     const int PROFILE_RESOLUTION = 512;
     auto profileMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_SRGBA_32, PROFILE_RESOLUTION, 1, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
@@ -388,7 +428,12 @@ gpu::TexturePointer SubsurfaceScatteringResource::generatePreIntegratedScatterin
     return scatteringLUT;
 }
 
-
+gpu::TexturePointer SubsurfaceScatteringResource::generateScatteringSpecularBeckmann(RenderArgs* args) {
+    const int SPECULAR_RESOLUTION = 256;
+    auto beckmannMap = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32 /*gpu::Element(gpu::SCALAR, gpu::HALF, gpu::RGB)*/, SPECULAR_RESOLUTION, SPECULAR_RESOLUTION, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP)));
+    computeSpecularBeckmannGPU(beckmannMap, args);
+    return beckmannMap;
+}
 
 DebugSubsurfaceScattering::DebugSubsurfaceScattering() {
 }
@@ -397,6 +442,7 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 
     _showProfile = config.showProfile;
     _showLUT = config.showLUT;
+    _showSpecularTable = config.showSpecularTable;
     _showCursorPixel = config.showCursorPixel;
     _debugCursorTexcoord = config.debugCursorTexcoord;
 }
@@ -473,6 +519,7 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
     }
     auto scatteringProfile = scatteringResource->getScatteringProfile();
     auto scatteringTable = scatteringResource->getScatteringTable();
+    auto scatteringSpecular = scatteringResource->getScatteringSpecular();
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
 
@@ -526,6 +573,13 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
                 batch._glUniform2f(debugScatteringPipeline->getProgram()->getUniforms().findLocation("uniformCursorTexcoord"), _debugCursorTexcoord.x, _debugCursorTexcoord.y);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
+        }
+
+        if (_showSpecularTable) {
+            batch.setViewportTransform(glm::ivec4(viewportSize + offsetViewport * 0.5, 0, viewportSize * 0.5, viewportSize * 0.5));
+            batch.setPipeline(getShowLUTPipeline());
+            batch.setResourceTexture(0, scatteringSpecular);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
 
         batch.setViewportTransform(args->_viewport);

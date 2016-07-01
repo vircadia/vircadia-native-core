@@ -45,6 +45,7 @@ struct DeferredFragment {
     float roughness;
     vec3 emissive;
     int mode;
+    float scattering;
     float depthVal;
 };
 
@@ -63,8 +64,17 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
 
     // Diffuse color and unpack the mode and the metallicness
     frag.diffuse = frag.diffuseVal.xyz;
+    frag.scattering = 0.0;
     unpackModeMetallic(frag.diffuseVal.w, frag.mode, frag.metallic);
 
+    frag.emissive = frag.specularVal.xyz;
+    frag.obscurance = min(frag.specularVal.w, frag.obscurance);
+
+
+    if (frag.mode == FRAG_MODE_SCATTERING) {
+        frag.scattering = frag.emissive.x;
+        frag.emissive = vec3(0.0);
+    }
 
     if (frag.metallic <= 0.5) {
         frag.metallic = 0.0;
@@ -73,9 +83,6 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
         frag.specular = vec3(frag.diffuseVal.xyz);
         frag.metallic = 1.0;
     }
-
-    frag.emissive = frag.specularVal.xyz;
-    frag.obscurance = min(frag.specularVal.w, frag.obscurance);
 
     return frag;
 }

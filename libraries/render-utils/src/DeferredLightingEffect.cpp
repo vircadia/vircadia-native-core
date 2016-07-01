@@ -62,6 +62,7 @@ enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_CURVATURE_UNIT,
     DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
     SCATTERING_LUT_UNIT,
+    SCATTERING_SPECULAR_UNIT,
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
@@ -175,6 +176,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), DEFERRED_BUFFER_CURVATURE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SCATTERING_LUT_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringSpecularBeckmann"), SCATTERING_SPECULAR_UNIT));
 
 
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
@@ -399,6 +401,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
 
         batch.setResourceTexture(SCATTERING_LUT_UNIT, subsurfaceScatteringResource->getScatteringTable());
+        batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, subsurfaceScatteringResource->getScatteringSpecular());
 
 
         // Global directional light and ambient pass
@@ -593,6 +596,7 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, nullptr);
         batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, nullptr);
         batch.setResourceTexture(SCATTERING_LUT_UNIT, nullptr);
+        batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, nullptr);
         
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);

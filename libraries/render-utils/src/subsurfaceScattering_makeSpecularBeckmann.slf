@@ -1,0 +1,26 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 6/30/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+float specularBeckmann(float ndoth, float roughness) {
+    float alpha = acos(ndoth);
+    float ta = tan(alpha);
+    float val = 1.0 / (roughness * roughness * pow(ndoth, 4.0)) * exp(-(ta * ta) / (roughness * roughness));
+    return val;
+}
+
+void main(void) {
+    outFragColor = vec4(vec3(0.5 * pow( specularBeckmann(varTexCoord0.x, varTexCoord0.y), 0.1)), 1.0);
+}

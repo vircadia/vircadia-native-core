@@ -114,7 +114,7 @@ static const std::string DEFAULT_LIGHTMAP_SHADER{
 static const std::string DEFAULT_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_SCATTERING ? vec4(vec3(1.0), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_SCATTERING ? vec4(vec3(pow(frag.scattering, 1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
     " }"
 };
 

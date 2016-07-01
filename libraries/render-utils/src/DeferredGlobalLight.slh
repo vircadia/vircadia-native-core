@@ -117,7 +117,9 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 <$declareSubsurfaceScatteringResource()$>
 <!<$declareEvalGlobalSpecularIrradiance(1, 0, 0)$>!>
 
-vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec4 blurredCurvature, vec4 diffusedCurvature, float roughness) {
+<$declareSkinSpecularLighting()$>
+
+vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature, float roughness) {
     // prepareGlobalLight
 
     // Transform directions to worldspace
@@ -161,16 +163,22 @@ vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenua
 
         // Specular Lighting
         vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+
+        float specular = skinSpecular(fragNormal, fragLightDir, fragEyeDir, roughness, 1.0);
+
         vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir, halfDir);
         float power = specularDistribution(roughness, fragNormal, halfDir);
-        vec3 specular = power * fresnelColor * standardDiffuse;
+        //vec3 specular = power * fresnelColor * standardDiffuse;
 
-        shading = vec4(specular, (1 - fresnelColor.x));
+        shading = vec4(vec3(specular), (1 - fresnelColor.x));
     }
+
 
     if (scatteringLevel < 0.1) {
         brdf = vec3(standardDiffuse);
     }
+    brdf = mix(vec3(standardDiffuse), brdf, scatteringLevel * scattering);
+
 
     vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
 
@@ -243,7 +251,12 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 <$declareSubsurfaceScatteringResource()$>
 <!<$declareEvalGlobalSpecularIrradiance(0, 1, 0)$>!>
 
-vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec4 blurredCurvature, vec4 diffusedCurvature, float roughness) {
+<$declareSkinSpecularLighting()$>
+
+float curvatureAO(in float k) {
+    return 1.0f - (0.0022f * k * k) + (0.0776f * k) + 0.7369;
+}
+vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float scattering, vec4 blurredCurvature, vec4 diffusedCurvature, float roughness) {
     // prepareGlobalLight
 
     // Transform directions to worldspace
@@ -266,10 +279,10 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
         return diffusedCurvature.xyz;
         return lowNormal * 0.5 + vec3(0.5);
     }
-    if (showCurvature()) {
+  /*  if (showCurvature()) {
         float curvatureSigned = unpackCurvatureSigned(diffusedCurvature.w);
         return (curvatureSigned > 0 ? vec3(curvatureSigned, 0.0, 0.0) : vec3(0.0, 0.0, -curvatureSigned));
-    }
+    }*/
 
     vec3 bentNdotL = evalScatteringBentNdotL(fragNormal, midNormal, lowNormal, fragLightDir);
 
@@ -287,25 +300,41 @@ vec3 evalSkyboxGlobalColorScattering(mat4 invViewMat, float shadowAttenuation, f
     
         // Specular Lighting
         vec3 halfDir = normalize(fragEyeDir + fragLightDir);
-        vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
-        float power = specularDistribution(roughness, fragNormal, halfDir);
-        vec3 specular = power * fresnelColor * standardDiffuse;
 
-        shading = vec4(specular, (1 - fresnelColor.x));
+        float specular = skinSpecular(fragNormal, fragLightDir, fragEyeDir, roughness, 1.0);
+
+        vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir, halfDir);
+        float power = specularDistribution(roughness, fragNormal, halfDir);
+        //vec3 specular = power * fresnelColor * standardDiffuse;
+
+        shading = vec4(vec3(specular), (1 - fresnelColor.x));
+
+   //     shading = vec4(specular, (1 - fresnelColor.x));
     }
     
     if (scatteringLevel < 0.1) {
         brdf = vec3(standardDiffuse);
     }
     
-     vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
+    brdf = mix(vec3(standardDiffuse), brdf, scatteringLevel * scattering);
+    vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
+
+    //vec3 color = vec3(shading.rgb) * getLightColor(light) * getLightIntensity(light);
+
+    float ambientOcclusion = curvatureAO((diffusedCurvature.w * 2 - 1) * 20.0f) * 0.5f;
+    float ambientOcclusionHF = curvatureAO((diffusedCurvature.w * 2 - 1) * 8.0f) * 0.5f;
+    ambientOcclusion = min(ambientOcclusion, ambientOcclusionHF);
+
+    if (showCurvature()) {
+        return vec3(ambientOcclusion);
+    }
 
 
     // Diffuse from ambient
-  //  color += albedo * evalSphericalLight(getLightAmbientSphere(light), bentNormalHigh).xyz *getLightAmbientIntensity(light);
+    color += ambientOcclusion * albedo * evalSphericalLight(getLightAmbientSphere(light), lowNormal).xyz *getLightAmbientIntensity(light);
 
     // Specular highlight from ambient
-    vec3 specularLighting = evalGlobalSpecularIrradiance(light, fragEyeDir, fragNormal, roughness, fresnel, 1.0);
+  //  vec3 specularLighting = evalGlobalSpecularIrradiance(light, fragEyeDir, fragNormal, roughness, fresnel, 1.0);
    // color += specularLighting;
 
     if ( showBRDF())

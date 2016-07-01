@@ -52,6 +52,7 @@ void main(void) {
             frag.position.xyz,
             frag.normal,
             frag.diffuse,
+            frag.scattering,
             blurredCurvature,
             diffusedCurvature,
             frag.roughness);
