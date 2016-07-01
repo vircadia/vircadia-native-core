@@ -87,9 +87,9 @@ function Teleporter() {
     this.createMappings = function() {
         print('jbp create mappings internal');
         // peek at the trigger and thumbs to store their values
-        teleporter.telporterMappingInternalName='Hifi-Teleporter-Internal-Dev-' + Math.random();
-       teleporter.teleportMappingInternal =  Controller.newMapping(teleporter.telporterMappingInternalName);
-        
+        teleporter.telporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
+        teleporter.teleportMappingInternal = Controller.newMapping(teleporter.telporterMappingInternalName);
+
         Controller.enableMapping(teleporter.telporterMappingInternalName);
     };
 
@@ -124,20 +124,24 @@ function Teleporter() {
     };
 
     this.update = function() {
-       //print('in teleporter update')
-        if (rightPad.buttonValue === 0 || leftPad.buttonValue === 0) {
-            print('JBP THUMB RELEASED SHOULD EXIT')
-            _this.exitTeleportMode();
-            return;
-        }
+        //print('in teleporter update')
+
 
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
+            if (leftPad.buttonValue === 0) {
+                _this.exitTeleportMode();
+                return;
+            }
             if (leftTrigger.buttonValue === 0) {
                 _this.teleport();
             }
         } else {
             teleporter.rightRay();
+            if (rightPad.buttonValue === 0) {
+                _this.exitTeleportMode();
+                return;
+            }
             if (rightTrigger.buttonValue === 0) {
                 _this.teleport();
             }
@@ -256,14 +260,14 @@ function Teleporter() {
     this.rightOverlayOff = function() {
         if (this.rightOverlayLine !== null) {
             Overlays.deleteOverlay(this.rightOverlayLine);
-            this.rightOverlayLine=null;
+            this.rightOverlayLine = null;
         }
     };
 
     this.leftOverlayOff = function() {
         if (this.leftOverlayLine !== null) {
             Overlays.deleteOverlay(this.leftOverlayLine);
-             this.leftOverlayLine=null;
+            this.leftOverlayLine = null;
         }
     };
 
