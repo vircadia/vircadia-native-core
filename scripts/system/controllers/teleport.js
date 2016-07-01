@@ -19,9 +19,9 @@
 
 //try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
 
-
-
 var inTeleportMode = false;
+
+var easyMode = true;
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -52,7 +52,6 @@ function Trigger(hand) {
         return _this.buttonValue === 1 ? 1.0 : 0.0;
     };
 }
-
 
 function Teleporter() {
     var _this = this;
@@ -107,7 +106,13 @@ function Teleporter() {
         this.teleportHand = hand;
         this.initialize();
         this.updateConnected = true;
-        Script.update.connect(this.update);
+        if (easyMode !== true) {
+            Script.update.connect(this.update);
+
+        } else {
+            Script.update.connect(this.updateEasy);
+
+        }
     };
 
     this.exitTeleportMode = function(value) {
@@ -117,7 +122,11 @@ function Teleporter() {
         this.leftOverlayOff();
         Entities.deleteEntity(_this.targetEntity);
         this.enableGrab();
-        Script.update.disconnect(this.update);
+        if (easyMode !== true) {
+            Script.update.disconnect(this.update);
+        } else {
+            Script.update.disconnect(this.updateEasy);
+        }
         this.updateConnected = false;
         inTeleportMode = false;
 
@@ -125,7 +134,6 @@ function Teleporter() {
 
     this.update = function() {
         //print('in teleporter update')
-
 
         if (teleporter.teleportHand === 'left') {
             teleporter.leftRay();
@@ -147,6 +155,25 @@ function Teleporter() {
             }
         }
 
+
+    };
+
+    this.updateEasy = function() {
+
+        if (teleporter.teleportHand === 'left') {
+            teleporter.leftRay();
+            if (leftPad.buttonValue === 0) {
+                _this.teleport();
+                return;
+            }
+
+        } else {
+            teleporter.rightRay();
+            if (rightPad.buttonValue === 0) {
+                _this.teleport();
+                return;
+            }
+        }
 
     };
 
@@ -357,6 +384,7 @@ function getJointData() {
 }
 
 
+
 var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
 var leftTrigger = new Trigger('left');
@@ -364,20 +392,41 @@ var rightTrigger = new Trigger('right');
 
 //create a controller mapping and make sure to disable it when the script is stopped
 
-var mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
-var teleportMapping = Controller.newMapping(mappingName);
-teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
-teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
-teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
-teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
+var mappingName, teleportMapping;
 
-teleportMapping.from(leftPad.down).when(leftTrigger.down).to(function() {
-    teleporter.enterTeleportMode('left')
-});
-teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function() {
-    teleporter.enterTeleportMode('right')
-});
+function registerMappings() {
+    mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
+    teleportMapping = Controller.newMapping(mappingName);
+    teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
+    teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
+    teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
+    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
 
+    teleportMapping.from(leftPad.down).when(leftTrigger.down).to(function() {
+        teleporter.enterTeleportMode('left')
+    });
+    teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function() {
+        teleporter.enterTeleportMode('right')
+    });
+
+}
+
+function registerMappingsEasy() {
+    mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
+    teleportMapping = Controller.newMapping(mappingName);
+
+    teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
+    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
+
+    teleportMapping.from(leftPad.down).to(function() {
+        teleporter.enterTeleportMode('left')
+    });
+    teleportMapping.from(rightPad.down).to(function() {
+        teleporter.enterTeleportMode('right')
+    });
+}
+
+registerMappingsEasy();
 var teleporter = new Teleporter();
 
 Controller.enableMapping(mappingName);
