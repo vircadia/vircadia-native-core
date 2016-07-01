@@ -132,8 +132,6 @@ void TestWindow::endFrame() {
     DeferredFrameTransformPointer frameTransform;
     _generateDeferredFrameTransform.run(_sceneContext, _renderContext, frameTransform);
 
-   // auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-  //  deferredLightingEffect->render(_renderContext);
     RenderDeferred::Inputs deferredInputs;
     deferredInputs.edit0() = frameTransform;
     _renderDeferred.run(_sceneContext, _renderContext, deferredInputs);
