@@ -111,8 +111,8 @@ EntityListTool = function(opts) {
         }
     });
 
-    webView.visibilityChanged.connect(function (visible) {
-        if (visible) {
+    webView.visibleChanged.connect(function () {
+        if (webView.visible) {
             that.sendUpdate();
         }
     });

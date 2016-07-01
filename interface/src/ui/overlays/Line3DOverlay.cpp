@@ -54,17 +54,20 @@ void Line3DOverlay::render(RenderArgs* args) {
     if (batch) {
         batch->setModelTransform(_transform);
 
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->bindSimpleProgram(*batch, false, false, true, true);
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()
-            DependencyManager::get<GeometryCache>()->renderDashedLine(*batch, _start, _end, colorv4, _geometryCacheID);
+            geometryCache->renderDashedLine(*batch, _start, _end, colorv4, _geometryCacheID);
         } else {
-            DependencyManager::get<GeometryCache>()->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
+
+            geometryCache->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
         }
     }
 }
 
 const render::ShapeKey Line3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace();
+    auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }

@@ -125,18 +125,32 @@
             Entities.deleteEntity(this.arrow);
         },
 
+        startNearGrab: function(entityID, args) {
+            _this.startEquip(entityID, args);
+        },
+
+        continueNearGrab: function(entityID, args) {
+            _this.continueEquip(entityID, args);
+        },
+
+        releaseGrab: function(entityID, args) {
+            _this.releaseEquip(entityID, args);
+        },
+
         startEquip: function(entityID, args) {
             this.hand = args[0];
             avatarID = args[1];
 
             //disable the opposite hand in handControllerGrab.js by message
             var handToDisable = this.hand === 'right' ? 'left' : 'right';
-            print("disabling hand: " + handToDisable);
             Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
             data.grabbable = false;
             setEntityCustomData('grabbableKey', this.entityID, data);
+            Entities.editEntity(_this.entityID, {
+                collidesWith: ""
+            })
 
         },
         continueEquip: function(entityID, args) {
@@ -169,7 +183,6 @@
 
         },
         releaseEquip: function(entityID, args) {
-            //  print('RELEASE GRAB EVENT')
             Messages.sendMessage('Hifi-Hand-Disabler', "none")
 
             this.stringDrawn = false;
@@ -181,10 +194,12 @@
             Entities.deleteEntity(this.arrow);
             this.aiming = false;
             this.hasArrowNotched = false;
+            Entities.editEntity(_this.entityID, {
+                collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar"
+            })
         },
 
         createArrow: function() {
-            print('create arrow')
             this.playArrowNotchSound();
 
             var arrow = Entities.addEntity({
@@ -209,25 +224,24 @@
 
             var makeArrowStick = function(entityA, entityB, collision) {
                 Entities.editEntity(entityA, {
-                        angularVelocity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        },
-                        velocity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        },
-                        gravity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        },
-                        position: collision.contactPoint,
-                        dynamic: false
-                    })
-                    // print('ARROW COLLIDED WITH::' + entityB);
+                    angularVelocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    velocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    gravity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    position: collision.contactPoint,
+                    dynamic: false
+                })
                 Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick)
             }
 
@@ -283,7 +297,6 @@
         },
 
         updateStringPositions: function() {
-            //    print('update string positions!!!')
             var upVector = Quat.getUp(this.bowProperties.rotation);
             var upOffset = Vec3.multiply(upVector, TOP_NOTCH_OFFSET);
             var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
@@ -354,7 +367,6 @@
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 // firing the arrow
-                //  print('HIT RELEASE LOOP IN CHECK');
 
                 this.drawStrings();
                 this.hasArrowNotched = false;
@@ -364,7 +376,6 @@
 
 
             } else if (this.triggerValue > DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                //    print('HIT CONTINUE LOOP IN CHECK')
                 //continuing to aim the arrow
 
                 this.aiming = true;
@@ -372,7 +383,6 @@
                 this.updateArrowPositionInNotch();
 
             } else if (this.triggerValue > DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
-                // print('HIT START LOOP IN CHECK');
                 this.arrow = this.createArrow();
                 this.playStringPullSound();
 
@@ -461,9 +471,13 @@
                     // rotation: arrowProps.rotation
                 };
 
+
                 //actually shoot the arrow and play its sound
                 Entities.editEntity(this.arrow, arrowProperties);
                 this.playShootArrowSound();
+
+                var backHand = this.hand === 'left' ? 1 : 0;
+                var haptic = Controller.triggerShortHapticPulse(1, backHand);
 
                 //clear the strings back to only the single straight one
                 this.deleteStrings();
