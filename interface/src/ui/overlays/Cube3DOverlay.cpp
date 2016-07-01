@@ -44,7 +44,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
         Transform transform;
         transform.setTranslation(position);
         transform.setRotation(rotation);
-
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = args->_pipeline;
         if (!pipeline) {
@@ -97,9 +96,12 @@ void Cube3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Cube3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withOwnPipeline();
+    auto builder = render::ShapeKey::Builder();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
+    }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
     }
     return builder.build();
 }

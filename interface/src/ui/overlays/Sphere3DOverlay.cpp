@@ -62,6 +62,9 @@ const render::ShapeKey Sphere3DOverlay::getShapeKey() {
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
+    }
     return builder.build();
 }
 

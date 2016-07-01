@@ -75,11 +75,9 @@ void Grid3DOverlay::render(RenderArgs* args) {
         transform.setScale(glm::vec3(getDimensions(), 1.0f));
         transform.setTranslation(position);
         batch->setModelTransform(transform);
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-        geometryCache->bindSimpleProgram(*batch, false, false, true, true);
         const float MINOR_GRID_EDGE = 0.0025f;
         const float MAJOR_GRID_EDGE = 0.005f;
-        geometryCache->renderGrid(*batch, minCorner, maxCorner,
+        DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
             _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
             _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
             gridColor, _drawInFront);
@@ -87,7 +85,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Grid3DOverlay::getShapeKey() {
-    return render::ShapeKey::Builder().withOwnPipeline();
+    return render::ShapeKey::Builder().withOwnPipeline().withUnlit().withDepthBias();
 }
 
 void Grid3DOverlay::setProperties(const QVariantMap& properties) {
