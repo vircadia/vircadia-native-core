@@ -7,18 +7,19 @@
 //release trigger to teleport then exit teleport mode xxx
 //if thumb is release, exit teleport mode xxx
 
-//v2: show room boundaries when choosing a place to teleport
-//v2: smooth fade screen in/out?
-//v2: haptic feedback
 
-
-// alternate notes for philip:
 // try just thumb to teleport xxx
-// cancel if destination is within ~1m of current location
-
 
 //try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
 
+
+//terminate the line when there is an intersection
+//when there's not an intersection, set a fixed distance?
+
+
+//v2: show room boundaries when choosing a place to teleport
+//v2: smooth fade screen in/out?
+//v2: haptic feedback
 var inTeleportMode = false;
 
 var easyMode = true;
