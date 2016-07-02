@@ -1725,7 +1725,7 @@ void ReverbImpl::reset() {
 // Public API
 //
 
-static const int REVERB_BLOCK = 1024;
+static const int REVERB_BLOCK = 256;
 
 AudioReverb::AudioReverb(float sampleRate) {
 
@@ -1898,6 +1898,44 @@ void AudioReverb::convertOutputToInt16(float** inputs, int16_t* output, int numF
     }
 }
 
+// deinterleave stereo
+void AudioReverb::convertInputFromFloat(const float* input, float** outputs, int numFrames) {
+
+    int i = 0;
+    for (; i < numFrames - 3; i += 4) {
+        __m128 f0 = _mm_loadu_ps(&input[2*i + 0]);
+        __m128 f1 = _mm_loadu_ps(&input[2*i + 4]);
+
+        // deinterleave
+        _mm_storeu_ps(&outputs[0][i], _mm_shuffle_ps(f0, f1, _MM_SHUFFLE(2,0,2,0)));
+        _mm_storeu_ps(&outputs[1][i], _mm_shuffle_ps(f0, f1, _MM_SHUFFLE(3,1,3,1)));
+    }
+    for (; i < numFrames; i++) {
+        // deinterleave
+        outputs[0][i] = input[2*i + 0];
+        outputs[1][i] = input[2*i + 1];
+    }
+}
+
+// interleave stereo
+void AudioReverb::convertOutputToFloat(float** inputs, float* output, int numFrames) {
+
+    int i = 0;
+    for(; i < numFrames - 3; i += 4) {
+        __m128 f0 = _mm_loadu_ps(&inputs[0][i]);
+        __m128 f1 = _mm_loadu_ps(&inputs[1][i]);
+
+        // interleave
+        _mm_storeu_ps(&output[2*i + 0],_mm_unpacklo_ps(f0,f1));
+        _mm_storeu_ps(&output[2*i + 4],_mm_unpackhi_ps(f0,f1));
+    }
+    for(; i < numFrames; i++) {
+        // interleave
+        output[2*i + 0] = inputs[0][i];
+        output[2*i + 1] = inputs[1][i];
+    }
+}
+
 #else
 
 // convert int16_t to float, deinterleave stereo
@@ -1944,6 +1982,26 @@ void AudioReverb::convertOutputToInt16(float** inputs, int16_t* output, int numF
     }
 }
 
+// deinterleave stereo
+void AudioReverb::convertInputFromFloat(const float* input, float** outputs, int numFrames) {
+
+    for (int i = 0; i < numFrames; i++) {
+        // deinterleave
+        outputs[0][i] = input[2*i + 0];
+        outputs[1][i] = input[2*i + 1];
+    }
+}
+
+// interleave stereo
+void AudioReverb::convertOutputToFloat(float** inputs, float* output, int numFrames) {
+
+    for (int i = 0; i < numFrames; i++) {
+        // interleave
+        output[2*i + 0] = inputs[0][i];
+        output[2*i + 1] = inputs[1][i];
+    }
+}
+
 #endif
 
 //
@@ -1960,6 +2018,27 @@ void AudioReverb::render(const int16_t* input, int16_t* output, int numFrames) {
         _impl->process(_inout, _inout, n);
 
         convertOutputToInt16(_inout, output, n);
+
+        input += 2 * n;
+        output += 2 * n;
+        numFrames -= n;
+    }
+}
+
+//
+// This version handles input/output as interleaved float
+//
+void AudioReverb::render(const float* input, float* output, int numFrames) {
+
+    while (numFrames) {
+
+        int n = MIN(numFrames, REVERB_BLOCK);
+
+        convertInputFromFloat(input, _inout, n);
+
+        _impl->process(_inout, _inout, n);
+
+        convertOutputToFloat(_inout, output, n);
 
         input += 2 * n;
         output += 2 * n;
