@@ -14,6 +14,9 @@
 <@include model/Light.slh@>
 <@include DeferredLighting.slh@>
 
+<@include LightingModel.slh@>
+<$declareLightingModel()$>
+
 <@func declareSkyboxMap()@>
 // declareSkyboxMap
 uniform samplerCube skyboxMap;
@@ -79,8 +82,9 @@ vec3 evalGlobalSpecularIrradiance(Light light, vec3 fragEyeDir, vec3 fragNormal,
         metallic = 1.0;
     }
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, metallic, fresnel, roughness);
-    vec3 color = vec3(albedo * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
-    color += emissive;
+    vec3 color = vec3(0.0);
+    color += vec3(albedo * shading.w * isDiffuseEnabled() + shading.rgb * isSpecularEnabled()) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light) * isDirectionalEnabled();
+    color += emissive * isEmissiveEnabled();
 <@endfunc@>
 
 
@@ -180,7 +184,7 @@ vec3 evalAmbientSphereGlobalColorScattering(mat4 invViewMat, float shadowAttenua
     brdf = mix(vec3(standardDiffuse), brdf, scatteringLevel * scattering);
 
 
-    vec3 color = vec3(albedo * vec3(brdf.xyz) * shading.w + shading.rgb) * getLightColor(light) * getLightIntensity(light);
+    vec3 color = vec3(albedo * vec3(brdf.xyz) * isDiffuseEnabled() * shading.w + shading.rgb * isSpecularEnabled()) * getLightColor(light) * getLightIntensity(light) * isDirectionalEnabled();
 
 
     // Diffuse from ambient

@@ -24,6 +24,7 @@
 #include <render/CullTask.h>
 
 #include "DeferredFrameTransform.h"
+#include "LightingModel.h"
 
 #include "LightStage.h"
 
@@ -115,7 +116,9 @@ class RenderDeferredSetup {
 public:
   //  using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
     
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const DeferredFrameTransformPointer& frameTransform,
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
+        const DeferredFrameTransformPointer& frameTransform,
+        const LightingModelPointer& lightingModel,
         const gpu::TexturePointer& diffusedCurvature2,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
@@ -138,14 +141,8 @@ public:
 
 class RenderDeferredConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool enablePointLights MEMBER enablePointLights NOTIFY dirty)
-    Q_PROPERTY(bool enableSpotLights MEMBER enableSpotLights NOTIFY dirty)
-
 public:
     RenderDeferredConfig() : render::Job::Config(true) {}
-
-    bool enablePointLights{ true };
-    bool enableSpotLights{ true };
 
 signals:
     void dirty();
@@ -154,7 +151,7 @@ signals:
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, LightingModelPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
@@ -169,9 +166,6 @@ public:
     RenderDeferredCleanup cleanupJob;
 
 protected:
-
-    bool _enablePointLights{ true };
-    bool _enableSpotLights{ true };
 };
 
 #endif // hifi_DeferredLightingEffect_h

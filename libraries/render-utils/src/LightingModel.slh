@@ -1,0 +1,64 @@
+<!
+//  LightingModel.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 1/25/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not LIGHTING_MODEL_SLH@>
+<@def LIGHTING_MODEL_SLH@>
+
+<@func declareLightingModel()@>
+
+struct LightingModel {
+    vec4 _UnlitShadedEmissiveLightmap;
+    vec4 _ScatteringDiffuseSpecular;
+    vec4 _AmbientDirectionalPointSpot;
+};
+
+uniform lightingModelBuffer {
+    LightingModel lightingModel;
+};
+
+float isUnlitEnabled() {
+    return lightingModel._UnlitShadedEmissiveLightmap.x;
+}
+float isShadedEnabled() {
+    return lightingModel._UnlitShadedEmissiveLightmap.y;
+}
+float isEmissiveEnabled() {
+    return lightingModel._UnlitShadedEmissiveLightmap.z;
+}
+float isLightmapEnabled() {
+    return lightingModel._UnlitShadedEmissiveLightmap.w;
+}
+
+float isScatteringEnabled() {
+    return lightingModel._ScatteringDiffuseSpecular.x;
+}
+float isDiffuseEnabled() {
+    return lightingModel._ScatteringDiffuseSpecular.y;
+}
+float isSpecularEnabled() {
+    return lightingModel._ScatteringDiffuseSpecular.z;
+}
+
+float isAmbientEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.x;
+}
+float isDirectionalEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.y;
+}
+float isPointEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.z;
+}
+float isSpotEnabled() {
+    return lightingModel._AmbientDirectionalPointSpot.w;
+}
+
+<@endfunc@>
+
+<@endif@>

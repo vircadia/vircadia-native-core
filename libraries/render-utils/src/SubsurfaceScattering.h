@@ -16,6 +16,7 @@
 
 #include "render/DrawTask.h"
 #include "DeferredFrameTransform.h"
+#include "LightingModel.h"
 
 class SubsurfaceScatteringResource {
 public:
@@ -160,7 +161,7 @@ signals:
 
 class DebugSubsurfaceScattering {
 public:
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, LightingModelPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, SubsurfaceScatteringResourcePointer>;
     using Config = DebugSubsurfaceScatteringConfig;
     using JobModel = render::Job::ModelI<DebugSubsurfaceScattering, Inputs, Config>;
 

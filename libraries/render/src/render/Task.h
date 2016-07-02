@@ -148,6 +148,32 @@ public:
     T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
 };
 
+
+template <class T0, class T1, class T2, class T3, class T4>
+class VaryingSet5 : public std::tuple<Varying, Varying, Varying, Varying, Varying>{
+public:
+    using Parent = std::tuple<Varying, Varying, Varying, Varying, Varying>;
+
+    VaryingSet5() : Parent(Varying(T0()), Varying(T1()), Varying(T2()), Varying(T3()), Varying(T4())) {}
+    VaryingSet5(const VaryingSet5& src) : Parent(std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src), std::get<4>(src)) {}
+    VaryingSet5(const Varying& first, const Varying& second, const Varying& third, const Varying& fourth, const Varying& fifth) : Parent(first, second, third, fourth, fifth) {}
+
+    const T0& get0() const { return std::get<0>((*this)).template get<T0>(); }
+    T0& edit0() { return std::get<0>((*this)).template edit<T0>(); }
+
+    const T1& get1() const { return std::get<1>((*this)).template get<T1>(); }
+    T1& edit1() { return std::get<1>((*this)).template edit<T1>(); }
+
+    const T2& get2() const { return std::get<2>((*this)).template get<T2>(); }
+    T2& edit2() { return std::get<2>((*this)).template edit<T2>(); }
+
+    const T3& get3() const { return std::get<3>((*this)).template get<T3>(); }
+    T3& edit3() { return std::get<3>((*this)).template edit<T3>(); }
+
+    const T4& get4() const { return std::get<4>((*this)).template get<T4>(); }
+    T4& edit4() { return std::get<4>((*this)).template edit<T4>(); }
+};
+
 template < class T, int NUM >
 class VaryingArray : public std::array<Varying, NUM> {
 public:

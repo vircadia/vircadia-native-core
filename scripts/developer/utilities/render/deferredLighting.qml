@@ -16,16 +16,25 @@ Column {
     Column {
         id: deferredLighting
         spacing: 10
-
-        CheckBox {
-            text: "Point Lights"
-            checked: true
-            onCheckedChanged: { Render.getConfig("RenderDeferred").enablePointLights = checked }
-        }
-        CheckBox {
-            text: "Spot Lights"
-            checked: true
-            onCheckedChanged: { Render.getConfig("RenderDeferred").enableSpotLights = checked }
+        Repeater {
+            model: [
+                 "Unlit:LightingModel:enableUnlit", 
+                 "Shaded:LightingModel:enableShaded", 
+                 "Emissive:LightingModel:enableEmissive", 
+                 "Lightmap:LightingModel:enableLightmap",
+                 "Scattering:LightingModel:enableScattering",
+                 "Diffuse:LightingModel:enableDiffuse",
+                 "Specular:LightingModel:enableSpecular",
+                 "Ambient:LightingModel:enableAmbientLight",
+                 "Directional:LightingModel:enableDirectionalLight",
+                 "Point:LightingModel:enablePointLight",
+                 "Spot:LightingModel:enableSpotLight" 
+            ]
+            CheckBox {
+                text: modelData.split(":")[0]
+                checked: Render.getConfig(modelData.split(":")[1])
+                onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+            }
         }
     }
 }

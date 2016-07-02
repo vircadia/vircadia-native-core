@@ -510,9 +510,10 @@ void DebugSubsurfaceScattering::run(const render::SceneContextPointer& sceneCont
 
 
     auto& frameTransform = inputs.get0();
-    auto& curvatureFramebuffer = inputs.get1();
-    auto& diffusedFramebuffer = inputs.get2();
-    auto& scatteringResource = inputs.get3();
+    auto& lightingModel = inputs.get1();
+    auto& curvatureFramebuffer = inputs.get2();
+    auto& diffusedFramebuffer = inputs.get3();
+    auto& scatteringResource = inputs.get4();
 
     if (!scatteringResource) {
         return;

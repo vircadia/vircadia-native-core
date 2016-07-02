@@ -25,6 +25,7 @@
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
 
+#include "LightingModel.h"
 #include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
@@ -88,7 +89,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
     // Prepare deferred, generate the shared Deferred Frame Transform
-    const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("EvalDeferredFrameTransform");
+    const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
+    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
+
 
     // GPU jobs: Start preparing the deferred and lighting buffer
     addJob<PrepareDeferred>("PrepareDeferred");
@@ -125,7 +128,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", lights);
 
-    const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, curvatureFramebuffer, diffusedCurvatureFramebuffer, scatteringResource));
+    const auto deferredLightingInputs = render::Varying(RenderDeferred::Inputs(deferredFrameTransform, lightingModel, curvatureFramebuffer, diffusedCurvatureFramebuffer, scatteringResource));
    
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);

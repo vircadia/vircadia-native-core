@@ -66,6 +66,7 @@ enum DeferredShader_MapSlot {
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    LIGHTING_MODEL_BUFFER_SLOT,
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHT_GPU_SLOT,
 };
@@ -180,6 +181,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
 
@@ -354,6 +356,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 
 void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
+    const LightingModelPointer& lightingModel,
     const gpu::TexturePointer& diffusedCurvature2,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
     
@@ -392,6 +395,9 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
 
         // The Deferred Frame Transform buffer
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, frameTransform->getFrameTransformBuffer());
+
+        // THe lighting model
+        batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
 
         // Subsurface scattering specific
         batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, framebufferCache->getCurvatureTexture());
@@ -599,6 +605,7 @@ void RenderDeferredCleanup::run(const render::SceneContextPointer& sceneContext,
         batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, nullptr);
         
         batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
+        batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
     });
     
@@ -619,19 +626,17 @@ RenderDeferred::RenderDeferred() {
 
 
 void RenderDeferred::configure(const Config& config) {
-
-    _enablePointLights = config.enablePointLights;
-    _enableSpotLights = config.enableSpotLights;
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
     auto deferredTransform = inputs.get0();
+    auto lightingModel = inputs.get1();
     auto diffusedCurvature2 = inputs.get2()->getRenderBuffer(0);
-    auto subsurfaceScatteringResource = inputs.get3();
+    auto subsurfaceScatteringResource = inputs.get4();
 
-    setupJob.run(sceneContext, renderContext, deferredTransform, diffusedCurvature2, subsurfaceScatteringResource);
+    setupJob.run(sceneContext, renderContext, deferredTransform, lightingModel, diffusedCurvature2, subsurfaceScatteringResource);
     
-    lightsJob.run(sceneContext, renderContext, deferredTransform, _enablePointLights, _enableSpotLights);
+    lightsJob.run(sceneContext, renderContext, deferredTransform, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
 
     cleanupJob.run(sceneContext, renderContext);
 }
