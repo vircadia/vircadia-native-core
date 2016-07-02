@@ -192,7 +192,7 @@ var toolBar = (function() {
         });
 
         activeButton = toolBar.addTool({
-            imageURL: toolIconUrl + "edit-01.svg",
+            imageURL: toolIconUrl + "edit.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,

@@ -79,10 +79,6 @@ void DiscoverabilityManager::updateLocation() {
         const QString FRIENDS_ONLY_KEY_IN_LOCATION = "friends_only";
         locationObject.insert(FRIENDS_ONLY_KEY_IN_LOCATION, (_mode.get() == Discoverability::Friends));
 
-        // if we have a session ID add it now, otherwise add a null value
-        auto sessionID = accountManager->getSessionID();
-        rootObject[SESSION_ID_KEY] = sessionID.isNull() ? QJsonValue() : sessionID.toString();
-
         JSONCallbackParameters callbackParameters;
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
@@ -110,13 +106,8 @@ void DiscoverabilityManager::updateLocation() {
         callbackParameters.jsonCallbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
-        QJsonObject heartbeatObject;
-        auto sessionID = accountManager->getSessionID();
-        heartbeatObject[SESSION_ID_KEY] = sessionID.isNull() ? QJsonValue() : sessionID.toString();
-
         accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
-                                   QNetworkAccessManager::PutOperation, callbackParameters,
-                                   QJsonDocument(heartbeatObject).toJson());
+                                   QNetworkAccessManager::PutOperation, callbackParameters);
     }
 }
 

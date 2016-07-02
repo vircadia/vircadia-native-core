@@ -4998,7 +4998,6 @@ void Application::takeSnapshot() {
 
     DependencyManager::get<OffscreenUi>()->load("hifi/dialogs/SnapshotShareDialog.qml", [=](QQmlContext*, QObject* dialog) {
         dialog->setProperty("source", QUrl::fromLocalFile(fileName));
-        connect(dialog, SIGNAL(uploadSnapshot(const QString& snapshot)), this, SLOT(uploadSnapshot(const QString& snapshot)));
     });
 }
 
