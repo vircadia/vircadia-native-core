@@ -35,6 +35,7 @@ public:
     ~AudioSRC();
 
     int render(const int16_t* input, int16_t* output, int inputFrames);
+    int render(const float* input, float* output, int inputFrames);
 
     int getMinOutput(int inputFrames);
     int getMaxOutput(int inputFrames);
@@ -77,6 +78,9 @@ private:
 
     void convertInputFromInt16(const int16_t* input, float** outputs, int numFrames);
     void convertOutputToInt16(float** inputs, int16_t* output, int numFrames);
+
+    void convertInputFromFloat(const float* input, float** outputs, int numFrames);
+    void convertOutputToFloat(float** inputs, float* output, int numFrames);
 
     int processFloat(float** inputs, float** outputs, int inputFrames);
 };
