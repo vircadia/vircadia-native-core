@@ -34,7 +34,13 @@ public:
     AudioSRC(int inputSampleRate, int outputSampleRate, int numChannels);
     ~AudioSRC();
 
+    // deinterleaved float input/output (native format)
+    int render(float** inputs, float** outputs, int inputFrames);
+
+    // interleaved int16_t input/output
     int render(const int16_t* input, int16_t* output, int inputFrames);
+
+    // interleaved float input/output
     int render(const float* input, float* output, int inputFrames);
 
     int getMinOutput(int inputFrames);
@@ -81,8 +87,6 @@ private:
 
     void convertInputFromFloat(const float* input, float** outputs, int numFrames);
     void convertOutputToFloat(float** inputs, float* output, int numFrames);
-
-    int processFloat(float** inputs, float** outputs, int inputFrames);
 };
 
 #endif // AudioSRC_h

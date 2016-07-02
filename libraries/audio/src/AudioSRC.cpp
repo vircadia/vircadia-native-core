@@ -824,7 +824,7 @@ void AudioSRC::convertOutputToFloat(float** inputs, float* output, int numFrames
 
 #endif
 
-int AudioSRC::processFloat(float** inputs, float** outputs, int inputFrames) {
+int AudioSRC::render(float** inputs, float** outputs, int inputFrames) {
     int outputFrames = 0;
 
     int nh = std::min(_numHistory, inputFrames);    // number of frames from history buffer
@@ -955,7 +955,7 @@ int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames) {
 
         convertInputFromInt16(input, _inputs, ni);
 
-        int no = processFloat(_inputs, _outputs, ni);
+        int no = render(_inputs, _outputs, ni);
         assert(no <= SRC_BLOCK);
 
         convertOutputToInt16(_outputs, output, no);
@@ -981,7 +981,7 @@ int AudioSRC::render(const float* input, float* output, int inputFrames) {
 
         convertInputFromFloat(input, _inputs, ni);
 
-        int no = processFloat(_inputs, _outputs, ni);
+        int no = render(_inputs, _outputs, ni);
         assert(no <= SRC_BLOCK);
 
         convertOutputToFloat(_outputs, output, no);
