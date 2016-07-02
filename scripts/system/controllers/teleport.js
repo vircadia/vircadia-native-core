@@ -1,3 +1,5 @@
+// by james b. pollack @imgntn on 7/2/2016
+
 //v1
 //check if trigger is down xxx
 //if trigger is down, check if thumb is down xxx
@@ -16,19 +18,18 @@
 //terminate the line when there is an intersection
 //when there's not an intersection, set a fixed distance?
 
-
 //v2: show room boundaries when choosing a place to teleport
 //v2: smooth fade screen in/out?
 //v2: haptic feedback
+
 var inTeleportMode = false;
 
-var easyMode = true;
+var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 
-var TARGET_MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/potted_plant/potted_plant.fbx';
 var TARGET_MODEL_DIMENSIONS = {
-    x: 1.1005,
-    y: 2.1773,
-    z: 1.0739
+    x: 1.15,
+    y: 0.5
+    z: 1.15
 };
 
 function ThumbPad(hand) {
@@ -167,16 +168,17 @@ function Teleporter() {
 
         var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 500));
         this.rightLineOn(rightPickRay.origin, location, {
-            red: 255,
-            green: 0,
-            blue: 0
+            red: 7,
+            green: 36,
+            blue: 44
         });
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
             this.updateTargetOverlay(rightIntersection);
-
-        };
+        } else {
+            this.noIntersection()
+        }
     };
 
     this.leftRay = function() {
@@ -193,22 +195,24 @@ function Teleporter() {
 
         var location = Vec3.sum(leftPickRay.origin, Vec3.multiply(leftPickRay.direction, 500));
         this.leftLineOn(leftPickRay.origin, location, {
-            red: 0,
-            green: 255,
-            blue: 0
+            red: 7,
+            green: 36,
+            blue: 44
         });
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], []);
 
         if (leftIntersection.intersects) {
             this.updateTargetOverlay(leftIntersection);
-        };
+        } else {
+            this.noIntersection()
+        }
     };
 
     this.rightLineOn = function(closePoint, farPoint, color) {
         // draw a line
         if (this.rightOverlayLine === null) {
             var lineProperties = {
-                lineWidth: 5,
+                lineWidth: 50,
                 start: closePoint,
                 end: farPoint,
                 color: color,
@@ -221,7 +225,7 @@ function Teleporter() {
 
         } else {
             var success = Overlays.editOverlay(this.rightOverlayLine, {
-                lineWidth: 5,
+                lineWidth: 50,
                 start: closePoint,
                 end: farPoint,
                 color: color,
@@ -236,7 +240,7 @@ function Teleporter() {
         // draw a line
         if (this.leftOverlayLine === null) {
             var lineProperties = {
-                lineWidth: 5,
+                lineWidth: 50,
                 start: closePoint,
                 end: farPoint,
                 color: color,
@@ -249,7 +253,7 @@ function Teleporter() {
 
         } else {
             var success = Overlays.editOverlay(this.leftOverlayLine, {
-                lineWidth: 5,
+                lineWidth: 50,
                 start: closePoint,
                 end: farPoint,
                 color: color,
@@ -274,6 +278,13 @@ function Teleporter() {
         }
     };
 
+    this.noIntersection = function() {
+        print('no intersection' + teleporter.targetOverlay);
+        Overlays.editOverlay(teleporter.targetOverlay, {
+            visible: false,
+        });
+    };
+
     this.updateTargetOverlay = function(intersection) {
         this.intersection = intersection;
         var position = {
@@ -282,7 +293,8 @@ function Teleporter() {
             z: intersection.intersection.z
         }
         Overlays.editOverlay(this.targetOverlay, {
-            position: position
+            position: position,
+            visible: true
         });
 
     };
@@ -382,7 +394,7 @@ function registerMappings() {
 
 }
 
-function registerMappingsEasy() {
+function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
     teleportMapping = Controller.newMapping(mappingName);
 
@@ -397,7 +409,7 @@ function registerMappingsEasy() {
     });
 }
 
-registerMappingsEasy();
+registerMappings();
 var teleporter = new Teleporter();
 
 Controller.enableMapping(mappingName);
