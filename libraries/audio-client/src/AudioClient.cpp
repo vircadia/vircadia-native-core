@@ -14,6 +14,8 @@
 #include <sys/stat.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 #ifdef __APPLE__
 #include <CoreAudio/AudioHardware.h>
@@ -42,6 +44,8 @@
 #include <Transform.h>
 
 #include "AudioInjector.h"
+#include "AudioLimiter.h"
+#include "AudioHRTF.h"
 #include "AudioConstants.h"
 #include "PositionalAudioStream.h"
 #include "AudioClientLogging.h"
@@ -852,33 +856,43 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
 
 
 bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
-    if (injector->getLocalBuffer()) {
-        QAudioFormat localFormat = _desiredOutputFormat;
-        localFormat.setChannelCount(isStereo ? 2 : 1);
+    if (injector->getLocalBuffer() && _audioInput ) {
+        if(isStereo) {
+            QAudioFormat localFormat = _desiredOutputFormat;
+            localFormat.setChannelCount(isStereo ? 2 : 1);
 
-        QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
-                                                     localFormat,
-                                                     injector->getLocalBuffer());
+            QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
+                    localFormat,
+                    injector->getLocalBuffer());
 
-        // move the localOutput to the same thread as the local injector buffer
-        localOutput->moveToThread(injector->getLocalBuffer()->thread());
+            // move the localOutput to the same thread as the local injector buffer
+            localOutput->moveToThread(injector->getLocalBuffer()->thread());
 
-        // have it be stopped when that local buffer is about to close
-        // We don't want to stop this localOutput and injector whenever this AudioClient singleton goes idle,
-        // only when the localOutput does. But the connection is to localOutput, so that it happens on the right thread.
-        connect(localOutput, &QAudioOutput::stateChanged, localOutput, [=](QAudio::State state) {
-            if (state == QAudio::IdleState) {
-                localOutput->stop();
-                injector->stop();
-            }
-        });
+            // have it be stopped when that local buffer is about to close
+            // We don't want to stop this localOutput and injector whenever this AudioClient singleton goes idle,
+            // only when the localOutput does. But the connection is to localOutput, so that it happens on the right thread.
+            connect(localOutput, &QAudioOutput::stateChanged, localOutput, [=](QAudio::State state) {
+                    if (state == QAudio::IdleState) {
+                    localOutput->stop();
+                    injector->stop();
+                    }
+                    });
 
-        connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
+            connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
 
-        qCDebug(audioclient) << "Starting QAudioOutput for local injector" << localOutput;
+            qCDebug(audioclient) << "Starting QAudioOutput for local injector" << localOutput;
 
-        localOutput->start(injector->getLocalBuffer());
-        return localOutput->state() == QAudio::ActiveState;
+            localOutput->start(injector->getLocalBuffer());
+            return localOutput->state() == QAudio::ActiveState;
+        } else {
+        // just add it to the vector of active local injectors
+        // TODO: deal with concurrency perhaps?  Maybe not
+            qDebug() << "adding new injector!!!!!!!";
+
+            _activeLocalAudioInjectors.append(injector);
+            return true;
+        }
+
     }
 
     return false;
@@ -1134,20 +1148,225 @@ float AudioClient::getAudioOutputMsecsUnplayed() const {
     return msecsAudioOutputUnplayed;
 }
 
+void AudioClient::AudioOutputIODevice::renderHRTF(AudioHRTF& hrtf, int16_t* data, float* hrtfBuffer, float azimuth, float gain, qint64 numSamples) {
+    qint64 numFrames = numSamples/AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+    int16_t* dataPtr = data;
+    float* hrtfPtr = hrtfBuffer;
+    for(qint64 i=0; i < numFrames; i++) {
+        hrtf.render(dataPtr, hrtfPtr, 1, azimuth, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        
+        //qDebug() << "processed frame " << i;
+        
+        dataPtr += AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+        hrtfPtr += 2*AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+        
+    }
+    assert(dataPtr - data <= numSamples);
+    assert(hrtfPtr - hrtfBuffer <= 2*numSamples);
+}
+
+float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
+    // copied from AudioMixer, more or less
+    glm::quat inverseOrientation = glm::inverse(_orientationGetter());
+    
+    // compute sample delay for the 2 ears to create phase panning
+    glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+    
+    // project the rotated source position vector onto x-y plane
+    rotatedSourcePosition.y = 0.0f;
+
+    static const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
+
+    if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
+        
+        // produce an oriented angle about the y-axis
+        return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
+    } else {
+        
+        // no azimuth if they are in same spot
+        return 0.0f; 
+    }
+}
+
+float AudioClient::gainForSource(const glm::vec3& relativePosition, float volume) {
+    // TODO: put these in a place where we can share with AudioMixer!
+    const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
+    const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18f;
+    const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
+    const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
+
+
+    //qDebug() << "initial gain is " << volume;
+    
+    // I'm assuming that the AudioMixer's getting of the stream's attenuation
+    // factor is basically same as getting volume
+    float gain = volume;
+    float distanceBetween = glm::length(relativePosition);
+    if (distanceBetween < EPSILON ) {
+        distanceBetween = EPSILON;
+    }
+
+    // audio mixer has notion of zones.  Unsure how to map that across here...
+
+    // attenuate based on distance now
+    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
+        float distanceCoefficient = 1.0f - (logf(distanceBetween/ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
+                * DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE);
+        if (distanceCoefficient < 0.0f) {
+            distanceCoefficient = 0.0f;
+        }
+
+        gain *= distanceCoefficient;
+    }
+    
+    //qDebug() << "calculated gain as " << gain;
+
+    return gain;
+}
+
 qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     auto samplesRequested = maxSize / sizeof(int16_t);
     int samplesPopped;
     int bytesWritten;
 
+    // limit the number of NETWORK_FRAME_SAMPLES_PER_CHANNEL to return regardless
+    // of what maxSize requests.
+    static const qint64 MAX_FRAMES = 256;
+    static float hrtfBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL*MAX_FRAMES];
+    static int16_t scratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL*MAX_FRAMES];
+    
+    // injectors are 24Khz, use this to limit the injector audio only
+    static AudioLimiter audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+    
+    // final output is 48Khz, so use this to limit network audio plus upsampled injectors
+    static AudioLimiter finalAudioLimiter(2*AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+    
+    // Injectors are 24khz, but we are running at 48Khz here, so need an AudioSRC to upsample
+    static AudioSRC audioSRC(AudioConstants::SAMPLE_RATE, 2*AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
+    
+    // limit maxSize
+    if (maxSize > AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * MAX_FRAMES) {
+        maxSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * MAX_FRAMES; 
+    }
+
+    // initialize stuff
+    memset(hrtfBuffer, 0, sizeof(hrtfBuffer));
+    QVector<AudioInjector*> injectorsToRemove;
+    qint64 framesReadFromInjectors = 0;
+    
+    //qDebug() << "maxSize=" << maxSize << "data ptr: "<< (qint64)data;
+    
+    for (AudioInjector* injector : _audio->getActiveLocalAudioInjectors()) {
+        // pop off maxSize/4 (since it is mono, and 24Khz instead of 48Khz)
+        // bytes from the injector's localBuffer, using the data ptr as a temporary buffer
+        // note we are only hrtf-ing mono buffers, so we request half of what maxSize is, since it
+        // wants that many stereo bytes
+        if (injector->getLocalBuffer() ) {
+            
+            glm::vec3 relativePosition = injector->getPosition() - _audio->_positionGetter();
+
+            qint64 bytesReadFromInjector = injector->getLocalBuffer()->readData(data, maxSize/4);
+            qint64 framesReadFromInjector = bytesReadFromInjector/sizeof(int16_t);
+            if (framesReadFromInjector > framesReadFromInjectors) {
+                framesReadFromInjectors = framesReadFromInjector;
+            }
+            if (framesReadFromInjector > 0) {
+                
+                //qDebug() << "AudioClient::AudioOutputIODevice::readData found " << framesReadFromInjector << " frames";
+
+                // calculate these shortly
+                float gain = _audio->gainForSource(relativePosition, injector->getVolume()); 
+                float azimuth = _audio->azimuthForSource(relativePosition); 
+
+                // now hrtf this guy, one NETWORK_FRAME_SAMPLES_PER_CHANNEL at a time
+                this->renderHRTF(injector->getLocalHRTF(), (int16_t*)data, hrtfBuffer, azimuth, gain, framesReadFromInjector);
+
+            } else {
+
+                // probably need to be more clever here than just getting rid of the injector?
+                //qDebug() << "AudioClient::AudioOutputIODevice::readData no more data, adding to list of injectors to remove";
+                injectorsToRemove.append(injector);
+                injector->finish();
+            }
+        } else {
+
+            // probably need to be more clever here then just getting rid of injector?
+            //qDebug() << "AudioClient::AudioOutputIODevice::readData injector " << injector << " has no local buffer, adding to list of injectors to remove";
+            injectorsToRemove.append(injector);
+            injector->finish();
+        }
+    }
+    
+    if (framesReadFromInjectors > 0) {
+        // resample the 24Khz injector audio to 48Khz
+        // but first, hit with limiter :(
+        audioLimiter.render(hrtfBuffer, (int16_t*)data, framesReadFromInjectors);
+        audioSRC.render((int16_t*)data, scratchBuffer, framesReadFromInjectors);
+        
+        // now, lets move this back into the hrtfBuffer
+        for(int i=0; i<framesReadFromInjectors*4; i++) {
+            hrtfBuffer[i] = (float)(scratchBuffer[i]) * 1/32676.0f;
+        }
+        
+        //qDebug() << "upsampled " << framesReadFromInjectors*2 << " frames, stereo";
+
+    }
+
+    // k get rid of finished injectors
+    for (AudioInjector* injector : injectorsToRemove) {
+        // TODO: I'd expect concurrency issues here -- fix?
+        _audio->getActiveLocalAudioInjectors().removeOne(injector);
+        
+        //qDebug() << "removed injector " << injector << " from active injector list!";
+    }
+
+    // now grab the stuff from the network, and mix it in...
     if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
+        
+        //qDebug() << "AudioClient::AudioOutputIODevice::readData popped " << samplesPopped << "samples" << "to " << (qint64)data;
+        
         bytesWritten = samplesPopped * sizeof(int16_t);
-    } else {
+        if (framesReadFromInjectors > 0) {
+
+            int16_t* dataPtr = (int16_t*)data;
+            // convert audio to floats for mixing with limiter...
+            //qDebug() << "AudioClient::AudioOUtputIODevice::readData converting to floats...";
+            for (int i=0; i<samplesPopped; i++) {
+                hrtfBuffer[i] += (float)(*dataPtr++) * 1/32676.0f;
+            }
+            
+            // now use limiter, outputting to the data buffer.  
+            // TODO:Since there
+            // are possibilities for pulling less data from the network than
+            // we got from injectors (or more), we need to look at being
+            // more clever here.  If we get more bytes here than in the injectors, I'd assume
+            // that is ok -- we are at the 'end' of the injector sound(s). But
+            // if we get less here than at the injectors, we maybe want to ponder
+            // what to do.
+
+            //qDebug() << "calling limiter...";
+            finalAudioLimiter.render(hrtfBuffer, (int16_t*)data, samplesPopped/2);
+            // the 2 is because the htrf turned the mono into stereo, to match
+            // what the network data has (2 channels)
+            if (8*framesReadFromInjectors > bytesWritten) {
+                bytesWritten = 8*framesReadFromInjectors;
+            }
+            
+            //qDebug() << "done, bytes written = " << bytesWritten;
+        }
+    } else if (framesReadFromInjectors == 0) {
+        // if nobody has data, 0 out buffer...
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
+    } else {
+        // only sound from injectors, multiply by 2 as the htrf is stereo
+        finalAudioLimiter.render(hrtfBuffer, (int16_t*)data, framesReadFromInjectors*2);
+        bytesWritten = 8*framesReadFromInjectors;
     }
 
+    
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     if (!bytesAudioOutputUnplayed) {
         qCDebug(audioclient) << "empty audio buffer";

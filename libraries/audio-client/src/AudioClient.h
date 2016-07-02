@@ -37,6 +37,7 @@
 #include <SettingHandle.h>
 #include <Sound.h>
 #include <StDev.h>
+#include <AudioHRTF.h>
 
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
@@ -86,12 +87,12 @@ public:
         void stop() { close(); }
         qint64    readData(char * data, qint64 maxSize);
         qint64    writeData(const char * data, qint64 maxSize) { return 0; }
-
         int getRecentUnfulfilledReads() { int unfulfilledReads = _unfulfilledReads; _unfulfilledReads = 0; return unfulfilledReads; }
     private:
         MixedProcessedAudioStream& _receivedAudioStream;
         AudioClient* _audio;
         int _unfulfilledReads;
+        void renderHRTF(AudioHRTF& hrtf, int16_t* data, float* hrtfBuffer, float azimuth, float gain, qint64 numSamples);
     };
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
@@ -124,6 +125,8 @@ public:
 
     void setPositionGetter(AudioPositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
+    
+    QVector<AudioInjector*>& getActiveLocalAudioInjectors() { return _activeLocalAudioInjectors; }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
 
@@ -291,6 +294,12 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
+    
+    QVector<AudioInjector*> _activeLocalAudioInjectors;
+
+    float azimuthForSource(const glm::vec3& relativePosition);
+    float gainForSource(const glm::vec3& relativePosition, float volume);
+
 };
 
 
