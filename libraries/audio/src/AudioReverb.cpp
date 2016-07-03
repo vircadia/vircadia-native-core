@@ -13,13 +13,13 @@
 #include "AudioReverb.h"
 
 #ifdef _MSC_VER
-#pragma warning(disable : 4351) // new behavior: elements of array will be default initialized
 
 #include <intrin.h>
 inline static int MULHI(int a, int b) {
     long long c = __emul(a, b);
     return ((int*)&c)[1];
 }
+
 #else
 
 #define MULHI(a,b)  (int)(((long long)(a) * (b)) >> 32)
