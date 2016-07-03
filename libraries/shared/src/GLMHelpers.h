@@ -221,6 +221,7 @@ glm::detail::tvec4<T, P> lerp(const glm::detail::tvec4<T, P>& x, const glm::deta
 
 glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
 glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans);
+glm::quat cancelOutRoll(const glm::quat& q);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);

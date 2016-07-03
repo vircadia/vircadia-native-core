@@ -97,7 +97,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
     _lastColor = colorX;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    
+
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
 
@@ -282,6 +282,9 @@ const render::ShapeKey Circle3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
+    }
+    if (!getIsSolid()) {
+        builder.withUnlit().withDepthBias();
     }
     return builder.build();
 }
