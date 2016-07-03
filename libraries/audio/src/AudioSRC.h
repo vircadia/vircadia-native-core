@@ -82,11 +82,11 @@ private:
     int multirateFilter1_AVX2(const float* input0, float* output0, int inputFrames);
     int multirateFilter2_AVX2(const float* input0, const float* input1, float* output0, float* output1, int inputFrames);
 
-    void convertInputFromInt16(const int16_t* input, float** outputs, int numFrames);
-    void convertOutputToInt16(float** inputs, int16_t* output, int numFrames);
+    void convertInput(const int16_t* input, float** outputs, int numFrames);
+    void convertOutput(float** inputs, int16_t* output, int numFrames);
 
-    void convertInputFromFloat(const float* input, float** outputs, int numFrames);
-    void convertOutputToFloat(float** inputs, float* output, int numFrames);
+    void convertInput(const float* input, float** outputs, int numFrames);
+    void convertOutput(float** inputs, float* output, int numFrames);
 };
 
 #endif // AudioSRC_h

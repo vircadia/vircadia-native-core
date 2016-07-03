@@ -389,7 +389,7 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 }
 
 // convert int16_t to float, deinterleave stereo
-void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+void AudioSRC::convertInput(const int16_t* input, float** outputs, int numFrames) {
     __m128 scale = _mm_set1_ps(1/32768.0f);
 
     if (_numChannels == 1) {
@@ -467,8 +467,8 @@ static inline __m128 dither4() {
     return _mm_mul_ps(d0, _mm_set1_ps(1/65536.0f));
 }
 
-// convert float to int16_t, interleave stereo
-void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+// convert float to int16_t with dither, interleave stereo
+void AudioSRC::convertOutput(float** inputs, int16_t* output, int numFrames) {
     __m128 scale = _mm_set1_ps(32768.0f);
 
     if (_numChannels == 1) {
@@ -540,7 +540,7 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
 }
 
 // deinterleave stereo
-void AudioSRC::convertInputFromFloat(const float* input, float** outputs, int numFrames) {
+void AudioSRC::convertInput(const float* input, float** outputs, int numFrames) {
 
     if (_numChannels == 1) {
 
@@ -566,7 +566,7 @@ void AudioSRC::convertInputFromFloat(const float* input, float** outputs, int nu
 }
 
 // interleave stereo
-void AudioSRC::convertOutputToFloat(float** inputs, float* output, int numFrames) {
+void AudioSRC::convertOutput(float** inputs, float* output, int numFrames) {
 
     if (_numChannels == 1) {
 
@@ -726,7 +726,7 @@ int AudioSRC::multirateFilter2(const float* input0, const float* input1, float* 
 }
 
 // convert int16_t to float, deinterleave stereo
-void AudioSRC::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+void AudioSRC::convertInput(const int16_t* input, float** outputs, int numFrames) {
     const float scale = 1/32768.0f;
 
     if (_numChannels == 1) {
@@ -750,8 +750,8 @@ static inline float dither() {
     return (int32_t)(r0 - r1) * (1/65536.0f);
 }
 
-// convert float to int16_t, interleave stereo
-void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+// convert float to int16_t with dither, interleave stereo
+void AudioSRC::convertOutput(float** inputs, int16_t* output, int numFrames) {
     const float scale = 32768.0f;
 
     if (_numChannels == 1) {
@@ -791,7 +791,7 @@ void AudioSRC::convertOutputToInt16(float** inputs, int16_t* output, int numFram
 }
 
 // deinterleave stereo
-void AudioSRC::convertInputFromFloat(const float* input, float** outputs, int numFrames) {
+void AudioSRC::convertInput(const float* input, float** outputs, int numFrames) {
 
     if (_numChannels == 1) {
 
@@ -807,7 +807,7 @@ void AudioSRC::convertInputFromFloat(const float* input, float** outputs, int nu
 }
 
 // interleave stereo
-void AudioSRC::convertOutputToFloat(float** inputs, float* output, int numFrames) {
+void AudioSRC::convertOutput(float** inputs, float* output, int numFrames) {
 
     if (_numChannels == 1) {
 
@@ -953,12 +953,12 @@ int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames) {
 
         int ni = std::min(inputFrames, _inputBlock);
 
-        convertInputFromInt16(input, _inputs, ni);
+        convertInput(input, _inputs, ni);
 
         int no = render(_inputs, _outputs, ni);
         assert(no <= SRC_BLOCK);
 
-        convertOutputToInt16(_outputs, output, no);
+        convertOutput(_outputs, output, no);
 
         input += _numChannels * ni;
         output += _numChannels * no;
@@ -979,12 +979,12 @@ int AudioSRC::render(const float* input, float* output, int inputFrames) {
 
         int ni = std::min(inputFrames, _inputBlock);
 
-        convertInputFromFloat(input, _inputs, ni);
+        convertInput(input, _inputs, ni);
 
         int no = render(_inputs, _outputs, ni);
         assert(no <= SRC_BLOCK);
 
-        convertOutputToFloat(_outputs, output, no);
+        convertOutput(_outputs, output, no);
 
         input += _numChannels * ni;
         output += _numChannels * no;
