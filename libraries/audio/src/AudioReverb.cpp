@@ -1804,7 +1804,7 @@ void AudioReverb::render(float** inputs, float** outputs, int numFrames) {
 #include <emmintrin.h>
 
 // convert int16_t to float, deinterleave stereo
-void AudioReverb::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+void AudioReverb::convertInput(const int16_t* input, float** outputs, int numFrames) {
     __m128 scale = _mm_set1_ps(1/32768.0f);
 
     int i = 0;
@@ -1855,8 +1855,8 @@ static inline __m128 dither4() {
     return _mm_mul_ps(d0, _mm_set1_ps(1/65536.0f));
 }
 
-// convert float to int16_t, interleave stereo
-void AudioReverb::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+// convert float to int16_t with dither, interleave stereo
+void AudioReverb::convertOutput(float** inputs, int16_t* output, int numFrames) {
     __m128 scale = _mm_set1_ps(32768.0f);
 
     int i = 0;
@@ -1899,7 +1899,7 @@ void AudioReverb::convertOutputToInt16(float** inputs, int16_t* output, int numF
 }
 
 // deinterleave stereo
-void AudioReverb::convertInputFromFloat(const float* input, float** outputs, int numFrames) {
+void AudioReverb::convertInput(const float* input, float** outputs, int numFrames) {
 
     int i = 0;
     for (; i < numFrames - 3; i += 4) {
@@ -1918,7 +1918,7 @@ void AudioReverb::convertInputFromFloat(const float* input, float** outputs, int
 }
 
 // interleave stereo
-void AudioReverb::convertOutputToFloat(float** inputs, float* output, int numFrames) {
+void AudioReverb::convertOutput(float** inputs, float* output, int numFrames) {
 
     int i = 0;
     for(; i < numFrames - 3; i += 4) {
@@ -1939,7 +1939,7 @@ void AudioReverb::convertOutputToFloat(float** inputs, float* output, int numFra
 #else
 
 // convert int16_t to float, deinterleave stereo
-void AudioReverb::convertInputFromInt16(const int16_t* input, float** outputs, int numFrames) {
+void AudioReverb::convertInput(const int16_t* input, float** outputs, int numFrames) {
     const float scale = 1/32768.0f;
 
     for (int i = 0; i < numFrames; i++) {
@@ -1957,8 +1957,8 @@ static inline float dither() {
     return (int32_t)(r0 - r1) * (1/65536.0f);
 }
 
-// convert float to int16_t, interleave stereo
-void AudioReverb::convertOutputToInt16(float** inputs, int16_t* output, int numFrames) {
+// convert float to int16_t with dither, interleave stereo
+void AudioReverb::convertOutput(float** inputs, int16_t* output, int numFrames) {
     const float scale = 32768.0f;
 
     for (int i = 0; i < numFrames; i++) {
@@ -1983,7 +1983,7 @@ void AudioReverb::convertOutputToInt16(float** inputs, int16_t* output, int numF
 }
 
 // deinterleave stereo
-void AudioReverb::convertInputFromFloat(const float* input, float** outputs, int numFrames) {
+void AudioReverb::convertInput(const float* input, float** outputs, int numFrames) {
 
     for (int i = 0; i < numFrames; i++) {
         // deinterleave
@@ -1993,7 +1993,7 @@ void AudioReverb::convertInputFromFloat(const float* input, float** outputs, int
 }
 
 // interleave stereo
-void AudioReverb::convertOutputToFloat(float** inputs, float* output, int numFrames) {
+void AudioReverb::convertOutput(float** inputs, float* output, int numFrames) {
 
     for (int i = 0; i < numFrames; i++) {
         // interleave
@@ -2013,11 +2013,11 @@ void AudioReverb::render(const int16_t* input, int16_t* output, int numFrames) {
 
         int n = MIN(numFrames, REVERB_BLOCK);
 
-        convertInputFromInt16(input, _inout, n);
+        convertInput(input, _inout, n);
 
         _impl->process(_inout, _inout, n);
 
-        convertOutputToInt16(_inout, output, n);
+        convertOutput(_inout, output, n);
 
         input += 2 * n;
         output += 2 * n;
@@ -2034,11 +2034,11 @@ void AudioReverb::render(const float* input, float* output, int numFrames) {
 
         int n = MIN(numFrames, REVERB_BLOCK);
 
-        convertInputFromFloat(input, _inout, n);
+        convertInput(input, _inout, n);
 
         _impl->process(_inout, _inout, n);
 
-        convertOutputToFloat(_inout, output, n);
+        convertOutput(_inout, output, n);
 
         input += 2 * n;
         output += 2 * n;
