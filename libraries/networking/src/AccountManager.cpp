@@ -249,8 +249,6 @@ void AccountManager::sendRequest(const QString& path,
         }
     }
 
-    qDebug() << "/////// path =" << path << " requestURL =" << requestURL;
-
     networkRequest.setUrl(requestURL);
 
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {

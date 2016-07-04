@@ -78,6 +78,8 @@ signals:
 public slots:
     void getGroupIDJSONCallback(QNetworkReply& requestReply);
     void getGroupIDErrorCallback(QNetworkReply& requestReply);
+    void getGroupRanksJSONCallback(QNetworkReply& requestReply);
+    void getGroupRanksErrorCallback(QNetworkReply& requestReply);
 
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
@@ -106,6 +108,7 @@ private:
     void requestMissingGroupIDs();
     void getGroupID(const QString& groupname);
     NodePermissionsPointer lookupGroupByID(const QUuid& id);
+    void getGroupRanks(const QUuid& groupID);
 
     void packPermissionsForMap(QString mapName, NodePermissionsMap& agentPermissions, QString keyPath);
     void packPermissions();
@@ -116,6 +119,9 @@ private:
     NodePermissionsMap _groupPermissions; // permissions granted by membership to specific groups
     NodePermissionsMap _groupForbiddens; // permissions denied due to membership in a specific group
     QHash<QUuid, NodePermissionsPointer> _groupByID; // similar to _groupPermissions but key is group-id rather than name
+
+    // remember the responses to api/v1/groups/%1/ranks
+    QHash<QUuid, QVector<QString>> _groupRanks;
 
     // keep track of answers to api queries about which users are in which groups
     QHash<QString, QHash<QUuid, bool>> _groupMembership;

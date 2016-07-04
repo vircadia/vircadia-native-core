@@ -1090,6 +1090,7 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
     //     "status":"success"
     // }
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
     if (jsonObject["status"].toString() == "success") {
         QJsonArray groups = jsonObject["data"].toObject()["groups"].toArray();
         for (int i = 0; i < groups.size(); i++) {
@@ -1113,6 +1114,7 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
 
             if (found) {
                 packPermissions();
+                getGroupRanks(groupID);
             } else {
                 qDebug() << "DomainServerSettingsManager::getGroupIDJSONCallback got response for unknown group:" << groupName;
             }
@@ -1124,6 +1126,100 @@ void DomainServerSettingsManager::getGroupIDJSONCallback(QNetworkReply& requestR
 
 void DomainServerSettingsManager::getGroupIDErrorCallback(QNetworkReply& requestReply) {
     qDebug() << "******************** getGroupID api call failed:" << requestReply.error();
+}
+
+void DomainServerSettingsManager::getGroupRanks(const QUuid& groupID) {
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "getGroupRanksJSONCallback";
+    callbackParams.errorCallbackReceiver = this;
+    callbackParams.errorCallbackMethod = "getGroupRanksErrorCallback";
+
+    const QString GET_GROUP_RANKS_PATH = "api/v1/groups/%1/ranks";
+
+    qDebug() << "************* Requesting group ranks for group" << groupID;
+
+    DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_RANKS_PATH.arg(groupID.toString().mid(1,36)),
+                                                          AccountManagerAuth::Required,
+                                                          QNetworkAccessManager::GetOperation, callbackParams);
+}
+
+void DomainServerSettingsManager::getGroupRanksJSONCallback(QNetworkReply& requestReply) {
+    // {
+    //     "current_page":1,
+    //     "data":{
+    //         "groups":{
+    //             "fd55479a-265d-4990-854e-3d04214ad1b0":{
+    //                 "ranks":[
+    //                     {
+    //                         "name":"owner",
+    //                         "order":0,
+    //                         "permissions":{
+    //                             "custom_1":false,
+    //                             "custom_2":false,
+    //                             "custom_3":false,
+    //                             "custom_4":false,
+    //                             "del_group":true,
+    //                             "invite_member":true,
+    //                             "kick_member":true,
+    //                             "list_members":true,
+    //                             "mv_group":true,
+    //                             "query_members":true,
+    //                             "rank_member":true
+    //                         }
+    //                     },
+    //                     {
+    //                         "name":"admin",
+    //                         "order":1,
+    //                         "permissions":{
+    //                             "custom_1":false,
+    //                             "custom_2":false,
+    //                             "custom_3":false,
+    //                             "custom_4":false,
+    //                             "del_group":false,
+    //                             "invite_member":false,
+    //                             "kick_member":false,
+    //                             "list_members":false,
+    //                             "mv_group":false,
+    //                             "query_members":false,
+    //                             "rank_member":false
+    //                         }
+    //                     }
+    //                 ]
+    //             }
+    //         }
+    //     },
+    //     "per_page":30,
+    //     "status":"success",
+    //     "total_entries":2,
+    //     "total_pages":1
+    // }
+
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    if (jsonObject["status"].toString() == "success") {
+        QJsonObject groups = jsonObject["data"].toObject()["groups"].toObject();
+        foreach (auto groupID, groups.keys()) {
+            QJsonObject group = groups[groupID].toObject();
+            QJsonArray ranks = group["ranks"].toArray();
+            for (int rankIndex = 0; rankIndex < ranks.size(); rankIndex++) {
+                QJsonObject rank = ranks.at(rankIndex).toObject();
+                QString rankName = rank["name"].toString();
+                int rankOrder = rank["order"].toInt();
+                qDebug() << "**** " << groupID << "rank name =" << rankName << " order =" << rankOrder;
+                QVector<QString>& ranksForGroup = _groupRanks[groupID];
+                if (ranksForGroup.size() < rankOrder + 1) {
+                    ranksForGroup.resize(rankOrder + 1);
+                }
+                ranksForGroup[rankOrder] = rankName;
+            }
+        }
+    } else {
+        qDebug() << "getGroupRanks api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
+    }
+}
+
+void DomainServerSettingsManager::getGroupRanksErrorCallback(QNetworkReply& requestReply) {
+    qDebug() << "******************** getGroupRanks api call failed:" << requestReply.error();
 }
 
 void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, bool isMember) {
