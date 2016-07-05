@@ -15,14 +15,21 @@
 //try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
 
 
-//terminate the line when there is an intersection
-//when there's not an intersection, set a fixed distance?
+//terminate the line when there is an intersection (moving away from lines so...)
+//when there's not an intersection, set a fixed distance?  (no)
 
 //v2: show room boundaries when choosing a place to teleport
 //v2: smooth fade screen in/out?
 //v2: haptic feedback
 
 var inTeleportMode = false;
+
+var currentFadeSphereOpacity = 1;
+var fadeSphereInterval = null;
+//milliseconds between fading one-tenth -- so this is a one second fade total
+var FADE_IN_INTERVAL = 100;
+var FADE_OUT_INTERVAL = 100;
+var BEAM_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam.fbx";
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 
@@ -115,6 +122,87 @@ function Teleporter() {
         this.updateConnected = true;
         Script.update.connect(this.update);
 
+    };
+
+    this.createStretchyBeam = function() {
+
+        var beamProps = {
+            url: BEAM_MODEL_URL,
+            position: MyAvatar.position,
+            rotation: towardsMe,
+            dimensions: TARGET_MODEL_DIMENSIONS
+        };
+
+        _this.stretchyBeam = Overlays.addOverlay("model", beamProps);
+    };
+
+    this.createFadeSphere = function(avatarHead) {
+        var sphereProps = {
+            // rotation: props.rotation,
+            position: avatarHead,
+            size: 0.25,
+            color: {
+                red: 0,
+                green: 0,
+                blue: 0,
+            },
+            alpha: 1,
+            solid: true,
+            visible: true,
+            ignoreRayIntersection: true,
+            drawInFront: true
+        };
+
+        currentFadeSphereOpacity = 1;
+
+        _this.fadeSphere = Overlays.addOverlay("sphere", sphereProps);
+    };
+
+    this.fadeSphereOut = function() {
+
+        fadeSphereInterval = Script.setInterval(function() {
+            if (currentFadeSphereOpacity === 0) {
+                Script.clearInterval(fadeSphereInterval);
+                fadeSphereInterval = null;
+                return;
+            }
+            if (currentFadeSphereOpacity > 0) {
+                currentFadeSphereOpacity -= 0.1;
+            }
+            Overlays.editOverlay(_this.fadeSphere, {
+                opacity: currentFadeSphereOpacity
+            })
+
+        }, FADE_OUT_INTERVAL)
+    };
+
+    this.fadeSphereIn = function() {
+        fadeSphereInterval = Script.setInterval(function() {
+            if (currentFadeSphereOpacity === 1) {
+                Script.clearInterval(fadeSphereInterval);
+                fadeSphereInterval = null;
+                return;
+            }
+            if (currentFadeSphereOpacity < 1) {
+                currentFadeSphereOpacity += 0.1;
+            }
+            Overlays.editOverlay(_this.fadeSphere, {
+                opacity: currentFadeSphereOpacity
+            })
+
+        }, FADE_IN_INTERVAL);
+    };
+
+    this.deleteFadeSphere = function() {
+        Overlays.deleteOverlay(_this.fadeSphere);
+    };
+
+    this.updateStretchyBeam = function() {
+
+    };
+
+    this.deleteStretchyBeam = function() {
+        Overlays.deleteOverlay(_this.stretchyBeam);
     };
 
     this.exitTeleportMode = function(value) {
