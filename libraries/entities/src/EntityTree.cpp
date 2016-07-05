@@ -904,7 +904,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             endDecode = usecTimestampNow();
 
             const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
-            if (!senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+            if ((message.getType() == PacketType::EntityAdd ||
+                 (message.getType() == PacketType::EntityEdit && properties.lifetimeChanged())) &&
+                !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
