@@ -10,7 +10,15 @@
 //if thumb is release, exit teleport mode xxx
 
 
+//v2
 // try just thumb to teleport xxx
+
+//v2
+//fade in/out 
+//stretchy beam instead of GL line
+
+//v3
+//
 
 //try moving to final destination in 4 steps: 50% 75% 90% 100% (arrival)
 
@@ -26,10 +34,13 @@ var inTeleportMode = false;
 
 var currentFadeSphereOpacity = 1;
 var fadeSphereInterval = null;
-//milliseconds between fading one-tenth -- so this is a one second fade total
-var FADE_IN_INTERVAL = 100;
-var FADE_OUT_INTERVAL = 100;
+//milliseconds between fading one-tenth -- so this is a half second fade total
+var FADE_IN_INTERVAL = 50;
+var FADE_OUT_INTERVAL = 50;
+
 var BEAM_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam.fbx";
+var STRETCHY_BEAM_DIMENSIONS_X = 0.07;
+var STRETCHY_BEAM_DIMENSIONS_Y = 0.07;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
 
@@ -59,7 +70,6 @@ function Trigger(hand) {
     var _this = this;
 
     this.buttonPress = function(value) {
-        print('jbp trigger press: ' + value + " on: " + _this.hand)
         _this.buttonValue = value;
 
     };
@@ -74,6 +84,7 @@ function Teleporter() {
     this.targetProps = null;
     this.rightOverlayLine = null;
     this.leftOverlayLine = null;
+    this.stretchyBeam = null;
     this.initialize = function() {
         print('jbp initialize')
         this.createMappings();
@@ -113,8 +124,9 @@ function Teleporter() {
 
     this.enterTeleportMode = function(hand) {
         if (inTeleportMode === true) {
-            return
-        }
+            return;
+        };
+
         print('jbp hand on entering teleport mode: ' + hand);
         inTeleportMode = true;
         this.teleportHand = hand;
@@ -124,21 +136,61 @@ function Teleporter() {
 
     };
 
-    this.createStretchyBeam = function() {
+    this.drawStretchyBeamWithoutIntersection = function() {
+
+    };
+
+    this.findMidpoint = function(handPosition, intersection) {
+        var xy = Vec3.sum(handPosition, intersection.intersection);
+        var midpoint = Vec3.multiply(0.5, xy);
+        print('midpoint point is ' + JSON.stringify(midpoint));
+        return midpoint
+    };
+
+
+    this.createStretchyBeam = function(handPosition, intersection, rotation) {
 
         var beamProps = {
             url: BEAM_MODEL_URL,
-            position: MyAvatar.position,
-            rotation: towardsMe,
-            dimensions: TARGET_MODEL_DIMENSIONS
+            position: _this.findMidpoint(handPosition, intersection),
+            dimensions: {
+                x: STRETCHY_BEAM_DIMENSIONS_X,
+                y: STRETCHY_BEAM_DIMENSIONS_Y,
+                z: 0.1
+            },
+            ignoreRayIntersection: true,
         };
 
         _this.stretchyBeam = Overlays.addOverlay("model", beamProps);
+        Script.update.connect(_this.updateStretchyBeam);
     };
+
+
+    this.updateStretchyBeam = function(handPosition, intersection, rotation) {
+        var dimensions = {
+            x: STRETCHY_BEAM_DIMENSIONS_X,
+            y: STRETCHY_BEAM_DIMENSIONS_Y,
+            z: Vec3.distance(handPosition, intersection.intersection) / 2
+        };
+
+        var position = _this.findMidpoint(handPosition, intersection);
+
+        Overlays.editOverlay(_this.stretchyBeam, {
+            dimensions: dimensions,
+            position: position,
+
+        })
+
+    };
+
+    this.deleteStretchyBeam = function() {
+        Overlays.deleteOverlay(_this.stretchyBeam);
+        Script.update.disconnect(_this.updateStretchyBeam);
+    };
+
 
     this.createFadeSphere = function(avatarHead) {
         var sphereProps = {
-            // rotation: props.rotation,
             position: avatarHead,
             size: 0.25,
             color: {
@@ -156,6 +208,8 @@ function Teleporter() {
         currentFadeSphereOpacity = 1;
 
         _this.fadeSphere = Overlays.addOverlay("sphere", sphereProps);
+
+        Script.update.connect(_this.updateFadeSphere);
     };
 
     this.fadeSphereOut = function() {
@@ -163,6 +217,7 @@ function Teleporter() {
         fadeSphereInterval = Script.setInterval(function() {
             if (currentFadeSphereOpacity === 0) {
                 Script.clearInterval(fadeSphereInterval);
+                _this.deleteFadeSphere();
                 fadeSphereInterval = null;
                 return;
             }
@@ -170,16 +225,17 @@ function Teleporter() {
                 currentFadeSphereOpacity -= 0.1;
             }
             Overlays.editOverlay(_this.fadeSphere, {
-                opacity: currentFadeSphereOpacity
+                alpha: currentFadeSphereOpacity
             })
 
-        }, FADE_OUT_INTERVAL)
+        }, FADE_OUT_INTERVAL);
     };
 
     this.fadeSphereIn = function() {
         fadeSphereInterval = Script.setInterval(function() {
             if (currentFadeSphereOpacity === 1) {
                 Script.clearInterval(fadeSphereInterval);
+                _this.deleteFadeSphere();
                 fadeSphereInterval = null;
                 return;
             }
@@ -187,22 +243,22 @@ function Teleporter() {
                 currentFadeSphereOpacity += 0.1;
             }
             Overlays.editOverlay(_this.fadeSphere, {
-                opacity: currentFadeSphereOpacity
+                alpha: currentFadeSphereOpacity
             })
 
         }, FADE_IN_INTERVAL);
     };
 
+    this.updateFadeSphere = function() {
+        var headPosition = MyAvatar.getHeadPosition();
+        Overlays.editOverlay(_this.fadeSphere, {
+            position: headPosition
+        })
+    };
+
     this.deleteFadeSphere = function() {
+        Script.update.disconnect(_this.updateFadeSphere);
         Overlays.deleteOverlay(_this.fadeSphere);
-    };
-
-    this.updateStretchyBeam = function() {
-
-    };
-
-    this.deleteStretchyBeam = function() {
-        Overlays.deleteOverlay(_this.stretchyBeam);
     };
 
     this.exitTeleportMode = function(value) {
@@ -211,10 +267,8 @@ function Teleporter() {
         this.disableMappings();
         this.rightOverlayOff();
         this.leftOverlayOff();
-        // Entities.deleteEntity(_this.targetEntity);
         Overlays.deleteOverlay(_this.targetOverlay);
         this.enableGrab();
-
         this.updateConnected = false;
         Script.setTimeout(function() {
             inTeleportMode = false;
@@ -264,8 +318,14 @@ function Teleporter() {
 
         if (rightIntersection.intersects) {
             this.updateTargetOverlay(rightIntersection);
+            if (this.stretchyBeam !== null) {
+                this.updateStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+            } else {
+                this.createStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+            }
         } else {
             this.noIntersection()
+            this.noIntersectionStretchyBeam();
         }
     };
 
@@ -282,17 +342,27 @@ function Teleporter() {
         this.leftPickRay = leftPickRay;
 
         var location = Vec3.sum(leftPickRay.origin, Vec3.multiply(leftPickRay.direction, 500));
+
         this.leftLineOn(leftPickRay.origin, location, {
             red: 7,
             green: 36,
             blue: 44
         });
+
         var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], []);
 
         if (leftIntersection.intersects) {
             this.updateTargetOverlay(leftIntersection);
+            if (this.stretchyBeam !== null) {
+                this.updateStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+            } else {
+                this.createStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+
+            }
+
         } else {
-            this.noIntersection()
+            this.noIntersection();
+            this.noIntersectionStretchyBeam();
         }
     };
 
@@ -372,6 +442,13 @@ function Teleporter() {
             visible: false,
         });
     };
+
+
+    this.noIntersectionStretchyBeam = function() {
+        print('no intersection');
+
+    };
+
 
     this.updateTargetOverlay = function(intersection) {
         this.intersection = intersection;
