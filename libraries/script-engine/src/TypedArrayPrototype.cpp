@@ -71,8 +71,10 @@ QScriptValue TypedArrayPrototype::subarray(qint32 begin, qint32 end) {
     end = (end < 0) ? length + end : end;
     
     // here we clamp the indices to fit the array
+    // note: begin offset is *inclusive* while end offset is *exclusive*
+    // (see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/subarray#Parameters)
     begin = glm::clamp(begin, 0, (length - 1));
-    end = glm::clamp(end, 0, (length - 1));
+    end = glm::clamp(end, 0, length);
     
     byteOffset += begin * bytesPerElement;
     length = (end - begin > 0) ? end - begin : 0;
