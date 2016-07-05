@@ -16,6 +16,7 @@
 
 #include "DependencyManager.h"
 #include "AddressManager.h"
+#include "DialogsManager.h"
 
 HIFI_QML_DEF(AddressBarDialog)
 
@@ -74,3 +75,6 @@ void AddressBarDialog::displayAddressNotFoundMessage() {
     OffscreenUi::critical("", "There is no address information for that user or place");
 }
 
+void AddressBarDialog::observeShownChanged(bool visible) {
+    DependencyManager::get<DialogsManager>()->emitAddressBarShown(visible);
+}
