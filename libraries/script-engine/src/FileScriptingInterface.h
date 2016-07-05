@@ -13,6 +13,7 @@
 #define hifi_FileScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <QFileInfo>
 
 class FileScriptingInterface : public QObject {
     Q_OBJECT
@@ -26,12 +27,11 @@ public slots:
 signals:
 	void downloadZip();
 
-};
-
 private:
-	void downloadZip();
-	void unzipFile();
+	//void downloadZip();
+	//void unzipFile();
+	void recursiveFileScan(QFileInfo file, QString* dirName);
 
-
+};
 
 #endif // hifi_FileScriptingInterface_h

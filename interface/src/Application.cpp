@@ -2016,7 +2016,7 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 // attempt to start ZIP download project
-bool Appplication::importZIPFromURL(const QString& urlString) {
+bool Application::importZIPFromURL(const QString& urlString) {
     emit zipImportRequested(urlString);
     return true;
 }

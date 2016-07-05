@@ -11,17 +11,20 @@
 
 #include <QTemporaryDir>
 #include <QFile>
+#include <QDebug>
+#include <QBuffer>
 #include <QUrl>
 #include <QByteArray>
 #include <QString>
+#include <QFileInfo>
 #include <quazip/quazip.h>
-#include <JICompress.h>
+#include <quazip/JlCompress.h>
 #include "ResourceManager.h"
 
 #include "FileScriptingInterface.h"
 
 
-FileScriptingInterface::FileScriptingInterface(QObject* parent) {
+FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent) {
 	// nothing for now
 }
 
@@ -45,11 +48,11 @@ void FileScriptingInterface::unzipFile() {
         buffer.open(QIODevice::ReadOnly);
 
         QString dirName = dir.path();
-        JICompress::extractDir(buffer, dirName);
+        JlCompress::extractDir(buffer, dirName);
 
         QFileInfoList files = dir.entryInfoList();
         foreach (QFileInfo file, files) {
-        	recursiveFileScan(file);
+        	recursiveFileScan(file, &dirName);
         }
 
 
@@ -89,22 +92,26 @@ void FileScriptingInterface::unzipFile() {
 
 }
 
-void FileScriptingInterface::recursiveFileScan(QFileInfo file) {
+void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName) {
 	if (!file.isDir()) {
-		qDebug() << "Regular file logged:" + file.fileName();
+		qDebug() << "Regular file logged: " + file.fileName();
 		return;
 	}
+    QFileInfoList files;
+
 	if (file.fileName().contains(".zip")) {
-		
-	}
+		JlCompress::extractDir(file);
+        qDebug() << "Extracting archive: " + file.fileName();
+    }
+    files = file.entryInfoList();
 
-	QFileInfoList files = file.entryInfoList();
-	if (files.empty()) {
+	/*if (files.empty()) {
 		files = JlCompress::getFileList(file.fileName());
-	}
-	foreach (QFileInfo file, files) {
-		if (file.fileName().contains(".zip")) {
+	}*/
 
-		}
+	foreach (QFileInfo file, files) {
+        qDebug() << "Looking into file: " + file.fileName();
+        recursiveFileScan(file, &dirName);
 	}
+    return;
 }
