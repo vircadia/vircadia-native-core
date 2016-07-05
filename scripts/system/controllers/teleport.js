@@ -380,23 +380,6 @@ var mappingName, teleportMapping;
 function registerMappings() {
     mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
     teleportMapping = Controller.newMapping(mappingName);
-    teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
-    teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
-    teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
-    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
-
-    teleportMapping.from(leftPad.down).when(leftTrigger.down).to(function() {
-        teleporter.enterTeleportMode('left')
-    });
-    teleportMapping.from(rightPad.down).when(rightTrigger.down).to(function() {
-        teleporter.enterTeleportMode('right')
-    });
-
-}
-
-function registerMappings() {
-    mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
-    teleportMapping = Controller.newMapping(mappingName);
 
     teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
     teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
