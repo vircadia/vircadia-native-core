@@ -56,7 +56,6 @@ public slots:
     void setURL(const QString& url);
     void raise();
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
-    void addEventBridgeToWindowObject();
     void setTitle(const QString& title);
 
 signals:

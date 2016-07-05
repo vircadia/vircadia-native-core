@@ -51,8 +51,6 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
     layout->addWidget(_webView);
 
-    addEventBridgeToWindowObject();
-
     _windowWidget = dialogWidget;
 
     auto style = QStyleFactory::create("fusion");
@@ -68,8 +66,6 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     }
 
     connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
-    //connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
-    //        this, &WebWindowClass::addEventBridgeToWindowObject);
 }
 
 WebWindowClass::~WebWindowClass() {
@@ -90,10 +86,6 @@ bool WebWindowClass::eventFilter(QObject* sender, QEvent* event) {
 
 void WebWindowClass::hasClosed() {
     emit closed();
-}
-
-void WebWindowClass::addEventBridgeToWindowObject() {
-//    _webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
 }
 
 void WebWindowClass::setVisible(bool visible) {
