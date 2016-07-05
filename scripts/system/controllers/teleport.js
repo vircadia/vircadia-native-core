@@ -28,7 +28,7 @@ var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Te
 
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
-    y: 0.5
+    y: 0.5,
     z: 1.15
 };
 
