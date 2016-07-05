@@ -88,7 +88,11 @@ QScriptValue TypedArray::construct(QScriptContext* context, QScriptEngine* engin
     if (arrayBuffer) {
         if (context->argumentCount() == 1) {
             // Case for entire ArrayBuffer
-            newObject = cls->newInstance(bufferArg, 0, arrayBuffer->size());
+            if (arrayBuffer->size() % cls->_bytesPerElement != 0) {
+                engine->evaluate("throw \"RangeError: byteLength is not a multiple of BYTES_PER_ELEMENT\"");
+            }
+            quint32 length = arrayBuffer->size() / cls->_bytesPerElement;
+            newObject = cls->newInstance(bufferArg, 0, length);
         } else {
             QScriptValue byteOffsetArg = context->argument(1);
             if (!byteOffsetArg.isNumber()) {
@@ -206,6 +210,7 @@ QScriptValue propertyHelper(const QByteArray* arrayBuffer, const QScriptString& 
         QDataStream stream(*arrayBuffer);
         stream.skipRawData(id);
         
+        stream.setByteOrder(QDataStream::LittleEndian);
         T result;
         stream >> result;
         return result;
@@ -218,6 +223,7 @@ void setPropertyHelper(QByteArray* arrayBuffer, const QScriptString& name, uint 
     if (arrayBuffer && value.isNumber()) {
         QDataStream stream(arrayBuffer, QIODevice::ReadWrite);
         stream.skipRawData(id);
+        stream.setByteOrder(QDataStream::LittleEndian);
         
         stream << (T)value.toNumber();
     }
@@ -357,6 +363,7 @@ QScriptValue Float32ArrayClass::property(const QScriptValue& object, const QScri
     if (ok && arrayBuffer) {
         QDataStream stream(*arrayBuffer);
         stream.skipRawData(id);
+        stream.setByteOrder(QDataStream::LittleEndian);
         stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
         
         float result;
@@ -375,6 +382,7 @@ void Float32ArrayClass::setProperty(QScriptValue& object, const QScriptString& n
     if (ba && value.isNumber()) {
         QDataStream stream(ba, QIODevice::ReadWrite);
         stream.skipRawData(id);
+        stream.setByteOrder(QDataStream::LittleEndian);
         stream.setFloatingPointPrecision(QDataStream::SinglePrecision);
         
         stream << (float)value.toNumber();
@@ -392,6 +400,7 @@ QScriptValue Float64ArrayClass::property(const QScriptValue& object, const QScri
     if (ok && arrayBuffer) {
         QDataStream stream(*arrayBuffer);
         stream.skipRawData(id);
+        stream.setByteOrder(QDataStream::LittleEndian);
         stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
         
         double result;
@@ -410,6 +419,7 @@ void Float64ArrayClass::setProperty(QScriptValue& object, const QScriptString& n
     if (ba && value.isNumber()) {
         QDataStream stream(ba, QIODevice::ReadWrite);
         stream.skipRawData(id);
+        stream.setByteOrder(QDataStream::LittleEndian);
         stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
         
         stream << (double)value.toNumber();

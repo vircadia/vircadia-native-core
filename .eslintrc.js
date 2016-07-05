@@ -52,13 +52,14 @@ module.exports = {
     },
     "rules": {
         "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
-        "comma-dangle": ["error", "only-multiline"],
+        "comma-dangle": ["error", "never"],
         "camelcase": ["error"],
         "curly": ["error", "all"],
         "indent": ["error", 4, { "SwitchCase": 1 }],
         "keyword-spacing": ["error", { "before": true, "after": true }],
         "max-len": ["error", 128, 4],
         "new-cap": ["error"],
+        "no-floating-decimal": ["error"],
         //"no-magic-numbers": ["error", { "ignore": [0, 1], "ignoreArrayIndexes": true }],
         "no-multiple-empty-lines": ["error"],
         "no-multi-spaces": ["error"],
@@ -67,6 +68,6 @@ module.exports = {
         "spaced-comment": ["error", "always", {
             "line": { "markers": ["/"] }
         }],
-        "space-before-function-paren": ["error", "never"]
+        "space-before-function-paren": ["error", {"anonymous": "always", "named": "never"}]
     }
 };

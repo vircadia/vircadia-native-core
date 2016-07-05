@@ -696,6 +696,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         QVector<glm::mat4> localTransforms;
         const FBXGeometry& geometry = _model->getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
+        int totalNumVertices = 0;
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
@@ -706,6 +707,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 glm::mat4 identity;
                 localTransforms.push_back(identity);
             }
+            totalNumVertices += mesh.vertices.size();
+        }
+        const int MAX_VERTICES_PER_STATIC_MESH = 1e6;
+        if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
+            qWarning() << "model" << getModelURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
+            info.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
+            return;
         }
 
         updateModelBounds();
