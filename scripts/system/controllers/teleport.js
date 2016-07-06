@@ -39,16 +39,29 @@ var FADE_IN_INTERVAL = 50;
 var FADE_OUT_INTERVAL = 50;
 
 var BEAM_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam.fbx";
-var STRETCHY_BEAM_DIMENSIONS_X = 0.07;
-var STRETCHY_BEAM_DIMENSIONS_Y = 0.07;
+var BEAM_MODEL_URL_NO_INTERSECTION = "http://hifi-content.s3.amazonaws.com/james/teleporter/teleportBeam2.fbx";
+
+
+var STRETCHY_BEAM_DIMENSIONS_X = 0.04;
+var STRETCHY_BEAM_DIMENSIONS_Y = 0.04;
+var STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION = 10;
 
 var TARGET_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/teleporter/Tele-destiny.fbx';
-
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
     y: 0.5,
     z: 1.15
 };
+
+
+//swirly thing, not sure we'll get to use it
+// var TARGET_MODEL_URL='http://hifi-content.s3.amazonaws.com/alan/dev/Cyclone-4.fbx';
+
+// var TARGET_MODEL_DIMENSIONS = {
+//     x: 0.93,
+//     y: 0.93,
+//     z: 1.22
+// };
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -62,7 +75,6 @@ function ThumbPad(hand) {
     this.down = function() {
         return _this.buttonValue === 1 ? 1.0 : 0.0;
     };
-
 }
 
 function Trigger(hand) {
@@ -81,15 +93,21 @@ function Trigger(hand) {
 
 function Teleporter() {
     var _this = this;
+    this.intersection = null;
     this.targetProps = null;
-    this.rightOverlayLine = null;
-    this.leftOverlayLine = null;
+    this.targetOverlay = null;
     this.stretchyBeam = null;
+    this.noIntersectionStretchyBeam = null;
+    this.updateConnected = null;
+
     this.initialize = function() {
         print('jbp initialize')
         this.createMappings();
         this.disableGrab();
+    };
 
+    this.createTargetOverlay = function() {
+        print('creating target overlay')
         var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
         var towardsMe = Quat.angleAxis(cameraEuler.y + 180, {
             x: 0,
@@ -101,7 +119,8 @@ function Teleporter() {
             url: TARGET_MODEL_URL,
             position: MyAvatar.position,
             rotation: towardsMe,
-            dimensions: TARGET_MODEL_DIMENSIONS
+            dimensions: TARGET_MODEL_DIMENSIONS,
+            visible: true,
         };
 
         _this.targetOverlay = Overlays.addOverlay("model", targetOverlayProps);
@@ -125,7 +144,7 @@ function Teleporter() {
     this.enterTeleportMode = function(hand) {
         if (inTeleportMode === true) {
             return;
-        };
+        }
 
         print('jbp hand on entering teleport mode: ' + hand);
         inTeleportMode = true;
@@ -136,14 +155,9 @@ function Teleporter() {
 
     };
 
-    this.drawStretchyBeamWithoutIntersection = function() {
-
-    };
-
     this.findMidpoint = function(handPosition, intersection) {
         var xy = Vec3.sum(handPosition, intersection.intersection);
         var midpoint = Vec3.multiply(0.5, xy);
-        print('midpoint point is ' + JSON.stringify(midpoint));
         return midpoint
     };
 
@@ -162,7 +176,6 @@ function Teleporter() {
         };
 
         _this.stretchyBeam = Overlays.addOverlay("model", beamProps);
-        Script.update.connect(_this.updateStretchyBeam);
     };
 
 
@@ -170,24 +183,105 @@ function Teleporter() {
         var dimensions = {
             x: STRETCHY_BEAM_DIMENSIONS_X,
             y: STRETCHY_BEAM_DIMENSIONS_Y,
-            z: Vec3.distance(handPosition, intersection.intersection) / 2
+            z: Vec3.distance(handPosition, intersection.intersection)
         };
+        print('dimensions in update:: ' + JSON.stringify(dimensions));
 
         var position = _this.findMidpoint(handPosition, intersection);
-
         Overlays.editOverlay(_this.stretchyBeam, {
             dimensions: dimensions,
             position: position,
-
+            rotation: Quat.multiply(rotation, Quat.angleAxis(180, {
+                x: 0,
+                y: 1,
+                z: 0
+            }))
         })
 
     };
 
     this.deleteStretchyBeam = function() {
-        Overlays.deleteOverlay(_this.stretchyBeam);
-        Script.update.disconnect(_this.updateStretchyBeam);
+        if (_this.stretchyBeam !== null) {
+            Overlays.deleteOverlay(_this.stretchyBeam);
+            _this.stretchyBeam = null;
+        }
     };
 
+    this.createNoIntersectionStretchyBeam = function(handPosition, direction, rotation) {
+
+        var howBig = STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION;
+
+        var ahead = Vec3.sum(handPosition, Vec3.multiply(howBig, direction));
+
+        var midpoint = this.findMidpoint(handPosition, {
+            intersection: ahead
+        });
+
+        var dimensions = {
+            x: 0.04,
+            y: 0.04,
+            z: Vec3.distance(handPosition, ahead)
+        };
+
+
+        var finalRotation = Quat.multiply(rotation, Quat.angleAxis(180, {
+            x: 0,
+            y: 1,
+            z: 0
+        }));
+
+        var beamProps = {
+            dimensions: dimensions,
+            url: BEAM_MODEL_URL_NO_INTERSECTION,
+            position: midpoint,
+            rotation: finalRotation,
+            ignoreRayIntersection: true,
+        };
+
+        this.noIntersectionStretchyBeam = Overlays.addOverlay("model", beamProps);
+
+
+    };
+
+    this.updateNoIntersectionStretchyBeam = function(handPosition, direction, rotation) {
+
+        var howBig = STRETCHY_BEAM_DIMENSIONS_Z_NO_INTESECTION;
+
+        var ahead = Vec3.sum(handPosition, Vec3.multiply(howBig, direction));
+
+        var midpoint = this.findMidpoint(handPosition, {
+            intersection: ahead
+        });
+
+        var dimensions = {
+            x: STRETCHY_BEAM_DIMENSIONS_X,
+            y: STRETCHY_BEAM_DIMENSIONS_Y,
+            z: Vec3.distance(handPosition, ahead)
+        };
+
+        print('dimensions in update:: ' + JSON.stringify(dimensions));
+
+        var finalRotation = Quat.multiply(rotation, Quat.angleAxis(180, {
+            x: 0,
+            y: 1,
+            z: 0
+        }));
+
+        var goodEdit = Overlays.editOverlay(_this.noIntersectionStretchyBeam, {
+            dimensions: dimensions,
+            position: midpoint,
+            rotation: rotation
+        })
+
+    };
+
+
+    this.deleteNoIntersectionStretchyBeam = function() {
+        if (_this.noIntersectionStretchyBeam !== null) {
+            Overlays.deleteOverlay(_this.noIntersectionStretchyBeam);
+            _this.noIntersectionStretchyBeam = null;
+        }
+    };
 
     this.createFadeSphere = function(avatarHead) {
         var sphereProps = {
@@ -261,15 +355,21 @@ function Teleporter() {
         Overlays.deleteOverlay(_this.fadeSphere);
     };
 
+    this.deleteTargetOverlay = function() {
+        Overlays.deleteOverlay(this.targetOverlay);
+        this.intersection = null;
+        this.targetOverlay = null;
+    }
+
     this.exitTeleportMode = function(value) {
         print('jbp value on exit: ' + value);
         Script.update.disconnect(this.update);
+        this.updateConnected = null;
         this.disableMappings();
-        this.rightOverlayOff();
-        this.leftOverlayOff();
-        Overlays.deleteOverlay(_this.targetOverlay);
+        this.deleteStretchyBeam();
+        this.deleteNoIntersectionStretchyBeam();
+        this.deleteTargetOverlay();
         this.enableGrab();
-        this.updateConnected = false;
         Script.setTimeout(function() {
             inTeleportMode = false;
         }, 100);
@@ -301,152 +401,97 @@ function Teleporter() {
 
         var rightRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.RightHand).rotation)
 
+
         var rightPickRay = {
             origin: rightPosition,
             direction: Quat.getUp(rightRotation),
         };
 
+        var rightFinal = Quat.multiply(rightRotation, Quat.angleAxis(90, {
+            x: 1,
+            y: 0,
+            z: 0
+        }));
+
         this.rightPickRay = rightPickRay;
 
         var location = Vec3.sum(rightPickRay.origin, Vec3.multiply(rightPickRay.direction, 500));
-        this.rightLineOn(rightPickRay.origin, location, {
-            red: 7,
-            green: 36,
-            blue: 44
-        });
+
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity]);
 
         if (rightIntersection.intersects) {
-            this.updateTargetOverlay(rightIntersection);
-            if (this.stretchyBeam !== null) {
-                this.updateStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+            this.deleteNoIntersectionStretchyBeam();
+
+            if (this.targetOverlay !== null) {
+                this.updateTargetOverlay(rightIntersection);
             } else {
-                this.createStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+                this.createTargetOverlay();
+            }
+            if (this.stretchyBeam !== null) {
+                this.updateStretchyBeam(rightPickRay.origin, rightIntersection, rightFinal);
+            } else {
+                this.createStretchyBeam(rightPickRay.origin, rightIntersection, rightFinal);
             }
         } else {
-            this.noIntersection()
-            this.noIntersectionStretchyBeam();
+            this.deleteTargetOverlay();
+            this.deleteStretchyBeam();
+            if (this.noIntersectionStretchyBeam !== null) {
+                this.updateNoIntersectionStretchyBeam(rightPickRay.origin, rightPickRay.direction, rightFinal);
+
+            } else {
+                this.createNoIntersectionStretchyBeam(rightPickRay.origin, rightPickRay.direction, rightFinal);
+            }
         }
-    };
+    }
+
 
     this.leftRay = function() {
         var leftPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).translation), MyAvatar.position);
 
-
         var leftRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(Controller.Standard.LeftHand).rotation)
+
         var leftPickRay = {
             origin: leftPosition,
             direction: Quat.getUp(leftRotation),
         };
 
+
+        var leftFinal = Quat.multiply(leftRotation, Quat.angleAxis(90, {
+            x: 1,
+            y: 0,
+            z: 0
+        }));
+
         this.leftPickRay = leftPickRay;
 
         var location = Vec3.sum(leftPickRay.origin, Vec3.multiply(leftPickRay.direction, 500));
 
-        this.leftLineOn(leftPickRay.origin, location, {
-            red: 7,
-            green: 36,
-            blue: 44
-        });
-
-        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], []);
+        var leftIntersection = Entities.findRayIntersection(teleporter.leftPickRay, true, [], [this.targetEntity]);
 
         if (leftIntersection.intersects) {
-            this.updateTargetOverlay(leftIntersection);
-            if (this.stretchyBeam !== null) {
-                this.updateStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+            this.deleteNoIntersectionStretchyBeam();
+            if (this.targetOverlay !== null) {
+                this.updateTargetOverlay(leftIntersection);
             } else {
-                this.createStretchyBeam(rightPickRay.origin, rightIntersection, rightPickRay.direction);
+                this.createTargetOverlay();
+            }
+
+            if (this.stretchyBeam !== null) {
+                this.updateStretchyBeam(leftPickRay.origin, leftIntersection, leftFinal);
+            } else {
+                this.createStretchyBeam(leftPickRay.origin, leftIntersection, leftFinal);
 
             }
 
         } else {
-            this.noIntersection();
-            this.noIntersectionStretchyBeam();
+            this.deleteTargetOverlay();
+            this.deleteStretchyBeam();
+            if (this.noIntersectionStretchyBeam !== null) {
+                this.updateNoIntersectionStretchyBeam(leftPickRay.origin, leftPickRay.direction, leftFinal);
+            } else {
+                this.createNoIntersectionStretchyBeam(leftPickRay.origin, leftPickRay.direction, leftFinal);
+            }
         }
-    };
-
-    this.rightLineOn = function(closePoint, farPoint, color) {
-        // draw a line
-        if (this.rightOverlayLine === null) {
-            var lineProperties = {
-                lineWidth: 50,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                ignoreRayIntersection: true, // always ignore this
-                visible: true,
-                alpha: 1
-            };
-
-            this.rightOverlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            var success = Overlays.editOverlay(this.rightOverlayLine, {
-                lineWidth: 50,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                visible: true,
-                ignoreRayIntersection: true, // always ignore this
-                alpha: 1
-            });
-        }
-    };
-
-    this.leftLineOn = function(closePoint, farPoint, color) {
-        // draw a line
-        if (this.leftOverlayLine === null) {
-            var lineProperties = {
-                lineWidth: 50,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                ignoreRayIntersection: true, // always ignore this
-                visible: true,
-                alpha: 1
-            };
-
-            this.leftOverlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            var success = Overlays.editOverlay(this.leftOverlayLine, {
-                lineWidth: 50,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                visible: true,
-                ignoreRayIntersection: true, // always ignore this
-                alpha: 1
-            });
-        }
-    };
-
-    this.rightOverlayOff = function() {
-        if (this.rightOverlayLine !== null) {
-            Overlays.deleteOverlay(this.rightOverlayLine);
-            this.rightOverlayLine = null;
-        }
-    };
-
-    this.leftOverlayOff = function() {
-        if (this.leftOverlayLine !== null) {
-            Overlays.deleteOverlay(this.leftOverlayLine);
-            this.leftOverlayLine = null;
-        }
-    };
-
-    this.noIntersection = function() {
-        print('no intersection' + teleporter.targetOverlay);
-        Overlays.editOverlay(teleporter.targetOverlay, {
-            visible: false,
-        });
-    };
-
-
-    this.noIntersectionStretchyBeam = function() {
-        print('no intersection');
-
     };
 
 
@@ -454,7 +499,7 @@ function Teleporter() {
         this.intersection = intersection;
         var position = {
             x: intersection.intersection.x,
-            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y,
+            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y + 0.1,
             z: intersection.intersection.z
         }
         Overlays.editOverlay(this.targetOverlay, {
@@ -477,12 +522,14 @@ function Teleporter() {
         print('TELEPORT CALLED');
 
         var offset = getAvatarFootOffset();
-
-        _this.intersection.intersection.y += offset;
-        MyAvatar.position = _this.intersection.intersection;
+        if (_this.intersection !== null) {
+            _this.intersection.intersection.y += offset;
+            MyAvatar.position = _this.intersection.intersection;
+        }
         this.exitTeleportMode();
     };
 }
+
 
 //related to repositioning the avatar after you teleport
 function getAvatarFootOffset() {
@@ -529,9 +576,7 @@ function getJointData() {
     });
 
     return allJointData;
-}
-
-
+};
 
 var leftPad = new ThumbPad('left');
 var rightPad = new ThumbPad('right');
@@ -567,9 +612,9 @@ Script.scriptEnding.connect(cleanup);
 function cleanup() {
     teleportMapping.disable();
     teleporter.disableMappings();
-    teleporter.rightOverlayOff();
-    teleporter.leftOverlayOff();
-    Overlays.deleteOverlay(teleporter.targetOverlay);
+    teleporter.deleteStretchyBeam();
+    teleporter.deleteTargetOverlay();
+    teleporter.deleteNoIntersectionStretchyBeam();
     if (teleporter.updateConnected !== null) {
         Script.update.disconnect(teleporter.update);
     }
