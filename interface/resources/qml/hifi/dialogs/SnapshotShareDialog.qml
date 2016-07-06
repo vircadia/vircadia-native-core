@@ -7,7 +7,7 @@ import "../../windows"
 import "../../js/Utils.js" as Utils
 import "../models"
 
-ScrollingWindow {
+Window {
     id: root
     resizable: true
     width: 516

@@ -24,6 +24,14 @@ FocusScope {
     readonly property int invalid_position: -9999;
     property rect recommendedRect: Qt.rect(0,0,0,0);
     property var expectedChildren;
+    property bool repositionLocked: true
+
+    onRepositionLockedChanged: {
+        if (!repositionLocked) {
+            d.handleSizeChanged();
+        }
+
+    }
 
     onHeightChanged: d.handleSizeChanged();
     
@@ -52,11 +60,13 @@ FocusScope {
         readonly property real menu: 8000
     }
 
-
     QtObject {
         id: d
 
         function handleSizeChanged() {
+            if (desktop.repositionLocked) {
+                return;
+            }
             var oldRecommendedRect = recommendedRect;
             var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
             var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y, 
@@ -235,6 +245,10 @@ FocusScope {
         }
 
         function repositionAll() {
+            if (desktop.repositionLocked) {
+                return;
+            }
+
             var oldRecommendedRect = recommendedRect;
             var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
             var newRecommendedRect = Controller.getRecommendedOverlayRect();
@@ -297,8 +311,8 @@ FocusScope {
 
     onPinnedChanged: {
         if (pinned) {
-            nullFocus.focus = true;
-            nullFocus.forceActiveFocus();
+            desktop.focus = true;
+            desktop.forceActiveFocus();
 
             // recalculate our non-pinned children
             hiddenChildren = d.findMatchingChildren(desktop, function(child){
@@ -472,16 +486,30 @@ FocusScope {
     }
 
     function unfocusWindows() {
+        // First find the active focus item, and unfocus it, all the way 
+        // up the parent chain to the window
+        var currentFocus = offscreenWindow.activeFocusItem;
+        var targetWindow = d.getDesktopWindow(currentFocus);
+        while (currentFocus) {
+            if (currentFocus === targetWindow) {
+                break;
+            }
+            currentFocus.focus = false;
+            currentFocus = currentFocus.parent;
+        }
+
+        // Unfocus all windows
         var windows = d.getTopLevelWindows();
         for (var i = 0; i < windows.length; ++i) {
             windows[i].focus = false;
         }
+
+        // For the desktop to have active focus
         desktop.focus = true;
+        desktop.forceActiveFocus();
     }
 
     FocusHack { id: focusHack; }
-
-    FocusScope { id: nullFocus; }
 
     Rectangle {
         id: focusDebugger;
@@ -496,5 +524,5 @@ FocusScope {
         enabled: DebugQML
         onTriggered: focusDebugger.visible = !focusDebugger.visible
     }
-    
+
 }

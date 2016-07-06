@@ -53,11 +53,6 @@ ScrollingWindow {
         updateRunningScripts();
     }
 
-    function setDefaultFocus() {
-        // Work around FocusScope of scrollable window.
-        filterEdit.forceActiveFocus();
-    }
-
     function updateRunningScripts() {
         var runningScripts = ScriptDiscoveryService.getRunning();
         runningScriptsModel.clear()
@@ -276,7 +271,6 @@ ScrollingWindow {
                 isSearchField: true
                 anchors.left: parent.left
                 anchors.right: parent.right
-                focus: true
                 colorScheme: hifi.colorSchemes.dark
                 placeholderText: "Filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")

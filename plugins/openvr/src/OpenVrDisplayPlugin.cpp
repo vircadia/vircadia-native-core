@@ -96,7 +96,9 @@ bool OpenVrDisplayPlugin::internalActivate() {
         glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
         _sensorResetMat = glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
     } else {
-        qDebug() << "OpenVR: error could not get chaperone pointer";
+        #if DEV_BUILD
+            qDebug() << "OpenVR: error could not get chaperone pointer";
+        #endif
     }
 
     return Parent::internalActivate();

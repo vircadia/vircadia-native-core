@@ -125,8 +125,17 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
+var MARGIN = 25;
+var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
+function updateRecommendedArea() {
+    var dims = Controller.getViewportDimensions();
+    reticleMaxX = dims.x - MARGIN;
+    reticleMaxY = dims.y - MARGIN;
+}
 var setReticlePosition = function (point2d) {
     weMovedReticle = true;
+    point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
+    point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
     Reticle.setPosition(point2d);
 };
 
@@ -187,6 +196,32 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
+function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
+    var controllerPose = Controller.getPoseValue(activeHand);
+    // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
+    if (!controllerPose.valid) {
+        return; // Controller is cradled.
+    }
+    var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
+                                      MyAvatar.position);
+    // This gets point direction right, but if you want general quaternion it would be more complicated:
+    var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
+
+    var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
+    if (!hudPoint3d) {
+        if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
+            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+        }
+        return;
+    }
+    var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
+
+    // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
+    // it's pointing at a QML tool (aka system overlay).
+    setReticlePosition(hudPoint2d);
+    return hudPoint2d;
+}
+
 // MOUSE ACTIVITY --------
 //
 var isSeeking = false;
@@ -208,9 +243,9 @@ function isShakingMouse() { // True if the person is waving the mouse around try
     return isShaking;
 }
 var NON_LINEAR_DIVISOR = 2;
-var MINIMUM_SEEK_DISTANCE = 0.01;
-function updateSeeking() {
-    if (!Reticle.visible || isShakingMouse()) {
+var MINIMUM_SEEK_DISTANCE = 0.1;
+function updateSeeking(doNotStartSeeking) {
+    if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
         if (!isSeeking) {
             print('Start seeking mouse.');
             isSeeking = true;
@@ -224,8 +259,8 @@ function updateSeeking() {
     if (!lookAt2D) { // If this happens, something has gone terribly wrong.
         print('Cannot seek without lookAt position');
         isSeeking = false;
-        return;
-    } // E.g., if parallel to location in HUD
+        return; // E.g., if parallel to location in HUD
+    }
     var copy = Reticle.position;
     function updateDimension(axis) {
         var distanceBetween = lookAt2D[axis] - Reticle.position[axis];
@@ -351,8 +386,33 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
 }
 clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
 clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
-clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
-clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
+// The following is essentially like Left and Right versions of
+// clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
+// except that we first update the reticle position from the appropriate hand position, before invoking the ContextMenu.
+var wantsMenu = 0;
+clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
+clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        activeHudPoint2d(Controller.Standard.RightHand);
+    }
+    wantsMenu = clicked;
+});
+clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        activeHudPoint2d(Controller.Standard.LeftHand);
+    }
+    wantsMenu = clicked;
+});
+clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
+    // Allow the reticle depth to be set correctly:
+    // Wait a tick for the context menu to be displayed, and then simulate a (non-hand-controller) mouse move
+    // so that the system updates qml state (Reticle.pointingAtSystemOverlay) before it gives us a mouseMove.
+    // We don't want the system code to always do this for us, because, e.g., we do not want to get a mouseMove
+    // after the Left/RightSecondaryThumb gives us a context menu. Only from the mouse.
+    Script.setTimeout(function () {
+        Reticle.setPosition(Reticle.position);
+    }, 0);
+});
 // Partial smoothed trigger is activation.
 clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
 clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
@@ -386,8 +446,9 @@ function update() {
         expireMouseCursor();
         clearSystemLaser();
     }
+    updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
-        return off(); // Let them use mouse it in peace.
+        return off(); // Let them use mouse in peace.
     }
     if (!Menu.isOptionChecked("First Person")) {
         return off(); // What to do? menus can be behind hand!
@@ -397,28 +458,13 @@ function update() {
     }
     leftTrigger.update();
     rightTrigger.update();
-    var controllerPose = Controller.getPoseValue(activeHand);
-    // Valid if any plugged-in hand controller is "on". (uncradled Hydra, green-lighted Vive...)
-    if (!controllerPose.valid) {
-        return off(); // Controller is cradled.
+    if (!activeTrigger.state) {
+        return off(); // No trigger
     }
-    var controllerPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, controllerPose.translation),
-                                      MyAvatar.position);
-    // This gets point direction right, but if you want general quaternion it would be more complicated:
-    var controllerDirection = Quat.getUp(Quat.multiply(MyAvatar.orientation, controllerPose.rotation));
-
-    var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
-    if (!hudPoint3d) {
-        if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
-            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
-        }
+    var hudPoint2d = activeHudPoint2d(activeHand);
+    if (!hudPoint2d) {
         return off();
     }
-    var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
-
-    // We don't know yet if we'll want to make the cursor visble, but we need to move it to see if
-    // it's pointing at a QML tool (aka system overlay).
-    setReticlePosition(hudPoint2d);
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
         if (HMD.active) {
@@ -435,23 +481,16 @@ function update() {
         return;
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
-    if (!activeTrigger.state) {
-        return off(); // No trigger
-    }
     clearSystemLaser();
     Reticle.visible = false;
 }
-
-var UPDATE_INTERVAL = 50; // milliseconds. Script.update is too frequent.
-var updater = Script.setInterval(update, UPDATE_INTERVAL);
-Script.scriptEnding.connect(function () {
-    Script.clearInterval(updater);
-});
+setupHandler(Script.update, update);
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // milliseconds
 function checkSettings() {
     updateFieldOfView();
+    updateRecommendedArea();
 }
 checkSettings();
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);

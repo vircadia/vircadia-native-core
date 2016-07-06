@@ -50,8 +50,8 @@ const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 //   "tags": [ String ], // capped list of tags
 //   "hours": {
 //      "utc_offset": Number,
-//      "weekday": [ { "open": Time, "close": Time } ],
-//      "weekend": [ { "open": Time, "close": Time } ],
+//      "weekday": [ [ Time, Time ] ],
+//      "weekend": [ [ Time, Time ] ],
 //   }
 // }
 
@@ -60,17 +60,50 @@ const QString DomainMetadata::Descriptors::Hours::CLOSE = "close";
 //
 // it is meant to be sent to and consumed by an external API
 
+// merge delta into target
+// target should be of the form [ OpenTime, CloseTime ],
+// delta should be of the form [ { open: Time, close: Time } ]
+void parseHours(QVariant delta, QVariant& target) {
+    using Hours = DomainMetadata::Descriptors::Hours;
+    static const QVariantList DEFAULT_HOURS{
+        { QVariantList{ "00:00", "23:59" } }
+    };
+    target.setValue(DEFAULT_HOURS);
+
+    if (!delta.canConvert<QVariantList>()) {
+        return;
+    }
+
+    auto& deltaList = *static_cast<QVariantList*>(delta.data());
+    if (deltaList.isEmpty()) {
+        return;
+    }
+
+    auto& deltaHours = *static_cast<QVariantMap*>(deltaList.first().data());
+    auto open = deltaHours.find(Hours::OPEN);
+    auto close = deltaHours.find(Hours::CLOSE);
+    if (open == deltaHours.end() || close == deltaHours.end()) {
+        return;
+    }
+
+    // merge delta into new hours
+    static const int OPEN_INDEX = 0;
+    static const int CLOSE_INDEX = 1;
+    auto& hours = *static_cast<QVariantList*>(static_cast<QVariantList*>(target.data())->first().data());
+    hours[OPEN_INDEX] = open.value();
+    hours[CLOSE_INDEX] = close.value();
+
+    assert(hours[OPEN_INDEX].canConvert<QString>());
+    assert(hours[CLOSE_INDEX].canConvert<QString>());
+}
+
 DomainMetadata::DomainMetadata(QObject* domainServer) : QObject(domainServer) {
     // set up the structure necessary for casting during parsing (see parseHours, esp.)
     _metadata[USERS] = QVariantMap {};
     _metadata[DESCRIPTORS] = QVariantMap { {
         Descriptors::HOURS, QVariantMap {
-            { Descriptors::Hours::WEEKDAY, QVariantList {
-                QVariantList{ QVariant{}, QVariant{} } }
-            },
-            { Descriptors::Hours::WEEKEND, QVariantList {
-                QVariantList{ QVariant{}, QVariant{} } }
-            }
+            { Descriptors::Hours::WEEKDAY, QVariant{} },
+            { Descriptors::Hours::WEEKEND, QVariant{} }
         }
     } };
 
@@ -100,45 +133,12 @@ QJsonObject DomainMetadata::get(const QString& group) {
     return QJsonObject::fromVariantMap(_metadata[group].toMap());
 }
 
-// merge delta into target
-// target should be of the form [ OpenTime, CloseTime ],
-// delta should be of the form [ { open: Time, close: Time } ]
-void parseHours(QVariant delta, QVariant& target) {
-    using Hours = DomainMetadata::Descriptors::Hours;
-
-    assert(target.canConvert<QVariantList>());
-    auto& targetList = *static_cast<QVariantList*>(target.data());
-
-    // if/when multiple ranges are allowed, this list will need to be iterated
-    assert(targetList[0].canConvert<QVariantList>());
-    auto& hours = *static_cast<QVariantList*>(targetList[0].data());
-
-    auto deltaHours = delta.toList()[0].toMap();
-    if (deltaHours.isEmpty()) {
-        return;
-    }
-
-    // merge delta into base
-    static const int OPEN_INDEX = 0;
-    static const int CLOSE_INDEX = 1;
-    auto open = deltaHours.find(Hours::OPEN);
-    if (open != deltaHours.end()) {
-        hours[OPEN_INDEX] = open.value();
-    }
-    assert(hours[OPEN_INDEX].canConvert<QString>());
-    auto close = deltaHours.find(Hours::CLOSE);
-    if (close != deltaHours.end()) {
-        hours[CLOSE_INDEX] = close.value();
-    }
-    assert(hours[CLOSE_INDEX].canConvert<QString>());
-}
-
 void DomainMetadata::descriptorsChanged() {
     // get descriptors
     assert(_metadata[DESCRIPTORS].canConvert<QVariantMap>());
     auto& state = *static_cast<QVariantMap*>(_metadata[DESCRIPTORS].data());
-    auto settings = static_cast<DomainServer*>(parent())->_settingsManager.getSettingsMap();
-    auto descriptors = settings[DESCRIPTORS].toMap();
+    auto& settings = static_cast<DomainServer*>(parent())->_settingsManager.getSettingsMap();
+    auto& descriptors = static_cast<DomainServer*>(parent())->_settingsManager.getDescriptorsMap();
 
     // copy simple descriptors (description/maturity)
     state[Descriptors::DESCRIPTION] = descriptors[Descriptors::DESCRIPTION]; 
@@ -149,20 +149,20 @@ void DomainMetadata::descriptorsChanged() {
     state[Descriptors::TAGS] = descriptors[Descriptors::TAGS].toList();
 
     // parse capacity
-    const QString CAPACITY = "security.maximum_user_capacity";
+    static const QString CAPACITY = "security.maximum_user_capacity";
     const QVariant* capacityVariant = valueForKeyPath(settings, CAPACITY);
     unsigned int capacity = capacityVariant ? capacityVariant->toUInt() : 0;
     state[Descriptors::CAPACITY] = capacity;
 
     // parse operating hours
-    const QString WEEKDAY_HOURS = "weekday_hours";
-    const QString WEEKEND_HOURS = "weekend_hours";
-    const QString UTC_OFFSET = "utc_offset";
+    static const QString WEEKDAY_HOURS = "weekday_hours";
+    static const QString WEEKEND_HOURS = "weekend_hours";
+    static const QString UTC_OFFSET = "utc_offset";
     assert(state[Descriptors::HOURS].canConvert<QVariantMap>());
     auto& hours = *static_cast<QVariantMap*>(state[Descriptors::HOURS].data());
-    parseHours(descriptors.take(WEEKDAY_HOURS), hours[Descriptors::Hours::WEEKDAY]);
-    parseHours(descriptors.take(WEEKEND_HOURS), hours[Descriptors::Hours::WEEKEND]);
     hours[Descriptors::Hours::UTC_OFFSET] = descriptors.take(UTC_OFFSET);
+    parseHours(descriptors[WEEKDAY_HOURS], hours[Descriptors::Hours::WEEKDAY]);
+    parseHours(descriptors[WEEKEND_HOURS], hours[Descriptors::Hours::WEEKEND]);
 
 #if DEV_BUILD || PR_BUILD
     qDebug() << "Domain metadata descriptors set:" << QJsonObject::fromVariantMap(_metadata[DESCRIPTORS].toMap());

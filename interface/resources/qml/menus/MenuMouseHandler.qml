@@ -39,6 +39,19 @@ Item {
                 onSelected: d.handleSelection(subMenu, currentItem, item)
             }
         }
+        property var delay: Timer { // No setTimeout in QML.
+            property var menuItem: null;
+            interval: 0
+            repeat: false
+            running: false
+            function trigger(item) { // Capture item and schedule asynchronous Timer.
+                menuItem = item;
+                start();
+            }
+            onTriggered: {
+                menuItem.trigger(); // Now trigger the item.
+            }
+        }
 
         function toModel(items) {
             var result = modelMaker.createObject(desktop);
@@ -128,7 +141,8 @@ Item {
 
                 case MenuItemType.Item:
                     console.log("Triggering " + item.text)
-                    item.trigger();
+                    // Don't block waiting for modal dialogs and such that the menu might open.
+                    delay.trigger(item);
                     clearMenus();
                     break;
                 }

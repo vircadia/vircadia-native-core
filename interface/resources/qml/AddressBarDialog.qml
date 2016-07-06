@@ -30,6 +30,7 @@ Window {
     width: addressBarDialog.implicitWidth
     height: addressBarDialog.implicitHeight
 
+    onShownChanged: addressBarDialog.observeShownChanged(shown);
     Component.onCompleted: {
         root.parentChanged.connect(center);
         center();
